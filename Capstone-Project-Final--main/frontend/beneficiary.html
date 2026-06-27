@@ -1,0 +1,2962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beneficiary Portal - Koronadal City Assistance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --rose-primary: #D77FA1;
+            --rose-dark: #B85C7A;
+            --rose-light: #E8B4C4;
+            --rose-lighter: #FCE4EC;
+            --mauve-accent: #9C6B8C;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+            --white: #ffffff;
+            --light-bg: #f8f9fa;
+            --text-dark: #333333;
+            --text-muted: #666666;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--light-bg); 
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* Mobile Header */
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, var(--rose-dark), var(--rose-primary));
+            color: white;
+            padding: 12px 20px;
+            z-index: 1100;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .hamburger {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .mobile-header .header-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .notification-bell {
+            position: relative;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            cursor: pointer;
+        }
+
+        .notif-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: var(--danger);
+            color: white;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .notif-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 320px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 1150;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .notif-dropdown.show {
+            display: block;
+            animation: fadeInDown 0.2s ease;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .notif-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notif-header-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .mark-read-btn {
+            background: none;
+            border: none;
+            color: var(--rose-primary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .notif-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notif-item:hover {
+            background: var(--rose-lighter);
+        }
+
+        .notif-item.unread {
+            background: var(--rose-lighter);
+        }
+
+        .notif-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+
+        .notif-content {
+            flex: 1;
+        }
+
+        .notif-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .notif-msg {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .notif-time {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        /* Sidebar Overlay (mobile) */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1050;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--white);
+            border-right: 1px solid #eee;
+            z-index: 1200;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, var(--rose-dark), var(--rose-primary));
+            color: white;
+            padding: 25px 20px;
+        }
+
+        .sidebar-header img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            padding: 3px;
+            margin-right: 12px;
+        }
+
+        .sidebar-header .title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .sidebar-header .subtitle {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .nav-link-custom {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 25px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-custom:hover {
+            background: var(--rose-lighter);
+            color: var(--rose-dark);
+        }
+
+        .nav-link-custom.active {
+            background: var(--rose-lighter);
+            color: var(--rose-dark);
+            border-left-color: var(--rose-primary);
+            font-weight: 600;
+        }
+
+        .nav-link-custom i {
+            font-size: 1.2rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Section */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 1px solid #f0f0f0;
+            margin-bottom: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Stat Cards */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #f0f0f0;
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-icon-wrapper {
+            width: 55px;
+            height: 55px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon-wrapper.total { background: rgba(215, 127, 161, 0.15); color: var(--rose-primary); }
+        .stat-icon-wrapper.pending { background: rgba(255, 193, 7, 0.15); color: #856404; }
+        .stat-icon-wrapper.approved { background: rgba(40, 167, 69, 0.15); color: var(--success); }
+        .stat-icon-wrapper.documents { background: rgba(23, 162, 184, 0.15); color: var(--info); }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Hero Banner */
+        .hero-banner {
+            background: linear-gradient(135deg, var(--rose-dark), var(--rose-primary));
+            color: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 150px;
+            height: 150px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .hero-banner h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .hero-banner p {
+            font-size: 1rem;
+            opacity: 0.95;
+            margin-bottom: 20px;
+        }
+
+        /* Status Pills */
+        .status-pill {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pill.pending { background: rgba(255, 193, 7, 0.2); color: #856404; }
+        .status-pill.approved { background: rgba(40, 167, 69, 0.2); color: #155724; }
+        .status-pill.rejected { background: rgba(220, 53, 69, 0.2); color: #721c24; }
+        .status-pill.processing { background: rgba(23, 162, 184, 0.2); color: #0c5460; }
+        .status-pill.for-review { background: rgba(108, 91, 123, 0.2); color: #443850; }
+        .status-pill.verified { background: rgba(40, 167, 69, 0.15); color: var(--success); }
+        .status-pill.pending-verify { background: rgba(255, 193, 7, 0.15); color: #856404; }
+        .status-pill.not-submitted { background: rgba(108, 91, 123, 0.15); color: #495057; }
+        .status-pill.completed { background: rgba(108, 91, 123, 0.15); color: #495057; }
+        .status-pill.confirmed { background: rgba(40, 167, 69, 0.15); color: var(--success); }
+        .status-pill.upcoming { background: rgba(23, 162, 184, 0.15); color: var(--info); }
+
+        /* Office Badge */
+        .office-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .office-badge.peso { background: rgba(215, 127, 161, 0.2); color: var(--rose-dark); }
+        .office-badge.cswdo { background: rgba(156, 107, 140, 0.2); color: var(--mauve-accent); }
+
+        /* Buttons */
+        .btn-primary-rose {
+            background: linear-gradient(135deg, var(--rose-primary), var(--rose-dark));
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .btn-primary-rose:hover {
+            transform: translateY(-1px);
+            color: white;
+        }
+
+        .btn-outline-rose {
+            background: white;
+            border: 1px solid var(--rose-primary);
+            color: var(--rose-primary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-outline-rose:hover {
+            background: var(--rose-lighter);
+        }
+
+        .btn-sm-rose {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+
+        /* Progress Bar */
+        .progress-custom {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0 5px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--warning);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.approved { background: var(--success); }
+
+        /* Table */
+        .table-container {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .table-custom {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-custom th {
+            background: var(--rose-lighter);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--rose-dark);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .table-custom td {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .table-custom tr:hover {
+            background: var(--rose-lighter);
+        }
+
+        /* Program Cards */
+        .program-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: var(--rose-primary);
+            color: white;
+            border-color: var(--rose-primary);
+        }
+
+        .programs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .program-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #f0f0f0;
+            transition: all 0.2s;
+        }
+
+        .program-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .program-card .program-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        .program-card .program-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .program-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .program-tag {
+            background: var(--rose-lighter);
+            color: var(--rose-dark);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .program-amount {
+            font-weight: 600;
+            color: var(--rose-dark);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        /* Distribution Cards */
+        .distribution-card {
+            background: linear-gradient(135deg, var(--rose-dark), var(--rose-primary));
+            color: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .distribution-card::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .dist-date-block {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .dist-day {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .dist-month {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        .dist-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .dist-info {
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-bottom: 5px;
+        }
+
+        .dist-instructions {
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content-custom {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideUp 0.3s ease;
+        }
+
+        @keyframes modalSlideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header-custom {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title-custom {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .modal-close-custom {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #888;
+            cursor: pointer;
+        }
+
+        .modal-body-custom {
+            padding: 20px;
+        }
+
+        .modal-footer-custom {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* Form Elements */
+        .form-label-custom {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .form-control-custom {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control-custom:focus {
+            outline: none;
+            border-color: var(--rose-primary);
+        }
+
+        select.form-control-custom {
+            cursor: pointer;
+        }
+
+        textarea.form-control-custom {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--light-bg);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--rose-primary);
+            background: var(--rose-lighter);
+        }
+
+        .upload-zone i {
+            font-size: 2.5rem;
+            color: var(--rose-primary);
+            margin-bottom: 10px;
+        }
+
+        .upload-zone-text {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Evaluation Stage Tracker */
+        .stage-tracker {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            margin: 30px 0;
+        }
+
+        .stage-tracker::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: #e9ecef;
+            z-index: 0;
+        }
+
+        .stage-step {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            flex: 1;
+        }
+
+        .stage-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px auto;
+            font-size: 1rem;
+            border: 3px solid white;
+        }
+
+        .stage-step.active .stage-icon {
+            background: var(--rose-primary);
+            color: white;
+        }
+
+        .stage-step.completed .stage-icon {
+            background: var(--success);
+            color: white;
+        }
+
+        .stage-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        /* Pending Requirements Callout */
+        .pending-requirements {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .pending-requirements-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 193, 7, 0.2);
+            font-size: 0.9rem;
+        }
+
+        .requirement-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Evaluator Remarks */
+        .evaluator-remarks {
+            background: var(--rose-lighter);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        .remarks-label {
+            font-weight: 600;
+            color: var(--rose-dark);
+            margin-bottom: 4px;
+        }
+
+        /* Document List */
+        .doc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .doc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px;
+            background: var(--light-bg);
+            border-radius: 10px;
+            border: 1px solid #eee;
+        }
+
+        .doc-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .doc-icon {
+            width: 45px;
+            height: 45px;
+            background: rgba(215, 127, 161, 0.15);
+            color: var(--rose-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .doc-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .doc-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Training Section */
+        .training-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #f0f0f0;
+        }
+
+        .date-badge {
+            background: rgba(215, 127, 161, 0.15);
+            color: var(--rose-primary);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .date-badge.completed {
+            background: rgba(40, 167, 69, 0.15);
+            color: var(--success);
+        }
+
+        /* Profile */
+        .profile-header {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--rose-primary), var(--rose-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin: 0 auto 20px auto;
+        }
+
+        .profile-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .profile-id {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Application Info Rows */
+        .app-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .app-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .app-info-label {
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .app-info-value {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Tracking View */
+        .tracking-view {
+            padding: 15px 0;
+        }
+
+        .tracking-step-track {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .tracking-step-track .step-dot {
+            position: absolute;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 0.7rem;
+            z-index: 1;
+        }
+
+        .tracking-step-track .step-dot.active {
+            background: var(--rose-primary);
+            color: white;
+        }
+
+        .tracking-step-track .step-dot.completed {
+            background: var(--success);
+            color: white;
+        }
+
+        .tracking-step-track:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 9px;
+            top: 20px;
+            width: 2px;
+            height: calc(100% - 20px);
+            background: #e9ecef;
+        }
+
+        .tracking-step-track:not(:last-child).completed::before {
+            background: var(--success);
+        }
+
+        .tracking-step-track .step-info {
+            padding-bottom: 20px;
+        }
+
+        .tracking-step-track .step-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .tracking-step-track .step-date {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: var(--text-dark);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .mobile-header {
+                display: flex;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 70px 20px 30px 20px;
+            }
+
+            .hero-banner {
+                padding: 30px 25px;
+            }
+
+            .hero-banner h1 {
+                font-size: 1.6rem;
+            }
+
+            .stat-value {
+                font-size: 1.8rem;
+            }
+
+            .programs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .table-custom {
+                min-width: 600px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .sidebar-overlay {
+                display: none !important;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .main-content {
+                padding: 40px 50px;
+            }
+        }
+
+        /* Additional Utilities */
+        .d-flex {
+            display: flex;
+        }
+
+        .justify-content-between {
+            justify-content: space-between;
+        }
+
+        .align-items-center {
+            align-items: center;
+        }
+
+        .align-items-start {
+            align-items: flex-start;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .gap-3 {
+            gap: 1rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-3 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1.5rem;
+        }
+
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+
+        .ms-2 {
+            margin-left: 0.5rem;
+        }
+
+        .mt-3 {
+            margin-top: 1rem;
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .text-success {
+            color: var(--success);
+        }
+
+        .text-primary {
+            color: var(--rose-primary);
+        }
+
+        .d-none {
+            display: none !important;
+        }
+
+        /* Quick Actions Grid */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .btn-quick-action {
+            background: white;
+            border: 1.5px solid var(--rose-light);
+            color: var(--rose-dark);
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(184, 92, 122, 0.02);
+            transition: all 0.25s ease;
+        }
+        .btn-quick-action:hover {
+            background: linear-gradient(135deg, var(--rose-primary), var(--rose-dark));
+            color: white;
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(184, 92, 122, 0.18);
+        }
+        .btn-quick-action i {
+            font-size: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <button class="hamburger" onclick="toggleSidebar()">
+            <i class="bi bi-list"></i>
+        </button>
+        <span class="header-title">My Portal</span>
+        <button class="notification-bell" onclick="toggleNotifications()" style="position: relative;">
+            <i class="bi bi-bell"></i>
+            <span class="notif-badge" id="mobileNotifBadge">3</span>
+        </button>
+    </header>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div style="display: flex; align-items: center;">
+                <img src="assets/koronadalseal.png" alt="Seal">
+                <div>
+                    <div class="title">My Portal</div>
+                    <div class="subtitle">Koronadal City Assistance</div>
+                </div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link-custom active" data-section="dashboard" onclick="navigateTo('dashboard')">
+                <i class="bi bi-house-door"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-link-custom" data-section="applications" onclick="navigateTo('applications')">
+                <i class="bi bi-file-earmark-text"></i>
+                <span>Applications</span>
+            </a>
+            <a href="#" class="nav-link-custom" data-section="documents" onclick="navigateTo('documents')">
+                <i class="bi bi-folder"></i>
+                <span>Documents</span>
+            </a>
+            <a href="#" class="nav-link-custom" data-section="programs" onclick="navigateTo('programs')">
+                <i class="bi bi-grid"></i>
+                <span>Programs</span>
+            </a>
+            <a href="#" class="nav-link-custom" data-section="training" onclick="navigateTo('training')">
+                <i class="bi bi-book"></i>
+                <span>Training & Skills</span>
+            </a>
+            <a href="#" class="nav-link-custom" data-section="distribution" onclick="navigateTo('distribution')">
+                <i class="bi bi-truck"></i>
+                <span>Distribution</span>
+            </a>
+            <a href="#" class="nav-link-custom" data-section="notifications" onclick="navigateTo('notifications')">
+                <i class="bi bi-bell"></i>
+                <span>Notifications</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- DASHBOARD SECTION -->
+        <section id="dashboard" class="section active">
+            <!-- Hero Banner -->
+            <div class="hero-banner">
+                <h1 id="welcomeUser">Welcome, Maria!</h1>
+                <p>Track your applications and stay updated with your assistance programs.</p>
+            </div>
+
+            <!-- Quick Access Grid -->
+            <div class="quick-actions-grid">
+                <button class="btn-quick-action" onclick="openModal('applyModal')">
+                    <i class="bi bi-plus-circle-fill"></i> Apply for Assistance
+                </button>
+                <button class="btn-quick-action" onclick="navigateTo('applications')">
+                    <i class="bi bi-file-earmark-text-fill"></i> View Application Status
+                </button>
+                <button class="btn-quick-action" onclick="openModal('profileModal')">
+                    <i class="bi bi-person-fill-gear"></i> Update Profile
+                </button>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="stat-grid">
+                <div class="stat-card" onclick="navigateTo('applications')">
+                    <div class="stat-icon-wrapper pending">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <div class="stat-value" id="statPending">1</div>
+                    <div class="stat-label">Pending Applications</div>
+                </div>
+                <div class="stat-card" onclick="navigateTo('applications')">
+                    <div class="stat-icon-wrapper approved">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="stat-value" id="statApproved">2</div>
+                    <div class="stat-label">Approved Assistance</div>
+                </div>
+                <div class="stat-card" onclick="navigateTo('training')">
+                    <div class="stat-icon-wrapper total" style="background: rgba(156, 107, 140, 0.15); color: var(--mauve-accent);">
+                        <i class="bi bi-calendar-event"></i>
+                    </div>
+                    <div class="stat-value" id="statScheduled">1</div>
+                    <div class="stat-label">Interviews / Training</div>
+                </div>
+                <div class="stat-card" onclick="navigateTo('notifications')">
+                    <div class="stat-icon-wrapper documents" style="background: rgba(220, 53, 69, 0.15); color: var(--danger);">
+                        <i class="bi bi-bell"></i>
+                    </div>
+                    <div class="stat-value" id="statNotifications">3</div>
+                    <div class="stat-label">Notifications (email/SMS)</div>
+                </div>
+            </div>
+
+            <!-- Recent Applications Table -->
+            <h3 class="section-title">Recent Applications</h3>
+            <div class="table-container">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>App ID</th>
+                            <th>Type</th>
+                            <th>Office</th>
+                            <th>Date Filed</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentApplicationsBody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Latest Notifications -->
+            <h3 class="section-title">Latest Notifications</h3>
+            <div class="card">
+                <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                    <div class="notif-dot"></div>
+                    <div class="notif-content">
+                        <div class="notif-title">Application Approved</div>
+                        <div class="notif-msg">Your SPES application has been approved for Summer 2026 batch.</div>
+                        <div class="notif-time">Today, 10:30 AM</div>
+                    </div>
+                </div>
+                <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                    <div class="notif-dot"></div>
+                    <div class="notif-content">
+                        <div class="notif-title">Missing Document</div>
+                        <div class="notif-msg">Please submit barangay clearance for TUPAD application.</div>
+                        <div class="notif-time">Today, 9:00 AM</div>
+                    </div>
+                </div>
+                <div class="notif-item" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                    <div class="notif-content">
+                        <div class="notif-title">Training Scheduled</div>
+                        <div class="notif-msg">Skills Development Training on April 15, 2026 at 9:00 AM.</div>
+                        <div class="notif-time">Yesterday</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Distribution -->
+            <h3 class="section-title">Upcoming Distribution</h3>
+            <div class="distribution-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div class="dist-date-block">
+                        <span class="dist-day">20</span>
+                        <span class="dist-month">April</span>
+                    </div>
+                    <div style="flex: 1; margin-left: 20px;">
+                        <h3 class="dist-title">TUPAD Financial Assistance</h3>
+                        <div class="dist-info"><i class="bi bi-cash"></i> Php 5,000</div>
+                    </div>
+                    <span class="status-pill confirmed">Confirmed</span>
+                </div>
+                <div style="font-size: 0.95rem; opacity: 0.95; margin-bottom: 15px;">
+                    <div><i class="bi bi-geo-alt"></i> CSWDO Office, Koronadal City</div>
+                    <div><i class="bi bi-clock"></i> 9:00 AM - 4:00 PM</div>
+                </div>
+                <div class="dist-instructions">
+                    <strong>Instructions:</strong><br>
+                    1. Arrive at least 15 minutes before scheduled time.<br>
+                    2. Present your Beneficiary QR Code at registration desk.<br>
+                    3. Bring valid government-issued ID for verification.
+                </div>
+            </div>
+        </section>
+
+        <!-- APPLICATIONS SECTION -->
+        <section id="applications" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 class="section-title" style="margin-bottom: 0;">My Applications</h2>
+                <button class="btn-primary-rose btn-sm-rose" onclick="openModal('applyModal')">
+                    <i class="bi bi-plus"></i> New Application
+                </button>
+            </div>
+
+            <!-- Application 1: TUPAD -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                    <div>
+                        <h4 style="margin-bottom: 5px;">TUPAD Application</h4>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            #CSWDO-2026-0201 • Filed: Mar 20, 2026
+                        </div>
+                    </div>
+                    <span class="status-pill processing">Pending</span>
+                </div>
+
+                <div class="progress-custom">
+                    <div class="progress-fill" style="width: 60%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 20px;">
+                    <span>Submitted</span>
+                    <span>Under Eval</span>
+                    <span>For Review</span>
+                    <span>Decision</span>
+                </div>
+
+                <!-- Pending Requirements -->
+                <div class="pending-requirements">
+                    <div class="pending-requirements-title">
+                        <i class="bi bi-exclamation-triangle"></i> Missing Requirements
+                    </div>
+                    <div class="requirement-item">
+                        <i class="bi bi-file-earmark-text"></i> Barangay Clearance (Original)
+                    </div>
+                    <button class="btn-outline-rose btn-sm-rose" style="margin-top: 10px;" onclick="openModal('uploadModal')">
+                        <i class="bi bi-upload"></i> Upload Missing Document
+                    </button>
+                </div>
+
+                <!-- Evaluation Stage Tracker -->
+                <h5 style="font-size: 1rem; margin-top: 20px; margin-bottom: 15px;">Evaluation Progress</h5>
+                <div class="stage-tracker">
+                    <div class="stage-step completed">
+                        <div class="stage-icon"><i class="bi bi-check"></i></div>
+                        <div class="stage-label">Submitted</div>
+                    </div>
+                    <div class="stage-step completed">
+                        <div class="stage-icon"><i class="bi bi-check"></i></div>
+                        <div class="stage-label">Under Evaluation</div>
+                    </div>
+                    <div class="stage-step active">
+                        <div class="stage-icon"><i class="bi bi-geo-alt"></i></div>
+                        <div class="stage-label">For Review</div>
+                    </div>
+                    <div class="stage-step">
+                        <div class="stage-icon">4</div>
+                        <div class="stage-label">Decision</div>
+                    </div>
+                </div>
+
+                <!-- Evaluator Remarks -->
+                <div class="evaluator-remarks">
+                    <div class="remarks-label">Evaluator Remarks:</div>
+                    <div>"Missing barangay clearance. Please submit at the CSWDO office before interview schedule."</div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn-primary-rose" style="flex: 1;" onclick="viewFullTracking('CSWDO-2026-0201')">
+                        View Full Tracking
+                    </button>
+                </div>
+            </div>
+
+            <!-- Application 2: SPES -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                    <div>
+                        <h4 style="margin-bottom: 5px;">SPES Application</h4>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            #CSWDO-2026-0195 • Filed: Mar 15, 2026
+                        </div>
+                    </div>
+                    <span class="status-pill approved">Approved</span>
+                </div>
+
+                <div class="progress-custom">
+                    <div class="progress-fill approved" style="width: 100%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 20px;">
+                    <span>Submitted</span>
+                    <span>Under Eval</span>
+                    <span>For Review</span>
+                    <span>Decision</span>
+                </div>
+
+                <div style="background: rgba(40, 167, 69, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--success);">
+                    <div style="font-weight: 600; color: #155724; margin-bottom: 5px;">
+                        <i class="bi bi-check-circle"></i> Approved Amount
+                    </div>
+                    <div style="font-size: 1.2rem; font-weight: 700; color: #155724;">Php 5,000</div>
+                </div>
+
+                <div class="evaluator-remarks" style="background: rgba(40, 167, 69, 0.1); border-left: 3px solid var(--success);">
+                    <div class="remarks-label" style="color: #155724;">Approval Notes:</div>
+                    <div>"Application approved for Summer 2026 SPES program. Please prepare for orientation."</div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn-outline-rose" style="flex: 1;" onclick="viewFullTracking('CSWDO-2026-0195')">
+                        View Tracking
+                    </button>
+                </div>
+            </div>
+
+            <!-- Application 3: Medical -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                    <div>
+                        <h4 style="margin-bottom: 5px;">Medical Assistance</h4>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            #CSWDO-2026-0180 • Filed: Mar 10, 2026
+                        </div>
+                    </div>
+                    <span class="status-pill completed">Completed</span>
+                </div>
+
+                <div class="progress-custom">
+                    <div class="progress-fill approved" style="width: 100%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 20px;">
+                    <span>Submitted</span>
+                    <span>Under Eval</span>
+                    <span>For Review</span>
+                    <span>Decision</span>
+                </div>
+
+                <div style="background: rgba(40, 167, 69, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid var(--success);">
+                    <div style="font-weight: 600; color: #155724; margin-bottom: 5px;">
+                        <i class="bi bi-check-circle"></i> Assistance Released
+                    </div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #155724;">Php 10,000</div>
+                    <div style="font-size: 0.85rem; color: #155724; margin-top: 4px;">Received: Mar 20, 2026</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DOCUMENTS SECTION -->
+        <section id="documents" class="section">
+            <h2 class="section-title">My Documents</h2>
+
+            <div class="card">
+                <div class="doc-list">
+                    <div class="doc-item">
+                        <div class="doc-info">
+                            <div class="doc-icon">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                            <div>
+                                <div class="doc-name">Valid Government ID</div>
+                                <div class="doc-meta">Submitted: Mar 12, 2026</div>
+                            </div>
+                        </div>
+                        <span class="status-pill verified">Verified</span>
+                    </div>
+
+                    <div class="doc-item">
+                        <div class="doc-info">
+                            <div class="doc-icon">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                            <div>
+                                <div class="doc-name">Barangay Clearance</div>
+                                <div class="doc-meta">Submitted: Mar 14, 2026</div>
+                            </div>
+                        </div>
+                        <span class="status-pill verified">Verified</span>
+                    </div>
+
+                    <div class="doc-item">
+                        <div class="doc-info">
+                            <div class="doc-icon">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                            <div>
+                                <div class="doc-name">Medical Certificate</div>
+                                <div class="doc-meta">Submitted: Mar 15, 2026</div>
+                            </div>
+                        </div>
+                        <span class="status-pill pending-verify">Processing</span>
+                    </div>
+
+                    <div class="doc-item">
+                        <div class="doc-info">
+                            <div class="doc-icon">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                            <div>
+                                <div class="doc-name">Income Certificate</div>
+                                <div class="doc-meta">Submitted: Mar 16, 2026</div>
+                            </div>
+                        </div>
+                        <span class="status-pill verified">Verified</span>
+                    </div>
+
+                    <div class="doc-item">
+                        <div class="doc-info">
+                            <div class="doc-icon">
+                                <i class="bi bi-file-earmark-image"></i>
+                            </div>
+                            <div>
+                                <div class="doc-name">2x2 ID Photo</div>
+                                <div class="doc-meta">Submitted: Mar 16, 2026</div>
+                            </div>
+                        </div>
+                        <span class="status-pill verified">Verified</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary-rose" onclick="openModal('uploadModal')">
+                <i class="bi bi-upload"></i> Upload New Document
+            </button>
+        </section>
+
+        <!-- PROGRAMS SECTION -->
+        <section id="programs" class="section">
+            <h2 class="section-title">Available Programs</h2>
+
+            <!-- Filter Tabs -->
+            <div class="program-filter">
+                <button class="filter-btn active" data-filter="all" onclick="filterPrograms('all')">All Programs</button>
+                <button class="filter-btn" data-filter="peso" onclick="filterPrograms('peso')">PESO</button>
+                <button class="filter-btn" data-filter="cswdo" onclick="filterPrograms('cswdo')">CSWDO</button>
+            </div>
+
+            <!-- PESO Programs -->
+            <h4 style="margin-bottom: 15px; color: var(--rose-dark); margin-top: 25px;">PESO Programs</h4>
+            <div class="programs-grid" id="peso-programs">
+                <div class="program-card" data-office="peso">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <span class="office-badge peso">PESO</span>
+                        <i class="bi bi-briefcase" style="color: var(--rose-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <h4 class="program-title">Livelihood Assistance Grant</h4>
+                    <p class="program-desc">Financial support for starting or expanding small businesses and livelihood activities.</p>
+                    <div class="program-tags">
+                        <span class="program-tag">Self-Employed</span>
+                        <span class="program-tag">Micro-Enterprise</span>
+                    </div>
+                    <div class="program-amount">Php 5,000 - 15,000</div>
+                    <button class="btn-primary-rose btn-sm-rose" onclick="applyForProgram('Livelihood Assistance')">Apply Now</button>
+                </div>
+
+                <div class="program-card" data-office="peso">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <span class="office-badge peso">PESO</span>
+                        <i class="bi bi-briefcase" style="color: var(--rose-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <h4 class="program-title">Job Placement & Referral</h4>
+                    <p class="program-desc">Free job matching service connecting job seekers with local employers.</p>
+                    <div class="program-tags">
+                        <span class="program-tag">Employment</span>
+                        <span class="program-tag">Job Matching</span>
+                    </div>
+                    <div class="program-amount">Free Service</div>
+                    <button class="btn-outline-rose btn-sm-rose" onclick="inquireProgram('Job Placement')">Inquire</button>
+                </div>
+
+                <div class="program-card" data-office="peso">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <span class="office-badge peso">PESO</span>
+                        <i class="bi bi-book" style="color: var(--rose-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <h4 class="program-title">Skills Training Voucher</h4>
+                    <p class="program-desc">Free skills training vouchers for in-demand vocational courses.</p>
+                    <div class="program-tags">
+                        <span class="program-tag">Vocational</span>
+                        <span class="program-tag">Free Training</span>
+                    </div>
+                    <div class="program-amount">Fully Subsidized</div>
+                    <button class="btn-primary-rose btn-sm-rose" onclick="applyForProgram('Skills Training')">Apply Now</button>
+                </div>
+
+                <div class="program-card" data-office="peso">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <span class="office-badge peso">PESO</span>
+                        <i class="bi bi-people" style="color: var(--rose-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <h4 class="program-title">Special Program for Employment of Students (SPES)</h4>
+                    <p class="program-desc">Summer employment program for students to gain work experience.</p>
+                    <div class="program-tags">
+                        <span class="program-tag">Students</span>
+                        <span class="program-tag">Summer Job</span>
+                    </div>
+                    <div class="program-amount">Php 5,000 / 20 days</div>
+                    <button class="btn-primary-rose btn-sm-rose" onclick="applyForProgram('SPES')">Apply Now</button>
+                </div>
+
+                <div class="program-card" data-office="peso">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <span class="office-badge peso">PESO</span>
+                        <i class="bi bi-building" style="color: var(--rose-primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <h4 class="program-title">TUPAD</h4>
+                    <p class="program-desc">Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers program.</p>
+                    <div class="program-tags">
+                        <span class="program-tag">Emergency Employment</span>
+                        <span class="program-tag">Displaced Workers</span>
+                    </div>
+                    <div class="program-amount">Php 5,000 / 10 days</div>
+                    <button class="btn-primary-rose btn-sm-rose" onclick="applyForProgram('TUPAD')">Apply Now</button>
+                </div>
+            </div>
+
+            <!-- CSWDO Programs -->
+            <h4 style="margin-bottom: 15px; margin-top: 30px; color: var(--mauve-accent);">CSWDO Programs</h4>
+            <div class="programs-grid" id="cswdo-programs">
+                <div class="program-card" data-office="cswdo">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <span class="office-badge cswdo">CSWDO</span>
+                        <i class="bi bi-heart-pulse" style="color: var(--mauve-accent); font-size: 1.5rem;"></i>
+                    </div>
+                    <h4 class="program-title">Medical Assistance</h4>
+                    <p class="program-desc">Financial assistance for medical expenses, hospitalization, and medication.</p>
+                    <div class="program-tags">
+                        <span class="program-tag">Health</span>
+                        <span class="program-tag">Hospitalization</span>
+                    </div>
+                    <div class="program-amount">Up to Php 10,000</div>
+                    <button class="btn-primary-rose btn-sm-rose" onclick="applyForProgram('Medical Assistance')">Apply Now</button>
+                </div>
+
+                <div class="program-card" data-office="cswdo">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <span class="office-badge cswdo">CSWDO</span>
+                        <i class="bi bi-flower1" style="color: var(--mauve-accent); font-size: 1.5rem;"></i>
+                    </div>
+                    <h4 class="program-title">Burial Assistance</h4>
+                    <p class="program-desc">Financial support for funeral and burial expenses of qualified beneficiaries.</p>
+                    <div class="program-tags">
+                        <span class="program-tag">Funeral Assistance</span>
+                        <span class="program-tag">Emergency</span>
+                    </div>
+                    <div class="program-amount">Php 5,000 - 8,000</div>
+                    <button class="btn-primary-rose btn-sm-rose" onclick="applyForProgram('Burial Assistance')">Apply Now</button>
+                </div>
+
+                <div class="program-card" data-office="cswdo">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <span class="office-badge cswdo">CSWDO</span>
+                        <i class="bi bi-bank" style="color: var(--mauve-accent); font-size: 1.5rem;"></i>
+                    </div>
+                    <h4 class="program-title">Financial Assistance</h4>
+                    <p class="program-desc">One-time cash assistance for families experiencing crisis or financial difficulty.</p>
+                    <div class="program-tags">
+                        <span class="program-tag">Crisis</span>
+                        <span class="program-tag">Cash Assistance</span>
+                    </div>
+                    <div class="program-amount">Varies by need</div>
+                    <button class="btn-primary-rose btn-sm-rose" onclick="applyForProgram('Financial Assistance')">Apply Now</button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TRAINING & SKILLS SECTION -->
+        <section id="training" class="section">
+            <h2 class="section-title">Training & Skills</h2>
+
+            <!-- Enrolled Programs -->
+            <div class="enrolled-header">
+                <h4 style="color: var(--rose-dark); margin-bottom: 15px;">Enrolled Programs</h4>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div>
+                        <h5 style="margin-bottom: 5px;">Skills Development Training</h5>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            Basic Computer Skills • CSWDO Office
+                        </div>
+                    </div>
+                    <span class="status-pill upcoming">Upcoming</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 10px;">
+                    <span><i class="bi bi-calendar"></i> Apr 15, 2026 • 9:00 AM</span>
+                    <span><i class="bi bi-geo-alt"></i> CSWDO Conference Room</span>
+                </div>
+                <div class="progress-custom">
+                    <div class="progress-fill" style="width: 0%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                    <span>Attendance: 0/5 sessions</span>
+                    <span>0%</span>
+                </div>
+                <button class="btn-primary-rose" style="margin-top: 15px;" onclick="viewTrainingDetail('TRN-001')">
+                    View Details
+                </button>
+            </div>
+
+            <!-- Completed Programs -->
+            <div class="enrolled-header">
+                <h4 style="color: var(--success); margin-bottom: 15px;">Completed Programs</h4>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div>
+                        <h5 style="margin-bottom: 5px;">Customer Service Training</h5>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            Service Excellence • Completed Mar 30, 2026
+                        </div>
+                    </div>
+                    <span class="status-pill completed">Completed</span>
+                </div>
+                <div class="progress-custom">
+                    <div class="progress-fill approved" style="width: 100%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 15px;">
+                    <span>5/5 sessions attended</span>
+                    <span>100%</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; color: var(--success); font-weight: 600;">
+                    <i class="bi bi-award"></i> Certificate Issued
+                </div>
+            </div>
+
+            <!-- Available Sessions -->
+            <div class="enrolled-header">
+                <h4 style="color: var(--mauve-accent); margin-bottom: 15px;">Available Sessions</h4>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <span class="office-badge peso">PESO</span>
+                            <h5 style="margin-bottom: 0;">Entrepreneurship Workshop</h5>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                            Learn business planning, marketing, and financial management for micro-enterprises.
+                        </p>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            <div><i class="bi bi-calendar"></i> Apr 20, 2026 • 2:00 PM</div>
+                            <div><i class="bi bi-geo-alt"></i> Barangay Hall, Zone II</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-outline-rose" style="margin-top: 15px;" onclick="registerTraining('TRN-002')">
+                    <i class="bi bi-check-lg"></i> Register
+                </button>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <span class="office-badge cswdo">CSWDO</span>
+                            <h5 style="margin-bottom: 0;">Financial Literacy Seminar</h5>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                            Managing household finances, budgeting, and saving strategies.
+                        </p>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            <div><i class="bi bi-calendar"></i> May 5, 2026 • 9:00 AM</div>
+                            <div><i class="bi bi-geo-alt"></i> CSWDO Training Center</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-outline-rose" style="margin-top: 15px;" onclick="registerTraining('TRN-004')">
+                    <i class="bi bi-check-lg"></i> Register
+                </button>
+            </div>
+        </section>
+
+        <!-- DISTRIBUTION SECTION -->
+        <section id="distribution" class="section">
+            <h2 class="section-title">Assistance Distribution</h2>
+
+            <!-- Upcoming Release -->
+            <div class="distribution-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div class="dist-date-block">
+                        <span class="dist-day">20</span>
+                        <span class="dist-month">April</span>
+                    </div>
+                    <div style="flex: 1; margin-left: 20px;">
+                        <h3 class="dist-title">TUPAD Financial Assistance</h3>
+                        <div class="dist-info"><i class="bi bi-cash"></i> Php 5,000</div>
+                    </div>
+                    <span class="status-pill confirmed">Confirmed</span>
+                </div>
+                <div style="font-size: 0.95rem; opacity: 0.95; margin-bottom: 15px;">
+                    <div><i class="bi bi-geo-alt"></i> CSWDO Office, Koronadal City</div>
+                    <div><i class="bi bi-clock"></i> 9:00 AM - 4:00 PM</div>
+                </div>
+                <div class="dist-instructions">
+                    <strong>Instructions:</strong><br>
+                    1. Arrive at least 15 minutes before your scheduled time.<br>
+                    2. Present your Beneficiary QR Code at the registration desk.<br>
+                    3. Bring a valid government-issued ID for verification.<br>
+                    4. Sign the acknowledgment receipt upon release.
+                </div>
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
+                    <small style="opacity: 0.9;">
+                        <i class="bi bi-info-circle"></i> For questions, contact CSWDO at (083) 228-1234
+                    </small>
+                </div>
+            </div>
+
+            <!-- Past Distributions -->
+            <h3 style="margin-bottom: 15px; color: var(--text-muted);">Past Distributions</h3>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <h5 style="margin-bottom: 5px;">SPES Educational Grant</h5>
+                        <div class="text-muted" style="font-size: 0.9rem;">
+                            Php 5,000 • Mar 25, 2026
+                        </div>
+                    </div>
+                    <span class="status-pill completed">Completed</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.85rem; color: var(--success);">
+                    <i class="bi bi-check-circle"></i> Received - CSWDO Office
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <h5 style="margin-bottom: 5px;">Medical Assistance</h5>
+                        <div class="text-muted" style="font-size: 0.9rem;">
+                            Php 10,000 • Mar 20, 2026
+                        </div>
+                    </div>
+                    <span class="status-pill completed">Completed</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.85rem; color: var(--success);">
+                    <i class="bi bi-check-circle"></i> Cash received at distribution center
+                </div>
+            </div>
+        </section>
+
+        <!-- NOTIFICATIONS SECTION -->
+        <section id="notifications" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 class="section-title" style="margin-bottom: 0;">Notifications</h2>
+                <button class="btn-outline-rose btn-sm-rose" onclick="markAllRead()">
+                    <i class="bi bi-check-all"></i> Mark All Read
+                </button>
+            </div>
+
+            <div id="notificationsList">
+                <div class="card notif-item unread">
+                    <div class="notif-dot"></div>
+                    <div class="notif-content">
+                        <div class="notif-title">Application Approved</div>
+                        <div class="notif-msg">Congratulations! Your SPES application has been approved for the Summer 2026 batch. Please prepare for orientation on April 5, 2026.</div>
+                        <div class="notif-time">Mar 25, 2026 • 10:30 AM</div>
+                    </div>
+                </div>
+
+                <div class="card notif-item unread">
+                    <div class="notif-dot"></div>
+                    <div class="notif-content">
+                        <div class="notif-title">Missing Document</div>
+                        <div class="notif-msg">Your TUPAD application requires a Barangay Clearance. Please upload it as soon as possible to avoid delays.</div>
+                        <div class="notif-time">Today, 9:00 AM</div>
+                    </div>
+                </div>
+
+                <div class="card notif-item unread">
+                    <div class="notif-dot"></div>
+                    <div class="notif-content">
+                        <div class="notif-title">Training Scheduled</div>
+                        <div class="notif-msg">You have been scheduled for Skills Development Training on April 15, 2026 at 9:00 AM. Please confirm your attendance.</div>
+                        <div class="notif-time">Today, 8:30 AM</div>
+                    </div>
+                </div>
+
+                <div class="card notif-item">
+                    <div class="notif-content">
+                        <div class="notif-title">Interview Scheduled</div>
+                        <div class="notif-msg">Your interview for TUPAD application is set on April 15, 2026 at the CSWDO Office. Bring all original documents.</div>
+                        <div class="notif-time">Yesterday, 2:00 PM</div>
+                    </div>
+                </div>
+
+                <div class="card notif-item">
+                    <div class="notif-content">
+                        <div class="notif-title">Documents Received</div>
+                        <div class="notif-msg">We have received your barangay clearance and valid ID. Your application is now under review.</div>
+                        <div class="notif-time">Mar 18, 2026 • 11:00 AM</div>
+                    </div>
+                </div>
+
+                <div class="card notif-item">
+                    <div class="notif-content">
+                        <div class="notif-title">Distribution Notice</div>
+                        <div class="notif-msg">Your SPES assistance will be released on March 25, 2026 at the CSWDO Office. Bring your QR code.</div>
+                        <div class="notif-time">Mar 17, 2026 • 3:00 PM</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Apply for Assistance Modal -->
+    <div class="modal-overlay" id="applyModal">
+        <div class="modal-content-custom">
+            <div class="modal-header-custom">
+                <h3 class="modal-title-custom">Apply for Assistance</h3>
+                <button class="modal-close-custom" onclick="closeModal('applyModal')">&times;</button>
+            </div>
+            <div class="modal-body-custom">
+                <div class="form-group">
+                    <label class="form-label-custom">Select Assistance Type</label>
+                    <select class="form-control-custom" id="assistanceType">
+                        <option value="">Choose program...</option>
+                        <optgroup label="PESO Programs">
+                            <option>Livelihood Assistance</option>
+                            <option>City of Koronadal Government Internship Program (CKGIP)</option>
+                            <option>Koronadal Emergency Employment Program (KEEP)</option>
+                            <option>Support to Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)</option>
+                            <option>Pangkabuhayan Financial Assistance (PFAS)</option>
+                            <option>Support to DOLE Integrated Livelihood Program (DILP)</option>
+                            <option>Association Facilitation</option>
+                            <option>Conduct of Job Fairs</option>
+                            <option>Development of Localized Job Portal</option>
+                            <option>Livelihood/Skills Training Program</option>
+                            <option>OFW Family Circle Day</option>
+                            <option>Special Program for Employment of Students (SPES)</option>
+                            <option>Support to Parokya ni OWN A Program</option>
+                            <option>Support to Returning OFWs Program (ROFWS)</option>
+                            <option>Job Placement & Referral</option>
+                            <option>Skills Training Voucher</option>
+                        </optgroup>
+                        <optgroup label="CSWDO Programs">
+                            <option>Medical Assistance</option>
+                            <option>Burial Assistance</option>
+                            <option>Financial Assistance</option>
+                        </optgroup>
+                    </select>
+                <div class="form-group">
+                    <label class="form-label-custom">Reason / Description</label>
+                    <textarea class="form-control-custom" id="assistanceReason" rows="4" placeholder="Describe why you need assistance..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label-custom">Upload Required Documents</label>
+                    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        <div class="upload-zone-text">Click to upload or drag and drop</div>
+                        <small style="color: #999;">PDF, JPG, PNG (Max 5MB each)</small>
+                    </div>
+                    <input type="file" id="fileInput" style="display: none;" multiple>
+                </div>
+            </div>
+            <div class="modal-footer-custom">
+                <button class="btn-outline-rose" onclick="closeModal('applyModal')">Cancel</button>
+                <button class="btn-primary-rose" style="width: auto;" onclick="submitApplication()">Submit Application</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Document Modal -->
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal-content-custom">
+            <div class="modal-header-custom">
+                <h3 class="modal-title-custom">Upload Document</h3>
+                <button class="modal-close-custom" onclick="closeModal('uploadModal')">&times;</button>
+            </div>
+            <div class="modal-body-custom">
+                <div class="form-group">
+                    <label class="form-label-custom">Select Application</label>
+                    <select class="form-control-custom">
+                        <option>TUPAD - #CSWDO-2026-0201</option>
+                        <option>SPES - #CSWDO-2026-0195</option>
+                        <option>Medical - #CSWDO-2026-0180</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label-custom">Document Type</label>
+                    <select class="form-control-custom">
+                        <option>Barangay Clearance</option>
+                        <option>Medical Certificate</option>
+                        <option>Income Certificate</option>
+                        <option>Valid ID</option>
+                        <option>Photo (2x2)</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label-custom">Upload File</label>
+                    <div class="upload-zone" onclick="document.getElementById('docFileInput').click()">
+                        <i class="bi bi-file-earmark"></i>
+                        <div class="upload-zone-text">Choose file to upload</div>
+                        <small style="color: #999;">Max 5MB</small>
+                    </div>
+                    <input type="file" id="docFileInput" style="display: none;">
+                </div>
+            </div>
+            <div class="modal-footer-custom">
+                <button class="btn-outline-rose" onclick="closeModal('uploadModal')">Cancel</button>
+                <button class="btn-primary-rose" style="width: auto;" onclick="uploadDocument()">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Tracking Modal -->
+    <div class="modal-overlay" id="trackingModal">
+        <div class="modal-content-custom">
+            <div class="modal-header-custom">
+                <h3 class="modal-title-custom">Application Tracking</h3>
+                <button class="modal-close-custom" onclick="closeModal('trackingModal')">&times;</button>
+            </div>
+            <div class="modal-body-custom" id="trackingContent">
+                <!-- Content populated via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal-content-custom" style="max-width: 380px; text-align: center;">
+            <button class="modal-close-custom" onclick="closeModal('qrModal')" style="position: absolute; right: 15px; top: 15px;">&times;</button>
+            
+            <div style="width: 180px; height: 180px; background: white; border: 3px solid var(--rose-primary); border-radius: 12px; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center; position: relative;">
+                <i class="bi bi-qr-code" style="font-size: 6rem; color: var(--rose-primary);"></i>
+            </div>
+            
+            <div class="status-pill" style="background: var(--rose-primary); color: white; padding: 8px 15px; border-radius: 20px; font-weight: 600; display: inline-block; margin-bottom: 10px;">BEN-2026-001</div>
+            
+            <h4 style="margin-bottom: 5px;">Maria dela Santos</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Verified Beneficiary</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+                <div style="background: var(--light-bg); padding: 12px; border-radius: 8px;">
+                    <div style="font-size: 0.75rem; color: #888;">Date Registered</div>
+                    <div style="font-weight: 600;">January 15, 2026</div>
+                </div>
+                <div style="background: var(--light-bg); padding: 12px; border-radius: 8px;">
+                    <div style="font-size: 0.75rem; color: #888;">Status</div>
+                    <div style="font-weight: 600; color: var(--success);">Active</div>
+                </div>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: #888; margin-top: 20px;">
+                <i class="bi bi-info-circle"></i> Show this QR code when receiving assistance
+            </p>
+        </div>
+    </div>
+
+    <!-- Data Privacy Modal (Auto-opens on first login) -->
+    <div class="modal-overlay" id="dashboardPrivacyModal" style="backdrop-filter: blur(8px); z-index: 9999;">
+        <div class="modal-content-custom" style="max-width: 650px;">
+            <div class="modal-header-custom">
+                <h3 class="modal-title-custom"><i class="bi bi-shield-lock-fill text-primary me-2"></i>Data Privacy & Terms of Service</h3>
+            </div>
+            <div class="modal-body-custom" style="max-height: 60vh; overflow-y: auto;">
+                <p class="mb-3 text-muted" style="font-size: 0.9rem;">
+                    Pursuant to the <strong>Republic Act No. 10173</strong> (Data Privacy Act of 2012), the City Government of Koronadal is committed to protecting your privacy. Please read and agree to the compliance statements for PESO and CSWDO.
+                </p>
+
+                <!-- PESO Compliance -->
+                <div class="compliance-section" style="border: 1px solid #e9ecef; border-radius: 12px; padding: 18px; background-color: #fff9fa; margin-bottom: 15px;">
+                    <span class="office-badge peso" style="margin-bottom: 10px;">PESO</span>
+                    <h5 style="font-weight: 700; margin-bottom: 8px;">Public Employment Service Office</h5>
+                    <p style="font-size: 0.85rem; line-height: 1.5; color: #555;">
+                        <strong>Privacy Statement:</strong> PESO collects and processes your personal data (name, contact info, educational background, skills profile) to facilitate job matching, referrals to employers, livelihood training, and emergency employment programs. Your information is shared only with authorized partners in compliance with the Data Privacy Act of 2012.
+                    </p>
+                    <p style="font-size: 0.85rem; line-height: 1.5; color: #555;">
+                        <strong>Terms & Conditions:</strong> You certify that all profile information submitted is true and accurate. You consent to the matching of your qualifications with job openings and training opportunities.
+                    </p>
+                </div>
+
+                <!-- CSWDO Compliance -->
+                <div class="compliance-section" style="border: 1px solid #e9ecef; border-radius: 12px; padding: 18px; background-color: #f7f3f6; margin-bottom: 15px;">
+                    <span class="office-badge cswdo" style="margin-bottom: 10px;">CSWDO</span>
+                    <h5 style="font-weight: 700; margin-bottom: 8px;">City Social Welfare and Development Office</h5>
+                    <p style="font-size: 0.85rem; line-height: 1.5; color: #555;">
+                        <strong>Privacy Statement:</strong> CSWDO processes sensitive personal information (household income, medical records, vulnerability indicators) to evaluate eligibility for financial aid (AICS), emergency relief, and other social welfare assistance programs. Strict confidentiality is maintained for all case files.
+                    </p>
+                    <p style="font-size: 0.85rem; line-height: 1.5; color: #555;">
+                        <strong>Terms & Conditions:</strong> You certify that all statements regarding income and household status are accurate. You consent to validation reviews by social workers. Fraudulent statements will disqualify you from receiving assistance.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer-custom" style="flex-direction: column; align-items: stretch; gap: 15px;">
+                <label class="checkbox-wrap" style="display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="dashboardAgreeCheck" style="margin-top: 3px; width: 18px; height: 18px; accent-color: var(--rose-primary);">
+                    <span>I have read and agreed to the Privacy Statement and Terms and Conditions.</span>
+                </label>
+                <button id="dashboardUnderstandBtn" class="btn-primary-rose" disabled>I Understand</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Profile Modal -->
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal-content-custom" style="max-width: 500px;">
+            <div class="modal-header-custom">
+                <h3 class="modal-title-custom"><i class="bi bi-person-fill-gear text-primary me-2"></i>Update Profile Details</h3>
+                <button class="modal-close-custom" onclick="closeModal('profileModal')">&times;</button>
+            </div>
+            <div class="modal-body-custom">
+                <form id="profileForm" onsubmit="saveProfile(event)">
+                    <div class="form-group mb-3">
+                        <label class="form-label-custom">Full Name</label>
+                        <input type="text" class="form-control-custom" id="profileName" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label-custom">Contact Number</label>
+                        <input type="text" class="form-control-custom" id="profileContact" value="0917-123-4567" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label-custom">Email Address</label>
+                        <input type="email" class="form-control-custom" id="profileEmail" value="beneficiary@koronadal.gov.ph" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label-custom">Home Address</label>
+                        <input type="text" class="form-control-custom" id="profileAddress" value="Poblacion, City of Koronadal, South Cotabato" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label-custom">Civil Status</label>
+                        <select class="form-control-custom" id="profileStatus">
+                            <option>Single</option>
+                            <option>Married</option>
+                            <option>Divorced</option>
+                            <option>Widowed</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer-custom" style="padding-right: 0; padding-bottom: 0;">
+                        <button type="button" class="btn-outline-rose" style="width: auto;" onclick="closeModal('profileModal')">Cancel</button>
+                        <button type="submit" class="btn-primary-rose" style="width: auto;">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample application data
+        const applications = {
+            'CSWDO-2026-0201': {
+                type: 'TUPAD',
+                date: 'Mar 20, 2026',
+                status: 'Pending',
+                amount: 'Php 5,000',
+                steps: [
+                    { title: 'Application Submitted', desc: 'Mar 20, 2026', completed: true },
+                    { title: 'Document Review', desc: 'Mar 22, 2026', completed: true },
+                    { title: 'Interview', desc: 'Scheduled: Apr 15, 2026', completed: false, active: true },
+                    { title: 'Decision', desc: 'Awaiting', completed: false }
+                ],
+                remarks: 'Missing barangay clearance. Please submit at the CSWDO office before interview.',
+                missingDocs: ['Barangay Clearance (Original)']
+            },
+            'CSWDO-2026-0195': {
+                type: 'SPES',
+                date: 'Mar 15, 2026',
+                status: 'Approved',
+                amount: 'Php 5,000',
+                steps: [
+                    { title: 'Application Submitted', desc: 'Mar 15, 2026', completed: true },
+                    { title: 'Document Review', desc: 'Mar 18, 2026', completed: true },
+                    { title: 'Interview', desc: 'Mar 20, 2026', completed: true },
+                    { title: 'Decision', desc: 'Approved - Mar 25, 2026', completed: true }
+                ],
+                remarks: 'Application approved for Summer 2026 SPES program. Please prepare for orientation.'
+            },
+            'CSWDO-2026-0180': {
+                type: 'Medical Assistance',
+                date: 'Mar 10, 2026',
+                status: 'Completed',
+                amount: 'Php 10,000',
+                steps: [
+                    { title: 'Application Submitted', desc: 'Mar 10, 2026', completed: true },
+                    { title: 'Document Review', desc: 'Mar 12, 2026', completed: true },
+                    { title: 'Approval', desc: 'Mar 15, 2026', completed: true },
+                    { title: 'Release', desc: 'Mar 20, 2026 - Received', completed: true }
+                ]
+            }
+        };
+
+        let unreadCount = 3;
+
+        // Navigation
+        function navigateTo(section) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(section).classList.add('active');
+            
+            document.querySelectorAll('.nav-link-custom').forEach(link => link.classList.remove('active'));
+            document.querySelector(`.nav-link-custom[data-section="${section}"]`).classList.add('active');
+            
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('active');
+            }
+            
+            window.scrollTo(0, 0);
+        }
+
+        // Sidebar toggle (mobile)
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        // Modal controls
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // Notifications
+        function toggleNotifications() {
+            document.getElementById('notifDropdown').classList.toggle('show');
+        }
+
+        function markAllRead() {
+            unreadCount = 0;
+            document.getElementById('mobileNotifBadge').style.display = 'none';
+            document.querySelectorAll('.notif-dot').forEach(dot => dot.remove());
+            document.querySelectorAll('.notif-item.unread').forEach(item => item.classList.remove('unread'));
+            document.getElementById('notifDropdown').classList.remove('show');
+        }
+
+        // Filter programs
+        function filterPrograms(filter) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) btn.classList.add('active');
+            });
+
+            if (filter === 'all') {
+                document.querySelectorAll('.program-card').forEach(card => card.style.display = 'block');
+            } else {
+                document.querySelectorAll('.program-card').forEach(card => {
+                    card.style.display = card.dataset.office === filter ? 'block' : 'none';
+                });
+            }
+        }
+
+        // Submit application
+        function submitApplication() {
+            const type = document.getElementById('assistanceType').value;
+            if (!type) {
+                alert('Please select an assistance type');
+                return;
+            }
+            alert('Application submitted successfully! You will receive a confirmation notification.');
+            closeModal('applyModal');
+        }
+
+        // Upload document
+        function uploadDocument() {
+            alert('Document uploaded successfully!');
+            closeModal('uploadModal');
+        }
+
+        // Apply for program
+        function applyForProgram(programName) {
+            document.getElementById('assistanceType').value = programName;
+            openModal('applyModal');
+        }
+
+        // Inquire about program
+        function inquireProgram(programName) {
+            alert(`Thank you for your interest in ${programName}. Our staff will contact you shortly.`);
+        }
+
+        // Register for training
+        function registerTraining(trainId) {
+            if (confirm('Register for this training session?')) {
+                alert('Registration successful! Check your email for details.');
+            }
+        }
+
+        // View full tracking
+        function viewFullTracking(appId) {
+            const app = applications[appId];
+            if (!app) return;
+
+            let stepsHtml = '';
+            app.steps.forEach((step, index) => {
+                const statusClass = step.completed ? 'completed' : (step.active ? 'active' : '');
+                stepsHtml += `
+                    <div class="stage-step ${statusClass}">
+                        <div class="stage-icon">
+                            ${step.completed ? '<i class="bi bi-check"></i>' : (step.active ? '<i class="bi bi-geo-alt"></i>' : index + 1)}
+                        </div>
+                        <div class="stage-label">${step.title}</div>
+                        <small style="color: #666;">${step.desc}</small>
+                    </div>
+                `;
+            });
+
+            let missingHtml = '';
+            if (app.missingDocs) {
+                missingHtml = `
+                    <div class="pending-requirements" style="margin-top: 20px;">
+                        <div class="pending-requirements-title">
+                            <i class="bi bi-exclamation-triangle"></i> Missing Requirements
+                        </div>
+                        ${app.missingDocs.map(doc => `<div class="requirement-item"><i class="bi bi-file-earmark-text"></i> ${doc}</div>`).join('')}
+                    </div>
+                `;
+            }
+
+            let remarksHtml = app.remarks ? `
+                <div class="evaluator-remarks" style="margin-top: 20px;">
+                    <div class="remarks-label">Evaluator Remarks:</div>
+                    <div>"${app.remarks}"</div>
+                </div>
+            ` : '';
+
+            document.getElementById('trackingContent').innerHTML = `
+                <div class="mb-3">
+                    <div class="app-info-row">
+                        <span class="app-info-label">Application ID</span>
+                        <span class="app-info-value">${appId}</span>
+                    </div>
+                    <div class="app-info-row">
+                        <span class="app-info-label">Type</span>
+                        <span class="app-info-value">${app.type}</span>
+                    </div>
+                    <div class="app-info-row">
+                        <span class="app-info-label">Date Filed</span>
+                        <span class="app-info-value">${app.date}</span>
+                    </div>
+                    <div class="app-info-row">
+                        <span class="app-info-label">Status</span>
+                        <span class="app-info-value"><span class="status-pill ${app.status === 'Approved' ? 'approved' : app.status === 'Completed' ? 'completed' : 'processing'}">${app.status}</span></span>
+                    </div>
+                    ${app.amount ? `<div class="app-info-row"><span class="app-info-label">Approved Amount</span><span class="app-info-value" style="color: var(--success); font-weight: 700;">${app.amount}</span></div>` : ''}
+                </div>
+
+                <h5 style="margin-bottom: 20px; margin-top: 20px;">Evaluation Progress</h5>
+                <div class="stage-tracker">
+                    ${stepsHtml}
+                </div>
+
+                ${missingHtml}
+                ${remarksHtml}
+            `;
+
+            openModal('trackingModal');
+        }
+
+        // View training detail
+        function viewTrainingDetail(trainId) {
+            const trainings = {
+                'TRN-001': {
+                    name: 'Skills Development Training',
+                    program: 'Basic Computer Skills',
+                    date: 'April 15, 2026',
+                    time: '9:00 AM',
+                    venue: 'CSWDO Conference Room',
+                    status: 'Upcoming',
+                    modules: [
+                        { name: 'Introduction to Computers', completed: false },
+                        { name: 'Word Processing Basics', completed: false },
+                        { name: 'Internet Basics', completed: false },
+                        { name: 'Final Assessment', completed: false }
+                    ]
+                }
+            };
+
+            const training = trainings[trainId];
+            if (!training) return;
+
+            let progressHtml = training.modules.map(mod => `
+                <div class="tracking-step-track">
+                    <div class="step-dot">
+                        <i class="bi bi-circle"></i>
+                    </div>
+                    <div class="step-info">
+                        <div class="step-title">${mod.name}</div>
+                        <div class="step-status">
+                            <span class="text-muted"><i class="bi bi-clock"></i> Not Started</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('trackingContent').innerHTML = `
+                <div class="mb-3">
+                    <h4>${training.name}</h4>
+                    <small class="text-muted">${training.program}</small>
+                </div>
+                <div class="mb-3">
+                    <div><i class="bi bi-calendar"></i> ${training.date} at ${training.time}</div>
+                    <div><i class="bi bi-geo-alt"></i> ${training.venue}</div>
+                </div>
+                <div class="mb-3">
+                    <span class="status-pill ${training.status === 'Completed' ? 'completed' : 'upcoming'}">${training.status}</span>
+                </div>
+                <h6 class="mb-3">Training Schedule</h6>
+                <div class="tracking-view">
+                    ${progressHtml}
+                </div>
+            `;
+
+            openModal('trackingModal');
+        }
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (this.id === 'dashboardPrivacyModal') return;
+                if (e.target === this) closeModal(this.id);
+            });
+        });
+
+        // Close notifications dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const notifBtn = document.querySelector('.notification-bell');
+            const dropdown = document.getElementById('notifDropdown');
+            if (dropdown && notifBtn && !notifBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Profile saving logic
+        function saveProfile(e) {
+            e.preventDefault();
+            const newName = document.getElementById('profileName').value.trim();
+            if (newName) {
+                sessionStorage.setItem('beneficiaryName', newName);
+                document.getElementById('welcomeUser').textContent = 'Welcome, ' + newName + '!';
+                
+                // Update sidebar title and QR Modal name as well
+                const sidebarSubtitle = document.getElementById('sidebarSubtitle');
+                if (sidebarSubtitle) sidebarSubtitle.textContent = newName;
+                
+                const qrName = document.querySelector('#qrModal h4');
+                if (qrName) qrName.textContent = newName;
+
+                alert('Profile updated successfully!');
+                closeModal('profileModal');
+            }
+        }
+
+        // Beneficiary profile stats mapping
+        const userStats = {
+            'juan_dela_cruz': {
+                fullName: 'Juan dela Cruz',
+                pending: 2,
+                approved: 0,
+                scheduled: 0,
+                notifications: 1,
+                applicationsHtml: `
+                    <tr onclick="viewFullTracking('CSWDO-2026-0301')" style="cursor: pointer;">
+                        <td>#CSWDO-2026-0301</td>
+                        <td><strong>SPES</strong></td>
+                        <td><span class="office-badge peso">PESO</span></td>
+                        <td>Jun 18, 2026</td>
+                        <td>
+                            <div class="progress-custom" style="width: 120px;">
+                                <div class="progress-fill" style="width: 25%;"></div>
+                            </div>
+                            <small>25%</small>
+                        </td>
+                        <td><span class="status-pill processing">Pending</span></td>
+                    </tr>
+                    <tr onclick="viewFullTracking('CSWDO-2026-0302')" style="cursor: pointer;">
+                        <td>#CSWDO-2026-0302</td>
+                        <td><strong>Livelihood Assistance</strong></td>
+                        <td><span class="office-badge peso">PESO</span></td>
+                        <td>Jun 20, 2026</td>
+                        <td>
+                            <div class="progress-custom" style="width: 120px;">
+                                <div class="progress-fill" style="width: 25%;"></div>
+                            </div>
+                            <small>25%</small>
+                        </td>
+                        <td><span class="status-pill processing">Pending</span></td>
+                    </tr>
+                `,
+                notificationsHtml: `
+                    <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Application Submitted</div>
+                            <div class="notif-msg">Your Livelihood Assistance application has been received and is under review.</div>
+                            <div class="notif-time">June 20, 2026</div>
+                        </div>
+                    </div>
+                `,
+                dropdownNotifHtml: `
+                    <div class="notif-item unread">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Application Submitted</div>
+                            <div class="notif-msg">Your Livelihood Assistance application has been received and is under review.</div>
+                            <div class="notif-time">June 20, 2026</div>
+                        </div>
+                    </div>
+                `,
+                distributionHtml: `
+                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                        <i class="bi bi-calendar-x" style="font-size: 2.5rem; color: #ccc; display: block; margin-bottom: 10px;"></i>
+                        No upcoming assistance disbursements scheduled.
+                    </div>
+                `
+            },
+            'maria_santos': {
+                fullName: 'Maria Santos',
+                pending: 1,
+                approved: 2,
+                scheduled: 1,
+                notifications: 3,
+                applicationsHtml: `
+                    <tr onclick="viewFullTracking('CSWDO-2026-0201')" style="cursor: pointer;">
+                        <td>#CSWDO-2026-0201</td>
+                        <td><strong>TUPAD</strong></td>
+                        <td><span class="office-badge peso">PESO</span></td>
+                        <td>Mar 20, 2026</td>
+                        <td>
+                            <div class="progress-custom" style="width: 120px;">
+                                <div class="progress-fill" style="width: 60%;"></div>
+                            </div>
+                            <small>60%</small>
+                        </td>
+                        <td><span class="status-pill processing">Pending</span></td>
+                    </tr>
+                    <tr onclick="viewFullTracking('CSWDO-2026-0195')" style="cursor: pointer;">
+                        <td>#CSWDO-2026-0195</td>
+                        <td><strong>SPES</strong></td>
+                        <td><span class="office-badge cswdo">CSWDO</span></td>
+                        <td>Mar 15, 2026</td>
+                        <td>
+                            <div class="progress-custom" style="width: 120px;">
+                                <div class="progress-fill approved" style="width: 100%;"></div>
+                            </div>
+                            <small>100%</small>
+                        </td>
+                        <td><span class="status-pill approved">Approved</span></td>
+                    </tr>
+                    <tr onclick="viewFullTracking('CSWDO-2026-0180')" style="cursor: pointer;">
+                        <td>#CSWDO-2026-0180</td>
+                        <td><strong>Medical</strong></td>
+                        <td><span class="office-badge cswdo">CSWDO</span></td>
+                        <td>Mar 10, 2026</td>
+                        <td>
+                            <div class="progress-custom" style="width: 120px;">
+                                <div class="progress-fill approved" style="width: 100%;"></div>
+                            </div>
+                            <small>100%</small>
+                        </td>
+                        <td><span class="status-pill completed">Completed</span></td>
+                    </tr>
+                `,
+                notificationsHtml: `
+                    <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Application Approved</div>
+                            <div class="notif-msg">Your SPES application has been approved for Summer 2026 batch.</div>
+                            <div class="notif-time">Today, 10:30 AM</div>
+                        </div>
+                    </div>
+                    <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Missing Document</div>
+                            <div class="notif-msg">Please submit your barangay clearance for TUPAD application.</div>
+                            <div class="notif-time">Today, 9:00 AM</div>
+                        </div>
+                    </div>
+                    <div class="notif-item" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                        <div class="notif-content">
+                            <div class="notif-title">Training Scheduled</div>
+                            <div class="notif-msg">Skills training on April 15.</div>
+                            <div class="notif-time">Yesterday</div>
+                        </div>
+                    </div>
+                `,
+                dropdownNotifHtml: `
+                    <div class="notif-item unread">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Application Approved</div>
+                            <div class="notif-msg">Your SPES application has been approved.</div>
+                            <div class="notif-time">Mar 25, 2026</div>
+                        </div>
+                    </div>
+                    <div class="notif-item unread">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Missing Document</div>
+                            <div class="notif-msg">Please submit your barangay clearance.</div>
+                            <div class="notif-time">Today</div>
+                        </div>
+                    </div>
+                    <div class="notif-item">
+                        <div class="notif-content">
+                            <div class="notif-title">Training Scheduled</div>
+                            <div class="notif-msg">Skills training on April 15.</div>
+                            <div class="notif-time">Yesterday</div>
+                        </div>
+                    </div>
+                `,
+                distributionHtml: `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                        <div class="dist-date-block">
+                            <span class="dist-day">20</span>
+                            <span class="dist-month">April</span>
+                        </div>
+                        <div style="flex: 1; margin-left: 20px;">
+                            <h3 class="dist-title">TUPAD Financial Assistance</h3>
+                            <div class="dist-info"><i class="bi bi-cash"></i> Php 5,000</div>
+                        </div>
+                        <span class="status-pill confirmed">Confirmed</span>
+                    </div>
+                    <div style="font-size: 0.95rem; opacity: 0.95; margin-bottom: 15px;">
+                        <div><i class="bi bi-geo-alt"></i> CSWDO Office, Koronadal City</div>
+                        <div><i class="bi bi-clock"></i> 9:00 AM - 4:00 PM</div>
+                    </div>
+                    <div class="dist-instructions">
+                        <strong>Instructions:</strong><br>
+                        1. Arrive at least 15 minutes before scheduled time.<br>
+                        2. Present your Beneficiary QR Code at registration desk.<br>
+                        3. Bring valid government-issued ID for verification.
+                    </div>
+                `
+            },
+            'pedro_reyes': {
+                fullName: 'Pedro Reyes',
+                pending: 0,
+                approved: 1,
+                scheduled: 2,
+                notifications: 2,
+                applicationsHtml: `
+                    <tr onclick="viewFullTracking('CSWDO-2026-0290')" style="cursor: pointer;">
+                        <td>#CSWDO-2026-0290</td>
+                        <td><strong>Financial Assistance</strong></td>
+                        <td><span class="office-badge cswdo">CSWDO</span></td>
+                        <td>May 02, 2026</td>
+                        <td>
+                            <div class="progress-custom" style="width: 120px;">
+                                <div class="progress-fill approved" style="width: 100%;"></div>
+                            </div>
+                            <small>100%</small>
+                        </td>
+                        <td><span class="status-pill approved">Approved</span></td>
+                    </tr>
+                `,
+                notificationsHtml: `
+                    <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Interview Scheduled</div>
+                            <div class="notif-msg">Your interview for financial verification is set on March 28.</div>
+                            <div class="notif-time">March 22, 2026</div>
+                        </div>
+                    </div>
+                    <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Approved Assistance</div>
+                            <div class="notif-msg">Your CSWDO crisis aid has been approved. Check details in Distribution.</div>
+                            <div class="notif-time">March 25, 2026</div>
+                        </div>
+                    </div>
+                `,
+                dropdownNotifHtml: `
+                    <div class="notif-item unread">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Interview Scheduled</div>
+                            <div class="notif-msg">Your interview is set on March 28.</div>
+                            <div class="notif-time">March 22, 2026</div>
+                        </div>
+                    </div>
+                    <div class="notif-item unread">
+                        <div class="notif-dot"></div>
+                        <div class="notif-content">
+                            <div class="notif-title">Approved Assistance</div>
+                            <div class="notif-msg">Your crisis aid has been approved.</div>
+                            <div class="notif-time">March 25, 2026</div>
+                        </div>
+                    </div>
+                `,
+                distributionHtml: `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                        <div class="dist-date-block">
+                            <span class="dist-day">22</span>
+                            <span class="dist-month">April</span>
+                        </div>
+                        <div style="flex: 1; margin-left: 20px;">
+                            <h3 class="dist-title">CSWDO Crisis Aid Release</h3>
+                            <div class="dist-info"><i class="bi bi-cash"></i> Php 3,000</div>
+                        </div>
+                        <span class="status-pill confirmed">Confirmed</span>
+                    </div>
+                    <div style="font-size: 0.95rem; opacity: 0.95; margin-bottom: 15px;">
+                        <div><i class="bi bi-geo-alt"></i> Barangay Zone I Hall</div>
+                        <div><i class="bi bi-clock"></i> 10:00 AM - 3:00 PM</div>
+                    </div>
+                `
+            }
+        };
+
+        // Initialize notifications dropdown and load dynamic beneficiary statistics
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check active beneficiary profile
+            let username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
+            let fullName = sessionStorage.getItem('beneficiaryName') || 'Maria Santos';
+            
+            // Get stats profile
+            let profile = userStats[username] || userStats['maria_santos'];
+
+            // Update welcome name banner
+            const welcomeBanner = document.getElementById('welcomeUser');
+            if (welcomeBanner) {
+                welcomeBanner.textContent = 'Welcome, ' + fullName + '!';
+            }
+
+            // Update sidebar subtitle
+            const sidebarSubtitle = document.getElementById('sidebarSubtitle');
+            if (sidebarSubtitle) {
+                sidebarSubtitle.textContent = profile.fullName;
+            }
+
+            // Update QR Modal name as well
+            const qrName = document.querySelector('#qrModal h4');
+            if (qrName) {
+                qrName.textContent = profile.fullName;
+            }
+
+            // Update statistics indicators
+            const statPending = document.getElementById('statPending');
+            const statApproved = document.getElementById('statApproved');
+            const statScheduled = document.getElementById('statScheduled');
+            const statNotifications = document.getElementById('statNotifications');
+
+            if (statPending) statPending.textContent = profile.pending;
+            if (statApproved) statApproved.textContent = profile.approved;
+            if (statScheduled) statScheduled.textContent = profile.scheduled;
+            if (statNotifications) statNotifications.textContent = profile.notifications;
+
+            // Update lists and content in dashboard dynamically
+            const recentBody = document.getElementById('recentApplicationsBody');
+            if (recentBody) recentBody.innerHTML = profile.applicationsHtml;
+
+            const noticesList = document.querySelector('#dashboard .card');
+            if (noticesList && noticesList.querySelector('.notif-item')) {
+                noticesList.innerHTML = profile.notificationsHtml;
+            }
+
+            const distributionPanel = document.querySelector('#dashboard .distribution-card');
+            if (distributionPanel) {
+                distributionPanel.innerHTML = profile.distributionHtml;
+            }
+
+            // Prefill Profile Modal
+            const profileNameInput = document.getElementById('profileName');
+            if (profileNameInput) {
+                profileNameInput.value = profile.fullName;
+            }
+
+            // Setup Data Privacy modal behavior on first login
+            const isPrivacyAccepted = sessionStorage.getItem('privacyAccepted_' + username);
+            const dashboardPrivacyModal = document.getElementById('dashboardPrivacyModal');
+            const dashboardAgreeCheck = document.getElementById('dashboardAgreeCheck');
+            const dashboardUnderstandBtn = document.getElementById('dashboardUnderstandBtn');
+
+            if (dashboardPrivacyModal && isPrivacyAccepted !== 'true') {
+                dashboardPrivacyModal.classList.add('active');
+                document.body.style.overflow = 'hidden'; // lock scroll
+
+                dashboardAgreeCheck.addEventListener('change', function() {
+                    dashboardUnderstandBtn.disabled = !this.checked;
+                });
+
+                dashboardUnderstandBtn.addEventListener('click', function() {
+                    if (dashboardAgreeCheck.checked) {
+                        sessionStorage.setItem('privacyAccepted_' + username, 'true');
+                        dashboardPrivacyModal.classList.remove('active');
+                        document.body.style.overflow = ''; // unlock scroll
+                    }
+                });
+            }
+
+            // Notification dropdown rendering
+            if (!document.getElementById('notifDropdown')) {
+                const dropdown = document.createElement('div');
+                dropdown.id = 'notifDropdown';
+                dropdown.className = 'notif-dropdown';
+                dropdown.innerHTML = `
+                    <div class="notif-header">
+                        <span class="notif-header-title">Notifications</span>
+                        <button class="mark-read-btn" onclick="markAllRead()">Mark all read</button>
+                    </div>
+                    <div id="notifDropdownList">
+                        ${profile.dropdownNotifHtml}
+                    </div>
+                `;
+                const mobileHeader = document.querySelector('.mobile-header');
+                if (mobileHeader) mobileHeader.appendChild(dropdown);
+            }
+        });
+    </script>
+</body>
+</html>
