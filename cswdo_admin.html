@@ -1,0 +1,2999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSWDO Administrator Portal - Koronadal City</title>
+    <!-- CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chart.js Dependency -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-pink: #F0B6C6;
+            --primary-dark: #B88A9A;
+            --primary-light: #F7D2DE;
+            --primary-lighter: #FFEFF5;
+            --secondary: #6C5B7B;
+            --accent: #355C7D;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --danger: #FF9800;
+            --info: #B88A9A;
+            --light-bg: #fbf6f8;
+            --sidebar-width: 260px;
+            --header-height: 70px;
+            --border-color: #F7D2DE;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+            background-color: #fbf6f8;
+            overflow-x: hidden;
+            color: #333;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700 !important;
+        }
+
+        /* Dark Mode Theme */
+        body.dark-mode {
+            background-color: #2F2B2E;
+            color: #f3eff2;
+        }
+        body.dark-mode .sidebar {
+            background-color: #1E1B1D;
+            border-right-color: #3e383c;
+        }
+        body.dark-mode .main-content {
+            background-color: #2F2B2E;
+        }
+        body.dark-mode .header-top {
+            background-color: #1E1B1D;
+            border-bottom-color: #3e383c;
+            color: #f3eff2;
+        }
+        body.dark-mode .stat-card,
+        body.dark-mode .content-card {
+            background-color: #1E1B1D;
+            border-color: #3e383c;
+            color: #f3eff2;
+        }
+        body.dark-mode .table {
+            color: #f3eff2;
+        }
+        body.dark-mode .table th {
+            background-color: #2c272a;
+            color: #f3eff2;
+        }
+        body.dark-mode .table td {
+            border-bottom-color: #3e383c;
+        }
+        body.dark-mode .form-control,
+        body.dark-mode .form-select {
+            background-color: #2c272a;
+            border-color: #3e383c;
+            color: #f3eff2;
+        }
+        body.dark-mode .form-control:focus,
+        body.dark-mode .form-select:focus {
+            background-color: #2c272a;
+            border-color: var(--primary-pink);
+        }
+        body.dark-mode .custom-modal-dialog {
+            background-color: #1E1B1D;
+            color: #f3eff2;
+            border: 1px solid #3e383c;
+        }
+        body.dark-mode .custom-modal-header,
+        body.dark-mode .custom-modal-footer {
+            border-color: #3e383c;
+        }
+        body.dark-mode .list-group-item {
+            background-color: #2c272a;
+            color: #f3eff2;
+            border-color: #3e383c;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background-color: var(--primary-lighter);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-header {
+            height: var(--header-height);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-pink));
+            color: #fff;
+        }
+
+        .sidebar-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            margin-bottom: 0;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 15px 0;
+            margin: 0;
+            overflow-y: auto;
+            max-height: calc(100vh - var(--header-height));
+        }
+
+        .sidebar-nav-item {
+            padding: 2px 15px;
+        }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: var(--primary-dark);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        body.dark-mode .sidebar-nav-link {
+            color: var(--primary-light);
+        }
+
+        .sidebar-nav-link:hover,
+        .sidebar-nav-link.active {
+            background-color: var(--primary-pink);
+            color: white;
+        }
+
+        body.dark-mode .sidebar-nav-link:hover,
+        body.dark-mode .sidebar-nav-link.active {
+            background-color: var(--primary-pink) !important;
+            color: #fff !important;
+        }
+
+        .sidebar-nav-link i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 10px 15px;
+        }
+
+        body.dark-mode .sidebar-divider {
+            background-color: #2c2c2c;
+        }
+
+        /* Main Workspace Container */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            background-color: #f9f7f8;
+            transition: all 0.3s ease;
+        }
+
+        /* Header Navigation Top */
+        .header-top {
+            height: var(--header-height);
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .header-title-section h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 2px;
+        }
+
+        body.dark-mode .header-title-section h2 {
+            color: var(--primary-light);
+        }
+
+        .header-title-section p {
+            font-size: 0.8rem;
+            color: #777;
+            margin-bottom: 0;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-btn {
+            background: none;
+            border: none;
+            color: #555;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.dark-mode .header-btn {
+            color: var(--primary-light);
+        }
+
+        .header-btn:hover {
+            background-color: var(--primary-lighter);
+        }
+
+        body.dark-mode .header-btn:hover {
+            background-color: #2c1a1e;
+        }
+
+        .user-profile-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 12px;
+            background-color: var(--primary-lighter);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        body.dark-mode .user-profile-badge {
+            background-color: #2c1a1e;
+            color: #f3eff2;
+        }
+
+        /* Workspace Grid & Modules */
+        .workspace-panel {
+            padding: 30px;
+        }
+
+        .module-page {
+            display: none;
+        }
+
+        .module-page.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Stat Metrics Cards */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background-color: var(--primary-lighter);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 4px rgba(184, 92, 122, 0.03);
+        }
+
+        .stat-icon-wrapper {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon-wrapper.total { background-color: rgba(233, 30, 99, 0.12); color: var(--primary-pink); }
+        .stat-icon-wrapper.pending { background-color: rgba(255, 193, 7, 0.12); color: #b58900; }
+        .stat-icon-wrapper.approved { background-color: rgba(40, 167, 69, 0.12); color: #28a745; }
+        .stat-icon-wrapper.disbursed { background-color: rgba(23, 162, 184, 0.12); color: #17a2b8; }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        body.dark-mode .stat-label {
+            color: #aaa;
+        }
+
+        /* Content Cards & Modules */
+        .content-card {
+            background-color: var(--primary-lighter);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 4px rgba(184, 92, 122, 0.02);
+        }
+
+        .card-header-custom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        body.dark-mode .card-header-custom {
+            border-bottom-color: #2c2c2c;
+        }
+
+        .card-header-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        body.dark-mode .card-header-title {
+            color: var(--primary-light);
+        }
+
+        /* Badges & Tables styling */
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .status-badge.active { background-color: rgba(40, 167, 69, 0.12); color: #28a745; }
+        .status-badge.pending { background-color: rgba(255, 193, 7, 0.12); color: #b58900; }
+        .status-badge.approved { background-color: rgba(23, 162, 184, 0.12); color: #17a2b8; }
+        .status-badge.completed { background-color: rgba(233, 30, 99, 0.15); color: var(--primary-dark); }
+        .status-badge.denied { background-color: rgba(220, 53, 69, 0.12); color: #dc3545; }
+        .status-badge.deactivated { background-color: rgba(108, 117, 125, 0.12); color: #6c757d; }
+
+        .table-responsive {
+            margin-top: 10px;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .custom-table th {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+            background-color: var(--primary-lighter);
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .custom-table td {
+            font-size: 0.88rem;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .custom-table tbody tr:hover {
+            background-color: rgba(233, 30, 99, 0.02);
+        }
+
+        /* Buttons matching the theme */
+        .btn-theme {
+            background-color: var(--primary-pink);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.88rem;
+            transition: background-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-theme:hover {
+            background-color: var(--primary-dark);
+            color: #fff;
+        }
+
+        .btn-theme-outline {
+            background: none;
+            border: 1.5px solid var(--primary-pink);
+            color: var(--primary-pink);
+            padding: 7px 15px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.88rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-theme-outline:hover {
+            background-color: var(--primary-lighter);
+            color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        /* Modals and forms */
+        .custom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1050;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .custom-modal.show {
+            display: flex;
+        }
+
+        .custom-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: -1;
+        }
+
+        .custom-modal-dialog {
+            background-color: var(--primary-lighter);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .custom-modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .custom-modal-title {
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin: 0;
+            font-size: 1.15rem;
+        }
+
+        .custom-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .custom-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            color: #888;
+            transition: color 0.2s;
+        }
+
+        .btn-modal-close:hover {
+            color: #333;
+        }
+
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--primary-dark);
+        }
+
+        /* Print Layout Optimization */
+        @media print {
+            .sidebar, .header-top, .btn-theme, .btn-theme-outline, .header-controls, .no-print {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                background-color: #fff !important;
+            }
+            .workspace-panel {
+                padding: 0 !important;
+            }
+            .content-card {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+            }
+            .custom-table th {
+                background-color: #f0f0f0 !important;
+                color: #000 !important;
+                border-bottom: 2px solid #000 !important;
+            }
+            .custom-table td {
+                border-bottom: 1px solid #ddd !important;
+            }
+        }
+
+        /* Responsive breakpoints */
+        @media (max-width: 991px) {
+            .sidebar {
+                left: calc(-1 * var(--sidebar-width));
+            }
+            .sidebar.active {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .menu-toggle {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="mainSidebar">
+        <div class="sidebar-header">
+            <h4 class="sidebar-title" id="sidebarTitleText">CSWDO Admin</h4>
+            <p class="sidebar-subtitle">Welfare & Assistance Portal</p>
+        </div>
+        <ul class="sidebar-nav">
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link active" onclick="switchModule('module-dashboard', this)" id="nav-dashboard">
+                    <i class="bi bi-speedometer2"></i> <span data-translate="nav_dashboard">Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-divider"></li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-officers', this)" id="nav-officers">
+                    <i class="bi bi-person-gear"></i> <span data-translate="nav_officers">Officer Accounts</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-applications', this)" id="nav-applications">
+                    <i class="bi bi-file-earmark-medical"></i> <span data-translate="nav_applications">Review Applications</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-schedules', this)" id="nav-schedules">
+                    <i class="bi bi-calendar-event"></i> <span data-translate="nav_schedules">Scheduling</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-funds', this)" id="nav-funds">
+                    <i class="bi bi-bank"></i> <span data-translate="nav_funds">Fund Utilization</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-notifications', this)" id="nav-notifications">
+                    <i class="bi bi-chat-left-dots"></i> <span data-translate="nav_alerts">Notifications</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-resets', this)" id="nav-resets">
+                    <i class="bi bi-key"></i> <span data-translate="nav_resets">Password Resets</span>
+                    <span id="resetBadge" class="badge bg-danger rounded-pill ms-auto d-none">0</span>
+                </a>
+            </li>
+            <li class="sidebar-divider"></li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-reports', this)" id="nav-reports">
+                    <i class="bi bi-printer"></i> <span data-translate="nav_reports">System Reports</span>
+                </a>
+            </li>
+            <li class="sidebar-divider"></li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link text-danger" onclick="logoutAdmin()">
+                    <i class="bi bi-box-arrow-left"></i> <span data-translate="nav_signout">Sign Out</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content Workspace -->
+    <main class="main-content">
+        <!-- Header Top -->
+        <header class="header-top no-print">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle" id="sidebarToggle" aria-label="Toggle navigation menu">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="header-title-section">
+                    <h2 id="pageMainHeader">Dashboard</h2>
+                    <p id="pageSubHeader">Overview of CSWDO assistance operations</p>
+                </div>
+            </div>
+            <div class="header-controls">
+                <!-- Theme Toggle -->
+                <button class="header-btn" id="darkModeToggle" title="Toggle Light/Dark Theme" onclick="toggleDarkMode()">
+                    <i class="bi bi-moon-fill" id="darkModeIcon"></i>
+                </button>
+                <!-- Language Toggle -->
+                <button class="btn btn-sm btn-outline-secondary" id="languageToggle" onclick="toggleLanguage()">
+                    English
+                </button>
+                <!-- User Profile Display -->
+                <div class="user-profile-badge">
+                    <i class="bi bi-person-circle"></i>
+                    <span id="userDisplayName">CSWDO Administrator</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Panel Contents -->
+        <div class="workspace-panel">
+            
+            <!-- MODULE: DASHBOARD -->
+            <section class="module-page active" id="module-dashboard">
+                <!-- Metrics Stats Row -->
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper total">
+                            <i class="bi bi-folder2-open"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statTotalApps">0</span>
+                            <span class="stat-label" data-translate="stat_total">Total Files</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper pending">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statPendingApps">0</span>
+                            <span class="stat-label" data-translate="stat_pending">Pending Cases</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper approved">
+                            <i class="bi bi-check2-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statApprovedApps">0</span>
+                            <span class="stat-label" data-translate="stat_approved">Approved</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper disbursed">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statTotalReleased">₱0</span>
+                            <span class="stat-label" data-translate="stat_released">Funds Released</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts row -->
+                <div class="row">
+                    <div class="col-lg-6 mb-4">
+                        <div class="content-card">
+                            <div class="card-header-custom">
+                                <h5 class="card-header-title">
+                                    <i class="bi bi-bar-chart-fill"></i> <span data-translate="chart_fund_title">Fund Utilization by Program</span>
+                                </h5>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="chartFundUtilization"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="content-card">
+                            <div class="card-header-custom">
+                                <h5 class="card-header-title">
+                                    <i class="bi bi-graph-up-arrow"></i> <span data-translate="chart_trend_title">Application Trend Log</span>
+                                </h5>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="chartApplicationTrend"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities Section -->
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h5 class="card-header-title">
+                            <i class="bi bi-list-task"></i> <span data-translate="recent_activity">Recent Operational Audit Log</span>
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="tbl_activity">Activity Type</th>
+                                    <th data-translate="tbl_actor">Triggered By</th>
+                                    <th data-translate="tbl_datetime">Timestamp</th>
+                                    <th data-translate="tbl_status">Execution Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardActivitiesBody">
+                                <!-- Dynamic Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: OFFICER ACCOUNTS -->
+            <section class="module-page" id="module-officers">
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h5 class="card-header-title">
+                            <i class="bi bi-people-fill"></i> <span data-translate="officer_mgmt_title">CSWDO Officer Accounts</span>
+                        </h5>
+                        <button class="btn-theme" onclick="openOfficerModal()">
+                            <i class="bi bi-person-plus-fill"></i> <span data-translate="add_officer_btn">Register Officer</span>
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Officer ID</th>
+                                    <th>Full Name</th>
+                                    <th>Username</th>
+                                    <th>Official Email</th>
+                                    <th>Designated Role</th>
+                                    <th>Account Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="officersTableBody">
+                                <!-- Dynamic Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: REVIEW APPLICATIONS (APPROVAL ASSISTANCE) -->
+            <section class="module-page" id="module-applications">
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h5 class="card-header-title">
+                            <i class="bi bi-file-earmark-check-fill"></i> <span data-translate="applications_review_title">Welfare Assistance Verification</span>
+                        </h5>
+                        <div class="d-flex gap-2 no-print">
+                            <select class="form-select form-select-sm" id="filterAssistanceType" onchange="renderApplicationsTable()" style="max-width: 200px;">
+                                <option value="">All Assistance Types</option>
+                                <option value="Medical Assistance">Medical Assistance</option>
+                                <option value="Burial Assistance">Burial Assistance</option>
+                                <option value="Financial Assistance">Financial Assistance</option>
+                            </select>
+                            <select class="form-select form-select-sm" id="filterApplicationStatus" onchange="renderApplicationsTable()" style="max-width: 150px;">
+                                <option value="">All Statuses</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Denied">Denied</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Case ID</th>
+                                    <th>Beneficiary Name</th>
+                                    <th>Assistance Requested</th>
+                                    <th>Date Filed</th>
+                                    <th>Document Review</th>
+                                    <th>Current Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="applicationsTableBody">
+                                <!-- Dynamic Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: SCHEDULING MANAGEMENT -->
+            <section class="module-page" id="module-schedules">
+                <div class="row">
+                    <div class="col-lg-4 mb-4">
+                        <div class="content-card">
+                            <div class="card-header-custom">
+                                <h5 class="card-header-title">
+                                    <i class="bi bi-calendar-plus-fill"></i> <span data-translate="create_schedule_title">Schedule Event</span>
+                                </h5>
+                            </div>
+                            <form id="scheduleForm" onsubmit="saveSchedule(event)">
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Event Title</label>
+                                    <input type="text" class="form-control" id="schedTitle" placeholder="e.g. Medical Screening, Interview" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Event Type</label>
+                                    <select class="form-select" id="schedType" required>
+                                        <option value="">Select event type...</option>
+                                        <option value="Interview">Interview & Assessment</option>
+                                        <option value="Orientation">Beneficiary Orientation</option>
+                                        <option value="Payout">Distribution / Payout</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Date & Time</label>
+                                    <input type="datetime-local" class="form-control" id="schedDateTime" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Venue / Location</label>
+                                    <input type="text" class="form-control" id="schedLocation" placeholder="e.g. CSWDO Conf. Room, City Gym" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Auto-Notify Beneficiaries</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="schedNotifyAuto" checked>
+                                        <label class="form-check-label text-muted" style="font-size: 0.85rem;">Send SMS/Email alerts immediately</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-theme w-100 py-2 justify-content-center">
+                                    <i class="bi bi-calendar-check-fill"></i> Save Schedule
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-lg-8 mb-4">
+                        <div class="content-card">
+                            <div class="card-header-custom">
+                                <h5 class="card-header-title">
+                                    <i class="bi bi-calendar-week-fill"></i> <span data-translate="schedules_list_title">CSWDO Scheduled Calendars</span>
+                                </h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="custom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Event Type</th>
+                                            <th>Date & Time</th>
+                                            <th>Location</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="schedulesTableBody">
+                                        <!-- Dynamic Render -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: FUND MANAGEMENT -->
+            <section class="module-page" id="module-funds">
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h5 class="card-header-title">
+                            <i class="bi bi-bank2"></i> <span data-translate="funds_alloc_title">Welfare Fund & Budget Allocation</span>
+                        </h5>
+                        <button class="btn-theme-outline" onclick="openBudgetModal()">
+                            <i class="bi bi-plus-circle-fill"></i> <span data-translate="adjust_budget_btn">Adjust Allocation</span>
+                        </button>
+                    </div>
+                    
+                    <div class="row mb-4" id="programsFundGrid">
+                        <!-- Dynamic Programs Progress Cards -->
+                    </div>
+
+                    <!-- Payout Releases Ledger -->
+                    <div class="card-header-custom mt-4">
+                        <h5 class="card-header-title" style="font-size: 1rem;">
+                            <i class="bi bi-journal-text"></i> Fund Disbursement Log & Ledger
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Ref ID</th>
+                                    <th>Case/Source</th>
+                                    <th>Program / Office</th>
+                                    <th>Release Type</th>
+                                    <th>Disbursed Amount</th>
+                                    <th>Ledger Date</th>
+                                    <th>Ledger Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledgerTableBody">
+                                <!-- Dynamic Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: NOTIFICATIONS -->
+            <section class="module-page" id="module-notifications">
+                <div class="row">
+                    <div class="col-lg-5 mb-4">
+                        <div class="content-card">
+                            <div class="card-header-custom">
+                                <h5 class="card-header-title">
+                                    <i class="bi bi-chat-dots-fill"></i> <span data-translate="compose_notif_title">Broadcast Notification</span>
+                                </h5>
+                            </div>
+                            <form id="notificationForm" onsubmit="sendNotification(event)">
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Recipient Group</label>
+                                    <select class="form-select" id="notifRecipientGroup" required>
+                                        <option value="">Select recipients...</option>
+                                        <option value="All Beneficiaries">All CSWDO Beneficiaries</option>
+                                        <option value="Medical Assistance Applicants">Medical Assistance Applicants Only</option>
+                                        <option value="Burial Assistance Applicants">Burial Assistance Applicants Only</option>
+                                        <option value="Financial Assistance Applicants">Financial Assistance Applicants Only</option>
+                                        <option value="Barangay Poblacion">Residents of Poblacion</option>
+                                        <option value="Barangay Concepcion">Residents of Concepcion</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Transmission Channel</label>
+                                    <div class="d-flex gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="channelSMS" checked>
+                                            <label class="form-check-label" style="font-size: 0.88rem;">SMS (Text Message)</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="channelEmail" checked>
+                                            <label class="form-check-label" style="font-size: 0.88rem;">Email Official</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Message Subject</label>
+                                    <input type="text" class="form-control" id="notifSubject" placeholder="e.g. Schedule of Payout Release" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Notification Body</label>
+                                    <textarea class="form-control" id="notifMessage" rows="5" placeholder="Write your message here... Beneficiaries will automatically receive this transmission." required></textarea>
+                                </div>
+                                <button type="submit" class="btn-theme w-100 py-2 justify-content-center">
+                                    <i class="bi bi-send-check-fill"></i> Transmit Announcement
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-lg-7 mb-4">
+                        <div class="content-card">
+                            <div class="card-header-custom">
+                                <h5 class="card-header-title">
+                                    <i class="bi bi-clock-history"></i> <span data-translate="notif_logs_title">Transmission History Alerts</span>
+                                </h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="custom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Recipient Target</th>
+                                            <th>Channel</th>
+                                            <th>Subject</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="notifLogsTableBody">
+                                        <!-- Dynamic Render -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: IT PASSWORD RESET TICKETS -->
+            <section class="module-page" id="module-resets">
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h5 class="card-header-title">
+                            <i class="bi bi-key-fill text-danger"></i> IT Password Reset Workflow Console
+                        </h5>
+                    </div>
+                    <p class="text-muted" style="font-size: 0.9rem; margin-top: -10px; margin-bottom: 20px;">
+                        This list registers password recovery tickets submitted by staff members at the portal login screen. Resolving a ticket resets their password to the system default: <strong>password123</strong>.
+                    </p>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticket ID</th>
+                                    <th>Staff Username</th>
+                                    <th>Office Portal</th>
+                                    <th>Reason / Details</th>
+                                    <th>Date Requested</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resetsTableBody">
+                                <!-- Dynamic Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: SYSTEM REPORTS -->
+            <section class="module-page" id="module-reports">
+                <!-- Filters panel -->
+                <div class="content-card no-print">
+                    <div class="card-header-custom">
+                        <h5 class="card-header-title">
+                            <i class="bi bi-filter-square-fill"></i> <span data-translate="report_filter_title">Generate Custom Operational Reports</span>
+                        </h5>
+                    </div>
+                    <form id="reportFilterForm" onsubmit="generateReport(event)">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Select Report Category</label>
+                                <select class="form-select" id="reportCategory" required>
+                                    <option value="summary">Assistance Applications Summary</option>
+                                    <option value="funds">Fund Utilization Ledger</option>
+                                    <option value="demographics">Beneficiary Profile Demographics</option>
+                                    <option value="barangay">Barangay Assistance Distribution</option>
+                                    <option value="compliance">Compliance & Audit Trail Logs</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Assistance Type Filter</label>
+                                <select class="form-select" id="reportType">
+                                    <option value="">All Assistance Programs</option>
+                                    <option value="Medical Assistance">Medical Assistance</option>
+                                    <option value="Burial Assistance">Burial Assistance</option>
+                                    <option value="Financial Assistance">Financial Assistance</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Date Range (From)</label>
+                                <input type="date" class="form-control" id="reportDateFrom">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Date Range (To)</label>
+                                <input type="date" class="form-control" id="reportDateTo">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn-theme">
+                                <i class="bi bi-file-earmark-play-fill"></i> Compile Report
+                            </button>
+                            <button type="button" class="btn-theme-outline" onclick="printReport()">
+                                <i class="bi bi-printer-fill"></i> Print Report
+                            </button>
+                            <button type="button" class="btn-theme-outline text-success border-success" onclick="exportReportCSV()">
+                                <i class="bi bi-file-earmark-spreadsheet-fill"></i> Export CSV
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Report Render Area -->
+                <div class="content-card" id="reportRenderWrapper">
+                    <!-- Report Header (For Print layout reference) -->
+                    <div class="text-center mb-4 py-3" style="border-bottom: 2px solid var(--primary-dark);">
+                        <h4 class="mb-1" style="color: var(--primary-dark); font-weight: 700; text-transform: uppercase;">Republic of the Philippines</h4>
+                        <h5 class="mb-1" style="font-weight: 600;">City Government of Koronadal</h5>
+                        <h6 class="mb-2 text-muted" style="font-size: 0.9rem;">City Social Welfare and Development Office (CSWDO)</h6>
+                        <h5 class="mt-3 font-bold" id="compiledReportTitle" style="letter-spacing: 0.5px;">ASSISTANCE APPLICATIONS SUMMARY REPORT</h5>
+                        <p class="text-muted mt-1" style="font-size: 0.78rem;">Generated Date: <span id="reportGeneratedDate">--</span> | Compiled By: CSWDO System Administrator</p>
+                    </div>
+
+                    <!-- Report content placeholder -->
+                    <div id="reportRenderContent">
+                        <!-- Compiled Tables will render here -->
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- MODALS AND SYSTEM POPUPS -->
+    <!-- ============================================== -->
+
+    <!-- Modal: Register/Edit Officer -->
+    <div class="custom-modal" id="officerModal">
+        <div class="custom-modal-backdrop" onclick="closeOfficerModal()"></div>
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title" id="officerModalTitle">Register Officer Account</h5>
+                <button type="button" class="btn-modal-close" onclick="closeOfficerModal()">&times;</button>
+            </div>
+            <form id="officerForm" onsubmit="saveOfficer(event)">
+                <input type="hidden" id="officerId">
+                <div class="custom-modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Full Official Name</label>
+                        <input type="text" class="form-control" id="officerName" placeholder="e.g. Sarah Jenkins" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Account Username</label>
+                        <input type="text" class="form-control" id="officerUsername" placeholder="e.g. cswdo-sarah" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Official Office Email</label>
+                        <input type="email" class="form-control" id="officerEmail" placeholder="e.g. sarah.jenkins@koronadal.gov.ph" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Designated Designation / Role</label>
+                        <select class="form-select" id="officerRole" required>
+                            <option value="">Select assignment...</option>
+                            <option value="CSWDO Officer">CSWDO Officer (Case Worker)</option>
+                            <option value="CSWDO Evaluator">CSWDO Evaluator (Assessment Officer)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeOfficerModal()">Cancel</button>
+                    <button type="submit" class="btn-theme">Register Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Review Application Details -->
+    <div class="custom-modal" id="reviewModal">
+        <div class="custom-modal-backdrop" onclick="closeReviewModal()"></div>
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Review Assistance Application</h5>
+                <button type="button" class="btn-modal-close" onclick="closeReviewModal()">&times;</button>
+            </div>
+            <div class="custom-modal-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="text-muted d-block" style="font-size: 0.78rem;">CASE REFERENCE ID</label>
+                        <strong id="reviewCaseId">--</strong>
+                    </div>
+                    <div class="col-6 text-end">
+                        <label class="text-muted d-block" style="font-size: 0.78rem;">DATE SUBMITTED</label>
+                        <strong id="reviewDate">--</strong>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted d-block" style="font-size: 0.78rem;">BENEFICIARY FULL NAME</label>
+                    <strong id="reviewBeneficiary">--</strong>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted d-block" style="font-size: 0.78rem;">ASSISTANCE PROGRAM APPLIED</label>
+                    <span class="badge bg-secondary" id="reviewType">--</span>
+                </div>
+                <hr>
+                
+                <!-- Document Verification Checklist -->
+                <h6 class="mb-3 font-semibold text-purple">Compliance Document Check</h6>
+                <div class="list-group mb-3">
+                    <div class="list-group-item d-flex align-items-center justify-content-between py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-text text-primary"></i>
+                            <span style="font-size: 0.85rem;">Certificate of Indigency (Barangay)</span>
+                        </div>
+                        <span class="text-success fw-bold" style="font-size: 0.8rem;"><i class="bi bi-patch-check-fill"></i> Uploaded</span>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center justify-content-between py-2" id="docSpecialFieldWrapper">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-file-medical text-primary" id="docSpecialIcon"></i>
+                            <span style="font-size: 0.85rem;" id="docSpecialLabel">Medical Certificate / Death Abstract</span>
+                        </div>
+                        <span class="text-success fw-bold" style="font-size: 0.8rem;"><i class="bi bi-patch-check-fill"></i> Uploaded</span>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center justify-content-between py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-card-image text-primary"></i>
+                            <span style="font-size: 0.85rem;">Government Issued ID Copy</span>
+                        </div>
+                        <span class="text-success fw-bold" style="font-size: 0.8rem;"><i class="bi bi-patch-check-fill"></i> Uploaded</span>
+                    </div>
+                </div>
+
+                <!-- Form to Make Evaluation Decisions -->
+                <form id="evaluationForm" onsubmit="processEvaluation(event)">
+                    <input type="hidden" id="reviewAppId">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Review Decision / Status</label>
+                        <select class="form-select" id="reviewStatusSelect" onchange="toggleApprovedAmount()" required>
+                            <option value="">Select action...</option>
+                            <option value="Approved">Approve Application</option>
+                            <option value="Denied">Deny / Reject Application</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3 d-none" id="approvedAmountWrapper">
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Approved Financial Grant Value (₱)</label>
+                        <input type="number" class="form-control" id="reviewApprovedAmount" placeholder="e.g. 5000">
+                        <small class="text-muted">Maximum limit governed by program budget allocation.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Verification Audit Remarks</label>
+                        <textarea class="form-control" id="reviewRemarks" rows="2" placeholder="Write remarks, e.g. 'Satisfies indigency parameters', 'Invalid documentation'" required></textarea>
+                    </div>
+
+                    <div class="custom-modal-footer px-0 pb-0">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="closeReviewModal()">Cancel</button>
+                        <button type="submit" class="btn-theme">Submit Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Record Payout / Disbursement details -->
+    <div class="custom-modal" id="disbursementModal">
+        <div class="custom-modal-backdrop" onclick="closeDisbursementModal()"></div>
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Record Disbursement Release</h5>
+                <button type="button" class="btn-modal-close" onclick="closeDisbursementModal()">&times;</button>
+            </div>
+            <form id="disbursementForm" onsubmit="saveDisbursement(event)">
+                <input type="hidden" id="disburseAppId">
+                <div class="custom-modal-body">
+                    <div class="mb-3">
+                        <label class="text-muted d-block" style="font-size: 0.78rem;">CASE ID</label>
+                        <strong id="disburseCaseId">--</strong>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted d-block" style="font-size: 0.78rem;">BENEFICIARY</label>
+                        <strong id="disburseBeneficiary">--</strong>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted d-block" style="font-size: 0.78rem;">APPROVED FINANCIAL GRANT</label>
+                        <strong id="disburseApprovedVal" style="color: var(--primary-dark); font-size: 1.1rem;">₱0</strong>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Release Date</label>
+                        <input type="date" class="form-control" id="disburseReleaseDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Disbursement Log Comments</label>
+                        <textarea class="form-control" id="disburseComments" rows="2" placeholder="e.g. Signed cash voucher copy uploaded, Transferred direct to bank" required></textarea>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeDisbursementModal()">Cancel</button>
+                    <button type="submit" class="btn-theme"><i class="bi bi-wallet2"></i> Record Disbursement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Adjust Budget -->
+    <div class="custom-modal" id="budgetModal">
+        <div class="custom-modal-backdrop" onclick="closeBudgetModal()"></div>
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Adjust Program Budget Allocation</h5>
+                <button type="button" class="btn-modal-close" onclick="closeBudgetModal()">&times;</button>
+            </div>
+            <form id="budgetForm" onsubmit="saveBudgetAdjustment(event)">
+                <div class="custom-modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Assistance Program</label>
+                        <select class="form-select" id="budgetProgramSelect" required>
+                            <option value="">Select program...</option>
+                            <option value="Medical">Medical Assistance</option>
+                            <option value="Burial">Burial Assistance</option>
+                            <option value="Financial">Financial Assistance</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Adjustment Action Type</label>
+                        <select class="form-select" id="budgetActionSelect" required>
+                            <option value="add">Increase Allocated Budget</option>
+                            <option value="subtract">Decrease Allocated Budget</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Financial Value (₱)</label>
+                        <input type="number" class="form-control" id="budgetValue" placeholder="e.g. 100000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Allocation Remarks</label>
+                        <textarea class="form-control" id="budgetRemarks" rows="2" placeholder="e.g. Supplemental city budget release" required></textarea>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeBudgetModal()">Cancel</button>
+                    <button type="submit" class="btn-theme">Apply Allocation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SYSTEM CONTROLLER JAVASCRIPT -->
+    <!-- ============================================== -->
+    <script>
+        // Check Admin Authentication (RBAC)
+        const userRole = sessionStorage.getItem('userRole');
+        if (userRole !== 'CSWDO Admin') {
+            alert('Unauthorized Access. Redirecting to Staff Login Portal.');
+            window.location.href = 'admin_login.html';
+        }
+
+        // Display user details
+        document.getElementById('userDisplayName').textContent = sessionStorage.getItem('username') || 'CSWDO Administrator';
+
+        // Translations Dictionary
+        const translations = {
+            'en': {
+                'nav_dashboard': 'Dashboard',
+                'nav_officers': 'Officer Accounts',
+                'nav_applications': 'Review Applications',
+                'nav_schedules': 'Scheduling',
+                'nav_funds': 'Fund Utilization',
+                'nav_alerts': 'Notifications',
+                'nav_resets': 'Password Resets',
+                'nav_reports': 'System Reports',
+                'nav_signout': 'Sign Out',
+                'title-module-dashboard': 'Dashboard Metrics',
+                'title-module-officers': 'Officer Accounts Manager',
+                'title-module-applications': 'Welfare Applications Approval Board',
+                'title-module-schedules': 'Operational Scheduling Calendar',
+                'title-module-funds': 'Welfare Fund & Budget Allocation',
+                'title-module-notifications': 'Announcements & Alerts Console',
+                'title-module-resets': 'Staff Recovery Tickets',
+                'title-module-reports': 'System Audit & Reporting Engine',
+                'stat_total': 'Total Applications',
+                'stat_pending': 'Pending Cases',
+                'stat_approved': 'Approved Grants',
+                'stat_released': 'Funds Disbursed',
+                'chart_fund_title': 'Fund Utilization by Program (Allocated vs Disbursed)',
+                'chart_trend_title': 'Assistance Application Trends (Monthly)',
+                'recent_activity': 'System Operational Audit Log',
+                'tbl_activity': 'Activity Type',
+                'tbl_actor': 'Triggered By',
+                'tbl_datetime': 'Timestamp',
+                'tbl_status': 'Execution Status',
+                'officer_mgmt_title': 'CSWDO Staff Accounts',
+                'add_officer_btn': 'Register Officer',
+                'applications_review_title': 'Verification Worklist',
+                'create_schedule_title': 'Create Calendar Event',
+                'schedules_list_title': 'CSWDO Schedules & Activities',
+                'funds_alloc_title': 'Budget Tracking Dashboard',
+                'adjust_budget_btn': 'Adjust Funding Allocation',
+                'compose_notif_title': 'Broadcast Announcement SMS/Email',
+                'notif_logs_title': 'Recent Notifications Dispatch Logs',
+                'report_filter_title': 'Generate Custom Reports'
+            },
+            'tg': {
+                'nav_dashboard': 'Dashboard',
+                'nav_officers': 'Mga Opisyal',
+                'nav_applications': 'Repasuhin ang Aplikasyon',
+                'nav_schedules': 'Pag-iskedyul',
+                'nav_funds': 'Pondo at Badyet',
+                'nav_alerts': 'Mga Abiso',
+                'nav_resets': 'Reset ng Password',
+                'nav_reports': 'Mga Ulat',
+                'nav_signout': 'Mag-sign Out',
+                'title-module-dashboard': 'Mga Sukatan ng Dashboard',
+                'title-module-officers': 'Pamamahala ng Account ng Opisyal',
+                'title-module-applications': 'Lupon ng Pag-apruba sa Tulong',
+                'title-module-schedules': 'Kalendaryo ng Pag-iskedyul',
+                'title-module-funds': 'Badyet at Utilidad ng Pondo',
+                'title-module-notifications': 'Abiso at Anunsyo',
+                'title-module-resets': 'Mga Rekoberi Ticket ng Staff',
+                'title-module-reports': 'Pag-audit at Ulat ng Sistema',
+                'stat_total': 'Kabuuang Aplikasyon',
+                'stat_pending': 'Nakabinbing Kaso',
+                'stat_approved': 'Inaprubahang Tulong',
+                'stat_released': 'Naipamahaging Pondo',
+                'chart_fund_title': 'Utilidad ng Pondo (Inilaan vs Inilabas)',
+                'chart_trend_title': 'Trend ng mga Aplikasyon (Buwanan)',
+                'recent_activity': 'Log ng Audit sa Pagpapatakbo',
+                'tbl_activity': 'Uri ng Aktibidad',
+                'tbl_actor': 'Pinagana Ni',
+                'tbl_datetime': 'Oras at Araw',
+                'tbl_status': 'Katayuan ng Execution',
+                'officer_mgmt_title': 'Mga Account ng Opisyal ng CSWDO',
+                'add_officer_btn': 'Magrehistro ng Opisyal',
+                'applications_review_title': 'Listahan para sa Pagpapatunay',
+                'create_schedule_title': 'Gumawa ng Kaganapan',
+                'schedules_list_title': 'Iskedyul ng CSWDO',
+                'funds_alloc_title': 'Pamamahala ng Badyet',
+                'adjust_budget_btn': 'Baguhin ang Alokasyon',
+                'compose_notif_title': 'Magpadala ng SMS/Email na Anunsyo',
+                'notif_logs_title': 'Kasaysayan ng mga Ipinadalang Abiso',
+                'report_filter_title': 'Bumuo ng Ulat'
+            }
+        };
+
+        // Initialize state databases in localStorage
+        function initCSWDODatabase() {
+            // Default Programs for CSWDO
+            if (!localStorage.getItem('cswdo_programs')) {
+                const defaultPrograms = [
+                    { id: "P1", code: "Medical", name: "Medical Assistance", budget: 1500000, allocated: 650000, status: "Active" },
+                    { id: "P2", code: "Burial", name: "Burial Assistance", budget: 800000, allocated: 350000, status: "Active" },
+                    { id: "P3", code: "Financial", name: "Financial Assistance", budget: 1000000, allocated: 450000, status: "Active" }
+                ];
+                localStorage.setItem('cswdo_programs', JSON.stringify(defaultPrograms));
+            }
+
+            // Default CSWDO Officers
+            if (!localStorage.getItem('cswdo_officers')) {
+                const defaultOfficers = [
+                    { id: "O1", name: "Sarah Jenkins", username: "cswdo-officer", email: "sarah.jenkins@koronadal.gov.ph", role: "CSWDO Officer", status: "Active", dateCreated: "2026-01-10" },
+                    { id: "O2", name: "David Miller", username: "cswdo-evaluator", email: "david.miller@koronadal.gov.ph", role: "CSWDO Evaluator", status: "Active", dateCreated: "2026-02-14" }
+                ];
+                localStorage.setItem('cswdo_officers', JSON.stringify(defaultOfficers));
+            }
+
+            // Default Applications
+            if (!localStorage.getItem('cswdo_applications')) {
+                const defaultApplications = [
+                    { id: "CSWDO-2026-0180", beneficiaryName: "Maria Garcia", beneficiaryId: "B1", type: "Medical Assistance", dateSubmitted: "2026-03-10", status: "Completed", verified: true, approvedAmount: 10000, remarks: "Transferred to hospital account", dateReleased: "2026-03-20" },
+                    { id: "CSWDO-2026-0195", beneficiaryName: "Roberto Cruz", beneficiaryId: "B4", type: "Financial Assistance", dateSubmitted: "2026-06-15", status: "Approved", verified: true, approvedAmount: 5000, remarks: "Voucher processed. Awaiting beneficiary payout.", dateReleased: "" },
+                    { id: "CSWDO-2026-0201", beneficiaryName: "Pedro Santos", beneficiaryId: "B2", type: "Burial Assistance", dateSubmitted: "2026-06-25", status: "Pending", verified: false, approvedAmount: 0, remarks: "Awaiting funeral contract document", dateReleased: "" }
+                ];
+                localStorage.setItem('cswdo_applications', JSON.stringify(defaultApplications));
+            }
+
+            // Default Schedules
+            if (!localStorage.getItem('cswdo_schedules')) {
+                const defaultSchedules = [
+                    { id: "SCH1", title: "Medical Financial Screening", type: "Interview", dateTime: "2026-06-30T09:00", location: "CSWDO Conference Room", status: "Scheduled" },
+                    { id: "SCH2", title: "Burial Assistance Briefing", type: "Orientation", dateTime: "2026-07-02T10:00", location: "CSWDO Room 102", status: "Scheduled" },
+                    { id: "SCH3", title: "Financial Aid Distribution Ph1", type: "Payout", dateTime: "2026-07-05T09:00", location: "City Hall Gym", status: "Scheduled" }
+                ];
+                localStorage.setItem('cswdo_schedules', JSON.stringify(defaultSchedules));
+            }
+
+            // Default Logs
+            if (!localStorage.getItem('cswdo_broadcast_logs')) {
+                const defaultLogs = [
+                    { id: "L1", recipientGroup: "Medical Assistance Applicants", type: "SMS", subject: "Review Notification", message: "CSWDO Notice: Please submit copy of hospital abstracts to room 103 for medical grant validation.", status: "Sent", timestamp: "2026-06-25 10:14" }
+                ];
+                localStorage.setItem('cswdo_broadcast_logs', JSON.stringify(defaultLogs));
+            }
+
+            // Default Audit Trail
+            if (!localStorage.getItem('cswdo_activities')) {
+                const defaultActivities = [
+                    { type: "Program Initialized", triggeredBy: "CSWDO System", dateTime: "2026-06-28 08:00 AM", status: "Success (Database ready)" }
+                ];
+                localStorage.setItem('cswdo_activities', JSON.stringify(defaultActivities));
+            }
+
+            // Default Beneficiaries Integration (load from PESO if exists, or use default)
+            if (!localStorage.getItem('peso_beneficiaries')) {
+                const defaultBeneficiaries = [
+                    { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active" },
+                    { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active" },
+                    { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active" },
+                    { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active" }
+                ];
+                localStorage.setItem('peso_beneficiaries', JSON.stringify(defaultBeneficiaries));
+            }
+        }
+
+        // Initialize DB
+        initCSWDODatabase();
+
+        // Chart instances
+        let chartFundInstance = null;
+        let chartTrendInstance = null;
+
+        // Module Switcher
+        function switchModule(moduleId, linkElement) {
+            // Close responsive menu on click
+            document.getElementById('mainSidebar').classList.remove('active');
+
+            // Set active class in sidebar links
+            document.querySelectorAll('.sidebar-nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (linkElement) {
+                linkElement.classList.add('active');
+            }
+
+            // Set active class in module page wrapper
+            document.querySelectorAll('.module-page').forEach(page => {
+                page.classList.remove('active');
+            });
+            const activePage = document.getElementById(moduleId);
+            activePage.classList.add('active');
+
+            // Update Page headers based on language
+            const activeLang = localStorage.getItem('lang') || 'en';
+            const dict = translations[activeLang] || translations['en'];
+            const headerTitleKey = 'title-' + moduleId;
+            
+            document.getElementById('pageMainHeader').textContent = dict[headerTitleKey] || 'CSWDO WIMS';
+            document.getElementById('pageSubHeader').textContent = getModuleSubHeader(moduleId, activeLang);
+
+            // Execute specific loaders
+            if (moduleId === 'module-dashboard') {
+                loadDashboardStats();
+            } else if (moduleId === 'module-officers') {
+                renderOfficersTable();
+            } else if (moduleId === 'module-applications') {
+                renderApplicationsTable();
+            } else if (moduleId === 'module-schedules') {
+                renderSchedulesTable();
+            } else if (moduleId === 'module-funds') {
+                renderFundsDashboard();
+            } else if (moduleId === 'module-notifications') {
+                renderBroadcastLogs();
+            } else if (moduleId === 'module-resets') {
+                renderResetsTable();
+            } else if (moduleId === 'module-reports') {
+                document.getElementById('reportGeneratedDate').textContent = new Date().toLocaleString();
+                generateReport();
+            }
+        }
+
+        function getModuleSubHeader(moduleId, lang) {
+            const subs = {
+                'en': {
+                    'module-dashboard': 'Overview of CSWDO assistance operations',
+                    'module-officers': 'Manage CSWDO case worker and evaluator profiles',
+                    'module-applications': 'Review submitted files, verify parameters and approve cases',
+                    'module-schedules': 'Setup orientation schedules, interviews, and payouts',
+                    'module-funds': 'Check financial reserves, released stipends, and program allocations',
+                    'module-notifications': 'Compose and send SMS/Email announcements to beneficiaries',
+                    'module-resets': 'Manage password reset request tickets submitted by staff',
+                    'module-reports': 'Generate, print, and export CSV system statistics'
+                },
+                'tg': {
+                    'module-dashboard': 'Pangkalahatang-ideya ng operasyon ng CSWDO',
+                    'module-officers': 'Pamahalaan ang mga caseworker at tagasuri ng CSWDO',
+                    'module-applications': 'Suriin ang mga isinumiteng file at aprobahan ang mga kasanayan',
+                    'module-schedules': 'I-setup ang oryentasyon, panayam, at pamamahagi',
+                    'module-funds': 'Tingnan ang pondo, naibigay na tulong, at alokasyon ng programa',
+                    'module-notifications': 'Gumawa at magpadala ng anunsyo sa mga benepisyaryo sa SMS/Email',
+                    'module-resets': 'Pamahalaan ang mga ticket ng reset ng password mula sa staff',
+                    'module-reports': 'Gumawa, mag-print, at mag-export ng CSV ng mga istatistika'
+                }
+            };
+            return subs[lang] ? subs[lang][moduleId] : '';
+        }
+
+        // Toggle Dark/Light Theme
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const darkModeIcon = document.getElementById('darkModeIcon');
+            
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+                if (darkModeIcon) darkModeIcon.className = 'bi bi-sun-fill';
+            } else {
+                document.body.classList.remove('dark-mode');
+                if (darkModeIcon) darkModeIcon.className = 'bi bi-moon-fill';
+            }
+        }
+
+        // Toggle Language
+        function applyLanguage(lang) {
+            const currentLang = translations[lang] ? lang : 'en';
+            const dict = translations[currentLang];
+            
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (dict[key]) {
+                    const icon = el.querySelector('i');
+                    if (icon) {
+                        el.innerHTML = '';
+                        el.appendChild(icon);
+                        el.appendChild(document.createTextNode(' ' + dict[key]));
+                    } else {
+                        el.textContent = dict[key];
+                    }
+                }
+            });
+
+            const langToggle = document.getElementById('languageToggle');
+            if (langToggle) {
+                langToggle.textContent = currentLang === 'en' ? 'English' : 'Tagalog';
+            }
+
+            // Sync main header text dynamically
+            const activeModule = document.querySelector('.module-page.active');
+            if (activeModule) {
+                const headerTitleKey = 'title-' + activeModule.id;
+                document.getElementById('pageMainHeader').textContent = dict[headerTitleKey] || 'CSWDO';
+                document.getElementById('pageSubHeader').textContent = getModuleSubHeader(activeModule.id, currentLang);
+            }
+        }
+
+        function toggleLanguage() {
+            const currentLang = localStorage.getItem('lang') === 'tg' ? 'en' : 'tg';
+            localStorage.setItem('lang', currentLang);
+            applyLanguage(currentLang);
+        }
+
+        function toggleDarkMode() {
+            const currentTheme = localStorage.getItem('theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', currentTheme);
+            applyTheme(currentTheme);
+            
+            // Re-render charts to adjust text color in dark theme
+            if (document.getElementById('module-dashboard').classList.contains('active')) {
+                loadDashboardStats();
+            }
+        }
+
+        // Push new audit activity
+        function pushActivity(type, status, user = "CSWDO Administrator") {
+            const activities = JSON.parse(localStorage.getItem('cswdo_activities')) || [];
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + " - " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            activities.unshift({ type, triggeredBy: user, dateTime: timeStr, status });
+            localStorage.setItem('cswdo_activities', JSON.stringify(activities));
+        }
+
+        // Mask Phone Numbers (Data Privacy compliance - RA 10173)
+        function maskContactNumber(num) {
+            if (!num) return "+63 9** **** ****";
+            const trimmed = num.replace(/\s+/g, '');
+            if (trimmed.length >= 10) {
+                return trimmed.substring(0, 4) + " *** **** " + trimmed.substring(trimmed.length - 2);
+            }
+            return num;
+        }
+
+        // Mobile responsive sidebar switcher
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            document.getElementById('mainSidebar').classList.toggle('active');
+        });
+
+        // Sign Out
+        function logoutAdmin() {
+            if (confirm("Are you sure you want to log out of the CSWDO Admin Portal?")) {
+                sessionStorage.clear();
+                window.location.href = "admin_login.html";
+            }
+        }
+
+        // ==============================================
+        // MODULE: DASHBOARD OPERATIONS
+        // ==============================================
+        function loadDashboardStats() {
+            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+            const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+            
+            // Stats
+            const total = apps.length;
+            const pending = apps.filter(a => a.status === 'Pending').length;
+            const approved = apps.filter(a => a.status === 'Approved').length;
+            
+            // Total released funds
+            let releasedVal = 0;
+            apps.forEach(a => {
+                if (a.status === 'Completed' && a.approvedAmount) {
+                    releasedVal += parseInt(a.approvedAmount);
+                }
+            });
+
+            document.getElementById('statTotalApps').textContent = total;
+            document.getElementById('statPendingApps').textContent = pending;
+            document.getElementById('statApprovedApps').textContent = approved;
+            document.getElementById('statTotalReleased').textContent = "₱" + releasedVal.toLocaleString();
+
+            // Load Activities
+            const activities = JSON.parse(localStorage.getItem('cswdo_activities')) || [];
+            const body = document.getElementById('dashboardActivitiesBody');
+            body.innerHTML = '';
+            
+            activities.slice(0, 5).forEach(act => {
+                let iconClass = 'bi-info-circle text-info';
+                if (act.type.includes('Officer')) iconClass = 'bi-person-badge text-primary';
+                else if (act.type.includes('Application')) iconClass = 'bi-file-earmark-check text-success';
+                else if (act.type.includes('Budget') || act.type.includes('Fund')) iconClass = 'bi-bank text-warning';
+                else if (act.type.includes('Schedule')) iconClass = 'bi-calendar-event text-secondary';
+                else if (act.type.includes('Notification')) iconClass = 'bi-chat-text text-info';
+
+                body.innerHTML += `
+                    <tr>
+                        <td><i class="bi ${iconClass} me-2"></i>${act.type}</td>
+                        <td>${act.triggeredBy}</td>
+                        <td>${act.dateTime}</td>
+                        <td><span class="status-badge active" style="background: rgba(233, 30, 99, 0.08); color: var(--primary-dark);">${act.status}</span></td>
+                    </tr>
+                `;
+            });
+            if (activities.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" class="text-center">No recent activity logged.</td></tr>';
+            }
+
+            // Sync Password Reset ticket count badge
+            updateResetBadge();
+
+            // Render Charts
+            loadDashboardCharts(programs, apps);
+        }
+
+        function loadDashboardCharts(programs, apps) {
+            const isDark = localStorage.getItem('theme') === 'dark';
+            const textColor = isDark ? '#f3eff2' : '#555';
+            const gridColor = isDark ? '#3e383c' : '#F7D2DE';
+
+            // Chart 1: Fund Utilization (Bar Chart)
+            const ctxFund = document.getElementById('chartFundUtilization').getContext('2d');
+            if (chartFundInstance) chartFundInstance.destroy();
+
+            // Compute allocated vs disbursed per program
+            const labels = programs.map(p => p.name);
+            const budgets = programs.map(p => p.budget);
+            const disbursed = programs.map(p => {
+                // Calculate total disbursed for this type
+                let total = 0;
+                apps.forEach(a => {
+                    if (a.type === p.name && a.status === 'Completed') {
+                        total += parseInt(a.approvedAmount || 0);
+                    }
+                });
+                return total;
+            });
+
+            chartFundInstance = new Chart(ctxFund, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Allocated Budget',
+                            data: budgets,
+                            backgroundColor: '#F8BBD0',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Disbursed Funds',
+                            data: disbursed,
+                            backgroundColor: '#C2185B',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: textColor }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: textColor }
+                        }
+                    }
+                }
+            });
+
+            // Chart 2: Application Monthly Trends (Line Chart)
+            const ctxTrend = document.getElementById('chartApplicationTrend').getContext('2d');
+            if (chartTrendInstance) chartTrendInstance.destroy();
+
+            // Mocking trend data based on database
+            chartTrendInstance = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Applications Filed',
+                        data: [10, 18, 30, 22, 28, apps.length + 8],
+                        borderColor: '#E91E63',
+                        backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: textColor }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: textColor }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==============================================
+        // MODULE: OFFICER ACCOUNTS CRUD
+        // ==============================================
+        function renderOfficersTable() {
+            const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
+            const tbody = document.getElementById('officersTableBody');
+            tbody.innerHTML = '';
+
+            officers.forEach(off => {
+                const statusClass = off.status === 'Active' ? 'active' : 'deactivated';
+                const toggleIcon = off.status === 'Active' ? 'bi-person-fill-lock text-warning' : 'bi-person-fill-check text-success';
+                const toggleTitle = off.status === 'Active' ? 'Deactivate Account' : 'Activate Account';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${off.id}</strong></td>
+                        <td>${off.name}</td>
+                        <td><code>${off.username}</code></td>
+                        <td>${off.email}</td>
+                        <td>${off.role}</td>
+                        <td><span class="status-badge ${statusClass}">${off.status}</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editOfficer('${off.id}')" title="Edit Officer Details">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="toggleOfficerStatus('${off.id}')" title="${toggleTitle}">
+                                <i class="bi ${toggleIcon}"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteOfficer('${off.id}')" title="Delete Account">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (officers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No registered officers found.</td></tr>';
+            }
+        }
+
+        function openOfficerModal() {
+            document.getElementById('officerForm').reset();
+            document.getElementById('officerId').value = '';
+            document.getElementById('officerModalTitle').textContent = 'Register CSWDO Officer';
+            document.getElementById('officerUsername').disabled = false;
+            
+            const modal = document.getElementById('officerModal');
+            modal.classList.add('show');
+        }
+
+        function closeOfficerModal() {
+            document.getElementById('officerModal').classList.remove('show');
+        }
+
+        function saveOfficer(e) {
+            e.preventDefault();
+            const id = document.getElementById('officerId').value;
+            const name = document.getElementById('officerName').value.trim();
+            const username = document.getElementById('officerUsername').value.trim();
+            const email = document.getElementById('officerEmail').value.trim();
+            const role = document.getElementById('officerRole').value;
+
+            const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
+
+            if (id === '') {
+                // Check if username already exists
+                const exists = officers.some(o => o.username.toLowerCase() === username.toLowerCase());
+                if (exists) {
+                    alert('Username is already registered. Please choose another.');
+                    return;
+                }
+
+                // Add New
+                const newId = 'CSW-O' + (officers.length + 1);
+                officers.push({
+                    id: newId,
+                    name,
+                    username,
+                    email,
+                    role,
+                    status: 'Active',
+                    dateCreated: new Date().toISOString().split('T')[0]
+                });
+                
+                pushActivity('Officer Registered', `Account created for ${name} (${role})`);
+                alert('Officer Account successfully registered!');
+            } else {
+                // Edit existing
+                const index = officers.findIndex(o => o.id === id);
+                if (index !== -1) {
+                    officers[index].name = name;
+                    officers[index].email = email;
+                    officers[index].role = role;
+                    pushActivity('Officer Edited', `Updated details of officer ${name}`);
+                    alert('Officer Account successfully updated!');
+                }
+            }
+
+            localStorage.setItem('cswdo_officers', JSON.stringify(officers));
+            closeOfficerModal();
+            renderOfficersTable();
+        }
+
+        function editOfficer(id) {
+            const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
+            const off = officers.find(o => o.id === id);
+            if (!off) return;
+
+            document.getElementById('officerId').value = off.id;
+            document.getElementById('officerName').value = off.name;
+            document.getElementById('officerUsername').value = off.username;
+            document.getElementById('officerUsername').disabled = true;
+            document.getElementById('officerEmail').value = off.email;
+            document.getElementById('officerRole').value = off.role;
+
+            document.getElementById('officerModalTitle').textContent = 'Modify Officer Account';
+            document.getElementById('officerModal').classList.add('show');
+        }
+
+        function toggleOfficerStatus(id) {
+            const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
+            const index = officers.findIndex(o => o.id === id);
+            if (index !== -1) {
+                const currentStatus = officers[index].status;
+                const newStatus = currentStatus === 'Active' ? 'Deactivated' : 'Active';
+                officers[index].status = newStatus;
+                
+                localStorage.setItem('cswdo_officers', JSON.stringify(officers));
+                pushActivity('Officer Status Toggled', `${newStatus} account ${officers[index].name}`);
+                renderOfficersTable();
+                alert(`Account status of ${officers[index].name} has been set to ${newStatus}.`);
+            }
+        }
+
+        function deleteOfficer(id) {
+            if (confirm("Are you sure you want to delete this officer account? This action is irreversible.")) {
+                const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
+                const off = officers.find(o => o.id === id);
+                const filtered = officers.filter(o => o.id !== id);
+                
+                localStorage.setItem('cswdo_officers', JSON.stringify(filtered));
+                if (off) pushActivity('Officer Account Deleted', `Removed user account ${off.name}`);
+                renderOfficersTable();
+                alert('Officer account deleted successfully.');
+            }
+        }
+
+        // ==============================================
+        // MODULE: REVIEW APPLICATIONS (APPROVAL ASSISTANCE)
+        // ==============================================
+        function renderApplicationsTable() {
+            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+            const typeFilter = document.getElementById('filterAssistanceType').value;
+            const statusFilter = document.getElementById('filterApplicationStatus').value;
+            
+            const tbody = document.getElementById('applicationsTableBody');
+            tbody.innerHTML = '';
+
+            apps.forEach(app => {
+                // Apply filters
+                if (typeFilter && app.type !== typeFilter) return;
+                if (statusFilter && app.status !== statusFilter) return;
+
+                const statusClass = app.status === 'Pending' ? 'pending' : (app.status === 'Approved' ? 'approved' : (app.status === 'Completed' ? 'completed' : 'denied'));
+                const docCheckClass = app.verified ? 'bi-patch-check-fill text-success' : 'bi-exclamation-triangle-fill text-warning';
+                const docCheckText = app.verified ? 'Verified' : 'Pending Verification';
+
+                let actionBtnHtml = '';
+                if (app.status === 'Pending') {
+                    actionBtnHtml = `
+                        <button class="btn btn-sm btn-theme" onclick="openReviewModal('${app.id}')">
+                            <i class="bi bi-file-earmark-check"></i> Verify & Evaluate
+                        </button>
+                    `;
+                } else if (app.status === 'Approved') {
+                    actionBtnHtml = `
+                        <button class="btn btn-sm btn-outline-success" onclick="openDisbursementModal('${app.id}')">
+                            <i class="bi bi-cash-stack"></i> Record Disbursement
+                        </button>
+                    `;
+                } else {
+                    actionBtnHtml = `<span class="text-muted" style="font-size:0.8rem;">Reviewed</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${app.id}</strong></td>
+                        <td>${app.beneficiaryName}</td>
+                        <td>${app.type}</td>
+                        <td>${app.dateSubmitted}</td>
+                        <td><i class="bi ${docCheckClass} me-1"></i>${docCheckText}</td>
+                        <td><span class="status-badge ${statusClass}">${app.status}</span></td>
+                        <td class="text-end">${actionBtnHtml}</td>
+                    </tr>
+                `;
+            });
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No applications found matching filters.</td></tr>';
+            }
+        }
+
+        function openReviewModal(appId) {
+            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+            const app = apps.find(a => a.id === appId);
+            if (!app) return;
+
+            document.getElementById('reviewAppId').value = app.id;
+            document.getElementById('reviewCaseId').textContent = app.id;
+            document.getElementById('reviewDate').textContent = app.dateSubmitted;
+            document.getElementById('reviewBeneficiary').textContent = app.beneficiaryName;
+            document.getElementById('reviewType').textContent = app.type;
+            
+            // Adjust document labels based on type
+            const specialLabel = document.getElementById('docSpecialLabel');
+            const specialIcon = document.getElementById('docSpecialIcon');
+            if (app.type === 'Medical Assistance') {
+                specialLabel.textContent = 'Doctor Prescriptions & Medical Abstract';
+                specialIcon.className = 'bi bi-file-medical text-primary';
+            } else if (app.type === 'Burial Assistance') {
+                specialLabel.textContent = 'Official Death Certificate & Funeral Contract';
+                specialIcon.className = 'bi bi-heart-pulse-fill text-primary';
+            } else {
+                specialLabel.textContent = 'Social Case Study / Financial Indigency Justification';
+                specialIcon.className = 'bi bi-bank text-primary';
+            }
+
+            document.getElementById('evaluationForm').reset();
+            document.getElementById('approvedAmountWrapper').classList.add('d-none');
+            
+            document.getElementById('reviewModal').classList.add('show');
+        }
+
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.remove('show');
+        }
+
+        function toggleApprovedAmount() {
+            const selectVal = document.getElementById('reviewStatusSelect').value;
+            const wrapper = document.getElementById('approvedAmountWrapper');
+            if (selectVal === 'Approved') {
+                wrapper.classList.remove('d-none');
+                document.getElementById('reviewApprovedAmount').required = true;
+            } else {
+                wrapper.classList.add('d-none');
+                document.getElementById('reviewApprovedAmount').required = false;
+            }
+        }
+
+        function processEvaluation(e) {
+            e.preventDefault();
+            const id = document.getElementById('reviewAppId').value;
+            const status = document.getElementById('reviewStatusSelect').value;
+            const amount = parseInt(document.getElementById('reviewApprovedAmount').value) || 0;
+            const remarks = document.getElementById('reviewRemarks').value.trim();
+
+            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+            const index = apps.findIndex(a => a.id === id);
+
+            if (index !== -1) {
+                const app = apps[index];
+                
+                // Verify budget limit if approved
+                if (status === 'Approved') {
+                    const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+                    const progCode = app.type.includes('Medical') ? 'Medical' : (app.type.includes('Burial') ? 'Burial' : 'Financial');
+                    const progIndex = programs.findIndex(p => p.code === progCode);
+                    
+                    if (progIndex !== -1) {
+                        const remainingBudget = programs[progIndex].budget - programs[progIndex].allocated;
+                        if (amount > remainingBudget) {
+                            alert(`Error: Approved amount (₱${amount.toLocaleString()}) exceeds the remaining program budget of ₱${remainingBudget.toLocaleString()}.`);
+                            return;
+                        }
+                        
+                        // Reserve allocation
+                        programs[progIndex].allocated += amount;
+                        localStorage.setItem('cswdo_programs', JSON.stringify(programs));
+                    }
+                }
+
+                apps[index].status = status;
+                apps[index].verified = true;
+                apps[index].approvedAmount = amount;
+                apps[index].remarks = remarks;
+
+                localStorage.setItem('cswdo_applications', JSON.stringify(apps));
+                pushActivity('Application Evaluated', `Set case ${id} to ${status}`);
+                
+                // Trigger Simulated Notification to Beneficiary
+                triggerAssistanceNotification(app, status, amount, remarks);
+
+                alert(`Application ${id} evaluated successfully as: ${status}`);
+            }
+
+            closeReviewModal();
+            renderApplicationsTable();
+        }
+
+        // Auto Notify Beneficiary
+        function triggerAssistanceNotification(app, status, amount, remarks) {
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiary = beneficiaries.find(b => b.id === app.beneficiaryId);
+            const contact = beneficiary ? beneficiary.contact : '+639********';
+            const name = beneficiary ? beneficiary.name : app.beneficiaryName;
+
+            let msg = '';
+            if (status === 'Approved') {
+                msg = `CSWDO Alert: Hello ${name}, your application for ${app.type} has been APPROVED for a value of ₱${amount.toLocaleString()}. Remarks: "${remarks}". Please await release schedule.`;
+            } else {
+                msg = `CSWDO Alert: Hello ${name}, we regret to inform you that your application for ${app.type} was Denied. Remarks: "${remarks}". Please visit City Hall Room 102 for inquiries.`;
+            }
+
+            const logs = JSON.parse(localStorage.getItem('cswdo_broadcast_logs')) || [];
+            const now = new Date();
+            const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            logs.unshift({
+                id: 'L-' + (logs.length + 100),
+                recipientGroup: `${name} (${contact})`,
+                type: 'SMS & Email',
+                subject: `${app.type} Evaluation Decision`,
+                message: msg,
+                status: 'Sent',
+                timestamp
+            });
+            localStorage.setItem('cswdo_broadcast_logs', JSON.stringify(logs));
+        }
+
+        // Recording Disbursement Release
+        function openDisbursementModal(appId) {
+            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+            const app = apps.find(a => a.id === appId);
+            if (!app) return;
+
+            document.getElementById('disburseAppId').value = app.id;
+            document.getElementById('disburseCaseId').textContent = app.id;
+            document.getElementById('disburseBeneficiary').textContent = app.beneficiaryName;
+            document.getElementById('disburseApprovedVal').textContent = "₱" + parseInt(app.approvedAmount).toLocaleString();
+            
+            document.getElementById('disbursementForm').reset();
+            document.getElementById('disburseReleaseDate').value = new Date().toISOString().split('T')[0];
+            
+            document.getElementById('disbursementModal').classList.add('show');
+        }
+
+        function closeDisbursementModal() {
+            document.getElementById('disbursementModal').classList.remove('show');
+        }
+
+        function saveDisbursement(e) {
+            e.preventDefault();
+            const id = document.getElementById('disburseAppId').value;
+            const releaseDate = document.getElementById('disburseReleaseDate').value;
+            const comments = document.getElementById('disburseComments').value.trim();
+
+            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+            const index = apps.findIndex(a => a.id === id);
+
+            if (index !== -1) {
+                apps[index].status = 'Completed';
+                apps[index].dateReleased = releaseDate;
+                apps[index].remarks += ` | Disbursed: ${releaseDate} (${comments})`;
+
+                localStorage.setItem('cswdo_applications', JSON.stringify(apps));
+                pushActivity('Disbursement Recorded', `Released funds for case ${id}`);
+                
+                alert(`Disbursement recorded successfully for case ${id}`);
+            }
+
+            closeDisbursementModal();
+            renderApplicationsTable();
+        }
+
+        // ==============================================
+        // MODULE: SCHEDULING MANAGEMENT
+        // ==============================================
+        function renderSchedulesTable() {
+            const schedules = JSON.parse(localStorage.getItem('cswdo_schedules')) || [];
+            const tbody = document.getElementById('schedulesTableBody');
+            tbody.innerHTML = '';
+
+            schedules.forEach(sch => {
+                const dateObj = new Date(sch.dateTime);
+                const formattedDate = dateObj.toLocaleDateString() + ' • ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${sch.title}</strong></td>
+                        <td><span class="badge bg-secondary">${sch.type}</span></td>
+                        <td>${formattedDate}</td>
+                        <td>${sch.location}</td>
+                        <td><span class="status-badge active">${sch.status}</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger" onclick="cancelSchedule('${sch.id}')" title="Cancel Event">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (schedules.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No events scheduled.</td></tr>';
+            }
+        }
+
+        function saveSchedule(e) {
+            e.preventDefault();
+            const title = document.getElementById('schedTitle').value.trim();
+            const type = document.getElementById('schedType').value;
+            const dateTime = document.getElementById('schedDateTime').value;
+            const location = document.getElementById('schedLocation').value.trim();
+            const autoNotify = document.getElementById('schedNotifyAuto').checked;
+
+            const schedules = JSON.parse(localStorage.getItem('cswdo_schedules')) || [];
+            const newId = 'SCH-' + (schedules.length + 101);
+
+            schedules.push({
+                id: newId,
+                title,
+                type,
+                dateTime,
+                location,
+                status: 'Scheduled'
+            });
+
+            localStorage.setItem('cswdo_schedules', JSON.stringify(schedules));
+            pushActivity('Schedule Created', `Registered ${title} (${type})`);
+
+            if (autoNotify) {
+                const logs = JSON.parse(localStorage.getItem('cswdo_broadcast_logs')) || [];
+                const now = new Date();
+                const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                const eventDateStr = new Date(dateTime).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const message = `CSWDO Notice: You are scheduled for an ${type} event - "${title}" on ${eventDateStr} at the ${location}. Attendance is mandatory.`;
+                
+                logs.unshift({
+                    id: 'L-' + (logs.length + 101),
+                    recipientGroup: `All Applicants (${type})`,
+                    type: 'SMS & Email',
+                    subject: `Schedule Notice: ${title}`,
+                    message,
+                    status: 'Sent',
+                    timestamp
+                });
+                localStorage.setItem('cswdo_broadcast_logs', JSON.stringify(logs));
+            }
+
+            alert('Schedule successfully registered!');
+            document.getElementById('scheduleForm').reset();
+            renderSchedulesTable();
+        }
+
+        function cancelSchedule(id) {
+            if (confirm("Are you sure you want to cancel this scheduled event?")) {
+                const schedules = JSON.parse(localStorage.getItem('cswdo_schedules')) || [];
+                const item = schedules.find(s => s.id === id);
+                const filtered = schedules.filter(s => s.id !== id);
+
+                localStorage.setItem('cswdo_schedules', JSON.stringify(filtered));
+                if (item) pushActivity('Schedule Cancelled', `Removed ${item.title}`);
+                renderSchedulesTable();
+                alert('Scheduled event cancelled successfully.');
+            }
+        }
+
+        // ==============================================
+        // MODULE: FUND MANAGEMENT
+        // ==============================================
+        function renderFundsDashboard() {
+            const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+            const grid = document.getElementById('programsFundGrid');
+            grid.innerHTML = '';
+
+            programs.forEach(prog => {
+                let totalReleased = 0;
+                let pendingDisburse = 0;
+                apps.forEach(a => {
+                    if (a.type === prog.name) {
+                        if (a.status === 'Completed') {
+                            totalReleased += parseInt(a.approvedAmount || 0);
+                        } else if (a.status === 'Approved') {
+                            pendingDisburse += parseInt(a.approvedAmount || 0);
+                        }
+                    }
+                });
+
+                const remaining = prog.budget - totalReleased - pendingDisburse;
+                const utilRate = prog.budget > 0 ? Math.round(((totalReleased + pendingDisburse) / prog.budget) * 100) : 0;
+
+                grid.innerHTML += `
+                    <div class="col-md-4 mb-3">
+                        <div class="card p-3" style="border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--primary-lighter);">
+                            <h6 style="color: var(--primary-dark); font-weight: 700;">${prog.name}</h6>
+                            <div class="mt-2" style="font-size: 0.85rem;">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Total Allocated Budget:</span>
+                                    <strong>₱${prog.budget.toLocaleString()}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1 text-success">
+                                    <span>Released Funds:</span>
+                                    <strong>₱${totalReleased.toLocaleString()}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1 text-warning">
+                                    <span>Pending Disbursements:</span>
+                                    <strong>₱${pendingDisburse.toLocaleString()}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1 border-top pt-1 font-semibold">
+                                    <span>Remaining Balance:</span>
+                                    <strong>₱${remaining.toLocaleString()}</strong>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between mb-1" style="font-size: 0.75rem; color: #666;">
+                                    <span>Utilization Rate:</span>
+                                    <strong>${utilRate}%</strong>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar" role="progressbar" style="width: ${utilRate}%; background-color: var(--primary-pink);" aria-valuenow="${utilRate}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const tbody = document.getElementById('ledgerTableBody');
+            tbody.innerHTML = '';
+            
+            let ledgerEntries = [];
+            
+            apps.forEach(a => {
+                if (a.approvedAmount > 0) {
+                    ledgerEntries.push({
+                        refId: a.id,
+                        sourceName: a.beneficiaryName,
+                        programName: a.type,
+                        type: a.status === 'Completed' ? 'Released Disbursement' : 'Reserved (Approved)',
+                        amount: a.approvedAmount,
+                        date: a.dateReleased || a.dateSubmitted,
+                        remarks: a.remarks
+                    });
+                }
+            });
+
+            ledgerEntries.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            ledgerEntries.forEach(entry => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><code>${entry.refId}</code></td>
+                        <td>${entry.sourceName}</td>
+                        <td>${entry.programName}</td>
+                        <td><span class="status-badge ${entry.type.includes('Released') ? 'completed' : 'pending'}">${entry.type}</span></td>
+                        <td style="font-weight: 600; color: var(--primary-dark);">₱${entry.amount.toLocaleString()}</td>
+                        <td>${entry.date}</td>
+                        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry.remarks}</td>
+                    </tr>
+                `;
+            });
+            if (ledgerEntries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">No disbursement ledger records logged.</td></tr>';
+            }
+        }
+
+        function openBudgetModal() {
+            document.getElementById('budgetForm').reset();
+            document.getElementById('budgetModal').classList.add('show');
+        }
+
+        function closeBudgetModal() {
+            document.getElementById('budgetModal').classList.remove('show');
+        }
+
+        function saveBudgetAdjustment(e) {
+            e.preventDefault();
+            const programCode = document.getElementById('budgetProgramSelect').value;
+            const action = document.getElementById('budgetActionSelect').value;
+            const value = parseInt(document.getElementById('budgetValue').value);
+            const remarks = document.getElementById('budgetRemarks').value.trim();
+
+            const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+            const index = programs.findIndex(p => p.code === programCode);
+
+            if (index !== -1) {
+                const programName = programs[index].name;
+                const prevBudget = programs[index].budget;
+                
+                if (action === 'add') {
+                    programs[index].budget += value;
+                } else {
+                    if (value > prevBudget) {
+                        alert('Error: Decreased value cannot exceed the current allocated budget.');
+                        return;
+                    }
+                    programs[index].budget -= value;
+                }
+
+                localStorage.setItem('cswdo_programs', JSON.stringify(programs));
+                pushActivity('Budget Allocation Adjusted', `Adjusted budget for ${programName} by ₱${value.toLocaleString()} (${action === 'add' ? 'Increase' : 'Decrease'}). Remarks: ${remarks}`);
+                
+                alert('Budget adjustment successfully saved.');
+            }
+
+            closeBudgetModal();
+            renderFundsDashboard();
+        }
+
+        // ==============================================
+        // MODULE: NOTIFICATIONS Broadcasting
+        // ==============================================
+        function renderBroadcastLogs() {
+            const logs = JSON.parse(localStorage.getItem('cswdo_broadcast_logs')) || [];
+            const tbody = document.getElementById('notifLogsTableBody');
+            tbody.innerHTML = '';
+
+            logs.forEach(log => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${log.timestamp}</td>
+                        <td>${log.recipientGroup}</td>
+                        <td><code style="font-size:0.8rem;">${log.type}</code></td>
+                        <td><strong>${log.subject}</strong></td>
+                        <td><span class="status-badge active">${log.status}</span></td>
+                    </tr>
+                `;
+            });
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No transmission logs recorded.</td></tr>';
+            }
+        }
+
+        function sendNotification(e) {
+            e.preventDefault();
+            const recipientGroup = document.getElementById('notifRecipientGroup').value;
+            const isSMS = document.getElementById('channelSMS').checked;
+            const isEmail = document.getElementById('channelEmail').checked;
+            const subject = document.getElementById('notifSubject').value.trim();
+            const message = document.getElementById('notifMessage').value.trim();
+
+            if (!isSMS && !isEmail) {
+                alert('Please select at least one transmission channel (SMS or Email).');
+                return;
+            }
+
+            let type = '';
+            if (isSMS && isEmail) type = 'SMS & Email';
+            else if (isSMS) type = 'SMS';
+            else type = 'Email';
+
+            const logs = JSON.parse(localStorage.getItem('cswdo_broadcast_logs')) || [];
+            const now = new Date();
+            const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            logs.unshift({
+                id: 'L-' + (logs.length + 101),
+                recipientGroup,
+                type,
+                subject,
+                message,
+                status: 'Sent',
+                timestamp
+            });
+
+            localStorage.setItem('cswdo_broadcast_logs', JSON.stringify(logs));
+            pushActivity('Notification Broadcasted', `Sent alert to: ${recipientGroup}`);
+
+            alert('Broadcast transmission initiated successfully! Messages have been dispatched.');
+            document.getElementById('notificationForm').reset();
+            renderBroadcastLogs();
+        }
+
+        // ==============================================
+        // MODULE: IT PASSWORD RESET TICKETS
+        // ==============================================
+        function updateResetBadge() {
+            const requests = JSON.parse(localStorage.getItem('password_reset_requests')) || [];
+            const pendingCount = requests.filter(r => r.status === 'Pending').length;
+            const badge = document.getElementById('resetBadge');
+            
+            if (pendingCount > 0) {
+                badge.textContent = pendingCount;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+        }
+
+        function renderResetsTable() {
+            const requests = JSON.parse(localStorage.getItem('password_reset_requests')) || [];
+            const tbody = document.getElementById('resetsTableBody');
+            tbody.innerHTML = '';
+
+            requests.forEach((req, idx) => {
+                const statusClass = req.status === 'Pending' ? 'pending' : 'completed';
+                let actionBtn = '';
+                if (req.status === 'Pending') {
+                    actionBtn = `
+                        <button class="btn btn-sm btn-theme" onclick="resolveResetTicket('${req.ticketId}', '${req.username}', '${req.department}')">
+                            <i class="bi bi-arrow-repeat"></i> Reset Password
+                        </button>
+                    `;
+                } else {
+                    actionBtn = `<span class="text-muted" style="font-size:0.8rem;">Resolved</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${req.ticketId}</strong></td>
+                        <td><code>${req.username}</code></td>
+                        <td><span class="badge" style="background-color: ${req.department === 'CSWDO' ? 'var(--primary-dark)' : 'var(--primary-pink)'}; color: white;">${req.department}</span></td>
+                        <td>${req.reason}</td>
+                        <td>${req.dateRequested}</td>
+                        <td><span class="status-badge ${statusClass}">${req.status}</span></td>
+                        <td class="text-end">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+            if (requests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No password reset requests logged.</td></tr>';
+            }
+        }
+
+        function resolveResetTicket(ticketId, username, department) {
+            if (confirm(`Resolve Ticket: Are you sure you want to reset password for ${username} to 'password123'?`)) {
+                const requests = JSON.parse(localStorage.getItem('password_reset_requests')) || [];
+                const reqIndex = requests.findIndex(r => r.ticketId === ticketId);
+                if (reqIndex !== -1) {
+                    requests[reqIndex].status = 'Resolved';
+                }
+                localStorage.setItem('password_reset_requests', JSON.stringify(requests));
+
+                if (department === 'CSWDO') {
+                    const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
+                    const offIndex = officers.findIndex(o => o.username.toLowerCase() === username.toLowerCase() || o.email.toLowerCase() === username.toLowerCase());
+                    if (offIndex !== -1) {
+                        officers[offIndex].password = 'password123';
+                        localStorage.setItem('cswdo_officers', JSON.stringify(officers));
+                    }
+                } else {
+                    const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+                    const offIndex = officers.findIndex(o => o.username.toLowerCase() === username.toLowerCase() || o.email.toLowerCase() === username.toLowerCase());
+                    if (offIndex !== -1) {
+                        officers[offIndex].password = 'password123';
+                        localStorage.setItem('peso_officers', JSON.stringify(officers));
+                    }
+                }
+
+                pushActivity('Password Reset Resolved', `Reset account credentials of ${username}`);
+                updateResetBadge();
+                renderResetsTable();
+                alert(`Password Reset Complete. Credentials of ${username} restored to system default.`);
+            }
+        }
+
+        // ==============================================
+        // MODULE: REPORTS OPERATIONS
+        // ==============================================
+        function generateReport(e) {
+            if (e) e.preventDefault();
+            const category = document.getElementById('reportCategory').value;
+            const type = document.getElementById('reportType').value;
+            const dateFrom = document.getElementById('reportDateFrom').value;
+            const dateTo = document.getElementById('reportDateTo').value;
+
+            const titles = {
+                'summary': 'ASSISTANCE APPLICATIONS SUMMARY REPORT',
+                'funds': 'FUND UTILIZATION & LEDGER LEDGER REPORT',
+                'demographics': 'BENEFICIARY PROFILE DEMOGRAPHICS REPORT',
+                'barangay': 'BARANGAY ASSISTANCE DISTRIBUTION REPORT',
+                'compliance': 'COMPLIANCE AUDIT TRAIL LOGS REPORT'
+            };
+            document.getElementById('compiledReportTitle').textContent = titles[category] || 'OPERATIONAL REPORT';
+
+            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+            const renderDiv = document.getElementById('reportRenderContent');
+            renderDiv.innerHTML = '';
+
+            const filterByDate = (dateStr) => {
+                if (!dateStr) return true;
+                const d = new Date(dateStr);
+                if (dateFrom && new Date(dateFrom) > d) return false;
+                if (dateTo && new Date(dateTo) < d) return false;
+                return true;
+            };
+
+            if (category === 'summary') {
+                let html = `
+                    <table class="custom-table w-100 mt-2">
+                        <thead>
+                            <tr>
+                                <th>Case ID</th>
+                                <th>Beneficiary Name</th>
+                                <th>Assistance Requested</th>
+                                <th>Date Filed</th>
+                                <th>Status</th>
+                                <th class="text-end">Approved Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                let totalGrants = 0;
+                let filteredApps = apps.filter(a => {
+                    if (type && a.type !== type) return false;
+                    return filterByDate(a.dateSubmitted || a.dateReleased);
+                });
+
+                filteredApps.forEach(a => {
+                    totalGrants += parseInt(a.approvedAmount || 0);
+                    html += `
+                        <tr>
+                            <td><strong>${a.id}</strong></td>
+                            <td>${a.beneficiaryName}</td>
+                            <td>${a.type}</td>
+                            <td>${a.dateSubmitted}</td>
+                            <td><span class="status-badge ${a.status.toLowerCase()}">${a.status}</span></td>
+                            <td class="text-end fw-bold">₱${(a.approvedAmount || 0).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+                if (filteredApps.length === 0) {
+                    html += '<tr><td colspan="6" class="text-center py-3 text-muted">No records matching filters.</td></tr>';
+                } else {
+                    html += `
+                        <tr class="table-light font-bold border-top" style="border-top: 2px solid var(--primary-dark);">
+                            <td colspan="5" class="fw-bold">TOTAL REGISTERED GRANT VALUE:</td>
+                            <td class="text-end fw-bold text-success" style="font-size: 1.05rem;">₱${totalGrants.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }
+                html += '</tbody></table>';
+                renderDiv.innerHTML = html;
+
+            } else if (category === 'funds') {
+                const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+                let html = `
+                    <table class="custom-table w-100 mt-2">
+                        <thead>
+                            <tr>
+                                <th>Assistance Program</th>
+                                <th>Initial Budget</th>
+                                <th>Total Released (Payouts)</th>
+                                <th>Pending Disbursements</th>
+                                <th class="text-end">Remaining Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                let totAlloc = 0, totReleased = 0, totPending = 0, totRemain = 0;
+
+                programs.forEach(prog => {
+                    let totalReleased = 0;
+                    let pendingDisburse = 0;
+                    apps.forEach(a => {
+                        if (a.type === prog.name) {
+                            if (a.status === 'Completed') totalReleased += parseInt(a.approvedAmount || 0);
+                            else if (a.status === 'Approved') pendingDisburse += parseInt(a.approvedAmount || 0);
+                        }
+                    });
+                    const remaining = prog.budget - totalReleased - pendingDisburse;
+                    
+                    totAlloc += prog.budget;
+                    totReleased += totalReleased;
+                    totPending += pendingDisburse;
+                    totRemain += remaining;
+
+                    html += `
+                        <tr>
+                            <td><strong>${prog.name}</strong></td>
+                            <td>₱${prog.budget.toLocaleString()}</td>
+                            <td class="text-success">₱${totalReleased.toLocaleString()}</td>
+                            <td class="text-warning">₱${pendingDisburse.toLocaleString()}</td>
+                            <td class="text-end fw-bold">₱${remaining.toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                    <tr class="fw-bold border-top" style="border-top: 2px solid var(--primary-dark);">
+                        <td>TOTAL:</td>
+                        <td>₱${totAlloc.toLocaleString()}</td>
+                        <td class="text-success">₱${totReleased.toLocaleString()}</td>
+                        <td class="text-warning">₱${totPending.toLocaleString()}</td>
+                        <td class="text-end text-purple" style="font-size: 1.05rem;">₱${totRemain.toLocaleString()}</td>
+                    </tr>
+                </tbody></table>`;
+                renderDiv.innerHTML = html;
+
+            } else if (category === 'demographics') {
+                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                
+                let barangayMap = {};
+                beneficiaries.forEach(b => {
+                    barangayMap[b.barangay] = (barangayMap[b.barangay] || 0) + 1;
+                });
+
+                let html = `
+                    <p class="text-muted mb-3" style="font-size:0.85rem;">Total Registered Beneficiaries in Directory: <strong>${beneficiaries.length} Profiles</strong></p>
+                    <table class="custom-table w-100 mt-2">
+                        <thead>
+                            <tr>
+                                <th>Barangay Name</th>
+                                <th>Assistance Profiles Count</th>
+                                <th>Percentage (%)</th>
+                                <th>Directory Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                Object.keys(barangayMap).forEach(key => {
+                    const count = barangayMap[key];
+                    const percent = Math.round((count / beneficiaries.length) * 100);
+                    html += `
+                        <tr>
+                            <td><strong>${key}</strong></td>
+                            <td>${count} Registered</td>
+                            <td>${percent}%</td>
+                            <td><span class="status-badge active">Active Monitoring</span></td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table>';
+                renderDiv.innerHTML = html;
+
+            } else if (category === 'barangay') {
+                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                
+                let bMap = {};
+                beneficiaries.forEach(b => {
+                    bMap[b.id] = b.barangay;
+                });
+
+                let barangayStats = {};
+                apps.forEach(a => {
+                    if (a.status === 'Completed' || a.status === 'Approved') {
+                        const barangay = bMap[a.beneficiaryId] || 'Poblacion';
+                        if (!barangayStats[barangay]) {
+                            barangayStats[barangay] = { count: 0, totalVal: 0 };
+                        }
+                        barangayStats[barangay].count += 1;
+                        barangayStats[barangay].totalVal += parseInt(a.approvedAmount || 0);
+                    }
+                });
+
+                let html = `
+                    <table class="custom-table w-100 mt-2">
+                        <thead>
+                            <tr>
+                                <th>Barangay Name</th>
+                                <th>Disbursements Rendered</th>
+                                <th class="text-end">Total Financial Value Released</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                let grandCount = 0;
+                let grandVal = 0;
+
+                Object.keys(barangayStats).forEach(key => {
+                    const stat = barangayStats[key];
+                    grandCount += stat.count;
+                    grandVal += stat.totalVal;
+
+                    html += `
+                        <tr>
+                            <td><strong>Barangay ${key}</strong></td>
+                            <td>${stat.count} Releases</td>
+                            <td class="text-end fw-bold text-purple">₱${stat.totalVal.toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+
+                if (grandCount === 0) {
+                    html += '<tr><td colspan="3" class="text-center py-3 text-muted">No disbursements recorded.</td></tr>';
+                } else {
+                    html += `
+                        <tr class="fw-bold border-top" style="border-top: 2px solid var(--primary-dark);">
+                            <td>GRAND TOTAL:</td>
+                            <td>${grandCount} Cases</td>
+                            <td class="text-end text-success" style="font-size: 1.05rem;">₱${grandVal.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }
+                html += '</tbody></table>';
+                renderDiv.innerHTML = html;
+
+            } else if (category === 'compliance') {
+                const activities = JSON.parse(localStorage.getItem('cswdo_activities')) || [];
+                let html = `
+                    <table class="custom-table w-100 mt-2">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Admin User</th>
+                                <th>Action Event Details</th>
+                                <th>Compliance Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                activities.forEach(act => {
+                    html += `
+                        <tr>
+                            <td>${act.dateTime}</td>
+                            <td><code>${act.triggeredBy}</code></td>
+                            <td>${act.type}</td>
+                            <td><span class="status-badge active" style="font-size: 0.72rem;">RA 10173 Compliant</span></td>
+                        </tr>
+                    `;
+                });
+                if (activities.length === 0) {
+                    html += '<tr><td colspan="4" class="text-center py-3 text-muted">No audit trail logs logged.</td></tr>';
+                }
+                html += '</tbody></table>';
+                renderDiv.innerHTML = html;
+            }
+        }
+
+        // Print Report
+        function printReport() {
+            window.print();
+        }
+
+        // Export Report to CSV (Excel format)
+        function exportReportCSV() {
+            const category = document.getElementById('reportCategory').value;
+            const activeTitle = document.getElementById('compiledReportTitle').textContent;
+            
+            const table = document.querySelector('#reportRenderContent table');
+            if (!table) {
+                alert('No report data compiled to export.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += `"${activeTitle}"\n`;
+            csvContent += `"Generated on: ${new Date().toLocaleString()}"\n\n`;
+
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td, th');
+                let rowData = [];
+                cols.forEach(col => {
+                    let text = col.innerText.replace(/₱/g, '').replace(/,/g, '').trim();
+                    rowData.push(`"${text}"`);
+                });
+                csvContent += rowData.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `cswdo_${category}_report_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // ==============================================
+        // SYSTEM BOOTSTRAP INITIALIZATION
+        // ==============================================
+        (function init() {
+            // Apply theme
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+
+            // Apply language
+            const savedLang = localStorage.getItem('lang') || 'en';
+            applyLanguage(savedLang);
+
+            // Load default dashboard statistics
+            loadDashboardStats();
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,3523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PESO Administrator Dashboard - Koronadal City</title>
+    <!-- CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-pink: #F0B6C6;
+            --primary-dark: #B88A9A;
+            --primary-light: #F7D2DE;
+            --primary-lighter: #FFEFF5;
+            --secondary: #6C5B7B;
+            --accent: #355C7D;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --danger: #FF9800;
+            --info: #B88A9A;
+            --light-bg: #fbf6f8;
+            --sidebar-width: 260px;
+            --header-height: 70px;
+            --border-color: #F7D2DE;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+            background-color: #fbf6f8;
+            overflow-x: hidden;
+            color: #333;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700 !important;
+        }
+
+        /* Sidebar styling matching officer style */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--primary-lighter);
+            padding: 0 0 20px 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-pink) 100%);
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .seal-container {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 15px;
+            background: white;
+            border-radius: 50%;
+            padding: 3px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .seal-container img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: contain;
+        }
+
+        .sidebar-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .sidebar-subtitle {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.75rem;
+            margin-top: 5px;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar-nav-item {
+            margin: 3px 10px;
+        }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: var(--primary-dark);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.25s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .sidebar-nav-link:hover,
+        .sidebar-nav-link.active {
+            background: var(--primary-pink);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .sidebar-nav-link i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+            width: 20px;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 10px 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Sticky Header */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            background: var(--primary-lighter);
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: var(--header-height);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            cursor: pointer;
+        }
+
+        .page-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-pink), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        /* Content Area */
+        .content-area {
+            padding: 25px 30px;
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* Module Pages */
+        .module-page {
+            display: none;
+        }
+
+        .module-page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .stat-card {
+            background: var(--primary-lighter);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(184, 92, 122, 0.04);
+            height: 100%;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .stat-card-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .stat-card-icon.pending { background: rgba(255, 193, 7, 0.12); color: var(--warning); }
+        .stat-card-icon.approved { background: rgba(40, 167, 69, 0.12); color: var(--success); }
+        .stat-card-icon.completed { background: rgba(108, 91, 123, 0.12); color: var(--secondary); }
+        .stat-card-icon.total { background: rgba(23, 162, 184, 0.12); color: var(--info); }
+
+        .stat-card-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c2528;
+            margin-bottom: 4px;
+        }
+
+        .stat-card-label {
+            color: #726468;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .chart-card {
+            background: var(--primary-lighter);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(184, 92, 122, 0.04);
+            border: 1px solid var(--border-color);
+            height: 100%;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+
+        /* Tables & Lists */
+        .table-card {
+            background: var(--primary-lighter);
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 2px 12px rgba(184, 92, 122, 0.04);
+            border: 1px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        .table-header-custom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .table-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table thead th {
+            background: #fdfafb;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.88rem;
+            border-bottom: 2px solid var(--border-color);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .data-table tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: #443c3f;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #fdfbfd;
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Status & Badges */
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            display: inline-block;
+        }
+
+        .status-badge.active { background: rgba(40, 167, 69, 0.1); color: #146c43; }
+        .status-badge.inactive { background: rgba(108, 91, 123, 0.1); color: #6c757d; }
+        .status-badge.pending { background: rgba(255, 193, 7, 0.1); color: #856404; }
+        .status-badge.approved { background: rgba(40, 167, 69, 0.1); color: #146c43; }
+        .status-badge.denied { background: rgba(220, 53, 69, 0.1); color: #b02a37; }
+        .status-badge.completed { background: rgba(13, 202, 240, 0.1); color: #087990; }
+
+        /* Custom buttons */
+        .btn-custom {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-custom-primary {
+            background-color: var(--primary-pink);
+            color: white;
+            box-shadow: 0 4px 10px rgba(215, 127, 161, 0.3);
+        }
+
+        .btn-custom-primary:hover {
+            background-color: var(--primary-dark);
+            box-shadow: 0 6px 15px rgba(184, 92, 122, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-custom-secondary {
+            background-color: white;
+            color: var(--primary-dark);
+            border: 1.5px solid var(--primary-pink);
+        }
+
+        .btn-custom-secondary:hover {
+            background-color: #fff9fa;
+            color: var(--primary-dark);
+        }
+
+        .btn-custom-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-custom-danger:hover {
+            background-color: #b02a37;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .action-icon-btn {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            padding: 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-icon-btn:hover {
+            background-color: #f7ecef;
+            color: var(--primary-dark);
+        }
+
+        .action-icon-btn.danger:hover {
+            background-color: #fce8eb;
+            color: var(--danger);
+        }
+
+        /* Filter Controls */
+        .search-filter-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .search-input-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-input-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+        }
+
+        .search-input-wrap input {
+            padding-left: 40px;
+        }
+
+        /* Modal Overlay custom style */
+        .custom-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(30, 20, 25, 0.55);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .custom-modal-overlay.active {
+            display: flex;
+        }
+
+        .custom-modal-content {
+            background: var(--primary-lighter);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(30, 20, 25, 0.15);
+            animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.9) translateY(20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .custom-modal-header {
+            padding: 18px 24px;
+            border-bottom: 1.5px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .custom-modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .custom-modal-body {
+            padding: 24px;
+        }
+
+        .custom-modal-footer {
+            padding: 16px 24px;
+            border-top: 1.5px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background-color: #fdfafb;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        /* Custom interactive calendar */
+        .calendar-wrapper {
+            background: var(--primary-lighter);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .calendar-day-name {
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            text-align: center;
+            color: var(--text-muted);
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .calendar-cell {
+            min-height: 80px;
+            border: 1px solid #f8f1f3;
+            border-radius: 8px;
+            padding: 6px;
+            background: #fff;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .calendar-cell:hover {
+            background: #fff9fa;
+            border-color: var(--primary-light);
+        }
+
+        .calendar-cell.today {
+            background: #fdf2f5;
+            border-color: var(--primary-pink);
+            font-weight: 700;
+        }
+
+        .calendar-cell.other-month {
+            opacity: 0.4;
+            background: #fdfdfd;
+        }
+
+        .calendar-day-num {
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            color: #555;
+        }
+
+        .calendar-events-container {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .calendar-event-badge {
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 4px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            color: white;
+        }
+
+        .calendar-event-badge.training { background-color: var(--primary-dark); }
+        .calendar-event-badge.interview { background-color: var(--accent); }
+        .calendar-event-badge.distribution { background-color: var(--secondary); }
+
+        /* Notification detail */
+        .log-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            background: #fdfdfd;
+        }
+
+        .log-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f9f2f4;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Document inspector simulator */
+        .doc-viewer-box {
+            border: 1px dashed var(--primary-light);
+            background: var(--primary-lighter);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .menu-toggle {
+                display: block;
+            }
+            .sticky-header {
+                padding: 15px 20px;
+            }
+            .content-area {
+                padding: 15px 20px;
+            }
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+
+        /* Dark Mode overrides for Admin Dashboard */
+        body.dark-mode {
+            --light-bg: #2F2B2E;
+            --border-color: #3e383c;
+            background-color: #2F2B2E !important;
+            color: #f5f5f5 !important;
+        }
+
+        body.dark-mode .sticky-header {
+            background-color: #1E1B1D !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        body.dark-mode .stat-card,
+        body.dark-mode .chart-card,
+        body.dark-mode .table-card,
+        body.dark-mode .calendar-wrapper,
+        body.dark-mode .doc-viewer-box,
+        body.dark-mode .card,
+        body.dark-mode .modal-content,
+        body.dark-mode .custom-modal-content {
+            background-color: #1E1B1D !important;
+            border-color: var(--border-color) !important;
+            color: #f5f5f5 !important;
+        }
+
+        body.dark-mode .sidebar {
+            background-color: #1E1B1D !important;
+            border-right-color: #3e383c !important;
+        }
+
+        body.dark-mode .sidebar-nav-link {
+            color: var(--primary-dark) !important;
+        }
+
+        body.dark-mode .sidebar-nav-link:hover,
+        body.dark-mode .sidebar-nav-link.active {
+            background-color: var(--primary-pink) !important;
+            color: #fff !important;
+        }
+
+        body.dark-mode .page-title,
+        body.dark-mode .stat-card-value,
+        body.dark-mode .user-name,
+        body.dark-mode .table-title,
+        body.dark-mode .calendar-title,
+        body.dark-mode h1,
+        body.dark-mode h2,
+        body.dark-mode h3,
+        body.dark-mode h4,
+        body.dark-mode h5,
+        body.dark-mode h6,
+        body.dark-mode .custom-modal-title {
+            color: #fff !important;
+        }
+
+        body.dark-mode .stat-card-label,
+        body.dark-mode .user-role,
+        body.dark-mode .text-muted {
+            color: #b5a4a7 !important;
+        }
+
+        body.dark-mode .form-control,
+        body.dark-mode .form-select,
+        body.dark-mode textarea {
+            background-color: #25181e !important;
+            border-color: #352229 !important;
+            color: #fff !important;
+        }
+
+        body.dark-mode .form-control::placeholder {
+            color: #726468 !important;
+        }
+
+        body.dark-mode .data-table thead th {
+            background-color: #25181e !important;
+            color: #fff !important;
+            border-bottom-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .data-table tbody td {
+            border-bottom-color: var(--border-color) !important;
+            color: #e5e5e5 !important;
+        }
+
+        body.dark-mode .data-table tbody tr:hover {
+            background-color: #2c272a !important;
+        }
+
+        body.dark-mode .calendar-cell {
+            background-color: #1E1B1D !important;
+            border-color: #3e383c !important;
+        }
+
+        body.dark-mode .calendar-cell:hover {
+            background-color: #2c272a !important;
+        }
+
+        body.dark-mode .calendar-cell.today {
+            background-color: #2c1a1e !important;
+            border-color: var(--primary-pink) !important;
+        }
+
+        body.dark-mode .calendar-cell.other-month {
+            opacity: 0.25;
+        }
+
+        body.dark-mode .calendar-day-num {
+            color: #e5e5e5 !important;
+        }
+
+        body.dark-mode .custom-modal-footer {
+            background-color: #1E1B1D !important;
+            border-top-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .log-list {
+            background-color: #2c272a !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .log-item {
+            border-bottom-color: #3e383c !important;
+            color: #e5e5e5 !important;
+        }
+
+        body.dark-mode .btn-custom-secondary {
+            background-color: #1E1B1D !important;
+            color: #fff !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .global-controls button {
+            background-color: #1E1B1D !important;
+            color: #fff !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.dark-mode .global-controls button:hover {
+            background-color: #2c272a !important;
+        }
+
+        body.dark-mode .action-icon-btn {
+            color: #fff !important;
+        }
+
+        body.dark-mode .action-icon-btn:hover {
+            background-color: #25181e !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="mainSidebar">
+        <div class="sidebar-header">
+            <div class="seal-container">
+                <img src="assets/koronadalseal.png" alt="Koronadal City Seal">
+            </div>
+            <h4 class="sidebar-title">PESO Admin Portal</h4>
+            <p class="sidebar-subtitle">Livelihood Assistance Management WIMS</p>
+        </div>
+        <ul class="sidebar-nav">
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link active" onclick="switchModule('module-dashboard', this)" data-translate="nav_dashboard">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+            <li class="sidebar-divider"></li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-officers', this)" data-translate="nav_officers">
+                    <i class="bi bi-people-fill"></i> Officers Management
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-programs', this)" data-translate="nav_programs">
+                    <i class="bi bi-folder2-open"></i> Program Management
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-assignments', this)" data-translate="nav_assignments">
+                    <i class="bi bi-person-check-fill"></i> Program Assignment
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-evaluation', this)" data-translate="nav_evaluation">
+                    <i class="bi bi-journal-check"></i> Evaluation Panel
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-schedules', this)" data-translate="nav_schedules">
+                    <i class="bi bi-calendar3"></i> Scheduling Panel
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-funds', this)" data-translate="nav_funds">
+                    <i class="bi bi-cash-coin"></i> Fund & Allocations
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-training', this)" data-translate="nav_training">
+                    <i class="bi bi-mortarboard-fill"></i> Training Records
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-assistance', this)" data-translate="nav_assistance">
+                    <i class="bi bi-gift-fill"></i> Resource & Assistance
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-notifications', this)" data-translate="nav_alerts">
+                    <i class="bi bi-chat-left-dots-fill"></i> Broadcast Alerts
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-reports', this)" data-translate="nav_reports">
+                    <i class="bi bi-file-earmark-bar-graph-fill"></i> System Reports
+                </a>
+            </li>
+            <li class="sidebar-divider"></li>
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link text-danger" onclick="logoutAdmin()" data-translate="nav_signout">
+                    <i class="bi bi-box-arrow-left"></i> Sign Out
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="mainContent">
+        <!-- Header -->
+        <header class="sticky-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="sidebarToggle" aria-label="Toggle Navigation Sidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div>
+                    <h1 class="page-title" id="pageMainHeader">Dashboard Overview</h1>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="global-controls d-flex gap-2 align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 bg-white shadow-sm control-btn-custom" id="darkModeToggle" aria-label="Toggle Dark Mode" onclick="toggleDarkMode()">
+                        <i class="bi bi-moon-fill" id="darkModeIcon"></i> <span id="darkModeText">Dark Mode</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm font-weight-bold control-btn-custom" id="languageToggle" aria-label="Toggle Language" onclick="toggleLanguage()">
+                        English
+                    </button>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar" id="avatarInitials">PA</div>
+                    <div class="user-info">
+                        <span class="user-name" id="userDisplayName">Admin Account</span>
+                        <span class="user-role" data-translate="role_peso_admin">PESO Administrator</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Body -->
+        <div class="content-area">
+
+            <!-- MODULE: Dashboard -->
+            <section class="module-page active" id="module-dashboard">
+                <!-- Summary Widgets (REQ003) -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <div class="stat-card-icon pending">
+                                    <i class="bi bi-hourglass-split"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card-value" id="dashboardPendingCount">0</div>
+                            <div class="stat-card-label" data-translate="pending_apps">Pending Applications</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <div class="stat-card-icon approved">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card-value" id="dashboardApprovedCount">0</div>
+                            <div class="stat-card-label" data-translate="approved_livelihoods">Approved Livelihoods</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <div class="stat-card-icon completed">
+                                    <i class="bi bi-check-all"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card-value" id="dashboardCompletedCount">0</div>
+                            <div class="stat-card-label" data-translate="completed_programs">Completed Programs</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <div class="stat-card-icon total">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card-value" id="dashboardBeneficiaryCount">0</div>
+                            <div class="stat-card-label" data-translate="total_beneficiaries">Total Beneficiaries</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section (REQ004, REQ005) -->
+                <div class="row mb-4">
+                    <div class="col-lg-6 mb-3">
+                        <div class="chart-card">
+                            <h5 class="table-title mb-3" data-translate="chart_funds_title">Livelihood LGU Fund Allocation vs. Utilization</h5>
+                            <div class="chart-container">
+                                <canvas id="chartFundUtilization"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-3">
+                        <div class="chart-card">
+                            <h5 class="table-title mb-3" data-translate="chart_trend_title">Monthly Livelihood Applications Trend</h5>
+                            <div class="chart-container">
+                                <canvas id="chartApplicationTrend"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities (REQ006) -->
+                <div class="table-card">
+                    <div class="table-header-custom">
+                        <h5 class="table-title" data-translate="recent_activities_title">Recent Activity Logs</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Activity Type</th>
+                                    <th>Triggered By</th>
+                                    <th>Date & Time</th>
+                                    <th>Status Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardActivitiesBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Officers Management -->
+            <section class="module-page" id="module-officers">
+                <div class="table-card">
+                    <div class="table-header-custom">
+                        <h5 class="table-title">PESO Officers Directory</h5>
+                        <button class="btn-custom btn-custom-primary" onclick="openAddOfficerModal()">
+                            <i class="bi bi-person-plus-fill"></i> Create Officer
+                        </button>
+                    </div>
+                    <div class="search-filter-row">
+                        <div class="search-input-wrap">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="form-control" id="officerSearchInput" placeholder="Search officers..." oninput="renderOfficersTable()">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Full Name</th>
+                                    <th>Email Address</th>
+                                    <th>Role Description</th>
+                                    <th>Account Status</th>
+                                    <th>Created Date</th>
+                                    <th>Administrative Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="officersTableBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Program Management -->
+            <section class="module-page" id="module-programs">
+                <div class="table-card">
+                    <div class="table-header-custom">
+                        <h5 class="table-title">Livelihood Programs Management</h5>
+                        <button class="btn-custom btn-custom-primary" onclick="openAddProgramModal()">
+                            <i class="bi bi-folder-plus"></i> New Program
+                        </button>
+                    </div>
+                    <div class="search-filter-row">
+                        <div class="search-input-wrap">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="form-control" id="programSearchInput" placeholder="Search programs..." oninput="renderProgramsTable()">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Program Code</th>
+                                    <th>Program Description</th>
+                                    <th>LGU Approved Budget</th>
+                                    <th>Status</th>
+                                    <th>Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody id="programsTableBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Program Assignment -->
+            <section class="module-page" id="module-assignments">
+                <div class="table-card">
+                    <div class="table-header-custom">
+                        <h5 class="table-title">Beneficiary Program Assignment</h5>
+                        <button class="btn-custom btn-custom-primary" onclick="openAddAssignmentModal()">
+                            <i class="bi bi-person-fill-add"></i> Assign Beneficiary
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Beneficiary Name</th>
+                                    <th>Contact Number</th>
+                                    <th>Assigned Program</th>
+                                    <th>Requirements checklist</th>
+                                    <th>Assignment Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignmentsTableBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Application Evaluation -->
+            <section class="module-page" id="module-evaluation">
+                <div class="table-card">
+                    <div class="table-header-custom">
+                        <h5 class="table-title">Submitted Livelihood Applications Review Panel</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Applicant Name</th>
+                                    <th>Requested Livelihood Program</th>
+                                    <th>Submission Date</th>
+                                    <th>Consent & Verification</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="evaluationTableBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Scheduling Management -->
+            <section class="module-page" id="module-schedules">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="calendar-wrapper">
+                            <div class="calendar-header">
+                                <button class="btn-custom btn-custom-secondary py-1 px-3" onclick="navigateCalendar(-1)"><i class="bi bi-chevron-left"></i></button>
+                                <span class="calendar-title" id="calendarMonthTitle">June 2026</span>
+                                <button class="btn-custom btn-custom-secondary py-1 px-3" onclick="navigateCalendar(1)"><i class="bi bi-chevron-right"></i></button>
+                            </div>
+                            <div class="calendar-grid" id="calendarGridBody">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="table-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="table-title">Scheduled Activities</h5>
+                                <button class="btn-custom btn-custom-primary py-1 px-3" onclick="openAddScheduleModal()">
+                                    <i class="bi bi-calendar-plus"></i> Add
+                                </button>
+                            </div>
+                            <div class="list-group" id="schedulesListGroup" style="max-height: 400px; overflow-y: auto;">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Fund & Resource Allocation -->
+            <section class="module-page" id="module-funds">
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <div class="table-card">
+                            <h5 class="table-title mb-3">Financial Allocation Board</h5>
+                            <form id="fundAllocationForm" onsubmit="handleAllocateFunds(event)">
+                                <div class="form-group">
+                                    <label class="form-label">Select Livelihood Program</label>
+                                    <select class="form-control" id="fundProgramSelect" required>
+                                        <!-- Rendered dynamically -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Allocation/Re-alignment Amount (PHP)</label>
+                                    <input type="number" class="form-control" id="fundAllocAmount" placeholder="e.g. 50000" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Justification / Action Remarks</label>
+                                    <textarea class="form-control" id="fundNotes" placeholder="Enter justification..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn-custom btn-custom-primary w-100">
+                                    <i class="bi bi-check2-circle"></i> Commit Budget Allocation
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="table-card">
+                            <h5 class="table-title mb-3">Program Budget Summaries</h5>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Program</th>
+                                            <th>Approved Budget</th>
+                                            <th>Utilized Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fundsSummaryBody">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Training Records -->
+            <section class="module-page" id="module-training">
+                <div class="table-card">
+                    <div class="table-header-custom">
+                        <h5 class="table-title">Livelihood Training & Capacity Building Records</h5>
+                        <button class="btn-custom btn-custom-primary" onclick="openAddTrainingModal()">
+                            <i class="bi bi-mortarboard"></i> New Training Log
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Session Title</th>
+                                    <th>Associated Program</th>
+                                    <th>Trainer / Facilitator</th>
+                                    <th>Training Date</th>
+                                    <th>Participants List</th>
+                                    <th>Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trainingTableBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Resource & Assistance -->
+            <section class="module-page" id="module-assistance">
+                <div class="table-card">
+                    <div class="table-header-custom">
+                        <h5 class="table-title">Distribution & Livelihood Assistance Records</h5>
+                        <button class="btn-custom btn-custom-primary" onclick="openAddAssistanceModal()">
+                            <i class="bi bi-gift-fill"></i> Record Livelihood Release
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Beneficiary Reference</th>
+                                    <th>Type of Assistance</th>
+                                    <th>Value/Amount (PHP)</th>
+                                    <th>Distribution Date</th>
+                                    <th>Audit Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assistanceTableBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Notifications -->
+            <section class="module-page" id="module-notifications">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="table-card">
+                            <h5 class="table-title mb-3">Send Livelihood Broad Alert Notifications</h5>
+                            <form id="broadcastAlertForm" onsubmit="handleSendBroadcast(event)">
+                                <div class="form-group">
+                                    <label class="form-label">Recipient User Group</label>
+                                    <select class="form-control" id="broadcastRecipients" required>
+                                        <option value="all">All Beneficiaries & Officers</option>
+                                        <option value="officers">All PESO Officers</option>
+                                        <option value="SPES">SPES Enrollees Only</option>
+                                        <option value="TUPAD">TUPAD Workers Only</option>
+                                        <option value="Livelihood Training">Training Trainees Only</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Broadcast Channel Gateways</label>
+                                    <div class="d-flex gap-4">
+                                        <label class="d-flex align-items-center gap-2">
+                                            <input type="checkbox" id="broadcastEmail" checked> SMS Alert
+                                        </label>
+                                        <label class="d-flex align-items-center gap-2">
+                                            <input type="checkbox" id="broadcastSMS" checked> Email Notification
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Alert Message Subject / Short Title</label>
+                                    <input type="text" class="form-control" id="broadcastSubject" placeholder="e.g. Schedule Update" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Message Content Body (DPA compliant masking applied)</label>
+                                    <textarea class="form-control" id="broadcastMessage" placeholder="Type notification detail message here..." rows="4" required></textarea>
+                                </div>
+                                <button type="submit" class="btn-custom btn-custom-primary w-100">
+                                    <i class="bi bi-send-fill"></i> Dispatch Broadcast Alerts
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="table-card">
+                            <h5 class="table-title mb-3">Transmission Gateway Log Records</h5>
+                            <div class="log-list" id="broadcastLogsContainer">
+                                <!-- Log items rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Reports -->
+            <section class="module-page" id="module-reports">
+                <div class="table-card">
+                    <div class="table-header-custom">
+                        <h5 class="table-title">System Metrics & Statistical Reports</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn-custom btn-custom-secondary" onclick="exportActiveReportCSV()">
+                                <i class="bi bi-file-earmark-excel"></i> Export to Excel
+                            </button>
+                            <button class="btn-custom btn-custom-primary" onclick="exportActiveReportPDF()">
+                                <i class="bi bi-file-pdf"></i> Export to PDF
+                            </button>
+                        </div>
+                    </div>
+                    <div class="search-filter-row align-items-end">
+                        <div class="form-col" style="max-width: 320px;">
+                            <label class="form-label">Select Report Metric View</label>
+                            <select class="form-control" id="reportMetricSelect" onchange="generateReportView()">
+                                <option value="applications">Livelihood Applications Summary</option>
+                                <option value="attendance">Training Program Attendance Rates</option>
+                                <option value="distribution">Assistance Distribution Logs</option>
+                                <option value="barangay">Barangay-Level Assistance Breakdown</option>
+                                <option value="eligibility">Eligibility & Compliance Review</option>
+                                <option value="beneficiaries">Active Beneficiary Demographics</option>
+                                <option value="demand">Livelihood Program Demand Trends</option>
+                                <option value="usage">LGU Fund & Resource Allocation Usage</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="reportsPreviewTable">
+                            <thead id="reportsTableHead">
+                                <!-- Rendered dynamically -->
+                            </thead>
+                            <tbody id="reportsTableBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- MODALS SECTION -->
+    <!-- ============================================== -->
+
+    <!-- Add/Edit Officer Modal -->
+    <div class="custom-modal-overlay" id="officerModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title" id="officerModalTitle">Add New Officer</h5>
+                <button type="button" class="btn-close" onclick="closeOfficerModal()"></button>
+            </div>
+            <form id="officerForm" onsubmit="handleOfficerSubmit(event)">
+                <div class="custom-modal-body">
+                    <input type="hidden" id="officerIdInput">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="officerNameInput" placeholder="Enter Full Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="officerUsernameInput" placeholder="Enter unique username" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="officerEmailInput" placeholder="Enter email" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Staff Role</label>
+                        <select class="form-control" id="officerRoleInput" required>
+                            <option value="PESO Officer">PESO Officer</option>
+                            <option value="CSWDO Officer">CSWDO Officer</option>
+                            <option value="Evaluator">Evaluator</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="officerPassGroup">
+                        <label class="form-label">Portal Password</label>
+                        <input type="password" class="form-control" id="officerPasswordInput" placeholder="Set default password">
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn-custom btn-custom-secondary" onclick="closeOfficerModal()">Cancel</button>
+                    <button type="submit" class="btn-custom btn-custom-primary">Save Officer Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Program Modal -->
+    <div class="custom-modal-overlay" id="programModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title" id="programModalTitle">New Livelihood Program</h5>
+                <button type="button" class="btn-close" onclick="closeProgramModal()"></button>
+            </div>
+            <form id="programForm" onsubmit="handleProgramSubmit(event)">
+                <div class="custom-modal-body">
+                    <input type="hidden" id="programIdInput">
+                    <div class="form-group">
+                        <label class="form-label">Program Name Code</label>
+                        <input type="text" class="form-control" id="programCodeInput" placeholder="e.g. SPES" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Program Description</label>
+                        <input type="text" class="form-control" id="programDescInput" placeholder="Full Description of Livelihood Program" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">LGU Approved Budget Allocation (PHP)</label>
+                        <input type="number" class="form-control" id="programBudgetInput" placeholder="e.g. 500000" min="1" required>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn-custom btn-custom-secondary" onclick="closeProgramModal()">Cancel</button>
+                    <button type="submit" class="btn-custom btn-custom-primary">Register Program</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Assignment Modal -->
+    <div class="custom-modal-overlay" id="assignmentModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Assign Beneficiary to Livelihood</h5>
+                <button type="button" class="btn-close" onclick="closeAssignmentModal()"></button>
+            </div>
+            <form id="assignmentForm" onsubmit="handleAssignmentSubmit(event)">
+                <div class="custom-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Select Eligible Applicant</label>
+                        <select class="form-control" id="assignApplicantSelect" required>
+                            <!-- Options rendered dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Livelihood LGU Program</label>
+                        <select class="form-control" id="assignProgramSelect" required>
+                            <!-- Options rendered dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Verified Contact Number (DPA Compliant Masking Applied)</label>
+                        <input type="text" class="form-control" id="assignContactInput" value="+63 9** **** *234" disabled>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn-custom btn-custom-secondary" onclick="closeAssignmentModal()">Cancel</button>
+                    <button type="submit" class="btn-custom btn-custom-primary">Commit Program Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Evaluation Modal -->
+    <div class="custom-modal-overlay" id="evaluationModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Review Submitted Livelihood Case File</h5>
+                <button type="button" class="btn-close" onclick="closeEvaluationModal()"></button>
+            </div>
+            <div class="custom-modal-body">
+                <input type="hidden" id="evalAppId">
+                <h6 class="fw-bold mb-1" id="evalApplicantName">Maria Garcia</h6>
+                <p class="text-muted small mb-3">Requested Livelihood Program: <span id="evalRequestedProgram" class="fw-semibold">SPES</span></p>
+                
+                <h6 class="fw-bold mb-2">Verified Documents Compliance</h6>
+                <div class="doc-viewer-box">
+                    <i class="bi bi-file-earmark-check-fill text-success fs-1"></i>
+                    <p class="mt-2 mb-0 fw-semibold" id="evalDocName">Barangay Livelihood Certificate & Indigency Report.pdf</p>
+                    <span class="text-muted small">Checked and pre-validated by assigned PESO evaluators</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Action Assessment Notes</label>
+                    <textarea class="form-control" id="evalActionNotes" placeholder="Enter evaluation notes here..."></textarea>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn-custom btn-custom-danger me-auto" onclick="evaluateApplication('Denied')">
+                    <i class="bi bi-x-circle"></i> Deny Application
+                </button>
+                <button type="button" class="btn-custom btn-custom-secondary" onclick="closeEvaluationModal()">Cancel</button>
+                <button type="button" class="btn-custom btn-custom-primary" onclick="evaluateApplication('Approved')">
+                    <i class="bi bi-check-circle"></i> Approve Livelihood
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Schedule Modal -->
+    <div class="custom-modal-overlay" id="scheduleModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Create Program Scheduled Activity</h5>
+                <button type="button" class="btn-close" onclick="closeScheduleModal()"></button>
+            </div>
+            <form id="scheduleForm" onsubmit="handleScheduleSubmit(event)">
+                <div class="custom-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Activity Subject Title</label>
+                        <input type="text" class="form-control" id="schedTitle" placeholder="e.g. SPES Interview" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col form-group">
+                            <label class="form-label">Activity Category</label>
+                            <select class="form-control" id="schedType" required>
+                                <option value="Training">Training Session</option>
+                                <option value="Interview">Evaluation Interview</option>
+                                <option value="Distribution">Assistance Release / Distribution</option>
+                            </select>
+                        </div>
+                        <div class="form-col form-group">
+                            <label class="form-label">Target Program</label>
+                            <select class="form-control" id="schedProgramSelect" required>
+                                <!-- Options rendered dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col form-group">
+                            <label class="form-label">Release Date & Time</label>
+                            <input type="datetime-local" class="form-control" id="schedDateTime" required>
+                        </div>
+                        <div class="form-col form-group">
+                            <label class="form-label">Location / Platform</label>
+                            <input type="text" class="form-control" id="schedLocation" placeholder="e.g. City Hall Lobby" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn-custom btn-custom-secondary" onclick="closeScheduleModal()">Cancel</button>
+                    <button type="submit" class="btn-custom btn-custom-primary">Schedule Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Training Modal -->
+    <div class="custom-modal-overlay" id="trainingModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">New Livelihood Capacity Training Session</h5>
+                <button type="button" class="btn-close" onclick="closeTrainingModal()"></button>
+            </div>
+            <form id="trainingForm" onsubmit="handleTrainingSubmit(event)">
+                <div class="custom-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Session Topic / Title</label>
+                        <input type="text" class="form-control" id="trainTitle" placeholder="e.g. Basic Entrepreneurship Training" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col form-group">
+                            <label class="form-label">Associated Program</label>
+                            <select class="form-control" id="trainProgramSelect" required>
+                                <!-- Options rendered dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-col form-group">
+                            <label class="form-label">Lead Facilitator / Trainer</label>
+                            <input type="text" class="form-control" id="trainTrainer" placeholder="Trainer name" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Training Implementation Date</label>
+                        <input type="date" class="form-control" id="trainDate" required>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn-custom btn-custom-secondary" onclick="closeTrainingModal()">Cancel</button>
+                    <button type="submit" class="btn-custom btn-custom-primary">Register Training Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View/Edit Training Checklist Modal -->
+    <div class="custom-modal-overlay" id="trainingAttendanceModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title" id="attendanceModalTitle">Training Attendance & Results</h5>
+                <button type="button" class="btn-close" onclick="closeAttendanceModal()"></button>
+            </div>
+            <div class="custom-modal-body">
+                <input type="hidden" id="attendanceSessionId">
+                <div class="table-responsive" style="max-height: 350px;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Participant Name</th>
+                                <th>Attendance status</th>
+                                <th>Certification Outcome</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTbody">
+                            <!-- Rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn-custom btn-custom-secondary" onclick="closeAttendanceModal()">Cancel</button>
+                <button type="button" class="btn-custom btn-custom-primary" onclick="saveAttendanceRecord()">Save Capacity Records</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Assistance Modal -->
+    <div class="custom-modal-overlay" id="assistanceModal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Record Livelihood Assistance Release</h5>
+                <button type="button" class="btn-close" onclick="closeAssistanceModal()"></button>
+            </div>
+            <form id="assistanceForm" onsubmit="handleAssistanceSubmit(event)">
+                <div class="custom-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Target Beneficiary Name</label>
+                        <select class="form-control" id="assistBeneficiarySelect" required>
+                            <!-- Options rendered dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col form-group">
+                            <label class="form-label">Type of Livelihood Release</label>
+                            <select class="form-control" id="assistType" required>
+                                <option value="Cash Grant">Financial Cash Grant Assistance</option>
+                                <option value="Starter Kit">Commercial Starter Kit Package</option>
+                                <option value="Toolsets">Specialized Toolsets & Equipments</option>
+                            </select>
+                        </div>
+                        <div class="form-col form-group">
+                            <label class="form-label">Estimated Value (PHP)</label>
+                            <input type="number" class="form-control" id="assistValue" min="1" placeholder="e.g. 15000" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date of Distribution Release</label>
+                        <input type="date" class="form-control" id="assistDate" required>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn-custom btn-custom-secondary" onclick="closeAssistanceModal()">Cancel</button>
+                    <button type="submit" class="btn-custom btn-custom-primary">Release Assistance</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- JAVASCRIPT SYSTEM CONTROLLER -->
+    <!-- ============================================== -->
+    <script>
+        // Role-based Access Control Validation (REQ001)
+        const loggedRole = sessionStorage.getItem('userRole');
+        if (loggedRole !== 'PESO Admin') {
+            alert("Unauthorized Access. Redirecting to Staff Login Portal.");
+            window.location.href = "admin_login.html";
+        }
+
+        // Initialize user profile details in header
+        document.getElementById('userDisplayName').textContent = sessionStorage.getItem('username') || "PESO Administrator";
+
+        // Dynamic State Database Initialization via localStorage
+        function initLocalStorageDB() {
+            // Default Programs
+            if (!localStorage.getItem('peso_programs')) {
+                const defaultPrograms = [
+                    { id: "P1", code: "SPES", name: "Special Program for Employment of Students", budget: 600000, allocated: 380000, status: "Active" },
+                    { id: "P2", code: "TUPAD", name: "Tulong Panghanapbhy sa Ating Disadvantaged Workers", budget: 1500000, allocated: 920000, status: "Active" },
+                    { id: "P3", code: "Livelihood Training", name: "Livelihood Capacity Building & Skills Training", budget: 400000, allocated: 220000, status: "Active" }
+                ];
+                localStorage.setItem('peso_programs', JSON.stringify(defaultPrograms));
+            }
+
+            // Default Officers (REQ007)
+            if (!localStorage.getItem('peso_officers')) {
+                const defaultOfficers = [
+                    { id: "O1", name: "Juan Dela Cruz", username: "peso-officer", email: "juan.delacruz@koronadal.gov.ph", role: "PESO Officer", status: "Active", dateCreated: "2026-03-01" },
+                    { id: "O2", name: "Maria Santos", username: "peso-officer2", email: "maria.santos@koronadal.gov.ph", role: "PESO Officer", status: "Active", dateCreated: "2026-04-10" },
+                    { id: "O3", name: "CSWDO Case Worker", username: "cswdo-officer", email: "cswdo.worker@koronadal.gov.ph", role: "CSWDO Officer", status: "Active", dateCreated: "2026-02-15" }
+                ];
+                localStorage.setItem('peso_officers', JSON.stringify(defaultOfficers));
+            }
+
+            // Default Beneficiaries
+            if (!localStorage.getItem('peso_beneficiaries')) {
+                const defaultBeneficiaries = [
+                    { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active" },
+                    { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active" },
+                    { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active" },
+                    { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active" }
+                ];
+                localStorage.setItem('peso_beneficiaries', JSON.stringify(defaultBeneficiaries));
+            }
+
+            // Default Program Assignments (REQ018)
+            if (!localStorage.getItem('peso_assignments')) {
+                const defaultAssignments = [
+                    { id: "A1", beneficiaryId: "B1", programId: "P1", contact: "+639123456789", requirements: "SPES Contract, School Records", status: "Active" },
+                    { id: "A2", beneficiaryId: "B2", programId: "P2", contact: "+639987654321", requirements: "Barangay Clearance, Work Contract", status: "Active" }
+                ];
+                localStorage.setItem('peso_assignments', JSON.stringify(defaultAssignments));
+            }
+
+            // Default Applications (REQ023)
+            if (!localStorage.getItem('peso_applications')) {
+                const defaultApplications = [
+                    { id: "APP1", beneficiaryId: "B3", programId: "P1", programCode: "SPES", dateSubmitted: "2026-06-15", status: "Pending", documentVerified: true, feedback: "" },
+                    { id: "APP2", beneficiaryId: "B4", programId: "P3", programCode: "Livelihood Training", dateSubmitted: "2026-06-20", status: "Pending", documentVerified: true, feedback: "" },
+                    { id: "APP3", beneficiaryId: "B1", programId: "P2", programCode: "TUPAD", dateSubmitted: "2026-05-10", status: "Approved", documentVerified: true, feedback: "Met criteria" }
+                ];
+                localStorage.setItem('peso_applications', JSON.stringify(defaultApplications));
+            }
+
+            // Default Schedules (REQ027)
+            if (!localStorage.getItem('peso_schedules')) {
+                const defaultSchedules = [
+                    { id: "SCH1", title: "Livelihood Skills Orientation", type: "Training", programId: "P3", dateTime: "2026-06-28T09:00", location: "PESO Training Hall", status: "Scheduled" },
+                    { id: "SCH2", title: "TUPAD Cash Distribution Phase 1", type: "Distribution", programId: "P2", dateTime: "2026-06-30T10:00", location: "City Gym", status: "Scheduled" },
+                    { id: "SCH3", title: "SPES Screening Interviews", type: "Interview", programId: "P1", dateTime: "2026-06-27T13:30", location: "PESO Office", status: "Scheduled" }
+                ];
+                localStorage.setItem('peso_schedules', JSON.stringify(defaultSchedules));
+            }
+
+            // Default Trainings (REQ040)
+            if (!localStorage.getItem('peso_trainings')) {
+                const defaultTrainings = [
+                    { id: "T1", title: "Basic Food Processing and Packaging", programId: "P3", trainer: "Maria Santos", date: "2026-06-10", trainees: [{ beneficiaryId: "B1", attended: true, result: "Passed" }, { beneficiaryId: "B2", attended: true, result: "Passed" }] }
+                ];
+                localStorage.setItem('peso_trainings', JSON.stringify(defaultTrainings));
+            }
+
+            // Default Assistance Distributions (REQ047)
+            if (!localStorage.getItem('peso_assistance')) {
+                const defaultAssistance = [
+                    { id: "AS1", beneficiaryId: "B1", type: "Cash Grant", value: 5000, date: "2026-06-12" },
+                    { id: "AS2", beneficiaryId: "B2", type: "Starter Kit", value: 12000, date: "2026-06-14" }
+                ];
+                localStorage.setItem('peso_assistance', JSON.stringify(defaultAssistance));
+            }
+
+            // Default broadcast transmission alerts logs (REQ050)
+            if (!localStorage.getItem('peso_broadcast_logs')) {
+                const defaultLogs = [
+                    { id: "L1", recipientGroup: "SPES Enrollees Only", type: "SMS & Email", subject: "Distribution Alert", message: "Reminder: SPES Cash payout scheduled tomorrow, June 27 at PESO Office.", status: "Sent", timestamp: "2026-06-25 14:32" },
+                    { id: "L2", recipientGroup: "All Officers", type: "SMS Alert", subject: "Meeting Notice", message: "Urgent staff conference at 9 AM, PESO Admin Room.", status: "Sent", timestamp: "2026-06-24 16:45" }
+                ];
+                localStorage.setItem('peso_broadcast_logs', JSON.stringify(defaultLogs));
+            }
+
+            // Default audit activities logs (REQ006)
+            if (!localStorage.getItem('peso_activities')) {
+                const defaultActivities = [
+                    { type: "Program Registered", triggeredBy: "PESO Administrator", dateTime: "2026-06-25 10:20 AM", status: "Success (SPES added)" },
+                    { type: "Evaluation Action", triggeredBy: "PESO Administrator", dateTime: "2026-06-24 02:15 PM", status: "Approved Maria Garcia Application" },
+                    { type: "Schedules Created", triggeredBy: "PESO Administrator", dateTime: "2026-06-24 11:30 AM", status: "TUPAD distribution session registered" }
+                ];
+                localStorage.setItem('peso_activities', JSON.stringify(defaultActivities));
+            }
+        }
+
+        // Run Initialisation
+        initLocalStorageDB();
+
+        // Global Chart.js Instances
+        let chartFundInstance = null;
+        let chartTrendInstance = null;
+
+        // Dynamic Module switcher
+        function switchModule(moduleId, linkElement) {
+            // Close mobile sidebar if open
+            document.getElementById('mainSidebar').classList.remove('active');
+
+            // Set active navigation tab link
+            document.querySelectorAll('.sidebar-nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (linkElement) {
+                linkElement.classList.add('active');
+            }
+
+            // Set visible module view section
+            document.querySelectorAll('.module-page').forEach(page => {
+                page.classList.remove('active');
+            });
+            const activePage = document.getElementById(moduleId);
+            activePage.classList.add('active');
+
+            // Dynamically update portal sub-header title
+            const activeLang = localStorage.getItem('lang') || 'en';
+            const dict = translations[activeLang] || translations['en'];
+            const headerTitleKey = 'title-' + moduleId;
+            document.getElementById('pageMainHeader').textContent = dict[headerTitleKey] || 'PESO WIMS Portal';
+
+            // Refresh specific module data view renders
+            if (moduleId === 'module-dashboard') {
+                loadDashboardStats();
+            } else if (moduleId === 'module-officers') {
+                renderOfficersTable();
+            } else if (moduleId === 'module-programs') {
+                renderProgramsTable();
+            } else if (moduleId === 'module-assignments') {
+                renderAssignmentsTable();
+            } else if (moduleId === 'module-evaluation') {
+                renderEvaluationTable();
+            } else if (moduleId === 'module-schedules') {
+                renderCalendar();
+                renderSchedulesList();
+            } else if (moduleId === 'module-funds') {
+                renderFundsAllocationModule();
+            } else if (moduleId === 'module-training') {
+                renderTrainingTable();
+            } else if (moduleId === 'module-assistance') {
+                renderAssistanceTable();
+            } else if (moduleId === 'module-notifications') {
+                renderBroadcastLogs();
+            } else if (moduleId === 'module-reports') {
+                generateReportView();
+            }
+        }
+
+        // Sidebar Responsive Toggle
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            document.getElementById('mainSidebar').classList.toggle('active');
+        });
+
+        // Sign Out (REQ001)
+        function logoutAdmin() {
+            if (confirm("Are you sure you want to log out of the PESO Admin Portal?")) {
+                sessionStorage.clear();
+                window.location.href = "admin_login.html";
+            }
+        }
+
+        // Push new audit activity (REQ006)
+        function pushActivity(type, status, user = "PESO Administrator") {
+            const activities = JSON.parse(localStorage.getItem('peso_activities')) || [];
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + " - " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            activities.unshift({ type, triggeredBy: user, dateTime: timeStr, status });
+            localStorage.setItem('peso_activities', JSON.stringify(activities));
+        }
+
+        // Helper to mask phone numbers in compliance with RA 10173
+        function maskContactNumber(num) {
+            if (!num) return "+63 9** **** ****";
+            const trimmed = num.replace(/\s+/g, '');
+            if (trimmed.length >= 10) {
+                return trimmed.substring(0, 5) + " ** *** " + trimmed.substring(trimmed.length - 3);
+            }
+            return num;
+        }
+
+        // ==============================================
+        // MODULE LOGIC: DASHBOARD
+        // ==============================================
+        function loadDashboardStats() {
+            // Load DB arrays
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+
+            // Compute Stats (REQ003)
+            const pendingApps = apps.filter(a => a.status === 'Pending').length;
+            const approvedApps = apps.filter(a => a.status === 'Approved').length;
+            const completedProgs = programs.filter(p => p.status === 'Inactive').length; // Closed/completed
+            const totalBeneficiaries = beneficiaries.length;
+
+            document.getElementById('dashboardPendingCount').textContent = pendingApps;
+            document.getElementById('dashboardApprovedCount').textContent = approvedApps;
+            document.getElementById('dashboardCompletedCount').textContent = completedProgs;
+            document.getElementById('dashboardBeneficiaryCount').textContent = totalBeneficiaries;
+
+            // Load charts
+            loadDashboardCharts(programs);
+
+            // Load activities (REQ006)
+            const activities = JSON.parse(localStorage.getItem('peso_activities')) || [];
+            const body = document.getElementById('dashboardActivitiesBody');
+            body.innerHTML = '';
+            
+            // Render top 5
+            activities.slice(0, 5).forEach(act => {
+                let icon = 'bi-info-circle text-info';
+                if (act.type.includes('Officer')) icon = 'bi-person-badge text-primary';
+                else if (act.type.includes('Program')) icon = 'bi-folder text-success';
+                else if (act.type.includes('Schedule')) icon = 'bi-calendar-event text-warning';
+                else if (act.type.includes('Evaluation')) icon = 'bi-journal-check text-danger';
+
+                body.innerHTML += `
+                    <tr>
+                        <td><i class="bi ${icon} me-2"></i>${act.type}</td>
+                        <td>${act.triggeredBy}</td>
+                        <td>${act.dateTime}</td>
+                        <td><span class="status-badge active" style="background: rgba(184, 92, 122, 0.06); color: var(--primary-dark);">${act.status}</span></td>
+                    </tr>
+                `;
+            });
+            if (activities.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" class="text-center">No recent activity logged.</td></tr>';
+            }
+        }
+
+        function getChartColors(isDark) {
+            return {
+                gridColor: isDark ? '#352229' : '#f5eef1',
+                textColor: isDark ? '#e5e5e5' : '#666'
+            };
+        }
+
+        function loadDashboardCharts(programs) {
+            const isDark = localStorage.getItem('theme') === 'dark';
+            const colors = getChartColors(isDark);
+            const activeLang = localStorage.getItem('lang') || 'en';
+            const dict = translations[activeLang] || translations['en'];
+
+            // REQ004: Fund Utilization per Livelihood Program Chart
+            const ctxFund = document.getElementById('chartFundUtilization').getContext('2d');
+            if (chartFundInstance) chartFundInstance.destroy();
+
+            const programNames = programs.map(p => p.code);
+            const budgets = programs.map(p => p.budget);
+            const allocations = programs.map(p => p.allocated);
+
+            chartFundInstance = new Chart(ctxFund, {
+                type: 'bar',
+                data: {
+                    labels: programNames,
+                    datasets: [
+                        {
+                            label: dict['chart_label_budget'],
+                            data: budgets,
+                            backgroundColor: '#F7D2DE',
+                            borderRadius: 6
+                        },
+                        {
+                            label: dict['chart_label_util'],
+                            data: allocations,
+                            backgroundColor: '#F0B6C6',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: colors.gridColor },
+                            ticks: { color: colors.textColor }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: colors.textColor }
+                        }
+                    },
+                    plugins: {
+                        legend: { 
+                            position: 'bottom',
+                            labels: { color: colors.textColor }
+                        }
+                    }
+                }
+            });
+
+            // REQ005: Monthly Livelihood Application Trend Chart
+            const ctxTrend = document.getElementById('chartApplicationTrend').getContext('2d');
+            if (chartTrendInstance) chartTrendInstance.destroy();
+
+            chartTrendInstance = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: dict['chart_label_trend'],
+                        data: [15, 22, 38, 25, 45, 62],
+                        borderColor: '#F0B6C6',
+                        backgroundColor: 'rgba(240, 182, 198, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: colors.gridColor },
+                            ticks: { color: colors.textColor }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: colors.textColor }
+                        }
+                    },
+                    plugins: {
+                        legend: { 
+                            position: 'bottom',
+                            labels: { color: colors.textColor }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==============================================
+        // MODULE LOGIC: OFFICERS MANAGEMENT (REQ007-REQ011)
+        // ==============================================
+        function renderOfficersTable() {
+            const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+            const tbody = document.getElementById('officersTableBody');
+            const search = document.getElementById('officerSearchInput').value.toLowerCase().trim();
+            tbody.innerHTML = '';
+
+            const filtered = officers.filter(o => o.name.toLowerCase().includes(search) || o.email.toLowerCase().includes(search) || o.username.toLowerCase().includes(search));
+
+            filtered.forEach(o => {
+                const statusBadgeClass = o.status === 'Active' ? 'active' : 'inactive';
+                const actionText = o.status === 'Active' ? 'Deactivate' : 'Activate';
+                const actionIcon = o.status === 'Active' ? 'bi-toggle2-on text-success' : 'bi-toggle2-off text-muted';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${o.name}</strong><br><span class="text-muted small">@${o.username}</span></td>
+                        <td>${o.email}</td>
+                        <td>${o.role}</td>
+                        <td><span class="status-badge ${statusBadgeClass}">${o.status}</span></td>
+                        <td>${o.dateCreated}</td>
+                        <td>
+                            <button class="action-icon-btn" onclick="openEditOfficerModal('${o.id}')" title="Edit details"><i class="bi bi-pencil-square"></i></button>
+                            <button class="action-icon-btn" onclick="toggleOfficerStatus('${o.id}')" title="${actionText} Account"><i class="bi ${actionIcon}"></i></button>
+                            <button class="action-icon-btn danger" onclick="deleteOfficer('${o.id}')" title="Delete account"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No PESO officers found matching search.</td></tr>';
+            }
+        }
+
+        function openAddOfficerModal() {
+            document.getElementById('officerForm').reset();
+            document.getElementById('officerIdInput').value = '';
+            document.getElementById('officerModalTitle').textContent = 'Create New Officer Account';
+            document.getElementById('officerPassGroup').style.display = 'block';
+            document.getElementById('officerPasswordInput').required = true;
+            document.getElementById('officerModal').classList.add('active');
+        }
+
+        function openEditOfficerModal(id) {
+            const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+            const officer = officers.find(o => o.id === id);
+            if (!officer) return;
+
+            document.getElementById('officerIdInput').value = officer.id;
+            document.getElementById('officerNameInput').value = officer.name;
+            document.getElementById('officerUsernameInput').value = officer.username;
+            document.getElementById('officerEmailInput').value = officer.email;
+            document.getElementById('officerRoleInput').value = officer.role;
+
+            document.getElementById('officerModalTitle').textContent = 'Update Officer Account Details';
+            document.getElementById('officerPassGroup').style.display = 'none'; // Hide password for edits
+            document.getElementById('officerPasswordInput').required = false;
+
+            document.getElementById('officerModal').classList.add('active');
+        }
+
+        function closeOfficerModal() {
+            document.getElementById('officerModal').classList.remove('active');
+        }
+
+        function handleOfficerSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('officerIdInput').value;
+            const name = document.getElementById('officerNameInput').value.trim();
+            const username = document.getElementById('officerUsernameInput').value.trim();
+            const email = document.getElementById('officerEmailInput').value.trim();
+            const role = document.getElementById('officerRoleInput').value;
+            
+            const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+
+            if (id) {
+                // Edit
+                const idx = officers.findIndex(o => o.id === id);
+                if (idx !== -1) {
+                    officers[idx].name = name;
+                    officers[idx].username = username;
+                    officers[idx].email = email;
+                    officers[idx].role = role;
+                    localStorage.setItem('peso_officers', JSON.stringify(officers));
+                    pushActivity("Officer Details Updated", `Modified details for officer: ${name}`);
+                    alert("Officer details updated successfully.");
+                }
+            } else {
+                // Create
+                const exists = officers.some(o => o.username.toLowerCase() === username.toLowerCase());
+                if (exists) {
+                    alert("Error: Username is already registered.");
+                    return;
+                }
+                const newOfficer = {
+                    id: "O" + (Date.now()),
+                    name,
+                    username,
+                    email,
+                    role,
+                    status: "Active",
+                    dateCreated: new Date().toISOString().split('T')[0]
+                };
+                officers.push(newOfficer);
+                localStorage.setItem('peso_officers', JSON.stringify(officers));
+                pushActivity("Officer Registered", `Created account for officer: ${name}`);
+                alert("New officer account created successfully.");
+            }
+            closeOfficerModal();
+            renderOfficersTable();
+        }
+
+        function toggleOfficerStatus(id) {
+            const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+            const idx = officers.findIndex(o => o.id === id);
+            if (idx !== -1) {
+                const newStatus = officers[idx].status === 'Active' ? 'Inactive' : 'Active';
+                officers[idx].status = newStatus;
+                localStorage.setItem('peso_officers', JSON.stringify(officers));
+                pushActivity("Officer Status Toggled", `${newStatus} status set for: ${officers[idx].name}`);
+                renderOfficersTable();
+            }
+        }
+
+        function deleteOfficer(id) {
+            if (confirm("Are you sure you want to permanently delete this officer account?")) {
+                let officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+                const officer = officers.find(o => o.id === id);
+                officers = officers.filter(o => o.id !== id);
+                localStorage.setItem('peso_officers', JSON.stringify(officers));
+                pushActivity("Officer Deleted", `Removed account for: ${officer ? officer.name : 'Unknown'}`);
+                renderOfficersTable();
+            }
+        }
+
+        // ==============================================
+        // MODULE LOGIC: PROGRAM MANAGEMENT (REQ012-REQ017)
+        // ==============================================
+        function renderProgramsTable() {
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const tbody = document.getElementById('programsTableBody');
+            const search = document.getElementById('programSearchInput').value.toLowerCase().trim();
+            tbody.innerHTML = '';
+
+            const filtered = programs.filter(p => p.code.toLowerCase().includes(search) || p.name.toLowerCase().includes(search));
+
+            filtered.forEach(p => {
+                const statusBadgeClass = p.status === 'Active' ? 'active' : 'inactive';
+                const actionText = p.status === 'Active' ? 'Deactivate' : 'Activate';
+                const actionIcon = p.status === 'Active' ? 'bi-toggle2-on text-success' : 'bi-toggle2-off text-muted';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${p.code}</strong></td>
+                        <td>${p.name}</td>
+                        <td>PHP ${p.budget.toLocaleString()}</td>
+                        <td><span class="status-badge ${statusBadgeClass}">${p.status}</span></td>
+                        <td>
+                            <button class="action-icon-btn" onclick="openEditProgramModal('${p.id}')" title="Edit details"><i class="bi bi-pencil-square"></i></button>
+                            <button class="action-icon-btn" onclick="toggleProgramStatus('${p.id}')" title="${actionText} Program"><i class="bi ${actionIcon}"></i></button>
+                            <button class="action-icon-btn danger" onclick="deleteProgram('${p.id}')" title="Delete program"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No livelihood programs registered.</td></tr>';
+            }
+        }
+
+        function openAddProgramModal() {
+            document.getElementById('programForm').reset();
+            document.getElementById('programIdInput').value = '';
+            document.getElementById('programModalTitle').textContent = 'Register Livelihood Program';
+            document.getElementById('programModal').classList.add('active');
+        }
+
+        function openEditProgramModal(id) {
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const program = programs.find(p => p.id === id);
+            if (!program) return;
+
+            document.getElementById('programIdInput').value = program.id;
+            document.getElementById('programCodeInput').value = program.code;
+            document.getElementById('programDescInput').value = program.name;
+            document.getElementById('programBudgetInput').value = program.budget;
+
+            document.getElementById('programModalTitle').textContent = 'Update Livelihood Program Details';
+            document.getElementById('programModal').classList.add('active');
+        }
+
+        function closeProgramModal() {
+            document.getElementById('programModal').classList.remove('active');
+        }
+
+        function handleProgramSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('programIdInput').value;
+            const code = document.getElementById('programCodeInput').value.toUpperCase().trim();
+            const name = document.getElementById('programDescInput').value.trim();
+            const budget = parseFloat(document.getElementById('programBudgetInput').value);
+
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+
+            if (id) {
+                // Edit
+                const idx = programs.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    programs[idx].code = code;
+                    programs[idx].name = name;
+                    programs[idx].budget = budget;
+                    localStorage.setItem('peso_programs', JSON.stringify(programs));
+                    pushActivity("Program Updated", `Updated details for program: ${code}`);
+                    alert("Livelihood program details updated successfully.");
+                }
+            } else {
+                // Create
+                const exists = programs.some(p => p.code === code);
+                if (exists) {
+                    alert("Error: A program with this code already exists.");
+                    return;
+                }
+                const newProg = {
+                    id: "P" + (Date.now()),
+                    code,
+                    name,
+                    budget,
+                    allocated: 0,
+                    status: "Active"
+                };
+                programs.push(newProg);
+                localStorage.setItem('peso_programs', JSON.stringify(programs));
+                pushActivity("Program Registered", `Created livelihood program: ${code}`);
+                alert("New livelihood program registered successfully.");
+            }
+            closeProgramModal();
+            renderProgramsTable();
+        }
+
+        function toggleProgramStatus(id) {
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const idx = programs.findIndex(p => p.id === id);
+            if (idx !== -1) {
+                const newStatus = programs[idx].status === 'Active' ? 'Inactive' : 'Active';
+                programs[idx].status = newStatus;
+                localStorage.setItem('peso_programs', JSON.stringify(programs));
+                pushActivity("Program Status Toggled", `${newStatus} status set for program: ${programs[idx].code}`);
+                renderProgramsTable();
+            }
+        }
+
+        function deleteProgram(id) {
+            if (confirm("Are you sure you want to permanently delete this program?")) {
+                let programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+                const program = programs.find(p => p.id === id);
+                programs = programs.filter(p => p.id !== id);
+                localStorage.setItem('peso_programs', JSON.stringify(programs));
+                pushActivity("Program Deleted", `Removed program: ${program ? program.code : 'Unknown'}`);
+                renderProgramsTable();
+            }
+        }
+
+        // ==============================================
+        // MODULE LOGIC: PROGRAM ASSIGNMENT (REQ018-REQ022)
+        // ==============================================
+        function renderAssignmentsTable() {
+            const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const tbody = document.getElementById('assignmentsTableBody');
+            tbody.innerHTML = '';
+
+            assignments.forEach(as => {
+                const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: 'Unknown', contact: 'N/A' };
+                const prog = programs.find(p => p.id === as.programId) || { code: 'Unknown' };
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${ben.name}</strong></td>
+                        <td>${maskContactNumber(ben.contact)}</td>
+                        <td><span class="status-badge completed" style="background: rgba(184,92,122,0.1); color: var(--primary-dark);">${prog.code}</span></td>
+                        <td>${as.requirements}</td>
+                        <td><span class="status-badge active">${as.status || 'Active'}</span></td>
+                        <td>
+                            <button class="action-icon-btn danger" onclick="removeAssignment('${as.id}')" title="Revoke assignment"><i class="bi bi-person-x-fill text-danger"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (assignments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No program assignments recorded.</td></tr>';
+            }
+        }
+
+        function openAddAssignmentModal() {
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')).filter(p => p.status === 'Active') || [];
+            
+            const benSelect = document.getElementById('assignApplicantSelect');
+            const progSelect = document.getElementById('assignProgramSelect');
+            
+            benSelect.innerHTML = '<option value="">-- Choose Beneficiary --</option>';
+            beneficiaries.forEach(b => {
+                benSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+            });
+
+            progSelect.innerHTML = '<option value="">-- Choose Livelihood --</option>';
+            programs.forEach(p => {
+                progSelect.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
+            });
+
+            document.getElementById('assignmentModal').classList.add('active');
+        }
+
+        function closeAssignmentModal() {
+            document.getElementById('assignmentModal').classList.remove('active');
+        }
+
+        function handleAssignmentSubmit(e) {
+            e.preventDefault();
+            const benId = document.getElementById('assignApplicantSelect').value;
+            const progId = document.getElementById('assignProgramSelect').value;
+
+            if (!benId || !progId) {
+                alert("Please select both a beneficiary and a livelihood program.");
+                return;
+            }
+
+            const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+            
+            // REQ021: Prevent Overlap (Double assignment)
+            const exists = assignments.some(as => as.beneficiaryId === benId && as.status === 'Active');
+            if (exists) {
+                alert("Conflict Warning: This beneficiary is already active in another program assignment. Overlapping assignments are restricted.");
+                return;
+            }
+
+            const newAs = {
+                id: "A" + (Date.now()),
+                beneficiaryId: benId,
+                programId: progId,
+                requirements: "Compliance documents checked and indigency reports verified",
+                status: "Active"
+            };
+            assignments.push(newAs);
+            localStorage.setItem('peso_assignments', JSON.stringify(assignments));
+
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const bName = (beneficiaries.find(b => b.id === benId) || {}).name;
+            const pCode = (programs.find(p => p.id === progId) || {}).code;
+
+            pushActivity("Program Assignment", `Assigned beneficiary: ${bName} to program: ${pCode}`);
+            alert(`Successfully assigned ${bName} to ${pCode}.`);
+            closeAssignmentModal();
+            renderAssignmentsTable();
+        }
+
+        function removeAssignment(id) {
+            if (confirm("Are you sure you want to deactivate/revoke this program assignment?")) {
+                let assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+                const as = assignments.find(a => a.id === id);
+                assignments = assignments.filter(a => a.id !== id);
+                localStorage.setItem('peso_assignments', JSON.stringify(assignments));
+                pushActivity("Assignment Revoked", `Deactivated assignment ID: ${id}`);
+                renderAssignmentsTable();
+            }
+        }
+
+        // ==============================================
+        // MODULE LOGIC: APPLICATION EVALUATION (REQ023-REQ026)
+        // ==============================================
+        function renderEvaluationTable() {
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const tbody = document.getElementById('evaluationTableBody');
+            tbody.innerHTML = '';
+
+            apps.forEach(app => {
+                const ben = beneficiaries.find(b => b.id === app.beneficiaryId) || { name: 'Unknown' };
+                const verifiedIcon = app.documentVerified ? '<i class="bi bi-file-earmark-check-fill text-success fs-5"></i> Verified' : '<i class="bi bi-file-earmark-x-fill text-danger fs-5"></i> Unverified';
+                let actionBtn = '';
+                let statusBadge = '';
+
+                if (app.status === 'Pending') {
+                    statusBadge = `<span class="status-badge pending">Pending Evaluation</span>`;
+                    actionBtn = `<button class="btn-custom btn-custom-secondary py-1 px-3" onclick="openEvaluationModal('${app.id}')"><i class="bi bi-shield-check"></i> Evaluate</button>`;
+                } else if (app.status === 'Approved') {
+                    statusBadge = `<span class="status-badge approved">Approved</span>`;
+                    actionBtn = `<span class="text-muted small">Reviewed</span>`;
+                } else {
+                    statusBadge = `<span class="status-badge denied">Denied</span>`;
+                    actionBtn = `<span class="text-muted small">Reviewed</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${ben.name}</strong></td>
+                        <td>${app.programCode}</td>
+                        <td>${app.dateSubmitted}</td>
+                        <td>${verifiedIcon}</td>
+                        <td>${statusBadge}</td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            });
+            if (apps.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No livelihood application logs to review.</td></tr>';
+            }
+        }
+
+        function openEvaluationModal(id) {
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const app = apps.find(a => a.id === id);
+            if (!app) return;
+
+            const ben = beneficiaries.find(b => b.id === app.beneficiaryId) || { name: 'Unknown' };
+            document.getElementById('evalAppId').value = app.id;
+            document.getElementById('evalApplicantName').textContent = ben.name;
+            document.getElementById('evalRequestedProgram').textContent = app.programCode;
+            document.getElementById('evalDocName').textContent = `${app.programCode}_indigency_records_${ben.name.replace(/\s+/g, '_')}.pdf`;
+            document.getElementById('evalActionNotes').value = '';
+
+            document.getElementById('evaluationModal').classList.add('active');
+        }
+
+        function closeEvaluationModal() {
+            document.getElementById('evaluationModal').classList.remove('active');
+        }
+
+        function evaluateApplication(decision) {
+            const id = document.getElementById('evalAppId').value;
+            const notes = document.getElementById('evalActionNotes').value.trim();
+
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            const idx = apps.findIndex(a => a.id === id);
+            if (idx !== -1) {
+                apps[idx].status = decision;
+                apps[idx].feedback = notes;
+                localStorage.setItem('peso_applications', JSON.stringify(apps));
+
+                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const bName = (beneficiaries.find(b => b.id === apps[idx].beneficiaryId) || {}).name;
+
+                pushActivity("Application Evaluation", `${decision} application for: ${bName}`);
+                alert(`Application has been officially ${decision}.`);
+                closeEvaluationModal();
+                renderEvaluationTable();
+            }
+        }
+
+        // ==============================================
+        // MODULE LOGIC: SCHEDULING MANAGEMENT (REQ027-REQ033)
+        // ==============================================
+        let currentYear = 2026;
+        let currentMonth = 5; // June (0-indexed)
+
+        function navigateCalendar(dir) {
+            currentMonth += dir;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('calendarMonthTitle').textContent = `${months[currentMonth]} ${currentYear}`;
+
+            const grid = document.getElementById('calendarGridBody');
+            grid.innerHTML = '';
+
+            // Day Names Header
+            const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            days.forEach(d => {
+                grid.innerHTML += `<div class="calendar-day-name">${d}</div>`;
+            });
+
+            // Get month info
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const numDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const prevNumDays = new Date(currentYear, currentMonth, 0).getDate();
+
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+
+            // Render Previous Month Days
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const dayVal = prevNumDays - i;
+                grid.innerHTML += `<div class="calendar-cell other-month"><div class="calendar-day-num">${dayVal}</div></div>`;
+            }
+
+            // Render Current Month Days
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() === currentMonth;
+
+            for (let day = 1; day <= numDays; day++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                // Get events for this day
+                const dayEvents = schedules.filter(s => s.dateTime.startsWith(dateStr) && s.status === 'Scheduled');
+                let eventsHtml = '';
+
+                dayEvents.forEach(ev => {
+                    let badgeClass = 'training';
+                    if (ev.type === 'Interview') badgeClass = 'interview';
+                    else if (ev.type === 'Distribution') badgeClass = 'distribution';
+
+                    eventsHtml += `<div class="calendar-event-badge ${badgeClass}" title="${ev.title}">${ev.title}</div>`;
+                });
+
+                const todayClass = (isCurrentMonth && today.getDate() === day) ? 'today' : '';
+
+                grid.innerHTML += `
+                    <div class="calendar-cell ${todayClass}">
+                        <div class="calendar-day-num">${day}</div>
+                        <div class="calendar-events-container">${eventsHtml}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderSchedulesList() {
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const list = document.getElementById('schedulesListGroup');
+            list.innerHTML = '';
+
+            schedules.forEach(sc => {
+                let badgeClass = 'bg-primary';
+                if (sc.type === 'Interview') badgeClass = 'bg-info';
+                else if (sc.type === 'Distribution') badgeClass = 'bg-warning text-dark';
+
+                const statusColor = sc.status === 'Scheduled' ? 'text-success' : 'text-danger';
+                const dateVal = new Date(sc.dateTime);
+                const formatTime = dateVal.toLocaleDateString() + " " + dateVal.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                list.innerHTML += `
+                    <div class="list-group-item list-group-item-action p-3 mb-2 border rounded" style="background-color: #faf7f8;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge ${badgeClass}">${sc.type}</span>
+                            <span class="small font-weight-bold ${statusColor}">${sc.status}</span>
+                        </div>
+                        <h6 class="mb-1 fw-bold">${sc.title}</h6>
+                        <p class="mb-1 small text-muted"><i class="bi bi-clock me-1"></i>${formatTime}</p>
+                        <p class="mb-2 small text-muted"><i class="bi bi-geo-alt me-1"></i>${sc.location}</p>
+                        ${sc.status === 'Scheduled' ? `<button class="btn btn-sm btn-outline-danger py-0 px-2 font-weight-bold" onclick="cancelSchedule('${sc.id}')">Cancel Activity</button>` : ''}
+                    </div>
+                `;
+            });
+            if (schedules.length === 0) {
+                list.innerHTML = '<div class="text-center text-muted p-4">No schedules recorded.</div>';
+            }
+        }
+
+        function openAddScheduleModal() {
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const select = document.getElementById('schedProgramSelect');
+            select.innerHTML = '';
+            programs.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.code}</option>`;
+            });
+
+            document.getElementById('scheduleForm').reset();
+            document.getElementById('scheduleModal').classList.add('active');
+        }
+
+        function closeScheduleModal() {
+            document.getElementById('scheduleModal').classList.remove('active');
+        }
+
+        function handleScheduleSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('schedTitle').value.trim();
+            const type = document.getElementById('schedType').value;
+            const programId = document.getElementById('schedProgramSelect').value;
+            const dateTime = document.getElementById('schedDateTime').value;
+            const location = document.getElementById('schedLocation').value.trim();
+
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const newSched = {
+                id: "SCH" + (Date.now()),
+                title,
+                type,
+                programId,
+                dateTime,
+                location,
+                status: "Scheduled"
+            };
+            schedules.push(newSched);
+            localStorage.setItem('peso_schedules', JSON.stringify(schedules));
+
+            pushActivity("Schedules Created", `Scheduled ${type} session: ${title}`);
+            alert("New livelihood schedule added successfully.");
+            closeScheduleModal();
+            renderCalendar();
+            renderSchedulesList();
+        }
+
+        function cancelSchedule(id) {
+            if (confirm("Are you sure you want to cancel this scheduled activity?")) {
+                const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+                const idx = schedules.findIndex(s => s.id === id);
+                if (idx !== -1) {
+                    schedules[idx].status = 'Cancelled';
+                    localStorage.setItem('peso_schedules', JSON.stringify(schedules));
+                    pushActivity("Schedule Cancelled", `Cancelled activity: ${schedules[idx].title}`);
+                    renderCalendar();
+                    renderSchedulesList();
+                }
+            }
+        }
+
+        // ==============================================
+        // MODULE LOGIC: FUND ALLOCATION (REQ034-REQ039)
+        // ==============================================
+        function renderFundsAllocationModule() {
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            
+            // Populate Dropdown selector
+            const select = document.getElementById('fundProgramSelect');
+            select.innerHTML = '';
+            programs.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
+            });
+
+            // Populate Budget Summaries
+            const tbody = document.getElementById('fundsSummaryBody');
+            tbody.innerHTML = '';
+
+            programs.forEach(p => {
+                const utilizationRate = p.budget > 0 ? ((p.allocated / p.budget) * 100).toFixed(1) : 0;
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${p.code}</strong></td>
+                        <td>PHP ${p.budget.toLocaleString()}</td>
+                        <td>
+                            <strong>PHP ${p.allocated.toLocaleString()}</strong><br>
+                            <span class="text-muted small">${utilizationRate}% utilized</span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function handleAllocateFunds(e) {
+            e.preventDefault();
+            const programId = document.getElementById('fundProgramSelect').value;
+            const amount = parseFloat(document.getElementById('fundAllocAmount').value);
+            const notes = document.getElementById('fundNotes').value.trim();
+
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const idx = programs.findIndex(p => p.id === programId);
+
+            if (idx !== -1) {
+                const prog = programs[idx];
+                
+                // REQ037: Prevent Allocation Exceeding Budget limit
+                if (prog.allocated + amount > prog.budget) {
+                    alert(`Error: Allocation request of PHP ${amount.toLocaleString()} exceeds the remaining approved LGU budget limit (PHP ${(prog.budget - prog.allocated).toLocaleString()}).`);
+                    return;
+                }
+
+                programs[idx].allocated += amount;
+                localStorage.setItem('peso_programs', JSON.stringify(programs));
+                
+                pushActivity("Fund Allocation", `Allocated PHP ${amount.toLocaleString()} to program: ${prog.code}. Justification: ${notes}`);
+                alert(`Success: Budget allocation of PHP ${amount.toLocaleString()} committed successfully.`);
+                
+                document.getElementById('fundAllocationForm').reset();
+                renderFundsAllocationModule();
+            }
+        }
+
+        // ==============================================
+        // MODULE LOGIC: TRAINING RECORDS (REQ040-REQ046)
+        // ==============================================
+        function renderTrainingTable() {
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const tbody = document.getElementById('trainingTableBody');
+            tbody.innerHTML = '';
+
+            trainings.forEach(t => {
+                const prog = programs.find(p => p.id === t.programId) || { code: 'N/A' };
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${t.title}</strong></td>
+                        <td>${prog.code}</td>
+                        <td>${t.trainer}</td>
+                        <td>${t.date}</td>
+                        <td>
+                            <button class="btn-custom btn-custom-secondary py-1 px-3" onclick="openAttendanceModal('${t.id}')">
+                                <i class="bi bi-person-lines-fill"></i> ${t.trainees.length} Trainees
+                            </button>
+                        </td>
+                        <td>
+                            <button class="action-icon-btn danger" onclick="deleteTraining('${t.id}')" title="Delete training log"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (trainings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No capacity training records logged.</td></tr>';
+            }
+        }
+
+        function openAddTrainingModal() {
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const select = document.getElementById('trainProgramSelect');
+            select.innerHTML = '';
+            programs.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.code}</option>`;
+            });
+
+            document.getElementById('trainingForm').reset();
+            document.getElementById('trainingModal').classList.add('active');
+        }
+
+        function closeTrainingModal() {
+            document.getElementById('trainingModal').classList.remove('active');
+        }
+
+        function handleTrainingSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('trainTitle').value.trim();
+            const programId = document.getElementById('trainProgramSelect').value;
+            const trainer = document.getElementById('trainTrainer').value.trim();
+            const date = document.getElementById('trainDate').value;
+
+            // Gather active beneficiaries assigned to this program to add as training participants
+            const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+            const progAssignments = assignments.filter(as => as.programId === programId && as.status === 'Active');
+            
+            const trainees = progAssignments.map(as => {
+                return { beneficiaryId: as.beneficiaryId, attended: false, result: "Pending" };
+            });
+
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const newTrain = {
+                id: "T" + (Date.now()),
+                title,
+                programId,
+                trainer,
+                date,
+                trainees
+            };
+            trainings.push(newTrain);
+            localStorage.setItem('peso_trainings', JSON.stringify(trainings));
+
+            pushActivity("Training Session", `Registered training course: ${title}`);
+            alert(`Training session registered with ${trainees.length} assigned participants.`);
+            closeTrainingModal();
+            renderTrainingTable();
+        }
+
+        // Open Attendance Sheet
+        function openAttendanceModal(id) {
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const session = trainings.find(t => t.id === id);
+            if (!session) return;
+
+            document.getElementById('attendanceSessionId').value = session.id;
+            document.getElementById('attendanceModalTitle').textContent = `Attendance: ${session.title}`;
+
+            const tbody = document.getElementById('attendanceTbody');
+            tbody.innerHTML = '';
+
+            session.trainees.forEach((tr, i) => {
+                const ben = beneficiaries.find(b => b.id === tr.beneficiaryId) || { name: 'Unknown' };
+                const checked = tr.attended ? 'checked' : '';
+                const resultOptions = ['Pending', 'Passed', 'Failed'].map(opt => {
+                    const sel = tr.result === opt ? 'selected' : '';
+                    return `<option value="${opt}" ${sel}>${opt}</option>`;
+                }).join('');
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${ben.name}</strong></td>
+                        <td>
+                            <input type="checkbox" id="attendCheck_${i}" ${checked} class="form-check-input"> Present
+                        </td>
+                        <td>
+                            <select id="resultSelect_${i}" class="form-control py-1 px-2 font-weight-bold">
+                                ${resultOptions}
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (session.trainees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">No trainees assigned to this session.</td></tr>';
+            }
+
+            document.getElementById('trainingAttendanceModal').classList.add('active');
+        }
+
+        function closeAttendanceModal() {
+            document.getElementById('trainingAttendanceModal').classList.remove('active');
+        }
+
+        function saveAttendanceRecord() {
+            const id = document.getElementById('attendanceSessionId').value;
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const idx = trainings.findIndex(t => t.id === id);
+            if (idx !== -1) {
+                const session = trainings[idx];
+                session.trainees.forEach((tr, i) => {
+                    tr.attended = document.getElementById(`attendCheck_${i}`).checked;
+                    tr.result = document.getElementById(`resultSelect_${i}`).value;
+                });
+                trainings[idx] = session;
+                localStorage.setItem('peso_trainings', JSON.stringify(trainings));
+                
+                pushActivity("Training Attendance", `Updated outcomes for course: ${session.title}`);
+                alert("Training outcomes and attendance sheets saved.");
+                closeAttendanceModal();
+                renderTrainingTable();
+            }
+        }
+
+        function deleteTraining(id) {
+            if (confirm("Are you sure you want to delete this training record?")) {
+                let trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+                const t = trainings.find(tr => tr.id === id);
+                trainings = trainings.filter(tr => tr.id !== id);
+                localStorage.setItem('peso_trainings', JSON.stringify(trainings));
+                pushActivity("Training Deleted", `Removed course logs: ${t ? t.title : 'Unknown'}`);
+                renderTrainingTable();
+            }
+        }
+
+        // ==============================================
+        // MODULE LOGIC: RESOURCE & ASSISTANCE (REQ047-REQ049)
+        // ==============================================
+        function renderAssistanceTable() {
+            const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const tbody = document.getElementById('assistanceTableBody');
+            tbody.innerHTML = '';
+
+            assistance.forEach(as => {
+                const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: 'Unknown' };
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${ben.name}</strong></td>
+                        <td><span class="badge bg-secondary">${as.type}</span></td>
+                        <td>PHP ${as.value.toLocaleString()}</td>
+                        <td>${as.date}</td>
+                        <td>
+                            <button class="action-icon-btn danger" onclick="deleteAssistance('${as.id}')" title="Delete record"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (assistance.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No assistance distribution logs recorded.</td></tr>';
+            }
+        }
+
+        function openAddAssistanceModal() {
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const select = document.getElementById('assistBeneficiarySelect');
+            select.innerHTML = '<option value="">-- Select Recipient --</option>';
+            beneficiaries.forEach(b => {
+                select.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+            });
+
+            document.getElementById('assistanceForm').reset();
+            document.getElementById('assistanceModal').classList.add('active');
+        }
+
+        function closeAssistanceModal() {
+            document.getElementById('assistanceModal').classList.remove('active');
+        }
+
+        function handleAssistanceSubmit(e) {
+            e.preventDefault();
+            const beneficiaryId = document.getElementById('assistBeneficiarySelect').value;
+            const type = document.getElementById('assistType').value;
+            const value = parseFloat(document.getElementById('assistValue').value);
+            const date = document.getElementById('assistDate').value;
+
+            const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+            const newAssist = {
+                id: "AS" + (Date.now()),
+                beneficiaryId,
+                type,
+                value,
+                date
+            };
+            assistance.push(newAssist);
+            localStorage.setItem('peso_assistance', JSON.stringify(assistance));
+
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const bName = (beneficiaries.find(b => b.id === beneficiaryId) || {}).name;
+
+            pushActivity("Assistance Release", `Released ${type} to: ${bName}`);
+            alert(`Livelihood release of ${type} recorded successfully.`);
+            closeAssistanceModal();
+            renderAssistanceTable();
+        }
+
+        function deleteAssistance(id) {
+            if (confirm("Are you sure you want to delete this distribution release log?")) {
+                let assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+                const as = assistance.find(a => a.id === id);
+                assistance = assistance.filter(a => a.id !== id);
+                localStorage.setItem('peso_assistance', JSON.stringify(assistance));
+                pushActivity("Assistance Deleted", `Removed release log ID: ${id}`);
+                renderAssistanceTable();
+            }
+        }
+
+        // ==============================================
+        // MODULE LOGIC: BROADCAST NOTIFICATIONS (REQ050-REQ053)
+        // ==============================================
+        function renderBroadcastLogs() {
+            const logs = JSON.parse(localStorage.getItem('peso_broadcast_logs')) || [];
+            const container = document.getElementById('broadcastLogsContainer');
+            container.innerHTML = '';
+
+            logs.forEach(l => {
+                container.innerHTML += `
+                    <div class="border rounded p-3 mb-2" style="background-color: #faf7f8;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="text-primary" style="font-size: 0.85rem;">Group: ${l.recipientGroup}</strong>
+                            <span class="badge bg-success" style="font-size: 0.7rem;">${l.status}</span>
+                        </div>
+                        <h6 class="fw-bold mb-1" style="font-size: 0.9rem;">${l.subject}</h6>
+                        <p class="mb-1 text-muted small" style="font-size: 0.8rem;">${l.message}</p>
+                        <span class="text-muted small" style="font-size: 0.72rem;"><i class="bi bi-clock me-1"></i>${l.timestamp} • Via Gateway: ${l.type}</span>
+                    </div>
+                `;
+            });
+            if (logs.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-4">No alerts broadcast logs found.</div>';
+            }
+        }
+
+        function handleSendBroadcast(event) {
+            event.preventDefault();
+            const group = document.getElementById('broadcastRecipients').value;
+            const subject = document.getElementById('broadcastSubject').value.trim();
+            const msg = document.getElementById('broadcastMessage').value.trim();
+            const smsCheck = document.getElementById('broadcastSMS').checked;
+            const emailCheck = document.getElementById('broadcastEmail').checked;
+
+            if (!smsCheck && !emailCheck) {
+                alert("Please select at least one broadcast gateway channel (SMS or Email).");
+                return;
+            }
+
+            const channels = [];
+            if (smsCheck) channels.push("SMS Gateway");
+            if (emailCheck) channels.push("Email Server");
+
+            const logs = JSON.parse(localStorage.getItem('peso_broadcast_logs')) || [];
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + " " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const newLog = {
+                id: "L" + (Date.now()),
+                recipientGroup: group === 'all' ? "All Beneficiaries" : (group === 'officers' ? "All Officers" : `${group} Group`),
+                type: channels.join(" & "),
+                subject,
+                message: msg,
+                status: "Sent",
+                timestamp: timeStr
+            };
+            logs.unshift(newLog);
+            localStorage.setItem('peso_broadcast_logs', JSON.stringify(logs));
+
+            pushActivity("Broadcast Sent", `Alert dispatched to: ${newLog.recipientGroup}`);
+            alert(`Broad alert message successfully dispatched via ${channels.join(" and ")} gateways.`);
+            document.getElementById('broadcastAlertForm').reset();
+            renderBroadcastLogs();
+        }
+
+        // ==============================================
+        // MODULE LOGIC: SYSTEM METRIC REPORTS (REQ054-REQ061)
+        // ==============================================
+        function generateReportView() {
+            const metric = document.getElementById('reportMetricSelect').value;
+            const thead = document.getElementById('reportsTableHead');
+            const tbody = document.getElementById('reportsTableBody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (metric === 'applications') { // REQ054
+                thead.innerHTML = `
+                    <tr>
+                        <th>Applicant</th>
+                        <th>Program Code</th>
+                        <th>Submit Date</th>
+                        <th>Documents Status</th>
+                        <th>Final Outcome</th>
+                    </tr>
+                `;
+                const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                apps.forEach(a => {
+                    const ben = beneficiaries.find(b => b.id === a.beneficiaryId) || { name: 'Unknown' };
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${ben.name}</strong></td>
+                            <td>${a.programCode}</td>
+                            <td>${a.dateSubmitted}</td>
+                            <td>${a.documentVerified ? 'Compliant' : 'Non-compliant'}</td>
+                            <td><span class="status-badge ${a.status.toLowerCase()}">${a.status}</span></td>
+                        </tr>
+                    `;
+                });
+            } else if (metric === 'attendance') { // REQ055
+                thead.innerHTML = `
+                    <tr>
+                        <th>Training Session</th>
+                        <th>Lead Trainer</th>
+                        <th>Course Date</th>
+                        <th>Enrollees</th>
+                        <th>Present (%)</th>
+                    </tr>
+                `;
+                const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+                trainings.forEach(t => {
+                    const present = t.trainees.filter(tr => tr.attended).length;
+                    const percent = t.trainees.length > 0 ? ((present / t.trainees.length) * 100).toFixed(1) : 0;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${t.title}</strong></td>
+                            <td>${t.trainer}</td>
+                            <td>${t.date}</td>
+                            <td>${t.trainees.length}</td>
+                            <td>${percent}% (${present} present)</td>
+                        </tr>
+                    `;
+                });
+            } else if (metric === 'distribution') { // REQ056
+                thead.innerHTML = `
+                    <tr>
+                        <th>Beneficiary</th>
+                        <th>Type of Aid</th>
+                        <th>Value Amount</th>
+                        <th>Release Date</th>
+                    </tr>
+                `;
+                const assists = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                assists.forEach(as => {
+                    const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: 'Unknown' };
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${ben.name}</strong></td>
+                            <td><span class="badge bg-secondary">${as.type}</span></td>
+                            <td>PHP ${as.value.toLocaleString()}</td>
+                            <td>${as.date}</td>
+                        </tr>
+                    `;
+                });
+            } else if (metric === 'barangay') { // REQ057
+                thead.innerHTML = `
+                    <tr>
+                        <th>Barangay Name</th>
+                        <th>Beneficiaries count</th>
+                        <th>Programs Active</th>
+                        <th>Total Distributed Aid</th>
+                    </tr>
+                `;
+                // Group beneficiaries by barangay
+                const bens = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const assists = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+                const barangays = {};
+                bens.forEach(b => {
+                    if (!barangays[b.barangay]) {
+                        barangays[b.barangay] = { count: 0, activeProgs: 1, totalReleased: 0 };
+                    }
+                    barangays[b.barangay].count++;
+                    
+                    // Add assistance values
+                    const benAssists = assists.filter(a => a.beneficiaryId === b.id);
+                    benAssists.forEach(a => barangays[b.barangay].totalReleased += a.value);
+                });
+
+                Object.keys(barangays).forEach(brgyName => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>Barangay ${brgyName}</strong></td>
+                            <td>${barangays[brgyName].count}</td>
+                            <td>${barangays[brgyName].activeProgs} active</td>
+                            <td>PHP ${barangays[brgyName].totalReleased.toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+            } else if (metric === 'eligibility') { // REQ058
+                thead.innerHTML = `
+                    <tr>
+                        <th>Beneficiary Profile</th>
+                        <th>Assigned Livelihood</th>
+                        <th>Data Integrity Checks</th>
+                        <th>Compliance Status</th>
+                    </tr>
+                `;
+                const assigns = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+                const bens = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const progs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+
+                assigns.forEach(as => {
+                    const ben = bens.find(b => b.id === as.beneficiaryId) || { name: 'Unknown' };
+                    const prog = progs.find(p => p.id === as.programId) || { code: 'N/A' };
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${ben.name}</strong></td>
+                            <td>${prog.code}</td>
+                            <td>RA 10173 consent verified</td>
+                            <td><span class="status-badge approved">Compliant</span></td>
+                        </tr>
+                    `;
+                });
+            } else if (metric === 'beneficiaries') { // REQ059
+                thead.innerHTML = `
+                    <tr>
+                        <th>Beneficiary Name</th>
+                        <th>Barangay Location</th>
+                        <th>Contact info (Masked)</th>
+                        <th>Demographic Status</th>
+                    </tr>
+                `;
+                const bens = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                bens.forEach(b => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${b.name}</strong></td>
+                            <td>${b.barangay}</td>
+                            <td>${maskContactNumber(b.contact)}</td>
+                            <td><span class="status-badge active">${b.status}</span></td>
+                        </tr>
+                    `;
+                });
+            } else if (metric === 'demand') { // REQ060
+                thead.innerHTML = `
+                    <tr>
+                        <th>Program Code</th>
+                        <th>Budget Ceiling</th>
+                        <th>Applications Logged</th>
+                        <th>Demand Index</th>
+                    </tr>
+                `;
+                const progs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+                const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+
+                progs.forEach(p => {
+                    const count = apps.filter(a => a.programCode === p.code).length;
+                    const demand = count > 2 ? 'HIGH DEMAND' : 'MODERATE';
+                    const color = count > 2 ? 'text-danger' : 'text-primary';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${p.code}</strong></td>
+                            <td>PHP ${p.budget.toLocaleString()}</td>
+                            <td>${count} submissions</td>
+                            <td><strong class="${color}">${demand}</strong></td>
+                        </tr>
+                    `;
+                });
+            } else if (metric === 'usage') { // REQ061
+                thead.innerHTML = `
+                    <tr>
+                        <th>Program Reference</th>
+                        <th>LGU Allocated budget</th>
+                        <th>Actual Utilized funds</th>
+                        <th>Remaining Balance</th>
+                    </tr>
+                `;
+                const progs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+                progs.forEach(p => {
+                    const balance = p.budget - p.allocated;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${p.code}</strong></td>
+                            <td>PHP ${p.budget.toLocaleString()}</td>
+                            <td>PHP ${p.allocated.toLocaleString()}</td>
+                            <td>PHP ${balance.toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // Export Report to Excel (CSV Downloader)
+        function exportActiveReportCSV() {
+            const table = document.getElementById('reportsPreviewTable');
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Extract headers
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            csvContent += headers.join(",") + "\r\n";
+
+            // Extract rows
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(tr => {
+                const cols = Array.from(tr.querySelectorAll('td')).map(td => {
+                    let text = td.textContent.replace(/PHP/g, '').replace(/,/g, '').trim();
+                    return `"${text}"`;
+                });
+                csvContent += cols.join(",") + "\r\n";
+            });
+
+            // Trigger download
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            const select = document.getElementById('reportMetricSelect');
+            const filename = select.options[select.selectedIndex].text.replace(/\s+/g, '_') + "_Report.csv";
+            
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            pushActivity("Report Exported", `Downloaded CSV Excel representation: ${filename}`);
+        }
+
+        // Export Report to PDF (Custom window print style)
+        function exportActiveReportPDF() {
+            const select = document.getElementById('reportMetricSelect');
+            const titleName = select.options[select.selectedIndex].text;
+            const printWindow = window.open('', '', 'height=600,width=800');
+            
+            const tableHtml = document.getElementById('reportsPreviewTable').outerHTML;
+
+            printWindow.document.write('<html><head><title>System Reports - Koronadal City</title>');
+            printWindow.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+            printWindow.document.write('<style>body{padding:30px; font-family:sans-serif;} .header-text{color:#F0B6C6; font-weight:bold;}</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(`<h2 class="header-text text-center">City Government of Koronadal</h2>`);
+            printWindow.document.write(`<h4 class="text-center text-muted mb-4">PESO Livelihood Assistance WIMS Reports</h4>`);
+            printWindow.document.write(`<h5 class="fw-bold mb-3">Metric Category: ${titleName}</h5>`);
+            printWindow.document.write(tableHtml);
+            printWindow.document.write('<footer class="mt-5 text-center small text-muted">Generated by authorized PESO Administrator on ' + new Date().toLocaleDateString() + '</footer>');
+            printWindow.document.write('</body></html>');
+            
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 600);
+            pushActivity("Report Printed", `Generated printed PDF representation for: ${titleName}`);
+        }
+
+        // Translations dictionary for dynamic language switching
+        const translations = {
+            'en': {
+                'nav_dashboard': 'Dashboard',
+                'nav_officers': 'Officers Management',
+                'nav_programs': 'Program Management',
+                'nav_assignments': 'Program Assignment',
+                'nav_evaluation': 'Evaluation Panel',
+                'nav_schedules': 'Scheduling Panel',
+                'nav_funds': 'Fund & Allocations',
+                'nav_training': 'Training Records',
+                'nav_assistance': 'Resource & Assistance',
+                'nav_alerts': 'Broadcast Alerts',
+                'nav_reports': 'System Reports',
+                'nav_signout': 'Sign Out',
+                'role_peso_admin': 'PESO Administrator',
+                'pending_apps': 'Pending Applications',
+                'approved_livelihoods': 'Approved Livelihoods',
+                'completed_programs': 'Completed Programs',
+                'total_beneficiaries': 'Total Beneficiaries',
+                'chart_funds_title': 'Livelihood LGU Fund Allocation vs. Utilization',
+                'chart_trend_title': 'Monthly Livelihood Applications Trend',
+                'recent_activities_title': 'Recent Activity Logs',
+                
+                // Module Titles
+                'title-module-dashboard': 'Dashboard Overview',
+                'title-module-officers': 'PESO Officers Directory',
+                'title-module-programs': 'Livelihood Programs Management',
+                'title-module-assignments': 'Beneficiary Program Assignment',
+                'title-module-evaluation': 'Application Evaluation review panel',
+                'title-module-schedules': 'Livelihood Program Schedules',
+                'title-module-funds': 'Fund Allocation Panel',
+                'title-module-training': 'Livelihood Capacity Training Records',
+                'title-module-assistance': 'Assistance Distribution Records',
+                'title-module-notifications': 'Broadcast Alerts & Notifications',
+                'title-module-reports': 'System Metrics & Statistical Reports',
+                
+                // Chart Legend/Labels
+                'chart_label_budget': 'LGU Approved Budget (PHP)',
+                'chart_label_util': 'Utilized / Allocated (PHP)',
+                'chart_label_trend': 'Livelihood Applications Submitted'
+            },
+            'tg': {
+                'nav_dashboard': 'Talaan',
+                'nav_officers': 'Pamamahala ng mga Opisyal',
+                'nav_programs': 'Pamamahala ng Programa',
+                'nav_assignments': 'Pagtatalaga ng Programa',
+                'nav_evaluation': 'Panel ng Ebalwasyon',
+                'nav_schedules': 'Panel ng Pag-iskedyul',
+                'nav_funds': 'Pondo at Alokasyon',
+                'nav_training': 'Mga Rekord ng Pagsasanay',
+                'nav_assistance': 'Tulong at Mapagkukunan',
+                'nav_alerts': 'Mga Alerto ng Broadcast',
+                'nav_reports': 'Mga Ulat ng Sistema',
+                'nav_signout': 'Mag-sign Out',
+                'role_peso_admin': 'Tagapamahala ng PESO',
+                'pending_apps': 'Mga Nakabinbing Aplikasyon',
+                'approved_livelihoods': 'Inaprubahang Kabuhayan',
+                'completed_programs': 'Kumpletong Programa',
+                'total_beneficiaries': 'Kabuuan ng mga Benepisyaryo',
+                'chart_funds_title': 'Alokasyon vs. Paggamit ng Pondo sa Kabuhayan ng LGU',
+                'chart_trend_title': 'Buwanang Trend ng Aplikasyon sa Kabuhayan',
+                'recent_activities_title': 'Mga Kamakailang Rekord ng Aktibidad',
+                
+                // Module Titles
+                'title-module-dashboard': 'Pangkalahatang-ideya ng Talaan',
+                'title-module-officers': 'Direktoryo ng mga Opisyal ng PESO',
+                'title-module-programs': 'Pamamahala ng mga Programa sa Kabuhayan',
+                'title-module-assignments': 'Pagtatalaga ng Benepisyaryo sa Programa',
+                'title-module-evaluation': 'Panel ng Pagsusuri ng Ebalwasyon ng Aplikasyon',
+                'title-module-schedules': 'Mga Iskedyul ng Programa sa Kabuhayan',
+                'title-module-funds': 'Panel ng Alokasyon ng Pondo',
+                'title-module-training': 'Mga Rekord ng Pagsasanay sa Kakayahan sa Kabuhayan',
+                'title-module-assistance': 'Mga Rekord ng Pamamahagi ng Tulong',
+                'title-module-notifications': 'Mga Alerto ng Broadcast at Abiso',
+                'title-module-reports': 'Mga Sukat ng Sistema at Estadistikang Ulat',
+                
+                // Chart Legend/Labels
+                'chart_label_budget': 'Inaprubahang Badyet ng LGU (PHP)',
+                'chart_label_util': 'Ginamit / Inilaan na Pondo (PHP)',
+                'chart_label_trend': 'Mga Aplikasyon sa Kabuhayan na Ipinasa'
+            }
+        };
+
+        // Dark Mode Toggle logic
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const darkModeIcon = document.getElementById('darkModeIcon');
+            const darkModeText = document.getElementById('darkModeText');
+            
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+                if (darkModeIcon) darkModeIcon.className = 'bi bi-sun-fill';
+                if (darkModeText) darkModeText.textContent = 'Light Mode';
+            } else {
+                document.body.classList.remove('dark-mode');
+                if (darkModeIcon) darkModeIcon.className = 'bi bi-moon-fill';
+                if (darkModeText) darkModeText.textContent = 'Dark Mode';
+            }
+            
+            // Re-render charts to apply colors
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const activePage = document.querySelector('.module-page.active');
+            if (activePage && activePage.id === 'module-dashboard') {
+                loadDashboardCharts(programs);
+            }
+        }
+
+        function toggleDarkMode() {
+            const currentTheme = localStorage.getItem('theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', currentTheme);
+            applyTheme(currentTheme);
+        }
+
+        // Language Toggle logic
+        function applyLanguage(lang) {
+            const currentLang = translations[lang] ? lang : 'en';
+            const dict = translations[currentLang];
+            
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (dict[key]) {
+                    const icon = el.querySelector('i');
+                    if (icon) {
+                        el.innerHTML = '';
+                        el.appendChild(icon);
+                        el.appendChild(document.createTextNode(' ' + dict[key]));
+                    } else {
+                        el.textContent = dict[key];
+                    }
+                }
+            });
+
+            document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-translate-placeholder');
+                if (dict[key]) {
+                    el.placeholder = dict[key];
+                }
+            });
+
+            const langToggle = document.getElementById('languageToggle');
+            if (langToggle) {
+                langToggle.textContent = currentLang === 'en' ? 'English' : 'Tagalog';
+            }
+
+            // Update page sub-header title
+            const activePage = document.querySelector('.module-page.active');
+            if (activePage) {
+                const headerTitleKey = 'title-' + activePage.id;
+                document.getElementById('pageMainHeader').textContent = dict[headerTitleKey] || 'PESO WIMS Portal';
+            }
+
+            // Re-render charts to apply localized labels
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            if (activePage && activePage.id === 'module-dashboard') {
+                loadDashboardCharts(programs);
+            }
+        }
+
+        function toggleLanguage() {
+            const currentLang = localStorage.getItem('lang') === 'tg' ? 'en' : 'tg';
+            localStorage.setItem('lang', currentLang);
+            applyLanguage(currentLang);
+        }
+
+        // On Page Load Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDashboardStats();
+            
+            // Restore saved user preferences
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+
+            const savedLang = localStorage.getItem('lang') || 'en';
+            applyLanguage(savedLang);
+        });
+    </script>
+</body>
+</html>
