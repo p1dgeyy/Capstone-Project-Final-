@@ -1384,6 +1384,122 @@
         body.dark-mode .step-connector {
             background-color: #352229 !important;
         }
+
+        /* Web Notification Styling */
+        .web-notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .web-notification {
+            background: #fff;
+            border-left: 5px solid var(--primary-pink);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s;
+            opacity: 0;
+            color: #333;
+        }
+
+        .web-notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .web-notification-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .web-notification-content {
+            flex-grow: 1;
+        }
+
+        .web-notification-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+            color: var(--text-dark, #2c2528);
+        }
+
+        .web-notification-message {
+            font-size: 0.8rem;
+            color: #666;
+            margin: 0;
+        }
+
+        .web-notification-close {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #bbb;
+            padding: 0;
+            line-height: 1;
+            margin-left: auto;
+        }
+
+        .web-notification-close:hover {
+            color: #666;
+        }
+
+        /* Specific Notification Types */
+        .web-notification.success {
+            border-left-color: var(--success, #4CAF50);
+        }
+        .web-notification.success .web-notification-icon {
+            color: var(--success, #4CAF50);
+        }
+
+        .web-notification.error {
+            border-left-color: #f44336;
+        }
+        .web-notification.error .web-notification-icon {
+            color: #f44336;
+        }
+
+        .web-notification.warning {
+            border-left-color: var(--warning, #FF9800);
+        }
+        .web-notification.warning .web-notification-icon {
+            color: var(--warning, #FF9800);
+        }
+
+        .web-notification.info {
+            border-left-color: var(--accent, #355C7D);
+        }
+        .web-notification.info .web-notification-icon {
+            color: var(--accent, #355C7D);
+        }
+
+        /* Dark Mode Web Notification */
+        body.dark-mode .web-notification {
+            background: #1e181b;
+            border-color: #3e383c;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        body.dark-mode .web-notification-title {
+            color: #fff;
+        }
+        body.dark-mode .web-notification-message {
+            color: #b5a4a7;
+        }
+        body.dark-mode .web-notification-close:hover {
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -5380,12 +5496,90 @@ window.viewAllRecentActivity = viewAllRecentActivity;
 window.quickActionAddApplicant = quickActionAddApplicant;
 window.quickActionNewApplication = quickActionNewApplication;
 window.quickActionViewReports = quickActionViewReports;
+
+    // ==============================================
+    // WEB NOTIFICATIONS SYSTEM & ALERT OVERRIDE
+    // ==============================================
+    function showWebNotification(title, message, type = 'success') {
+        // 1. Native HTML5 Browser Notification
+        if ('Notification' in window) {
+            if (Notification.permission === 'granted') {
+                try {
+                    new Notification(title, { body: message, icon: 'assets/koronadalseal.png' });
+                } catch (err) {
+                    console.error("Error displaying native notification:", err);
+                }
+            } else if (Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+        }
+
+        // 2. Custom In-App Notification Toast
+        let container = document.getElementById('web-notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'web-notification-container';
+            container.className = 'web-notification-container';
+            document.body.appendChild(container);
+        }
+
+        const notification = document.createElement('div');
+        notification.className = `web-notification ${type}`;
+        
+        let iconClass = 'bi-check-circle-fill';
+        if (type === 'error') iconClass = 'bi-exclamation-circle-fill';
+        else if (type === 'warning') iconClass = 'bi-exclamation-triangle-fill';
+        else if (type === 'info') iconClass = 'bi-info-circle-fill';
+
+        notification.innerHTML = `
+            <i class="bi ${iconClass} web-notification-icon"></i>
+            <div class="web-notification-content">
+                <div class="web-notification-title">${title}</div>
+                <p class="web-notification-message">${message}</p>
+            </div>
+            <button class="web-notification-close" onclick="this.parentElement.remove()">&times;</button>
+        `;
+
+        container.appendChild(notification);
+
+        // Reflow trigger
+        void notification.offsetWidth;
+        notification.classList.add('show');
+
+        // Auto dismiss after 4 seconds
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.remove();
+            }, 400);
+        }, 4000);
+    }
+
+    // Global Alert Override
+    const originalAlert = window.alert;
+    window.alert = function(message) {
+        let type = 'info';
+        let title = 'System Notification';
+        const lowerMsg = message.toLowerCase();
+        if (lowerMsg.includes('error') || lowerMsg.includes('fail') || lowerMsg.includes('unauthorized') || lowerMsg.includes('invalid') || lowerMsg.includes('coming soon')) {
+            type = 'error';
+            title = 'Error';
+        } else if (lowerMsg.includes('success') || lowerMsg.includes('created') || lowerMsg.includes('updated') || lowerMsg.includes('deleted') || lowerMsg.includes('saved') || lowerMsg.includes('activated') || lowerMsg.includes('deactivated') || lowerMsg.includes('sent!') || lowerMsg.includes('done!')) {
+            type = 'success';
+            title = 'Success';
+        } else if (lowerMsg.includes('warning') || lowerMsg.includes('sure') || lowerMsg.includes('confirm')) {
+            type = 'warning';
+            title = 'Warning';
+        }
+        showWebNotification(title, message, type);
+    };
+
+    // Ask for notification permission on load
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
 </script>
 </body>
-</html>
-
-
-
 
 
 
