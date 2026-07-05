@@ -2459,18 +2459,69 @@
             if (!input) return;
 
             input.addEventListener('input', function(e) {
-                // Remove all non-digit characters
-                let clean = input.value.replace(/\D/g, '');
-                if (!clean) {
+                let value = input.value;
+                let cursorPositionFromEnd = value.length - input.selectionEnd;
+                
+                // Keep only digits and a single dot
+                let clean = value.replace(/[^0-9.]/g, '');
+                let parts = clean.split('.');
+                if (parts.length > 2) {
+                    clean = parts[0] + '.' + parts.slice(1).join('');
+                    parts = clean.split('.');
+                }
+                
+                let integerPart = parts[0];
+                let decimalPart = parts[1];
+                
+                if (!integerPart && decimalPart === undefined) {
                     input.value = '';
                     return;
                 }
                 
-                // Parse as number representing cents (shifts decimal by 2 places automatically)
-                let value = parseFloat(clean) / 100;
+                // Format integer part with commas
+                let formattedInt = '';
+                if (integerPart) {
+                    // Prevent leading zeros unless it's just '0'
+                    if (integerPart.length > 1 && integerPart.startsWith('0')) {
+                        integerPart = integerPart.replace(/^0+/, '');
+                        if (integerPart === '') integerPart = '0';
+                    }
+                    let parsed = parseFloat(integerPart);
+                    if (!isNaN(parsed)) {
+                        formattedInt = parsed.toLocaleString();
+                    } else {
+                        formattedInt = integerPart;
+                    }
+                } else {
+                    formattedInt = '0';
+                }
                 
-                // Format automatically with commas and exactly two decimal places
-                input.value = value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                let formatted = '';
+                if (parts.length > 1) {
+                    if (decimalPart !== undefined) {
+                        decimalPart = decimalPart.slice(0, 2);
+                    }
+                    formatted = formattedInt + '.' + (decimalPart !== undefined ? decimalPart : '');
+                } else {
+                    formatted = formattedInt + '.00';
+                    if (cursorPositionFromEnd < 3) {
+                        cursorPositionFromEnd = 3;
+                    }
+                }
+                
+                input.value = formatted;
+                let newCursor = formatted.length - cursorPositionFromEnd;
+                if (newCursor < 0) newCursor = 0;
+                input.setSelectionRange(newCursor, newCursor);
+            });
+
+            input.addEventListener('blur', function() {
+                let val = input.value.replace(/,/g, '');
+                if (!val) return;
+                let parsed = parseFloat(val);
+                if (!isNaN(parsed)) {
+                    input.value = parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
             });
         }
 
