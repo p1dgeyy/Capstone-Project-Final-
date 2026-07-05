@@ -739,6 +739,200 @@
         body.dark-mode .web-notification-close:hover {
             color: #fff;
         }
+
+        /* Slide-out Notification Drawer */
+        .notification-drawer {
+            position: fixed;
+            top: 0;
+            right: -380px;
+            width: 380px;
+            height: 100vh;
+            background: var(--primary-lighter);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            z-index: 2005;
+            transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            color: #333;
+        }
+
+        .notification-drawer.active {
+            right: 0;
+        }
+
+        .notification-drawer-header {
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-pink) 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .notification-drawer-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-drawer-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: transform 0.2s;
+        }
+
+        .notification-drawer-close:hover {
+            transform: scale(1.1);
+        }
+
+        .notification-drawer-body {
+            padding: 15px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .notification-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .notification-item {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .notification-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(184, 92, 122, 0.08);
+        }
+
+        .notification-item.unread {
+            border-left: 4px solid var(--primary-pink);
+            background: #fffcfd;
+        }
+
+        .notification-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+
+        .notification-item-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .notification-item-time {
+            font-size: 0.72rem;
+            color: #999;
+        }
+
+        .notification-item-body {
+            font-size: 0.82rem;
+            color: #555;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .notification-badge-item {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: white;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-top: 8px;
+        }
+
+        .notification-badge-item.alert {
+            background-color: var(--accent);
+        }
+
+        .notification-badge-item.update {
+            background-color: var(--secondary);
+        }
+
+        .notification-badge-item.approval {
+            background-color: var(--success);
+        }
+
+        .notification-drawer-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            background: #fdfafb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(30, 20, 25, 0.3);
+            backdrop-filter: blur(2px);
+            z-index: 2004;
+            display: none;
+        }
+
+        .notification-drawer-overlay.active {
+            display: block;
+        }
+
+        /* Dark Mode overrides for Notification Drawer */
+        body.dark-mode .notification-drawer {
+            background-color: #1E1B1D !important;
+            border-left-color: var(--border-color) !important;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.4) !important;
+            color: #f3eff2 !important;
+        }
+
+        body.dark-mode .notification-item {
+            background-color: #25181e !important;
+            border-color: var(--border-color) !important;
+            color: #fff !important;
+        }
+
+        body.dark-mode .notification-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            background-color: #2c1a22 !important;
+        }
+
+        body.dark-mode .notification-item.unread {
+            background-color: #2e1a22 !important;
+            border-left-color: var(--primary-pink) !important;
+        }
+
+        body.dark-mode .notification-item-title {
+            color: var(--primary-pink) !important;
+        }
+
+        body.dark-mode .notification-item-body {
+            color: #e5e5e5 !important;
+        }
+
+        body.dark-mode .notification-drawer-footer {
+            background-color: #1E1B1D !important;
+            border-top-color: var(--border-color) !important;
+        }
     </style>
 </head>
 <body>
@@ -823,6 +1017,13 @@
                 <!-- Language Toggle -->
                 <button class="btn btn-sm btn-outline-secondary" id="languageToggle" onclick="toggleLanguage()">
                     English
+                </button>
+                <!-- Bell Notifications Toggle -->
+                <button class="header-btn position-relative" id="notificationToggleBtn" title="Notifications" onclick="toggleNotificationPanel()" style="width: 34px; height: 34px;">
+                    <i class="bi bi-bell-fill" style="font-size: 1.1rem; color: var(--primary-dark);"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationBadge" style="font-size: 0.65rem; display: none; padding: 4px 6px;">
+                        0
+                    </span>
                 </button>
                 <!-- User Profile Display -->
                 <div class="user-profile-badge">
@@ -1420,7 +1621,7 @@
                     
                     <div class="mb-3 d-none" id="approvedAmountWrapper">
                         <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Approved Financial Grant Value (₱)</label>
-                        <input type="number" class="form-control" id="reviewApprovedAmount" placeholder="e.g. 5000">
+                        <input type="text" class="form-control" id="reviewApprovedAmount" placeholder="e.g. 5,000.00">
                         <small class="text-muted">Maximum limit governed by program budget allocation.</small>
                     </div>
 
@@ -1507,7 +1708,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Financial Value (₱)</label>
-                        <input type="number" class="form-control" id="budgetValue" placeholder="e.g. 100000" required>
+                        <input type="text" class="form-control" id="budgetValue" placeholder="e.g. 100,000.00" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Allocation Remarks</label>
@@ -1531,6 +1732,33 @@
         if (userRole !== 'CSWDO Admin') {
             alert('Unauthorized Access. Redirecting to Staff Login Portal.');
             window.location.href = 'admin_login.html';
+        }
+
+        // Currency formatting helper (REQ038: Ensure decimals in budget numerics)
+        function formatCurrency(val) {
+            if (val === undefined || val === null || isNaN(val)) return '0.00';
+            return parseFloat(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Smart numeric input behavior helper (Automatically recognizes and formats decimals)
+        function bindSmartCurrencyInput(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            input.addEventListener('input', function(e) {
+                // Remove all non-digit characters
+                let clean = input.value.replace(/\D/g, '');
+                if (!clean) {
+                    input.value = '';
+                    return;
+                }
+                
+                // Parse as number representing cents (shifts decimal by 2 places automatically)
+                let value = parseFloat(clean) / 100;
+                
+                // Format automatically with commas and exactly two decimal places
+                input.value = value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            });
         }
 
         // Display user details
@@ -1576,7 +1804,10 @@
                 'adjust_budget_btn': 'Adjust Funding Allocation',
                 'compose_notif_title': 'Broadcast Announcement SMS/Email',
                 'notif_logs_title': 'Recent Notifications Dispatch Logs',
-                'report_filter_title': 'Generate Custom Reports'
+                'report_filter_title': 'Generate Custom Reports',
+                'notification_title': 'Notifications',
+                'mark_all_read': 'Mark all as read',
+                'clear_all': 'Clear all'
             },
             'tg': {
                 'nav_dashboard': 'Dashboard',
@@ -1616,7 +1847,10 @@
                 'adjust_budget_btn': 'Baguhin ang Alokasyon',
                 'compose_notif_title': 'Magpadala ng SMS/Email na Anunsyo',
                 'notif_logs_title': 'Kasaysayan ng mga Ipinadalang Abiso',
-                'report_filter_title': 'Bumuo ng Ulat'
+                'report_filter_title': 'Bumuo ng Ulat',
+                'notification_title': 'Mga Abiso',
+                'mark_all_read': 'Markahan lahat bilang nabasa',
+                'clear_all': 'I-clear lahat'
             }
         };
 
@@ -1891,7 +2125,7 @@
             document.getElementById('statTotalApps').textContent = total;
             document.getElementById('statPendingApps').textContent = pending;
             document.getElementById('statApprovedApps').textContent = approved;
-            document.getElementById('statTotalReleased').textContent = "₱" + releasedVal.toLocaleString();
+            document.getElementById('statTotalReleased').textContent = "₱" + formatCurrency(releasedVal);
 
             // Load Activities
             const activities = JSON.parse(localStorage.getItem('cswdo_activities')) || [];
@@ -2119,6 +2353,7 @@
                 });
                 
                 pushActivity('Officer Registered', `Account created for ${name} (${role})`);
+                pushNotification('New CSWDO Officer Registered', `A new CSWDO Officer profile for ${name} (${role}) has been successfully created.`, 'alert');
                 alert('Officer Account successfully registered!');
             } else {
                 // Edit existing
@@ -2128,6 +2363,7 @@
                     officers[index].email = email;
                     officers[index].role = role;
                     pushActivity('Officer Edited', `Updated details of officer ${name}`);
+                    pushNotification('CSWDO Officer Details Updated', `CSWDO Officer account details for ${name} have been updated.`, 'alert');
                     alert('Officer Account successfully updated!');
                 }
             }
@@ -2163,6 +2399,7 @@
                 
                 localStorage.setItem('cswdo_officers', JSON.stringify(officers));
                 pushActivity('Officer Status Toggled', `${newStatus} account ${officers[index].name}`);
+                pushNotification('CSWDO Officer Status Toggled', `CSWDO Officer account status for ${officers[index].name} has been set to ${newStatus}.`, 'alert');
                 renderOfficersTable();
                 alert(`Account status of ${officers[index].name} has been set to ${newStatus}.`);
             }
@@ -2175,7 +2412,10 @@
                 const filtered = officers.filter(o => o.id !== id);
                 
                 localStorage.setItem('cswdo_officers', JSON.stringify(filtered));
-                if (off) pushActivity('Officer Account Deleted', `Removed user account ${off.name}`);
+                if (off) {
+                    pushActivity('Officer Account Deleted', `Removed user account ${off.name}`);
+                    pushNotification('CSWDO Officer Account Deleted', `CSWDO Officer account for ${off.name} has been deleted.`, 'alert');
+                }
                 renderOfficersTable();
                 alert('Officer account deleted successfully.');
             }
@@ -2286,7 +2526,12 @@
             e.preventDefault();
             const id = document.getElementById('reviewAppId').value;
             const status = document.getElementById('reviewStatusSelect').value;
-            const amount = parseInt(document.getElementById('reviewApprovedAmount').value) || 0;
+            const amountInputRaw = document.getElementById('reviewApprovedAmount').value.replace(/,/g, '').trim();
+            const amount = parseFloat(amountInputRaw) || 0;
+            if (status === 'Approved' && (isNaN(amount) || amount <= 0)) {
+                alert("Error: Please enter a valid approved financial grant amount.");
+                return;
+            }
             const remarks = document.getElementById('reviewRemarks').value.trim();
 
             const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
@@ -2304,7 +2549,7 @@
                     if (progIndex !== -1) {
                         const remainingBudget = programs[progIndex].budget - programs[progIndex].allocated;
                         if (amount > remainingBudget) {
-                            alert(`Error: Approved amount (₱${amount.toLocaleString()}) exceeds the remaining program budget of ₱${remainingBudget.toLocaleString()}.`);
+                            alert(`Error: Approved amount (₱${formatCurrency(amount)}) exceeds the remaining program budget of ₱${formatCurrency(remainingBudget)}.`);
                             return;
                         }
                         
@@ -2321,6 +2566,7 @@
 
                 localStorage.setItem('cswdo_applications', JSON.stringify(apps));
                 pushActivity('Application Evaluated', `Set case ${id} to ${status}`);
+                pushNotification('Application Evaluated', `Assistance application ${id} for ${app.beneficiaryName} has been ${status}. Approved Amount: ₱${formatCurrency(amount)}.`, 'approval');
                 
                 // Trigger Simulated Notification to Beneficiary
                 triggerAssistanceNotification(app, status, amount, remarks);
@@ -2341,7 +2587,7 @@
 
             let msg = '';
             if (status === 'Approved') {
-                msg = `CSWDO Alert: Hello ${name}, your application for ${app.type} has been APPROVED for a value of ₱${amount.toLocaleString()}. Remarks: "${remarks}". Please await release schedule.`;
+                msg = `CSWDO Alert: Hello ${name}, your application for ${app.type} has been APPROVED for a value of ₱${formatCurrency(amount)}. Remarks: "${remarks}". Please await release schedule.`;
             } else {
                 msg = `CSWDO Alert: Hello ${name}, we regret to inform you that your application for ${app.type} was Denied. Remarks: "${remarks}". Please visit City Hall Room 102 for inquiries.`;
             }
@@ -2370,7 +2616,7 @@
             document.getElementById('disburseAppId').value = app.id;
             document.getElementById('disburseCaseId').textContent = app.id;
             document.getElementById('disburseBeneficiary').textContent = app.beneficiaryName;
-            document.getElementById('disburseApprovedVal').textContent = "₱" + parseInt(app.approvedAmount).toLocaleString();
+            document.getElementById('disburseApprovedVal').textContent = "₱" + formatCurrency(app.approvedAmount);
             
             document.getElementById('disbursementForm').reset();
             document.getElementById('disburseReleaseDate').value = new Date().toISOString().split('T')[0];
@@ -2392,12 +2638,14 @@
             const index = apps.findIndex(a => a.id === id);
 
             if (index !== -1) {
+                const app = apps[index];
                 apps[index].status = 'Completed';
                 apps[index].dateReleased = releaseDate;
                 apps[index].remarks += ` | Disbursed: ${releaseDate} (${comments})`;
 
                 localStorage.setItem('cswdo_applications', JSON.stringify(apps));
                 pushActivity('Disbursement Recorded', `Released funds for case ${id}`);
+                pushNotification('Disbursement Completed', `Funds of ₱${formatCurrency(app.approvedAmount || 0)} have been released for ${app.beneficiaryName} (${app.type}).`, 'approval');
                 
                 alert(`Disbursement recorded successfully for case ${id}`);
             }
@@ -2460,6 +2708,7 @@
 
             localStorage.setItem('cswdo_schedules', JSON.stringify(schedules));
             pushActivity('Schedule Created', `Registered ${title} (${type})`);
+            pushNotification('New Activity Scheduled', `Scheduled a new ${type} event: "${title}" at ${location} for ${new Date(dateTime).toLocaleString()}.`, 'update');
 
             if (autoNotify) {
                 const logs = JSON.parse(localStorage.getItem('cswdo_broadcast_logs')) || [];
@@ -2493,7 +2742,10 @@
                 const filtered = schedules.filter(s => s.id !== id);
 
                 localStorage.setItem('cswdo_schedules', JSON.stringify(filtered));
-                if (item) pushActivity('Schedule Cancelled', `Removed ${item.title}`);
+                if (item) {
+                    pushActivity('Schedule Cancelled', `Removed ${item.title}`);
+                    pushNotification('Scheduled Event Cancelled', `Scheduled event "${item.title}" (${item.type}) has been cancelled.`, 'alert');
+                }
                 renderSchedulesTable();
                 alert('Scheduled event cancelled successfully.');
             }
@@ -2531,19 +2783,19 @@
                             <div class="mt-2" style="font-size: 0.85rem;">
                                 <div class="d-flex justify-content-between mb-1">
                                     <span>Total Allocated Budget:</span>
-                                    <strong>₱${prog.budget.toLocaleString()}</strong>
+                                    <strong>₱${formatCurrency(prog.budget)}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between mb-1 text-success">
                                     <span>Released Funds:</span>
-                                    <strong>₱${totalReleased.toLocaleString()}</strong>
+                                    <strong>₱${formatCurrency(totalReleased)}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between mb-1 text-warning">
                                     <span>Pending Disbursements:</span>
-                                    <strong>₱${pendingDisburse.toLocaleString()}</strong>
+                                    <strong>₱${formatCurrency(pendingDisburse)}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between mb-1 border-top pt-1 font-semibold">
                                     <span>Remaining Balance:</span>
-                                    <strong>₱${remaining.toLocaleString()}</strong>
+                                    <strong>₱${formatCurrency(remaining)}</strong>
                                 </div>
                             </div>
                             <div class="mt-3">
@@ -2588,7 +2840,7 @@
                         <td>${entry.sourceName}</td>
                         <td>${entry.programName}</td>
                         <td><span class="status-badge ${entry.type.includes('Released') ? 'completed' : 'pending'}">${entry.type}</span></td>
-                        <td style="font-weight: 600; color: var(--primary-dark);">₱${entry.amount.toLocaleString()}</td>
+                        <td style="font-weight: 600; color: var(--primary-dark);">₱${formatCurrency(entry.amount)}</td>
                         <td>${entry.date}</td>
                         <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry.remarks}</td>
                     </tr>
@@ -2612,7 +2864,14 @@
             e.preventDefault();
             const programCode = document.getElementById('budgetProgramSelect').value;
             const action = document.getElementById('budgetActionSelect').value;
-            const value = parseInt(document.getElementById('budgetValue').value);
+            const valueInputRaw = document.getElementById('budgetValue').value.replace(/,/g, '').trim();
+            const value = parseFloat(valueInputRaw);
+
+            if (isNaN(value) || value <= 0) {
+                alert("Error: Please enter a valid budget adjustment value.");
+                return;
+            }
+
             const remarks = document.getElementById('budgetRemarks').value.trim();
 
             const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
@@ -2633,7 +2892,8 @@
                 }
 
                 localStorage.setItem('cswdo_programs', JSON.stringify(programs));
-                pushActivity('Budget Allocation Adjusted', `Adjusted budget for ${programName} by ₱${value.toLocaleString()} (${action === 'add' ? 'Increase' : 'Decrease'}). Remarks: ${remarks}`);
+                pushActivity('Budget Allocation Adjusted', `Adjusted budget for ${programName} by ₱${formatCurrency(value)} (${action === 'add' ? 'Increase' : 'Decrease'}). Remarks: ${remarks}`);
+                pushNotification('CSWDO Budget Adjusted', `Budget for '${programName}' adjusted by ₱${formatCurrency(value)} (${action === 'add' ? 'Increase' : 'Decrease'}).`, 'approval');
                 
                 alert('Budget adjustment successfully saved.');
             }
@@ -2700,6 +2960,7 @@
 
             localStorage.setItem('cswdo_broadcast_logs', JSON.stringify(logs));
             pushActivity('Notification Broadcasted', `Sent alert to: ${recipientGroup}`);
+            pushNotification('Broadcast Dispatched', `Broadcast transmission sent to ${recipientGroup}. Subject: "${subject}".`, 'alert');
 
             alert('Broadcast transmission initiated successfully! Messages have been dispatched.');
             document.getElementById('notificationForm').reset();
@@ -2783,6 +3044,7 @@
                 }
 
                 pushActivity('Password Reset Resolved', `Reset account credentials of ${username}`);
+                pushNotification('Password Reset Ticket Resolved', `Password reset ticket ${ticketId} for ${username} (${department}) has been resolved. Password reset to default.`, 'alert');
                 updateResetBadge();
                 renderResetsTable();
                 alert(`Password Reset Complete. Credentials of ${username} restored to system default.`);
@@ -2850,7 +3112,7 @@
                             <td>${a.type}</td>
                             <td>${a.dateSubmitted}</td>
                             <td><span class="status-badge ${a.status.toLowerCase()}">${a.status}</span></td>
-                            <td class="text-end fw-bold">₱${(a.approvedAmount || 0).toLocaleString()}</td>
+                            <td class="text-end fw-bold">₱${formatCurrency(a.approvedAmount || 0)}</td>
                         </tr>
                     `;
                 });
@@ -2860,7 +3122,7 @@
                     html += `
                         <tr class="table-light font-bold border-top" style="border-top: 2px solid var(--primary-dark);">
                             <td colspan="5" class="fw-bold">TOTAL REGISTERED GRANT VALUE:</td>
-                            <td class="text-end fw-bold text-success" style="font-size: 1.05rem;">₱${totalGrants.toLocaleString()}</td>
+                            <td class="text-end fw-bold text-success" style="font-size: 1.05rem;">₱${formatCurrency(totalGrants)}</td>
                         </tr>
                     `;
                 }
@@ -2904,10 +3166,10 @@
                     html += `
                         <tr>
                             <td><strong>${prog.name}</strong></td>
-                            <td>₱${prog.budget.toLocaleString()}</td>
-                            <td class="text-success">₱${totalReleased.toLocaleString()}</td>
-                            <td class="text-warning">₱${pendingDisburse.toLocaleString()}</td>
-                            <td class="text-end fw-bold">₱${remaining.toLocaleString()}</td>
+                            <td>₱${formatCurrency(prog.budget)}</td>
+                            <td class="text-success">₱${formatCurrency(totalReleased)}</td>
+                            <td class="text-warning">₱${formatCurrency(pendingDisburse)}</td>
+                            <td class="text-end fw-bold">₱${formatCurrency(remaining)}</td>
                         </tr>
                     `;
                 });
@@ -2915,10 +3177,10 @@
                 html += `
                     <tr class="fw-bold border-top" style="border-top: 2px solid var(--primary-dark);">
                         <td>TOTAL:</td>
-                        <td>₱${totAlloc.toLocaleString()}</td>
-                        <td class="text-success">₱${totReleased.toLocaleString()}</td>
-                        <td class="text-warning">₱${totPending.toLocaleString()}</td>
-                        <td class="text-end text-purple" style="font-size: 1.05rem;">₱${totRemain.toLocaleString()}</td>
+                        <td>₱${formatCurrency(totAlloc)}</td>
+                        <td class="text-success">₱${formatCurrency(totReleased)}</td>
+                        <td class="text-warning">₱${formatCurrency(totPending)}</td>
+                        <td class="text-end text-purple" style="font-size: 1.05rem;">₱${formatCurrency(totRemain)}</td>
                     </tr>
                 </tbody></table>`;
                 renderDiv.innerHTML = html;
@@ -3004,7 +3266,7 @@
                         <tr>
                             <td><strong>Barangay ${key}</strong></td>
                             <td>${stat.count} Releases</td>
-                            <td class="text-end fw-bold text-purple">₱${stat.totalVal.toLocaleString()}</td>
+                            <td class="text-end fw-bold text-purple">₱${formatCurrency(stat.totalVal)}</td>
                         </tr>
                     `;
                 });
@@ -3016,7 +3278,7 @@
                         <tr class="fw-bold border-top" style="border-top: 2px solid var(--primary-dark);">
                             <td>GRAND TOTAL:</td>
                             <td>${grandCount} Cases</td>
-                            <td class="text-end text-success" style="font-size: 1.05rem;">₱${grandVal.toLocaleString()}</td>
+                            <td class="text-end text-success" style="font-size: 1.05rem;">₱${formatCurrency(grandVal)}</td>
                         </tr>
                     `;
                 }
@@ -3109,6 +3371,13 @@
 
             // Load default dashboard statistics
             loadDashboardStats();
+
+            // Sync Notification Badge
+            updateNotificationBadge();
+
+            // Bind smart numeric formatting inputs (auto-format decimals)
+            bindSmartCurrencyInput('reviewApprovedAmount');
+            bindSmartCurrencyInput('budgetValue');
         })();
 
         // ==============================================
@@ -3188,10 +3457,162 @@
             showWebNotification(title, message, type);
         };
 
+        // ==============================================
+        // NOTIFICATIONS SYSTEM CONTROLLER
+        // ==============================================
+        function toggleNotificationPanel() {
+            const drawer = document.getElementById('notificationDrawer');
+            const overlay = document.getElementById('notificationOverlay');
+            const isActive = drawer.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            if (isActive) {
+                renderNotifications();
+            }
+        }
+
+        function updateNotificationBadge() {
+            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const unreadCount = notifications.filter(n => !n.read).length;
+            const badge = document.getElementById('notificationBadge');
+            
+            if (badge) {
+                if (unreadCount > 0) {
+                    badge.textContent = unreadCount;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+
+        function renderNotifications() {
+            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const container = document.getElementById('notificationListContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            notifications.forEach(n => {
+                const unreadClass = n.read ? '' : 'unread';
+                const timeStr = formatNotificationTime(n.timestamp);
+                
+                let badgeClass = 'alert';
+                if (n.category === 'approval') badgeClass = 'approval';
+                else if (n.category === 'update') badgeClass = 'update';
+
+                container.innerHTML += `
+                    <div class="notification-item ${unreadClass}" onclick="markNotificationAsRead('${n.id}')">
+                        <div class="notification-item-header">
+                            <h6 class="notification-item-title">${n.title}</h6>
+                            <span class="notification-item-time">${timeStr}</span>
+                        </div>
+                        <p class="notification-item-body">${n.message}</p>
+                        <span class="notification-badge-item ${badgeClass}">${n.category}</span>
+                    </div>
+                `;
+            });
+
+            if (notifications.length === 0) {
+                const activeLang = localStorage.getItem('lang') || 'en';
+                const noMsg = activeLang === 'tg' ? 'Walang bagong abiso.' : 'No new notifications.';
+                container.innerHTML = `<div class="text-center text-muted py-4">${noMsg}</div>`;
+            }
+
+            updateNotificationBadge();
+        }
+
+        function formatNotificationTime(isoStr) {
+            if (!isoStr) return '';
+            const date = new Date(isoStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+
+        function markNotificationAsRead(id) {
+            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const idx = notifications.findIndex(n => n.id === id);
+            if (idx !== -1) {
+                notifications[idx].read = true;
+                localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+                renderNotifications();
+            }
+        }
+
+        function markAllNotificationsRead() {
+            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            notifications.forEach(n => n.read = true);
+            localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+            renderNotifications();
+        }
+
+        // Apply Language wrapper to translate notifications header & footer dynamically
+        const origApplyLanguage = applyLanguage;
+        applyLanguage = function(lang) {
+            origApplyLanguage(lang);
+            renderNotifications();
+        };
+
+        function clearAllNotifications() {
+            localStorage.setItem('peso_notifications', JSON.stringify([]));
+            renderNotifications();
+        }
+
+        function pushNotification(title, message, category = 'alert') {
+            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const newNotif = {
+                id: 'N' + Date.now(),
+                title,
+                category,
+                message,
+                timestamp: new Date().toISOString(),
+                read: false
+            };
+            notifications.unshift(newNotif);
+            localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+            
+            // Trigger browser in-app notification toast as well
+            if (typeof showWebNotification === 'function') {
+                let type = 'info';
+                if (category === 'approval') type = 'success';
+                else if (category === 'alert') type = 'warning';
+                showWebNotification(title, message, type);
+            }
+            
+            updateNotificationBadge();
+            renderNotifications();
+        }
+
         // Ask for notification permission on load
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
     </script>
+
+    <!-- Slide-out Notification Drawer -->
+    <div class="notification-drawer-overlay" id="notificationOverlay" onclick="toggleNotificationPanel()"></div>
+    <div class="notification-drawer" id="notificationDrawer">
+        <div class="notification-drawer-header">
+            <h5 class="notification-drawer-title">
+                <i class="bi bi-bell-fill"></i> <span data-translate="notification_title">Notifications</span>
+            </h5>
+            <button class="notification-drawer-close" onclick="toggleNotificationPanel()" aria-label="Close drawer">&times;</button>
+        </div>
+        <div class="notification-drawer-body">
+            <div class="notification-list" id="notificationListContainer">
+                <!-- Notifications rendered dynamically -->
+            </div>
+        </div>
+        <div class="notification-drawer-footer">
+            <button class="btn btn-sm btn-link text-primary text-decoration-none font-weight-bold" onclick="markAllNotificationsRead()" data-translate="mark_all_read">Mark all as read</button>
+            <button class="btn btn-sm btn-link text-danger text-decoration-none font-weight-bold" onclick="clearAllNotifications()" data-translate="clear_all">Clear all</button>
+        </div>
+    </div>
 </body>
 </html>

@@ -1455,6 +1455,38 @@
         body.dark-mode .global-controls button:hover {
             background-color: #25181e !important;
         }
+
+        /* Simulated PDF Viewer Styles */
+        .pdf-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            width: 100%;
+        }
+        .pdf-page {
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+            box-sizing: border-box;
+        }
+        body.dark-mode .pdf-page {
+            background: #ffffff !important;
+            color: #000000 !important;
+        }
+        body.dark-mode .pdf-page td, 
+        body.dark-mode .pdf-page th,
+        body.dark-mode .pdf-page tr {
+            color: #000000 !important;
+            border-color: #000000 !important;
+            background: transparent !important;
+        }
     </style>
 </head>
 <body>
@@ -1552,6 +1584,9 @@
                 </button>
                 <button class="btn-quick-action" onclick="openModal('profileModal')">
                     <i class="bi bi-person-fill-gear"></i> <span data-translate="action_update_profile">Update Profile</span>
+                </button>
+                <button class="btn-quick-action" onclick="openOrdinanceModal()">
+                    <i class="bi bi-file-earmark-pdf-fill"></i> <span data-translate="action_view_ordinance">View Budget Ordinance</span>
                 </button>
             </div>
 
@@ -3530,7 +3565,8 @@
                 'scroll_notice_done': '<i class="bi bi-check-circle-fill me-1"></i> Terms read. You may now check the agreement box and click Proceed.',
                 'agree_label': 'I have read and agreed to the Privacy Statement and Terms and Conditions.',
                 'proceed_btn': 'Proceed',
-                'privacy_modal_title': 'Data Privacy & Terms of Service'
+                'privacy_modal_title': 'Data Privacy & Terms of Service',
+                'action_view_ordinance': 'View Budget Ordinance'
             },
             'tg': {
                 'nav_dashboard': 'Talaan',
@@ -3554,7 +3590,8 @@
                 'scroll_notice_done': '<i class="bi bi-check-circle-fill me-1"></i> Nabasa na ang mga tuntunin. Maaari mo nang lagyan ng tsek ang kasunduan at i-click ang Magpatuloy.',
                 'agree_label': 'Nabasa ko at sumasang-ayon ako sa Pahayag ng Pagkapribado at mga Tuntunin at Kundisyon.',
                 'proceed_btn': 'Magpatuloy',
-                'privacy_modal_title': 'Proteksyon sa Pribadong Impormasyon at Mga Tuntunin'
+                'privacy_modal_title': 'Proteksyon sa Pribadong Impormasyon at Mga Tuntunin',
+                'action_view_ordinance': 'Tingnan ang Ordinansa ng Badyet'
             }
         };
 
@@ -3631,9 +3668,198 @@
             applyLanguage(currentLang);
         }
 
+        function openOrdinanceModal() {
+            const modal = document.getElementById('ordinanceModal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeOrdinanceModal() {
+            const modal = document.getElementById('ordinanceModal');
+            if (modal) modal.style.display = 'none';
+        }
+
         // Make functions globally accessible
         window.toggleDarkMode = toggleDarkMode;
         window.toggleLanguage = toggleLanguage;
+        window.openOrdinanceModal = openOrdinanceModal;
+        window.closeOrdinanceModal = closeOrdinanceModal;
     </script>
+
+    <!-- Ordinance PDF Viewer Modal -->
+    <div class="custom-modal-overlay" id="ordinanceModal" style="z-index: 2100; display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
+        <div class="custom-modal-content" style="max-width: 900px; width: 95%; background: white; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <div class="custom-modal-header bg-dark text-white d-flex justify-content-between align-items-center p-3">
+                <h5 class="custom-modal-title m-0 text-white"><i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i> LGU Budget Ordinance Overview</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeOrdinanceModal()" style="filter: invert(1);"></button>
+            </div>
+            <div class="custom-modal-body bg-secondary-subtle p-4" style="overflow-y: auto; flex-grow: 1;">
+                <!-- Simulated PDF Pages -->
+                <div class="pdf-container d-flex flex-column gap-4 align-items-center">
+                    
+                    <!-- PAGE 1 -->
+                    <div class="pdf-page bg-white p-5 shadow-sm position-relative" style="width: 100%; max-width: 800px; aspect-ratio: 1 / 1.414; color: #000; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.4; border: 1px solid #ddd; text-align: left;">
+                        <div class="text-center mb-4">
+                            <h5 class="fw-bold m-0" style="font-family: inherit;">Appropriation Ordinance No. 6</h5>
+                            <p class="m-0 text-muted">Series of 2025</p>
+                            <p class="m-0 text-muted">Page 22 and 23 of 158</p>
+                        </div>
+                        <div class="text-center fw-bold mb-4">
+                            OFFICE OF THE CITY MAYOR - PUBLIC EMPLOYMENT SERVICE DIVISION
+                            <div class="text-decoration-underline mt-1">New Appropriations, by Object of Expenditure</div>
+                        </div>
+                        <table class="table table-bordered border-dark table-sm" style="font-size: 0.8rem; color: #000;">
+                            <thead>
+                                <tr class="fw-bold">
+                                    <th style="width: 50%;">Object of Expenditures</th>
+                                    <th style="width: 20%;" class="text-center">Account Code</th>
+                                    <th style="width: 30%;" class="text-end">Budget Year 2026 (Approved)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="fw-bold"><td colspan="3">I. CURRENT OPERATING EXPENDITURES</td></tr>
+                                <tr class="fst-italic"><td class="ps-3" colspan="3">1.2 Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-4">Traveling Expenses - Local</td><td class="text-center">50201010</td><td class="text-end">50,000.00</td></tr>
+                                <tr><td class="ps-4">Training Expenses</td><td class="text-center">50202010</td><td class="text-end">30,000.00</td></tr>
+                                <tr><td class="ps-4">Office Supplies Expenses</td><td class="text-center">50203010</td><td class="text-end">130,000.00</td></tr>
+                                <tr><td class="ps-4">Fuel, Oil and Lubricants Expenses</td><td class="text-center">50203990</td><td class="text-end">94,000.00</td></tr>
+                                <tr><td class="ps-4">Other Supplies and Materials Expenses</td><td class="text-center">50203990</td><td class="text-end">180,000.00</td></tr>
+                                <tr><td class="ps-4">Water Expenses</td><td class="text-center">50204010</td><td class="text-end">6,000.00</td></tr>
+                                <tr><td class="ps-4">Other General Services</td><td class="text-center">50212990</td><td class="text-end">612,000.00</td></tr>
+                                <tr><td class="ps-4">Repairs & Maintenance - Vehicles</td><td class="text-center">50213060</td><td class="text-end">35,000.00</td></tr>
+                                <tr><td class="ps-4">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">240,000.00</td></tr>
+                                <tr class="fw-bold">
+                                    <td class="ps-3">Total Maintenance and Other Operating Expenses</td>
+                                    <td></td>
+                                    <td class="text-end">₱ 1,377,882.00</td>
+                                </tr>
+                                <tr class="fw-bold">
+                                    <td class="ps-2">SUBTOTAL - CURRENT OPERATING EXPENDITURES</td>
+                                    <td></td>
+                                    <td class="text-end">₱ 1,377,882.00</td>
+                                </tr>
+                                <tr class="fw-bold"><td colspan="3">II. REGULAR SERVICES</td></tr>
+                                <tr class="fw-bold"><td class="ps-2" colspan="3">EMPLOYMENT FACILITATION PROGRAMS</td></tr>
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">A. CITY OF KORONADAL GOVERNMENT INTERNSHIP PROGRAM (CKGIP)</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other General Services</td><td class="text-center">50212990</td><td class="text-end">500,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 500,000.00</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="position-absolute bottom-0 end-0 p-3 text-muted" style="font-size: 0.7rem;">Page 1 of 4</div>
+                    </div>
+
+                    <!-- PAGE 2 -->
+                    <div class="pdf-page bg-white p-5 shadow-sm position-relative" style="width: 100%; max-width: 800px; aspect-ratio: 1 / 1.414; color: #000; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.4; border: 1px solid #ddd; text-align: left;">
+                        <table class="table table-bordered border-dark table-sm" style="font-size: 0.8rem; color: #000;">
+                            <tbody>
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">B. KORONADAL EMERGENCY EMPLOYMENT PROGRAM (KEEP)</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other General Services</td><td class="text-center">50212990</td><td class="text-end">1,500,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 1,500,000.00</td></tr>
+                                
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">C. SUPPORT TO TULONG PANGHANAPBUHAY SA ATING DISADVANTAGED/DISPLACED WORKERS (TUPAD)</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">40,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 40,000.00</td></tr>
+                                
+                                <tr class="fw-bold">
+                                    <td class="ps-2">SUBTOTAL - REGULAR SERVICES</td>
+                                    <td></td>
+                                    <td class="text-end">₱ 2,040,000.00</td>
+                                </tr>
+                                
+                                <tr class="fw-bold"><td colspan="3">III. PROGRAMS/ PROJECTS/ ACTIVITIES (PPAs)</td></tr>
+                                <tr class="fw-bold"><td class="ps-2" colspan="3">LIVELIHOOD PROGRAMS</td></tr>
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">A. PANGKABUHAYAN FINANCIAL ASSISTANCE (PFAS)</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">7,000,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 7,000,000.00</td></tr>
+                                
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">B. SUPPORT TO DOLE INTEGRATED LIVELIHOOD PROGRAM (DILP)</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">500,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 500,000.00</td></tr>
+                                
+                                <tr class="fw-bold"><td colspan="3">OTHER PROGRAMS</td></tr>
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">C. ASSOCIATION FACILITATION</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">50,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 50,000.00</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="position-absolute bottom-0 end-0 p-3 text-muted" style="font-size: 0.7rem;">Page 2 of 4</div>
+                    </div>
+
+                    <!-- PAGE 3 -->
+                    <div class="pdf-page bg-white p-5 shadow-sm position-relative" style="width: 100%; max-width: 800px; aspect-ratio: 1 / 1.414; color: #000; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.4; border: 1px solid #ddd; text-align: left;">
+                        <table class="table table-bordered border-dark table-sm" style="font-size: 0.8rem; color: #000;">
+                            <tbody>
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">D. CONDUCT OF JOB FAIRS</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Supplies and Materials Expenses</td><td class="text-center">50203990</td><td class="text-end">50,000.00</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">50,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 100,000.00</td></tr>
+                                
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">E. DEVELOPMENT OF LOCALIZED JOB PORTAL</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">150,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 150,000.00</td></tr>
+                                
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">F. LIVELIHOOD/SKILLS TRAINING PROGRAM</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Training Expenses</td><td class="text-center">50202010</td><td class="text-end">75,000.00</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">75,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 150,000.00</td></tr>
+                                
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">G. OFW FAMILY CIRCLE DAY</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">200,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 200,000.00</td></tr>
+                                
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">H. SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS (SPES)</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other General Services</td><td class="text-center">50212990</td><td class="text-end">2,000,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 2,000,000.00</td></tr>
+                                
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">I. SUPPORT TO PAROKYA NI OWWA PROGRAM</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">40,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 40,000.00</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="position-absolute bottom-0 end-0 p-3 text-muted" style="font-size: 0.7rem;">Page 3 of 4</div>
+                    </div>
+
+                    <!-- PAGE 4 -->
+                    <div class="pdf-page bg-white p-5 shadow-sm position-relative" style="width: 100%; max-width: 800px; aspect-ratio: 1 / 1.414; color: #000; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.4; border: 1px solid #ddd; text-align: left;">
+                        <table class="table table-bordered border-dark table-sm" style="font-size: 0.8rem; color: #000;">
+                            <tbody>
+                                <tr class="fw-bold"><td class="ps-3" colspan="3">J. SUPPORT TO RETURNING OFWS PROGRAM (ROFW'S)</td></tr>
+                                <tr class="fst-italic"><td class="ps-4" colspan="3">Maintenance and Other Operating Expenses (200)</td></tr>
+                                <tr><td class="ps-5">Other Maintenance and Operating Expenses</td><td class="text-center">50299990</td><td class="text-end">100,000.00</td></tr>
+                                <tr class="fw-bold"><td class="ps-4">Total</td><td></td><td class="text-end">₱ 100,000.00</td></tr>
+                                
+                                <tr class="fw-bold">
+                                    <td class="ps-2">SUBTOTAL - PROGRAMS/ PROJECTS/ ACTIVITIES (PPAs)</td>
+                                    <td></td>
+                                    <td class="text-end">₱ 10,290,000.00</td>
+                                </tr>
+                                <tr class="fw-bold" style="font-size: 0.9rem; background: #eee;">
+                                    <td class="ps-2">TOTAL APPROPRIATIONS</td>
+                                    <td></td>
+                                    <td class="text-end">₱ 13,707,882.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="position-absolute bottom-0 end-0 p-3 text-muted" style="font-size: 0.7rem;">Page 4 of 4</div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="custom-modal-footer p-3 bg-light d-flex justify-content-end" style="border-top: 1px solid #eee;">
+                <button type="button" class="btn btn-secondary" onclick="closeOrdinanceModal()">Close Document</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
