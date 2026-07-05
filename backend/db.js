@@ -11,12 +11,7 @@ const connectionUri = process.env.MYSQL_URL || process.env.DATABASE_URL;
 
 if (connectionUri) {
   console.log('Database URL detected. Initializing MySQL pool via connection string...');
-  pool = mysql.createPool({
-    uri: connectionUri,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-  });
+  pool = mysql.createPool(connectionUri);
 } else {
   console.log('No connection string detected. Initializing MySQL pool via fallback environment parameters...');
   pool = mysql.createPool({

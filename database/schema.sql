@@ -1,9 +1,6 @@
 -- Capstone Project MySQL Database Schema
 -- Designed for deployment on Railway
 
-CREATE DATABASE IF NOT EXISTS `capstone_db`;
-USE `capstone_db`;
-
 -- 1. USERS TABLE
 -- Handles logins, roles, and profiles for beneficiaries and staff/administrators
 CREATE TABLE IF NOT EXISTS `users` (
