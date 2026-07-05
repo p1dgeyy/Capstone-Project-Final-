@@ -1368,6 +1368,99 @@
             border-color: #000000 !important;
             background: transparent !important;
         }
+        /* System-Level Confirmation Card Modal Styling (REQ039) */
+        .confirm-card-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .confirm-card-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .confirm-card {
+            background-color: #ffffff;
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(184, 138, 154, 0.2);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        .confirm-card-overlay.active .confirm-card {
+            transform: scale(1);
+        }
+        .confirm-card-icon-container {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--primary-lighter);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px auto;
+        }
+        .confirm-card-icon {
+            font-size: 28px;
+            color: var(--primary-dark);
+        }
+        .confirm-card-title {
+            font-size: 1.25rem;
+            color: #333333;
+            margin-bottom: 12px;
+            font-weight: 700 !important;
+        }
+        .confirm-card-message {
+            font-size: 0.95rem;
+            color: #666666;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .confirm-card-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .confirm-btn {
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+            min-width: 100px;
+        }
+        .confirm-btn-secondary {
+            background-color: #f1eaed;
+            color: #555;
+        }
+        .confirm-btn-secondary:hover {
+            background-color: #e5dbdf;
+        }
+        .confirm-btn-danger {
+            background-color: #B88A9A;
+            color: #ffffff;
+        }
+        .confirm-btn-danger:hover {
+            background-color: #a37585;
+            box-shadow: 0 4px 10px rgba(184, 138, 154, 0.4);
+        }
     </style>
 </head>
 
@@ -2525,6 +2618,34 @@
             });
         }
 
+        // System-Level Confirmation Card Modal Trigger (REQ039)
+        function showConfirmCard(message, onConfirm, onCancel) {
+            const modal = document.getElementById('confirmCardModal');
+            const messageEl = document.getElementById('confirmCardMessage');
+            const confirmBtn = document.getElementById('confirmCardConfirmBtn');
+            const cancelBtn = document.getElementById('confirmCardCancelBtn');
+
+            messageEl.textContent = message;
+            modal.classList.add('active');
+
+            // Clone buttons to clear existing event listeners
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            newConfirmBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+                if (onConfirm) onConfirm();
+            });
+
+            newCancelBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+                if (onCancel) onCancel();
+            });
+        }
+
         // Initialize user profile details in header
         document.getElementById('userDisplayName').textContent = sessionStorage.getItem('username') || "PESO Administrator";
 
@@ -2745,10 +2866,10 @@
 
         // Sign Out (REQ001)
         function logoutAdmin() {
-            if (confirm("Are you sure you want to log out of the PESO Admin Portal?")) {
+            showConfirmCard("Are you sure you want to log out of the PESO Admin Portal?", () => {
                 sessionStorage.clear();
                 window.location.href = "admin_login.html";
-            }
+            });
         }
 
         // Push new audit activity (REQ006)
@@ -3458,17 +3579,21 @@
             const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
             const idx = officers.findIndex(o => o.id === id);
             if (idx !== -1) {
-                const newStatus = officers[idx].status === 'Active' ? 'Inactive' : 'Active';
-                officers[idx].status = newStatus;
-                localStorage.setItem('peso_officers', JSON.stringify(officers));
-                pushActivity("Officer Status Toggled", `${newStatus} status set for: ${officers[idx].name}`);
-                pushNotification("Officer Status Changed", `Officer account status for ${officers[idx].name} has been set to ${newStatus}.`, "alert");
-                renderOfficersTable();
+                const currentStatus = officers[idx].status;
+                const actionVerb = currentStatus === 'Active' ? 'deactivate' : 'activate';
+                showConfirmCard(`Are you sure you want to ${actionVerb} the officer account for '${officers[idx].name}'?`, () => {
+                    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+                    officers[idx].status = newStatus;
+                    localStorage.setItem('peso_officers', JSON.stringify(officers));
+                    pushActivity("Officer Status Toggled", `${newStatus} status set for: ${officers[idx].name}`);
+                    pushNotification("Officer Status Changed", `Officer account status for ${officers[idx].name} has been set to ${newStatus}.`, "alert");
+                    renderOfficersTable();
+                });
             }
         }
 
         function deleteOfficer(id) {
-            if (confirm("Are you sure you want to permanently delete this officer account?")) {
+            showConfirmCard("Are you sure you want to permanently delete this officer account?", () => {
                 let officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
                 const officer = officers.find(o => o.id === id);
                 officers = officers.filter(o => o.id !== id);
@@ -3478,7 +3603,7 @@
                     pushNotification("Officer Account Deleted", `Officer account for ${officer.name} has been permanently deleted.`, "alert");
                 }
                 renderOfficersTable();
-            }
+            });
         }
 
         // ==============================================
@@ -3598,17 +3723,21 @@
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
             const idx = programs.findIndex(p => p.id === id);
             if (idx !== -1) {
-                const newStatus = programs[idx].status === 'Active' ? 'Inactive' : 'Active';
-                programs[idx].status = newStatus;
-                localStorage.setItem('peso_programs', JSON.stringify(programs));
-                pushActivity("Program Status Toggled", `${newStatus} status set for program: ${programs[idx].code}`);
-                pushNotification("Program Status Toggled", `Program '${programs[idx].code}' has been set to ${newStatus}.`, "update");
-                renderProgramsTable();
+                const currentStatus = programs[idx].status;
+                const actionVerb = currentStatus === 'Active' ? 'deactivate' : 'activate';
+                showConfirmCard(`Are you sure you want to ${actionVerb} the program '${programs[idx].code}'?`, () => {
+                    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+                    programs[idx].status = newStatus;
+                    localStorage.setItem('peso_programs', JSON.stringify(programs));
+                    pushActivity("Program Status Toggled", `${newStatus} status set for program: ${programs[idx].code}`);
+                    pushNotification("Program Status Toggled", `Program '${programs[idx].code}' has been set to ${newStatus}.`, "update");
+                    renderProgramsTable();
+                });
             }
         }
 
         function deleteProgram(id) {
-            if (confirm("Are you sure you want to permanently delete this program?")) {
+            showConfirmCard("Are you sure you want to permanently delete this program?", () => {
                 let programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
                 const program = programs.find(p => p.id === id);
                 programs = programs.filter(p => p.id !== id);
@@ -3618,7 +3747,7 @@
                     pushNotification("Program Deleted", `Livelihood program '${program.code}' has been permanently deleted.`, "alert");
                 }
                 renderProgramsTable();
-            }
+            });
         }
 
         // ==============================================
@@ -3718,14 +3847,14 @@
         }
 
         function removeAssignment(id) {
-            if (confirm("Are you sure you want to deactivate/revoke this program assignment?")) {
+            showConfirmCard("Are you sure you want to deactivate/revoke this program assignment?", () => {
                 let assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
                 const as = assignments.find(a => a.id === id);
                 assignments = assignments.filter(a => a.id !== id);
                 localStorage.setItem('peso_assignments', JSON.stringify(assignments));
                 pushActivity("Assignment Revoked", `Deactivated assignment ID: ${id}`);
                 renderAssignmentsTable();
-            }
+            });
         }
 
         // ==============================================
@@ -3963,7 +4092,7 @@
         }
 
         function cancelSchedule(id) {
-            if (confirm("Are you sure you want to cancel this scheduled activity?")) {
+            showConfirmCard("Are you sure you want to cancel this scheduled activity?", () => {
                 const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
                 const idx = schedules.findIndex(s => s.id === id);
                 if (idx !== -1) {
@@ -3973,7 +4102,7 @@
                     renderCalendar();
                     renderSchedulesList();
                 }
-            }
+            });
         }
 
         // ==============================================
@@ -4194,14 +4323,14 @@
         }
 
         function deleteTraining(id) {
-            if (confirm("Are you sure you want to delete this training record?")) {
+            showConfirmCard("Are you sure you want to delete this training record?", () => {
                 let trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
                 const t = trainings.find(tr => tr.id === id);
                 trainings = trainings.filter(tr => tr.id !== id);
                 localStorage.setItem('peso_trainings', JSON.stringify(trainings));
                 pushActivity("Training Deleted", `Removed course logs: ${t ? t.title : 'Unknown'}`);
                 renderTrainingTable();
-            }
+            });
         }
 
         // ==============================================
@@ -4283,14 +4412,14 @@
         }
 
         function deleteAssistance(id) {
-            if (confirm("Are you sure you want to delete this distribution release log?")) {
+            showConfirmCard("Are you sure you want to delete this distribution release log?", () => {
                 let assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
                 const as = assistance.find(a => a.id === id);
                 assistance = assistance.filter(a => a.id !== id);
                 localStorage.setItem('peso_assistance', JSON.stringify(assistance));
                 pushActivity("Assistance Deleted", `Removed release log ID: ${id}`);
                 renderAssistanceTable();
-            }
+            });
         }
 
         // ==============================================
@@ -4670,7 +4799,10 @@
                 'chart_label_trend': 'Livelihood Applications Submitted',
                 'notification_title': 'Notifications',
                 'mark_all_read': 'Mark all as read',
-                'clear_all': 'Clear all'
+                'clear_all': 'Clear all',
+                'confirm_title': 'Confirmation Required',
+                'confirm_cancel': 'Cancel',
+                'confirm_proceed': 'Proceed'
             },
             'tg': {
                 'nav_dashboard': 'Talaan',
@@ -4713,7 +4845,10 @@
                 'chart_label_trend': 'Mga Aplikasyon sa Kabuhayan na Ipinasa',
                 'notification_title': 'Mga Abiso',
                 'mark_all_read': 'Markahan lahat bilang nabasa',
-                'clear_all': 'I-clear lahat'
+                'clear_all': 'I-clear lahat',
+                'confirm_title': 'Kinakailangan ang Kumpirmasyon',
+                'confirm_cancel': 'Kanselahin',
+                'confirm_proceed': 'Magpatuloy'
             }
         };
 
@@ -5420,6 +5555,20 @@
             <div class="custom-modal-footer p-3 bg-light d-flex justify-content-end"
                 style="border-top: 1px solid #eee;">
                 <button type="button" class="btn btn-secondary" onclick="closeOrdinanceModal()">Close Document</button>
+            </div>
+        </div>
+    </div>
+    <!-- Custom System-Level Confirmation Card Modal (REQ039) -->
+    <div id="confirmCardModal" class="confirm-card-overlay">
+        <div class="confirm-card">
+            <div class="confirm-card-icon-container">
+                <i class="bi bi-exclamation-triangle-fill confirm-card-icon"></i>
+            </div>
+            <h4 class="confirm-card-title" data-translate="confirm_title">Confirmation Required</h4>
+            <p class="confirm-card-message" id="confirmCardMessage">Are you sure you want to proceed with this action?</p>
+            <div class="confirm-card-actions">
+                <button id="confirmCardCancelBtn" class="confirm-btn confirm-btn-secondary" data-translate="confirm_cancel">Cancel</button>
+                <button id="confirmCardConfirmBtn" class="confirm-btn confirm-btn-danger" data-translate="confirm_proceed">Proceed</button>
             </div>
         </div>
     </div>
