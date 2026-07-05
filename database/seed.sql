@@ -1,8 +1,6 @@
 -- Capstone Project MySQL Seed Data
 -- Designed to match the mock accounts and data from README.md and dashboard files
 
-USE `capstone_db`;
-
 -- Disable foreign key checks to make seeding repeatable/safe
 SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE `distributions`;
