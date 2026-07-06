@@ -1783,6 +1783,12 @@
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" data-module="assignments">
+                    <i class="bi bi-person-check-fill"></i>
+                    <span data-translate="nav_assignments">Program Assignment</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="#" class="sidebar-nav-link" data-module="notifications">
                     <i class="bi bi-bell"></i>
                     <span data-translate="nav_notifications">Notification</span>
@@ -2824,6 +2830,35 @@
                 </div>
             </section>
 
+            <!-- MODULE: Program Assignment -->
+            <section class="module-page" id="module-assignments">
+                <div class="table-card">
+                    <div class="section-header">
+                        <h5 class="section-title">Beneficiary Program Assignment</h5>
+                        <button class="btn btn-primary-custom" onclick="openAddAssignmentModal()">
+                            <i class="bi bi-person-fill-add"></i> Assign Beneficiary
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Beneficiary Name</th>
+                                    <th>Contact Number</th>
+                                    <th>Assigned Program</th>
+                                    <th>Requirements checklist</th>
+                                    <th>Assignment Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignmentsTableBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <!-- MODULE: Beneficiaries Management (REQ069-REQ076) -->
             <section class="module-page" id="module-beneficiaries">
                 <div class="table-card">
@@ -3469,46 +3504,31 @@
                 <h4 class="modal-title">Assign Beneficiary to Program</h4>
                 <button class="modal-close" onclick="closeModal('assignmentModal')">&times;</button>
             </div>
-            <div class="modal-body">
-                <form>
+            <form id="assignmentForm" onsubmit="handleAssignmentSubmit(event)">
+                <div class="modal-body">
                     <div class="form-group">
-                        <label class="form-label">Select Beneficiary</label>
-                        <select class="form-control">
-                            <option value="">Choose beneficiary...</option>
-                            <option value="1">Ana Reyes - Zone IV</option>
-                            <option value="2">Carlos Mendoza - Morales</option>
+                        <label class="form-label">Select Eligible Applicant</label>
+                        <select class="form-control" id="assignApplicantSelect" required>
+                            <!-- Options rendered dynamically -->
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Program</label>
-                        <select class="form-control">
-                            <option value="">Select program...</option>
-                            <option value="livelihood">Livelihood Assistance</option>
-                            <option value="ckgip">City of Koronadal Government Internship Program (CKGIP)</option>
-                            <option value="keep">Koronadal Emergency Employment Program (KEEP)</option>
-                            <option value="tupad">Support to Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)</option>
-                            <option value="pfas">Pangkabuhayan Financial Assistance (PFAS)</option>
-                            <option value="dilp">Support to DOLE Integrated Livelihood Program (DILP)</option>
-                            <option value="association">Association Facilitation</option>
-                            <option value="jobfairs">Conduct of Job Fairs</option>
-                            <option value="jobportal">Development of Localized Job Portal</option>
-                            <option value="skills">Livelihood/Skills Training Program</option>
-                            <option value="ofwfamily">OFW Family Circle Day</option>
-                            <option value="spes">Special Program for Employment of Students (SPES)</option>
-                            <option value="parokya">Support to Parokya ni OWN A Program</option>
-                            <option value="rofw">Support to Returning OFWs Program (ROFWS)</option>
+                        <label class="form-label">Livelihood LGU Program</label>
+                        <select class="form-control" id="assignProgramSelect" required>
+                            <!-- Options rendered dynamically -->
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Notes</label>
-                        <textarea class="form-control" placeholder="Assignment notes..."></textarea>
+                        <label class="form-label">Verified Contact Number (DPA Compliant Masking Applied)</label>
+                        <input type="text" class="form-control" id="assignContactInput" value="+63 9** **** *234"
+                            disabled>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary-custom" onclick="closeModal('assignmentModal')">Cancel</button>
-                <button class="btn btn-primary-custom" onclick="closeModal('assignmentModal')">Assign</button>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-custom" onclick="closeModal('assignmentModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">Commit Program Assignment</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -5155,6 +5175,10 @@ function initNavigation() {
             pages.forEach(function(p) { p.classList.remove('active'); });
             document.getElementById('module-' + m).classList.add('active');
             
+            if (m === 'assignments') {
+                renderAssignmentsTable();
+            }
+            
             // Update breadcrumb and header title
             var activeLang = localStorage.getItem('lang') || 'en';
             var dict = translations[activeLang] || translations['en'];
@@ -5546,6 +5570,9 @@ window.quickActionViewReports = function() {
 
 /* Initialize on document load */
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Database
+    initPESODatabase();
+
     // Initialize pagination display
     if (document.getElementById('currentPage')) {
         document.getElementById('currentPage').textContent = currentPage;
@@ -5565,7 +5592,187 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof updateNotificationBadge === 'function') {
         updateNotificationBadge();
     }
+
+    // Dynamic contact number update on applicant select
+    const benSelect = document.getElementById('assignApplicantSelect');
+    if (benSelect) {
+        benSelect.addEventListener('change', function() {
+            const benId = this.value;
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const ben = beneficiaries.find(b => b.id === benId);
+            const contactInput = document.getElementById('assignContactInput');
+            if (contactInput) {
+                contactInput.value = ben ? maskContactNumber(ben.contact) : 'N/A';
+            }
+        });
+    }
+
+    // Initial render of assignments
+    renderAssignmentsTable();
 });
+
+// ==============================================
+// MODULE LOGIC: PROGRAM ASSIGNMENT (RBAC SEPARATION)
+// ==============================================
+function initPESODatabase() {
+    if (!localStorage.getItem('peso_programs') || !localStorage.getItem('peso_programs_v2')) {
+        const defaultPrograms = [
+            { id: "P1", code: "SPES", name: "Special Program for Employment of Students", budget: 3000000, allocated: 1200000, status: "Active" },
+            { id: "P2", code: "TUPAD", name: "Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers", budget: 500000, allocated: 250000, status: "Active" },
+            { id: "P3", code: "Skills Training", name: "Livelihood/Skills Training Program", budget: 1000000, allocated: 300000, status: "Active" },
+            { id: "P4", code: "GIP", name: "Government Internship Program", budget: 2000000, allocated: 800000, status: "Active" },
+            { id: "P5", code: "KEEP", name: "Koronadal Emergency Employment Program", budget: 1500000, allocated: 450000, status: "Active" },
+            { id: "P6", code: "PFAS", name: "Pangkabuhayan Financial Assistance", budget: 7000000, allocated: 2100000, status: "Active" },
+            { id: "P7", code: "DILP", name: "Support to DOLE Integrated Livelihood Program", budget: 500000, allocated: 120000, status: "Active" },
+            { id: "P8", code: "Association Facilitation", name: "Association Facilitation", budget: 50000, allocated: 15000, status: "Active" },
+            { id: "P9", code: "Job Fairs", name: "Conduct of Job Fairs", budget: 100000, allocated: 30000, status: "Active" },
+            { id: "P10", code: "Job Portal", name: "Development of Localized Job Portal", budget: 150000, allocated: 40000, status: "Active" },
+            { id: "P11", code: "OFW Family Circle Day", name: "OFW Family Circle Day", budget: 200000, allocated: 60000, status: "Active" },
+            { id: "P12", code: "Parokya ni OWWA", name: "Support to Parokya ni OWWA Program", budget: 40000, allocated: 10000, status: "Active" },
+            { id: "P13", code: "ROFW", name: "Support to Returning OFWs Program (ROFW'S)", budget: 100000, allocated: 30000, status: "Active" }
+        ];
+        localStorage.setItem('peso_programs', JSON.stringify(defaultPrograms));
+        localStorage.setItem('peso_programs_v2', 'true');
+    }
+    if (!localStorage.getItem('peso_beneficiaries')) {
+        const defaultBeneficiaries = [
+            { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active" },
+            { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active" },
+            { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active" },
+            { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active" }
+        ];
+        localStorage.setItem('peso_beneficiaries', JSON.stringify(defaultBeneficiaries));
+    }
+    if (!localStorage.getItem('peso_assignments')) {
+        const defaultAssignments = [
+            { id: "A1", beneficiaryId: "B1", programId: "P1", contact: "+639123456789", requirements: "SPES Contract, School Records", status: "Active" },
+            { id: "A2", beneficiaryId: "B2", programId: "P2", contact: "+639987654321", requirements: "Barangay Clearance, Work Contract", status: "Active" }
+        ];
+        localStorage.setItem('peso_assignments', JSON.stringify(defaultAssignments));
+    }
+}
+
+function renderAssignmentsTable() {
+    const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+    const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+    const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+    const tbody = document.getElementById('assignmentsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    assignments.forEach(as => {
+        const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: 'Unknown', contact: 'N/A' };
+        const prog = programs.find(p => p.id === as.programId) || { code: 'Unknown' };
+
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${ben.name}</strong></td>
+                <td>${maskContactNumber(ben.contact)}</td>
+                <td><span class="status-badge completed" style="background: rgba(184,92,122,0.1); color: var(--primary-dark);">${prog.code}</span></td>
+                <td>${as.requirements}</td>
+                <td><span class="status-badge active">${as.status || 'Active'}</span></td>
+                <td>
+                    <button class="action-btn view" onclick="removeAssignment('${as.id}')" title="Revoke assignment" style="background: #dc3545; border-color: #dc3545;"><i class="bi bi-person-x-fill text-white"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+    if (assignments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No program assignments recorded.</td></tr>';
+    }
+}
+
+function maskContactNumber(num) {
+    if (!num) return 'N/A';
+    if (num.length <= 7) return num;
+    return num.substring(0, 4) + '*** **** *' + num.substring(num.length - 3);
+}
+
+function openAddAssignmentModal() {
+    const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+    const programs = JSON.parse(localStorage.getItem('peso_programs')).filter(p => p.status === 'Active') || [];
+
+    const benSelect = document.getElementById('assignApplicantSelect');
+    const progSelect = document.getElementById('assignProgramSelect');
+
+    benSelect.innerHTML = '<option value="">-- Choose Beneficiary --</option>';
+    beneficiaries.forEach(b => {
+        benSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+    });
+
+    progSelect.innerHTML = '<option value="">-- Choose Livelihood --</option>';
+    programs.forEach(p => {
+        progSelect.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
+    });
+
+    // Reset contact input
+    const contactInput = document.getElementById('assignContactInput');
+    if (contactInput) {
+        contactInput.value = 'N/A';
+    }
+
+    openModal('assignmentModal');
+}
+
+function handleAssignmentSubmit(e) {
+    e.preventDefault();
+    const benId = document.getElementById('assignApplicantSelect').value;
+    const progId = document.getElementById('assignProgramSelect').value;
+
+    if (!benId || !progId) {
+        alert("Please select both a beneficiary and a livelihood program.");
+        return;
+    }
+
+    const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+
+    // Prevent Overlap (Double assignment)
+    const exists = assignments.some(as => as.beneficiaryId === benId && as.status === 'Active');
+    if (exists) {
+        alert("Conflict Warning: This beneficiary is already active in another program assignment. Overlapping assignments are restricted.");
+        return;
+    }
+
+    const newAs = {
+        id: "A" + (Date.now()),
+        beneficiaryId: benId,
+        programId: progId,
+        requirements: "Compliance documents checked and indigency reports verified",
+        status: "Active"
+    };
+    assignments.push(newAs);
+    localStorage.setItem('peso_assignments', JSON.stringify(assignments));
+
+    const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+    const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+    const bName = (beneficiaries.find(b => b.id === benId) || {}).name;
+    const pCode = (programs.find(p => p.id === progId) || {}).code;
+
+    if (typeof pushActivity === 'function') {
+        pushActivity("Program Assignment", `Assigned beneficiary: ${bName} to program: ${pCode}`);
+    }
+    alert(`Successfully assigned ${bName} to ${pCode}.`);
+    closeModal('assignmentModal');
+    renderAssignmentsTable();
+}
+
+function removeAssignment(id) {
+    if (confirm("Are you sure you want to deactivate/revoke this program assignment?")) {
+        let assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+        assignments = assignments.filter(a => a.id !== id);
+        localStorage.setItem('peso_assignments', JSON.stringify(assignments));
+        if (typeof pushActivity === 'function') {
+            pushActivity("Assignment Revoked", `Deactivated assignment ID: ${id}`);
+        }
+        renderAssignmentsTable();
+    }
+}
+
+window.openAddAssignmentModal = openAddAssignmentModal;
+window.handleAssignmentSubmit = handleAssignmentSubmit;
+window.removeAssignment = removeAssignment;
+window.renderAssignmentsTable = renderAssignmentsTable;
+window.maskContactNumber = maskContactNumber;
 
 // Translations dictionary for dynamic language switching
 const translations = {
@@ -5578,6 +5785,7 @@ const translations = {
         'nav_funds': 'Fund & Resource Tracking',
         'nav_distribution': 'Livelihood Distribution',
         'nav_notifications': 'Notification',
+        'nav_assignments': 'Program Assignment',
         'nav_signout': 'Sign Out',
         'role_peso_officer': 'PESO Officer',
         'pending_apps': 'Pending Applications',
@@ -5608,6 +5816,7 @@ const translations = {
         'title-module-funds': 'Fund & Resource Ledger',
         'title-module-distribution': 'Livelihood Aid Distribution',
         'title-module-notifications': 'System Notifications',
+        'title-module-assignments': 'Beneficiary Program Assignment',
         
         // Chart Legend/Labels
         'chart_label_this_month': 'This Month',
@@ -5625,6 +5834,7 @@ const translations = {
         'nav_funds': 'Pondo at Pagsubaybay sa Mapagkukunan',
         'nav_distribution': 'Pamamahagi ng Kabuhayan',
         'nav_notifications': 'Abiso',
+        'nav_assignments': 'Pagtatalaga ng Programa',
         'nav_signout': 'Mag-sign Out',
         'role_peso_officer': 'Opisyal ng PESO',
         'pending_apps': 'Mga Nakabinbing Aplikasyon',
@@ -5655,6 +5865,7 @@ const translations = {
         'title-module-funds': 'Ledger ng Pondo at Mapagkukunan',
         'title-module-distribution': 'Pamamahagi ng Tulong sa Kabuhayan',
         'title-module-notifications': 'Mga Abiso sa Sistema',
+        'title-module-assignments': 'Pagtatalaga ng Benepisyaryo sa Programa',
         
         // Chart Legend/Labels
         'chart_label_this_month': 'Buwang Ito',

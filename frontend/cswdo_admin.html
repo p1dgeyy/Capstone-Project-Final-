@@ -971,6 +971,11 @@
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" onclick="switchModule('module-assignments', this)" id="nav-assignments">
+                    <i class="bi bi-person-check-fill"></i> <span data-translate="nav_assignments">Program Assignment</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="#" class="sidebar-nav-link" onclick="switchModule('module-notifications', this)" id="nav-notifications">
                     <i class="bi bi-chat-left-dots"></i> <span data-translate="nav_alerts">Notifications</span>
                 </a>
@@ -1201,6 +1206,33 @@
                             </thead>
                             <tbody id="applicationsTableBody">
                                 <!-- Dynamic Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Program Assignment -->
+            <section class="module-page" id="module-assignments">
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h5 class="card-header-title">
+                            <i class="bi bi-person-check-fill"></i> <span data-translate="title-module-assignments">Beneficiary Program Assignment</span>
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Beneficiary Name</th>
+                                    <th>Contact Number</th>
+                                    <th>Assigned Program</th>
+                                    <th>Requirements Checklist</th>
+                                    <th>Assignment Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignmentsTableBody">
+                                <!-- Rendered dynamically -->
                             </tbody>
                         </table>
                     </div>
@@ -1825,11 +1857,13 @@
                 'nav_funds': 'Fund Utilization',
                 'nav_alerts': 'Notifications',
                 'nav_resets': 'Password Resets',
+                'nav_assignments': 'Program Assignment',
                 'nav_reports': 'System Reports',
                 'nav_signout': 'Sign Out',
                 'title-module-dashboard': 'Dashboard Metrics',
                 'title-module-officers': 'Officer Accounts Manager',
                 'title-module-applications': 'Welfare Applications Approval Board',
+                'title-module-assignments': 'Beneficiary Program Assignment',
                 'title-module-schedules': 'Operational Scheduling Calendar',
                 'title-module-funds': 'Welfare Fund & Budget Allocation',
                 'title-module-notifications': 'Announcements & Alerts Console',
@@ -1868,11 +1902,13 @@
                 'nav_funds': 'Pondo at Badyet',
                 'nav_alerts': 'Mga Abiso',
                 'nav_resets': 'Reset ng Password',
+                'nav_assignments': 'Pagtatalaga ng Programa',
                 'nav_reports': 'Mga Ulat',
                 'nav_signout': 'Mag-sign Out',
                 'title-module-dashboard': 'Mga Sukatan ng Dashboard',
                 'title-module-officers': 'Pamamahala ng Account ng Opisyal',
                 'title-module-applications': 'Lupon ng Pag-apruba sa Tulong',
+                'title-module-assignments': 'Pagtatalaga ng Benepisyaryo sa Programa',
                 'title-module-schedules': 'Kalendaryo ng Pag-iskedyul',
                 'title-module-funds': 'Badyet at Utilidad ng Pondo',
                 'title-module-notifications': 'Abiso at Anunsyo',
@@ -1972,6 +2008,15 @@
                 ];
                 localStorage.setItem('peso_beneficiaries', JSON.stringify(defaultBeneficiaries));
             }
+
+            // Default Program Assignments for CSWDO
+            if (!localStorage.getItem('cswdo_assignments')) {
+                const defaultAssignments = [
+                    { id: "CA1", beneficiaryId: "B1", programId: "P1", contact: "+639123456789", requirements: "Medical certificate verified, abstract checked", status: "Active" },
+                    { id: "CA2", beneficiaryId: "B3", programId: "P2", contact: "+639345678901", requirements: "Burial abstract verified, death certificate checked", status: "Active" }
+                ];
+                localStorage.setItem('cswdo_assignments', JSON.stringify(defaultAssignments));
+            }
         }
 
         // Initialize DB
@@ -2016,6 +2061,8 @@
                 renderOfficersTable();
             } else if (moduleId === 'module-applications') {
                 renderApplicationsTable();
+            } else if (moduleId === 'module-assignments') {
+                renderAssignmentsTable();
             } else if (moduleId === 'module-schedules') {
                 renderSchedulesTable();
             } else if (moduleId === 'module-funds') {
@@ -2036,6 +2083,7 @@
                     'module-dashboard': 'Overview of CSWDO assistance operations',
                     'module-officers': 'Manage CSWDO case worker and evaluator profiles',
                     'module-applications': 'Review submitted files, verify parameters and approve cases',
+                    'module-assignments': 'View beneficiary program assignments managed by officers',
                     'module-schedules': 'Setup orientation schedules, interviews, and payouts',
                     'module-funds': 'Check financial reserves, released stipends, and program allocations',
                     'module-notifications': 'Compose and send SMS/Email announcements to beneficiaries',
@@ -2046,6 +2094,7 @@
                     'module-dashboard': 'Pangkalahatang-ideya ng operasyon ng CSWDO',
                     'module-officers': 'Pamahalaan ang mga caseworker at tagasuri ng CSWDO',
                     'module-applications': 'Suriin ang mga isinumiteng file at aprobahan ang mga kasanayan',
+                    'module-assignments': 'Tingnan ang mga pagtatalaga ng programa na pinamamahalaan ng mga opisyal',
                     'module-schedules': 'I-setup ang oryentasyon, panayam, at pamamahagi',
                     'module-funds': 'Tingnan ang pondo, naibigay na tulong, at alokasyon ng programa',
                     'module-notifications': 'Gumawa at magpadala ng anunsyo sa mga benepisyaryo sa SMS/Email',
@@ -2469,6 +2518,36 @@
                 }
                 renderOfficersTable();
                 alert('Officer account deleted successfully.');
+            }
+        }
+
+        // ==============================================
+        // MODULE: PROGRAM ASSIGNMENT (READ-ONLY VIEW)
+        // ==============================================
+        function renderAssignmentsTable() {
+            const assignments = JSON.parse(localStorage.getItem('cswdo_assignments')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+            const tbody = document.getElementById('assignmentsTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            assignments.forEach(as => {
+                const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: 'Unknown', contact: 'N/A' };
+                const prog = programs.find(p => p.id === as.programId) || { code: 'Unknown' };
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${ben.name}</strong></td>
+                        <td>${maskContactNumber(ben.contact)}</td>
+                        <td><span class="status-badge completed" style="background: rgba(233, 30, 99, 0.08); color: var(--primary-dark);">${prog.code}</span></td>
+                        <td>${as.requirements}</td>
+                        <td><span class="status-badge active">${as.status || 'Active'}</span></td>
+                    </tr>
+                `;
+            });
+            if (assignments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No program assignments recorded.</td></tr>';
             }
         }
 
