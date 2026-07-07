@@ -1764,24 +1764,8 @@
                                         placeholder="Search programs..." oninput="renderProgramsTable()">
                                 </div>
                             </div>
-                            <div class="table-responsive">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Program Code</th>
-                                            <th>Program Description</th>
-                                            <th>LGU Approved Budget</th>
-                                            <th>Location</th>
-                                            <th>Slots (Avail/Total)</th>
-                                            <th>Accumulated Ben.</th>
-                                            <th>Status</th>
-                                            <th>Operations</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="programsTableBody">
-                                        <!-- Rendered dynamically -->
-                                    </tbody>
-                                </table>
+                            <div class="row g-3 px-3 pb-3" id="programsGridBody" style="max-height: 70vh; overflow-y: auto; margin-top: 10px;">
+                                <!-- Rendered dynamically as cards -->
                             </div>
                         </div>
                     </div>
@@ -3857,9 +3841,10 @@
         // ==============================================
         function renderProgramsTable() {
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
-            const tbody = document.getElementById('programsTableBody');
+            const gridBody = document.getElementById('programsGridBody');
+            if (!gridBody) return;
             const search = document.getElementById('programSearchInput').value.toLowerCase().trim();
-            tbody.innerHTML = '';
+            gridBody.innerHTML = '';
 
             const filtered = programs.filter(p => p.code.toLowerCase().includes(search) || p.name.toLowerCase().includes(search));
 
@@ -3870,7 +3855,7 @@
             filtered.forEach(p => {
                 const statusBadgeClass = p.status === 'Active' ? 'active' : 'inactive';
                 const actionText = p.status === 'Active' ? 'Deactivate' : 'Activate';
-                const actionIcon = p.status === 'Active' ? 'bi-toggle2-on text-success' : 'bi-toggle2-off text-muted';
+                const actionIcon = p.status === 'Active' ? 'bi-toggle2-on' : 'bi-toggle2-off';
 
                 // Calculate accumulated and received beneficiaries dynamically
                 const countAssignments = assignments.filter(a => a.programId === p.id).length;
@@ -3881,33 +3866,61 @@
                 const slotsTotal = p.slotsTotal !== undefined ? p.slotsTotal : 100;
                 const slotsAvailable = p.slotsAvailable !== undefined ? p.slotsAvailable : 45;
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td><a href="#" class="text-primary fw-bold text-decoration-none" onclick="viewProgramOverview('${p.id}'); return false;"><i class="bi bi-eye-fill me-1"></i>${p.code}</a></td>
-                        <td>${p.name}</td>
-                        <td>₱${formatCurrency(p.budget)}</td>
-                        <td><small><i class="bi bi-geo-alt-fill text-danger me-1"></i>${locationText}</small></td>
-                        <td>
-                            <div class="d-flex align-items-center justify-content-between mb-1" style="min-width: 100px;">
-                                <span class="small fw-semibold ${slotsAvailable === 0 ? 'text-danger' : 'text-success'}">${slotsAvailable} Left</span>
-                                <span class="small text-muted">/ ${slotsTotal}</span>
+                gridBody.innerHTML += `
+                    <div class="col-md-6 mb-3">
+                        <div class="program-card-admin card p-4 shadow-sm border-0 position-relative" style="border-radius: 16px; background-color: white; border: 1px solid #ebdce2 !important; height: 100%; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.25s ease; box-shadow: 0 4px 15px rgba(184, 92, 122, 0.05) !important;">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <span class="badge bg-secondary-subtle text-dark" style="font-weight: 700; border-radius: 6px; padding: 6px 12px; font-size: 0.85rem;">${p.code}</span>
+                                    <span class="status-badge ${statusBadgeClass}">${p.status}</span>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2" style="font-size: 1.1rem; line-height: 1.4; color: var(--primary-dark) !important;">${p.name}</h5>
+                                <p class="text-muted mb-3 small text-truncate-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px;">${p.description || 'No description available.'}</p>
+                                
+                                <div class="program-info-list mb-3" style="font-size: 0.85rem; color: #443c3f;">
+                                    <div class="mb-2 d-flex align-items-center gap-2">
+                                        <i class="bi bi-wallet2 text-primary" style="color: var(--primary-pink) !important;"></i>
+                                        <span>Budget: <strong>₱${formatCurrency(p.budget)}</strong></span>
+                                    </div>
+                                    <div class="mb-2 d-flex align-items-center gap-2" style="min-width: 0;">
+                                        <i class="bi bi-geo-alt-fill text-danger flex-shrink-0"></i>
+                                        <span class="text-truncate">Location: <small class="text-muted">${locationText}</small></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="small fw-semibold"><i class="bi bi-pie-chart-fill text-success me-1"></i>Slots Avail: <strong class="${slotsAvailable === 0 ? 'text-danger' : 'text-success'}">${slotsAvailable}</strong> / ${slotsTotal}</span>
+                                            <span class="small text-muted">${Math.round(slotsTotal > 0 ? (slotsAvailable / slotsTotal) * 100 : 0)}% left</span>
+                                        </div>
+                                        <div class="progress" style="height: 6px; background-color: var(--primary-light); border-radius: 4px;">
+                                            <div class="progress-bar ${slotsAvailable === 0 ? 'bg-danger' : 'bg-success'}" role="progressbar" style="width: ${(slotsTotal > 0 ? (slotsAvailable / slotsTotal) * 100 : 0)}%; border-radius: 4px;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2 d-flex align-items-center gap-2">
+                                        <i class="bi bi-people-fill text-info" style="color: #17a2b8 !important;"></i>
+                                        <span>Ben. Received: <strong class="badge bg-secondary px-2 py-1 rounded-pill">${accumulatedCount} Approved</strong></span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="progress" style="height: 6px; background-color: var(--primary-light); border-radius: 4px;">
-                                <div class="progress-bar ${slotsAvailable === 0 ? 'bg-danger' : 'bg-success'}" role="progressbar" style="width: ${(slotsTotal > 0 ? (slotsAvailable / slotsTotal) * 100 : 0)}%; border-radius: 4px;"></div>
+                            <div class="d-flex gap-2 pt-3 border-top mt-auto" style="border-color: #f2e6eb !important;">
+                                <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 flex-grow-1 justify-content-center" onclick="viewProgramOverview('${p.id}')" title="View details" style="border-radius: 8px; font-weight: 600; font-size: 0.75rem;">
+                                    <i class="bi bi-eye"></i> Details
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 flex-grow-1 justify-content-center" onclick="openEditProgramModal('${p.id}')" title="Edit program" style="border-radius: 8px; font-weight: 600; font-size: 0.75rem;">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </button>
+                                <button class="btn btn-sm ${p.status === 'Active' ? 'btn-outline-danger' : 'btn-outline-success'} d-flex align-items-center gap-1 justify-content-center" onclick="toggleProgramStatus('${p.id}')" title="${actionText} Program" style="border-radius: 8px; font-weight: 600; min-width: 32px; padding: 4px 6px;">
+                                    <i class="bi ${actionIcon} fs-6"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" onclick="deleteProgram('${p.id}')" title="Delete program" style="border-radius: 8px; font-weight: 600; min-width: 32px; padding: 4px 6px;">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </div>
-                        </td>
-                        <td class="text-center"><span class="badge bg-secondary rounded-pill py-2 px-3 fw-bold">${accumulatedCount} Received</span></td>
-                        <td><span class="status-badge ${statusBadgeClass}">${p.status}</span></td>
-                        <td>
-                            <button class="action-icon-btn" onclick="openEditProgramModal('${p.id}')" title="Edit details"><i class="bi bi-pencil-square"></i></button>
-                            <button class="action-icon-btn" onclick="toggleProgramStatus('${p.id}')" title="${actionText} Program"><i class="bi ${actionIcon}"></i></button>
-                            <button class="action-icon-btn danger" onclick="deleteProgram('${p.id}')" title="Delete program"><i class="bi bi-trash"></i></button>
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
                 `;
             });
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">No livelihood programs registered.</td></tr>';
+                gridBody.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="bi bi-folder-x fs-1 d-block mb-2"></i>No livelihood programs registered.</div>';
             }
         }
 
