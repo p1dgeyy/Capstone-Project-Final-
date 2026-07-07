@@ -1789,6 +1789,12 @@
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" data-module="programs">
+                    <i class="bi bi-folder2-open"></i>
+                    <span data-translate="nav_programs">Program Directory</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="#" class="sidebar-nav-link" data-module="notifications">
                     <i class="bi bi-bell"></i>
                     <span data-translate="nav_notifications">Notification</span>
@@ -3440,11 +3446,145 @@
                             <i class="bi bi-person-lines-fill" style="font-size: 3rem; color: var(--primary-pink);"></i>
                             <h5 class="mt-3 mb-2">Beneficiary Report</h5>
                             <p class="text-muted mb-0">REQ048: Profiles, assistance history, participation</p>
-</div>
-        </div>
-    </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-    <!-- Application Detail Modal -->
+            <!-- MODULE: Program Directory -->
+            <section class="module-page" id="module-programs">
+                <div class="table-card">
+                    <div class="section-header">
+                        <h5 class="section-title">Livelihood Program Directory</h5>
+                    </div>
+                    <div class="filter-bar">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="officerProgramSearch" placeholder="Search programs by code or name..." onkeyup="renderOfficerProgramsTable()">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Program Code</th>
+                                    <th>Program Name</th>
+                                    <th>LGU Approved Budget</th>
+                                    <th>Location</th>
+                                    <th>Slots (Avail/Total)</th>
+                                    <th>Accumulated Ben.</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="officerProgramsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MODULE: Program Overview Page -->
+            <section class="module-page" id="module-program-overview">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm mb-3 d-inline-flex align-items-center gap-1 control-btn-custom" onclick="switchModule('module-programs')">
+                            <i class="bi bi-arrow-left"></i> Back to Program Directory
+                        </button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-8 mb-3">
+                        <div class="table-card p-4">
+                            <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4 flex-wrap gap-2">
+                                <div>
+                                    <span class="badge bg-primary px-3 py-2 fs-6 mb-2" style="background-color: var(--primary-dark) !important;">PESO</span>
+                                    <h2 class="table-title fs-3 text-dark fw-bold mb-1" id="officerOverviewProgramName">Program Full Name</h2>
+                                    <div class="text-muted"><i class="bi bi-code-slash me-1"></i>Program Code: <strong class="text-secondary" id="officerOverviewProgramCode">CODE</strong></div>
+                                </div>
+                                <span class="status-badge active fs-6 py-2 px-3" id="officerOverviewProgramStatus">Active</span>
+                            </div>
+
+                            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-info-circle-fill text-primary me-2" style="color: var(--primary-dark) !important;"></i>Background Information</h5>
+                            <p class="text-dark fs-6 lh-base mb-4" id="officerOverviewBackground" style="text-align: justify; color: #443c3f !important;">No background details available.</p>
+
+                            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-clock-history text-primary me-2" style="color: var(--primary-dark) !important;"></i>Annual Slot Allocations</h5>
+                            <div class="alert alert-info py-3 px-4 border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--primary-lighter); border-left: 5px solid var(--primary-pink) !important;">
+                                <div class="fw-semibold text-dark fs-6" id="officerOverviewAnnualAlloc">Historically allocates slots annually.</div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="card p-3 border rounded-4 bg-light shadow-sm">
+                                        <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-shield-check text-success me-2"></i>Eligibility Criteria</h6>
+                                        <ul class="ps-3 mb-0 text-dark fs-6" id="officerOverviewEligibility" style="list-style-type: square; line-height: 1.6;">
+                                            <!-- List items -->
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="card p-3 border rounded-4 bg-light shadow-sm">
+                                        <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-star-fill text-warning me-2"></i>Target Priorities</h6>
+                                        <ul class="ps-3 mb-0 text-dark fs-6" id="officerOverviewPriorities" style="list-style-type: square; line-height: 1.6;">
+                                            <!-- List items -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6 mb-3">
+                                    <div class="card p-3 border rounded-4 bg-light shadow-sm">
+                                        <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-card-checklist text-primary me-2" style="color: var(--primary-dark) !important;"></i>Document Requirements</h6>
+                                        <ul class="ps-3 mb-0 text-dark fs-6" id="officerOverviewRequirements" style="list-style-type: square; line-height: 1.6;">
+                                            <!-- List items -->
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="card p-3 border rounded-4 bg-light shadow-sm">
+                                        <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-list-ol text-primary me-2" style="color: var(--primary-dark) !important;"></i>Steps to Apply</h6>
+                                        <ol class="ps-3 mb-0 text-dark fs-6" id="officerOverviewInstructions" style="line-height: 1.6;">
+                                            <!-- List items -->
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 mb-3">
+                        <div class="table-card p-4 mb-3">
+                            <h5 class="table-title mb-3"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Held Location</h5>
+                            <div class="p-3 border rounded-4 bg-light shadow-sm text-center mb-4">
+                                <i class="bi bi-building fs-1 text-secondary mb-2 d-block"></i>
+                                <span class="fw-bold text-dark fs-6" id="officerOverviewLocation">Koronadal City Hall</span>
+                            </div>
+
+                            <h5 class="table-title mb-3"><i class="bi bi-pie-chart-fill text-primary me-2" style="color: var(--primary-dark) !important;"></i>Slot Availability Tracker</h5>
+                            <div class="p-3 border rounded-4 bg-light shadow-sm mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="fw-bold text-dark" id="officerOverviewSlotsLeft">0 Left</span>
+                                    <span class="text-muted" id="officerOverviewSlotsTotal">/ 0 Total</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 12px; background-color: var(--primary-light); border-radius: 6px;">
+                                    <div class="progress-bar" id="officerOverviewSlotsProgress" role="progressbar" style="width: 0%; border-radius: 6px;"></div>
+                                </div>
+                                <small class="text-muted d-block text-center mt-1" id="officerOverviewSlotsPercentage">0% of slots remaining</small>
+                            </div>
+
+                            <h5 class="table-title mb-3"><i class="bi bi-people-fill text-primary me-2" style="color: var(--primary-dark) !important;"></i>Accumulated Statistics</h5>
+                            <div class="p-3 border rounded-4 bg-light shadow-sm text-center mb-4">
+                                <div class="fs-1 fw-bold text-secondary" id="officerOverviewAccumulatedBen" style="color: var(--primary-dark) !important;">0</div>
+                                <span class="small text-muted fw-semibold">Total Beneficiaries Received & Approved</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Application Detail Modal -->
     <div class="modal-overlay" id="applicationDetailModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -5163,29 +5303,164 @@ function initCharts() {
     }
 }
 
+function switchModule(moduleId, linkEl) {
+    const pages = document.querySelectorAll('.module-page');
+    pages.forEach(p => p.classList.remove('active'));
+    
+    const targetPage = document.getElementById(moduleId);
+    if (targetPage) targetPage.classList.add('active');
+
+    // Update active nav link if provided or find matching data-module
+    const links = document.querySelectorAll('.sidebar-nav-link');
+    links.forEach(x => x.classList.remove('active'));
+
+    const modName = moduleId.replace('module-', '');
+    if (linkEl) {
+        linkEl.classList.add('active');
+    } else {
+        const matchingLink = Array.from(links).find(l => l.getAttribute('data-module') === modName);
+        if (matchingLink) matchingLink.classList.add('active');
+    }
+
+    // Update breadcrumb and header title
+    const activeLang = localStorage.getItem('lang') || 'en';
+    const dict = translations[activeLang] || translations['en'];
+    const moduleTitleKey = 'title-module-' + modName;
+    const navTitleKey = 'nav_' + (modName === 'notifications' ? 'notifications' : modName);
+    
+    const titleEl = document.getElementById('pageTitle');
+    const breadcrumbEl = document.getElementById('breadcrumb');
+    if (titleEl) titleEl.textContent = dict[moduleTitleKey] || dict[navTitleKey] || modName;
+    if (breadcrumbEl) breadcrumbEl.textContent = dict[navTitleKey] || modName;
+
+    // Trigger tab-specific renders
+    if (modName === 'assignments') {
+        renderAssignmentsTable();
+    } else if (modName === 'programs') {
+        renderOfficerProgramsTable();
+    }
+}
+
+function renderOfficerProgramsTable() {
+    const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+    const tbody = document.getElementById('officerProgramsTableBody');
+    if (!tbody) return;
+    const search = (document.getElementById('officerProgramSearch')?.value || '').toLowerCase().trim();
+    tbody.innerHTML = '';
+
+    const filtered = programs.filter(p => p.code.toLowerCase().includes(search) || p.name.toLowerCase().includes(search));
+
+    const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+    const applications = JSON.parse(localStorage.getItem('peso_applications')) || [];
+
+    filtered.forEach(p => {
+        const statusBadgeClass = p.status === 'Active' ? 'active' : 'inactive';
+        
+        const countAssignments = assignments.filter(a => a.programId === p.id).length;
+        const countApps = applications.filter(a => (a.programId === p.id || a.programCode === p.code) && (a.status === 'Approved' || a.status === 'Completed')).length;
+        const accumulatedCount = Math.max(countAssignments, countApps);
+
+        const locationText = p.location || 'PESO Office, Koronadal City Hall';
+        const slotsTotal = p.slotsTotal !== undefined ? p.slotsTotal : 100;
+        const slotsAvailable = p.slotsAvailable !== undefined ? p.slotsAvailable : 45;
+
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${p.code}</strong></td>
+                <td>${p.name}</td>
+                <td>₱${formatCurrency(p.budget)}</td>
+                <td><small><i class="bi bi-geo-alt-fill text-danger me-1"></i>${locationText}</small></td>
+                <td>
+                    <div class="d-flex align-items-center justify-content-between mb-1" style="min-width: 100px;">
+                        <span class="small fw-semibold ${slotsAvailable === 0 ? 'text-danger' : 'text-success'}">${slotsAvailable} Left</span>
+                        <span class="small text-muted">/ ${slotsTotal}</span>
+                    </div>
+                    <div class="progress" style="height: 6px; background-color: var(--primary-light); border-radius: 4px;">
+                        <div class="progress-bar ${slotsAvailable === 0 ? 'bg-danger' : 'bg-success'}" role="progressbar" style="width: ${(slotsTotal > 0 ? (slotsAvailable / slotsTotal) * 100 : 0)}%; border-radius: 4px;"></div>
+                    </div>
+                </td>
+                <td class="text-center"><span class="badge bg-secondary rounded-pill py-2 px-3 fw-bold">${accumulatedCount} Received</span></td>
+                <td><span class="status-badge ${statusBadgeClass}">${p.status}</span></td>
+                <td>
+                    <button class="action-btn view" onclick="viewOfficerProgramOverview('${p.id}')" title="View details" style="padding: 4px 8px; font-size: 0.8rem;"><i class="bi bi-eye"></i> Details</button>
+                </td>
+            </tr>
+        `;
+    });
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">No livelihood programs found.</td></tr>';
+    }
+}
+
+function viewOfficerProgramOverview(id) {
+    const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+    const program = programs.find(p => p.id === id);
+    if (!program) return;
+
+    const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+    const applications = JSON.parse(localStorage.getItem('peso_applications')) || [];
+
+    const countAssignments = assignments.filter(a => a.programId === program.id).length;
+    const countApps = applications.filter(a => (a.programId === program.id || a.programCode === program.code) && (a.status === 'Approved' || a.status === 'Completed')).length;
+    const accumulatedCount = Math.max(countAssignments, countApps);
+
+    document.getElementById('officerOverviewProgramName').textContent = program.name;
+    document.getElementById('officerOverviewProgramCode').textContent = program.code;
+    document.getElementById('officerOverviewProgramStatus').textContent = program.status;
+    document.getElementById('officerOverviewProgramStatus').className = `status-badge ${program.status === 'Active' ? 'active' : 'inactive'} fs-6 py-2 px-3`;
+
+    document.getElementById('officerOverviewBackground').textContent = program.description || "No background details available.";
+    document.getElementById('officerOverviewAnnualAlloc').textContent = program.annualAllocation || "Historically allocates slots annually.";
+    document.getElementById('officerOverviewLocation').textContent = program.location || "PESO Office, Koronadal City Hall";
+
+    const total = program.slotsTotal !== undefined ? program.slotsTotal : 100;
+    const avail = program.slotsAvailable !== undefined ? program.slotsAvailable : 45;
+    document.getElementById('officerOverviewSlotsLeft').textContent = `${avail} Left`;
+    document.getElementById('officerOverviewSlotsTotal').textContent = `/ ${total} Total`;
+    
+    const pct = total > 0 ? Math.round((avail / total) * 100) : 0;
+    const progressEl = document.getElementById('officerOverviewSlotsProgress');
+    if (progressEl) {
+        progressEl.style.width = `${pct}%`;
+        progressEl.className = `progress-bar ${avail === 0 ? 'bg-danger' : 'bg-success'}`;
+    }
+    document.getElementById('officerOverviewSlotsPercentage').textContent = `${pct}% of slots remaining`;
+    document.getElementById('officerOverviewAccumulatedBen').textContent = accumulatedCount;
+
+    const renderList = (elementId, items) => {
+        const ul = document.getElementById(elementId);
+        if (!ul) return;
+        ul.innerHTML = '';
+        if (!items || items.length === 0) {
+            ul.innerHTML = '<li class="text-muted">None specified</li>';
+            return;
+        }
+        items.forEach(item => {
+            ul.innerHTML += `<li>${item}</li>`;
+        });
+    };
+
+    renderList('officerOverviewEligibility', program.eligibility);
+    renderList('officerOverviewPriorities', program.priorities);
+    renderList('officerOverviewRequirements', program.requirements);
+    renderList('officerOverviewInstructions', program.instructions);
+
+    // Switch to overview section
+    switchModule('module-program-overview');
+}
+
+function formatCurrency(val) {
+    if (isNaN(val)) return '0.00';
+    return parseFloat(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function initNavigation() {
     var links = document.querySelectorAll('.sidebar-nav-link');
-    var pages = document.querySelectorAll('.module-page');
     links.forEach(function(l) {
         l.addEventListener('click', function(e) {
             e.preventDefault();
             var m = this.getAttribute('data-module');
-            links.forEach(function(x) { x.classList.remove('active'); });
-            this.classList.add('active');
-            pages.forEach(function(p) { p.classList.remove('active'); });
-            document.getElementById('module-' + m).classList.add('active');
-            
-            if (m === 'assignments') {
-                renderAssignmentsTable();
-            }
-            
-            // Update breadcrumb and header title
-            var activeLang = localStorage.getItem('lang') || 'en';
-            var dict = translations[activeLang] || translations['en'];
-            var moduleTitleKey = 'title-module-' + m;
-            var navTitleKey = 'nav_' + (m === 'notifications' ? 'notifications' : m);
-            document.getElementById('pageTitle').textContent = dict[moduleTitleKey] || dict[navTitleKey] || m;
-            document.getElementById('breadcrumb').textContent = dict[navTitleKey] || m;
+            switchModule('module-' + m, this);
         });
     });
 }
@@ -5209,6 +5484,9 @@ window.sendNotification = sendNotification;
 window.viewApprovalDetails = viewApprovalDetails;
 window.openBeneficiaryTracking = openBeneficiaryTracking;
 window.updateCompletionStatus = updateCompletionStatus;
+window.viewOfficerProgramOverview = viewOfficerProgramOverview;
+window.renderOfficerProgramsTable = renderOfficerProgramsTable;
+window.switchModule = switchModule;
 window.searchBeneficiaries = function() { alert('Search functionality coming soon'); };
 window.filterBeneficiaries = function() { alert('Filter functionality coming soon'); };
 window.calculateAge = function() {
@@ -5786,6 +6064,7 @@ const translations = {
         'nav_distribution': 'Livelihood Distribution',
         'nav_notifications': 'Notification',
         'nav_assignments': 'Program Assignment',
+        'nav_programs': 'Program Directory',
         'nav_signout': 'Sign Out',
         'role_peso_officer': 'PESO Officer',
         'pending_apps': 'Pending Applications',
@@ -5817,6 +6096,8 @@ const translations = {
         'title-module-distribution': 'Livelihood Aid Distribution',
         'title-module-notifications': 'System Notifications',
         'title-module-assignments': 'Beneficiary Program Assignment',
+        'title-module-programs': 'Livelihood Program Directory',
+        'title-module-program-overview': 'Detailed Program Overview',
         
         // Chart Legend/Labels
         'chart_label_this_month': 'This Month',
@@ -5835,6 +6116,7 @@ const translations = {
         'nav_distribution': 'Pamamahagi ng Kabuhayan',
         'nav_notifications': 'Abiso',
         'nav_assignments': 'Pagtatalaga ng Programa',
+        'nav_programs': 'Direktoryo ng Programa',
         'nav_signout': 'Mag-sign Out',
         'role_peso_officer': 'Opisyal ng PESO',
         'pending_apps': 'Mga Nakabinbing Aplikasyon',
@@ -5866,6 +6148,8 @@ const translations = {
         'title-module-distribution': 'Pamamahagi ng Tulong sa Kabuhayan',
         'title-module-notifications': 'Mga Abiso sa Sistema',
         'title-module-assignments': 'Pagtatalaga ng Benepisyaryo sa Programa',
+        'title-module-programs': 'Direktoryo ng mga Programa sa Kabuhayan',
+        'title-module-program-overview': 'Detalyadong Pangkalahatang-ideya ng Programa',
         
         // Chart Legend/Labels
         'chart_label_this_month': 'Buwang Ito',
