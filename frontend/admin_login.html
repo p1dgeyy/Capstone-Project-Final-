@@ -1596,8 +1596,8 @@
             icon.classList.toggle('bi-eye-slash');
         });
 
-        // Form submission (Staff Only)
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        // Form submission (Staff Only — authenticates against MySQL database)
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -1628,36 +1628,46 @@
             spinner.style.display = 'block';
             loginBtn.disabled = true;
 
-            setTimeout(() => {
-                const staffCredentials = {
-                    'peso-admin': { password: 'password123', role: 'PESO Admin', redirect: 'peso_admin.html' },
-                    'peso-officer': { password: 'password123', role: 'PESO Officer', redirect: 'peso_officer.html' },
-                    'cswdo-admin': { password: 'password123', role: 'CSWDO Admin', redirect: 'cswdo_admin.html' },
-                    'cswdo-officer': { password: 'password123', role: 'CSWDO Officer', redirect: 'cswdo_officer.html' },
-                    'evaluator': { password: 'password123', role: 'Evaluator', redirect: 'evaluator.html' }
-                };
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username.trim(), password })
+                });
 
-                const user = staffCredentials[username.toLowerCase().trim()];
+                const data = await response.json();
 
-                if (user && user.password === password) {
-                    sessionStorage.setItem('userRole', user.role);
-                    sessionStorage.setItem('username', username);
-                    
+                if (response.ok && data.success) {
+                    sessionStorage.setItem('userRole', data.user.role);
+                    sessionStorage.setItem('username', data.user.username);
+                    sessionStorage.setItem('userId', data.user.id);
+                    sessionStorage.setItem('userFullName', data.user.fullName);
+
                     successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
                     successAlert.style.display = 'block';
-                    
+
                     setTimeout(() => {
-                        window.location.href = user.redirect;
+                        window.location.href = data.redirect;
                     }, 1000);
                 } else {
-                    document.getElementById('errorMessage').textContent = translations[lang]['error_invalid'];
+                    document.getElementById('errorMessage').textContent = data.message || translations[lang]['error_invalid'];
                     errorAlert.style.display = 'block';
                     btnText.style.display = 'inline';
                     btnIcon.style.display = 'inline-block';
                     spinner.style.display = 'none';
                     loginBtn.disabled = false;
                 }
-            }, 1000);
+            } catch (networkError) {
+                console.error('Login request failed:', networkError);
+                document.getElementById('errorMessage').textContent = lang === 'tg'
+                    ? 'Hindi makakonekta sa server. Subukan muli mamaya.'
+                    : 'Unable to connect to the server. Please try again later.';
+                errorAlert.style.display = 'block';
+                btnText.style.display = 'inline';
+                btnIcon.style.display = 'inline-block';
+                spinner.style.display = 'none';
+                loginBtn.disabled = false;
+            }
         });
 
         // Initialize state on load

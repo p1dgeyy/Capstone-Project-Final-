@@ -620,12 +620,14 @@
             document.getElementById('filePreview').innerHTML = '';
         }
 
-        // Form validation and submission
-        function handleRegistration(event) {
+        // Form validation and submission — sends data to MySQL database via API
+        async function handleRegistration(event) {
             event.preventDefault();
 
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
+            const middleName = document.getElementById('middleName') ? document.getElementById('middleName').value.trim() : '';
+            const suffix = document.getElementById('suffix') ? document.getElementById('suffix').value.trim() : '';
             const age = document.getElementById('age').value;
             const dateOfBirth = document.getElementById('dateOfBirth').value;
             const sex = document.getElementById('sex').value;
@@ -639,9 +641,10 @@
             const confirmPassword = document.getElementById('confirmPassword').value;
             const idType = document.getElementById('idType').value;
             const termsAgreed = document.getElementById('termsAgreed').checked;
+            const dataConsent = document.getElementById('dataConsent') ? document.getElementById('dataConsent').checked : true;
             const idFile = document.getElementById('idFile').files[0];
 
-            // Validation
+            // Client-side Validation
             if (!firstName || !lastName || !age || !dateOfBirth || !sex || !nationality || !email || !phone || !address) {
                 showError('Please fill in all required fields');
                 return;
@@ -692,12 +695,53 @@
                 return;
             }
 
-            // Success
-            showSuccess('Account created successfully! Redirecting to login...');
-            
-            setTimeout(() => {
-                window.location.href = 'official_login.html';
-            }, 2000);
+            // Send registration data to the API server
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        firstName,
+                        middleName: middleName || null,
+                        lastName,
+                        suffix: suffix || null,
+                        age: parseInt(age, 10),
+                        dateOfBirth,
+                        sex,
+                        nationality: nationality || 'Filipino',
+                        maritalStatus: maritalStatus.value,
+                        email,
+                        phone,
+                        address,
+                        idType,
+                        termsAgreed,
+                        dataConsent
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccess('Account created successfully! Redirecting to login...');
+
+                    setTimeout(() => {
+                        window.location.href = 'official_login.html';
+                    }, 2000);
+                } else if (response.status === 409) {
+                    // Duplicate username or email
+                    showError(data.message || 'An account with this username or email already exists.');
+                } else if (response.status === 400 && data.errors) {
+                    // Validation errors from server
+                    showError(data.errors.join(' '));
+                } else {
+                    showError(data.message || 'Registration failed. Please try again.');
+                }
+            } catch (networkError) {
+                console.error('Registration request failed:', networkError);
+                showError('Unable to connect to the server. Please check your connection and try again.');
+            }
         }
 
         function validateEmail(email) {

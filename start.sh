@@ -9,6 +9,14 @@ echo "=== Capstone Portal Startup Script ==="
 echo "Running database migrations..."
 npm run migrate
 
+# Start the Express API server in the background
+echo "Starting Express API server..."
+node backend/server.js &
+
+# Give the API server a moment to initialize
+sleep 2
+
 # Start Nginx in the foreground
 echo "Starting Nginx web server..."
 exec nginx -g "daemon off;"
+
