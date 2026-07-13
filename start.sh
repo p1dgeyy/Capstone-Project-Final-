@@ -19,4 +19,3 @@ sleep 2
 # Start Nginx in the foreground
 echo "Starting Nginx web server..."
 exec nginx -g "daemon off;"
-

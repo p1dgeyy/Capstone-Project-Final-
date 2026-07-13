@@ -21,8 +21,8 @@ RUN rm /etc/nginx/conf.d/default.conf && \
     rm -rf /usr/share/nginx/html/* && \
     cp -r frontend/* /usr/share/nginx/html/
 
-# Make the startup script executable
-RUN chmod +x start.sh
+# Fix Windows line-endings (CRLF → LF) so the script runs on Linux
+RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
 
 EXPOSE 3000
 
