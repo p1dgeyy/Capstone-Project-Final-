@@ -12,11 +12,28 @@ const PORT = process.env.API_PORT || process.env.PORT || 8080;
 // Middleware
 // =============================================================================
 
-// CORS — allow frontend origin (Nginx serves on port 3000 in Docker)
+// CORS — allow frontend origin(s)
+// Set CORS_ORIGIN to a comma-separated list of allowed origins, e.g.:
+//   CORS_ORIGIN=https://your-app.vercel.app,http://localhost:3000
+// Defaults to '*' (allow all) if not set.
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+  : null;
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: allowedOrigins
+    ? function (origin, callback) {
+        // Allow requests with no origin (server-to-server, curl, etc.)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+      }
+    : '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: !!allowedOrigins
 }));
 
 // Parse JSON request bodies
