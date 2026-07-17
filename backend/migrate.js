@@ -70,6 +70,19 @@ async function runMigrations() {
     }
     console.log('Database schema successfully initialized/verified.');
 
+    // --- Post-schema verification: confirm tables actually exist ---
+    const [tables] = await connection.query('SHOW TABLES');
+    const tableNames = tables.map(row => Object.values(row)[0]);
+    console.log(`[VERIFY] Tables in database: ${tableNames.join(', ')}`);
+
+    const expectedTables = ['users', 'programs', 'applications', 'notifications', 'distributions'];
+    const missingTables = expectedTables.filter(t => !tableNames.includes(t));
+    if (missingTables.length > 0) {
+      console.error(`[VERIFY] WARNING: Expected tables missing: ${missingTables.join(', ')}`);
+    } else {
+      console.log('[VERIFY] All expected tables are present.');
+    }
+
     // 3.5. Ensure current_session_token column exists on existing deployments
     // (ALTER TABLE is idempotent-safe with the IF NOT EXISTS check below)
     try {
@@ -156,6 +169,17 @@ async function runMigrations() {
         console.log(`Migrated ${legacyCount} plaintext password(s) to bcrypt.`);
       } else {
         console.log('All passwords are already bcrypt-hashed. No migration needed.');
+      }
+    }
+
+    // --- Final verification: row counts across all tables ---
+    console.log('[VERIFY] Final database state:');
+    for (const table of ['users', 'programs', 'applications', 'notifications', 'distributions']) {
+      try {
+        const [countResult] = await connection.query(`SELECT COUNT(*) AS count FROM \`${table}\``);
+        console.log(`[VERIFY]   ${table}: ${countResult[0].count} row(s)`);
+      } catch (e) {
+        console.warn(`[VERIFY]   ${table}: ERROR — ${e.message}`);
       }
     }
 

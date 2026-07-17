@@ -157,6 +157,13 @@ router.post('/register', async (req, res) => {
       dataConsent
     } = req.body;
 
+    // --- Debug Logging: Log incoming registration payload (excluding password) ---
+    console.log('[AUTH] Attempting to save user payload:', JSON.stringify({
+      username, firstName, middleName, lastName, suffix, age, dateOfBirth,
+      sex, nationality, maritalStatus, email, phone, address: address ? address.substring(0, 50) + '...' : null,
+      idType, termsAgreed, dataConsent
+    }));
+
     // --- Input Validation ---
     const errors = [];
 
@@ -245,6 +252,8 @@ router.post('/register', async (req, res) => {
 
     const [result] = await connection.execute(insertQuery, insertValues);
 
+    // --- Debug Logging: Confirm SQL INSERT result ---
+    console.log(`[AUTH] SQL INSERT result: { insertId: ${result.insertId}, affectedRows: ${result.affectedRows}, warningStatus: ${result.warningStatus} }`);
     console.log(`[AUTH] Registration successful — new user ID: ${result.insertId}, username: ${username.trim()}, role: Beneficiary`);
 
     return res.status(201).json({
@@ -256,6 +265,8 @@ router.post('/register', async (req, res) => {
   } catch (error) {
     console.error('[AUTH] Registration endpoint error:', error.message);
     console.error('[AUTH] Error code:', error.code);
+    console.error('[AUTH] SQL message:', error.sqlMessage || 'N/A');
+    console.error('[AUTH] SQL query (first 200 chars):', error.sql ? error.sql.substring(0, 200) : 'N/A');
     console.error('[AUTH] Stack trace:', error.stack);
 
     // Handle specific MySQL errors
