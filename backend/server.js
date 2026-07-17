@@ -38,6 +38,7 @@ app.use(cors({
 
 // Parse JSON request bodies
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -65,6 +66,19 @@ app.get('/api/health', async (req, res) => {
 // Mount authentication routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
+
+// Mount CRUD resource routes
+const programRoutes = require('./routes/programs');
+const applicationRoutes = require('./routes/applications');
+const distributionRoutes = require('./routes/distributions');
+const notificationRoutes = require('./routes/notifications');
+const userRoutes = require('./routes/users');
+
+app.use('/api/programs', programRoutes);
+app.use('/api/applications', applicationRoutes);
+app.use('/api/distributions', distributionRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/users', userRoutes);
 
 // =============================================================================
 // Error Handling
