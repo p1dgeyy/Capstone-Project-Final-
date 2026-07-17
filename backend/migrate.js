@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const pool = require('./db.js');
 
@@ -69,6 +70,25 @@ async function runMigrations() {
     }
     console.log('Database schema successfully initialized/verified.');
 
+    // 3.5. Ensure current_session_token column exists on existing deployments
+    // (ALTER TABLE is idempotent-safe with the IF NOT EXISTS check below)
+    try {
+      const [columns] = await connection.query(
+        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'current_session_token'"
+      );
+      if (columns.length === 0) {
+        console.log('Adding current_session_token column to users table...');
+        await connection.query(
+          "ALTER TABLE `users` ADD COLUMN `current_session_token` VARCHAR(128) DEFAULT NULL AFTER `data_consent`"
+        );
+        console.log('current_session_token column added successfully.');
+      } else {
+        console.log('current_session_token column already exists. Skipping.');
+      }
+    } catch (alterError) {
+      console.warn('Warning: Could not verify/add current_session_token column:', alterError.message);
+    }
+
     // 4. Determine if seeding is necessary
     // We only seed if the users table is empty to prevent overwriting production data
     console.log('Checking database content for seeding condition...');
@@ -89,8 +109,54 @@ async function runMigrations() {
         await connection.query(statement);
       }
       console.log('Database seeding successfully completed.');
+
+      // 4.5. Hash all plaintext passwords in the seeded data
+      // The seed.sql uses plaintext passwords for readability, but production must use bcrypt
+      console.log('Hashing seed user passwords with bcrypt...');
+      const [seedUsers] = await connection.query('SELECT `id`, `username`, `password` FROM `users`');
+      let hashedCount = 0;
+
+      for (const user of seedUsers) {
+        // Skip if already a bcrypt hash (starts with $2a$, $2b$, or $2y$)
+        if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$')) {
+          continue;
+        }
+        const hashedPassword = await bcrypt.hash(user.password, 10);
+        await connection.execute(
+          'UPDATE `users` SET `password` = ? WHERE `id` = ?',
+          [hashedPassword, user.id]
+        );
+        hashedCount++;
+        console.log(`  Hashed password for user: ${user.username}`);
+      }
+      console.log(`Password hashing complete. ${hashedCount} password(s) upgraded to bcrypt.`);
+
     } else {
       console.log('Database already contains data. Skipping seeding phase to preserve existing records.');
+
+      // 4.6. Still check for any remaining plaintext passwords and hash them
+      // (handles edge case where previous deployment seeded but didn't hash)
+      console.log('Checking for any remaining plaintext passwords...');
+      const [allUsers] = await connection.query('SELECT `id`, `username`, `password` FROM `users`');
+      let legacyCount = 0;
+
+      for (const user of allUsers) {
+        if (!user.password.startsWith('$2a$') && !user.password.startsWith('$2b$') && !user.password.startsWith('$2y$')) {
+          const hashedPassword = await bcrypt.hash(user.password, 10);
+          await connection.execute(
+            'UPDATE `users` SET `password` = ? WHERE `id` = ?',
+            [hashedPassword, user.id]
+          );
+          legacyCount++;
+          console.log(`  Migrated plaintext password for user: ${user.username}`);
+        }
+      }
+
+      if (legacyCount > 0) {
+        console.log(`Migrated ${legacyCount} plaintext password(s) to bcrypt.`);
+      } else {
+        console.log('All passwords are already bcrypt-hashed. No migration needed.');
+      }
     }
 
     console.log('--- DATABASE MIGRATIONS COMPLETE ---');

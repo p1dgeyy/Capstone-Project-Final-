@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `terms_agreed` BOOLEAN DEFAULT FALSE,
   `data_consent` BOOLEAN DEFAULT FALSE,
   
+  -- Session Management (single-session enforcement)
+  `current_session_token` VARCHAR(128) DEFAULT NULL,
+  
   -- Metadata
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

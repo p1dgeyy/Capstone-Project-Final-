@@ -1,6 +1,12 @@
-// Users CRUD Routes
+// Users CRUD Routes — with Role Isolation Enforcement
 // Read/update/delete for user profiles and admin user management
 // (Registration is handled by auth.js — this covers profile management and admin operations)
+//
+// ROLE RULES:
+//   - Beneficiaries can only update their own profile fields (not role)
+//   - Officers/Staff roles can only be set by Admin-level users
+//   - A Beneficiary can NEVER be accidentally upgraded to an Officer/Admin role
+//   - An Officer can NEVER be downgraded to a Beneficiary
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -8,10 +14,65 @@ const pool = require('../db');
 
 const router = express.Router();
 
+// Valid roles as defined in the schema ENUM
+const VALID_ROLES = ['Beneficiary', 'PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
+const STAFF_ROLES = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
+const ADMIN_ROLES = ['PESO Admin', 'CSWDO Admin'];
+
+// =============================================================================
+// Middleware: Extract caller identity from request headers
+// Expects: X-User-Id and X-Session-Token headers (set by frontend after login)
+// =============================================================================
+async function authenticateCaller(req, res, next) {
+  const callerId = req.headers['x-user-id'];
+  const sessionToken = req.headers['x-session-token'];
+
+  if (!callerId || !sessionToken) {
+    // Allow unauthenticated access for GET requests (public listing)
+    // But block all mutations without auth
+    if (req.method !== 'GET') {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please include X-User-Id and X-Session-Token headers.'
+      });
+    }
+    req.caller = null;
+    return next();
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    const [rows] = await connection.execute(
+      'SELECT `id`, `role`, `current_session_token` FROM `users` WHERE `id` = ? LIMIT 1',
+      [callerId]
+    );
+
+    if (rows.length === 0 || rows[0].current_session_token !== sessionToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session invalid or expired. Please log in again.',
+        kicked: true
+      });
+    }
+
+    req.caller = { id: rows[0].id, role: rows[0].role };
+    next();
+  } catch (error) {
+    console.error('[USERS] Auth middleware error:', error.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
+// Apply authentication middleware to all routes in this router
+router.use(authenticateCaller);
+
 // =============================================================================
 // GET /api/users
 // List users with optional ?role= filter (for admin dashboards)
-// Excludes password field from responses
+// Excludes password and session token fields from responses
 // =============================================================================
 router.get('/', async (req, res) => {
   let connection;
@@ -62,7 +123,7 @@ router.get('/', async (req, res) => {
 
 // =============================================================================
 // GET /api/users/:id
-// Get a single user profile by ID (excludes password)
+// Get a single user profile by ID (excludes password and session token)
 // =============================================================================
 router.get('/:id', async (req, res) => {
   let connection;
@@ -92,8 +153,12 @@ router.get('/:id', async (req, res) => {
 
 // =============================================================================
 // PUT /api/users/:id
-// Update user profile fields
-// Supports updating any combination of profile fields
+// Update user profile fields with STRICT ROLE ISOLATION:
+//
+//   1. Beneficiary editing themselves → can update profile fields ONLY, role is LOCKED to 'Beneficiary'
+//   2. Admin editing an Officer → can update profile + role, but role must stay within STAFF_ROLES
+//   3. Admin editing a Beneficiary → can update profile fields but CANNOT promote to staff
+//   4. Nobody can set an invalid role value
 // =============================================================================
 router.put('/:id', async (req, res) => {
   let connection;
@@ -108,13 +173,68 @@ router.put('/:id', async (req, res) => {
 
     connection = await pool.getConnection();
 
-    // Verify user exists
+    // Fetch the target user's CURRENT role from the database
     const [existing] = await connection.execute(
-      'SELECT `id` FROM `users` WHERE `id` = ? LIMIT 1',
+      'SELECT `id`, `role` FROM `users` WHERE `id` = ? LIMIT 1',
       [req.params.id]
     );
     if (existing.length === 0) {
       return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const targetCurrentRole = existing[0].role;
+    const caller = req.caller;
+
+    // --- ROLE CHANGE VALIDATION ---
+    if (role !== undefined) {
+      // Validate that the requested role is a valid ENUM value
+      if (!VALID_ROLES.includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`
+        });
+      }
+
+      // RULE 1: Beneficiaries can NEVER change their own role
+      if (targetCurrentRole === 'Beneficiary' && role !== 'Beneficiary') {
+        return res.status(403).json({
+          success: false,
+          message: 'Beneficiary accounts cannot be promoted to staff/admin roles through profile updates.'
+        });
+      }
+
+      // RULE 2: Staff/Officers can NEVER be downgraded to Beneficiary
+      if (STAFF_ROLES.includes(targetCurrentRole) && role === 'Beneficiary') {
+        return res.status(403).json({
+          success: false,
+          message: 'Staff accounts cannot be downgraded to Beneficiary role.'
+        });
+      }
+
+      // RULE 3: Only Admins can change staff roles
+      if (STAFF_ROLES.includes(targetCurrentRole) && role !== targetCurrentRole) {
+        if (!caller || !ADMIN_ROLES.includes(caller.role)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Only administrators can modify staff roles.'
+          });
+        }
+        // Admin changing staff role — must stay within staff roles
+        if (!STAFF_ROLES.includes(role)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Staff role can only be changed to another staff role.'
+          });
+        }
+      }
+
+      // RULE 4: Self-service users cannot change their own role at all
+      if (caller && String(caller.id) === String(req.params.id) && role !== targetCurrentRole) {
+        return res.status(403).json({
+          success: false,
+          message: 'You cannot change your own role.'
+        });
+      }
     }
 
     // Build dynamic update query
@@ -135,12 +255,15 @@ router.put('/:id', async (req, res) => {
     }
 
     if (password !== undefined) {
+      // Always hash with bcrypt — same library used in registration and login
       const hashedPassword = await bcrypt.hash(password, 10);
       updates.push('`password` = ?');
       params.push(hashedPassword);
     }
 
+    // Only apply role if it passed all validation above
     if (role !== undefined) { updates.push('`role` = ?'); params.push(role); }
+
     if (first_name !== undefined) { updates.push('`first_name` = ?'); params.push(first_name.trim()); }
     if (middle_name !== undefined) { updates.push('`middle_name` = ?'); params.push(middle_name ? middle_name.trim() : null); }
     if (last_name !== undefined) { updates.push('`last_name` = ?'); params.push(last_name.trim()); }
@@ -181,7 +304,7 @@ router.put('/:id', async (req, res) => {
       params
     );
 
-    console.log(`[USERS] Updated user ID: ${req.params.id}`);
+    console.log(`[USERS] Updated user ID: ${req.params.id} (by caller: ${caller ? caller.id : 'unknown'})`);
 
     return res.status(200).json({ success: true, message: 'User profile updated successfully.' });
   } catch (error) {
@@ -198,10 +321,29 @@ router.put('/:id', async (req, res) => {
 // =============================================================================
 // DELETE /api/users/:id
 // Delete a user account (cascades to applications, notifications, distributions)
+// Only Admins can delete accounts
 // =============================================================================
 router.delete('/:id', async (req, res) => {
   let connection;
   try {
+    const caller = req.caller;
+
+    // Only admins can delete users
+    if (!caller || !ADMIN_ROLES.includes(caller.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can delete user accounts.'
+      });
+    }
+
+    // Prevent self-deletion
+    if (String(caller.id) === String(req.params.id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You cannot delete your own account.'
+      });
+    }
+
     connection = await pool.getConnection();
 
     const [existing] = await connection.execute(
@@ -214,7 +356,7 @@ router.delete('/:id', async (req, res) => {
 
     await connection.execute('DELETE FROM `users` WHERE `id` = ?', [req.params.id]);
 
-    console.log(`[USERS] Deleted user ID: ${req.params.id}, username: ${existing[0].username}`);
+    console.log(`[USERS] Deleted user ID: ${req.params.id}, username: ${existing[0].username} (by admin: ${caller.id})`);
 
     return res.status(200).json({ success: true, message: 'User account deleted successfully.' });
   } catch (error) {

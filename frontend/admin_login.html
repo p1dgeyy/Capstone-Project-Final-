@@ -869,6 +869,7 @@
     <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
     <meta name="api-base-url" content="">
     <script src="assets/js/api-config.js"></script>
+    <script src="assets/js/session-manager.js"></script>
 </head>
 <body>
     
@@ -1641,6 +1642,9 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
+                    // Store session token for single-session enforcement
+                    SessionManager.save(data.user.id, data.sessionToken, data.user.role);
+
                     sessionStorage.setItem('userRole', data.user.role);
                     sessionStorage.setItem('username', data.user.username);
                     sessionStorage.setItem('userId', data.user.id);
@@ -1680,6 +1684,18 @@
 
             const savedLang = localStorage.getItem('lang') || 'en';
             applyLanguage(savedLang);
+
+            // Display kicked-session message if redirected from another device login
+            const kickedMsg = sessionStorage.getItem('sessionKickedMessage');
+            if (kickedMsg) {
+                sessionStorage.removeItem('sessionKickedMessage');
+                const errorAlert = document.getElementById('errorAlert');
+                const errorMessage = document.getElementById('errorMessage');
+                if (errorAlert && errorMessage) {
+                    errorMessage.textContent = kickedMsg;
+                    errorAlert.style.display = 'block';
+                }
+            }
         })();
     </script>
 </body>

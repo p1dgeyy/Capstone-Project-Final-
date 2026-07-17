@@ -1,8 +1,10 @@
-// Authentication Routes — Login & Registration
+// Authentication Routes — Login, Registration & Session Management
 // All endpoints validate against the MySQL database via the shared connection pool
+// Implements token-version based single-session enforcement
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const pool = require('../db');
 
 const router = express.Router();
@@ -10,6 +12,7 @@ const router = express.Router();
 // =============================================================================
 // POST /api/auth/login
 // Validates credentials against the users table
+// Generates a session token and stores it in the DB (single-session enforcement)
 // =============================================================================
 router.post('/login', async (req, res) => {
   let connection;
@@ -29,7 +32,7 @@ router.post('/login', async (req, res) => {
 
     // Query user by username OR email (supports both login methods)
     const [rows] = await connection.execute(
-      'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email` FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
+      'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
       [username.trim(), username.trim()]
     );
 
@@ -43,14 +46,24 @@ router.post('/login', async (req, res) => {
 
     const user = rows[0];
 
-    // Compare password — supports both bcrypt hashed and legacy plaintext
+    // Compare password — ALWAYS use bcrypt.compare()
+    // All passwords in the database should be bcrypt-hashed (seed migration hashes them on first run)
     let passwordMatch = false;
     if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$')) {
-      // Bcrypt hashed password
+      // Bcrypt hashed password — standard path
       passwordMatch = await bcrypt.compare(password, user.password);
     } else {
-      // Legacy plaintext comparison (for existing seed data before migration)
-      passwordMatch = (password === user.password);
+      // Legacy plaintext fallback — hash-and-upgrade the stored password on successful match
+      // This auto-migrates any remaining plaintext passwords to bcrypt
+      if (password === user.password) {
+        passwordMatch = true;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await connection.execute(
+          'UPDATE `users` SET `password` = ? WHERE `id` = ?',
+          [hashedPassword, user.id]
+        );
+        console.log(`[AUTH] Auto-migrated plaintext password to bcrypt for user: ${user.username}`);
+      }
     }
 
     if (!passwordMatch) {
@@ -60,6 +73,17 @@ router.post('/login', async (req, res) => {
         message: 'Invalid username or password.'
       });
     }
+
+    // --- Single-Session Enforcement ---
+    // Generate a new session token; this invalidates any previous session
+    const sessionToken = crypto.randomBytes(48).toString('hex');
+
+    await connection.execute(
+      'UPDATE `users` SET `current_session_token` = ? WHERE `id` = ?',
+      [sessionToken, user.id]
+    );
+
+    console.log(`[AUTH] New session token issued for user: ${user.username} (previous sessions invalidated)`);
 
     // Determine redirect page based on role
     const roleRedirects = {
@@ -78,6 +102,7 @@ router.post('/login', async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Login successful.',
+      sessionToken,
       user: {
         id: user.id,
         username: user.username,
@@ -107,6 +132,7 @@ router.post('/login', async (req, res) => {
 // =============================================================================
 // POST /api/auth/register
 // Creates a new Beneficiary account in the users table
+// Role is ALWAYS 'Beneficiary' — cannot be overridden by the client
 // =============================================================================
 router.post('/register', async (req, res) => {
   let connection;
@@ -183,11 +209,12 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Hash password with bcrypt
+    // Hash password with bcrypt (SAME library used in login verification)
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Insert new beneficiary user
+    // NOTE: Role is hardcoded to 'Beneficiary' — the client CANNOT set or override this
     const insertQuery = `
       INSERT INTO users
         (username, password, role, first_name, middle_name, last_name, suffix,
@@ -218,8 +245,7 @@ router.post('/register', async (req, res) => {
 
     const [result] = await connection.execute(insertQuery, insertValues);
 
-    // mysql2 with InnoDB auto-commits single statements, but log explicitly
-    console.log(`[AUTH] Registration successful — new user ID: ${result.insertId}, username: ${username.trim()}`);
+    console.log(`[AUTH] Registration successful — new user ID: ${result.insertId}, username: ${username.trim()}, role: Beneficiary`);
 
     return res.status(201).json({
       success: true,
@@ -243,6 +269,119 @@ router.post('/register', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Internal server error. Please try again later.'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+});
+
+// =============================================================================
+// POST /api/auth/verify-session
+// Validates that the client's session token matches the current one in the DB
+// Returns 401 if the session has been superseded by a newer login
+// =============================================================================
+router.post('/verify-session', async (req, res) => {
+  let connection;
+  try {
+    const { userId, sessionToken } = req.body;
+
+    if (!userId || !sessionToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId and sessionToken are required.'
+      });
+    }
+
+    connection = await pool.getConnection();
+
+    const [rows] = await connection.execute(
+      'SELECT `id`, `current_session_token`, `role` FROM `users` WHERE `id` = ? LIMIT 1',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found. Session invalid.',
+        kicked: true
+      });
+    }
+
+    const user = rows[0];
+
+    if (user.current_session_token !== sessionToken) {
+      console.warn(`[AUTH] Session invalidated — user ID: ${userId} was logged in from another device`);
+      return res.status(401).json({
+        success: false,
+        message: 'Your session has expired because your account was logged in from another device.',
+        kicked: true
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Session is valid.',
+      role: user.role
+    });
+
+  } catch (error) {
+    console.error('[AUTH] Session verification error:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error.'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+});
+
+// =============================================================================
+// POST /api/auth/logout
+// Clears the session token in the database
+// =============================================================================
+router.post('/logout', async (req, res) => {
+  let connection;
+  try {
+    const { userId, sessionToken } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required.'
+      });
+    }
+
+    connection = await pool.getConnection();
+
+    // Only clear if the provided token matches (prevents one session from logging out a newer one)
+    if (sessionToken) {
+      await connection.execute(
+        'UPDATE `users` SET `current_session_token` = NULL WHERE `id` = ? AND `current_session_token` = ?',
+        [userId, sessionToken]
+      );
+    } else {
+      await connection.execute(
+        'UPDATE `users` SET `current_session_token` = NULL WHERE `id` = ?',
+        [userId]
+      );
+    }
+
+    console.log(`[AUTH] Logout — user ID: ${userId}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully.'
+    });
+
+  } catch (error) {
+    console.error('[AUTH] Logout error:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error.'
     });
   } finally {
     if (connection) {
