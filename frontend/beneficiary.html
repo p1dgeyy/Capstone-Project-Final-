@@ -2268,60 +2268,18 @@
 
             <!-- Enrolled Programs -->
             <div class="enrolled-header">
-                <h4 style="color: var(--rose-dark); margin-bottom: 15px;">Enrolled Programs</h4>
+                <h4 style="color: var(--rose-dark); margin-bottom: 15px;">Enrolled Training & Courses</h4>
             </div>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div>
-                        <h5 style="margin-bottom: 5px;">Skills Development Training</h5>
-                        <div style="font-size: 0.85rem; color: var(--text-muted);">
-                            Basic Computer Skills • CSWDO Office
-                        </div>
-                    </div>
-                    <span class="status-pill upcoming">Upcoming</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 10px;">
-                    <span><i class="bi bi-calendar"></i> Apr 15, 2026 • 9:00 AM</span>
-                    <span><i class="bi bi-geo-alt"></i> CSWDO Conference Room</span>
-                </div>
-                <div class="progress-custom">
-                    <div class="progress-fill" style="width: 0%;"></div>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
-                    <span>Attendance: 0/5 sessions</span>
-                    <span>0%</span>
-                </div>
-                <button class="btn-primary-rose" style="margin-top: 15px;" onclick="viewTrainingDetail('TRN-001')">
-                    View Details
-                </button>
+            <div id="enrolledTrainingsContainer" class="d-flex flex-column gap-3 mb-4">
+                <!-- Loaded dynamically -->
             </div>
 
             <!-- Completed Programs -->
             <div class="enrolled-header">
-                <h4 style="color: var(--success); margin-bottom: 15px;">Completed Programs</h4>
+                <h4 style="color: var(--success); margin-bottom: 15px;">Completed Training & Certifications</h4>
             </div>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div>
-                        <h5 style="margin-bottom: 5px;">Customer Service Training</h5>
-                        <div style="font-size: 0.85rem; color: var(--text-muted);">
-                            Service Excellence • Completed Mar 30, 2026
-                        </div>
-                    </div>
-                    <span class="status-pill completed">Completed</span>
-                </div>
-                <div class="progress-custom">
-                    <div class="progress-fill approved" style="width: 100%;"></div>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 15px;">
-                    <span>5/5 sessions attended</span>
-                    <span>100%</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px; color: var(--success); font-weight: 600;">
-                    <i class="bi bi-award"></i> Certificate Issued
-                </div>
+            <div id="completedTrainingsContainer" class="d-flex flex-column gap-3 mb-4">
+                <!-- Loaded dynamically -->
             </div>
 
             <!-- Available Sessions -->
@@ -3069,6 +3027,12 @@
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             const targetSection = document.getElementById(sectionId);
             if (targetSection) targetSection.classList.add('active');
+
+            if (sectionId === 'training') {
+                const username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
+                loadBeneficiarySchedules(username);
+                renderBeneficiaryTrainingHistory(username);
+            }
 
             // Map program-overview back to programs in nav
             const activeSidebarKey = sectionId === 'program-overview' ? 'programs' : sectionId;
@@ -4042,6 +4006,7 @@
             // Seed rendering on load
             renderBeneficiaryPrograms();
             loadBeneficiarySchedules(username);
+            renderBeneficiaryTrainingHistory(username);
         });
 
         function loadBeneficiarySchedules(username) {
@@ -4100,6 +4065,218 @@
                     `;
                 });
             }
+        }
+
+        function renderBeneficiaryTrainingHistory(username) {
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const currentBen = beneficiaries.find(b => b.username === username);
+            if (!currentBen) return;
+
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+
+            // Filter training sessions where current beneficiary is listed as participant (trainee)
+            const mySessions = trainings.filter(t => {
+                if (!t.trainees) return false;
+                return t.trainees.some(tr => tr.beneficiaryId === currentBen.id);
+            });
+
+            const enrolledContainer = document.getElementById('enrolledTrainingsContainer');
+            const completedContainer = document.getElementById('completedTrainingsContainer');
+
+            if (enrolledContainer) {
+                const enrolledSessions = mySessions.filter(t => {
+                    const trInfo = t.trainees.find(tr => tr.beneficiaryId === currentBen.id);
+                    return t.status === 'Active' && (!trInfo || trInfo.result === 'Pending');
+                });
+
+                if (enrolledSessions.length === 0) {
+                    enrolledContainer.innerHTML = `
+                        <div class="card p-3 text-center text-muted small">
+                            No active livelihood training enrollments at this time.
+                        </div>
+                    `;
+                } else {
+                    enrolledContainer.innerHTML = '';
+                    enrolledSessions.forEach(t => {
+                        const prog = programs.find(p => p.id === t.programId) || { code: 'N/A' };
+                        const trInfo = t.trainees.find(tr => tr.beneficiaryId === currentBen.id);
+                        enrolledContainer.innerHTML += `
+                            <div class="card p-3 shadow-sm border rounded-3 bg-white mb-2">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h5 class="fw-bold mb-1" style="color: var(--rose-dark); font-size: 1.05rem;">${t.title}</h5>
+                                        <div class="small text-muted">${prog.code} • Batch: ${t.batchNumber || 'Batch 1'}</div>
+                                    </div>
+                                    <span class="status-pill upcoming">Enrolled</span>
+                                </div>
+                                <div class="small text-muted mb-2" style="font-size: 0.8rem; line-height: 1.5;">
+                                    <div><i class="bi bi-calendar-event me-1"></i><strong>Date:</strong> ${t.date}</div>
+                                    <div><i class="bi bi-person-fill me-1"></i><strong>Trainer:</strong> ${t.trainer}</div>
+                                </div>
+                                <div class="progress-custom mb-1" style="height: 6px; background-color: var(--rose-light); border-radius: 3px; overflow: hidden; position: relative;">
+                                    <div class="progress-fill" style="width: 50%; height: 100%; background-color: var(--warning); border-radius: 3px;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center small text-muted" style="font-size: 0.75rem;">
+                                    <span>Outcome: ${trInfo ? trInfo.result : 'Pending'}</span>
+                                    <span>Ongoing / In-progress</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            if (completedContainer) {
+                const completedSessions = mySessions.filter(t => {
+                    const trInfo = t.trainees.find(tr => tr.beneficiaryId === currentBen.id);
+                    return t.status === 'Inactive' || (trInfo && trInfo.result !== 'Pending');
+                });
+
+                if (completedSessions.length === 0) {
+                    completedContainer.innerHTML = `
+                        <div class="card p-3 text-center text-muted small">
+                            No completed training records logged yet.
+                        </div>
+                    `;
+                } else {
+                    completedContainer.innerHTML = '';
+                    completedSessions.forEach(t => {
+                        const prog = programs.find(p => p.id === t.programId) || { code: 'N/A' };
+                        const trInfo = t.trainees.find(tr => tr.beneficiaryId === currentBen.id) || { result: 'Passed' };
+                        const isPassed = trInfo.result === 'Passed';
+                        const badgeClass = isPassed ? 'bg-success text-white' : 'bg-danger text-white';
+                        const certButtonHtml = isPassed 
+                            ? `<button class="btn btn-sm btn-primary-rose mt-2 py-1 px-3 fw-bold w-100" onclick="downloadTrainingCertificate('${t.id}')" style="font-size: 0.75rem;">
+                                   <i class="bi bi-award-fill"></i> Download Certificate
+                               </button>`
+                            : '';
+
+                        completedContainer.innerHTML += `
+                            <div class="card p-3 shadow-sm border rounded-3 bg-white mb-2">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h5 class="fw-bold mb-1 text-success" style="font-size: 1.05rem;">${t.title}</h5>
+                                        <div class="small text-muted">${prog.code} • Batch: ${t.batchNumber || 'Batch 1'}</div>
+                                    </div>
+                                    <span class="status-pill completed">Completed</span>
+                                </div>
+                                <div class="small text-muted mb-2" style="font-size: 0.8rem; line-height: 1.5;">
+                                    <div><i class="bi bi-calendar-check me-1"></i><strong>Completed:</strong> ${t.date}</div>
+                                    <div><i class="bi bi-person-fill me-1"></i><strong>Trainer:</strong> ${t.trainer}</div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center border-top pt-2" style="font-size: 0.8rem;">
+                                    <span class="small text-muted">Result Outcome: <strong class="badge ${badgeClass}">${trInfo.result}</strong></span>
+                                </div>
+                                ${certButtonHtml}
+                            </div>
+                        `;
+                    });
+                }
+            }
+        }
+
+        function downloadTrainingCertificate(sessionId) {
+            const username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const currentBen = beneficiaries.find(b => b.username === username) || beneficiaries[0];
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const session = trainings.find(t => t.id === sessionId) || { title: 'Livelihood Workshop', date: new Date().toLocaleDateString() };
+
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<html><head><title>Certificate of Completion</title>');
+            printWindow.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+            printWindow.document.write(`
+                <style>
+                    body {
+                        font-family: 'Georgia', serif;
+                        background: #fbfbfb;
+                        padding: 40px;
+                    }
+                    .cert-border {
+                        border: 15px double #e0b6c2;
+                        padding: 40px;
+                        background: white;
+                        text-align: center;
+                        position: relative;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.05);
+                        border-radius: 8px;
+                    }
+                    .cert-header {
+                        font-size: 2.8rem;
+                        color: #c97d93;
+                        font-family: 'Times New Roman', serif;
+                        margin-bottom: 20px;
+                    }
+                    .cert-title {
+                        font-size: 1.35rem;
+                        font-style: italic;
+                        color: #555;
+                        margin-bottom: 30px;
+                    }
+                    .cert-name {
+                        font-size: 2.4rem;
+                        font-weight: bold;
+                        color: #222;
+                        border-bottom: 2px solid #e0b6c2;
+                        display: inline-block;
+                        padding-bottom: 5px;
+                        margin-bottom: 30px;
+                        font-family: sans-serif;
+                    }
+                    .cert-body {
+                        font-size: 1.15rem;
+                        color: #444;
+                        line-height: 1.7;
+                        margin-bottom: 40px;
+                    }
+                    .cert-footer {
+                        display: flex;
+                        justify-content: space-around;
+                        margin-top: 50px;
+                        border-top: 1px solid #eee;
+                        padding-top: 25px;
+                    }
+                    .sig-line {
+                        border-top: 1px solid #777;
+                        width: 220px;
+                        margin-top: 40px;
+                        font-size: 0.9rem;
+                        color: #666;
+                    }
+                </style>
+            `);
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(`
+                <div class="cert-border">
+                    <div class="text-uppercase text-muted small fw-bold tracking-wider mb-2" style="letter-spacing: 2px;">City Government of Koronadal</div>
+                    <div class="small text-muted mb-4">Public Employment Service Office (PESO)</div>
+                    <div class="cert-header">Certificate of Completion</div>
+                    <div class="cert-title">This certificate is proudly presented to</div>
+                    <div class="cert-name">${currentBen.name || 'Maria Santos'}</div>
+                    <div class="cert-body">
+                        for successfully completing the capacity building course<br>
+                        <strong>"${session.title}"</strong><br>
+                        conducted on <strong>${session.date}</strong> by lead facilitator <strong>${session.trainer}</strong><br>
+                        under the auspices of the Koronadal City Livelihood Assistance and Skills Development Program.
+                    </div>
+                    <div class="cert-footer">
+                        <div>
+                            <div class="sig-line">Lead Facilitator</div>
+                        </div>
+                        <div>
+                            <div class="sig-line">PESO Administrator</div>
+                        </div>
+                    </div>
+                </div>
+            `);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
         }
 
         // Translations dictionary for dynamic language switching
@@ -4258,6 +4435,8 @@
         window.viewBeneficiaryProgramOverview = viewBeneficiaryProgramOverview;
         window.switchSection = switchSection;
         window.loadBeneficiarySchedules = loadBeneficiarySchedules;
+        window.renderBeneficiaryTrainingHistory = renderBeneficiaryTrainingHistory;
+        window.downloadTrainingCertificate = downloadTrainingCertificate;
     </script>
 
     <!-- Ordinance PDF Viewer Modal -->

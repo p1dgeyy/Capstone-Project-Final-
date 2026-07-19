@@ -2636,23 +2636,49 @@
 
             <!-- MODULE: Training Records -->
             <section class="module-page" id="module-training">
-                <div class="table-card">
-                    <div class="table-header-custom">
-                        <h5 class="table-title">Livelihood Training & Capacity Building Records</h5>
+                <div class="table-card p-3 mb-4">
+                    <div class="table-header-custom border-bottom pb-3 mb-3">
+                        <h5 class="table-title mb-0"><i class="bi bi-mortarboard-fill text-primary me-2"></i>Livelihood Training & Capacity Building Records</h5>
                         <button class="btn-custom btn-custom-primary" onclick="openAddTrainingModal()">
                             <i class="bi bi-mortarboard"></i> New Training Log
                         </button>
                     </div>
+
+                    <!-- Search & Filter Panel (REQ038) -->
+                    <div class="row g-2 mb-3 bg-light p-3 rounded-3 border">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted mb-1">Search Title / Trainer</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control form-control-sm" id="searchTrainingQuery" placeholder="Type topic or facilitator..." oninput="renderTrainingTable()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted mb-1">Filter Program</label>
+                            <select class="form-select form-select-sm" id="filterTrainingProgram" onchange="renderTrainingTable()">
+                                <option value="all">All Programs</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted mb-1">Filter Training Date</label>
+                            <input type="date" class="form-control form-control-sm" id="filterTrainingDate" onchange="renderTrainingTable()">
+                        </div>
+                    </div>
+
+                    <!-- Structured Table (REQ037) -->
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Session Title</th>
-                                    <th>Associated Program</th>
-                                    <th>Trainer / Facilitator</th>
-                                    <th>Training Date</th>
-                                    <th>Participants List</th>
-                                    <th>Operations</th>
+                                    <th onclick="sortTrainingTable('title')" style="cursor: pointer; user-select: none;">Session Title <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortTrainingTable('program')" style="cursor: pointer; user-select: none;">Associated Program <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortTrainingTable('batch')" style="cursor: pointer; user-select: none;">Batch Number <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortTrainingTable('trainer')" style="cursor: pointer; user-select: none;">Trainer <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortTrainingTable('date')" style="cursor: pointer; user-select: none;">Training Date <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortTrainingTable('participants')" style="cursor: pointer; user-select: none;" class="text-center">Participants <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortTrainingTable('status')" style="cursor: pointer; user-select: none;" class="text-center">Status <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th class="text-center">Operations</th>
                                 </tr>
                             </thead>
                             <tbody id="trainingTableBody">
@@ -3279,6 +3305,45 @@
         </div>
     </div>
 
+    <!-- Training Activate Confirmation Modal (REQ040) -->
+    <div class="custom-modal-overlay" id="trainActivateModal" style="z-index: 2050;">
+        <div class="custom-modal-content" style="max-width: 400px;">
+            <div class="custom-modal-header bg-success text-white">
+                <h5 class="custom-modal-title text-white"><i class="bi bi-play-circle-fill me-2"></i>Confirm Session Activation</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeTrainActivateModal()"></button>
+            </div>
+            <div class="custom-modal-body p-4">
+                <p>Are you sure you want to activate the training session <strong id="activateTrainTitle" class="text-success">-</strong>?</p>
+                <p class="text-muted small">This will change the status to <span class="badge bg-success">Active</span> and trigger system notifications informing all assigned participants.</p>
+            </div>
+            <div class="custom-modal-footer bg-light p-3 border-top d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary px-3" onclick="closeTrainActivateModal()">Cancel</button>
+                <button type="button" class="btn btn-success px-4 text-white" onclick="commitTrainActivation()">Activate Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Deactivate Confirmation Modal (REQ041) -->
+    <div class="custom-modal-overlay" id="trainDeactivateModal" style="z-index: 2050;">
+        <div class="custom-modal-content" style="max-width: 400px;">
+            <div class="custom-modal-header bg-danger text-white">
+                <h5 class="custom-modal-title text-white"><i class="bi bi-stop-circle-fill me-2"></i>Confirm Session Deactivation</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeTrainDeactivateModal()"></button>
+            </div>
+            <div class="custom-modal-body p-4">
+                <p>Are you sure you want to deactivate the training session <strong id="deactivateTrainTitle" class="text-danger">-</strong>?</p>
+                <div class="form-group mb-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Reason for Deactivation</label>
+                    <textarea class="form-control" id="deactivateTrainReason" rows="2" placeholder="e.g. Trainer unavailable, rescheduling required" required></textarea>
+                </div>
+            </div>
+            <div class="custom-modal-footer bg-light p-3 border-top d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary px-3" onclick="closeTrainDeactivateModal()">Cancel</button>
+                <button type="button" class="btn btn-danger px-4" onclick="commitTrainDeactivation()">Deactivate Session</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Training Modal -->
     <div class="custom-modal-overlay" id="trainingModal">
         <div class="custom-modal-content">
@@ -3301,14 +3366,20 @@
                             </select>
                         </div>
                         <div class="form-col form-group">
+                            <label class="form-label">Batch Number</label>
+                            <input type="text" class="form-control" id="trainBatchNumber" placeholder="e.g. Batch 1" required>
+                        </div>
+                    </div>
+                    <div class="form-row mt-2">
+                        <div class="form-col form-group">
                             <label class="form-label">Lead Facilitator / Trainer</label>
                             <input type="text" class="form-control" id="trainTrainer" placeholder="Trainer name"
                                 required>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Training Implementation Date</label>
-                        <input type="date" class="form-control" id="trainDate" required>
+                        <div class="form-col form-group">
+                            <label class="form-label">Training Implementation Date</label>
+                            <input type="date" class="form-control" id="trainDate" required>
+                        </div>
                     </div>
                 </div>
                 <div class="custom-modal-footer">
@@ -7348,45 +7419,259 @@
         }
 
         // ==============================================
-        // MODULE LOGIC: TRAINING RECORDS (REQ040-REQ046)
+        // MODULE LOGIC: TRAINING RECORDS (REQ037-REQ041)
         // ==============================================
+        let trainingSortField = 'title';
+        let trainingSortOrder = 'asc';
+        let trainingExpandedRows = new Set();
+        let currentTrainActivateId = null;
+        let currentTrainDeactivateId = null;
+
+        function sortTrainingTable(field) {
+            if (trainingSortField === field) {
+                trainingSortOrder = trainingSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                trainingSortField = field;
+                trainingSortOrder = 'asc';
+            }
+            renderTrainingTable();
+        }
+
+        function toggleTrainingRowDetails(id) {
+            if (trainingExpandedRows.has(id)) {
+                trainingExpandedRows.delete(id);
+            } else {
+                trainingExpandedRows.add(id);
+            }
+            renderTrainingTable();
+        }
+
         function renderTrainingTable() {
             const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
             const tbody = document.getElementById('trainingTableBody');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
-            trainings.forEach(t => {
+            // Populate Program filter selector dynamically if empty
+            const filterProgSelect = document.getElementById('filterTrainingProgram');
+            if (filterProgSelect && filterProgSelect.children.length <= 1) {
+                programs.forEach(p => {
+                    filterProgSelect.innerHTML += `<option value="${p.id}">${p.code}</option>`;
+                });
+            }
+
+            // Read Filter Values (REQ038)
+            const searchQuery = document.getElementById('searchTrainingQuery')?.value.toLowerCase().trim() || '';
+            const filterProgramId = document.getElementById('filterTrainingProgram')?.value || 'all';
+            const filterDate = document.getElementById('filterTrainingDate')?.value || '';
+
+            // 1. Filter
+            const filteredTrainings = trainings.filter(t => {
+                const prog = programs.find(p => p.id === t.programId) || { code: '' };
+
+                // Search query filter (checks topic/title or lead trainer name)
+                if (searchQuery && !t.title.toLowerCase().includes(searchQuery) && !t.trainer.toLowerCase().includes(searchQuery)) {
+                    return false;
+                }
+
+                // Program filter
+                if (filterProgramId !== 'all' && t.programId !== filterProgramId) {
+                    return false;
+                }
+
+                // Date filter
+                if (filterDate && t.date !== filterDate) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            // 2. Sort (REQ037)
+            filteredTrainings.sort((a, b) => {
+                let valA, valB;
+                const progA = programs.find(p => p.id === a.programId) || { code: '' };
+                const progB = programs.find(p => p.id === b.programId) || { code: '' };
+
+                switch (trainingSortField) {
+                    case 'program':
+                        valA = progA.code;
+                        valB = progB.code;
+                        break;
+                    case 'batch':
+                        valA = a.batchNumber || '';
+                        valB = b.batchNumber || '';
+                        break;
+                    case 'participants':
+                        valA = a.trainees ? a.trainees.length : 0;
+                        valB = b.trainees ? b.trainees.length : 0;
+                        break;
+                    case 'status':
+                        valA = a.status || 'Active';
+                        valB = b.status || 'Active';
+                        break;
+                    default:
+                        valA = a[trainingSortField] || '';
+                        valB = b[trainingSortField] || '';
+                }
+
+                if (typeof valA === 'string') {
+                    return trainingSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    return trainingSortOrder === 'asc' ? valA - valB : valB - valA;
+                }
+            });
+
+            // 3. Render Table
+            if (filteredTrainings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No training sessions matching filters found.</td></tr>';
+                return;
+            }
+
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+
+            filteredTrainings.forEach(t => {
                 const prog = programs.find(p => p.id === t.programId) || { code: 'N/A' };
+                const batch = t.batchNumber || 'Batch 1';
+                const statusVal = t.status || 'Active';
+                const statusBadge = statusVal === 'Active' 
+                    ? `<span class="badge bg-success"><i class="bi bi-check-circle"></i> Active</span>`
+                    : `<span class="badge bg-secondary"><i class="bi bi-pause-circle"></i> Inactive</span>`;
+
+                const isExpanded = trainingExpandedRows.has(t.id);
+                const expandText = isExpanded ? 'Collapse' : 'Participants';
+                const expandIcon = isExpanded ? 'bi-chevron-up' : 'bi-chevron-down';
+
+                // Display operation buttons based on role constraints (RBAC)
+                let operationsHtml = '';
+                if (role === 'PESO Admin') {
+                    if (statusVal === 'Active') {
+                        operationsHtml += `
+                            <button class="btn btn-sm btn-outline-danger py-1 px-2 fw-semibold me-1" onclick="openTrainDeactivateModal('${t.id}')" style="font-size: 0.75rem;">
+                                <i class="bi bi-stop-circle"></i> Deactivate
+                            </button>
+                        `;
+                    } else {
+                        operationsHtml += `
+                            <button class="btn btn-sm btn-outline-success py-1 px-2 fw-semibold me-1" onclick="openTrainActivateModal('${t.id}')" style="font-size: 0.75rem;">
+                                <i class="bi bi-play-circle"></i> Activate
+                            </button>
+                        `;
+                    }
+                    operationsHtml += `
+                        <button class="action-icon-btn danger btn-sm py-1" onclick="deleteTraining('${t.id}')" title="Delete log"><i class="bi bi-trash"></i></button>
+                    `;
+                } else {
+                    operationsHtml = `<span class="text-muted small"><i class="bi bi-lock-fill"></i> Locked (Admin Only)</span>`;
+                }
+
                 tbody.innerHTML += `
-                    <tr>
+                    <tr style="cursor: pointer;" onclick="toggleTrainingRowDetails('${t.id}')">
                         <td><strong>${t.title}</strong></td>
-                        <td>${prog.code}</td>
+                        <td><span class="badge bg-dark">${prog.code}</span></td>
+                        <td>${batch}</td>
                         <td>${t.trainer}</td>
                         <td>${t.date}</td>
-                        <td>
-                            <button class="btn-custom btn-custom-secondary py-1 px-3" onclick="openAttendanceModal('${t.id}')">
-                                <i class="bi bi-person-lines-fill"></i> ${t.trainees.length} Trainees
-                            </button>
-                        </td>
-                        <td>
-                            <button class="action-icon-btn danger" onclick="deleteTraining('${t.id}')" title="Delete training log"><i class="bi bi-trash"></i></button>
+                        <td class="text-center fw-bold text-primary">${t.trainees ? t.trainees.length : 0}</td>
+                        <td class="text-center">${statusBadge}</td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <div class="d-flex justify-content-center align-items-center">
+                                <button class="btn btn-sm btn-outline-primary py-1 px-2 fw-semibold me-2" onclick="toggleTrainingRowDetails('${t.id}')" style="font-size: 0.75rem;">
+                                    <i class="bi ${expandIcon} me-1"></i> ${expandText}
+                                </button>
+                                ${operationsHtml}
+                            </div>
                         </td>
                     </tr>
                 `;
+
+                // Expandable Trainee Row Details (REQ037 & REQ041 - participant list inline)
+                if (isExpanded) {
+                    const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                    let traineesListHtml = '';
+
+                    if (!t.trainees || t.trainees.length === 0) {
+                        traineesListHtml = '<tr><td colspan="4" class="text-center text-muted small py-3">No beneficiaries assigned to this session.</td></tr>';
+                    } else {
+                        t.trainees.forEach((tr, i) => {
+                            const ben = beneficiaries.find(b => b.id === tr.beneficiaryId) || { name: 'Unknown', contact: 'N/A' };
+                            const checked = tr.attended ? 'checked' : '';
+                            
+                            const gradeOptions = ['Pending', 'Passed', 'Failed'].map(opt => {
+                                const sel = tr.result === opt ? 'selected' : '';
+                                return `<option value="${opt}" ${sel}>${opt}</option>`;
+                            }).join('');
+
+                            traineesListHtml += `
+                                <tr>
+                                    <td><strong>${ben.name}</strong></td>
+                                    <td>${ben.contact}</td>
+                                    <td>
+                                        <div class="form-check m-0">
+                                            <input type="checkbox" id="attendCheck_${t.id}_${i}" ${checked} class="form-check-input">
+                                            <label class="form-check-label small text-muted ms-1" for="attendCheck_${t.id}_${i}">Attended</label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <select id="resultSelect_${t.id}_${i}" class="form-select form-select-sm py-0 fw-bold border" style="font-size: 0.75rem; width: 110px;">
+                                            ${gradeOptions}
+                                        </select>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="details-row bg-light" onclick="event.stopPropagation();">
+                            <td colspan="8" class="p-3">
+                                <div class="card shadow-sm border border-secondary rounded-3 bg-white p-3 mx-3">
+                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                        <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;"><i class="bi bi-people-fill text-primary me-2"></i>Participant Attendance & Evaluation: ${t.title}</h6>
+                                        <button class="btn btn-sm btn-primary py-1 px-3 fw-bold" style="font-size: 0.75rem;" onclick="saveTraineeOutcomes('${t.id}')">
+                                            <i class="bi bi-save me-1"></i> Save Outcomes
+                                        </button>
+                                    </div>
+                                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                                        <table class="table table-sm table-bordered m-0" style="font-size: 0.8rem;">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Beneficiary Name</th>
+                                                    <th>Contact Reference</th>
+                                                    <th>Attendance Status</th>
+                                                    <th>Training Result</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${traineesListHtml}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
             });
-            if (trainings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No capacity training records logged.</td></tr>';
-            }
         }
 
         function openAddTrainingModal() {
+            // RBAC privilege checks
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators are authorized to register training sessions.");
+                return;
+            }
+
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
             const select = document.getElementById('trainProgramSelect');
-            select.innerHTML = '';
-            programs.forEach(p => {
-                select.innerHTML += `<option value="${p.id}">${p.code}</option>`;
-            });
+            if (select) {
+                select.innerHTML = '';
+                programs.forEach(p => {
+                    select.innerHTML += `<option value="${p.id}">${p.code}</option>`;
+                });
+            }
 
             document.getElementById('trainingForm').reset();
             document.getElementById('trainingModal').classList.add('active');
@@ -7398,10 +7683,28 @@
 
         function handleTrainingSubmit(e) {
             e.preventDefault();
+
+            // Double check Admin role
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators can perform this action.");
+                return;
+            }
+
             const title = document.getElementById('trainTitle').value.trim();
             const programId = document.getElementById('trainProgramSelect').value;
+            const batchNumber = document.getElementById('trainBatchNumber').value.trim();
             const trainer = document.getElementById('trainTrainer').value.trim();
             const date = document.getElementById('trainDate').value;
+
+            // Date validation: Cannot log sessions in past dates (REQ039)
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const inputDate = new Date(date);
+            if (inputDate < today) {
+                alert("Validation Error: Training sessions cannot be scheduled in past dates.");
+                return;
+            }
 
             // Gather active beneficiaries assigned to this program to add as training participants
             const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
@@ -7416,81 +7719,40 @@
                 id: "T" + (Date.now()),
                 title,
                 programId,
+                batchNumber: batchNumber || 'Batch 1',
                 trainer,
                 date,
+                status: 'Active', // defaults to Active on creation
                 trainees
             };
             trainings.push(newTrain);
             localStorage.setItem('peso_trainings', JSON.stringify(trainings));
 
-            pushActivity("Training Session", `Registered training course: ${title}`);
-            alert(`Training session registered with ${trainees.length} assigned participants.`);
+            // Log activity audit
+            pushActivity("Training Created", `Created training session "${title}" for batch: ${batchNumber}`);
+            pushNotification("Training Session Created", `A new training session "${title}" is set for ${date}.`, "info");
+
+            alert(`Success: Training session registered successfully with ${trainees.length} participant(s).`);
             closeTrainingModal();
             renderTrainingTable();
         }
 
-        // Open Attendance Sheet
-        function openAttendanceModal(id) {
+        function saveTraineeOutcomes(sessionId) {
             const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
-            const session = trainings.find(t => t.id === id);
-            if (!session) return;
-
-            document.getElementById('attendanceSessionId').value = session.id;
-            document.getElementById('attendanceModalTitle').textContent = `Attendance: ${session.title}`;
-
-            const tbody = document.getElementById('attendanceTbody');
-            tbody.innerHTML = '';
-
-            session.trainees.forEach((tr, i) => {
-                const ben = beneficiaries.find(b => b.id === tr.beneficiaryId) || { name: 'Unknown' };
-                const checked = tr.attended ? 'checked' : '';
-                const resultOptions = ['Pending', 'Passed', 'Failed'].map(opt => {
-                    const sel = tr.result === opt ? 'selected' : '';
-                    return `<option value="${opt}" ${sel}>${opt}</option>`;
-                }).join('');
-
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${ben.name}</strong></td>
-                        <td>
-                            <input type="checkbox" id="attendCheck_${i}" ${checked} class="form-check-input"> Present
-                        </td>
-                        <td>
-                            <select id="resultSelect_${i}" class="form-control py-1 px-2 font-weight-bold">
-                                ${resultOptions}
-                            </select>
-                        </td>
-                    </tr>
-                `;
-            });
-            if (session.trainees.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">No trainees assigned to this session.</td></tr>';
-            }
-
-            document.getElementById('trainingAttendanceModal').classList.add('active');
-        }
-
-        function closeAttendanceModal() {
-            document.getElementById('trainingAttendanceModal').classList.remove('active');
-        }
-
-        function saveAttendanceRecord() {
-            const id = document.getElementById('attendanceSessionId').value;
-            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
-            const idx = trainings.findIndex(t => t.id === id);
+            const idx = trainings.findIndex(t => t.id === sessionId);
             if (idx !== -1) {
                 const session = trainings[idx];
                 session.trainees.forEach((tr, i) => {
-                    tr.attended = document.getElementById(`attendCheck_${i}`).checked;
-                    tr.result = document.getElementById(`resultSelect_${i}`).value;
+                    const checkEl = document.getElementById(`attendCheck_${sessionId}_${i}`);
+                    const resultEl = document.getElementById(`resultSelect_${sessionId}_${i}`);
+                    if (checkEl) tr.attended = checkEl.checked;
+                    if (resultEl) tr.result = resultEl.value;
                 });
                 trainings[idx] = session;
                 localStorage.setItem('peso_trainings', JSON.stringify(trainings));
 
-                pushActivity("Training Attendance", `Updated outcomes for course: ${session.title}`);
-                alert("Training outcomes and attendance sheets saved.");
-                closeAttendanceModal();
+                pushActivity("Training Assessment", `Updated attendee performance results for session: ${session.title}`);
+                alert("Training outcome results saved successfully.");
                 renderTrainingTable();
             }
         }
@@ -7504,6 +7766,109 @@
                 pushActivity("Training Deleted", `Removed course logs: ${t ? t.title : 'Unknown'}`);
                 renderTrainingTable();
             });
+        }
+
+        // REQ040: Activate Training Session
+        function openTrainActivateModal(id) {
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const session = trainings.find(t => t.id === id);
+            if (!session) return;
+
+            document.getElementById('activateTrainTitle').textContent = session.title;
+            currentTrainActivateId = id;
+            document.getElementById('trainActivateModal').classList.add('active');
+        }
+
+        function closeTrainActivateModal() {
+            document.getElementById('trainActivateModal').classList.remove('active');
+            currentTrainActivateId = null;
+        }
+
+        function commitTrainActivation() {
+            if (!currentTrainActivateId) return;
+
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const idx = trainings.findIndex(t => t.id === currentTrainActivateId);
+
+            if (idx !== -1) {
+                trainings[idx].status = 'Active';
+                localStorage.setItem('peso_trainings', JSON.stringify(trainings));
+
+                // Save Audit Log
+                const auditLogs = JSON.parse(localStorage.getItem('peso_training_audit_logs')) || [];
+                auditLogs.unshift({
+                    id: 'AUDIT' + Date.now(),
+                    sessionId: currentTrainActivateId,
+                    sessionTitle: trainings[idx].title,
+                    action: 'Activation',
+                    reason: 'Manually reactivated by Admin',
+                    timestamp: new Date().toISOString(),
+                    user: sessionStorage.getItem('username') || 'peso-admin'
+                });
+                localStorage.setItem('peso_training_audit_logs', JSON.stringify(auditLogs));
+
+                pushActivity("Training Activated", `Activated training session: ${trainings[idx].title}`);
+                pushNotification("Training Session Activated", `The training session "${trainings[idx].title}" has been reactivated.`, "info");
+                showWebNotification("Session Activated", `Training session "${trainings[idx].title}" is now active.`, "success");
+
+                closeTrainActivateModal();
+                renderTrainingTable();
+            }
+        }
+
+        // REQ041: Deactivate Training Session
+        function openTrainDeactivateModal(id) {
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const session = trainings.find(t => t.id === id);
+            if (!session) return;
+
+            document.getElementById('deactivateTrainTitle').textContent = session.title;
+            document.getElementById('deactivateTrainReason').value = '';
+            currentTrainDeactivateId = id;
+            document.getElementById('trainDeactivateModal').classList.add('active');
+        }
+
+        function closeTrainDeactivateModal() {
+            document.getElementById('trainDeactivateModal').classList.remove('active');
+            currentTrainDeactivateId = null;
+        }
+
+        function commitTrainDeactivation() {
+            if (!currentTrainDeactivateId) return;
+
+            const reason = document.getElementById('deactivateTrainReason').value.trim();
+            if (!reason) {
+                alert("Deactivation Blocked: A reason for deactivation is mandatory.");
+                return;
+            }
+
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const idx = trainings.findIndex(t => t.id === currentTrainDeactivateId);
+
+            if (idx !== -1) {
+                trainings[idx].status = 'Inactive';
+                localStorage.setItem('peso_trainings', JSON.stringify(trainings));
+
+                // Save Audit Log (REQ041)
+                const auditLogs = JSON.parse(localStorage.getItem('peso_training_audit_logs')) || [];
+                auditLogs.unshift({
+                    id: 'AUDIT' + Date.now(),
+                    sessionId: currentTrainDeactivateId,
+                    sessionTitle: trainings[idx].title,
+                    action: 'Deactivation',
+                    reason: reason,
+                    timestamp: new Date().toISOString(),
+                    user: sessionStorage.getItem('username') || 'peso-admin'
+                });
+                localStorage.setItem('peso_training_audit_logs', JSON.stringify(auditLogs));
+
+                pushActivity("Training Deactivated", `Deactivated training session: ${trainings[idx].title}. Reason: ${reason}`);
+                pushNotification("Training Session Suspended", `The training session "${trainings[idx].title}" has been deactivated. Reason: ${reason}`, "warning");
+                showWebNotification("Session Deactivated", `Training session "${trainings[idx].title}" was deactivated.`, "warning");
+
+                closeTrainDeactivateModal();
+                renderTrainingTable();
+            }
         }
 
         // ==============================================
