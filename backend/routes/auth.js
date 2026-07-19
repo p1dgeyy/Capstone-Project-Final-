@@ -135,6 +135,7 @@ router.post('/login', async (req, res) => {
 // Role is ALWAYS 'Beneficiary' — cannot be overridden by the client
 // =============================================================================
 router.post('/register', async (req, res) => {
+  console.log('👉 REGISTRATION ENDPOINT HIT WITH BODY:', req.body);
   let connection;
   try {
     const {
@@ -156,13 +157,6 @@ router.post('/register', async (req, res) => {
       termsAgreed,
       dataConsent
     } = req.body;
-
-    // --- Debug Logging: Log incoming registration payload (excluding password) ---
-    console.log('[AUTH] Attempting to save user payload:', JSON.stringify({
-      username, firstName, middleName, lastName, suffix, age, dateOfBirth,
-      sex, nationality, maritalStatus, email, phone, address: address ? address.substring(0, 50) + '...' : null,
-      idType, termsAgreed, dataConsent
-    }));
 
     // --- Input Validation ---
     const errors = [];
@@ -252,8 +246,6 @@ router.post('/register', async (req, res) => {
 
     const [result] = await connection.execute(insertQuery, insertValues);
 
-    // --- Debug Logging: Confirm SQL INSERT result ---
-    console.log(`[AUTH] SQL INSERT result: { insertId: ${result.insertId}, affectedRows: ${result.affectedRows}, warningStatus: ${result.warningStatus} }`);
     console.log(`[AUTH] Registration successful — new user ID: ${result.insertId}, username: ${username.trim()}, role: Beneficiary`);
 
     return res.status(201).json({
@@ -265,8 +257,6 @@ router.post('/register', async (req, res) => {
   } catch (error) {
     console.error('[AUTH] Registration endpoint error:', error.message);
     console.error('[AUTH] Error code:', error.code);
-    console.error('[AUTH] SQL message:', error.sqlMessage || 'N/A');
-    console.error('[AUTH] SQL query (first 200 chars):', error.sql ? error.sql.substring(0, 200) : 'N/A');
     console.error('[AUTH] Stack trace:', error.stack);
 
     // Handle specific MySQL errors
@@ -279,7 +269,176 @@ router.post('/register', async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Internal server error. Please try again later.'
+      message: 'Internal server error. Please try again later.',
+      error: error.message
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+});
+
+// =============================================================================
+// POST /api/auth/register-officer
+// Creates a new Staff/Officer account in the users table
+// ADMIN-ONLY — caller must be a PESO Admin or CSWDO Admin
+// Role must be a staff role (never Beneficiary)
+// =============================================================================
+router.post('/register-officer', async (req, res) => {
+  console.log('👉 OFFICER REGISTRATION ENDPOINT HIT WITH BODY:', req.body);
+  let connection;
+  try {
+    // --- Caller Authentication ---
+    const callerId = req.headers['x-user-id'];
+    const sessionToken = req.headers['x-session-token'];
+
+    if (!callerId || !sessionToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Include X-User-Id and X-Session-Token headers.'
+      });
+    }
+
+    connection = await pool.getConnection();
+
+    // Verify caller is an admin
+    const [callerRows] = await connection.execute(
+      'SELECT `id`, `role`, `current_session_token` FROM `users` WHERE `id` = ? LIMIT 1',
+      [callerId]
+    );
+
+    if (callerRows.length === 0 || callerRows[0].current_session_token !== sessionToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session invalid or expired. Please log in again.'
+      });
+    }
+
+    const callerRole = callerRows[0].role;
+    const ADMIN_ROLES = ['PESO Admin', 'CSWDO Admin'];
+    if (!ADMIN_ROLES.includes(callerRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can create officer accounts.'
+      });
+    }
+
+    // --- Extract Fields ---
+    const {
+      username,
+      password,
+      role,
+      firstName,
+      middleName,
+      lastName,
+      suffix,
+      email,
+      // Optional fields — officers may not have these on creation
+      age,
+      dateOfBirth,
+      sex,
+      nationality,
+      maritalStatus,
+      phone,
+      address
+    } = req.body;
+
+    // --- Validation ---
+    const STAFF_ROLES = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
+    const errors = [];
+
+    if (!username || username.trim().length === 0) errors.push('Username is required.');
+    if (!password || password.length < 8) errors.push('Password must be at least 8 characters.');
+    if (!role || !STAFF_ROLES.includes(role)) errors.push(`Role must be one of: ${STAFF_ROLES.join(', ')}`);
+    if (!firstName || firstName.trim().length === 0) errors.push('First name is required.');
+    if (!lastName || lastName.trim().length === 0) errors.push('Last name is required.');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('A valid email is required.');
+
+    if (errors.length > 0) {
+      return res.status(400).json({ success: false, message: 'Validation failed.', errors });
+    }
+
+    // Check for duplicate username
+    const [existingUsername] = await connection.execute(
+      'SELECT `id` FROM `users` WHERE `username` = ? LIMIT 1',
+      [username.trim()]
+    );
+    if (existingUsername.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Username is already taken. Please choose a different one.'
+      });
+    }
+
+    // Check for duplicate email
+    const [existingEmail] = await connection.execute(
+      'SELECT `id` FROM `users` WHERE `email` = ? LIMIT 1',
+      [email.trim()]
+    );
+    if (existingEmail.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this email already exists.'
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert — provide defaults for schema-required fields the officer form may not collect
+    const insertQuery = `
+      INSERT INTO users
+        (username, password, role, first_name, middle_name, last_name, suffix,
+         age, date_of_birth, sex, nationality, marital_status,
+         email, phone, address, terms_agreed, data_consent)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+    `;
+
+    const insertValues = [
+      username.trim(),
+      hashedPassword,
+      role,
+      firstName.trim(),
+      middleName ? middleName.trim() : null,
+      lastName.trim(),
+      suffix ? suffix.trim() : null,
+      age ? parseInt(age, 10) : 0,
+      dateOfBirth || '1970-01-01',
+      sex || 'Male',
+      nationality ? nationality.trim() : 'Filipino',
+      maritalStatus || 'Single',
+      email.trim(),
+      phone ? phone.trim() : 'N/A',
+      address ? address.trim() : 'N/A'
+    ];
+
+    const [result] = await connection.execute(insertQuery, insertValues);
+
+    console.log(`[AUTH] Officer registration successful — new user ID: ${result.insertId}, username: ${username.trim()}, role: ${role}, created by admin: ${callerId}`);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Officer account created successfully!',
+      userId: result.insertId
+    });
+
+  } catch (error) {
+    console.error('[AUTH] Officer registration endpoint error:', error.message);
+    console.error('[AUTH] Error code:', error.code);
+    console.error('[AUTH] Stack trace:', error.stack);
+
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this username or email already exists.'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error. Please try again later.',
+      error: error.message
     });
   } finally {
     if (connection) {

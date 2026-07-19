@@ -49,25 +49,14 @@ if (connectionUri) {
 // Export the pool to be used throughout the application
 module.exports = pool;
 
-// Test the database connection on start — FATAL on failure
+// Test the database connection on start
 (async () => {
   try {
     const connection = await pool.getConnection();
     console.log('[DB] MySQL connection successfully established!');
-
-    // Log the actual database target for deployment visibility
-    const [dbResult] = await connection.query('SELECT DATABASE() AS db, USER() AS user');
-    console.log(`[DB] Connected to database: "${dbResult[0].db}" as user: "${dbResult[0].user}"`);
-
     connection.release();
   } catch (error) {
-    console.error('[DB] ═══════════════════════════════════════════════════════');
-    console.error('[DB] CRITICAL: Failed to connect to MySQL database!');
-    console.error('[DB] Error:', error.message);
-    console.error('[DB] Code:', error.code || 'N/A');
+    console.error('[DB] CRITICAL: Failed to connect to MySQL database:', error.message);
     console.error('[DB] Connection details — check your MYSQL_URL or MYSQL* environment variables.');
-    console.error('[DB] The server CANNOT start without a working database connection.');
-    console.error('[DB] ═══════════════════════════════════════════════════════');
-    process.exit(1);
   }
 })();

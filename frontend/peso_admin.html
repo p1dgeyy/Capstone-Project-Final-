@@ -11,6 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
+    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
+    <script src="assets/js/api-config.js"></script>
     <style>
         :root {
             /* Colors */
@@ -842,42 +845,7 @@
         }
 
         .calendar-event-badge.distribution {
-            background-color: #f59e0b;
-        }
-
-        .calendar-event-badge.conflict {
-            background-color: var(--danger) !important;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.03); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .calendar-tooltip {
-            position: absolute;
-            z-index: 9999;
-            background: #0f172a;
-            color: #f8fafc;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            max-width: 280px;
-            pointer-events: none;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.3);
-            border: 1px solid #334155;
-            transition: opacity 0.15s ease-in-out;
-        }
-
-        .calendar-tooltip table {
-            margin: 0;
-            width: 100%;
-        }
-
-        .calendar-tooltip td {
-            padding: 2px 4px;
+            background-color: var(--secondary);
         }
 
         /* Notification list & drawer */
@@ -2156,94 +2124,10 @@
 
             <!-- MODULE: Application Evaluation -->
             <section class="module-page" id="module-evaluation">
-                <!-- Summary Widgets -->
-                <div class="row mb-4">
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <div class="stat-card-icon total" style="background-color: var(--primary-light); color: var(--primary-pink);">
-                                    <i class="bi bi-file-earmark-text-fill"></i>
-                                </div>
-                            </div>
-                            <div class="stat-card-value" id="evalTotalCount">0</div>
-                            <div class="stat-card-label">Total Applications</div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <div class="stat-card-icon pending" style="background-color: #FEF3C7; color: #D97706;">
-                                    <i class="bi bi-hourglass-split"></i>
-                                </div>
-                            </div>
-                            <div class="stat-card-value" id="evalPendingCount">0</div>
-                            <div class="stat-card-label">Pending Evaluation</div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <div class="stat-card-icon approved" style="background-color: #D1FAE5; color: #059669;">
-                                    <i class="bi bi-check-circle-fill"></i>
-                                </div>
-                            </div>
-                            <div class="stat-card-value" id="evalApprovedCount">0</div>
-                            <div class="stat-card-label">Approved Livelihoods</div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <div class="stat-card-icon denied" style="background-color: #FEE2E2; color: #DC2626;">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </div>
-                            </div>
-                            <div class="stat-card-value" id="evalRejectedCount">0</div>
-                            <div class="stat-card-label">Rejected Applications</div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="table-card">
                     <div class="table-header-custom">
                         <h5 class="table-title">Submitted Livelihood Applications Review Panel</h5>
                     </div>
-
-                    <!-- Filters Row -->
-                    <div class="p-3 border-bottom bg-light">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted">Livelihood Program</label>
-                                <select class="form-control form-control-sm" id="filterEvalProgram" onchange="renderEvaluationTable()">
-                                    <option value="all">All Programs</option>
-                                    <option value="SPES">SPES</option>
-                                    <option value="TUPAD">TUPAD</option>
-                                    <option value="Livelihood Training">Livelihood Training</option>
-                                    <option value="CKGIP">CKGIP</option>
-                                    <option value="KEEP">KEEP</option>
-                                    <option value="PFAS">PFAS</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted">Evaluation Status</label>
-                                <select class="form-control form-control-sm" id="filterEvalStatus" onchange="renderEvaluationTable()">
-                                    <option value="all">All Statuses</option>
-                                    <option value="Pending">Pending Evaluation</option>
-                                    <option value="Approved">Approved</option>
-                                    <option value="Rejected">Rejected</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted">Submitted From</label>
-                                <input type="date" class="form-control form-control-sm" id="filterEvalDateFrom" onchange="renderEvaluationTable()">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted">Submitted To</label>
-                                <input type="date" class="form-control form-control-sm" id="filterEvalDateTo" onchange="renderEvaluationTable()">
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
@@ -2290,28 +2174,6 @@
                                     <i class="bi bi-calendar-plus"></i> Add
                                 </button>
                             </div>
-
-                            <!-- Filters Row for Schedule List -->
-                            <div class="mb-3">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <select class="form-control form-control-sm" id="filterSchedType" onchange="renderSchedulesList()">
-                                            <option value="all">All Types</option>
-                                            <option value="Distribution">Distribution</option>
-                                            <option value="Training">Training</option>
-                                            <option value="Interview">Interview</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-6">
-                                        <select class="form-control form-control-sm" id="filterSchedStatus" onchange="renderSchedulesList()">
-                                            <option value="all">All Status</option>
-                                            <option value="Active">Active</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="list-group" id="schedulesListGroup"
                                 style="max-height: 400px; overflow-y: auto;">
                                 <!-- Rendered dynamically -->
@@ -2364,49 +2226,6 @@
                                         </tr>
                                     </thead>
                                     <tbody id="fundsSummaryBody">
-                                        <!-- Rendered dynamically -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Added Budget Trends & Ledger Row -->
-                <div class="row">
-                    <div class="col-lg-6 mb-3">
-                        <div class="table-card">
-                            <h5 class="table-title mb-3">Program Budget Utilization Trend</h5>
-                            <div style="height: 250px; position: relative;">
-                                <canvas id="budgetTrendChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-6 mb-3">
-                        <div class="table-card">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="table-title">Financial Transaction Ledger</h5>
-                                <div>
-                                    <select class="form-control form-control-sm d-inline-block w-auto" id="filterLedgerAction" onchange="renderBudgetLedger()">
-                                        <option value="all">All Actions</option>
-                                        <option value="Allocation">Allocation</option>
-                                        <option value="Re-alignment">Re-alignment</option>
-                                        <option value="Disbursement">Disbursement</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Program</th>
-                                            <th>Type</th>
-                                            <th>Amount</th>
-                                            <th>User/By</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="budgetLedgerBody">
                                         <!-- Rendered dynamically -->
                                     </tbody>
                                 </table>
@@ -2967,31 +2786,8 @@
                     </div>
                     <div class="form-row">
                         <div class="form-col form-group">
-                            <label class="form-label">Activity Date</label>
-                            <input type="date" class="form-control" id="schedDate" required onchange="validateScheduleDates()">
-                        </div>
-                        <div class="form-col form-group">
-                            <label class="form-label">Start Time</label>
-                            <input type="time" class="form-control" id="schedFrom" required onchange="validateScheduleDates()">
-                        </div>
-                        <div class="form-col form-group">
-                            <label class="form-label">End Time</label>
-                            <input type="time" class="form-control" id="schedTo" required onchange="validateScheduleDates()">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-col form-group">
-                            <label class="form-label">Active Until (Expiry Date)</label>
-                            <input type="date" class="form-control" id="schedUntil" required>
-                        </div>
-                        <div class="form-col form-group">
-                            <label class="form-label">Target Recipient Group</label>
-                            <select class="form-control" id="schedRecipient" required>
-                                <option value="all">All Registered Beneficiaries</option>
-                                <option value="B5">Maria Santos</option>
-                                <option value="B6">Juan dela Cruz</option>
-                                <option value="B7">Pedro Reyes</option>
-                            </select>
+                            <label class="form-label">Release Date & Time</label>
+                            <input type="datetime-local" class="form-control" id="schedDateTime" required>
                         </div>
                         <div class="form-col form-group">
                             <label class="form-label">Location / Platform</label>
@@ -2999,8 +2795,6 @@
                                 placeholder="e.g. City Hall Lobby" required>
                         </div>
                     </div>
-                    <!-- Alert for conflicts -->
-                    <div id="schedConflictAlert" class="alert alert-warning" style="display: none; font-size: 0.8rem;"></div>
                 </div>
                 <div class="custom-modal-footer">
                     <button type="button" class="btn-custom btn-custom-secondary"
@@ -3473,40 +3267,6 @@
                     }
                 ];
                 localStorage.setItem('peso_notifications', JSON.stringify(defaultNotifications));
-            }
-
-            // Default budget ledger
-            if (!localStorage.getItem('peso_budget_ledger')) {
-                const defaultLedger = [
-                    {
-                        id: 'L1',
-                        date: new Date(Date.now() - 3600000 * 24 * 5).toISOString(),
-                        program: 'TUPAD',
-                        type: 'Allocation',
-                        amount: 150000,
-                        by: 'PESO Admin',
-                        remarks: 'Initial budget allocation for TUPAD program'
-                    },
-                    {
-                        id: 'L2',
-                        date: new Date(Date.now() - 3600000 * 24 * 3).toISOString(),
-                        program: 'SPES',
-                        type: 'Allocation',
-                        amount: 2000000,
-                        by: 'PESO Admin',
-                        remarks: 'SPES student salaries budget commitment'
-                    },
-                    {
-                        id: 'L3',
-                        date: new Date(Date.now() - 3600000 * 24 * 1).toISOString(),
-                        program: 'CKGIP',
-                        type: 'Re-alignment',
-                        amount: 50000,
-                        by: 'PESO Admin',
-                        remarks: 'Budget re-alignment for training materials'
-                    }
-                ];
-                localStorage.setItem('peso_budget_ledger', JSON.stringify(defaultLedger));
             }
         }
 
@@ -4050,7 +3810,7 @@
             document.getElementById('officerModal').classList.remove('active');
         }
 
-        function handleOfficerSubmit(e) {
+        async function handleOfficerSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('officerIdInput').value;
             const firstName = document.getElementById('officerFirstNameInput').value.trim();
@@ -4073,7 +3833,7 @@
             const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
 
             if (id) {
-                // Edit
+                // Edit existing officer — update via API PUT, fall back to localStorage
                 const idx = officers.findIndex(o => o.id === id);
                 if (idx !== -1) {
                     officers[idx].firstName = firstName;
@@ -4092,33 +3852,75 @@
                     alert("Officer details updated successfully.");
                 }
             } else {
-                // Create
-                const exists = officers.some(o => o.username.toLowerCase() === username.toLowerCase());
-                if (exists) {
-                    alert("Error: Username is already registered.");
+                // ── CREATE NEW OFFICER VIA BACKEND API ──
+                // Validate password for new accounts
+                if (!password || password.length < 8) {
+                    alert('Error: Password must be at least 8 characters.');
                     return;
                 }
-                const newOfficer = {
-                    id: "O" + (Date.now()),
-                    firstName,
-                    middleInitial: mi,
-                    lastName,
-                    suffix,
-                    name: fullName,
-                    department,
-                    username,
-                    email,
-                    role,
-                    assignedPrograms: [assignedProgram],
-                    password, // Store the custom password
-                    status: "Active",
-                    dateCreated: new Date().toISOString().split('T')[0]
-                };
-                officers.push(newOfficer);
-                localStorage.setItem('peso_officers', JSON.stringify(officers));
-                pushActivity("Officer Registered", `Created account for officer: ${fullName}`);
-                pushNotification("New Officer Registered", `A new officer account for ${fullName} (${role}) has been successfully created.`, "alert");
-                alert("New officer account created successfully.");
+
+                try {
+                    const userId = localStorage.getItem('userId');
+                    const sessionToken = localStorage.getItem('sessionToken');
+
+                    const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register-officer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-User-Id': userId || '',
+                            'X-Session-Token': sessionToken || ''
+                        },
+                        body: JSON.stringify({
+                            username,
+                            password,
+                            role,
+                            firstName,
+                            middleName: mi || null,
+                            lastName,
+                            suffix: suffix || null,
+                            email
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // API succeeded — also cache in localStorage for UI rendering
+                        const newOfficer = {
+                            id: String(data.userId),
+                            firstName,
+                            middleInitial: mi,
+                            lastName,
+                            suffix,
+                            name: fullName,
+                            department,
+                            username,
+                            email,
+                            role,
+                            assignedPrograms: [assignedProgram],
+                            status: "Active",
+                            dateCreated: new Date().toISOString().split('T')[0]
+                        };
+                        officers.push(newOfficer);
+                        localStorage.setItem('peso_officers', JSON.stringify(officers));
+                        pushActivity("Officer Registered", `Created account for officer: ${fullName}`);
+                        pushNotification("New Officer Registered", `A new officer account for ${fullName} (${role}) has been successfully created.`, "alert");
+                        alert("New officer account created successfully!");
+                    } else if (response.status === 409) {
+                        alert('Error: ' + (data.message || 'Username or email already exists.'));
+                        return;
+                    } else if (response.status === 400 && data.errors) {
+                        alert('Validation Error: ' + data.errors.join(' '));
+                        return;
+                    } else {
+                        alert('Error: ' + (data.message || 'Failed to create officer account.'));
+                        return;
+                    }
+                } catch (networkError) {
+                    console.error('Officer registration request failed:', networkError);
+                    alert('Unable to connect to the server. Please check your connection and try again.');
+                    return;
+                }
             }
             closeOfficerModal();
             renderOfficersTable();
@@ -4919,59 +4721,7 @@
             const tbody = document.getElementById('evaluationTableBody');
             tbody.innerHTML = '';
 
-            // Compute summary metrics
-            const totalCount = apps.length;
-            const pendingCount = apps.filter(a => a.status === 'Pending').length;
-            const approvedCount = apps.filter(a => a.status === 'Approved').length;
-            const rejectedCount = apps.filter(a => a.status === 'Rejected' || a.status === 'Denied').length;
-
-            // Update UI widgets
-            if (document.getElementById('evalTotalCount')) document.getElementById('evalTotalCount').textContent = totalCount;
-            if (document.getElementById('evalPendingCount')) document.getElementById('evalPendingCount').textContent = pendingCount;
-            if (document.getElementById('evalApprovedCount')) document.getElementById('evalApprovedCount').textContent = approvedCount;
-            if (document.getElementById('evalRejectedCount')) document.getElementById('evalRejectedCount').textContent = rejectedCount;
-
-            // Retrieve Filter Values
-            const filterProg = document.getElementById('filterEvalProgram').value;
-            const filterStatus = document.getElementById('filterEvalStatus').value;
-            const filterFrom = document.getElementById('filterEvalDateFrom').value;
-            const filterTo = document.getElementById('filterEvalDateTo').value;
-
-            let filteredApps = apps.filter(app => {
-                // Program Filter
-                if (filterProg !== 'all' && app.programCode !== filterProg) return false;
-
-                // Status Filter
-                if (filterStatus !== 'all') {
-                    if (filterStatus === 'Rejected' && (app.status === 'Rejected' || app.status === 'Denied')) {
-                        // Match both Rejected and Denied
-                    } else if (app.status !== filterStatus) {
-                        return false;
-                    }
-                }
-
-                // Date Range Filters
-                if (filterFrom) {
-                    const fromDate = new Date(filterFrom);
-                    const appDate = new Date(app.dateSubmitted);
-                    if (appDate < fromDate) return false;
-                }
-                if (filterTo) {
-                    const toDate = new Date(filterTo);
-                    toDate.setHours(23, 59, 59, 999);
-                    const appDate = new Date(app.dateSubmitted);
-                    if (appDate > toDate) return false;
-                }
-
-                return true;
-            });
-
-            if (filteredApps.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No applications matching the filter criteria.</td></tr>`;
-                return;
-            }
-
-            filteredApps.forEach(app => {
+            apps.forEach(app => {
                 const ben = beneficiaries.find(b => b.id === app.beneficiaryId) || { name: 'Unknown' };
                 const verifiedIcon = app.documentVerified ? '<i class="bi bi-file-earmark-check-fill text-success fs-5"></i> Verified' : '<i class="bi bi-file-earmark-x-fill text-danger fs-5"></i> Unverified';
                 let actionBtn = '';
@@ -4984,7 +4734,7 @@
                     statusBadge = `<span class="status-badge approved">Approved</span>`;
                     actionBtn = `<span class="text-muted small">Reviewed</span>`;
                 } else {
-                    statusBadge = `<span class="status-badge denied">Rejected</span>`;
+                    statusBadge = `<span class="status-badge denied">Denied</span>`;
                     actionBtn = `<span class="text-muted small">Reviewed</span>`;
                 }
 
@@ -5064,35 +4814,7 @@
             renderCalendar();
         }
 
-        // Helper to check time overlapping conflicts locally for any date string
-        function checkHasConflictLocal(dateStr, schedules) {
-            const dayEvents = schedules.filter(s => s.dateTime.startsWith(dateStr) && (s.status === 'Active' || s.status === 'Scheduled'));
-            if (dayEvents.length <= 1) return false;
-            
-            for (let i = 0; i < dayEvents.length; i++) {
-                const s1 = dayEvents[i];
-                const from1 = new Date(s1.from || s1.dateTime).getTime();
-                const to1 = new Date(s1.to || s1.from || s1.dateTime).getTime();
-                
-                for (let j = i + 1; j < dayEvents.length; j++) {
-                    const s2 = dayEvents[j];
-                    const from2 = new Date(s2.from || s2.dateTime).getTime();
-                    const to2 = new Date(s2.to || s2.from || s2.dateTime).getTime();
-                    
-                    // Overlap check
-                    if (from1 < to2 && from2 < to1) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
         function renderCalendar() {
-            // Remove any leftover tooltips
-            const oldTooltips = document.querySelectorAll('.calendar-tooltip');
-            oldTooltips.forEach(t => t.remove());
-
             const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             document.getElementById('calendarMonthTitle').textContent = `${months[currentMonth]} ${currentYear}`;
 
@@ -5125,9 +4847,8 @@
             for (let day = 1; day <= numDays; day++) {
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-                // Get active events for this day
-                const dayEvents = schedules.filter(s => s.dateTime.startsWith(dateStr) && (s.status === 'Active' || s.status === 'Scheduled'));
-                const hasConflict = checkHasConflictLocal(dateStr, schedules);
+                // Get events for this day
+                const dayEvents = schedules.filter(s => s.dateTime.startsWith(dateStr) && s.status === 'Scheduled');
                 let eventsHtml = '';
 
                 dayEvents.forEach(ev => {
@@ -5135,65 +4856,17 @@
                     if (ev.type === 'Interview') badgeClass = 'interview';
                     else if (ev.type === 'Distribution') badgeClass = 'distribution';
 
-                    if (hasConflict) {
-                        badgeClass = 'conflict';
-                    }
-
-                    eventsHtml += `<div class="calendar-event-badge ${badgeClass}" data-event-id="${ev.id}" title="${ev.title}">${ev.title}</div>`;
+                    eventsHtml += `<div class="calendar-event-badge ${badgeClass}" title="${ev.title}">${ev.title}</div>`;
                 });
 
                 const todayClass = (isCurrentMonth && today.getDate() === day) ? 'today' : '';
 
-                const cell = document.createElement('div');
-                cell.className = `calendar-cell ${todayClass}`;
-                cell.innerHTML = `
-                    <div class="calendar-day-num">${day}</div>
-                    <div class="calendar-events-container">${eventsHtml}</div>
+                grid.innerHTML += `
+                    <div class="calendar-cell ${todayClass}">
+                        <div class="calendar-day-num">${day}</div>
+                        <div class="calendar-events-container">${eventsHtml}</div>
+                    </div>
                 `;
-
-                // Add tooltip events
-                if (dayEvents.length > 0) {
-                    cell.addEventListener('mouseenter', function(e) {
-                        const tooltip = document.createElement('div');
-                        tooltip.className = 'calendar-tooltip';
-                        
-                        let rowsHtml = '';
-                        dayEvents.forEach(ev => {
-                            const startT = new Date(ev.from || ev.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                            const endT = new Date(ev.to || ev.from || ev.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                            rowsHtml += `
-                                <tr>
-                                    <td><strong>${ev.title}</strong></td>
-                                    <td><span class="badge ${ev.type === 'Distribution' ? 'bg-warning text-dark' : (ev.type === 'Interview' ? 'bg-info' : 'bg-primary')}">${ev.type}</span></td>
-                                    <td>${startT} - ${endT}</td>
-                                </tr>
-                            `;
-                        });
-
-                        tooltip.innerHTML = `
-                            <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #475569; padding-bottom: 3px;">
-                                ${hasConflict ? '<span style="color: #ef4444;"><i class="bi bi-exclamation-triangle-fill"></i> Conflict Detected</span>' : 'Schedules for ' + dateStr}
-                            </div>
-                            <table class="table table-sm table-borderless text-white mb-0" style="font-size: 0.7rem;">
-                                <tbody>
-                                    ${rowsHtml}
-                                </tbody>
-                            </table>
-                        `;
-                        document.body.appendChild(tooltip);
-
-                        const rect = cell.getBoundingClientRect();
-                        tooltip.style.left = (rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
-                        tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 10) + 'px';
-                        tooltip.style.opacity = '1';
-                        
-                        cell.addEventListener('mouseleave', function() {
-                            tooltip.remove();
-                        }, { once: true });
-                    });
-                }
-
-                grid.appendChild(cell);
             }
         }
 
@@ -5202,34 +4875,14 @@
             const list = document.getElementById('schedulesListGroup');
             list.innerHTML = '';
 
-            const filterType = document.getElementById('filterSchedType').value;
-            const filterStatus = document.getElementById('filterSchedStatus').value;
-
-            let filteredSchedules = schedules.filter(sc => {
-                if (filterType !== 'all' && sc.type !== filterType) return false;
-                
-                if (filterStatus !== 'all') {
-                    if (filterStatus === 'Active' && (sc.status === 'Active' || sc.status === 'Scheduled')) {
-                        // Match both Active and Scheduled
-                    } else if (filterStatus === 'Cancelled' && (sc.status === 'Cancelled' || sc.status === 'Inactive')) {
-                        // Match both Cancelled and Inactive
-                    } else if (sc.status !== filterStatus) {
-                        return false;
-                    }
-                }
-                return true;
-            });
-
-            filteredSchedules.forEach(sc => {
+            schedules.forEach(sc => {
                 let badgeClass = 'bg-primary';
                 if (sc.type === 'Interview') badgeClass = 'bg-info';
                 else if (sc.type === 'Distribution') badgeClass = 'bg-warning text-dark';
 
-                const isActive = sc.status === 'Active' || sc.status === 'Scheduled';
-                const statusColor = isActive ? 'text-success' : 'text-danger';
-                
-                const startT = new Date(sc.from || sc.dateTime);
-                const formatTime = startT.toLocaleDateString() + " " + startT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const statusColor = sc.status === 'Scheduled' ? 'text-success' : 'text-danger';
+                const dateVal = new Date(sc.dateTime);
+                const formatTime = dateVal.toLocaleDateString() + " " + dateVal.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 list.innerHTML += `
                     <div class="list-group-item list-group-item-action p-3 mb-2 border rounded" style="background-color: #faf7f8;">
@@ -5240,16 +4893,11 @@
                         <h6 class="mb-1 fw-bold">${sc.title}</h6>
                         <p class="mb-1 small text-muted"><i class="bi bi-clock me-1"></i>${formatTime}</p>
                         <p class="mb-2 small text-muted"><i class="bi bi-geo-alt me-1"></i>${sc.location}</p>
-                        <div class="d-flex gap-2">
-                            ${isActive ? `
-                                <button class="btn btn-sm btn-outline-danger py-0 px-2 font-weight-bold" onclick="cancelSchedule('${sc.id}')">Cancel</button>
-                                <button class="btn btn-sm btn-outline-secondary py-0 px-2 font-weight-bold" onclick="openEditScheduleModal('${sc.id}')"><i class="bi bi-pencil"></i> Edit</button>
-                            ` : ''}
-                        </div>
+                        ${sc.status === 'Scheduled' ? `<button class="btn btn-sm btn-outline-danger py-0 px-2 font-weight-bold" onclick="cancelSchedule('${sc.id}')">Cancel Activity</button>` : ''}
                     </div>
                 `;
             });
-            if (filteredSchedules.length === 0) {
+            if (schedules.length === 0) {
                 list.innerHTML = '<div class="text-center text-muted p-4">No schedules recorded.</div>';
             }
         }
@@ -5263,16 +4911,6 @@
             });
 
             document.getElementById('scheduleForm').reset();
-            
-            const editId = document.getElementById('editSchedId');
-            if (editId) editId.remove();
-            
-            const modalTitle = document.querySelector('#scheduleModal .custom-modal-title');
-            if (modalTitle) modalTitle.textContent = "Create Program Scheduled Activity";
-            
-            const conflictAlert = document.getElementById('schedConflictAlert');
-            if (conflictAlert) conflictAlert.style.display = 'none';
-
             document.getElementById('scheduleModal').classList.add('active');
         }
 
@@ -5280,162 +4918,29 @@
             document.getElementById('scheduleModal').classList.remove('active');
         }
 
-        function validateScheduleDates() {
-            const dateVal = document.getElementById('schedDate').value;
-            const fromVal = document.getElementById('schedFrom').value;
-            const toVal = document.getElementById('schedTo').value;
-            
-            if (!dateVal || !fromVal || !toVal) return;
-            
-            const start = new Date(`${dateVal}T${fromVal}`);
-            const end = new Date(`${dateVal}T${toVal}`);
-            
-            const conflictAlert = document.getElementById('schedConflictAlert');
-            if (end <= start) {
-                if (conflictAlert) {
-                    conflictAlert.className = "alert alert-danger mb-3";
-                    conflictAlert.innerHTML = "<i class='bi bi-exclamation-triangle-fill me-2'></i><strong>Error:</strong> End time must be after Start time.";
-                    conflictAlert.style.display = 'block';
-                }
-                return;
-            }
-            
-            // Check overlaps in LocalStorage
-            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
-            const editIdField = document.getElementById('editSchedId');
-            const schedId = editIdField ? editIdField.value : null;
-            
-            let hasOverlap = false;
-            let overlappingTitle = '';
-            
-            schedules.forEach(s => {
-                if (s.id === schedId || (s.status !== 'Active' && s.status !== 'Scheduled')) return;
-                if (!s.dateTime.startsWith(dateVal)) return;
-                
-                const sFrom = new Date(s.from || s.dateTime).getTime();
-                const sTo = new Date(s.to || s.from || s.dateTime).getTime();
-                
-                if (start.getTime() < sTo && sFrom < end.getTime()) {
-                    hasOverlap = true;
-                    overlappingTitle = s.title;
-                }
-            });
-            
-            if (hasOverlap) {
-                if (conflictAlert) {
-                    conflictAlert.className = "alert alert-warning mb-3";
-                    conflictAlert.innerHTML = `<i class='bi bi-exclamation-triangle-fill me-2'></i><strong>Warning:</strong> Time overlaps with existing schedule <strong>"${overlappingTitle}"</strong>.`;
-                    conflictAlert.style.display = 'block';
-                }
-            } else {
-                if (conflictAlert) conflictAlert.style.display = 'none';
-            }
-        }
-
-        function openEditScheduleModal(id) {
-            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
-            const sc = schedules.find(s => s.id === id);
-            if (!sc) return;
-
-            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
-            const select = document.getElementById('schedProgramSelect');
-            select.innerHTML = '';
-            programs.forEach(p => {
-                select.innerHTML += `<option value="${p.id}" ${p.id === sc.programId ? 'selected' : ''}>${p.code}</option>`;
-            });
-
-            document.getElementById('schedTitle').value = sc.title;
-            document.getElementById('schedType').value = sc.type;
-            
-            // Parse Date and times
-            const start = new Date(sc.from || sc.dateTime);
-            const end = new Date(sc.to || sc.from || sc.dateTime);
-            const until = new Date(sc.until || sc.to || sc.from || sc.dateTime);
-            
-            document.getElementById('schedDate').value = start.toISOString().substring(0, 10);
-            document.getElementById('schedFrom').value = start.toTimeString().substring(0, 5);
-            document.getElementById('schedTo').value = end.toTimeString().substring(0, 5);
-            document.getElementById('schedUntil').value = until.toISOString().substring(0, 10);
-            
-            document.getElementById('schedRecipient').value = sc.beneficiaryId || 'all';
-            document.getElementById('schedLocation').value = sc.location;
-
-            // Add hidden edit input or set it
-            let editId = document.getElementById('editSchedId');
-            if (!editId) {
-                editId = document.createElement('input');
-                editId.type = 'hidden';
-                editId.id = 'editSchedId';
-                document.getElementById('scheduleForm').appendChild(editId);
-            }
-            editId.value = id;
-
-            const modalTitle = document.querySelector('#scheduleModal .custom-modal-title');
-            if (modalTitle) modalTitle.textContent = "Edit Program Scheduled Activity";
-
-            const conflictAlert = document.getElementById('schedConflictAlert');
-            if (conflictAlert) conflictAlert.style.display = 'none';
-
-            document.getElementById('scheduleModal').classList.add('active');
-        }
-
         function handleScheduleSubmit(e) {
             e.preventDefault();
             const title = document.getElementById('schedTitle').value.trim();
             const type = document.getElementById('schedType').value;
             const programId = document.getElementById('schedProgramSelect').value;
-            
-            const dateVal = document.getElementById('schedDate').value;
-            const fromVal = document.getElementById('schedFrom').value;
-            const toVal = document.getElementById('schedTo').value;
-            const untilVal = document.getElementById('schedUntil').value;
-            const beneficiaryId = document.getElementById('schedRecipient').value;
+            const dateTime = document.getElementById('schedDateTime').value;
             const location = document.getElementById('schedLocation').value.trim();
 
-            const startDateTime = `${dateVal}T${fromVal}`;
-            const endDateTime = `${dateVal}T${toVal}`;
-            const untilDateTime = `${untilVal}T23:59:59`;
-
             const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
-            const editIdField = document.getElementById('editSchedId');
-            const editId = editIdField ? editIdField.value : null;
+            const newSched = {
+                id: "SCH" + (Date.now()),
+                title,
+                type,
+                programId,
+                dateTime,
+                location,
+                status: "Scheduled"
+            };
+            schedules.push(newSched);
+            localStorage.setItem('peso_schedules', JSON.stringify(schedules));
 
-            if (editId) {
-                const idx = schedules.findIndex(s => s.id === editId);
-                if (idx !== -1) {
-                    schedules[idx].title = title;
-                    schedules[idx].type = type;
-                    schedules[idx].programId = programId;
-                    schedules[idx].dateTime = startDateTime;
-                    schedules[idx].from = startDateTime;
-                    schedules[idx].to = endDateTime;
-                    schedules[idx].until = untilDateTime;
-                    schedules[idx].beneficiaryId = beneficiaryId;
-                    schedules[idx].location = location;
-                }
-                localStorage.setItem('peso_schedules', JSON.stringify(schedules));
-                pushActivity("Schedule Updated", `Updated schedule session: ${title}`);
-                alert("Schedule updated successfully.");
-            } else {
-                const newSched = {
-                    id: "SCH" + (Date.now()),
-                    title,
-                    type,
-                    programId,
-                    dateTime: startDateTime,
-                    from: startDateTime,
-                    to: endDateTime,
-                    until: untilDateTime,
-                    beneficiaryId,
-                    location,
-                    status: "Active"
-                };
-                schedules.push(newSched);
-                localStorage.setItem('peso_schedules', JSON.stringify(schedules));
-                pushActivity("Schedules Created", `Scheduled ${type} session: ${title}`);
-                alert("New livelihood schedule added successfully.");
-            }
-
+            pushActivity("Schedules Created", `Scheduled ${type} session: ${title}`);
+            alert("New livelihood schedule added successfully.");
             closeScheduleModal();
             renderCalendar();
             renderSchedulesList();
@@ -5485,104 +4990,6 @@
                     </tr>
                 `;
             });
-
-            // Render budget trend chart & ledger
-            renderBudgetTrendChart();
-            renderBudgetLedger();
-        }
-
-        let trendChartInstanceObj = null;
-        function renderBudgetTrendChart() {
-            const canvas = document.getElementById('budgetTrendChart');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            
-            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
-            const labels = programs.map(p => p.code);
-            const budgetData = programs.map(p => p.budget);
-            const allocatedData = programs.map(p => p.allocated);
-            
-            if (trendChartInstanceObj) {
-                trendChartInstanceObj.destroy();
-            }
-            
-            trendChartInstanceObj = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Approved Budget',
-                            data: budgetData,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.3,
-                            fill: true
-                        },
-                        {
-                            label: 'Utilized/Allocated',
-                            data: allocatedData,
-                            borderColor: '#ec4899',
-                            backgroundColor: 'rgba(236, 72, 153, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.3,
-                            fill: true
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(val) {
-                                    return '₱' + val.toLocaleString();
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderBudgetLedger() {
-            const ledger = JSON.parse(localStorage.getItem('peso_budget_ledger')) || [];
-            const tbody = document.getElementById('budgetLedgerBody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            
-            const filterVal = document.getElementById('filterLedgerAction').value;
-            
-            const filteredLedger = ledger.filter(item => {
-                if (filterVal !== 'all' && item.type !== filterVal) return false;
-                return true;
-            });
-            
-            if (filteredLedger.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No ledger entries.</td></tr>`;
-                return;
-            }
-            
-            // Sort ledger entries by date descending
-            filteredLedger.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            filteredLedger.forEach(item => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${new Date(item.date).toLocaleDateString()}</td>
-                        <td><strong>${item.program}</strong></td>
-                        <td><span class="badge ${item.type === 'Allocation' ? 'bg-primary' : (item.type === 'Re-alignment' ? 'bg-info' : 'bg-success')}">${item.type}</span></td>
-                        <td>₱${formatCurrency(item.amount)}</td>
-                        <td><span class="small text-muted">${item.by}</span></td>
-                    </tr>
-                `;
-            });
         }
 
         function handleAllocateFunds(e) {
@@ -5612,19 +5019,6 @@
 
                 programs[idx].allocated += amount;
                 localStorage.setItem('peso_programs', JSON.stringify(programs));
-
-                // Add to ledger
-                const ledger = JSON.parse(localStorage.getItem('peso_budget_ledger')) || [];
-                ledger.push({
-                    id: 'L' + Date.now(),
-                    date: new Date().toISOString(),
-                    program: prog.code,
-                    type: 'Allocation',
-                    amount: amount,
-                    by: 'PESO Admin',
-                    remarks: notes
-                });
-                localStorage.setItem('peso_budget_ledger', JSON.stringify(ledger));
 
                 pushActivity("Fund Allocation", `Allocated ₱${formatCurrency(amount)} to program: ${prog.code}. Justification: ${notes}`);
                 pushNotification("Budget Allocation Approved", `Allocated ₱${formatCurrency(amount)} for Livelihood Program '${prog.code}'. Justification: ${notes}`, "approval");

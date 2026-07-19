@@ -3441,71 +3441,7 @@
 
         // View full tracking
         function viewFullTracking(appId) {
-            let app = applications[appId];
-            
-            if (!app) {
-                const pesoApps = JSON.parse(localStorage.getItem('peso_applications')) || [];
-                const cswdoApps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
-                
-                const foundPeso = pesoApps.find(a => a.id === appId);
-                if (foundPeso) {
-                    const isApproved = foundPeso.status === 'Approved';
-                    const isRejected = foundPeso.status === 'Rejected' || foundPeso.status === 'Denied';
-                    const isVerified = foundPeso.documentVerified || isApproved;
-                    
-                    const steps = [
-                        { title: 'Application Submitted', desc: foundPeso.dateSubmitted, completed: true },
-                        { title: 'Document Review', desc: isVerified ? 'Verified' : (isRejected ? 'Rejected' : 'Under Review'), completed: isVerified || isRejected, active: !isVerified && !isRejected },
-                        { title: 'Interview/Exam', desc: isApproved ? 'Completed' : (isRejected ? 'Declined' : 'Pending'), completed: isApproved || isRejected, active: isVerified && !isApproved && !isRejected },
-                        { title: 'Decision', desc: isApproved ? 'Approved' : (isRejected ? 'Rejected' : 'Awaiting Assessment'), completed: isApproved || isRejected, active: isApproved || isRejected }
-                    ];
-                    
-                    const missingDocsList = [];
-                    if (foundPeso.requirementsChecklist) {
-                        for (let req in foundPeso.requirementsChecklist) {
-                            const status = foundPeso.requirementsChecklist[req];
-                            if (status === 'Missing' || status === 'Invalid' || status === 'Pending') {
-                                missingDocsList.push(`${req} (${status})`);
-                            }
-                        }
-                    }
-                    
-                    app = {
-                        type: foundPeso.programCode,
-                        date: foundPeso.dateSubmitted,
-                        status: isApproved ? 'Approved' : (isRejected ? 'Rejected' : 'Pending'),
-                        amount: isApproved ? 'Approved for Program Slot' : (isRejected ? 'Not Eligible' : 'Awaiting Assessment'),
-                        steps: steps,
-                        remarks: foundPeso.feedback || '',
-                        missingDocs: missingDocsList.length > 0 ? missingDocsList : null
-                    };
-                } else {
-                    const foundCswdo = cswdoApps.find(a => a.id === appId);
-                    if (foundCswdo) {
-                        const isCompleted = foundCswdo.status === 'Completed' || foundCswdo.status === 'Released';
-                        const isApproved = foundCswdo.status === 'Approved' || isCompleted;
-                        const isRejected = foundCswdo.status === 'Rejected' || foundCswdo.status === 'Denied';
-                        const isVerified = foundCswdo.verified || isApproved;
-                        
-                        const steps = [
-                            { title: 'Application Submitted', desc: foundCswdo.dateSubmitted, completed: true },
-                            { title: 'Document Review', desc: isVerified ? 'Verified' : (isRejected ? 'Rejected' : 'Under Review'), completed: isVerified || isRejected, active: !isVerified && !isRejected },
-                            { title: 'Approval/Verification', desc: isApproved ? 'Completed' : (isRejected ? 'Declined' : 'Pending'), completed: isApproved || isRejected, active: isVerified && !isApproved && !isRejected },
-                            { title: 'Release', desc: isCompleted ? 'Funds Released' : (isApproved ? 'Approved - Pending Release' : (isRejected ? 'Rejected' : 'Awaiting Release')), completed: isCompleted || isRejected, active: isApproved && !isCompleted }
-                        ];
-                        
-                        app = {
-                            type: foundCswdo.type,
-                            date: foundCswdo.dateSubmitted,
-                            status: foundCswdo.status,
-                            amount: foundCswdo.approvedAmount ? `Php ${foundCswdo.approvedAmount.toLocaleString()}` : (isRejected ? 'Not Eligible' : 'Awaiting Assessment'),
-                            steps: steps,
-                            remarks: foundCswdo.remarks || ''
-                        };
-                    }
-                }
-            }
-
+            const app = applications[appId];
             if (!app) return;
 
             let stepsHtml = '';
@@ -3932,113 +3868,8 @@
             let username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
             let fullName = sessionStorage.getItem('beneficiaryName') || 'Maria Santos';
             
-            // Resolve current beneficiary in database
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [
-                { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active", username: "maria_garcia" },
-                { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active", username: "pedro_santos" },
-                { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active", username: "ana_reyes" },
-                { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active", username: "roberto_cruz" },
-                { id: "B5", name: "Maria Santos", contact: "+639111222333", barangay: "Poblacion", status: "Active", username: "maria_santos" },
-                { id: "B6", name: "Juan dela Cruz", contact: "+639222333444", barangay: "San Isidro", status: "Active", username: "juan_dela_cruz" },
-                { id: "B7", name: "Pedro Reyes", contact: "+639333444555", barangay: "Mambucal", status: "Active", username: "pedro_reyes" }
-            ];
-            
-            if (!localStorage.getItem('peso_beneficiaries')) {
-                localStorage.setItem('peso_beneficiaries', JSON.stringify(beneficiaries));
-            }
-
-            let activeBen = beneficiaries.find(b => b.username === username);
-            if (!activeBen) {
-                activeBen = beneficiaries.find(b => b.name.toLowerCase() === fullName.toLowerCase()) || { id: 'Unknown' };
-            }
-            const activeBenId = activeBen.id;
-
-            // Load dynamic schedules
-            const allSchedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
-            const mySchedules = allSchedules.filter(s => 
-                (s.beneficiaryId === activeBenId || s.beneficiaryId === 'all') && 
-                s.status === 'Active'
-            );
-            const scheduledCount = mySchedules.length;
-
-            // Load dynamic applications
-            const pesoApps = JSON.parse(localStorage.getItem('peso_applications')) || [];
-            const cswdoApps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
-
-            const myPesoApps = pesoApps.filter(a => a.beneficiaryId === activeBenId);
-            const myCswdoApps = cswdoApps.filter(a => a.beneficiaryId === activeBenId);
-
-            const pendingPeso = myPesoApps.filter(a => a.status === 'Pending').length;
-            const approvedPeso = myPesoApps.filter(a => a.status === 'Approved').length;
-            
-            const pendingCswdo = myCswdoApps.filter(a => a.status === 'Pending').length;
-            const approvedCswdo = myCswdoApps.filter(a => a.status === 'Approved' || a.status === 'Completed').length;
-
-            const totalPending = pendingPeso + pendingCswdo;
-            const totalApproved = approvedPeso + approvedCswdo;
-
-            let appsHtml = '';
-            
-            myCswdoApps.forEach(app => {
-                let progressVal = 25;
-                let statusClass = 'processing';
-                if (app.status === 'Approved') { progressVal = 75; statusClass = 'approved'; }
-                else if (app.status === 'Completed' || app.status === 'Released') { progressVal = 100; statusClass = 'completed'; }
-                else if (app.status === 'Rejected' || app.status === 'Denied') { progressVal = 100; statusClass = 'denied'; }
-                
-                appsHtml += `
-                    <tr onclick="viewFullTracking('${app.id}')" style="cursor: pointer;">
-                        <td>#${app.id}</td>
-                        <td><strong>${app.type}</strong></td>
-                        <td><span class="office-badge cswdo">CSWDO</span></td>
-                        <td>${app.dateSubmitted || 'N/A'}</td>
-                        <td>
-                            <div class="progress" style="height: 16px; background-color: var(--rose-light); border-radius: 8px; width: 120px;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${progressVal}%; background-color: var(--rose-primary); border-radius: 8px; font-size: 0.75rem; font-weight: bold; line-height: 16px;" aria-valuenow="${progressVal}" aria-valuemin="0" aria-valuemax="100">${progressVal}%</div>
-                            </div>
-                        </td>
-                        <td><span class="status-pill ${statusClass}">${app.status}</span></td>
-                    </tr>
-                `;
-            });
-
-            myPesoApps.forEach(app => {
-                let progressVal = 25;
-                let statusClass = 'processing';
-                if (app.status === 'Approved') { progressVal = 100; statusClass = 'approved'; }
-                else if (app.status === 'Rejected' || app.status === 'Denied') { progressVal = 100; statusClass = 'denied'; }
-
-                appsHtml += `
-                    <tr onclick="viewFullTracking('${app.id}')" style="cursor: pointer;">
-                        <td>#${app.id}</td>
-                        <td><strong>${app.programCode}</strong></td>
-                        <td><span class="office-badge peso">PESO</span></td>
-                        <td>${app.dateSubmitted || 'N/A'}</td>
-                        <td>
-                            <div class="progress" style="height: 16px; background-color: var(--rose-light); border-radius: 8px; width: 120px;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${progressVal}%; background-color: var(--rose-primary); border-radius: 8px; font-size: 0.75rem; font-weight: bold; line-height: 16px;" aria-valuenow="${progressVal}" aria-valuemin="0" aria-valuemax="100">${progressVal}%</div>
-                            </div>
-                        </td>
-                        <td><span class="status-pill ${statusClass}">${app.status === 'Denied' ? 'Rejected' : app.status}</span></td>
-                    </tr>
-                `;
-            });
-
-            let finalPending = totalPending;
-            let finalApproved = totalApproved;
-            let finalAppsHtml = appsHtml;
-            let finalNotifsHtml = `
-                <div class="text-center text-white-50 py-3">No notifications.</div>
-            `;
-
-            // Fallback to static mock stats if no database apps exist for user
-            if (myPesoApps.length === 0 && myCswdoApps.length === 0) {
-                let profile = userStats[username] || userStats['maria_santos'];
-                finalPending = profile.pending;
-                finalApproved = profile.approved;
-                finalAppsHtml = profile.applicationsHtml;
-                finalNotifsHtml = profile.notificationsHtml;
-            }
+            // Get stats profile
+            let profile = userStats[username] || userStats['maria_santos'];
 
             // Update welcome name banner
             const welcomeBanner = document.getElementById('welcomeUser');
@@ -4049,13 +3880,13 @@
             // Update sidebar subtitle
             const sidebarSubtitle = document.getElementById('sidebarSubtitle');
             if (sidebarSubtitle) {
-                sidebarSubtitle.textContent = fullName;
+                sidebarSubtitle.textContent = profile.fullName;
             }
 
             // Update QR Modal name as well
             const qrName = document.querySelector('#qrModal h4');
             if (qrName) {
-                qrName.textContent = fullName;
+                qrName.textContent = profile.fullName;
             }
 
             // Update statistics indicators
@@ -4064,79 +3895,23 @@
             const statScheduled = document.getElementById('statScheduled');
             const statNotifications = document.getElementById('statNotifications');
 
-            if (statPending) statPending.textContent = finalPending;
-            if (statApproved) statApproved.textContent = finalApproved;
-            if (statScheduled) statScheduled.textContent = scheduledCount;
-            if (statNotifications) statNotifications.textContent = (myPesoApps.length === 0 && myCswdoApps.length === 0) ? userStats[username]?.notifications || 0 : 0;
+            if (statPending) statPending.textContent = profile.pending;
+            if (statApproved) statApproved.textContent = profile.approved;
+            if (statScheduled) statScheduled.textContent = profile.scheduled;
+            if (statNotifications) statNotifications.textContent = profile.notifications;
 
             // Update lists and content in dashboard dynamically
             const recentBody = document.getElementById('recentApplicationsBody');
-            if (recentBody) recentBody.innerHTML = finalAppsHtml;
+            if (recentBody) recentBody.innerHTML = profile.applicationsHtml;
 
             const noticesList = document.querySelector('#dashboard .card');
             if (noticesList && noticesList.querySelector('.notif-item')) {
-                noticesList.innerHTML = finalNotifsHtml;
-            }
-
-            // Dynamically generate schedules HTML
-            let schedulesHtml = '';
-            if (scheduledCount === 0) {
-                schedulesHtml = `
-                    <div style="text-align: center; padding: 30px; color: white;">
-                        <i class="bi bi-calendar-x" style="font-size: 2.5rem; color: #ccc; display: block; margin-bottom: 10px;"></i>
-                        No upcoming assistance disbursements or program sessions scheduled.
-                    </div>
-                `;
-            } else {
-                mySchedules.forEach((ev) => {
-                    const start = new Date(ev.from || ev.dateTime);
-                    const end = new Date(ev.to || ev.from || ev.dateTime);
-                    const until = new Date(ev.until || ev.to || ev.from);
-                    
-                    const day = start.getDate();
-                    const month = start.toLocaleString('en-US', { month: 'short' });
-                    const fromTime = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const toTime = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const untilDate = until.toLocaleDateString();
-
-                    let typeIcon = 'bi-calendar-event';
-                    if (ev.type === 'Distribution') typeIcon = 'bi-cash-coin';
-                    else if (ev.type === 'Training') typeIcon = 'bi-mortarboard-fill';
-                    else if (ev.type === 'Interview') typeIcon = 'bi-chat-dots-fill';
-
-                    schedulesHtml += `
-                        <div class="schedule-item-card mb-3" style="background: rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; border-left: 5px solid var(--rose-primary);">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                                <div class="dist-date-block" style="background: white; color: var(--text-dark); padding: 3px 8px; border-radius: 6px; text-align: center; min-width: 50px;">
-                                    <span class="dist-day" style="display: block; font-size: 1.2rem; font-weight: 800; line-height: 1;">${day}</span>
-                                    <span class="dist-month" style="font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">${month}</span>
-                                </div>
-                                <div style="flex: 1; margin-left: 15px;">
-                                    <h5 class="dist-title" style="font-size: 0.95rem; font-weight: bold; color: white; margin: 0 0 2px 0;">${ev.title}</h5>
-                                    <div class="dist-info" style="font-size: 0.75rem; color: #cbd5e1;"><i class="bi ${typeIcon} me-1"></i>${ev.type}</div>
-                                </div>
-                                <span class="badge bg-success" style="font-size: 0.65rem;">Active</span>
-                            </div>
-                            <div style="font-size: 0.75rem; color: #e2e8f0; margin-bottom: 5px;">
-                                <div><i class="bi bi-geo-alt"></i> Location: ${ev.location}</div>
-                                <div><i class="bi bi-clock"></i> Time: ${fromTime} - ${toTime}</div>
-                                <div><i class="bi bi-calendar-range"></i> Until: ${untilDate}</div>
-                            </div>
-                        </div>
-                    `;
-                });
+                noticesList.innerHTML = profile.notificationsHtml;
             }
 
             const distributionPanel = document.querySelector('#dashboard .distribution-card');
             if (distributionPanel) {
-                distributionPanel.innerHTML = schedulesHtml;
-                distributionPanel.style.background = 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)';
-            }
-
-            const distSectionPanel = document.querySelector('#distribution .distribution-card');
-            if (distSectionPanel) {
-                distSectionPanel.innerHTML = schedulesHtml;
-                distSectionPanel.style.background = 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)';
+                distributionPanel.innerHTML = profile.distributionHtml;
             }
 
             // Prefill Profile Modal
