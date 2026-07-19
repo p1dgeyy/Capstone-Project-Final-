@@ -2266,6 +2266,56 @@
 
             <!-- MODULE: Scheduling Management -->
             <section class="module-page" id="module-schedules">
+                <!-- Filters Card -->
+                <div class="table-card mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="table-title m-0"><i class="bi bi-funnel-fill text-primary"></i> Schedule Filters & Tools</h5>
+                        <button class="btn-custom btn-custom-secondary py-1 px-3" onclick="resetScheduleFilters()">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset Filters
+                        </button>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold text-muted">Program Type</label>
+                            <select class="form-select" id="filterSchedProgram" onchange="applyScheduleFilters()">
+                                <option value="all">All Programs</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold text-muted">Beneficiary Name</label>
+                            <select class="form-select" id="filterSchedBeneficiary" onchange="applyScheduleFilters()">
+                                <option value="all">All Beneficiaries</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold text-muted">Activity Category</label>
+                            <select class="form-select" id="filterSchedType" onchange="applyScheduleFilters()">
+                                <option value="all">All Categories</option>
+                                <option value="Distribution">Distribution</option>
+                                <option value="Training">Training</option>
+                                <option value="Interview">Interview</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label small fw-bold text-muted">Status</label>
+                            <select class="form-select" id="filterSchedStatus" onchange="applyScheduleFilters()">
+                                <option value="all">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-sm-12">
+                            <label class="form-label small fw-bold text-muted">Date From</label>
+                            <input type="date" class="form-control" id="filterSchedDateFrom" onchange="applyScheduleFilters()">
+                        </div>
+                        <div class="col-md-6 col-sm-12">
+                            <label class="form-label small fw-bold text-muted">Date To</label>
+                            <input type="date" class="form-control" id="filterSchedDateTo" onchange="applyScheduleFilters()">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-lg-8">
                         <div class="calendar-wrapper">
@@ -2291,29 +2341,8 @@
                                 </button>
                             </div>
 
-                            <!-- Filters Row for Schedule List -->
-                            <div class="mb-3">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <select class="form-control form-control-sm" id="filterSchedType" onchange="renderSchedulesList()">
-                                            <option value="all">All Types</option>
-                                            <option value="Distribution">Distribution</option>
-                                            <option value="Training">Training</option>
-                                            <option value="Interview">Interview</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-6">
-                                        <select class="form-control form-control-sm" id="filterSchedStatus" onchange="renderSchedulesList()">
-                                            <option value="all">All Status</option>
-                                            <option value="Active">Active</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="list-group" id="schedulesListGroup"
-                                style="max-height: 400px; overflow-y: auto;">
+                                style="max-height: 480px; overflow-y: auto;">
                                 <!-- Rendered dynamically -->
                             </div>
                         </div>
@@ -2967,36 +2996,37 @@
                     </div>
                     <div class="form-row">
                         <div class="form-col form-group">
-                            <label class="form-label">Activity Date</label>
-                            <input type="date" class="form-control" id="schedDate" required onchange="validateScheduleDates()">
+                            <label class="form-label">From (Start Date & Time)</label>
+                            <input type="datetime-local" class="form-control" id="schedFrom" required onchange="validateScheduleDates()">
                         </div>
                         <div class="form-col form-group">
-                            <label class="form-label">Start Time</label>
-                            <input type="time" class="form-control" id="schedFrom" required onchange="validateScheduleDates()">
+                            <label class="form-label">To (End Date & Time)</label>
+                            <input type="datetime-local" class="form-control" id="schedTo" required onchange="validateScheduleDates()">
                         </div>
                         <div class="form-col form-group">
-                            <label class="form-label">End Time</label>
-                            <input type="time" class="form-control" id="schedTo" required onchange="validateScheduleDates()">
+                            <label class="form-label">Until (Validity / Expiry Limit)</label>
+                            <input type="datetime-local" class="form-control" id="schedUntil" required onchange="validateScheduleDates()">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-col form-group">
-                            <label class="form-label">Active Until (Expiry Date)</label>
-                            <input type="date" class="form-control" id="schedUntil" required>
-                        </div>
-                        <div class="form-col form-group">
                             <label class="form-label">Target Recipient Group</label>
                             <select class="form-control" id="schedRecipient" required>
                                 <option value="all">All Registered Beneficiaries</option>
-                                <option value="B5">Maria Santos</option>
-                                <option value="B6">Juan dela Cruz</option>
-                                <option value="B7">Pedro Reyes</option>
+                                <!-- Options rendered dynamically -->
                             </select>
                         </div>
                         <div class="form-col form-group">
                             <label class="form-label">Location / Platform</label>
                             <input type="text" class="form-control" id="schedLocation"
                                 placeholder="e.g. City Hall Lobby" required>
+                        </div>
+                        <div class="form-col form-group">
+                            <label class="form-label">Schedule Status</label>
+                            <select class="form-control" id="schedStatus" required>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
                         </div>
                     </div>
                     <!-- Alert for conflicts -->
@@ -3005,7 +3035,7 @@
                 <div class="custom-modal-footer">
                     <button type="button" class="btn-custom btn-custom-secondary"
                         onclick="closeScheduleModal()">Cancel</button>
-                    <button type="submit" class="btn-custom btn-custom-primary">Schedule Activity</button>
+                    <button type="submit" class="btn-custom btn-custom-primary" id="schedSubmitBtn">Schedule Activity</button>
                 </div>
             </form>
         </div>
@@ -3251,6 +3281,25 @@
 
         // Dynamic State Database Initialization via localStorage
         function initLocalStorageDB() {
+            // Version tracker to clear outdated storage
+            const dbVer = "peso_portal_v5_db";
+            if (localStorage.getItem("peso_db_version") !== dbVer) {
+                localStorage.removeItem("peso_beneficiaries");
+                localStorage.removeItem("peso_applications");
+                localStorage.removeItem("peso_schedules");
+                localStorage.removeItem("peso_programs");
+                localStorage.removeItem("peso_officers");
+                localStorage.removeItem("peso_assignments");
+                localStorage.removeItem("peso_trainings");
+                localStorage.removeItem("peso_assistance");
+                localStorage.removeItem("peso_broadcast_logs");
+                localStorage.removeItem("peso_activities");
+                localStorage.removeItem("peso_notifications");
+                localStorage.removeItem("peso_budget_ledger");
+                localStorage.removeItem("peso_budget_logs");
+                localStorage.setItem("peso_db_version", dbVer);
+            }
+
             const defaultPrograms = [
                 {
                     id: "P1",
@@ -3292,7 +3341,7 @@
                     id: "P2",
                     code: "TUPAD",
                     name: "Support to Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers",
-                    budget: 40000,
+                    budget: 400000,
                     allocated: 25000,
                     status: "Active",
                     description: "Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD) is a community-based package of assistance that provides emergency employment for displaced, underemployed, and seasonal workers.",
@@ -3328,7 +3377,7 @@
                 { id: "P4", code: "CKGIP", name: "City of Koronadal Government Internship Program", budget: 500000, allocated: 150000, status: "Active" },
                 { id: "P5", code: "KEEP", name: "Koronadal Emergency Employment Program", budget: 1500000, allocated: 450000, status: "Active" },
                 { id: "P6", code: "PFAS", name: "Pangkabuhayan Financial Assistance", budget: 7000000, allocated: 2100000, status: "Active" },
-                { id: "P7", code: "DILP", name: "Support to DOLE Integrated Livelihood Program", budget: 500000, allocated: 120000, status: "Active" },
+                { id: "P7", code: "DILP", name: "Support to DOLE Integrated Livelihood Program", budget: 500000, allocated: 12000, status: "Active" },
                 { id: "P8", code: "Association Facilitation", name: "Association Facilitation", budget: 50000, allocated: 15000, status: "Active" },
                 { id: "P9", code: "Job Fairs", name: "Conduct of Job Fairs", budget: 100000, allocated: 30000, status: "Active" },
                 { id: "P10", code: "Job Portal", name: "Development of Localized Job Portal", budget: 150000, allocated: 40000, status: "Active" },
@@ -3354,9 +3403,8 @@
             });
 
             // Default Programs
-            if (!localStorage.getItem('peso_programs') || !localStorage.getItem('peso_programs_v3')) {
+            if (!localStorage.getItem('peso_programs')) {
                 localStorage.setItem('peso_programs', JSON.stringify(defaultPrograms));
-                localStorage.setItem('peso_programs_v3', 'true');
             }
 
             // Default Officers (REQ007)
@@ -3368,13 +3416,16 @@
                 localStorage.setItem('peso_officers', JSON.stringify(defaultOfficers));
             }
 
-            // Default Beneficiaries
+            // Default Beneficiaries with matching login usernames
             if (!localStorage.getItem('peso_beneficiaries')) {
                 const defaultBeneficiaries = [
-                    { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active" },
-                    { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active" },
-                    { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active" },
-                    { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active" }
+                    { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active", username: "maria_garcia" },
+                    { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active", username: "pedro_santos" },
+                    { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active", username: "ana_reyes" },
+                    { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active", username: "roberto_cruz" },
+                    { id: "B5", name: "Maria Santos", contact: "+639111222333", barangay: "Poblacion", status: "Active", username: "maria_santos" },
+                    { id: "B6", name: "Juan dela Cruz", contact: "+639222333444", barangay: "San Isidro", status: "Active", username: "juan_dela_cruz" },
+                    { id: "B7", name: "Pedro Reyes", contact: "+639333444555", barangay: "Mambucal", status: "Active", username: "pedro_reyes" }
                 ];
                 localStorage.setItem('peso_beneficiaries', JSON.stringify(defaultBeneficiaries));
             }
@@ -3391,19 +3442,88 @@
             // Default Applications (REQ023)
             if (!localStorage.getItem('peso_applications')) {
                 const defaultApplications = [
-                    { id: "APP1", beneficiaryId: "B3", programId: "P1", programCode: "SPES", dateSubmitted: "2026-06-15", status: "Pending", documentVerified: true, feedback: "" },
-                    { id: "APP2", beneficiaryId: "B4", programId: "P3", programCode: "Livelihood Training", dateSubmitted: "2026-06-20", status: "Pending", documentVerified: true, feedback: "" },
-                    { id: "APP3", beneficiaryId: "B1", programId: "P2", programCode: "TUPAD", dateSubmitted: "2026-05-10", status: "Approved", documentVerified: true, feedback: "Met criteria" }
+                    { 
+                        id: "APP1", 
+                        beneficiaryId: "B3", 
+                        programId: "P1", 
+                        programCode: "SPES", 
+                        dateSubmitted: "2026-06-15", 
+                        status: "Pending", 
+                        consent: true, 
+                        checklist: { "DPA Consent Form": true, "Valid Student ID": true, "Income Tax Return / Certificate of Indigency": false },
+                        documentVerified: false, 
+                        feedback: "" 
+                    },
+                    { 
+                        id: "APP2", 
+                        beneficiaryId: "B4", 
+                        programId: "P3", 
+                        programCode: "Livelihood Training", 
+                        dateSubmitted: "2026-06-20", 
+                        status: "Pending", 
+                        consent: true, 
+                        checklist: { "DPA Consent Form": true, "Barangay Clearance": true, "Skills Assessment Form": false },
+                        documentVerified: false, 
+                        feedback: "" 
+                    },
+                    { 
+                        id: "APP3", 
+                        beneficiaryId: "B5", 
+                        programId: "P2", 
+                        programCode: "TUPAD", 
+                        dateSubmitted: "2026-05-10", 
+                        status: "Approved", 
+                        consent: true, 
+                        checklist: { "DPA Consent Form": true, "Barangay Clearance": true, "Valid Government ID": true },
+                        documentVerified: true, 
+                        feedback: "Met criteria and submitted all credentials" 
+                    }
                 ];
                 localStorage.setItem('peso_applications', JSON.stringify(defaultApplications));
             }
 
-            // Default Schedules (REQ027)
+            // Default Schedules with start, end, and until bounds
             if (!localStorage.getItem('peso_schedules')) {
                 const defaultSchedules = [
-                    { id: "SCH1", title: "Livelihood Skills Orientation", type: "Training", programId: "P3", dateTime: "2026-06-28T09:00", location: "PESO Training Hall", status: "Scheduled" },
-                    { id: "SCH2", title: "TUPAD Cash Distribution Phase 1", type: "Distribution", programId: "P2", dateTime: "2026-06-30T10:00", location: "City Gym", status: "Scheduled" },
-                    { id: "SCH3", title: "SPES Screening Interviews", type: "Interview", programId: "P1", dateTime: "2026-06-27T13:30", location: "PESO Office", status: "Scheduled" }
+                    { 
+                        id: "SCH1", 
+                        title: "Livelihood Skills Orientation", 
+                        type: "Training", 
+                        programId: "P3", 
+                        from: "2026-06-28T09:00", 
+                        to: "2026-06-28T12:00", 
+                        until: "2026-06-28T17:00", 
+                        dateTime: "2026-06-28T09:00",
+                        location: "PESO Training Hall", 
+                        beneficiaryId: "all", 
+                        status: "Active" 
+                    },
+                    { 
+                        id: "SCH2", 
+                        title: "TUPAD Cash Distribution Phase 1", 
+                        type: "Distribution", 
+                        programId: "P2", 
+                        from: "2026-06-30T10:00", 
+                        to: "2026-06-30T14:00", 
+                        until: "2026-06-30T16:00", 
+                        dateTime: "2026-06-30T10:00",
+                        location: "City Gym", 
+                        beneficiaryId: "B5", 
+                        status: "Active" 
+                    },
+                    { 
+                        id: "SCH3", 
+                        title: "SPES Screening Interviews", 
+                        type: "Interview", 
+                        programId: "P1", 
+                        from: "2026-06-27T13:30", 
+                        to: "2026-06-27T15:30", 
+                        until: "2026-06-27T17:00", 
+                        dateTime: "2026-06-27T13:30",
+                        location: "PESO Office", 
+                        beneficiaryId: "all", 
+                        status: "Active" 
+                    }
                 ];
                 localStorage.setItem('peso_schedules', JSON.stringify(defaultSchedules));
             }
@@ -3508,6 +3628,17 @@
                 ];
                 localStorage.setItem('peso_budget_ledger', JSON.stringify(defaultLedger));
             }
+
+            // Default budget logs for ledger double-entry
+            if (!localStorage.getItem('peso_budget_logs')) {
+                const defaultLogs = [
+                    { id: "LOG1", programId: "P2", programName: "TUPAD", amount: 150000, status: "Received", notes: "LGU Approved Budget Allocation", timestamp: new Date(Date.now() - 3600000 * 24 * 5).toISOString() },
+                    { id: "LOG2", programId: "P2", programName: "TUPAD", amount: 25000, status: "Applied", notes: "Emergency employment cash payout", timestamp: new Date(Date.now() - 3600000 * 24 * 3).toISOString() },
+                    { id: "LOG3", programId: "P1", programName: "SPES", amount: 2000000, status: "Received", notes: "Approved Annual Student Salaries budget", timestamp: new Date(Date.now() - 3600000 * 24 * 4).toISOString() },
+                    { id: "LOG4", programId: "P1", programName: "SPES", amount: 380000, status: "Applied", notes: "SPES Phase 1 stipends", timestamp: new Date(Date.now() - 3600000 * 24 * 2).toISOString() }
+                ];
+                localStorage.setItem('peso_budget_logs', JSON.stringify(defaultLogs));
+            }
         }
 
         // Run Initialisation
@@ -3555,6 +3686,7 @@
             } else if (moduleId === 'module-evaluation') {
                 renderEvaluationTable();
             } else if (moduleId === 'module-schedules') {
+                initScheduleFilters();
                 renderCalendar();
                 renderSchedulesList();
             } else if (moduleId === 'module-funds') {
@@ -5064,9 +5196,120 @@
             renderCalendar();
         }
 
-        // Helper to check time overlapping conflicts locally for any date string
+        // Initialize Filter Dropdowns Dynamically
+        function initScheduleFilters() {
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+
+            const progSelect = document.getElementById('filterSchedProgram');
+            if (progSelect && progSelect.options.length <= 1) {
+                progSelect.innerHTML = '<option value="all">All Programs</option>';
+                programs.forEach(p => {
+                    progSelect.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
+                });
+            }
+
+            const benSelect = document.getElementById('filterSchedBeneficiary');
+            if (benSelect && benSelect.options.length <= 1) {
+                benSelect.innerHTML = '<option value="all">All Beneficiaries</option>';
+                beneficiaries.forEach(b => {
+                    benSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+                });
+            }
+        }
+
+        function applyScheduleFilters() {
+            renderCalendar();
+            renderSchedulesList();
+        }
+
+        function resetScheduleFilters() {
+            document.getElementById('filterSchedProgram').value = 'all';
+            document.getElementById('filterSchedBeneficiary').value = 'all';
+            document.getElementById('filterSchedType').value = 'all';
+            document.getElementById('filterSchedStatus').value = 'all';
+            document.getElementById('filterSchedDateFrom').value = '';
+            document.getElementById('filterSchedDateTo').value = '';
+            applyScheduleFilters();
+        }
+
+        function getFilteredSchedules() {
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const filterProgram = document.getElementById('filterSchedProgram')?.value || 'all';
+            const filterBeneficiary = document.getElementById('filterSchedBeneficiary')?.value || 'all';
+            const filterType = document.getElementById('filterSchedType')?.value || 'all';
+            const filterStatus = document.getElementById('filterSchedStatus')?.value || 'all';
+            const filterDateFrom = document.getElementById('filterSchedDateFrom')?.value || '';
+            const filterDateTo = document.getElementById('filterSchedDateTo')?.value || '';
+
+            return schedules.filter(sc => {
+                // Program filter
+                if (filterProgram !== 'all' && sc.programId !== filterProgram) return false;
+
+                // Beneficiary filter
+                if (filterBeneficiary !== 'all') {
+                    if (sc.beneficiaryId !== filterBeneficiary && sc.beneficiaryId !== 'all') return false;
+                }
+
+                // Category filter
+                if (filterType !== 'all' && sc.type !== filterType) return false;
+
+                // Status filter
+                if (filterStatus !== 'all') {
+                    const isActive = sc.status === 'Active' || sc.status === 'Scheduled';
+                    if (filterStatus === 'Active' && !isActive) return false;
+                    if (filterStatus === 'Inactive' && sc.status !== 'Inactive' && sc.status !== 'Cancelled') return false;
+                    if (filterStatus === 'Cancelled' && sc.status !== 'Cancelled') return false;
+                }
+
+                // Date Range filter
+                const scDateStr = (sc.from || sc.dateTime || '').substring(0, 10);
+                if (filterDateFrom && scDateStr < filterDateFrom) return false;
+                if (filterDateTo && scDateStr > filterDateTo) return false;
+
+                return true;
+            });
+        }
+
+        // Helper to check time overlapping conflicts for any schedule
+        function checkScheduleConflict(schedId, fromStr, toStr, beneficiaryId, programId) {
+            if (!fromStr || !toStr) return null;
+            const newStart = new Date(fromStr).getTime();
+            const newEnd = new Date(toStr).getTime();
+
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            
+            for (let i = 0; i < schedules.length; i++) {
+                const sc = schedules[i];
+                if (sc.id === schedId) continue;
+                if (sc.status !== 'Active' && sc.status !== 'Scheduled') continue;
+
+                const existingStart = new Date(sc.from || sc.dateTime).getTime();
+                const existingEnd = new Date(sc.to || sc.from || sc.dateTime).getTime();
+
+                // Overlap check
+                if (newStart < existingEnd && existingStart < newEnd) {
+                    const sameProgram = sc.programId === programId;
+                    const sameBeneficiary = (sc.beneficiaryId === beneficiaryId && beneficiaryId !== 'all') || 
+                                            (sc.beneficiaryId === 'all' || beneficiaryId === 'all');
+                    
+                    if (sameProgram || sameBeneficiary) {
+                        return {
+                            title: sc.title,
+                            type: sc.type,
+                            sameProgram,
+                            sameBeneficiary,
+                            programId: sc.programId,
+                            beneficiaryId: sc.beneficiaryId
+                        };
+                    }
+                }
+            }
+            return null;
+        }
+
         function checkHasConflictLocal(dateStr, schedules) {
-            const dayEvents = schedules.filter(s => s.dateTime.startsWith(dateStr) && (s.status === 'Active' || s.status === 'Scheduled'));
+            const dayEvents = schedules.filter(s => (s.from || s.dateTime || '').startsWith(dateStr) && (s.status === 'Active' || s.status === 'Scheduled'));
             if (dayEvents.length <= 1) return false;
             
             for (let i = 0; i < dayEvents.length; i++) {
@@ -5079,9 +5322,13 @@
                     const from2 = new Date(s2.from || s2.dateTime).getTime();
                     const to2 = new Date(s2.to || s2.from || s2.dateTime).getTime();
                     
-                    // Overlap check
                     if (from1 < to2 && from2 < to1) {
-                        return true;
+                        const sameProgram = s1.programId === s2.programId;
+                        const sameBeneficiary = (s1.beneficiaryId === s2.beneficiaryId && s1.beneficiaryId !== 'all') || 
+                                                (s1.beneficiaryId === 'all' || s2.beneficiaryId === 'all');
+                        if (sameProgram || sameBeneficiary) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -5089,7 +5336,6 @@
         }
 
         function renderCalendar() {
-            // Remove any leftover tooltips
             const oldTooltips = document.querySelectorAll('.calendar-tooltip');
             oldTooltips.forEach(t => t.remove());
 
@@ -5099,47 +5345,52 @@
             const grid = document.getElementById('calendarGridBody');
             grid.innerHTML = '';
 
-            // Day Names Header
             const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             days.forEach(d => {
                 grid.innerHTML += `<div class="calendar-day-name">${d}</div>`;
             });
 
-            // Get month info
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const numDays = new Date(currentYear, currentMonth + 1, 0).getDate();
             const prevNumDays = new Date(currentYear, currentMonth, 0).getDate();
 
-            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const filteredSchedules = getFilteredSchedules();
+            const allSchedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
 
-            // Render Previous Month Days
+            // Previous Month Days
             for (let i = firstDay - 1; i >= 0; i--) {
                 const dayVal = prevNumDays - i;
                 grid.innerHTML += `<div class="calendar-cell other-month"><div class="calendar-day-num">${dayVal}</div></div>`;
             }
 
-            // Render Current Month Days
+            // Current Month Days
             const today = new Date();
             const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() === currentMonth;
 
             for (let day = 1; day <= numDays; day++) {
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-                // Get active events for this day
-                const dayEvents = schedules.filter(s => s.dateTime.startsWith(dateStr) && (s.status === 'Active' || s.status === 'Scheduled'));
-                const hasConflict = checkHasConflictLocal(dateStr, schedules);
+                const dayEvents = filteredSchedules.filter(s => (s.from || s.dateTime || '').startsWith(dateStr) && (s.status === 'Active' || s.status === 'Scheduled'));
+                const hasConflict = checkHasConflictLocal(dateStr, allSchedules);
                 let eventsHtml = '';
 
                 dayEvents.forEach(ev => {
-                    let badgeClass = 'training';
-                    if (ev.type === 'Interview') badgeClass = 'interview';
-                    else if (ev.type === 'Distribution') badgeClass = 'distribution';
+                    const prog = programs.find(p => p.id === ev.programId) || { code: 'OTHER' };
+                    let bgStyle = 'background-color: var(--secondary);';
+                    if (prog.code === 'SPES') bgStyle = 'background-color: var(--primary-pink);';
+                    else if (prog.code === 'TUPAD') bgStyle = 'background-color: var(--accent);';
+                    else if (ev.type === 'Training' || prog.code.includes('Train')) bgStyle = 'background-color: var(--warning); color: #000;';
+                    else if (prog.code === 'GIP') bgStyle = 'background-color: var(--info);';
 
+                    let badgeClass = '';
                     if (hasConflict) {
                         badgeClass = 'conflict';
+                        bgStyle = ''; // let class handle conflict color
                     }
 
-                    eventsHtml += `<div class="calendar-event-badge ${badgeClass}" data-event-id="${ev.id}" title="${ev.title}">${ev.title}</div>`;
+                    eventsHtml += `<div class="calendar-event-badge ${badgeClass}" style="${bgStyle}" data-event-id="${ev.id}" title="${ev.title}">${ev.title}</div>`;
                 });
 
                 const todayClass = (isCurrentMonth && today.getDate() === day) ? 'today' : '';
@@ -5151,30 +5402,44 @@
                     <div class="calendar-events-container">${eventsHtml}</div>
                 `;
 
-                // Add tooltip events
                 if (dayEvents.length > 0) {
                     cell.addEventListener('mouseenter', function(e) {
+                        const oldTooltips = document.querySelectorAll('.calendar-tooltip');
+                        oldTooltips.forEach(t => t.remove());
+
                         const tooltip = document.createElement('div');
                         tooltip.className = 'calendar-tooltip';
                         
                         let rowsHtml = '';
                         dayEvents.forEach(ev => {
-                            const startT = new Date(ev.from || ev.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                            const endT = new Date(ev.to || ev.from || ev.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            const prog = programs.find(p => p.id === ev.programId) || { code: 'Unknown Program' };
+                            const ben = beneficiaries.find(b => b.id === ev.beneficiaryId) || { name: 'All Beneficiaries' };
+                            const startStr = ev.from ? new Date(ev.from).toLocaleString() : new Date(ev.dateTime).toLocaleString();
+                            const endStr = ev.to ? new Date(ev.to).toLocaleString() : 'N/A';
+                            const untilStr = ev.until ? new Date(ev.until).toLocaleString() : 'N/A';
+
                             rowsHtml += `
-                                <tr>
-                                    <td><strong>${ev.title}</strong></td>
-                                    <td><span class="badge ${ev.type === 'Distribution' ? 'bg-warning text-dark' : (ev.type === 'Interview' ? 'bg-info' : 'bg-primary')}">${ev.type}</span></td>
-                                    <td>${startT} - ${endT}</td>
+                                <tr style="border-bottom: 1px solid #334155;">
+                                    <td style="padding: 6px 0;">
+                                        <div style="font-weight: bold; font-size: 0.8rem; color: #fff;">${ev.title}</div>
+                                        <div style="color: #94a3b8; font-size: 0.65rem;">
+                                            Program: <span style="color: var(--primary-pink);">${prog.code}</span> | Type: ${ev.type}<br>
+                                            Recipient: ${ben.name}<br>
+                                            From: ${startStr}<br>
+                                            To: ${endStr}<br>
+                                            Until: ${untilStr}<br>
+                                            Venue: ${ev.location}
+                                        </div>
+                                    </td>
                                 </tr>
                             `;
                         });
 
                         tooltip.innerHTML = `
-                            <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #475569; padding-bottom: 3px;">
-                                ${hasConflict ? '<span style="color: #ef4444;"><i class="bi bi-exclamation-triangle-fill"></i> Conflict Detected</span>' : 'Schedules for ' + dateStr}
+                            <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #334155; padding-bottom: 3px; font-size: 0.75rem; color: #f8fafc; display: flex; align-items: center; gap: 5px;">
+                                ${hasConflict ? '<span style="color: #ef4444;"><i class="bi bi-exclamation-triangle-fill"></i> Conflict Active</span>' : '<i class="bi bi-info-circle-fill text-info"></i> Day Schedule details'}
                             </div>
-                            <table class="table table-sm table-borderless text-white mb-0" style="font-size: 0.7rem;">
+                            <table class="table table-sm table-borderless text-white mb-0" style="font-size: 0.7rem; width: 100%;">
                                 <tbody>
                                     ${rowsHtml}
                                 </tbody>
@@ -5198,59 +5463,57 @@
         }
 
         function renderSchedulesList() {
-            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const filteredSchedules = getFilteredSchedules();
             const list = document.getElementById('schedulesListGroup');
             list.innerHTML = '';
 
-            const filterType = document.getElementById('filterSchedType').value;
-            const filterStatus = document.getElementById('filterSchedStatus').value;
-
-            let filteredSchedules = schedules.filter(sc => {
-                if (filterType !== 'all' && sc.type !== filterType) return false;
-                
-                if (filterStatus !== 'all') {
-                    if (filterStatus === 'Active' && (sc.status === 'Active' || sc.status === 'Scheduled')) {
-                        // Match both Active and Scheduled
-                    } else if (filterStatus === 'Cancelled' && (sc.status === 'Cancelled' || sc.status === 'Inactive')) {
-                        // Match both Cancelled and Inactive
-                    } else if (sc.status !== filterStatus) {
-                        return false;
-                    }
-                }
-                return true;
-            });
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
 
             filteredSchedules.forEach(sc => {
-                let badgeClass = 'bg-primary';
-                if (sc.type === 'Interview') badgeClass = 'bg-info';
-                else if (sc.type === 'Distribution') badgeClass = 'bg-warning text-dark';
+                const prog = programs.find(p => p.id === sc.programId) || { code: 'OTHER' };
+                const ben = beneficiaries.find(b => b.id === sc.beneficiaryId) || { name: 'All Registered Beneficiaries' };
+
+                let badgeClass = 'bg-secondary';
+                if (prog.code === 'SPES') badgeClass = 'bg-rose text-white';
+                else if (prog.code === 'TUPAD') badgeClass = 'bg-success';
+                else if (prog.code === 'GIP') badgeClass = 'bg-info text-dark';
+                else if (sc.type === 'Training') badgeClass = 'bg-warning text-dark';
 
                 const isActive = sc.status === 'Active' || sc.status === 'Scheduled';
                 const statusColor = isActive ? 'text-success' : 'text-danger';
                 
                 const startT = new Date(sc.from || sc.dateTime);
-                const formatTime = startT.toLocaleDateString() + " " + startT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const endT = sc.to ? new Date(sc.to) : null;
+                const formatTime = startT.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + 
+                                   (endT ? ' - ' + endT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
 
                 list.innerHTML += `
-                    <div class="list-group-item list-group-item-action p-3 mb-2 border rounded" style="background-color: #faf7f8;">
+                    <div class="list-group-item list-group-item-action p-3 mb-2 border rounded" style="background-color: #faf7f8; transition: var(--transition-smooth);">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="badge ${badgeClass}">${sc.type}</span>
-                            <span class="small font-weight-bold ${statusColor}">${sc.status}</span>
+                            <div>
+                                <span class="badge ${badgeClass} me-1">${prog.code}</span>
+                                <span class="badge bg-light text-dark">${sc.type}</span>
+                            </div>
+                            <span class="small font-weight-bold ${statusColor}">${sc.status === 'Cancelled' ? 'Inactive' : (sc.status || 'Active')}</span>
                         </div>
-                        <h6 class="mb-1 fw-bold">${sc.title}</h6>
+                        <h6 class="mb-1 fw-bold text-dark">${sc.title}</h6>
+                        <p class="mb-1 small text-muted"><i class="bi bi-person-fill me-1"></i>Recipient: <strong>${ben.name}</strong></p>
                         <p class="mb-1 small text-muted"><i class="bi bi-clock me-1"></i>${formatTime}</p>
                         <p class="mb-2 small text-muted"><i class="bi bi-geo-alt me-1"></i>${sc.location}</p>
                         <div class="d-flex gap-2">
                             ${isActive ? `
-                                <button class="btn btn-sm btn-outline-danger py-0 px-2 font-weight-bold" onclick="cancelSchedule('${sc.id}')">Cancel</button>
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2 font-weight-bold" onclick="deactivateSchedule('${sc.id}')">Deactivate</button>
                                 <button class="btn btn-sm btn-outline-secondary py-0 px-2 font-weight-bold" onclick="openEditScheduleModal('${sc.id}')"><i class="bi bi-pencil"></i> Edit</button>
-                            ` : ''}
+                            ` : `
+                                <button class="btn btn-sm btn-outline-success py-0 px-2 font-weight-bold" onclick="activateSchedule('${sc.id}')">Activate</button>
+                            `}
                         </div>
                     </div>
                 `;
             });
             if (filteredSchedules.length === 0) {
-                list.innerHTML = '<div class="text-center text-muted p-4">No schedules recorded.</div>';
+                list.innerHTML = '<div class="text-center text-muted p-4">No schedules matching current filters.</div>';
             }
         }
 
@@ -5262,16 +5525,45 @@
                 select.innerHTML += `<option value="${p.id}">${p.code}</option>`;
             });
 
+            // Dynamic recipient list
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const recSelect = document.getElementById('schedRecipient');
+            if (recSelect) {
+                recSelect.innerHTML = '<option value="all">All Registered Beneficiaries</option>';
+                beneficiaries.forEach(b => {
+                    recSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+                });
+            }
+
             document.getElementById('scheduleForm').reset();
             
             const editId = document.getElementById('editSchedId');
             if (editId) editId.remove();
             
+            // Default future times
+            const now = new Date();
+            const futureStart = new Date(now.getTime() + 3600000); // +1 hour
+            const futureEnd = new Date(futureStart.getTime() + 7200000); // +2 hours
+            const futureUntil = new Date(futureEnd.getTime() + 86400000); // +1 day
+            
+            const toLocalISO = (d) => {
+                const tzoffset = d.getTimezoneOffset() * 60000;
+                return (new Date(d.getTime() - tzoffset)).toISOString().slice(0, 16);
+            };
+
+            document.getElementById('schedFrom').value = toLocalISO(futureStart);
+            document.getElementById('schedTo').value = toLocalISO(futureEnd);
+            document.getElementById('schedUntil').value = toLocalISO(futureUntil);
+            document.getElementById('schedStatus').value = 'Active';
+
             const modalTitle = document.querySelector('#scheduleModal .custom-modal-title');
             if (modalTitle) modalTitle.textContent = "Create Program Scheduled Activity";
             
             const conflictAlert = document.getElementById('schedConflictAlert');
             if (conflictAlert) conflictAlert.style.display = 'none';
+
+            const submitBtn = document.getElementById('schedSubmitBtn');
+            if (submitBtn) submitBtn.disabled = false;
 
             document.getElementById('scheduleModal').classList.add('active');
         }
@@ -5281,55 +5573,67 @@
         }
 
         function validateScheduleDates() {
-            const dateVal = document.getElementById('schedDate').value;
             const fromVal = document.getElementById('schedFrom').value;
             const toVal = document.getElementById('schedTo').value;
+            const untilVal = document.getElementById('schedUntil').value;
             
-            if (!dateVal || !fromVal || !toVal) return;
+            if (!fromVal || !toVal || !untilVal) return;
             
-            const start = new Date(`${dateVal}T${fromVal}`);
-            const end = new Date(`${dateVal}T${toVal}`);
+            const start = new Date(fromVal);
+            const end = new Date(toVal);
+            const until = new Date(untilVal);
             
             const conflictAlert = document.getElementById('schedConflictAlert');
+            const submitBtn = document.getElementById('schedSubmitBtn');
+            
             if (end <= start) {
                 if (conflictAlert) {
                     conflictAlert.className = "alert alert-danger mb-3";
-                    conflictAlert.innerHTML = "<i class='bi bi-exclamation-triangle-fill me-2'></i><strong>Error:</strong> End time must be after Start time.";
+                    conflictAlert.innerHTML = "<i class='bi bi-x-circle-fill me-2'></i><strong>Error:</strong> End Date/Time (To) must be strictly after Start Date/Time (From).";
                     conflictAlert.style.display = 'block';
                 }
+                if (submitBtn) submitBtn.disabled = true;
+                return;
+            }
+            
+            if (until < end) {
+                if (conflictAlert) {
+                    conflictAlert.className = "alert alert-danger mb-3";
+                    conflictAlert.innerHTML = "<i class='bi bi-x-circle-fill me-2'></i><strong>Error:</strong> Validity Limit (Until) must be after or equal to End Date/Time (To).";
+                    conflictAlert.style.display = 'block';
+                }
+                if (submitBtn) submitBtn.disabled = true;
                 return;
             }
             
             // Check overlaps in LocalStorage
-            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
             const editIdField = document.getElementById('editSchedId');
             const schedId = editIdField ? editIdField.value : null;
+            const programId = document.getElementById('schedProgramSelect').value;
+            const beneficiaryId = document.getElementById('schedRecipient').value;
             
-            let hasOverlap = false;
-            let overlappingTitle = '';
+            const conflict = checkScheduleConflict(schedId, fromVal, toVal, beneficiaryId, programId);
             
-            schedules.forEach(s => {
-                if (s.id === schedId || (s.status !== 'Active' && s.status !== 'Scheduled')) return;
-                if (!s.dateTime.startsWith(dateVal)) return;
-                
-                const sFrom = new Date(s.from || s.dateTime).getTime();
-                const sTo = new Date(s.to || s.from || s.dateTime).getTime();
-                
-                if (start.getTime() < sTo && sFrom < end.getTime()) {
-                    hasOverlap = true;
-                    overlappingTitle = s.title;
+            if (conflict) {
+                let conflictMsg = "";
+                if (conflict.sameProgram && conflict.sameBeneficiary) {
+                    conflictMsg = `Warning: Time overlaps with existing schedule <strong>"${conflict.title}"</strong> (Same Program and Beneficiary).`;
+                } else if (conflict.sameProgram) {
+                    conflictMsg = `Warning: Time overlaps with existing schedule <strong>"${conflict.title}"</strong> (Same Livelihood Program).`;
+                } else {
+                    conflictMsg = `Warning: Time overlaps with existing schedule <strong>"${conflict.title}"</strong> (Beneficiary group conflict).`;
                 }
-            });
-            
-            if (hasOverlap) {
+
                 if (conflictAlert) {
                     conflictAlert.className = "alert alert-warning mb-3";
-                    conflictAlert.innerHTML = `<i class='bi bi-exclamation-triangle-fill me-2'></i><strong>Warning:</strong> Time overlaps with existing schedule <strong>"${overlappingTitle}"</strong>.`;
+                    conflictAlert.innerHTML = `<i class='bi bi-exclamation-triangle-fill me-2'></i><strong>Scheduling Conflict:</strong> ${conflictMsg}`;
                     conflictAlert.style.display = 'block';
                 }
             } else {
                 if (conflictAlert) conflictAlert.style.display = 'none';
             }
+            
+            if (submitBtn) submitBtn.disabled = false;
         }
 
         function openEditScheduleModal(id) {
@@ -5344,23 +5648,32 @@
                 select.innerHTML += `<option value="${p.id}" ${p.id === sc.programId ? 'selected' : ''}>${p.code}</option>`;
             });
 
+            // Dynamic recipient list
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const recSelect = document.getElementById('schedRecipient');
+            if (recSelect) {
+                recSelect.innerHTML = '<option value="all">All Registered Beneficiaries</option>';
+                beneficiaries.forEach(b => {
+                    recSelect.innerHTML += `<option value="${b.id}" ${b.id === sc.beneficiaryId ? 'selected' : ''}>${b.name}</option>`;
+                });
+            }
+
             document.getElementById('schedTitle').value = sc.title;
             document.getElementById('schedType').value = sc.type;
             
-            // Parse Date and times
-            const start = new Date(sc.from || sc.dateTime);
-            const end = new Date(sc.to || sc.from || sc.dateTime);
-            const until = new Date(sc.until || sc.to || sc.from || sc.dateTime);
-            
-            document.getElementById('schedDate').value = start.toISOString().substring(0, 10);
-            document.getElementById('schedFrom').value = start.toTimeString().substring(0, 5);
-            document.getElementById('schedTo').value = end.toTimeString().substring(0, 5);
-            document.getElementById('schedUntil').value = until.toISOString().substring(0, 10);
-            
-            document.getElementById('schedRecipient').value = sc.beneficiaryId || 'all';
-            document.getElementById('schedLocation').value = sc.location;
+            const parseDatetimeStr = (str) => {
+                if (!str) return '';
+                if (str.includes('T')) return str.substring(0, 16);
+                return str;
+            };
 
-            // Add hidden edit input or set it
+            document.getElementById('schedFrom').value = parseDatetimeStr(sc.from || sc.dateTime);
+            document.getElementById('schedTo').value = parseDatetimeStr(sc.to || sc.dateTime);
+            document.getElementById('schedUntil').value = parseDatetimeStr(sc.until || sc.to || sc.dateTime);
+            document.getElementById('schedLocation').value = sc.location;
+            document.getElementById('schedStatus').value = sc.status === 'Cancelled' ? 'Inactive' : (sc.status || 'Active');
+
+            // Add hidden edit input
             let editId = document.getElementById('editSchedId');
             if (!editId) {
                 editId = document.createElement('input');
@@ -5376,6 +5689,9 @@
             const conflictAlert = document.getElementById('schedConflictAlert');
             if (conflictAlert) conflictAlert.style.display = 'none';
 
+            const submitBtn = document.getElementById('schedSubmitBtn');
+            if (submitBtn) submitBtn.disabled = false;
+
             document.getElementById('scheduleModal').classList.add('active');
         }
 
@@ -5385,16 +5701,12 @@
             const type = document.getElementById('schedType').value;
             const programId = document.getElementById('schedProgramSelect').value;
             
-            const dateVal = document.getElementById('schedDate').value;
             const fromVal = document.getElementById('schedFrom').value;
             const toVal = document.getElementById('schedTo').value;
             const untilVal = document.getElementById('schedUntil').value;
             const beneficiaryId = document.getElementById('schedRecipient').value;
             const location = document.getElementById('schedLocation').value.trim();
-
-            const startDateTime = `${dateVal}T${fromVal}`;
-            const endDateTime = `${dateVal}T${toVal}`;
-            const untilDateTime = `${untilVal}T23:59:59`;
+            const statusVal = document.getElementById('schedStatus').value;
 
             const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
             const editIdField = document.getElementById('editSchedId');
@@ -5406,34 +5718,37 @@
                     schedules[idx].title = title;
                     schedules[idx].type = type;
                     schedules[idx].programId = programId;
-                    schedules[idx].dateTime = startDateTime;
-                    schedules[idx].from = startDateTime;
-                    schedules[idx].to = endDateTime;
-                    schedules[idx].until = untilDateTime;
+                    schedules[idx].dateTime = fromVal;
+                    schedules[idx].from = fromVal;
+                    schedules[idx].to = toVal;
+                    schedules[idx].until = untilVal;
                     schedules[idx].beneficiaryId = beneficiaryId;
                     schedules[idx].location = location;
+                    schedules[idx].status = statusVal === 'Inactive' ? 'Cancelled' : statusVal;
                 }
                 localStorage.setItem('peso_schedules', JSON.stringify(schedules));
-                pushActivity("Schedule Updated", `Updated schedule session: ${title}`);
-                alert("Schedule updated successfully.");
+                pushActivity("Schedule Updated", `Updated schedule session: ${title} (${statusVal})`);
+                pushNotification("Schedule Updated", `Schedule "${title}" has been modified. Status: ${statusVal}.`, "info");
+                showWebNotification("Schedule Updated", `Schedule "${title}" was successfully updated.`, "success");
             } else {
                 const newSched = {
                     id: "SCH" + (Date.now()),
                     title,
                     type,
                     programId,
-                    dateTime: startDateTime,
-                    from: startDateTime,
-                    to: endDateTime,
-                    until: untilDateTime,
+                    dateTime: fromVal,
+                    from: fromVal,
+                    to: toVal,
+                    until: untilVal,
                     beneficiaryId,
                     location,
-                    status: "Active"
+                    status: statusVal === 'Inactive' ? 'Cancelled' : statusVal
                 };
                 schedules.push(newSched);
                 localStorage.setItem('peso_schedules', JSON.stringify(schedules));
                 pushActivity("Schedules Created", `Scheduled ${type} session: ${title}`);
-                alert("New livelihood schedule added successfully.");
+                pushNotification("Schedule Created", `A new scheduled activity "${title}" has been created for program.`, "info");
+                showWebNotification("Schedule Created", `Schedule "${title}" was successfully created.`, "success");
             }
 
             closeScheduleModal();
@@ -5441,18 +5756,34 @@
             renderSchedulesList();
         }
 
-        function cancelSchedule(id) {
-            showConfirmCard("Are you sure you want to cancel this scheduled activity?", () => {
+        function deactivateSchedule(id) {
+            showConfirmCard("Are you sure you want to deactivate this scheduled activity?", () => {
                 const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
                 const idx = schedules.findIndex(s => s.id === id);
                 if (idx !== -1) {
                     schedules[idx].status = 'Cancelled';
                     localStorage.setItem('peso_schedules', JSON.stringify(schedules));
-                    pushActivity("Schedule Cancelled", `Cancelled activity: ${schedules[idx].title}`);
+                    pushActivity("Schedule Deactivated", `Deactivated activity: ${schedules[idx].title}`);
+                    pushNotification("Schedule Deactivated", `Schedule "${schedules[idx].title}" has been deactivated.`, "info");
+                    showWebNotification("Schedule Deactivated", `Schedule "${schedules[idx].title}" was successfully deactivated.`, "warning");
                     renderCalendar();
                     renderSchedulesList();
                 }
             });
+        }
+
+        function activateSchedule(id) {
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const idx = schedules.findIndex(s => s.id === id);
+            if (idx !== -1) {
+                schedules[idx].status = 'Active';
+                localStorage.setItem('peso_schedules', JSON.stringify(schedules));
+                pushActivity("Schedule Activated", `Activated activity: ${schedules[idx].title}`);
+                pushNotification("Schedule Activated", `Schedule "${schedules[idx].title}" has been activated.`, "info");
+                showWebNotification("Schedule Activated", `Schedule "${schedules[idx].title}" is now active.`, "success");
+                renderCalendar();
+                renderSchedulesList();
+            }
         }
 
         // ==============================================
