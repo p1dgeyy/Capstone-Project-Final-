@@ -10,6 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js Dependency -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
+    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
+    <script src="assets/js/api-config.js"></script>
     <style>
         :root {
             --primary-pink: #F0B6C6;
@@ -2422,7 +2425,7 @@
             document.getElementById('officerModal').classList.remove('show');
         }
 
-        function saveOfficer(e) {
+        async function saveOfficer(e) {
             e.preventDefault();
             const id = document.getElementById('officerId').value;
             const name = document.getElementById('officerName').value.trim();
@@ -2433,28 +2436,72 @@
             const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
 
             if (id === '') {
-                // Check if username already exists
-                const exists = officers.some(o => o.username.toLowerCase() === username.toLowerCase());
-                if (exists) {
-                    alert('Username is already registered. Please choose another.');
+                // ── CREATE NEW OFFICER VIA BACKEND API ──
+                // Parse name into first/last for the API
+                const nameParts = name.split(' ');
+                const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : name;
+                const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+
+                // Prompt for password since the CSWDO form doesn't have a password field
+                const password = prompt('Set a password for this officer account (minimum 8 characters):');
+                if (!password || password.length < 8) {
+                    alert('Error: Password must be at least 8 characters.');
                     return;
                 }
 
-                // Add New
-                const newId = 'CSW-O' + (officers.length + 1);
-                officers.push({
-                    id: newId,
-                    name,
-                    username,
-                    email,
-                    role,
-                    status: 'Active',
-                    dateCreated: new Date().toISOString().split('T')[0]
-                });
-                
-                pushActivity('Officer Registered', `Account created for ${name} (${role})`);
-                pushNotification('New CSWDO Officer Registered', `A new CSWDO Officer profile for ${name} (${role}) has been successfully created.`, 'alert');
-                alert('Officer Account successfully registered!');
+                try {
+                    const userId = localStorage.getItem('userId');
+                    const sessionToken = localStorage.getItem('sessionToken');
+
+                    const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register-officer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-User-Id': userId || '',
+                            'X-Session-Token': sessionToken || ''
+                        },
+                        body: JSON.stringify({
+                            username,
+                            password,
+                            role,
+                            firstName,
+                            lastName: lastName || firstName,
+                            email
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // API succeeded — cache in localStorage for UI rendering
+                        officers.push({
+                            id: String(data.userId),
+                            name,
+                            username,
+                            email,
+                            role,
+                            status: 'Active',
+                            dateCreated: new Date().toISOString().split('T')[0]
+                        });
+                        localStorage.setItem('cswdo_officers', JSON.stringify(officers));
+                        pushActivity('Officer Registered', `Account created for ${name} (${role})`);
+                        pushNotification('New CSWDO Officer Registered', `A new CSWDO Officer profile for ${name} (${role}) has been successfully created.`, 'alert');
+                        alert('Officer Account successfully registered!');
+                    } else if (response.status === 409) {
+                        alert('Error: ' + (data.message || 'Username or email already exists.'));
+                        return;
+                    } else if (response.status === 400 && data.errors) {
+                        alert('Validation Error: ' + data.errors.join(' '));
+                        return;
+                    } else {
+                        alert('Error: ' + (data.message || 'Failed to create officer account.'));
+                        return;
+                    }
+                } catch (networkError) {
+                    console.error('Officer registration request failed:', networkError);
+                    alert('Unable to connect to the server. Please check your connection and try again.');
+                    return;
+                }
             } else {
                 // Edit existing
                 const index = officers.findIndex(o => o.id === id);
@@ -2462,13 +2509,13 @@
                     officers[index].name = name;
                     officers[index].email = email;
                     officers[index].role = role;
+                    localStorage.setItem('cswdo_officers', JSON.stringify(officers));
                     pushActivity('Officer Edited', `Updated details of officer ${name}`);
                     pushNotification('CSWDO Officer Details Updated', `CSWDO Officer account details for ${name} have been updated.`, 'alert');
                     alert('Officer Account successfully updated!');
                 }
             }
 
-            localStorage.setItem('cswdo_officers', JSON.stringify(officers));
             closeOfficerModal();
             renderOfficersTable();
         }
