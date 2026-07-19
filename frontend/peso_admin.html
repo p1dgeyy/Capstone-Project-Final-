@@ -6049,6 +6049,11 @@
                     fundLink.innerHTML = '<i class="bi bi-lock-fill text-muted"></i> Fund & Allocations <span class="badge bg-secondary ms-auto" style="font-size: 0.6rem; padding: 2px 4px;">Admin</span>';
                     fundLink.style.opacity = '0.7';
                 }
+                // Hide Add Schedule button (REQ031)
+                const addBtn = document.querySelector('[onclick*="openAddScheduleModal"]');
+                if (addBtn) {
+                    addBtn.style.display = 'none';
+                }
             }
         }
 
@@ -6343,6 +6348,8 @@
 
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
             const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+            const isAdmin = role === 'PESO Admin';
 
             filteredSchedules.forEach(sc => {
                 const prog = programs.find(p => p.id === sc.programId) || { code: 'OTHER' };
@@ -6362,6 +6369,42 @@
                 const formatTime = startT.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + 
                                    (endT ? ' - ' + endT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
 
+                // Cancellation info (REQ033)
+                let cancellationHtml = '';
+                if (sc.status === 'Cancelled') {
+                    const cancellations = JSON.parse(localStorage.getItem('peso_schedule_cancellations')) || [];
+                    const log = cancellations.find(c => c.scheduleId === sc.id);
+                    if (log) {
+                        cancellationHtml = `
+                            <div class="mt-2 p-2 border-start border-danger border-3 bg-danger-subtle rounded small text-danger" style="font-size: 0.7rem; line-height: 1.3;">
+                                <strong><i class="bi bi-x-octagon-fill"></i> Cancelled by ${log.cancelledBy}</strong> on ${new Date(log.timestamp).toLocaleString()}<br>
+                                <em>Reason: "${log.reason}"</em>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Render action buttons only if admin (REQ031/REQ032/REQ033)
+                let actionsHtml = '';
+                if (isAdmin) {
+                    actionsHtml = `
+                        <div class="d-flex gap-2 mt-2">
+                            ${isActive ? `
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2 font-weight-bold" onclick="deactivateSchedule('${sc.id}')">Cancel Activity</button>
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2 font-weight-bold" onclick="openEditScheduleModal('${sc.id}')"><i class="bi bi-pencil"></i> Edit</button>
+                            ` : `
+                                <button class="btn btn-sm btn-outline-success py-0 px-2 font-weight-bold" onclick="activateSchedule('${sc.id}')">Activate</button>
+                            `}
+                        </div>
+                    `;
+                } else {
+                    actionsHtml = `
+                        <div class="text-muted small mt-1 font-italic" style="font-size: 0.65rem;">
+                            <i class="bi bi-lock-fill"></i> View-only (Admin privileges required to edit)
+                        </div>
+                    `;
+                }
+
                 list.innerHTML += `
                     <div class="list-group-item list-group-item-action p-3 mb-2 border rounded" style="background-color: #faf7f8; transition: var(--transition-smooth);">
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -6369,20 +6412,14 @@
                                 <span class="badge ${badgeClass} me-1">${prog.code}</span>
                                 <span class="badge bg-light text-dark">${sc.type}</span>
                             </div>
-                            <span class="small font-weight-bold ${statusColor}">${sc.status === 'Cancelled' ? 'Inactive' : (sc.status || 'Active')}</span>
+                            <span class="small font-weight-bold ${statusColor}">${sc.status === 'Cancelled' ? 'Cancelled' : (sc.status || 'Active')}</span>
                         </div>
                         <h6 class="mb-1 fw-bold text-dark">${sc.title}</h6>
                         <p class="mb-1 small text-muted"><i class="bi bi-person-fill me-1"></i>Recipient: <strong>${ben.name}</strong></p>
                         <p class="mb-1 small text-muted"><i class="bi bi-clock me-1"></i>${formatTime}</p>
                         <p class="mb-2 small text-muted"><i class="bi bi-geo-alt me-1"></i>${sc.location}</p>
-                        <div class="d-flex gap-2">
-                            ${isActive ? `
-                                <button class="btn btn-sm btn-outline-danger py-0 px-2 font-weight-bold" onclick="deactivateSchedule('${sc.id}')">Deactivate</button>
-                                <button class="btn btn-sm btn-outline-secondary py-0 px-2 font-weight-bold" onclick="openEditScheduleModal('${sc.id}')"><i class="bi bi-pencil"></i> Edit</button>
-                            ` : `
-                                <button class="btn btn-sm btn-outline-success py-0 px-2 font-weight-bold" onclick="activateSchedule('${sc.id}')">Activate</button>
-                            `}
-                        </div>
+                        ${cancellationHtml}
+                        ${actionsHtml}
                     </div>
                 `;
             });
@@ -6456,10 +6493,24 @@
             const start = new Date(fromVal);
             const end = new Date(toVal);
             const until = new Date(untilVal);
+            const now = new Date();
             
             const conflictAlert = document.getElementById('schedConflictAlert');
             const submitBtn = document.getElementById('schedSubmitBtn');
             
+            // Strict past date check (REQ031)
+            const editIdField = document.getElementById('editSchedId');
+            const editId = editIdField ? editIdField.value : null;
+            if (!editId && start < now) {
+                if (conflictAlert) {
+                    conflictAlert.className = "alert alert-danger mb-3";
+                    conflictAlert.innerHTML = "<i class='bi bi-x-circle-fill me-2'></i><strong>Error:</strong> Cannot schedule activities in past dates.";
+                    conflictAlert.style.display = 'block';
+                }
+                if (submitBtn) submitBtn.disabled = true;
+                return;
+            }
+
             if (end <= start) {
                 if (conflictAlert) {
                     conflictAlert.className = "alert alert-danger mb-3";
@@ -6480,37 +6531,41 @@
                 return;
             }
             
-            // Check overlaps in LocalStorage
-            const editIdField = document.getElementById('editSchedId');
-            const schedId = editIdField ? editIdField.value : null;
+            // Check overlaps in LocalStorage (REQ031 / REQ032)
             const programId = document.getElementById('schedProgramSelect').value;
             const beneficiaryId = document.getElementById('schedRecipient').value;
             
-            const conflict = checkScheduleConflict(schedId, fromVal, toVal, beneficiaryId, programId);
+            const conflict = checkScheduleConflict(editId, fromVal, toVal, beneficiaryId, programId);
             
             if (conflict) {
                 let conflictMsg = "";
                 if (conflict.sameProgram && conflict.sameBeneficiary) {
-                    conflictMsg = `Warning: Time overlaps with existing schedule <strong>"${conflict.title}"</strong> (Same Program and Beneficiary).`;
+                    conflictMsg = `Time overlaps with existing schedule "${conflict.title}" (Same Program and Beneficiary).`;
                 } else if (conflict.sameProgram) {
-                    conflictMsg = `Warning: Time overlaps with existing schedule <strong>"${conflict.title}"</strong> (Same Livelihood Program).`;
+                    conflictMsg = `Time overlaps with existing schedule "${conflict.title}" (Same Livelihood Program).`;
                 } else {
-                    conflictMsg = `Warning: Time overlaps with existing schedule <strong>"${conflict.title}"</strong> (Beneficiary group conflict).`;
+                    conflictMsg = `Time overlaps with existing schedule "${conflict.title}" (Beneficiary group conflict).`;
                 }
 
                 if (conflictAlert) {
-                    conflictAlert.className = "alert alert-warning mb-3";
-                    conflictAlert.innerHTML = `<i class='bi bi-exclamation-triangle-fill me-2'></i><strong>Scheduling Conflict:</strong> ${conflictMsg}`;
+                    conflictAlert.className = "alert alert-danger mb-3";
+                    conflictAlert.innerHTML = `<i class='bi bi-exclamation-triangle-fill me-2'></i><strong>Scheduling Overlap Conflict:</strong> ${conflictMsg} Overlapping schedules are not allowed.`;
                     conflictAlert.style.display = 'block';
                 }
+                if (submitBtn) submitBtn.disabled = true;
             } else {
                 if (conflictAlert) conflictAlert.style.display = 'none';
+                if (submitBtn) submitBtn.disabled = false;
             }
-            
-            if (submitBtn) submitBtn.disabled = false;
         }
 
         function openEditScheduleModal(id) {
+            const role = sessionStorage.getItem('userRole');
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators can edit scheduled activities.");
+                return;
+            }
+
             const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
             const sc = schedules.find(s => s.id === id);
             if (!sc) return;
@@ -6571,6 +6626,12 @@
 
         function handleScheduleSubmit(e) {
             e.preventDefault();
+            const role = sessionStorage.getItem('userRole');
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators can create or update scheduled activities.");
+                return;
+            }
+
             const title = document.getElementById('schedTitle').value.trim();
             const type = document.getElementById('schedType').value;
             const programId = document.getElementById('schedProgramSelect').value;
@@ -6585,6 +6646,20 @@
             const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
             const editIdField = document.getElementById('editSchedId');
             const editId = editIdField ? editIdField.value : null;
+
+            // Enforce Strict date range and overlap blocks on submit
+            const start = new Date(fromVal);
+            const now = new Date();
+            if (!editId && start < now) {
+                alert("Creation Blocked: Activity start date cannot be set in the past.");
+                return;
+            }
+
+            const conflict = checkScheduleConflict(editId, fromVal, toVal, beneficiaryId, programId);
+            if (conflict) {
+                alert(`Conflict Blocked: This schedule overlaps with an existing active schedule "${conflict.title}".`);
+                return;
+            }
 
             if (editId) {
                 const idx = schedules.findIndex(s => s.id === editId);
@@ -6602,7 +6677,7 @@
                 }
                 localStorage.setItem('peso_schedules', JSON.stringify(schedules));
                 pushActivity("Schedule Updated", `Updated schedule session: ${title} (${statusVal})`);
-                pushNotification("Schedule Updated", `Schedule "${title}" has been modified. Status: ${statusVal}.`, "info");
+                pushNotification("Schedule Updated", `Schedule "${title}" has been modified by Administrator.`, "info");
                 showWebNotification("Schedule Updated", `Schedule "${title}" was successfully updated.`, "success");
             } else {
                 const newSched = {
@@ -6631,30 +6706,74 @@
         }
 
         function deactivateSchedule(id) {
-            showConfirmCard("Are you sure you want to deactivate this scheduled activity?", () => {
-                const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
-                const idx = schedules.findIndex(s => s.id === id);
-                if (idx !== -1) {
-                    schedules[idx].status = 'Cancelled';
-                    localStorage.setItem('peso_schedules', JSON.stringify(schedules));
-                    pushActivity("Schedule Deactivated", `Deactivated activity: ${schedules[idx].title}`);
-                    pushNotification("Schedule Deactivated", `Schedule "${schedules[idx].title}" has been deactivated.`, "info");
-                    showWebNotification("Schedule Deactivated", `Schedule "${schedules[idx].title}" was successfully deactivated.`, "warning");
-                    renderCalendar();
-                    renderSchedulesList();
-                }
-            });
-        }
+            const role = sessionStorage.getItem('userRole');
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators can cancel scheduled activities.");
+                return;
+            }
 
-        function activateSchedule(id) {
+            // Reason for cancellation modal prompt (REQ033)
+            const reason = prompt("Enter the mandatory reason for cancelling this scheduled activity:");
+            if (reason === null) return; // user cancelled prompt
+            if (!reason.trim()) {
+                alert("Cancellation Blocked: A valid cancellation reason is required for audit purposes.");
+                return;
+            }
+
             const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
             const idx = schedules.findIndex(s => s.id === id);
             if (idx !== -1) {
-                schedules[idx].status = 'Active';
+                const sc = schedules[idx];
+                sc.status = 'Cancelled';
                 localStorage.setItem('peso_schedules', JSON.stringify(schedules));
-                pushActivity("Schedule Activated", `Activated activity: ${schedules[idx].title}`);
-                pushNotification("Schedule Activated", `Schedule "${schedules[idx].title}" has been activated.`, "info");
-                showWebNotification("Schedule Activated", `Schedule "${schedules[idx].title}" is now active.`, "success");
+
+                // Save to Cancellation logs (REQ033)
+                const cancellations = JSON.parse(localStorage.getItem('peso_schedule_cancellations')) || [];
+                const newCancelLog = {
+                    id: 'CANCEL' + Date.now(),
+                    scheduleId: id,
+                    title: sc.title,
+                    cancelledBy: sessionStorage.getItem('username') || 'peso-admin',
+                    timestamp: new Date().toISOString(),
+                    reason: reason.trim()
+                };
+                cancellations.unshift(newCancelLog);
+                localStorage.setItem('peso_schedule_cancellations', JSON.stringify(cancellations));
+
+                // Notify affected beneficiaries (REQ033)
+                const notifMsg = `ALERT: The scheduled activity "${sc.title}" set for ${new Date(sc.from || sc.dateTime).toLocaleString()} has been CANCELLED. Reason: ${reason}`;
+                pushNotification("Schedule Cancelled", notifMsg, "alert");
+                pushActivity("Schedule Cancelled", `Cancelled activity: ${sc.title}. Reason: ${reason}`);
+                showWebNotification("Schedule Cancelled", `Schedule "${sc.title}" was successfully cancelled.`, "warning");
+
+                renderCalendar();
+                renderSchedulesList();
+            }
+        }
+
+        function activateSchedule(id) {
+            const role = sessionStorage.getItem('userRole');
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators can activate scheduled activities.");
+                return;
+            }
+
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const idx = schedules.findIndex(s => s.id === id);
+            if (idx !== -1) {
+                const sc = schedules[idx];
+                // Check overlaps before reactivating
+                const conflict = checkScheduleConflict(id, sc.from, sc.to, sc.beneficiaryId, sc.programId);
+                if (conflict) {
+                    alert(`Conflict Blocked: Cannot reactivate schedule. It overlaps with existing active schedule "${conflict.title}".`);
+                    return;
+                }
+
+                sc.status = 'Active';
+                localStorage.setItem('peso_schedules', JSON.stringify(schedules));
+                pushActivity("Schedule Activated", `Activated activity: ${sc.title}`);
+                pushNotification("Schedule Activated", `Schedule "${sc.title}" has been reactivated.`, "info");
+                showWebNotification("Schedule Activated", `Schedule "${sc.title}" is now active.`, "success");
                 renderCalendar();
                 renderSchedulesList();
             }
