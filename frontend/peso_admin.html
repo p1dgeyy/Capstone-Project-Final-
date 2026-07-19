@@ -2691,22 +2691,49 @@
 
             <!-- MODULE: Resource & Assistance -->
             <section class="module-page" id="module-assistance">
-                <div class="table-card">
-                    <div class="table-header-custom">
-                        <h5 class="table-title">Distribution & Livelihood Assistance Records</h5>
+                <div class="table-card p-3 mb-4">
+                    <div class="table-header-custom border-bottom pb-3 mb-3">
+                        <h5 class="table-title mb-0"><i class="bi bi-gift-fill text-primary me-2"></i>Distribution & Livelihood Assistance Records</h5>
                         <button class="btn-custom btn-custom-primary" onclick="openAddAssistanceModal()">
                             <i class="bi bi-gift-fill"></i> Record Livelihood Release
                         </button>
                     </div>
+
+                    <!-- Search & Filter Panel (REQ044) -->
+                    <div class="row g-2 mb-3 bg-light p-3 rounded-3 border">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted mb-1">Search Beneficiary Name</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control form-control-sm" id="searchAssistanceQuery" placeholder="Type beneficiary name..." oninput="renderAssistanceTable()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted mb-1">Filter Assistance Type</label>
+                            <select class="form-select form-select-sm" id="filterAssistanceType" onchange="renderAssistanceTable()">
+                                <option value="all">All Types</option>
+                                <option value="Cash Grant">Financial Cash Grant Assistance</option>
+                                <option value="Starter Kit">Commercial Starter Kit Package</option>
+                                <option value="Toolsets">Specialized Toolsets & Equipments</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted mb-1">Filter Distribution Date</label>
+                            <input type="date" class="form-control form-control-sm" id="filterAssistanceDate" onchange="renderAssistanceTable()">
+                        </div>
+                    </div>
+
+                    <!-- Structured Table (REQ042) -->
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Beneficiary Reference</th>
-                                    <th>Type of Assistance</th>
-                                    <th>Value/Amount (₱)</th>
-                                    <th>Distribution Date</th>
-                                    <th>Audit Action</th>
+                                    <th onclick="sortAssistanceTable('beneficiary')" style="cursor: pointer; user-select: none;">Beneficiary Reference <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortAssistanceTable('type')" style="cursor: pointer; user-select: none;">Type of Assistance <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortAssistanceTable('value')" style="cursor: pointer; user-select: none;" class="text-end">Value/Amount (₱) <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortAssistanceTable('date')" style="cursor: pointer; user-select: none;">Distribution Date <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th onclick="sortAssistanceTable('status')" style="cursor: pointer; user-select: none;" class="text-center">Status <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                    <th class="text-center">Operations</th>
                                 </tr>
                             </thead>
                             <tbody id="assistanceTableBody">
@@ -3420,6 +3447,45 @@
                     onclick="closeAttendanceModal()">Cancel</button>
                 <button type="button" class="btn-custom btn-custom-primary" onclick="saveAttendanceRecord()">Save
                     Capacity Records</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assistance Activate Confirmation Modal (REQ045) -->
+    <div class="custom-modal-overlay" id="assistActivateModal" style="z-index: 2050;">
+        <div class="custom-modal-content" style="max-width: 400px;">
+            <div class="custom-modal-header bg-success text-white">
+                <h5 class="custom-modal-title text-white"><i class="bi bi-play-circle-fill me-2"></i>Confirm Assistance Activation</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeAssistActivateModal()"></button>
+            </div>
+            <div class="custom-modal-body p-4">
+                <p>Are you sure you want to activate this assistance record for beneficiary <strong id="activateAssistBenName" class="text-success">-</strong>?</p>
+                <p class="text-muted small">This updates the record status to <span class="badge bg-success">Active</span> and triggers notifications informing the beneficiary.</p>
+            </div>
+            <div class="custom-modal-footer bg-light p-3 border-top d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary px-3" onclick="closeAssistActivateModal()">Cancel</button>
+                <button type="button" class="btn btn-success px-4 text-white" onclick="commitAssistActivation()">Activate Record</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assistance Deactivate Confirmation Modal (REQ046) -->
+    <div class="custom-modal-overlay" id="assistDeactivateModal" style="z-index: 2050;">
+        <div class="custom-modal-content" style="max-width: 400px;">
+            <div class="custom-modal-header bg-danger text-white">
+                <h5 class="custom-modal-title text-white"><i class="bi bi-stop-circle-fill me-2"></i>Confirm Assistance Deactivation</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeAssistDeactivateModal()"></button>
+            </div>
+            <div class="custom-modal-body p-4">
+                <p>Are you sure you want to deactivate this assistance record for beneficiary <strong id="deactivateAssistBenName" class="text-danger">-</strong>?</p>
+                <div class="form-group mb-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Reason for Deactivation</label>
+                    <textarea class="form-control" id="deactivateAssistReason" rows="2" placeholder="e.g. Returned by beneficiary, incorrect allocation" required></textarea>
+                </div>
+            </div>
+            <div class="custom-modal-footer bg-light p-3 border-top d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary px-3" onclick="closeAssistDeactivateModal()">Cancel</button>
+                <button type="button" class="btn btn-danger px-4" onclick="commitAssistDeactivation()">Deactivate Record</button>
             </div>
         </div>
     </div>
@@ -7872,40 +7938,219 @@
         }
 
         // ==============================================
-        // MODULE LOGIC: RESOURCE & ASSISTANCE (REQ047-REQ049)
+        // MODULE LOGIC: RESOURCE & ASSISTANCE (REQ042-REQ046)
         // ==============================================
+        let assistanceSortField = 'beneficiary';
+        let assistanceSortOrder = 'asc';
+        let assistanceExpandedRows = new Set();
+        let currentAssistActivateId = null;
+        let currentAssistDeactivateId = null;
+
+        function sortAssistanceTable(field) {
+            if (assistanceSortField === field) {
+                assistanceSortOrder = assistanceSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                assistanceSortField = field;
+                assistanceSortOrder = 'asc';
+            }
+            renderAssistanceTable();
+        }
+
+        function toggleAssistanceRowDetails(id) {
+            if (assistanceExpandedRows.has(id)) {
+                assistanceExpandedRows.delete(id);
+            } else {
+                assistanceExpandedRows.add(id);
+            }
+            renderAssistanceTable();
+        }
+
         function renderAssistanceTable() {
             const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
             const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
             const tbody = document.getElementById('assistanceTableBody');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
-            assistance.forEach(as => {
-                const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: 'Unknown' };
+            // Read filter parameters (REQ044)
+            const searchQuery = document.getElementById('searchAssistanceQuery')?.value.toLowerCase().trim() || '';
+            const filterType = document.getElementById('filterAssistanceType')?.value || 'all';
+            const filterDate = document.getElementById('filterAssistanceDate')?.value || '';
+
+            // 1. Filter
+            const filteredAssistance = assistance.filter(as => {
+                const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: '' };
+
+                // Search query filter (checks beneficiary name)
+                if (searchQuery && !ben.name.toLowerCase().includes(searchQuery)) {
+                    return false;
+                }
+
+                // Type filter
+                if (filterType !== 'all' && as.type !== filterType) {
+                    return false;
+                }
+
+                // Date filter
+                if (filterDate && as.date !== filterDate) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            // 2. Sort (REQ042)
+            filteredAssistance.sort((a, b) => {
+                let valA, valB;
+                const benA = beneficiaries.find(b => b.id === a.beneficiaryId) || { name: '' };
+                const benB = beneficiaries.find(b => b.id === b.beneficiaryId) || { name: '' };
+
+                switch (assistanceSortField) {
+                    case 'beneficiary':
+                        valA = benA.name;
+                        valB = benB.name;
+                        break;
+                    case 'value':
+                        valA = a.value || 0;
+                        valB = b.value || 0;
+                        break;
+                    case 'status':
+                        valA = a.status || 'Active';
+                        valB = b.status || 'Active';
+                        break;
+                    default:
+                        valA = a[assistanceSortField] || '';
+                        valB = b[assistanceSortField] || '';
+                }
+
+                if (typeof valA === 'string') {
+                    return assistanceSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    return assistanceSortOrder === 'asc' ? valA - valB : valB - valA;
+                }
+            });
+
+            // 3. Render
+            if (filteredAssistance.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No livelihood assistance records matching filters found.</td></tr>';
+                return;
+            }
+
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+
+            filteredAssistance.forEach(as => {
+                const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: 'Unknown', contact: 'N/A' };
+                const statusVal = as.status || 'Active';
+                const statusBadge = statusVal === 'Active'
+                    ? `<span class="badge bg-success"><i class="bi bi-check-circle"></i> Active</span>`
+                    : `<span class="badge bg-secondary"><i class="bi bi-pause-circle"></i> Inactive</span>`;
+
+                const isExpanded = assistanceExpandedRows.has(as.id);
+                const expandText = isExpanded ? 'Collapse' : 'Details';
+                const expandIcon = isExpanded ? 'bi-chevron-up' : 'bi-chevron-down';
+
+                // Display operation triggers based on role permissions (RBAC)
+                let operationsHtml = '';
+                if (role === 'PESO Admin') {
+                    if (statusVal === 'Active') {
+                        operationsHtml += `
+                            <button class="btn btn-sm btn-outline-danger py-1 px-2 fw-semibold me-1" onclick="openAssistDeactivateModal('${as.id}')" style="font-size: 0.75rem;">
+                                <i class="bi bi-stop-circle"></i> Deactivate
+                            </button>
+                        `;
+                    } else {
+                        operationsHtml += `
+                            <button class="btn btn-sm btn-outline-success py-1 px-2 fw-semibold me-1" onclick="openAssistActivateModal('${as.id}')" style="font-size: 0.75rem;">
+                                <i class="bi bi-play-circle"></i> Activate
+                            </button>
+                        `;
+                    }
+                    operationsHtml += `
+                        <button class="action-icon-btn danger btn-sm py-1" onclick="deleteAssistance('${as.id}')" title="Delete log"><i class="bi bi-trash"></i></button>
+                    `;
+                } else {
+                    operationsHtml = `<span class="text-muted small"><i class="bi bi-lock-fill"></i> Locked (Admin Only)</span>`;
+                }
+
                 tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${ben.name}</strong></td>
-                        <td><span class="badge bg-secondary">${as.type}</span></td>
-                        <td>₱${formatCurrency(as.value)}</td>
+                    <tr style="cursor: pointer;" onclick="toggleAssistanceRowDetails('${as.id}')">
+                        <td><strong>${ben.name}</strong><br><span class="text-muted small">${as.beneficiaryId}</span></td>
+                        <td><span class="badge bg-outline-secondary border text-muted">${as.type}</span></td>
+                        <td class="text-end fw-bold text-primary">₱${formatCurrency(as.value)}</td>
                         <td>${as.date}</td>
-                        <td>
-                            <button class="action-icon-btn danger" onclick="deleteAssistance('${as.id}')" title="Delete record"><i class="bi bi-trash"></i></button>
+                        <td class="text-center">${statusBadge}</td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <div class="d-flex justify-content-center align-items-center">
+                                <button class="btn btn-sm btn-outline-primary py-1 px-2 fw-semibold me-2" onclick="toggleAssistanceRowDetails('${as.id}')" style="font-size: 0.75rem;">
+                                    <i class="bi ${expandIcon} me-1"></i> ${expandText}
+                                </button>
+                                ${operationsHtml}
+                            </div>
                         </td>
                     </tr>
                 `;
+
+                // Expandable row details for Assistance information (REQ042)
+                if (isExpanded) {
+                    const transAdmin = as.by || 'peso-admin';
+                    const auditLogs = JSON.parse(localStorage.getItem('peso_assistance_audit_logs')) || [];
+                    const recordLogs = auditLogs.filter(l => l.recordId === as.id);
+                    let logsHtml = '';
+                    
+                    if (recordLogs.length === 0) {
+                        logsHtml = '<div class="text-muted small">No audit trails recorded for this release.</div>';
+                    } else {
+                        recordLogs.forEach(l => {
+                            logsHtml += `
+                                <div class="border-bottom py-1 small" style="font-size: 0.75rem;">
+                                    <span class="fw-semibold text-primary">[${l.action}]</span>
+                                    <span>${l.reason}</span>
+                                    <span class="text-muted fst-italic ms-2">- By: ${l.user} on ${new Date(l.timestamp).toLocaleString()}</span>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="details-row bg-light" onclick="event.stopPropagation();">
+                            <td colspan="6" class="p-3">
+                                <div class="card shadow-sm border border-secondary rounded-3 bg-white p-3 mx-3">
+                                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-2" style="font-size: 0.85rem;"><i class="bi bi-info-circle-fill text-primary me-2"></i>Detailed Livelihood Release Information</h6>
+                                    <div class="row mb-2 small text-muted">
+                                        <div class="col-md-4"><strong>Recipient Contact:</strong> ${ben.contact}</div>
+                                        <div class="col-md-4"><strong>Released By (Admin):</strong> ${transAdmin}</div>
+                                        <div class="col-md-4"><strong>Livelihood Status:</strong> <span class="badge bg-dark">${statusVal}</span></div>
+                                    </div>
+                                    <div class="border-top pt-2">
+                                        <h6 class="fw-bold text-dark" style="font-size: 0.8rem;"><i class="bi bi-journal-text me-1"></i>Deactivation/Activation Audit Trail:</h6>
+                                        <div class="d-flex flex-column gap-1 bg-light p-2 rounded border" style="max-height: 120px; overflow-y: auto;">
+                                            ${logsHtml}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
             });
-            if (assistance.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No assistance distribution logs recorded.</td></tr>';
-            }
         }
 
         function openAddAssistanceModal() {
+            // RBAC role checks
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators are authorized to release assistance resources.");
+                return;
+            }
+
             const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
             const select = document.getElementById('assistBeneficiarySelect');
-            select.innerHTML = '<option value="">-- Select Recipient --</option>';
-            beneficiaries.forEach(b => {
-                select.innerHTML += `<option value="${b.id}">${b.name}</option>`;
-            });
+            if (select) {
+                select.innerHTML = '<option value="">-- Select Recipient --</option>';
+                beneficiaries.forEach(b => {
+                    select.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+                });
+            }
 
             document.getElementById('assistanceForm').reset();
             document.getElementById('assistanceModal').classList.add('active');
@@ -7917,17 +8162,34 @@
 
         function handleAssistanceSubmit(e) {
             e.preventDefault();
+
+            // RBAC role check
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators can perform this action.");
+                return;
+            }
+
             const beneficiaryId = document.getElementById('assistBeneficiarySelect').value;
             const type = document.getElementById('assistType').value;
             const valueInputRaw = document.getElementById('assistValue').value.replace(/,/g, '').trim();
             const value = parseFloat(valueInputRaw);
 
             if (isNaN(value) || value <= 0) {
-                alert("Error: Please enter a valid estimated assistance value.");
+                alert("Validation Error: Please enter a valid estimated assistance value.");
                 return;
             }
 
             const date = document.getElementById('assistDate').value;
+
+            // Date validation: Release distribution date cannot be in past dates (REQ043)
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const inputDate = new Date(date);
+            if (inputDate < today) {
+                alert("Validation Error: Livelihood release distribution date cannot be in past dates.");
+                return;
+            }
 
             const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
             const newAssist = {
@@ -7935,16 +8197,33 @@
                 beneficiaryId,
                 type,
                 value,
-                date
+                date,
+                status: 'Active', // default to Active on release
+                by: sessionStorage.getItem('username') || 'peso-admin'
             };
             assistance.push(newAssist);
             localStorage.setItem('peso_assistance', JSON.stringify(assistance));
 
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
-            const bName = (beneficiaries.find(b => b.id === beneficiaryId) || {}).name;
+            // Write Audit Log (REQ043)
+            const auditLogs = JSON.parse(localStorage.getItem('peso_assistance_audit_logs')) || [];
+            auditLogs.unshift({
+                id: 'AUDIT' + Date.now(),
+                recordId: newAssist.id,
+                action: 'Release Logged',
+                reason: `Initial resource distribution release recorded. Type: ${type}, Value: ₱${formatCurrency(value)}`,
+                timestamp: new Date().toISOString(),
+                user: sessionStorage.getItem('username') || 'peso-admin'
+            });
+            localStorage.setItem('peso_assistance_audit_logs', JSON.stringify(auditLogs));
 
-            pushActivity("Assistance Release", `Released ${type} to: ${bName}`);
-            alert(`Livelihood release of ${type} recorded successfully.`);
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const bObj = beneficiaries.find(b => b.id === beneficiaryId) || {};
+            const bName = bObj.name || 'Unknown';
+
+            pushActivity("Assistance Release", `Released ${type} value: ₱${formatCurrency(value)} to: ${bName}`);
+            pushNotification("Assistance Release Logged", `A livelihood resource release of ${type} has been logged for delivery on ${date}.`, "info");
+
+            alert(`Success: Livelihood release of ${type} recorded successfully.`);
             closeAssistanceModal();
             renderAssistanceTable();
         }
@@ -7958,6 +8237,119 @@
                 pushActivity("Assistance Deleted", `Removed release log ID: ${id}`);
                 renderAssistanceTable();
             });
+        }
+
+        // REQ045: Activate Assistance Record
+        function openAssistActivateModal(id) {
+            const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+            const asObj = assistance.find(a => a.id === id);
+            if (!asObj) return;
+
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const ben = beneficiaries.find(b => b.id === asObj.beneficiaryId) || { name: 'Unknown' };
+
+            document.getElementById('activateAssistBenName').textContent = `${ben.name} (${asObj.type})`;
+            currentAssistActivateId = id;
+            document.getElementById('assistActivateModal').classList.add('active');
+        }
+
+        function closeAssistActivateModal() {
+            document.getElementById('assistActivateModal').classList.remove('active');
+            currentAssistActivateId = null;
+        }
+
+        function commitAssistActivation() {
+            if (!currentAssistActivateId) return;
+
+            const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+            const idx = assistance.findIndex(a => a.id === currentAssistActivateId);
+
+            if (idx !== -1) {
+                assistance[idx].status = 'Active';
+                localStorage.setItem('peso_assistance', JSON.stringify(assistance));
+
+                // Save Audit Log
+                const auditLogs = JSON.parse(localStorage.getItem('peso_assistance_audit_logs')) || [];
+                auditLogs.unshift({
+                    id: 'AUDIT' + Date.now(),
+                    recordId: currentAssistActivateId,
+                    action: 'Activation',
+                    reason: 'Assistance log manually reactivated by Admin',
+                    timestamp: new Date().toISOString(),
+                    user: sessionStorage.getItem('username') || 'peso-admin'
+                });
+                localStorage.setItem('peso_assistance_audit_logs', JSON.stringify(auditLogs));
+
+                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const ben = beneficiaries.find(b => b.id === assistance[idx].beneficiaryId) || {};
+
+                pushActivity("Assistance Reactivated", `Reactivated assistance log ID: ${currentAssistActivateId} for ${ben.name || 'Unknown'}`);
+                pushNotification("Assistance Reactivated", `Your livelihood release logs for ${assistance[idx].type} have been reactivated.`, "info");
+                showWebNotification("Assistance Reactivated", `Assistance log reactivated successfully.`, "success");
+
+                closeAssistActivateModal();
+                renderAssistanceTable();
+            }
+        }
+
+        // REQ046: Deactivate Assistance Record
+        function openAssistDeactivateModal(id) {
+            const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+            const asObj = assistance.find(a => a.id === id);
+            if (!asObj) return;
+
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const ben = beneficiaries.find(b => b.id === asObj.beneficiaryId) || { name: 'Unknown' };
+
+            document.getElementById('deactivateAssistBenName').textContent = `${ben.name} (${asObj.type})`;
+            document.getElementById('deactivateAssistReason').value = '';
+            currentAssistDeactivateId = id;
+            document.getElementById('assistDeactivateModal').classList.add('active');
+        }
+
+        function closeAssistDeactivateModal() {
+            document.getElementById('assistDeactivateModal').classList.remove('active');
+            currentAssistDeactivateId = null;
+        }
+
+        function commitAssistDeactivation() {
+            if (!currentAssistDeactivateId) return;
+
+            const reason = document.getElementById('deactivateAssistReason').value.trim();
+            if (!reason) {
+                alert("Deactivation Blocked: A reason for deactivation is mandatory.");
+                return;
+            }
+
+            const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+            const idx = assistance.findIndex(a => a.id === currentAssistDeactivateId);
+
+            if (idx !== -1) {
+                assistance[idx].status = 'Inactive';
+                localStorage.setItem('peso_assistance', JSON.stringify(assistance));
+
+                // Save Audit Log (REQ046)
+                const auditLogs = JSON.parse(localStorage.getItem('peso_assistance_audit_logs')) || [];
+                auditLogs.unshift({
+                    id: 'AUDIT' + Date.now(),
+                    recordId: currentAssistDeactivateId,
+                    action: 'Deactivation',
+                    reason: reason,
+                    timestamp: new Date().toISOString(),
+                    user: sessionStorage.getItem('username') || 'peso-admin'
+                });
+                localStorage.setItem('peso_assistance_audit_logs', JSON.stringify(auditLogs));
+
+                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const ben = beneficiaries.find(b => b.id === assistance[idx].beneficiaryId) || {};
+
+                pushActivity("Assistance Deactivated", `Deactivated assistance log ID: ${currentAssistDeactivateId}. Reason: ${reason}`);
+                pushNotification("Assistance Deactivated", `Your livelihood release logs for ${assistance[idx].type} have been deactivated. Reason: ${reason}`, "warning");
+                showWebNotification("Assistance Deactivated", `Assistance log deactivated successfully.`, "warning");
+
+                closeAssistDeactivateModal();
+                renderAssistanceTable();
+            }
         }
 
         // ==============================================

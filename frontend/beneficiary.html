@@ -2332,70 +2332,17 @@
 
         <!-- DISTRIBUTION SECTION -->
         <section id="distribution" class="section">
-            <h2 class="section-title">Assistance Distribution</h2>
+            <h2 class="section-title">Assistance Distribution & Releases</h2>
 
             <!-- Upcoming Release -->
-            <div class="distribution-card">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                    <div class="dist-date-block">
-                        <span class="dist-day">20</span>
-                        <span class="dist-month">April</span>
-                    </div>
-                    <div style="flex: 1; margin-left: 20px;">
-                        <h3 class="dist-title">TUPAD Financial Assistance</h3>
-                        <div class="dist-info"><i class="bi bi-cash"></i> Php 5,000</div>
-                    </div>
-                    <span class="status-pill confirmed">Confirmed</span>
-                </div>
-                <div style="font-size: 0.95rem; opacity: 0.95; margin-bottom: 15px;">
-                    <div><i class="bi bi-geo-alt"></i> CSWDO Office, Koronadal City</div>
-                    <div><i class="bi bi-clock"></i> 9:00 AM - 4:00 PM</div>
-                </div>
-                <div class="dist-instructions">
-                    <strong>Instructions:</strong><br>
-                    1. Arrive at least 15 minutes before your scheduled time.<br>
-                    2. Present your Beneficiary QR Code at the registration desk.<br>
-                    3. Bring a valid government-issued ID for verification.<br>
-                    4. Sign the acknowledgment receipt upon release.
-                </div>
-                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
-                    <small style="opacity: 0.9;">
-                        <i class="bi bi-info-circle"></i> For questions, contact CSWDO at (083) 228-1234
-                    </small>
-                </div>
+            <div id="beneficiaryUpcomingDistribution">
+                <!-- Loaded dynamically -->
             </div>
 
-            <!-- Past Distributions -->
-            <h3 style="margin-bottom: 15px; color: var(--text-muted);">Past Distributions</h3>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <h5 style="margin-bottom: 5px;">SPES Educational Grant</h5>
-                        <div class="text-muted" style="font-size: 0.9rem;">
-                            Php 5,000 • Mar 25, 2026
-                        </div>
-                    </div>
-                    <span class="status-pill completed">Completed</span>
-                </div>
-                <div style="margin-top: 10px; font-size: 0.85rem; color: var(--success);">
-                    <i class="bi bi-check-circle"></i> Received - CSWDO Office
-                </div>
-            </div>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <h5 style="margin-bottom: 5px;">Medical Assistance</h5>
-                        <div class="text-muted" style="font-size: 0.9rem;">
-                            Php 10,000 • Mar 20, 2026
-                        </div>
-                    </div>
-                    <span class="status-pill completed">Completed</span>
-                </div>
-                <div style="margin-top: 10px; font-size: 0.85rem; color: var(--success);">
-                    <i class="bi bi-check-circle"></i> Cash received at distribution center
-                </div>
+            <!-- Past/Inactive Distributions -->
+            <h3 style="margin-bottom: 15px; color: var(--text-muted);">Assistance History & Status</h3>
+            <div id="beneficiaryDistributionHistory" class="d-flex flex-column gap-3 mb-4">
+                <!-- Loaded dynamically -->
             </div>
         </section>
 
@@ -3032,6 +2979,11 @@
                 const username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
                 loadBeneficiarySchedules(username);
                 renderBeneficiaryTrainingHistory(username);
+            }
+
+            if (sectionId === 'distribution') {
+                const username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
+                renderBeneficiaryAssistance(username);
             }
 
             // Map program-overview back to programs in nav
@@ -4007,6 +3959,7 @@
             renderBeneficiaryPrograms();
             loadBeneficiarySchedules(username);
             renderBeneficiaryTrainingHistory(username);
+            renderBeneficiaryAssistance(username);
         });
 
         function loadBeneficiarySchedules(username) {
@@ -4279,6 +4232,116 @@
             }, 500);
         }
 
+        function renderBeneficiaryAssistance(username) {
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const currentBen = beneficiaries.find(b => b.username === username);
+            if (!currentBen) return;
+
+            const assistance = JSON.parse(localStorage.getItem('peso_assistance')) || [];
+            
+            // Filter assistance records specific to the logged-in beneficiary
+            const myAssistance = assistance.filter(a => a.beneficiaryId === currentBen.id);
+
+            const upcomingContainer = document.getElementById('beneficiaryUpcomingDistribution');
+            const historyContainer = document.getElementById('beneficiaryDistributionHistory');
+
+            // Find any upcoming releases (Active status and date >= today)
+            const todayStr = new Date().toISOString().split('T')[0];
+            const upcomingReleases = myAssistance.filter(a => {
+                const statusVal = a.status || 'Active';
+                return statusVal === 'Active' && a.date >= todayStr;
+            });
+
+            if (upcomingContainer) {
+                if (upcomingReleases.length === 0) {
+                    upcomingContainer.innerHTML = `
+                        <div class="card p-3 text-center text-muted mb-4 small" style="background-color: var(--rose-lighter); border-color: var(--rose-light);">
+                            No upcoming scheduled assistance releases or distributions.
+                        </div>
+                    `;
+                } else {
+                    upcomingContainer.innerHTML = '';
+                    upcomingReleases.forEach(a => {
+                        const distDate = new Date(a.date);
+                        const day = distDate.getDate();
+                        const monthName = distDate.toLocaleString('default', { month: 'long' });
+                        upcomingContainer.innerHTML += `
+                            <div class="distribution-card mb-4" style="background: linear-gradient(135deg, var(--rose-dark) 0%, var(--mauve-accent) 100%); color: white; padding: 20px; border-radius: 12px; position: relative;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                                    <div class="dist-date-block" style="background: rgba(255, 255, 255, 0.2); padding: 10px 15px; border-radius: 8px; text-align: center;">
+                                        <span class="dist-day" style="display: block; font-size: 1.8rem; font-weight: bold; line-height: 1.2;">${day}</span>
+                                        <span class="dist-month" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">${monthName}</span>
+                                    </div>
+                                    <div style="flex: 1; margin-left: 20px;">
+                                        <h3 class="dist-title" style="margin-bottom: 5px; font-size: 1.2rem; font-weight: bold;">${a.type}</h3>
+                                        <div class="dist-info" style="font-size: 1rem;"><i class="bi bi-cash"></i> ₱${formatCurrency(a.value)}</div>
+                                    </div>
+                                    <span class="status-pill confirmed" style="background-color: var(--success); color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem;">Active</span>
+                                </div>
+                                <div style="font-size: 0.95rem; opacity: 0.95; margin-bottom: 15px; line-height: 1.5;">
+                                    <div><i class="bi bi-geo-alt"></i> Public Employment Service Office (PESO) Center</div>
+                                    <div><i class="bi bi-clock"></i> 8:00 AM - 5:00 PM</div>
+                                </div>
+                                <div class="dist-instructions" style="background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.6;">
+                                    <strong>Release Instructions:</strong><br>
+                                    1. Arrive at the distribution desk on your scheduled release date.<br>
+                                    2. Present your official Beneficiary ID and registration documents.<br>
+                                    3. Sign the released resource acknowledgment receipt.<br>
+                                    4. Verification of this grant was processed by administrator: <strong>${a.by || 'peso-admin'}</strong>.
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            if (historyContainer) {
+                // Past releases (either Inactive or date in the past)
+                const historyReleases = myAssistance.filter(a => {
+                    const statusVal = a.status || 'Active';
+                    return statusVal === 'Inactive' || a.date < todayStr;
+                });
+
+                if (historyReleases.length === 0) {
+                    historyContainer.innerHTML = `
+                        <div class="card p-3 text-center text-muted small">
+                            No historical assistance release logs found.
+                        </div>
+                    `;
+                } else {
+                    historyContainer.innerHTML = '';
+                    historyReleases.forEach(a => {
+                        const statusVal = a.status || 'Active';
+                        const isInactive = statusVal === 'Inactive';
+                        const badgeClass = isInactive ? 'bg-secondary text-white' : 'bg-success text-white';
+                        const statusText = isInactive ? 'Deactivated' : 'Received';
+                        const subTextClass = isInactive ? 'text-danger' : 'text-success';
+                        const iconClass = isInactive ? 'bi-x-circle-fill' : 'bi-check-circle-fill';
+                        const releaseDetail = isInactive 
+                            ? `Deactivated by Admin. Please contact PESO if you believe this is in error.`
+                            : `Resource released successfully at distribution center.`;
+
+                        historyContainer.innerHTML += `
+                            <div class="card p-3 shadow-sm border rounded-3 bg-white mb-2">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div>
+                                        <h5 style="margin-bottom: 5px; font-weight: bold; color: var(--rose-dark); font-size: 1.05rem;">${a.type}</h5>
+                                        <div class="text-muted" style="font-size: 0.85rem;">
+                                            ₱${formatCurrency(a.value)} • Released Date: ${a.date}
+                                        </div>
+                                    </div>
+                                    <span class="badge ${badgeClass}">${statusText}</span>
+                                </div>
+                                <div class="mt-2 small ${subTextClass}" style="font-size: 0.8rem;">
+                                    <i class="bi ${iconClass}"></i> ${releaseDetail}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            }
+        }
+
         // Translations dictionary for dynamic language switching
         const translations = {
             'en': {
@@ -4437,6 +4500,7 @@
         window.loadBeneficiarySchedules = loadBeneficiarySchedules;
         window.renderBeneficiaryTrainingHistory = renderBeneficiaryTrainingHistory;
         window.downloadTrainingCertificate = downloadTrainingCertificate;
+        window.renderBeneficiaryAssistance = renderBeneficiaryAssistance;
     </script>
 
     <!-- Ordinance PDF Viewer Modal -->
