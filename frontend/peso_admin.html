@@ -1649,6 +1649,74 @@
         body.dark-mode .confirm-btn-secondary:hover {
             background-color: #334155 !important;
         }
+
+        /* Program Assignment Module Custom styles */
+        .details-row {
+            background-color: #f8fafc !important;
+            transition: all 0.3s ease;
+        }
+        body.dark-mode .details-row {
+            background-color: #1e293b !important;
+        }
+        .nested-table {
+            margin: 10px 0;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            width: 100%;
+        }
+        body.dark-mode .nested-table {
+            background: #0f172a;
+        }
+        .nested-table th {
+            background-color: #f1f5f9 !important;
+            color: #475569 !important;
+            font-size: 0.8rem;
+            padding: 8px 12px;
+            font-weight: 600;
+        }
+        body.dark-mode .nested-table th {
+            background-color: #1e293b !important;
+            color: #cbd5e1 !important;
+        }
+        .nested-table td {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        body.dark-mode .nested-table td {
+            border-bottom: 1px solid #334155;
+        }
+        .audit-log-list {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .audit-log-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 3px solid #3b82f6;
+            background-color: #eff6ff;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: #1e3a8a;
+        }
+        body.dark-mode .audit-log-item {
+            background-color: #172554;
+            color: #bfdbfe;
+            border-left-color: #60a5fa;
+        }
+        .audit-log-time {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 2px;
+            color: #2563eb;
+        }
+        body.dark-mode .audit-log-time {
+            color: #93c5fd;
+        }
     </style>
 </head>
 
@@ -2129,27 +2197,101 @@
                 </div>
             </section>
 
-            <!-- MODULE: Program Assignment -->
+            <!-- MODULE: Program Assignment & Monitoring (REQ019-REQ023) -->
             <section class="module-page" id="module-assignments">
-                <div class="table-card">
-                    <div class="table-header-custom">
-                        <h5 class="table-title">Beneficiary Program Assignment</h5>
+                <!-- Search & Filters Row (REQ020) -->
+                <div class="table-card mb-4 p-3">
+                    <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
+                        <h5 class="table-title m-0"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Program Assignments & Monitoring</h5>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <!-- Search (REQ020) -->
+                            <div class="search-input-wrap m-0" style="width: 250px;">
+                                <i class="bi bi-search"></i>
+                                <input type="text" class="form-control" id="assignSearchInput" placeholder="Search program name..." oninput="renderAssignmentProgramsTable()">
+                            </div>
+                            <!-- Program Type filter (REQ020) -->
+                            <select class="form-control" id="assignTypeFilter" style="width: 150px;" onchange="renderAssignmentProgramsTable()">
+                                <option value="all">All Types</option>
+                                <option value="SPES">SPES</option>
+                                <option value="TUPAD">TUPAD</option>
+                                <option value="Livelihood Training">Livelihood Training</option>
+                                <option value="CKGIP">CKGIP</option>
+                                <option value="KEEP">KEEP</option>
+                            </select>
+                            <!-- Status filter (REQ020) -->
+                            <select class="form-control" id="assignStatusFilter" style="width: 150px;" onchange="renderAssignmentProgramsTable()">
+                                <option value="all">All Statuses</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Beneficiary Name</th>
-                                    <th>Contact Number</th>
-                                    <th>Assigned Program</th>
-                                    <th>Requirements checklist</th>
-                                    <th>Assignment Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="assignmentsTableBody">
+                </div>
+
+                <div class="row">
+                    <!-- Programs Table Column (REQ019) -->
+                    <div class="col-12 mb-4">
+                        <div class="table-card">
+                            <div class="table-header-custom">
+                                <h6 class="table-title">Livelihood Programs List</h6>
+                                <span class="text-muted small">Click on a program to expand/collapse its batches</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="assignmentProgramsTable">
+                                    <thead>
+                                        <tr>
+                                            <th onclick="sortAssignmentPrograms('name')" style="cursor: pointer;">Program Name <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th onclick="sortAssignmentPrograms('code')" style="cursor: pointer;">Program Type <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th onclick="sortAssignmentPrograms('slotsTotal')" style="cursor: pointer; text-align: center;">Total Slots <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th onclick="sortAssignmentPrograms('slotsAvailable')" style="cursor: pointer; text-align: center;">Available Slots <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th onclick="sortAssignmentPrograms('status')" style="cursor: pointer; text-align: center;">Status <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th style="text-align: center;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="assignmentProgramsTableBody">
+                                        <!-- Rendered dynamically with collapsible batches row -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Drill-down Batch Details Section (REQ022) -->
+                <div class="row" id="batchDrilldownSection" style="display: none;">
+                    <div class="col-lg-8 mb-4">
+                        <div class="table-card">
+                            <div class="table-header-custom d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="table-title m-0" id="drilldownBatchTitle">Batch Details</h6>
+                                    <span class="text-muted small" id="drilldownBatchMeta">Trainer: - | Date: -</span>
+                                </div>
+                                <button class="btn btn-sm btn-close" onclick="closeBatchDrilldown()"></button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Beneficiary Name</th>
+                                            <th>Contact Number</th>
+                                            <th>Requirements Checklist</th>
+                                            <th style="text-align: center;">Assignment Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="batchBeneficiariesTableBody">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 mb-4">
+                        <div class="table-card p-4">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-journal-text text-primary me-2"></i>Officer Assignment Audit Logs</h6>
+                            <div class="audit-log-list" id="batchAuditLogsContainer" style="max-height: 250px; overflow-y: auto;">
                                 <!-- Rendered dynamically -->
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -3272,17 +3414,10 @@
 
             newCancelBtn.addEventListener('click', () => {
                 modal.classList.remove('active');
-                if (onCancel) onCancel();
-            });
-        }
-
-        // Initialize user profile details in header
-        document.getElementById('userDisplayName').textContent = sessionStorage.getItem('username') || "PESO Administrator";
-
         // Dynamic State Database Initialization via localStorage
         function initLocalStorageDB() {
             // Version tracker to clear outdated storage
-            const dbVer = "peso_portal_v5_db";
+            const dbVer = "peso_portal_v6_db";
             if (localStorage.getItem("peso_db_version") !== dbVer) {
                 localStorage.removeItem("peso_beneficiaries");
                 localStorage.removeItem("peso_applications");
@@ -3297,6 +3432,7 @@
                 localStorage.removeItem("peso_notifications");
                 localStorage.removeItem("peso_budget_ledger");
                 localStorage.removeItem("peso_budget_logs");
+                localStorage.removeItem("peso_assignment_audit_logs");
                 localStorage.setItem("peso_db_version", dbVer);
             }
 
@@ -3416,16 +3552,16 @@
                 localStorage.setItem('peso_officers', JSON.stringify(defaultOfficers));
             }
 
-            // Default Beneficiaries with matching login usernames
+            // Default Beneficiaries with matching login usernames & demographic details (REQ023)
             if (!localStorage.getItem('peso_beneficiaries')) {
                 const defaultBeneficiaries = [
-                    { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active", username: "maria_garcia" },
-                    { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active", username: "pedro_santos" },
-                    { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active", username: "ana_reyes" },
-                    { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active", username: "roberto_cruz" },
-                    { id: "B5", name: "Maria Santos", contact: "+639111222333", barangay: "Poblacion", status: "Active", username: "maria_santos" },
-                    { id: "B6", name: "Juan dela Cruz", contact: "+639222333444", barangay: "San Isidro", status: "Active", username: "juan_dela_cruz" },
-                    { id: "B7", name: "Pedro Reyes", contact: "+639333444555", barangay: "Mambucal", status: "Active", username: "pedro_reyes" }
+                    { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active", username: "maria_garcia", gender: "Female", birthdate: "2002-04-15", civilStatus: "Single", education: "College Student", occupation: "None (Student)", email: "maria.garcia@example.com", history: [{ program: "SPES", year: "2025", status: "Completed", notes: "Excellent performance rating" }] },
+                    { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active", username: "pedro_santos", gender: "Male", birthdate: "1994-09-22", civilStatus: "Married", education: "High School Graduate", occupation: "Farmer", email: "pedro.santos@example.com", history: [] },
+                    { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active", username: "ana_reyes", gender: "Female", birthdate: "2003-12-05", civilStatus: "Single", education: "High School Graduate", occupation: "Unemployed", email: "ana.reyes@example.com", history: [] },
+                    { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active", username: "roberto_cruz", gender: "Male", birthdate: "1988-06-30", civilStatus: "Married", education: "Vocational Graduate", occupation: "Carpenter", email: "roberto.cruz@example.com", history: [] },
+                    { id: "B5", name: "Maria Santos", contact: "+639111222333", barangay: "Poblacion", status: "Active", username: "maria_santos", gender: "Female", birthdate: "2000-08-15", civilStatus: "Single", education: "College Graduate (BS IT)", occupation: "Unemployed", email: "maria.s.santos@example.com", history: [{ program: "SPES", year: "2024", status: "Completed", notes: "Assigned to LGU IT Department" }] },
+                    { id: "B6", name: "Juan dela Cruz", contact: "+639222333444", barangay: "San Isidro", status: "Active", username: "juan_dela_cruz", gender: "Male", birthdate: "1995-11-20", civilStatus: "Married", education: "High School Graduate", occupation: "Displaced Worker", email: "juan.delacruz@example.com", history: [] },
+                    { id: "B7", name: "Pedro Reyes", contact: "+639333444555", barangay: "Mambucal", status: "Active", username: "pedro_reyes", gender: "Male", birthdate: "1998-04-05", civilStatus: "Single", education: "Vocational Graduate (Automotive)", occupation: "Freelance Mechanic", email: "pedro.reyes@example.com", history: [{ program: "Livelihood Training", year: "2025", status: "Completed", notes: "Auto Mechanic training completed" }] }
                 ];
                 localStorage.setItem('peso_beneficiaries', JSON.stringify(defaultBeneficiaries));
             }
@@ -3528,10 +3664,12 @@
                 localStorage.setItem('peso_schedules', JSON.stringify(defaultSchedules));
             }
 
-            // Default Trainings (REQ040)
+            // Default Trainings with maximum slots capacity (REQ040, REQ021)
             if (!localStorage.getItem('peso_trainings')) {
                 const defaultTrainings = [
-                    { id: "T1", title: "Basic Food Processing and Packaging", programId: "P3", trainer: "Maria Santos", date: "2026-06-10", trainees: [{ beneficiaryId: "B1", attended: true, result: "Passed" }, { beneficiaryId: "B2", attended: true, result: "Passed" }] }
+                    { id: "T1", title: "Basic Food Processing and Packaging", programId: "P3", trainer: "Maria Santos", date: "2026-06-10", maxSlots: 50, trainees: [{ beneficiaryId: "B1", attended: true, result: "Completed" }, { beneficiaryId: "B2", attended: true, result: "Completed" }] },
+                    { id: "T2", title: "TUPAD Safety Induction and Community Briefing", programId: "P2", trainer: "Juan Dela Cruz", date: "2026-06-22", maxSlots: 60, trainees: [{ beneficiaryId: "B5", attended: true, result: "Enrolled" }, { beneficiaryId: "B6", attended: true, result: "Enrolled" }] },
+                    { id: "T3", title: "SPES Summer Orientation and Code of Conduct", programId: "P1", trainer: "Maria Santos", date: "2026-06-18", maxSlots: 40, trainees: [{ beneficiaryId: "B1", attended: true, result: "Enrolled" }, { beneficiaryId: "B3", attended: true, result: "Enrolled" }] }
                 ];
                 localStorage.setItem('peso_trainings', JSON.stringify(defaultTrainings));
             }
@@ -3682,7 +3820,7 @@
             } else if (moduleId === 'module-programs') {
                 renderProgramsTable();
             } else if (moduleId === 'module-assignments') {
-                renderAssignmentsTable();
+                renderAssignmentProgramsTable();
             } else if (moduleId === 'module-evaluation') {
                 renderEvaluationTable();
             } else if (moduleId === 'module-schedules') {
@@ -4941,105 +5079,308 @@
         // ==============================================
         // MODULE LOGIC: PROGRAM ASSIGNMENT (REQ018-REQ022)
         // ==============================================
-        function renderAssignmentsTable() {
-            const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+        // ==============================================
+        // MODULE LOGIC: PROGRAM ASSIGNMENT & MONITORING (REQ019-REQ023)
+        // ==============================================
+        let programSortField = 'name';
+        let programSortOrder = 'asc';
+        let expandedPrograms = new Set(); // Stores programIds that are currently expanded
+
+        function renderAssignmentProgramsTable() {
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
-            const tbody = document.getElementById('assignmentsTableBody');
+            const searchVal = document.getElementById('assignSearchInput').value.toLowerCase().trim();
+            const typeFilter = document.getElementById('assignTypeFilter').value;
+            const statusFilter = document.getElementById('assignStatusFilter').value;
+            const tbody = document.getElementById('assignmentProgramsTableBody');
+            
+            if (!tbody) return;
             tbody.innerHTML = '';
 
-            assignments.forEach(as => {
-                const ben = beneficiaries.find(b => b.id === as.beneficiaryId) || { name: 'Unknown', contact: 'N/A' };
-                const prog = programs.find(p => p.id === as.programId) || { code: 'Unknown' };
+            // Filter programs (REQ020)
+            let filtered = programs.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(searchVal) || p.code.toLowerCase().includes(searchVal);
+                const matchesType = (typeFilter === 'all' || p.code === typeFilter || p.name.includes(typeFilter));
+                const matchesStatus = (statusFilter === 'all' || p.status === statusFilter);
+                return matchesSearch && matchesType && matchesStatus;
+            });
+
+            // Sort programs (REQ019)
+            filtered.sort((a, b) => {
+                let valA = a[programSortField];
+                let valB = b[programSortField];
+
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+
+                if (valA < valB) return programSortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return programSortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No matching programs found.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                const isExpanded = expandedPrograms.has(p.id);
+                const statusClass = p.status === 'Active' ? 'bg-success' : 'bg-secondary';
+                
+                // Program row
+                tbody.innerHTML += `
+                    <tr class="program-row-item" style="cursor: pointer;" onclick="toggleProgramBatches('${p.id}', event)">
+                        <td>
+                            <span class="me-2 text-primary"><i class="bi ${isExpanded ? 'bi-chevron-down' : 'bi-chevron-right'}"></i></span>
+                            <strong>${p.name}</strong>
+                        </td>
+                        <td>${p.code}</td>
+                        <td class="text-center">${p.slotsTotal || 0}</td>
+                        <td class="text-center">${p.slotsAvailable || 0}</td>
+                        <td class="text-center"><span class="badge ${statusClass}">${p.status}</span></td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <button class="btn btn-sm btn-outline-primary py-1" onclick="toggleProgramBatches('${p.id}', event)">
+                                <i class="bi ${isExpanded ? 'bi-eye-slash-fill' : 'bi-eye-fill'}"></i> ${isExpanded ? 'Collapse' : 'Batches'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+                // Collapsible batches row (REQ021)
+                if (isExpanded) {
+                    const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+                    const programBatches = trainings.filter(t => t.programId === p.id);
+                    
+                    let batchesTableHtml = '';
+                    if (programBatches.length === 0) {
+                        batchesTableHtml = '<div class="p-3 text-muted text-center small"><i class="bi bi-info-circle me-1"></i>No training/activity batches recorded for this program.</div>';
+                    } else {
+                        batchesTableHtml = `
+                            <table class="nested-table">
+                                <thead>
+                                    <tr>
+                                        <th>Batch Number / ID</th>
+                                        <th>Training Topic / Title</th>
+                                        <th>Training Date</th>
+                                        <th>Trainer</th>
+                                        <th class="text-center">Beneficiaries Enrolled</th>
+                                        <th class="text-center">Remaining Slots</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        programBatches.forEach(b => {
+                            const enrolled = b.trainees ? b.trainees.length : 0;
+                            const maxCapacity = b.maxSlots || 50;
+                            const remaining = maxCapacity - enrolled;
+                            batchesTableHtml += `
+                                <tr>
+                                    <td><strong>${b.id}</strong></td>
+                                    <td>${b.title}</td>
+                                    <td>${b.date}</td>
+                                    <td>${b.trainer}</td>
+                                    <td class="text-center"><span class="badge bg-info text-dark">${enrolled}</span></td>
+                                    <td class="text-center"><span class="badge bg-light text-dark">${remaining}</span></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-xs btn-primary py-0 px-2" style="font-size: 0.75rem;" onclick="viewBatchDetails('${b.id}')">
+                                            <i class="bi bi-person-check-fill me-1"></i> View Beneficiaries
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        batchesTableHtml += `
+                                </tbody>
+                            </table>
+                        `;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="details-row">
+                            <td colspan="6" class="p-3">
+                                <div class="card border p-3 shadow-sm rounded-3">
+                                    <div class="fw-bold mb-2 text-dark small"><i class="bi bi-layers-fill me-1"></i> Program Batches for ${p.code}</div>
+                                    ${batchesTableHtml}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+        }
+
+        function sortAssignmentPrograms(field) {
+            if (programSortField === field) {
+                programSortOrder = programSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                programSortField = field;
+                programSortOrder = 'asc';
+            }
+            renderAssignmentProgramsTable();
+        }
+
+        function toggleProgramBatches(programId, event) {
+            if (expandedPrograms.has(programId)) {
+                expandedPrograms.delete(programId);
+            } else {
+                expandedPrograms.add(programId);
+            }
+            renderAssignmentProgramsTable();
+        }
+
+        function viewBatchDetails(batchId) {
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const batch = trainings.find(t => t.id === batchId);
+            if (!batch) return;
+
+            document.getElementById('drilldownBatchTitle').textContent = `Batch Details: ${batch.title} (${batch.id})`;
+            document.getElementById('drilldownBatchMeta').textContent = `Trainer: ${batch.trainer} | Date: ${batch.date}`;
+
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const tbody = document.getElementById('batchBeneficiariesTableBody');
+            tbody.innerHTML = '';
+
+            const trainees = batch.trainees || [];
+            trainees.forEach(tr => {
+                const ben = beneficiaries.find(b => b.id === tr.beneficiaryId) || { name: 'Unknown', contact: 'N/A' };
+                // Fetch checklist from their applications
+                const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+                const app = apps.find(a => a.beneficiaryId === tr.beneficiaryId && a.programId === batch.programId) || {};
+                
+                let checklistHtml = '';
+                if (app.checklist) {
+                    const keys = Object.keys(app.checklist);
+                    keys.forEach(key => {
+                        const checked = app.checklist[key];
+                        checklistHtml += `<span class="badge ${checked ? 'bg-success' : 'bg-warning'} me-1 mb-1">${key}: ${checked ? '✓' : '✗'}</span>`;
+                    });
+                } else {
+                    checklistHtml = '<span class="text-muted small">No checklist recorded</span>';
+                }
 
                 tbody.innerHTML += `
                     <tr>
-                        <td><strong>${ben.name}</strong></td>
+                        <td>
+                            <a href="#" class="fw-bold text-decoration-none" onclick="event.preventDefault(); viewBeneficiaryDetails('${ben.id}')">
+                                <i class="bi bi-person-fill text-secondary me-1"></i> ${ben.name}
+                            </a>
+                        </td>
                         <td>${maskContactNumber(ben.contact)}</td>
-                        <td><span class="status-badge completed" style="background: rgba(184,92,122,0.1); color: var(--primary-dark);">${prog.code}</span></td>
-                        <td>${as.requirements}</td>
-                        <td><span class="status-badge active">${as.status || 'Active'}</span></td>
+                        <td>${checklistHtml}</td>
+                        <td class="text-center">
+                            <span class="badge ${tr.attended ? 'bg-success' : 'bg-primary'}">
+                                ${tr.result || 'Assigned'}
+                            </span>
+                        </td>
                     </tr>
                 `;
             });
-            if (assignments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No program assignments recorded.</td></tr>';
+
+            if (trainees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No beneficiaries assigned to this batch by the PESO Officer.</td></tr>';
             }
+
+            // Render audit logs for this batch
+            const auditLogs = JSON.parse(localStorage.getItem('peso_assignment_audit_logs')) || [];
+            const batchLogs = auditLogs.filter(log => log.batchId === batchId);
+            const logsContainer = document.getElementById('batchAuditLogsContainer');
+            logsContainer.innerHTML = '';
+
+            if (batchLogs.length === 0) {
+                logsContainer.innerHTML = '<div class="text-muted small p-2">No assignment audit logs for this batch.</div>';
+            } else {
+                batchLogs.forEach(log => {
+                    logsContainer.innerHTML += `
+                        <div class="audit-log-item mb-2">
+                            <span class="audit-log-time">${new Date(log.timestamp).toLocaleString()}</span>
+                            <strong>${log.action}</strong>
+                            <span class="d-block text-muted mt-1" style="font-size: 0.7rem;">Actor: ${log.performedBy}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('batchDrilldownSection').style.display = 'flex';
+            // Scroll to the drilldown section
+            document.getElementById('batchDrilldownSection').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function openAddAssignmentModal() {
+        function closeBatchDrilldown() {
+            document.getElementById('batchDrilldownSection').style.display = 'none';
+        }
+
+        function viewBeneficiaryDetails(beneficiaryId) {
             const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
-            const programs = JSON.parse(localStorage.getItem('peso_programs')).filter(p => p.status === 'Active') || [];
+            const ben = beneficiaries.find(b => b.id === beneficiaryId);
+            if (!ben) return;
 
-            const benSelect = document.getElementById('assignApplicantSelect');
-            const progSelect = document.getElementById('assignProgramSelect');
+            // Fill pop-up modal
+            document.getElementById('benModalName').textContent = ben.name;
+            document.getElementById('benModalStatus').textContent = ben.status || 'Active';
+            document.getElementById('benModalStatus').className = `badge ${ben.status === 'Active' ? 'bg-success' : 'bg-secondary'}`;
+            
+            document.getElementById('benModalGender').textContent = ben.gender || 'Not Specified';
+            document.getElementById('benModalBirthdate').textContent = ben.birthdate || 'Not Specified';
+            document.getElementById('benModalBarangay').textContent = ben.barangay || 'Not Specified';
+            document.getElementById('benModalCivil').textContent = ben.civilStatus || 'Not Specified';
+            document.getElementById('benModalEducation').textContent = ben.education || 'Not Specified';
+            document.getElementById('benModalOccupation').textContent = ben.occupation || 'Not Specified';
+            
+            document.getElementById('benModalContact').textContent = ben.contact || 'Not Specified';
+            document.getElementById('benModalEmail').textContent = ben.email || `${ben.username || 'user'}@example.gov.ph`;
 
-            benSelect.innerHTML = '<option value="">-- Choose Beneficiary --</option>';
-            beneficiaries.forEach(b => {
-                benSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
-            });
+            // Participation history timeline
+            const timeline = document.getElementById('benModalHistoryTimeline');
+            timeline.innerHTML = '';
+            
+            const history = ben.history || [
+                { program: "Livelihood Assistance", year: "2026", status: "Active", notes: "Currently registered under local LGU program" }
+            ];
 
-            progSelect.innerHTML = '<option value="">-- Choose Livelihood --</option>';
-            programs.forEach(p => {
-                progSelect.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
-            });
-
-            document.getElementById('assignmentModal').classList.add('active');
-        }
-
-        function closeAssignmentModal() {
-            document.getElementById('assignmentModal').classList.remove('active');
-        }
-
-        function handleAssignmentSubmit(e) {
-            e.preventDefault();
-            const benId = document.getElementById('assignApplicantSelect').value;
-            const progId = document.getElementById('assignProgramSelect').value;
-
-            if (!benId || !progId) {
-                alert("Please select both a beneficiary and a livelihood program.");
-                return;
-            }
-
-            const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
-
-            // REQ021: Prevent Overlap (Double assignment)
-            const exists = assignments.some(as => as.beneficiaryId === benId && as.status === 'Active');
-            if (exists) {
-                alert("Conflict Warning: This beneficiary is already active in another program assignment. Overlapping assignments are restricted.");
-                return;
-            }
-
-            const newAs = {
-                id: "A" + (Date.now()),
-                beneficiaryId: benId,
-                programId: progId,
-                requirements: "Compliance documents checked and indigency reports verified",
-                status: "Active"
-            };
-            assignments.push(newAs);
-            localStorage.setItem('peso_assignments', JSON.stringify(assignments));
-
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            // Also check all their applications
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            const benApps = apps.filter(a => a.beneficiaryId === beneficiaryId);
+            
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
-            const bName = (beneficiaries.find(b => b.id === benId) || {}).name;
-            const pCode = (programs.find(p => p.id === progId) || {}).code;
 
-            pushActivity("Program Assignment", `Assigned beneficiary: ${bName} to program: ${pCode}`);
-            alert(`Successfully assigned ${bName} to ${pCode}.`);
-            closeAssignmentModal();
-            renderAssignmentsTable();
+            if (benApps.length === 0 && history.length === 0) {
+                timeline.innerHTML = '<div class="text-muted small">No participation history recorded.</div>';
+            } else {
+                // Dynamic applications history
+                benApps.forEach(a => {
+                    const prog = programs.find(p => p.id === a.programId) || { name: 'Unknown Program' };
+                    timeline.innerHTML += `
+                        <div class="p-2 border rounded bg-light mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>${prog.name}</strong>
+                                <span class="badge ${a.status === 'Approved' ? 'bg-success' : (a.status === 'Rejected' ? 'bg-danger' : 'bg-warning')}">${a.status}</span>
+                            </div>
+                            <div class="text-muted mt-1 small">Submitted: ${a.dateSubmitted} | Remarks: ${a.feedback || 'None'}</div>
+                        </div>
+                    `;
+                });
+
+                // Static timeline history if any
+                history.forEach(h => {
+                    timeline.innerHTML += `
+                        <div class="p-2 border rounded bg-light mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>${h.program} (${h.year})</strong>
+                                <span class="badge bg-secondary">${h.status}</span>
+                            </div>
+                            <div class="text-muted mt-1 small">${h.notes}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('beneficiaryInfoModal').style.display = 'flex';
         }
 
-        function removeAssignment(id) {
-            showConfirmCard("Are you sure you want to deactivate/revoke this program assignment?", () => {
-                let assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
-                const as = assignments.find(a => a.id === id);
-                assignments = assignments.filter(a => a.id !== id);
-                localStorage.setItem('peso_assignments', JSON.stringify(assignments));
-                pushActivity("Assignment Revoked", `Deactivated assignment ID: ${id}`);
-                renderAssignmentsTable();
-            });
+        function closeBeneficiaryInfoModal() {
+            document.getElementById('beneficiaryInfoModal').style.display = 'none';
         }
 
         // ==============================================
@@ -7366,6 +7707,75 @@
                     data-translate="confirm_cancel">Cancel</button>
                 <button id="confirmCardConfirmBtn" class="confirm-btn confirm-btn-danger"
                     data-translate="confirm_proceed">Proceed</button>
+            </div>
+        </div>
+    </div>
+    <!-- Beneficiary Personal Information Modal (REQ023) -->
+    <div class="custom-modal-overlay" id="beneficiaryInfoModal"
+        style="z-index: 2200; display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
+        <div class="custom-modal-content"
+            style="max-width: 600px; width: 95%; background: white; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <div class="custom-modal-header bg-dark text-white d-flex justify-content-between align-items-center p-3">
+                <h5 class="custom-modal-title m-0 text-white"><i class="bi bi-person-badge-fill me-2"></i> Beneficiary Profile Oversight</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeBeneficiaryInfoModal()"
+                    style="filter: invert(1);"></button>
+            </div>
+            <div class="custom-modal-body p-4" style="overflow-y: auto; flex-grow: 1;">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-primary-light rounded-circle text-primary" style="width: 80px; height: 80px; font-size: 2.5rem; background-color: var(--primary-light);">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <h4 class="mt-3 mb-1 fw-bold text-dark" id="benModalName">Maria Garcia</h4>
+                    <span class="badge bg-success" id="benModalStatus">Active</span>
+                </div>
+                
+                <h6 class="fw-bold border-bottom pb-2 text-dark mb-3">Demographic Details</h6>
+                <div class="row mb-4">
+                    <div class="col-6 mb-2">
+                        <small class="text-muted d-block">Gender</small>
+                        <span class="fw-semibold text-dark" id="benModalGender">Female</span>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted d-block">Birthdate</small>
+                        <span class="fw-semibold text-dark" id="benModalBirthdate">2000-08-15</span>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted d-block">Barangay</small>
+                        <span class="fw-semibold text-dark" id="benModalBarangay">Poblacion</span>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted d-block">Civil Status</small>
+                        <span class="fw-semibold text-dark" id="benModalCivil">Single</span>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted d-block">Educational Attainment</small>
+                        <span class="fw-semibold text-dark" id="benModalEducation">College Graduate (BS IT)</span>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted d-block">Current Occupation</small>
+                        <span class="fw-semibold text-dark" id="benModalOccupation">Unemployed</span>
+                    </div>
+                </div>
+                
+                <h6 class="fw-bold border-bottom pb-2 text-dark mb-3">Contact Information</h6>
+                <div class="row mb-4">
+                    <div class="col-6 mb-2">
+                        <small class="text-muted d-block">Contact Number</small>
+                        <span class="fw-semibold text-dark" id="benModalContact">+639123456789</span>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted d-block">Email Address</small>
+                        <span class="fw-semibold text-dark" id="benModalEmail">maria.garcia@example.com</span>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold border-bottom pb-2 text-dark mb-3">Program Participation History</h6>
+                <div id="benModalHistoryTimeline" class="small">
+                    <!-- Historical logs -->
+                </div>
+            </div>
+            <div class="custom-modal-footer bg-light p-3 d-flex justify-content-end border-top">
+                <button type="button" class="btn btn-secondary px-4" onclick="closeBeneficiaryInfoModal()">Close Profile</button>
             </div>
         </div>
     </div>
