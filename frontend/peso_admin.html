@@ -2535,43 +2535,50 @@
             <!-- MODULE: Fund & Resource Allocation -->
             <section class="module-page" id="module-funds">
                 <div class="row mb-4">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-lg-4 mb-3">
                         <div class="table-card">
-                            <h5 class="table-title mb-3">Financial Allocation Board</h5>
-                            <form id="fundAllocationForm" onsubmit="handleAllocateFunds(event)">
-                                <div class="form-group">
-                                    <label class="form-label">Select Livelihood Program</label>
-                                    <select class="form-control" id="fundProgramSelect" required>
+                            <h5 class="table-title mb-3"><i class="bi bi-cash-stack text-primary me-2"></i>Financial Allocation Board</h5>
+                            <form id="fundAllocationForm" onsubmit="preAllocateFunds(event)">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold small text-muted">Select Livelihood Program</label>
+                                    <select class="form-select" id="fundProgramSelect" required>
                                         <!-- Rendered dynamically -->
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">Allocation/Re-alignment Amount (₱)</label>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold small text-muted">Allocation Amount (₱)</label>
                                     <input type="text" class="form-control" id="fundAllocAmount"
                                         placeholder="e.g. 50,000.00" required>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">Justification / Action Remarks</label>
-                                    <textarea class="form-control" id="fundNotes" placeholder="Enter justification..."
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold small text-muted">Supporting Document (e.g. Budget Approval / Receipt)</label>
+                                    <input type="file" class="form-control" id="fundDocInput">
+                                    <div class="form-text small text-muted" style="font-size: 0.7rem;">Supported formats: PDF, Images (Max 5MB)</div>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold small text-muted">Justification / Action Remarks</label>
+                                    <textarea class="form-control" id="fundNotes" rows="3" placeholder="Provide justification remarks for audit compliance..."
                                         required></textarea>
                                 </div>
-                                <button type="submit" class="btn-custom btn-custom-primary w-100">
-                                    <i class="bi bi-check2-circle"></i> Commit Budget Allocation
+                                <button type="submit" class="btn-custom btn-custom-primary w-100 py-2">
+                                    <i class="bi bi-check2-circle me-1"></i> Commit Budget Allocation
                                 </button>
                             </form>
                         </div>
-
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-lg-8 mb-3">
                         <div class="table-card">
-                            <h5 class="table-title mb-3">Program Budget Summaries</h5>
+                            <h5 class="table-title mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Program Budget Summaries</h5>
                             <div class="table-responsive">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Program</th>
-                                            <th>Approved Budget</th>
-                                            <th>Utilized Balance</th>
+                                            <th onclick="sortFundsTable('code')" style="cursor: pointer; user-select: none;">Program <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                            <th onclick="sortFundsTable('budget')" style="cursor: pointer; user-select: none;" class="text-end">Approved Budget <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                            <th onclick="sortFundsTable('allocated')" style="cursor: pointer; user-select: none;" class="text-end">Utilized Balance <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                            <th onclick="sortFundsTable('remaining')" style="cursor: pointer; user-select: none;" class="text-end">Remaining <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                            <th onclick="sortFundsTable('rate')" style="cursor: pointer; user-select: none;">Utilization Rate & Status <i class="bi bi-arrows-collapse text-muted ms-1"></i></th>
+                                            <th class="text-center">Details</th>
                                         </tr>
                                     </thead>
                                     <tbody id="fundsSummaryBody">
@@ -3241,6 +3248,34 @@
                     <button type="submit" class="btn-custom btn-custom-primary" id="schedSubmitBtn">Schedule Activity</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Fund Allocation Confirmation Modal (REQ035) -->
+    <div class="custom-modal-overlay" id="fundConfirmModal" style="z-index: 2050;">
+        <div class="custom-modal-content" style="max-width: 450px;">
+            <div class="custom-modal-header bg-primary text-white">
+                <h5 class="custom-modal-title text-white"><i class="bi bi-shield-fill-check me-2"></i>Confirm Budget Allocation</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeFundConfirmModal()"></button>
+            </div>
+            <div class="custom-modal-body p-4">
+                <p class="text-muted small mb-3">You are about to commit the following financial allocation. Please review the details carefully to ensure audit compliance:</p>
+                <table class="table table-sm table-bordered mb-3" style="font-size: 0.85rem;">
+                    <tbody>
+                        <tr><th class="bg-light w-40">Program:</th><td id="confirmFundProg" class="text-dark fw-bold">-</td></tr>
+                        <tr><th class="bg-light">Amount:</th><td class="fw-bold text-primary" id="confirmFundAmount">-</td></tr>
+                        <tr><th class="bg-light">Document:</th><td id="confirmFundDoc" class="fst-italic text-muted">-</td></tr>
+                        <tr><th class="bg-light">Justification:</th><td id="confirmFundNotes" class="text-dark" style="white-space: pre-wrap;">-</td></tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-warning small m-0" style="font-size: 0.75rem;">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Once committed, this transaction will be recorded in the immutable digital ledger under your administrator identity.
+                </div>
+            </div>
+            <div class="custom-modal-footer bg-light p-3 border-top d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary px-3" onclick="closeFundConfirmModal()">Cancel</button>
+                <button type="button" class="btn btn-primary px-4" onclick="commitFundAllocation()">Confirm & Commit</button>
+            </div>
         </div>
     </div>
 
@@ -6054,6 +6089,15 @@
                 if (addBtn) {
                     addBtn.style.display = 'none';
                 }
+                // Lock Fund Allocation Board Form (RBAC)
+                const allocForm = document.getElementById('fundAllocationForm');
+                if (allocForm) {
+                    allocForm.innerHTML = `
+                        <div class="alert alert-warning m-0">
+                            <i class="bi bi-lock-fill text-warning me-1"></i> <strong>Read-Only Access:</strong> Fund allocations and adjustments are restricted to PESO Administrators only.
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -6782,37 +6826,318 @@
         // ==============================================
         // MODULE LOGIC: FUND ALLOCATION (REQ034-REQ039)
         // ==============================================
+        let fundSortField = 'code';
+        let fundSortOrder = 'asc';
+        let fundExpandedPrograms = new Set();
+        let currentPendingAllocation = null;
+
+        function sortFundsTable(field) {
+            if (fundSortField === field) {
+                fundSortOrder = fundSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                fundSortField = field;
+                fundSortOrder = 'asc';
+            }
+            renderFundsAllocationModule();
+        }
+
+        function toggleFundProgramDetails(programId) {
+            if (fundExpandedPrograms.has(programId)) {
+                fundExpandedPrograms.delete(programId);
+            } else {
+                fundExpandedPrograms.add(programId);
+            }
+            renderFundsAllocationModule();
+        }
+
         function renderFundsAllocationModule() {
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
 
             // Populate Dropdown selector
             const select = document.getElementById('fundProgramSelect');
-            select.innerHTML = '';
-            programs.forEach(p => {
-                select.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
+            if (select) {
+                select.innerHTML = '';
+                programs.forEach(p => {
+                    select.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
+                });
+            }
+
+            // Apply Sorting to programs summaries (REQ034)
+            const sortedPrograms = [...programs];
+            sortedPrograms.sort((a, b) => {
+                let valA = a[fundSortField];
+                let valB = b[fundSortField];
+
+                if (fundSortField === 'remaining') {
+                    valA = a.budget - a.allocated;
+                    valB = b.budget - b.allocated;
+                } else if (fundSortField === 'rate') {
+                    valA = a.budget > 0 ? (a.allocated / a.budget) : 0;
+                    valB = b.budget > 0 ? (b.allocated / b.budget) : 0;
+                }
+
+                if (typeof valA === 'string') {
+                    return fundSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    return fundSortOrder === 'asc' ? valA - valB : valB - valA;
+                }
             });
 
             // Populate Budget Summaries
             const tbody = document.getElementById('fundsSummaryBody');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
-            programs.forEach(p => {
+            sortedPrograms.forEach(p => {
+                const remaining = p.budget - p.allocated;
                 const utilizationRate = p.budget > 0 ? ((p.allocated / p.budget) * 100).toFixed(1) : 0;
+                
+                // Visual indicators (green <= 70%, yellow 70%-90%, red > 90%) (REQ034)
+                let rateBadgeClass = 'bg-success';
+                let progressColorClass = 'bg-success';
+                let indicatorText = 'Safe';
+                
+                if (utilizationRate > 90) {
+                    rateBadgeClass = 'bg-danger';
+                    progressColorClass = 'bg-danger';
+                    indicatorText = 'Overspending Risk';
+                } else if (utilizationRate > 70) {
+                    rateBadgeClass = 'bg-warning text-dark';
+                    progressColorClass = 'bg-warning';
+                    indicatorText = 'Nearing Limit';
+                }
+
+                const isExpanded = fundExpandedPrograms.has(p.id);
+                const expandText = isExpanded ? 'Collapse' : 'Breakdown';
+                const expandIcon = isExpanded ? 'bi-chevron-up' : 'bi-chevron-down';
+
                 tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${p.code}</strong></td>
-                        <td>₱${formatCurrency(p.budget)}</td>
+                    <tr style="cursor: pointer;" onclick="toggleFundProgramDetails('${p.id}')">
+                        <td><strong>${p.code}</strong><br><span class="text-muted small">${p.name}</span></td>
+                        <td class="text-end fw-semibold">₱${formatCurrency(p.budget)}</td>
+                        <td class="text-end text-primary fw-bold">₱${formatCurrency(p.allocated)}</td>
+                        <td class="text-end text-success fw-bold">₱${formatCurrency(remaining)}</td>
                         <td>
-                            <strong>₱${formatCurrency(p.allocated)}</strong><br>
-                            <span class="text-muted small">${utilizationRate}% utilized</span>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge ${rateBadgeClass} small" style="font-size: 0.65rem;">${indicatorText}</span>
+                                <span class="small fw-semibold">${utilizationRate}%</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar ${progressColorClass}" role="progressbar" style="width: ${utilizationRate}%;"></div>
+                            </div>
+                        </td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <button class="btn btn-sm btn-outline-primary py-1 px-2 fw-semibold" onclick="toggleFundProgramDetails('${p.id}')" style="font-size: 0.75rem;">
+                                <i class="bi ${expandIcon} me-1"></i> ${expandText}
+                            </button>
                         </td>
                     </tr>
                 `;
+
+                // Expandable Rows (REQ036)
+                if (isExpanded) {
+                    // Populate batch selections dynamically for filter options
+                    const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+                    const programBatches = trainings.filter(t => t.programId === p.id);
+                    let batchOptionsHtml = '<option value="all">All Batches</option>';
+                    programBatches.forEach(b => {
+                        batchOptionsHtml += `<option value="${b.id}">${b.id} - ${b.title}</option>`;
+                    });
+
+                    tbody.innerHTML += `
+                        <tr class="details-row bg-light" onclick="event.stopPropagation();">
+                            <td colspan="6" class="p-4">
+                                <div class="card shadow-sm border border-secondary rounded-3 bg-white p-3">
+                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                        <strong class="text-dark small"><i class="bi bi-funnel-fill text-primary me-1"></i> Filters for ${p.code} Breakdown Details</strong>
+                                        <button class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size: 0.7rem;" onclick="resetBreakdownFilters('${p.id}')">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Reset Filters
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Drill-down Filters (REQ036) -->
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-semibold text-muted mb-1">Batch Reference</label>
+                                            <select class="form-select form-select-sm" id="breakdownFilterBatch_${p.id}" onchange="renderProgramBreakdowns('${p.id}')">
+                                                ${batchOptionsHtml}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-semibold text-muted mb-1">Beneficiary Name</label>
+                                            <input type="text" class="form-control form-control-sm" id="breakdownFilterName_${p.id}" placeholder="Search name..." oninput="renderProgramBreakdowns('${p.id}')">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-semibold text-muted mb-1">Date From</label>
+                                            <input type="date" class="form-control form-control-sm" id="breakdownFilterDateFrom_${p.id}" onchange="renderProgramBreakdowns('${p.id}')">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-semibold text-muted mb-1">Date To</label>
+                                            <input type="date" class="form-control form-control-sm" id="breakdownFilterDateTo_${p.id}" onchange="renderProgramBreakdowns('${p.id}')">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <!-- Batches Breakdown -->
+                                        <div class="col-lg-5 mb-3">
+                                            <h6 class="fw-bold small text-dark border-bottom pb-1"><i class="bi bi-folder-fill text-warning me-1"></i>Batch Cost Breakdown</h6>
+                                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                                <table class="table table-sm table-bordered" style="font-size: 0.75rem;">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Batch ID</th>
+                                                            <th>Training / Activity</th>
+                                                            <th class="text-end">Cost Utilized</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="breakdownBatchesBody_${p.id}">
+                                                        <!-- Loaded dynamically -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <!-- Beneficiary Breakdown -->
+                                        <div class="col-lg-7 mb-3">
+                                            <h6 class="fw-bold small text-dark border-bottom pb-1"><i class="bi bi-people-fill text-success me-1"></i>Beneficiary Disbursements</h6>
+                                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                                <table class="table table-sm table-bordered" style="font-size: 0.75rem;">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Beneficiary</th>
+                                                            <th>Batch</th>
+                                                            <th>Date Approved</th>
+                                                            <th class="text-end">Disbursement</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="breakdownBeneficiariesBody_${p.id}">
+                                                        <!-- Loaded dynamically -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+
+                    // Render the breakdowns immediately
+                    setTimeout(() => {
+                        renderProgramBreakdowns(p.id);
+                    }, 0);
+                }
             });
 
             // Render budget trend chart & ledger
             renderBudgetTrendChart();
             renderBudgetLedger();
+        }
+
+        function resetBreakdownFilters(programId) {
+            const batchSel = document.getElementById('breakdownFilterBatch_' + programId);
+            if (batchSel) batchSel.value = 'all';
+
+            const nameInput = document.getElementById('breakdownFilterName_' + programId);
+            if (nameInput) nameInput.value = '';
+
+            const dateFrom = document.getElementById('breakdownFilterDateFrom_' + programId);
+            if (dateFrom) dateFrom.value = '';
+
+            const dateTo = document.getElementById('breakdownFilterDateTo_' + programId);
+            if (dateTo) dateTo.value = '';
+
+            renderProgramBreakdowns(programId);
+        }
+
+        function renderProgramBreakdowns(programId) {
+            const batchVal = document.getElementById('breakdownFilterBatch_' + programId)?.value || 'all';
+            const nameVal = document.getElementById('breakdownFilterName_' + programId)?.value.toLowerCase().trim() || '';
+            const fromVal = document.getElementById('breakdownFilterDateFrom_' + programId)?.value || '';
+            const toVal = document.getElementById('breakdownFilterDateTo_' + programId)?.value || '';
+
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const prog = programs.find(p => p.id === programId);
+            if (!prog) return;
+
+            // 1. Render Batches
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const programBatches = trainings.filter(t => t.programId === programId);
+            const filteredBatches = programBatches.filter(b => {
+                if (batchVal !== 'all' && b.id !== batchVal) return false;
+                return true;
+            });
+
+            const batchesTbody = document.getElementById('breakdownBatchesBody_' + programId);
+            if (batchesTbody) {
+                batchesTbody.innerHTML = '';
+                if (filteredBatches.length === 0) {
+                    batchesTbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted small">No batches matching filters.</td></tr>';
+                } else {
+                    filteredBatches.forEach(b => {
+                        // Dynamically determine batch cost: 15,000 baseline per trainee or 30,000 baseline
+                        const cost = 15000 * (b.trainees ? b.trainees.length : 0);
+                        batchesTbody.innerHTML += `
+                            <tr>
+                                <td><strong>${b.id}</strong></td>
+                                <td>${b.title}</td>
+                                <td class="text-end fw-semibold">₱${formatCurrency(cost)}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            }
+
+            // 2. Render Beneficiary Disbursements
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+
+            // We only look at approved applications under this program (representing funded beneficiaries)
+            const programApps = apps.filter(a => a.programId === programId && a.status === 'Approved');
+
+            const filteredApps = programApps.filter(a => {
+                const benObj = beneficiaries.find(b => b.id === a.beneficiaryId) || { name: 'Unknown' };
+                
+                // Name filter
+                if (nameVal && !benObj.name.toLowerCase().includes(nameVal)) return false;
+
+                // Batch filter
+                if (batchVal !== 'all' && a.batchId !== batchVal) return false;
+
+                // Date filter
+                const appDate = a.dateSubmitted || '';
+                if (fromVal && appDate < fromVal) return false;
+                if (toVal && appDate > toVal) return false;
+
+                return true;
+            });
+
+            const benTbody = document.getElementById('breakdownBeneficiariesBody_' + programId);
+            if (benTbody) {
+                benTbody.innerHTML = '';
+                if (filteredApps.length === 0) {
+                    benTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted small">No beneficiary allocations matching filters.</td></tr>';
+                } else {
+                    filteredApps.forEach(a => {
+                        const benObj = beneficiaries.find(b => b.id === a.beneficiaryId) || { name: 'Unknown' };
+                        
+                        // Disbursement baseline per program
+                        let disAmount = 4000;
+                        if (prog.code === 'SPES') disAmount = 5000;
+                        else if (prog.code === 'TUPAD') disAmount = 5000;
+                        else if (prog.code === 'Livelihood Training') disAmount = 3000;
+
+                        benTbody.innerHTML += `
+                            <tr>
+                                <td><strong>${benObj.name}</strong></td>
+                                <td><span class="badge bg-light text-dark">${a.batchId || 'N/A'}</span></td>
+                                <td>${a.dateSubmitted || 'N/A'}</td>
+                                <td class="text-end fw-semibold">₱${formatCurrency(disAmount)}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            }
         }
 
         let trendChartInstanceObj = null;
@@ -6836,19 +7161,19 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Approved Budget',
+                            label: 'Approved Budget Limit',
                             data: budgetData,
                             borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
                             borderWidth: 2,
                             tension: 0.3,
                             fill: true
                         },
                         {
-                            label: 'Utilized/Allocated',
+                            label: 'Allocated/Utilized Funds',
                             data: allocatedData,
                             borderColor: '#ec4899',
-                            backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                            backgroundColor: 'rgba(236, 72, 153, 0.05)',
                             borderWidth: 2,
                             tension: 0.3,
                             fill: true
@@ -6889,7 +7214,7 @@
             });
             
             if (filteredLedger.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No ledger entries.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">No ledger entries matching filters.</td></tr>`;
                 return;
             }
             
@@ -6897,10 +7222,14 @@
             filteredLedger.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             filteredLedger.forEach(item => {
+                // Show uploaded document if present
+                const docText = item.documentName ? `<br><small class="text-success"><i class="bi bi-file-earmark-arrow-up"></i> ${item.documentName}</small>` : '';
+                const remarksText = item.remarks ? `<br><small class="text-muted">Justification: "${item.remarks}"</small>` : '';
+
                 tbody.innerHTML += `
                     <tr>
                         <td>${new Date(item.date).toLocaleDateString()}</td>
-                        <td><strong>${item.program}</strong></td>
+                        <td><strong>${item.program}</strong>${docText}${remarksText}</td>
                         <td><span class="badge ${item.type === 'Allocation' ? 'bg-primary' : (item.type === 'Re-alignment' ? 'bg-info' : 'bg-success')}">${item.type}</span></td>
                         <td>₱${formatCurrency(item.amount)}</td>
                         <td><span class="small text-muted">${item.by}</span></td>
@@ -6909,52 +7238,111 @@
             });
         }
 
-        function handleAllocateFunds(e) {
+        // Setup confirmation modal display on submit (REQ035)
+        function preAllocateFunds(e) {
             e.preventDefault();
+            
+            // Role-based Access Control checks (RBAC)
+            const role = sessionStorage.getItem('userRole');
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators are authorized to allocate or adjust funds.");
+                return;
+            }
+
             const programId = document.getElementById('fundProgramSelect').value;
             const amountInputRaw = document.getElementById('fundAllocAmount').value.replace(/,/g, '').trim();
             const amount = parseFloat(amountInputRaw);
 
             if (isNaN(amount) || amount <= 0) {
-                alert("Error: Please enter a valid allocation amount.");
+                alert("Validation Error: Please enter a valid allocation amount.");
                 return;
             }
 
             const notes = document.getElementById('fundNotes').value.trim();
+            const docInput = document.getElementById('fundDocInput');
+            const docName = docInput.files.length > 0 ? docInput.files[0].name : "No supporting document uploaded";
+
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const prog = programs.find(p => p.id === programId);
+            if (!prog) return;
+
+            // Prevent allocation exceeding remaining approved LGU budget limit (REQ037)
+            const remaining = prog.budget - prog.allocated;
+            if (amount > remaining) {
+                alert(`Allocation Overdraft Blocked: The requested allocation of ₱${formatCurrency(amount)} exceeds the remaining approved LGU budget limit of ₱${formatCurrency(remaining)} for ${prog.code}.`);
+                return;
+            }
+
+            // Set confirmation details
+            document.getElementById('confirmFundProg').textContent = `${prog.code} - ${prog.name}`;
+            document.getElementById('confirmFundAmount').textContent = `₱ ${formatCurrency(amount)}`;
+            document.getElementById('confirmFundDoc').textContent = docName;
+            document.getElementById('confirmFundNotes').textContent = notes;
+
+            // Cache temporary allocation details to commit
+            currentPendingAllocation = {
+                programId,
+                amount,
+                notes,
+                docName
+            };
+
+            // Open confirmation modal
+            document.getElementById('fundConfirmModal').classList.add('active');
+        }
+
+        function closeFundConfirmModal() {
+            document.getElementById('fundConfirmModal').classList.remove('active');
+            currentPendingAllocation = null;
+        }
+
+        function commitFundAllocation() {
+            if (!currentPendingAllocation) return;
+
+            const { programId, amount, notes, docName } = currentPendingAllocation;
 
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
             const idx = programs.findIndex(p => p.id === programId);
 
             if (idx !== -1) {
                 const prog = programs[idx];
-
-                // REQ037: Prevent Allocation Exceeding Budget limit
+                
+                // Re-verify budget limits under mutex write context
                 if (prog.allocated + amount > prog.budget) {
-                    alert(`Error: Allocation request of ₱${formatCurrency(amount)} exceeds the remaining approved LGU budget limit (₱ ${formatCurrency(prog.budget - prog.allocated)}).`);
+                    alert("Allocation Overdraft Blocked: The transaction exceeds the approved LGU budget limit.");
+                    closeFundConfirmModal();
                     return;
                 }
 
+                // Update database (REQ035)
                 programs[idx].allocated += amount;
                 localStorage.setItem('peso_programs', JSON.stringify(programs));
 
-                // Add to ledger
+                // Save Transaction Ledger and Audit Logs (REQ035)
                 const ledger = JSON.parse(localStorage.getItem('peso_budget_ledger')) || [];
-                ledger.push({
+                const newLedgerItem = {
                     id: 'L' + Date.now(),
                     date: new Date().toISOString(),
                     program: prog.code,
                     type: 'Allocation',
                     amount: amount,
-                    by: 'PESO Admin',
-                    remarks: notes
-                });
+                    by: sessionStorage.getItem('username') || 'peso-admin',
+                    remarks: notes,
+                    documentName: docName === "No supporting document uploaded" ? "" : docName
+                };
+                ledger.push(newLedgerItem);
                 localStorage.setItem('peso_budget_ledger', JSON.stringify(ledger));
 
                 pushActivity("Fund Allocation", `Allocated ₱${formatCurrency(amount)} to program: ${prog.code}. Justification: ${notes}`);
                 pushNotification("Budget Allocation Approved", `Allocated ₱${formatCurrency(amount)} for Livelihood Program '${prog.code}'. Justification: ${notes}`, "approval");
-                alert(`Success: Budget allocation of ₱${formatCurrency(amount)} committed successfully.`);
 
+                alert(`Success: Budget allocation of ₱${formatCurrency(amount)} committed successfully.`);
+                
+                // Reset form & close modal
                 document.getElementById('fundAllocationForm').reset();
+                closeFundConfirmModal();
+                
+                // Refresh UI components
                 renderFundsAllocationModule();
             }
         }
