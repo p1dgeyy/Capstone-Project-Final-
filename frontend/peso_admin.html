@@ -2346,62 +2346,102 @@
                     </div>
                 </div>
 
-                <div class="table-card">
-                    <div class="table-header-custom">
-                        <h5 class="table-title">Submitted Livelihood Applications Review Panel</h5>
+                <!-- Livelihood Programs Overview for Evaluation (REQ024) -->
+                <div class="row">
+                    <div class="col-12 mb-4">
+                        <div class="table-card">
+                            <div class="table-header-custom">
+                                <h6 class="table-title">Livelihood Programs (Evaluation Overview)</h6>
+                                <span class="text-muted small">Click on a program to expand/collapse its batches for applicant review</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="evalProgramsTable">
+                                    <thead>
+                                        <tr>
+                                            <th onclick="sortEvalPrograms('name')" style="cursor: pointer;">Program Name <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th onclick="sortEvalPrograms('code')" style="cursor: pointer;">Program Type <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th onclick="sortEvalPrograms('slotsTotal')" style="cursor: pointer; text-align: center;">Total Slots <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th onclick="sortEvalPrograms('slotsAvailable')" style="cursor: pointer; text-align: center;">Available Slots <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th onclick="sortEvalPrograms('status')" style="cursor: pointer; text-align: center;">Status <i class="bi bi-arrows-expand ms-1 small"></i></th>
+                                            <th style="text-align: center;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="evalProgramsTableBody">
+                                        <!-- Rendered dynamically with collapsible batches row -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
+                </div>
 
-                    <!-- Filters Row -->
-                    <div class="p-3 border-bottom bg-light">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted">Livelihood Program</label>
-                                <select class="form-control form-control-sm" id="filterEvalProgram" onchange="renderEvaluationTable()">
-                                    <option value="all">All Programs</option>
-                                    <option value="SPES">SPES</option>
-                                    <option value="TUPAD">TUPAD</option>
-                                    <option value="Livelihood Training">Livelihood Training</option>
-                                    <option value="CKGIP">CKGIP</option>
-                                    <option value="KEEP">KEEP</option>
-                                    <option value="PFAS">PFAS</option>
-                                </select>
+                <!-- Drill-down Batch Applications Section (REQ025) -->
+                <div class="row" id="evalBatchApplicationsSection" style="display: none;">
+                    <div class="col-lg-8 mb-4">
+                        <div class="table-card">
+                            <div class="table-header-custom d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="table-title m-0" id="evalBatchTitle">Batch Applications Review</h6>
+                                    <span class="text-muted small" id="evalBatchMeta">Batch ID: - | Program: -</span>
+                                </div>
+                                <button class="btn btn-sm btn-close" onclick="closeEvalBatchApplications()"></button>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted">Evaluation Status</label>
-                                <select class="form-control form-control-sm" id="filterEvalStatus" onchange="renderEvaluationTable()">
-                                    <option value="all">All Statuses</option>
-                                    <option value="Pending">Pending Evaluation</option>
-                                    <option value="Approved">Approved</option>
-                                    <option value="Rejected">Rejected</option>
-                                </select>
+
+                            <!-- Interactive Applications Filters (REQ025) -->
+                            <div class="p-3 border-bottom bg-light">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">Livelihood Program</label>
+                                        <select class="form-control form-control-sm" id="filterEvalAppProgram" onchange="filterEvalApplications()">
+                                            <option value="all">All Programs</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">Training Batch</label>
+                                        <select class="form-control form-control-sm" id="filterEvalAppBatch" onchange="filterEvalApplications()">
+                                            <option value="all">All Batches</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">Evaluation Status</label>
+                                        <select class="form-control form-control-sm" id="filterEvalAppStatus" onchange="filterEvalApplications()">
+                                            <option value="all">All Statuses</option>
+                                            <option value="Pending">Pending Evaluation</option>
+                                            <option value="Approved">Approved</option>
+                                            <option value="Denied">Denied / Rejected</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted">Submitted From</label>
-                                <input type="date" class="form-control form-control-sm" id="filterEvalDateFrom" onchange="renderEvaluationTable()">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted">Submitted To</label>
-                                <input type="date" class="form-control form-control-sm" id="filterEvalDateTo" onchange="renderEvaluationTable()">
+
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Applicant Name</th>
+                                            <th>Requested Program</th>
+                                            <th>Submission Date</th>
+                                            <th>Verification Status</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="evalApplicationsTableBody">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
 
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Applicant Name</th>
-                                    <th>Requested Livelihood Program</th>
-                                    <th>Submission Date</th>
-                                    <th>Consent & Verification</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="evaluationTableBody">
+                    <!-- Evaluation Audit Logs (REQ027) -->
+                    <div class="col-lg-4 mb-4">
+                        <div class="table-card p-4">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-shield-check text-primary me-2"></i>Evaluation Audit Trail</h6>
+                            <div class="audit-log-list" id="evalAuditLogsContainer" style="max-height: 350px; overflow-y: auto;">
                                 <!-- Rendered dynamically -->
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -3065,42 +3105,63 @@
         </div>
     </div>
 
-    <!-- Application Evaluation Modal -->
-    <div class="custom-modal-overlay" id="evaluationModal">
-        <div class="custom-modal-content">
-            <div class="custom-modal-header">
-                <h5 class="custom-modal-title">Review Submitted Livelihood Case File</h5>
-                <button type="button" class="btn-close" onclick="closeEvaluationModal()"></button>
+    <!-- Application Evaluation Modal (REQ026, REQ027, REQ028, REQ029) -->
+    <div class="custom-modal-overlay" id="evaluationModal" style="z-index: 2150;">
+        <div class="custom-modal-content" style="max-width: 650px; width: 95%;">
+            <div class="custom-modal-header bg-dark text-white">
+                <h5 class="custom-modal-title text-white"><i class="bi bi-shield-shaded me-2 text-warning"></i>Review Submitted Case File</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeEvaluationModal()" style="filter: invert(1);"></button>
             </div>
             <div class="custom-modal-body">
                 <input type="hidden" id="evalAppId">
-                <h6 class="fw-bold mb-1" id="evalApplicantName">Maria Garcia</h6>
-                <p class="text-muted small mb-3">Requested Livelihood Program: <span id="evalRequestedProgram"
-                        class="fw-semibold">SPES</span></p>
-
-                <h6 class="fw-bold mb-2">Verified Documents Compliance</h6>
-                <div class="doc-viewer-box">
-                    <i class="bi bi-file-earmark-check-fill text-success fs-1"></i>
-                    <p class="mt-2 mb-0 fw-semibold" id="evalDocName">Barangay Livelihood Certificate & Indigency
-                        Report.pdf</p>
-                    <span class="text-muted small">Checked and pre-validated by assigned PESO evaluators</span>
+                <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1 text-dark" id="evalApplicantName">Maria Garcia</h5>
+                        <p class="text-muted small m-0">Requested Livelihood: <span id="evalRequestedProgram" class="badge bg-secondary">SPES</span></p>
+                    </div>
+                    <span id="evalCurrentStatusBadge" class="badge bg-warning">Pending Evaluation</span>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Action Assessment Notes</label>
-                    <textarea class="form-control" id="evalActionNotes"
-                        placeholder="Enter evaluation notes here..."></textarea>
+                <!-- Document Preview Section (REQ026) -->
+                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i> Submitted Document Case File</h6>
+                <div class="doc-viewer-box p-3 border rounded mb-3 text-center bg-light" style="border-style: dashed !important;">
+                    <i class="bi bi-file-earmark-check-fill text-primary display-5 d-block mb-2"></i>
+                    <span class="fw-bold text-dark small d-block mb-1" id="evalDocName">SPES_indigency_records_Maria_Garcia.pdf</span>
+                    <span class="text-muted small d-block">LGU Digital Archiving System (WIMS-Secured Document)</span>
+                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 mt-2" style="font-size: 0.7rem;" onclick="alert('Downloading simulated document case file...')">
+                        <i class="bi bi-download"></i> View Full Scan
+                    </button>
+                </div>
+
+                <!-- Compliance Checklist Section (REQ026) -->
+                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-clipboard-check-fill text-success me-1"></i> Requirements Compliance Checklist</h6>
+                <div class="card p-3 border bg-light mb-3 rounded-3">
+                    <div id="evalChecklistContainer" class="d-flex flex-column gap-2">
+                        <!-- Dynamic checkboxes will render here -->
+                    </div>
+                    <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+                        <span class="small fw-bold text-dark">Overall Status:</span>
+                        <span id="evalComplianceBadge" class="badge bg-warning text-dark">Non-compliant</span>
+                    </div>
+                </div>
+
+                <!-- Evaluator Notes (REQ027) -->
+                <div class="form-group mb-2">
+                    <label class="form-label fw-bold small text-dark">Action Assessment Notes <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="evalActionNotes" rows="3" placeholder="Provide evaluation remarks... (Mandatory if denying application)"></textarea>
+                    <div class="d-flex justify-content-between text-muted mt-2" style="font-size: 0.7rem;">
+                        <span id="evaluatorNameLabel"><i class="bi bi-person-fill"></i> Evaluator: -</span>
+                        <span id="evaluationTimeLabel"><i class="bi bi-clock-fill"></i> Date: -</span>
+                    </div>
                 </div>
             </div>
-            <div class="custom-modal-footer">
-                <button type="button" class="btn-custom btn-custom-danger me-auto"
-                    onclick="evaluateApplication('Denied')">
-                    <i class="bi bi-x-circle"></i> Deny Application
+            <div class="custom-modal-footer bg-light p-3 border-top d-flex">
+                <button type="button" class="btn btn-danger me-auto px-3" id="evalDenyBtn" onclick="evaluateApplication('Denied')">
+                    <i class="bi bi-x-circle me-1"></i> Deny Application
                 </button>
-                <button type="button" class="btn-custom btn-custom-secondary"
-                    onclick="closeEvaluationModal()">Cancel</button>
-                <button type="button" class="btn-custom btn-custom-primary" onclick="evaluateApplication('Approved')">
-                    <i class="bi bi-check-circle"></i> Approve Livelihood
+                <button type="button" class="btn btn-secondary px-3 me-2" onclick="closeEvaluationModal()">Cancel</button>
+                <button type="button" class="btn btn-success px-4" id="evalApproveBtn" onclick="evaluateApplication('Approved')">
+                    <i class="bi bi-check-circle me-1"></i> Approve Livelihood
                 </button>
             </div>
         </div>
@@ -3307,7 +3368,7 @@
     <script>
         // Role-based Access Control Validation (REQ001)
         const loggedRole = sessionStorage.getItem('userRole');
-        if (loggedRole !== 'PESO Admin') {
+        if (loggedRole !== 'PESO Admin' && loggedRole !== 'PESO Officer') {
             alert("Unauthorized Access. Redirecting to Staff Login Portal.");
             window.location.href = "admin_login.html";
         }
@@ -3424,7 +3485,7 @@
         // Dynamic State Database Initialization via localStorage
         function initLocalStorageDB() {
             // Version tracker to clear outdated storage
-            const dbVer = "peso_portal_v6_db";
+            const dbVer = "peso_portal_v7_db";
             if (localStorage.getItem("peso_db_version") !== dbVer) {
                 localStorage.removeItem("peso_beneficiaries");
                 localStorage.removeItem("peso_applications");
@@ -3440,6 +3501,7 @@
                 localStorage.removeItem("peso_budget_ledger");
                 localStorage.removeItem("peso_budget_logs");
                 localStorage.removeItem("peso_assignment_audit_logs");
+                localStorage.removeItem("peso_evaluation_audit_logs");
                 localStorage.setItem("peso_db_version", dbVer);
             }
 
@@ -3582,7 +3644,7 @@
                 localStorage.setItem('peso_assignments', JSON.stringify(defaultAssignments));
             }
 
-            // Default Applications (REQ023)
+            // Default Applications (REQ023, REQ025)
             if (!localStorage.getItem('peso_applications')) {
                 const defaultApplications = [
                     { 
@@ -3590,6 +3652,7 @@
                         beneficiaryId: "B3", 
                         programId: "P1", 
                         programCode: "SPES", 
+                        batchId: "T3",
                         dateSubmitted: "2026-06-15", 
                         status: "Pending", 
                         consent: true, 
@@ -3602,6 +3665,7 @@
                         beneficiaryId: "B4", 
                         programId: "P3", 
                         programCode: "Livelihood Training", 
+                        batchId: "T1",
                         dateSubmitted: "2026-06-20", 
                         status: "Pending", 
                         consent: true, 
@@ -3614,15 +3678,95 @@
                         beneficiaryId: "B5", 
                         programId: "P2", 
                         programCode: "TUPAD", 
+                        batchId: "T2",
                         dateSubmitted: "2026-05-10", 
                         status: "Approved", 
                         consent: true, 
                         checklist: { "DPA Consent Form": true, "Barangay Clearance": true, "Valid Government ID": true },
                         documentVerified: true, 
-                        feedback: "Met criteria and submitted all credentials" 
+                        feedback: "All submitted documents verified, matches indigency criteria perfectly." 
+                    },
+                    { 
+                        id: "APP4", 
+                        beneficiaryId: "B6", 
+                        programId: "P2", 
+                        programCode: "TUPAD", 
+                        batchId: "T2",
+                        dateSubmitted: "2026-06-21", 
+                        status: "Pending", 
+                        consent: true, 
+                        checklist: { "DPA Consent Form": true, "Barangay Clearance": true, "Valid Government ID": false },
+                        documentVerified: false, 
+                        feedback: "" 
+                    },
+                    { 
+                        id: "APP5", 
+                        beneficiaryId: "B1", 
+                        programId: "P3", 
+                        programCode: "Livelihood Training", 
+                        batchId: "T1",
+                        dateSubmitted: "2026-06-08", 
+                        status: "Approved", 
+                        consent: true, 
+                        checklist: { "DPA Consent Form": true, "Barangay Clearance": true, "Skills Assessment Form": true },
+                        documentVerified: true, 
+                        feedback: "Highly recommended candidate, passed initial assessment." 
+                    },
+                    { 
+                        id: "APP6", 
+                        beneficiaryId: "B2", 
+                        programId: "P3", 
+                        programCode: "Livelihood Training", 
+                        batchId: "T1",
+                        dateSubmitted: "2026-06-09", 
+                        status: "Denied", 
+                        consent: true, 
+                        checklist: { "DPA Consent Form": true, "Barangay Clearance": false, "Skills Assessment Form": true },
+                        documentVerified: false, 
+                        feedback: "Failed to supply a clear copy of Barangay Clearance document." 
                     }
                 ];
                 localStorage.setItem('peso_applications', JSON.stringify(defaultApplications));
+            }
+
+            // Default Evaluation Audit Logs (REQ027)
+            if (!localStorage.getItem('peso_evaluation_audit_logs')) {
+                const defaultEvalAudits = [
+                    { 
+                        id: "EVAL1", 
+                        appId: "APP3", 
+                        applicantName: "Maria Santos", 
+                        programCode: "TUPAD", 
+                        batchId: "T2", 
+                        action: "Approved", 
+                        performedBy: "peso-admin", 
+                        timestamp: new Date(Date.now() - 3600000 * 24 * 2).toISOString(), 
+                        notes: "All submitted documents verified, matches indigency criteria perfectly." 
+                    },
+                    { 
+                        id: "EVAL2", 
+                        appId: "APP5", 
+                        applicantName: "Maria Garcia", 
+                        programCode: "Livelihood Training", 
+                        batchId: "T1", 
+                        action: "Approved", 
+                        performedBy: "peso-admin", 
+                        timestamp: new Date(Date.now() - 3600000 * 24 * 1).toISOString(), 
+                        notes: "Highly recommended candidate, passed initial assessment." 
+                    },
+                    { 
+                        id: "EVAL3", 
+                        appId: "APP6", 
+                        applicantName: "Pedro Santos", 
+                        programCode: "Livelihood Training", 
+                        batchId: "T1", 
+                        action: "Denied", 
+                        performedBy: "peso-admin", 
+                        timestamp: new Date(Date.now() - 3600000 * 12).toISOString(), 
+                        notes: "Failed to supply a clear copy of Barangay Clearance document." 
+                    }
+                ];
+                localStorage.setItem('peso_evaluation_audit_logs', JSON.stringify(defaultEvalAudits));
             }
 
             // Default Schedules with start, end, and until bounds
@@ -3829,7 +3973,8 @@
             } else if (moduleId === 'module-assignments') {
                 renderAssignmentProgramsTable();
             } else if (moduleId === 'module-evaluation') {
-                renderEvaluationTable();
+                renderEvalProgramsTable();
+                updateEvaluationSummaryStats();
             } else if (moduleId === 'module-schedules') {
                 initScheduleFilters();
                 renderCalendar();
@@ -5391,96 +5536,311 @@
         }
 
         // ==============================================
-        // MODULE LOGIC: APPLICATION EVALUATION (REQ023-REQ026)
+        // MODULE LOGIC: APPLICATION EVALUATION (REQ024-REQ029)
         // ==============================================
-        function renderEvaluationTable() {
-            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
-            const tbody = document.getElementById('evaluationTableBody');
-            tbody.innerHTML = '';
+        let evalSortField = 'name';
+        let evalSortOrder = 'asc';
+        let evalExpandedPrograms = new Set();
+        let selectedEvalBatchId = null;
 
-            // Compute summary metrics
+        function updateEvaluationSummaryStats() {
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            
             const totalCount = apps.length;
             const pendingCount = apps.filter(a => a.status === 'Pending').length;
             const approvedCount = apps.filter(a => a.status === 'Approved').length;
             const rejectedCount = apps.filter(a => a.status === 'Rejected' || a.status === 'Denied').length;
 
-            // Update UI widgets
             if (document.getElementById('evalTotalCount')) document.getElementById('evalTotalCount').textContent = totalCount;
             if (document.getElementById('evalPendingCount')) document.getElementById('evalPendingCount').textContent = pendingCount;
             if (document.getElementById('evalApprovedCount')) document.getElementById('evalApprovedCount').textContent = approvedCount;
             if (document.getElementById('evalRejectedCount')) document.getElementById('evalRejectedCount').textContent = rejectedCount;
+        }
 
-            // Retrieve Filter Values
-            const filterProg = document.getElementById('filterEvalProgram').value;
-            const filterStatus = document.getElementById('filterEvalStatus').value;
-            const filterFrom = document.getElementById('filterEvalDateFrom').value;
-            const filterTo = document.getElementById('filterEvalDateTo').value;
+        function renderEvalProgramsTable() {
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const tbody = document.getElementById('evalProgramsTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
 
-            let filteredApps = apps.filter(app => {
-                // Program Filter
-                if (filterProg !== 'all' && app.programCode !== filterProg) return false;
+            // Sort programs (REQ024)
+            const sorted = [...programs].sort((a, b) => {
+                let valA = a[evalSortField];
+                let valB = b[evalSortField];
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+                if (valA < valB) return evalSortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return evalSortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
 
-                // Status Filter
-                if (filterStatus !== 'all') {
-                    if (filterStatus === 'Rejected' && (app.status === 'Rejected' || app.status === 'Denied')) {
-                        // Match both Rejected and Denied
-                    } else if (app.status !== filterStatus) {
+            sorted.forEach(p => {
+                const isExpanded = evalExpandedPrograms.has(p.id);
+                const statusClass = p.status === 'Active' ? 'bg-success' : 'bg-secondary';
+
+                tbody.innerHTML += `
+                    <tr style="cursor: pointer;" onclick="toggleEvalProgramBatches('${p.id}', event)">
+                        <td>
+                            <span class="me-2 text-warning"><i class="bi ${isExpanded ? 'bi-folder-minus' : 'bi-folder-plus'}"></i></span>
+                            <strong>${p.name}</strong>
+                        </td>
+                        <td>${p.code}</td>
+                        <td class="text-center">${p.slotsTotal || 0}</td>
+                        <td class="text-center">${p.slotsAvailable || 0}</td>
+                        <td class="text-center"><span class="badge ${statusClass}">${p.status}</span></td>
+                        <td class="text-center" onclick="event.stopPropagation();">
+                            <button class="btn btn-sm btn-outline-warning py-1" onclick="toggleEvalProgramBatches('${p.id}', event)">
+                                <i class="bi ${isExpanded ? 'bi-eye-slash-fill' : 'bi-eye-fill'}"></i> ${isExpanded ? 'Collapse' : 'Batches'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+                if (isExpanded) {
+                    const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+                    const programBatches = trainings.filter(t => t.programId === p.id);
+
+                    let batchesTableHtml = '';
+                    if (programBatches.length === 0) {
+                        batchesTableHtml = '<div class="p-3 text-muted text-center small"><i class="bi bi-info-circle me-1"></i>No batches created for this program yet.</div>';
+                    } else {
+                        batchesTableHtml = `
+                            <table class="nested-table">
+                                <thead>
+                                    <tr>
+                                        <th>Batch Code</th>
+                                        <th>Training / Activity Name</th>
+                                        <th>Date</th>
+                                        <th>Trainer</th>
+                                        <th class="text-center">Enrolled Candidates</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        programBatches.forEach(b => {
+                            const count = b.trainees ? b.trainees.length : 0;
+                            batchesTableHtml += `
+                                <tr>
+                                    <td><strong>${b.id}</strong></td>
+                                    <td>${b.title}</td>
+                                    <td>${b.date}</td>
+                                    <td>${b.trainer}</td>
+                                    <td class="text-center"><span class="badge bg-warning text-dark">${count}</span></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-xs btn-warning py-0 px-2" style="font-size: 0.75rem;" onclick="viewEvalBatchApplications('${b.id}')">
+                                            <i class="bi bi-folder2-open"></i> Review Applications
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        batchesTableHtml += `
+                                </tbody>
+                            </table>
+                        `;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="details-row">
+                            <td colspan="6" class="p-3">
+                                <div class="card border-warning p-3 shadow-sm rounded-3">
+                                    <div class="fw-bold mb-2 text-dark small"><i class="bi bi-folder-fill text-warning me-1"></i> Evaluation Batches for ${p.code}</div>
+                                    ${batchesTableHtml}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+        }
+
+        function sortEvalPrograms(field) {
+            if (evalSortField === field) {
+                evalSortOrder = evalSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                evalSortField = field;
+                evalSortOrder = 'asc';
+            }
+            renderEvalProgramsTable();
+        }
+
+        function toggleEvalProgramBatches(programId, event) {
+            if (evalExpandedPrograms.has(programId)) {
+                evalExpandedPrograms.delete(programId);
+            } else {
+                evalExpandedPrograms.add(programId);
+            }
+            renderEvalProgramsTable();
+        }
+
+        function viewEvalBatchApplications(batchId) {
+            selectedEvalBatchId = batchId;
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const batch = trainings.find(t => t.id === batchId);
+            if (!batch) return;
+
+            const prog = programs.find(p => p.id === batch.programId) || { name: 'Unknown Program', code: 'N/A' };
+
+            // Fill Batch header details (REQ025)
+            document.getElementById('evalBatchTitle').textContent = `Batch Review: ${batch.title}`;
+            document.getElementById('evalBatchMeta').textContent = `Batch Code: ${batch.id} | Program: ${prog.name} (${prog.code})`;
+
+            // Populate filters dropdowns dynamically (REQ025)
+            const filterProg = document.getElementById('filterEvalAppProgram');
+            filterProg.innerHTML = `<option value="all">All Programs</option><option value="${prog.id}" selected>${prog.code}</option>`;
+            
+            const filterBatch = document.getElementById('filterEvalAppBatch');
+            filterBatch.innerHTML = `<option value="all">All Batches</option><option value="${batch.id}" selected>${batch.id}</option>`;
+
+            // Show Applications section
+            document.getElementById('evalBatchApplicationsSection').style.display = 'flex';
+            document.getElementById('evalBatchApplicationsSection').scrollIntoView({ behavior: 'smooth' });
+
+            // Render Applications and Audits
+            filterEvalApplications();
+            renderEvalAuditTrail(batchId);
+        }
+
+        function closeEvalBatchApplications() {
+            document.getElementById('evalBatchApplicationsSection').style.display = 'none';
+            selectedEvalBatchId = null;
+        }
+
+        function filterEvalApplications() {
+            if (!selectedEvalBatchId) return;
+
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
+
+            const batch = trainings.find(t => t.id === selectedEvalBatchId);
+            if (!batch) return;
+
+            const programFilterVal = document.getElementById('filterEvalAppProgram').value;
+            const batchFilterVal = document.getElementById('filterEvalAppBatch').value;
+            const statusFilterVal = document.getElementById('filterEvalAppStatus').value;
+
+            // Fetch applications linked to this batch/program (REQ025)
+            // An application belongs to a batch if the beneficiary is enrolled in the batch's trainees list
+            // OR if the application has a matching batchId
+            let filtered = apps.filter(a => {
+                // Batch association check
+                const isTrainee = batch.trainees && batch.trainees.some(t => t.beneficiaryId === a.beneficiaryId);
+                const matchesBatch = a.batchId === selectedEvalBatchId || (isTrainee && a.programId === batch.programId);
+                if (!matchesBatch) return false;
+
+                // Select filters (REQ025)
+                if (programFilterVal !== 'all' && a.programId !== programFilterVal) return false;
+                if (batchFilterVal !== 'all' && a.batchId !== batchFilterVal && selectedEvalBatchId !== batchFilterVal) return false;
+                if (statusFilterVal !== 'all') {
+                    if (statusFilterVal === 'Denied' && (a.status === 'Denied' || a.status === 'Rejected')) {
+                        // match both
+                    } else if (a.status !== statusFilterVal) {
                         return false;
                     }
                 }
-
-                // Date Range Filters
-                if (filterFrom) {
-                    const fromDate = new Date(filterFrom);
-                    const appDate = new Date(app.dateSubmitted);
-                    if (appDate < fromDate) return false;
-                }
-                if (filterTo) {
-                    const toDate = new Date(filterTo);
-                    toDate.setHours(23, 59, 59, 999);
-                    const appDate = new Date(app.dateSubmitted);
-                    if (appDate > toDate) return false;
-                }
-
                 return true;
             });
 
-            if (filteredApps.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No applications matching the filter criteria.</td></tr>`;
-                return;
-            }
+            const tbody = document.getElementById('evalApplicationsTableBody');
+            tbody.innerHTML = '';
 
-            filteredApps.forEach(app => {
-                const ben = beneficiaries.find(b => b.id === app.beneficiaryId) || { name: 'Unknown' };
-                const verifiedIcon = app.documentVerified ? '<i class="bi bi-file-earmark-check-fill text-success fs-5"></i> Verified' : '<i class="bi bi-file-earmark-x-fill text-danger fs-5"></i> Unverified';
-                let actionBtn = '';
+            filtered.forEach(a => {
+                const ben = beneficiaries.find(b => b.id === a.beneficiaryId) || { name: 'Unknown', contact: 'N/A' };
+                
+                // Build checklist compliance summary for verification details (REQ025/REQ026)
+                let compliantCount = 0;
+                let totalReqs = 0;
+                let detailsList = [];
+                if (a.checklist) {
+                    const keys = Object.keys(a.checklist);
+                    totalReqs = keys.length;
+                    keys.forEach(k => {
+                        const complied = a.checklist[k];
+                        if (complied) compliantCount++;
+                        detailsList.push(`${k}: ${complied ? 'Complied' : 'Pending'}`);
+                    });
+                }
+                const isFullyCompliant = compliantCount === totalReqs && totalReqs > 0;
+                const verificationText = isFullyCompliant ? 'Compliant' : 'Non-compliant';
+                const verificationClass = isFullyCompliant ? 'badge bg-success' : 'badge bg-warning text-dark';
+                const tooltipText = detailsList.join(' | ');
+
+                // Badge for status (REQ025)
                 let statusBadge = '';
-
-                if (app.status === 'Pending') {
-                    statusBadge = `<span class="status-badge pending">Pending Evaluation</span>`;
-                    actionBtn = `<button class="btn-custom btn-custom-secondary py-1 px-3" onclick="openEvaluationModal('${app.id}')"><i class="bi bi-shield-check"></i> Evaluate</button>`;
-                } else if (app.status === 'Approved') {
-                    statusBadge = `<span class="status-badge approved">Approved</span>`;
-                    actionBtn = `<span class="text-muted small">Reviewed</span>`;
+                if (a.status === 'Approved') {
+                    statusBadge = '<span class="badge bg-success">Approved</span>';
+                } else if (a.status === 'Denied' || a.status === 'Rejected') {
+                    statusBadge = '<span class="badge bg-danger">Denied</span>';
                 } else {
-                    statusBadge = `<span class="status-badge denied">Rejected</span>`;
-                    actionBtn = `<span class="text-muted small">Reviewed</span>`;
+                    statusBadge = '<span class="badge bg-warning text-dark">Pending Evaluation</span>';
+                }
+
+                // Action button depending on role and status
+                const role = sessionStorage.getItem('userRole');
+                let actionBtn = '';
+                if (role === 'PESO Officer') {
+                    // Officers are restricted (REQ028/REQ029)
+                    actionBtn = '<span class="text-muted small"><i class="bi bi-lock-fill"></i> Read-only</span>';
+                } else {
+                    if (a.status === 'Pending') {
+                        actionBtn = `<button class="btn btn-xs btn-primary" onclick="openEvaluationModal('${a.id}')"><i class="bi bi-shield-fill-check"></i> Evaluate</button>`;
+                    } else {
+                        actionBtn = `<button class="btn btn-xs btn-outline-secondary" onclick="openEvaluationModal('${a.id}')"><i class="bi bi-eye-fill"></i> View Details</button>`;
+                    }
                 }
 
                 tbody.innerHTML += `
                     <tr>
                         <td><strong>${ben.name}</strong></td>
-                        <td>${app.programCode}</td>
-                        <td>${app.dateSubmitted}</td>
-                        <td>${verifiedIcon}</td>
+                        <td>${a.programCode}</td>
+                        <td>${a.dateSubmitted}</td>
+                        <td>
+                            <span class="${verificationClass}" title="${tooltipText}" style="cursor: help;">
+                                <i class="bi ${isFullyCompliant ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-1"></i>
+                                ${verificationText} (${compliantCount}/${totalReqs})
+                            </span>
+                        </td>
                         <td>${statusBadge}</td>
                         <td>${actionBtn}</td>
                     </tr>
                 `;
             });
-            if (apps.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No livelihood application logs to review.</td></tr>';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No applications found under the selected filters.</td></tr>';
+            }
+        }
+
+        function renderEvalAuditTrail(batchId) {
+            const auditLogs = JSON.parse(localStorage.getItem('peso_evaluation_audit_logs')) || [];
+            const logsContainer = document.getElementById('evalAuditLogsContainer');
+            logsContainer.innerHTML = '';
+
+            const batchLogs = auditLogs.filter(l => l.batchId === batchId);
+            if (batchLogs.length === 0) {
+                logsContainer.innerHTML = '<div class="text-muted small p-2 text-center">No evaluations performed for this batch yet.</div>';
+            } else {
+                batchLogs.forEach(l => {
+                    const actionBadge = l.action === 'Approved' ? 'bg-success' : 'bg-danger';
+                    logsContainer.innerHTML += `
+                        <div class="audit-log-item mb-3 border-bottom pb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge ${actionBadge}">${l.action}</span>
+                                <span class="audit-log-time small text-muted" style="font-size: 0.65rem;">${new Date(l.timestamp).toLocaleString()}</span>
+                            </div>
+                            <strong class="small text-dark">${l.applicantName}</strong>
+                            <div class="text-muted small" style="font-size: 0.7rem; line-height: 1.2;">
+                                <div>Evaluator: <strong>${l.performedBy}</strong></div>
+                                <div class="mt-1 bg-light p-1 rounded font-italic">"${l.notes || 'No remarks provided.'}"</div>
+                            </div>
+                        </div>
+                    `;
+                });
             }
         }
 
@@ -5491,12 +5851,48 @@
             if (!app) return;
 
             const ben = beneficiaries.find(b => b.id === app.beneficiaryId) || { name: 'Unknown' };
+
             document.getElementById('evalAppId').value = app.id;
             document.getElementById('evalApplicantName').textContent = ben.name;
             document.getElementById('evalRequestedProgram').textContent = app.programCode;
-            document.getElementById('evalDocName').textContent = `${app.programCode}_indigency_records_${ben.name.replace(/\s+/g, '_')}.pdf`;
-            document.getElementById('evalActionNotes').value = '';
+            document.getElementById('evalCurrentStatusBadge').textContent = app.status;
+            document.getElementById('evalCurrentStatusBadge').className = `badge ${app.status === 'Approved' ? 'bg-success' : (app.status === 'Denied' || app.status === 'Rejected' ? 'bg-danger' : 'bg-warning text-dark')}`;
 
+            document.getElementById('evalDocName').textContent = `${app.programCode}_indigency_records_${ben.name.replace(/\s+/g, '_')}.pdf`;
+            document.getElementById('evalActionNotes').value = app.feedback || '';
+
+            // Setup checklist switches (REQ026)
+            const checklistContainer = document.getElementById('evalChecklistContainer');
+            checklistContainer.innerHTML = '';
+
+            const checklist = app.checklist || { "DPA Consent Form": true, "Barangay Clearance": false };
+            const keys = Object.keys(checklist);
+            
+            const isAlreadyReviewed = app.status !== 'Pending';
+
+            keys.forEach((key, idx) => {
+                const checked = checklist[key];
+                const checkboxId = `chkReq_${idx}`;
+                const disabledAttr = isAlreadyReviewed ? 'disabled' : '';
+                checklistContainer.innerHTML += `
+                    <div class="form-check form-switch d-flex justify-content-between align-items-center p-0">
+                        <label class="form-check-label text-dark fw-semibold small" for="${checkboxId}">${key}</label>
+                        <input class="form-check-input" type="checkbox" role="switch" id="${checkboxId}" 
+                            ${checked ? 'checked' : ''} ${disabledAttr} 
+                            onchange="updateChecklistCompliance('${id}', '${key}', this.checked)" 
+                            style="margin-left: 0; cursor: ${isAlreadyReviewed ? 'not-allowed' : 'pointer'};">
+                    </div>
+                `;
+            });
+
+            // Set evaluator labels (REQ027)
+            document.getElementById('evaluatorNameLabel').innerHTML = `<i class="bi bi-person-fill"></i> Evaluator: <strong>${sessionStorage.getItem('username') || 'peso-admin'}</strong>`;
+            document.getElementById('evaluationTimeLabel').innerHTML = `<i class="bi bi-clock-fill"></i> Date: <strong>${new Date().toLocaleDateString()}</strong>`;
+
+            // Update compliance indicator & buttons
+            updateModalComplianceState(app);
+
+            // Display modal
             document.getElementById('evaluationModal').classList.add('active');
         }
 
@@ -5504,25 +5900,155 @@
             document.getElementById('evaluationModal').classList.remove('active');
         }
 
+        function updateChecklistCompliance(appId, key, checked) {
+            const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+            const app = apps.find(a => a.id === appId);
+            if (!app) return;
+
+            if (!app.checklist) app.checklist = {};
+            app.checklist[key] = checked;
+
+            // Re-evaluate checklist count in-memory to update modal compliance indicators
+            updateModalComplianceState(app);
+        }
+
+        function updateModalComplianceState(app) {
+            const checklist = app.checklist || {};
+            const keys = Object.keys(checklist);
+            let compliantCount = 0;
+            keys.forEach(k => {
+                if (checklist[k]) compliantCount++;
+            });
+
+            const isFullyCompliant = compliantCount === keys.length && keys.length > 0;
+            const badge = document.getElementById('evalComplianceBadge');
+            badge.textContent = isFullyCompliant ? 'Fully Compliant' : 'Non-compliant';
+            badge.className = `badge ${isFullyCompliant ? 'bg-success' : 'bg-warning text-dark'}`;
+
+            // Control approve button state: must be fully compliant (REQ028)
+            const approveBtn = document.getElementById('evalApproveBtn');
+            const denyBtn = document.getElementById('evalDenyBtn');
+            const notesField = document.getElementById('evalActionNotes');
+
+            if (app.status !== 'Pending') {
+                // Disable all action triggers if already reviewed
+                approveBtn.disabled = true;
+                denyBtn.disabled = true;
+                notesField.disabled = true;
+                approveBtn.classList.add('opacity-50');
+                denyBtn.classList.add('opacity-50');
+            } else {
+                approveBtn.disabled = !isFullyCompliant;
+                denyBtn.disabled = false;
+                notesField.disabled = false;
+                if (isFullyCompliant) {
+                    approveBtn.classList.remove('opacity-50');
+                } else {
+                    approveBtn.classList.add('opacity-50');
+                }
+                denyBtn.classList.remove('opacity-50');
+            }
+        }
+
         function evaluateApplication(decision) {
-            const id = document.getElementById('evalAppId').value;
+            // Role-based authorization check
+            const role = sessionStorage.getItem('userRole');
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators can approve or deny livelihood applications.");
+                return;
+            }
+
+            const appId = document.getElementById('evalAppId').value;
             const notes = document.getElementById('evalActionNotes').value.trim();
 
             const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
-            const idx = apps.findIndex(a => a.id === id);
-            if (idx !== -1) {
-                apps[idx].status = decision;
-                apps[idx].feedback = notes;
-                localStorage.setItem('peso_applications', JSON.stringify(apps));
+            const idx = apps.findIndex(a => a.id === appId);
+            if (idx === -1) return;
 
-                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
-                const bName = (beneficiaries.find(b => b.id === apps[idx].beneficiaryId) || {}).name;
+            const app = apps[idx];
 
-                pushActivity("Application Evaluation", `${decision} application for: ${bName}`);
-                pushNotification("Application Evaluated", `Livelihood application for ${bName} (${apps[idx].programCode}) has been officially ${decision}. Remarks: ${notes || 'None'}.`, "approval");
-                alert(`Application has been officially ${decision}.`);
-                closeEvaluationModal();
-                renderEvaluationTable();
+            // Validate Requirements Verification for Approval (REQ028)
+            if (decision === 'Approved') {
+                const keys = Object.keys(app.checklist || {});
+                const allMet = keys.every(k => app.checklist[k] === true);
+                if (!allMet) {
+                    alert("Approval Blocked: All documents in the checklist must be verified and complied with before approval is allowed.");
+                    return;
+                }
+                app.documentVerified = true;
+            }
+
+            // Validate Mandatory Remarks for Denial (REQ029)
+            if (decision === 'Denied' && !notes) {
+                alert("Validation Error: Action Assessment Notes are mandatory when denying an application to explain the reason to the applicant.");
+                return;
+            }
+
+            // Save changes (REQ028 / REQ029)
+            app.status = decision;
+            app.feedback = notes;
+            app.evaluatedBy = sessionStorage.getItem('username') || "PESO Admin";
+            app.evaluatedAt = new Date().toISOString();
+            localStorage.setItem('peso_applications', JSON.stringify(apps));
+
+            // Log evaluation audit (REQ027)
+            const auditLogs = JSON.parse(localStorage.getItem('peso_evaluation_audit_logs')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const bName = (beneficiaries.find(b => b.id === app.beneficiaryId) || {}).name;
+
+            const newAudit = {
+                id: 'EVAL' + Date.now(),
+                appId,
+                applicantName: bName,
+                programCode: app.programCode,
+                batchId: app.batchId || selectedEvalBatchId || "N/A",
+                action: decision,
+                performedBy: app.evaluatedBy,
+                timestamp: app.evaluatedAt,
+                notes
+            };
+            auditLogs.unshift(newAudit);
+            localStorage.setItem('peso_evaluation_audit_logs', JSON.stringify(auditLogs));
+
+            // Create notification for beneficiary (REQ028 / REQ029)
+            const notifMsg = decision === 'Approved' 
+                ? `Congratulations! Your livelihood application for ${app.programCode} has been approved. Evaluator Remarks: ${notes || 'Compliant with requirements.'}`
+                : `Your application for ${app.programCode} was denied. Reason: ${notes}`;
+            
+            pushNotification("Application Evaluated", notifMsg, "approval");
+            pushActivity("Application Evaluation", `${decision} application for beneficiary: ${bName}`);
+
+            alert(`Application has been officially ${decision}.`);
+            closeEvaluationModal();
+
+            // Refresh UI components
+            updateEvaluationSummaryStats();
+            filterEvalApplications();
+            if (selectedEvalBatchId) {
+                renderEvalAuditTrail(selectedEvalBatchId);
+            }
+        }
+
+        // Role-based accessibility enforcer for sidebar navigation
+        function applyRolePermissions() {
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+            if (role === 'PESO Officer') {
+                // Add lock icon indicator to Admin-only tabs
+                const evalLink = document.querySelector('[onclick*="module-evaluation"]');
+                if (evalLink) {
+                    evalLink.innerHTML = '<i class="bi bi-lock-fill text-muted"></i> Evaluation Panel <span class="badge bg-secondary ms-auto" style="font-size: 0.6rem; padding: 2px 4px;">Admin</span>';
+                    evalLink.style.opacity = '0.7';
+                }
+                const officerLink = document.querySelector('[onclick*="module-officers"]');
+                if (officerLink) {
+                    officerLink.innerHTML = '<i class="bi bi-lock-fill text-muted"></i> Officers Management <span class="badge bg-secondary ms-auto" style="font-size: 0.6rem; padding: 2px 4px;">Admin</span>';
+                    officerLink.style.opacity = '0.7';
+                }
+                const fundLink = document.querySelector('[onclick*="module-funds"]');
+                if (fundLink) {
+                    fundLink.innerHTML = '<i class="bi bi-lock-fill text-muted"></i> Fund & Allocations <span class="badge bg-secondary ms-auto" style="font-size: 0.6rem; padding: 2px 4px;">Admin</span>';
+                    fundLink.style.opacity = '0.7';
+                }
             }
         }
 
@@ -7246,6 +7772,7 @@
 
         // On Page Load Initialization
         window.addEventListener('DOMContentLoaded', () => {
+            applyRolePermissions();
             loadDashboardStats();
 
             // Restore saved user preferences
