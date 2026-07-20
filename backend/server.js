@@ -32,7 +32,7 @@ app.use(cors({
       }
     : '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-Session-Token'],
   credentials: !!allowedOrigins
 }));
 

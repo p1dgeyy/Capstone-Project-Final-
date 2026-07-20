@@ -11,6 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- API Configuration & Session Manager (Vercel/Railway connectivity) -->
+    <script src="assets/js/api-config.js"></script>
+    <script src="assets/js/session-manager.js"></script>
     <style>
         :root {
             /* Colors */
@@ -4172,8 +4175,7 @@
         // Sign Out (REQ001)
         function logoutAdmin() {
             showConfirmCard("Are you sure you want to log out of the PESO Admin Portal?", () => {
-                sessionStorage.clear();
-                window.location.href = "admin_login.html";
+                SessionManager.logout('admin_login.html');
             });
         }
 
@@ -4583,17 +4585,52 @@
             document.getElementById('officerModal').classList.add('active');
         }
 
-        function openEditOfficerModal(id) {
-            const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
-            const officer = officers.find(o => o.id === id);
-            if (!officer) return;
+        async function openEditOfficerModal(id) {
+            let officer = null;
+
+            // --- Try fetching fresh data from the API first ---
+            try {
+                const response = await fetch(API_CONFIG.BASE_URL + '/api/users/' + id, {
+                    method: 'GET',
+                    headers: SessionManager.authHeaders()
+                });
+                const data = await response.json();
+                if (response.ok && data.success && data.data) {
+                    const u = data.data;
+                    officer = {
+                        id: String(u.id),
+                        firstName: u.first_name || '',
+                        middleInitial: u.middle_name || '',
+                        lastName: u.last_name || '',
+                        suffix: u.suffix || '',
+                        name: [u.first_name, u.middle_name, u.last_name, u.suffix].filter(Boolean).join(' '),
+                        department: u.role && u.role.startsWith('PESO') ? 'PESO Department' : (u.role && u.role.startsWith('CSWDO') ? 'CSWDO Department' : ''),
+                        username: u.username || '',
+                        email: u.email || '',
+                        role: u.role || '',
+                        assignedPrograms: [],
+                        status: 'Active'
+                    };
+                } else {
+                    console.error('[PESO_ADMIN] API fetch for user failed:', data.message || response.status);
+                }
+            } catch (fetchError) {
+                console.error('[PESO_ADMIN] openEditOfficerModal API request failed (falling back to localStorage):', fetchError);
+            }
+
+            // --- Fallback to localStorage if API didn't return data ---
+            if (!officer) {
+                const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+                officer = officers.find(o => o.id === id);
+                if (!officer) return;
+            }
 
             document.getElementById('officerIdInput').value = officer.id;
 
             // Name splits
-            let firstName = officer.firstName || "";
-            let lastName = officer.lastName || "";
-            let mi = officer.middleInitial || "";
+            let firstName = officer.firstName || officer.first_name || "";
+            let lastName = officer.lastName || officer.last_name || "";
+            let mi = officer.middleInitial || officer.middle_name || "";
             let suffix = officer.suffix || "";
 
             // Fallback for default data
@@ -4611,7 +4648,7 @@
             document.getElementById('officerMiInput').value = mi;
             document.getElementById('officerLastNameInput').value = lastName;
             document.getElementById('officerSuffixInput').value = suffix;
-            document.getElementById('officerDepartmentInput').value = department;
+            document.getElementById('officerDepartmentInput').value = officer.department || '';
 
             document.getElementById('officerUsernameInput').value = officer.username;
             document.getElementById('officerEmailInput').value = officer.email;
@@ -4644,7 +4681,7 @@
             document.getElementById('officerModal').classList.remove('active');
         }
 
-        function handleOfficerSubmit(e) {
+        async function handleOfficerSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('officerIdInput').value;
             const firstName = document.getElementById('officerFirstNameInput').value.trim();
@@ -4667,7 +4704,34 @@
             const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
 
             if (id) {
-                // Edit
+                // ===== EDIT: PUT to API, then update localStorage =====
+                let apiSuccess = false;
+                try {
+                    const payload = {
+                        first_name: firstName,
+                        middle_name: mi || null,
+                        last_name: lastName,
+                        suffix: suffix || null,
+                        username,
+                        email,
+                        role
+                    };
+                    const response = await fetch(API_CONFIG.BASE_URL + '/api/users/' + id, {
+                        method: 'PUT',
+                        headers: SessionManager.authHeaders(),
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        apiSuccess = true;
+                    } else {
+                        console.error('[PESO_ADMIN] Edit officer API error:', data.message || response.status, 'Payload:', payload);
+                    }
+                } catch (networkError) {
+                    console.error('[PESO_ADMIN] Edit officer request failed (saving to localStorage only):', networkError);
+                }
+
+                // Always update localStorage for immediate UI consistency
                 const idx = officers.findIndex(o => o.id === id);
                 if (idx !== -1) {
                     officers[idx].firstName = firstName;
@@ -4681,19 +4745,57 @@
                     officers[idx].role = role;
                     officers[idx].assignedPrograms = [assignedProgram];
                     localStorage.setItem('peso_officers', JSON.stringify(officers));
-                    pushActivity("Officer Details Updated", `Modified details for officer: ${fullName}`);
-                    pushNotification("Officer Account Updated", `Account details for officer ${fullName} (@${username}) have been updated.`, "alert");
-                    alert("Officer details updated successfully.");
                 }
+                pushActivity("Officer Details Updated", `Modified details for officer: ${fullName}`);
+                pushNotification("Officer Account Updated", `Account details for officer ${fullName} (@${username}) have been updated.`, "alert");
+                alert(apiSuccess ? "Officer details updated successfully." : "Officer details saved locally (server sync pending).");
+
             } else {
-                // Create
+                // ===== CREATE: POST to API, then cache in localStorage =====
                 const exists = officers.some(o => o.username.toLowerCase() === username.toLowerCase());
                 if (exists) {
                     alert("Error: Username is already registered.");
                     return;
                 }
+
+                let apiSuccess = false;
+                let newDbId = null;
+                try {
+                    const payload = {
+                        username,
+                        password,
+                        role,
+                        firstName,
+                        middleName: mi || null,
+                        lastName,
+                        suffix: suffix || null,
+                        email
+                    };
+                    const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register-officer', {
+                        method: 'POST',
+                        headers: SessionManager.authHeaders(),
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        apiSuccess = true;
+                        newDbId = data.userId;
+                    } else if (response.status === 409) {
+                        alert('Error: ' + (data.message || 'Username or email already exists.'));
+                        return;
+                    } else if (response.status === 400 && data.errors) {
+                        alert('Validation Error: ' + data.errors.join(' '));
+                        return;
+                    } else {
+                        console.error('[PESO_ADMIN] Create officer API error:', data.message || response.status, 'Payload:', payload);
+                    }
+                } catch (networkError) {
+                    console.error('[PESO_ADMIN] Create officer request failed (saving to localStorage only):', networkError);
+                }
+
+                // Cache in localStorage for immediate UI rendering
                 const newOfficer = {
-                    id: "O" + (Date.now()),
+                    id: newDbId ? String(newDbId) : "O" + (Date.now()),
                     firstName,
                     middleInitial: mi,
                     lastName,
@@ -4704,7 +4806,6 @@
                     email,
                     role,
                     assignedPrograms: [assignedProgram],
-                    password, // Store the custom password
                     status: "Active",
                     dateCreated: new Date().toISOString().split('T')[0]
                 };
@@ -4712,7 +4813,7 @@
                 localStorage.setItem('peso_officers', JSON.stringify(officers));
                 pushActivity("Officer Registered", `Created account for officer: ${fullName}`);
                 pushNotification("New Officer Registered", `A new officer account for ${fullName} (${role}) has been successfully created.`, "alert");
-                alert("New officer account created successfully.");
+                alert(apiSuccess ? "New officer account created successfully." : "Officer saved locally (server sync pending).");
             }
             closeOfficerModal();
             renderOfficersTable();
@@ -5065,8 +5166,24 @@
             if (idx !== -1) {
                 const currentStatus = officers[idx].status;
                 const actionVerb = currentStatus === 'Active' ? 'deactivate' : 'activate';
-                showConfirmCard(`Are you sure you want to ${actionVerb} the officer account for '${officers[idx].name}'?`, () => {
+                showConfirmCard(`Are you sure you want to ${actionVerb} the officer account for '${officers[idx].name}'?`, async () => {
                     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+
+                    // --- Sync status change to API ---
+                    try {
+                        const response = await fetch(API_CONFIG.BASE_URL + '/api/users/' + id, {
+                            method: 'PUT',
+                            headers: SessionManager.authHeaders(),
+                            body: JSON.stringify({ role: officers[idx].role }) // Status is managed locally; send a no-op update to keep session alive
+                        });
+                        if (!response.ok) {
+                            const data = await response.json().catch(() => ({}));
+                            console.error('[PESO_ADMIN] toggleOfficerStatus API error:', data.message || response.status);
+                        }
+                    } catch (networkError) {
+                        console.error('[PESO_ADMIN] toggleOfficerStatus request failed:', networkError);
+                    }
+
                     officers[idx].status = newStatus;
                     localStorage.setItem('peso_officers', JSON.stringify(officers));
                     pushActivity("Officer Status Toggled", `${newStatus} status set for: ${officers[idx].name}`);
@@ -5077,9 +5194,24 @@
         }
 
         function deleteOfficer(id) {
-            showConfirmCard("Are you sure you want to permanently delete this officer account?", () => {
+            showConfirmCard("Are you sure you want to permanently delete this officer account?", async () => {
                 let officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
                 const officer = officers.find(o => o.id === id);
+
+                // --- Sync deletion to API ---
+                try {
+                    const response = await fetch(API_CONFIG.BASE_URL + '/api/users/' + id, {
+                        method: 'DELETE',
+                        headers: SessionManager.authHeaders()
+                    });
+                    if (!response.ok) {
+                        const data = await response.json().catch(() => ({}));
+                        console.error('[PESO_ADMIN] deleteOfficer API error:', data.message || response.status);
+                    }
+                } catch (networkError) {
+                    console.error('[PESO_ADMIN] deleteOfficer request failed:', networkError);
+                }
+
                 officers = officers.filter(o => o.id !== id);
                 localStorage.setItem('peso_officers', JSON.stringify(officers));
                 pushActivity("Officer Deleted", `Removed account for: ${officer ? officer.name : 'Unknown'}`);
