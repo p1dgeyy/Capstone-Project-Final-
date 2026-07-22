@@ -2297,6 +2297,39 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- PESO Officer Beneficiary Account Oversight & Audit Log (REQ068 - REQ073) -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="table-card p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                <div>
+                                    <h5 class="section-title m-0"><i class="bi bi-shield-lock-fill text-primary me-2"></i>PESO Officer Beneficiary Account Oversight & Audit Trail</h5>
+                                    <small class="text-muted">Real-time transparency audit trail of beneficiary creation, edits, activations, and deactivations performed by PESO Officers.</small>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm" onclick="renderAdminBeneficiaryAuditTrail()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Logs</button>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>PESO Officer</th>
+                                            <th>Action</th>
+                                            <th>Beneficiary Name / ID</th>
+                                            <th>Details / Reason</th>
+                                            <th>Admin Oversight Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminBenAuditLogsTableBody">
+                                        <!-- Rendered dynamically from peso_beneficiary_audit_logs -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- MODULE: Application Evaluation -->
@@ -5665,6 +5698,7 @@
                     `;
                 }
             });
+            renderAdminBeneficiaryAuditTrail();
         }
 
         function sortAssignmentPrograms(field) {
@@ -5766,6 +5800,69 @@
         function closeBatchDrilldown() {
             document.getElementById('batchDrilldownSection').style.display = 'none';
         }
+
+        function renderAdminBeneficiaryAuditTrail() {
+            const tbody = document.getElementById('adminBenAuditLogsTableBody');
+            if (!tbody) return;
+            
+            const logs = JSON.parse(localStorage.getItem('peso_beneficiary_audit_logs')) || [];
+            tbody.innerHTML = '';
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-journal-check fs-4 d-block mb-2"></i>No officer beneficiary audit logs found.</td></tr>';
+                return;
+            }
+            
+            logs.forEach(l => {
+                let badgeClass = 'bg-primary';
+                if (l.action === 'CREATE') badgeClass = 'bg-info text-dark';
+                if (l.action === 'ACTIVATE') badgeClass = 'bg-success';
+                if (l.action === 'DEACTIVATE') badgeClass = 'bg-danger';
+                if (l.action === 'UPDATE') badgeClass = 'bg-warning text-dark';
+                if (l.action === 'REVOKE') badgeClass = 'bg-secondary';
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="small text-muted">${new Date(l.timestamp).toLocaleString()}</td>
+                        <td><span class="fw-bold text-dark"><i class="bi bi-person-badge me-1 text-primary"></i>${l.officerName || 'Officer'}</span></td>
+                        <td><span class="badge ${badgeClass}">${l.action}</span></td>
+                        <td><span class="fw-bold">${l.beneficiaryName}</span> <small class="text-muted">(#${l.beneficiaryId})</small></td>
+                        <td class="small" style="max-width: 320px;">${l.details}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="revokeIrregularAssignment('${l.beneficiaryId}', '${l.beneficiaryName}')" title="Revoke Irregular Assignment">
+                                <i class="bi bi-shield-x me-1"></i> Revoke Assignment
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function revokeIrregularAssignment(benId, benName) {
+            if (confirm(`Are you sure you want to revoke irregular assignments for beneficiary ${benName} (#${benId})? This will unassign non-compliant program slots.`)) {
+                let assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+                assignments = assignments.filter(as => as.beneficiaryId !== benId);
+                localStorage.setItem('peso_assignments', JSON.stringify(assignments));
+                
+                const logs = JSON.parse(localStorage.getItem('peso_beneficiary_audit_logs')) || [];
+                logs.unshift({
+                    id: 'AUDIT-BEN-ADMIN-' + Date.now(),
+                    action: 'REVOKE',
+                    beneficiaryId: benId,
+                    beneficiaryName: benName,
+                    officerName: 'PESO Administrator (Override)',
+                    timestamp: new Date().toISOString(),
+                    details: 'ADMIN OVERRIDE: Revoked irregular program assignment for compliance audit.'
+                });
+                localStorage.setItem('peso_beneficiary_audit_logs', JSON.stringify(logs));
+                
+                alert(`Program assignments for ${benName} (#${benId}) have been revoked.`);
+                renderAdminBeneficiaryAuditTrail();
+            }
+        }
+
+        window.renderAdminBeneficiaryAuditTrail = renderAdminBeneficiaryAuditTrail;
+        window.revokeIrregularAssignment = revokeIrregularAssignment;
 
         function viewBeneficiaryDetails(beneficiaryId) {
             const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];

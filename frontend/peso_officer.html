@@ -11,6 +11,7 @@
     <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
     <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
     <script src="assets/js/api-config.js"></script>
+    <script src="assets/js/session-manager.js"></script>
     <style>
         :root {
             --primary-pink: #F0B6C6;
@@ -1729,6 +1730,56 @@
             border-color: #000000 !important;
             background: transparent !important;
         }
+
+        /* Daily Log Activity Timeline */
+        .daily-timeline-item {
+            position: relative;
+            padding-bottom: 25px;
+            border-left: 2px dashed var(--primary-pink);
+            padding-left: 25px;
+            margin-left: 10px;
+        }
+        .daily-timeline-item:last-child {
+            border-left: none;
+            padding-bottom: 0;
+        }
+        .daily-timeline-dot {
+            position: absolute;
+            left: -9px;
+            top: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--primary-pink);
+            border: 3px solid white;
+            box-shadow: 0 0 0 3px rgba(184, 92, 122, 0.2);
+        }
+        .daily-timeline-dot.completed {
+            background-color: var(--success);
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+        }
+        .daily-timeline-time {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 3px;
+        }
+        .daily-timeline-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 15px;
+            border-left: 3px solid var(--primary-pink);
+            transition: all 0.2s ease;
+        }
+        .daily-timeline-card.completed {
+            border-left-color: var(--success);
+            background: #f1fcf4;
+            opacity: 0.8;
+        }
+        .daily-timeline-card.completed .daily-timeline-text {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -1774,6 +1825,12 @@
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" data-module="daily-log">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Daily Activity Log</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="#" class="sidebar-nav-link" data-module="funds">
                     <i class="bi bi-cash-stack"></i>
                     <span data-translate="nav_funds">Fund & Resource Tracking</span>
@@ -1801,6 +1858,12 @@
                 <a href="#" class="sidebar-nav-link" data-module="notifications">
                     <i class="bi bi-bell"></i>
                     <span data-translate="nav_notifications">Notification</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item mt-4">
+                <a href="#" class="sidebar-nav-link text-danger" onclick="logoutOfficer()" data-translate="nav_signout">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Sign Out</span>
                 </a>
             </li>
         </ul>
@@ -1855,6 +1918,30 @@
         <div class="content-area">
             <!-- MODULE: Dashboard -->
             <section class="module-page active" id="module-dashboard">
+                <!-- Welcome Banner -->
+                <div class="welcome-banner card p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, var(--primary-pink) 0%, var(--primary-dark) 100%); border-radius: 16px; color: white; border: 1px solid #ebdce2 !important; box-shadow: 0 4px 15px rgba(184, 92, 122, 0.15) !important;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h3 class="fw-bold mb-1" id="welcomeText">Welcome back, Jane Smith!</h3>
+                            <p class="m-0 opacity-90">Here is your operational overview for today. You have pending livelihood tasks and interview assignments.</p>
+                        </div>
+                        <div class="welcome-time-date text-end mt-2 mt-md-0" style="font-size: 0.95rem;">
+                            <div class="fw-bold"><i class="bi bi-calendar-event me-2"></i><span id="currentDateDisplay">July 22, 2026</span></div>
+                            <div class="opacity-80 mt-1"><i class="bi bi-clock me-2"></i><span id="currentTimeDisplay">10:53 AM</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Navigation Links -->
+                <div class="quick-nav-links mb-4 d-flex flex-wrap gap-2 align-items-center">
+                    <span class="text-muted fw-bold me-2" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Quick Navigation:</span>
+                    <a href="#" class="btn btn-sm btn-outline-secondary bg-white rounded-pill px-3 py-1 text-dark border-secondary-subtle" onclick="switchModule('module-beneficiaries'); return false;"><i class="bi bi-people me-1"></i> Beneficiaries</a>
+                    <a href="#" class="btn btn-sm btn-outline-secondary bg-white rounded-pill px-3 py-1 text-dark border-secondary-subtle" onclick="switchModule('module-livelihood'); return false;"><i class="bi bi-briefcase me-1"></i> Applications</a>
+                    <a href="#" class="btn btn-sm btn-outline-secondary bg-white rounded-pill px-3 py-1 text-dark border-secondary-subtle" onclick="switchModule('module-interview'); return false;"><i class="bi bi-calendar-check me-1"></i> Interviews</a>
+                    <a href="#" class="btn btn-sm btn-outline-secondary bg-white rounded-pill px-3 py-1 text-dark border-secondary-subtle" onclick="switchModule('module-funds'); return false;"><i class="bi bi-cash-stack me-1"></i> Fund Tracking</a>
+                    <a href="#" class="btn btn-sm btn-outline-secondary bg-white rounded-pill px-3 py-1 text-dark border-secondary-subtle" onclick="switchModule('module-daily-log'); return false;"><i class="bi bi-journal-text me-1"></i> Daily Activity Log</a>
+                </div>
+
                 <!-- Quick Action Buttons -->
                 <div class="quick-actions-bar">
                     <button class="quick-action-btn" onclick="quickActionAddBeneficiary()" title="Add a new beneficiary to the system">
@@ -1880,7 +1967,7 @@
                                     <i class="bi bi-hourglass-split"></i>
                                 </div>
                             </div>
-                            <div class="stat-card-value">28</div>
+                            <div class="stat-card-value" id="statPendingApps">28</div>
                             <div class="stat-card-label" data-translate="pending_apps">Pending Applications</div>
                         </div>
                     </div>
@@ -1888,11 +1975,11 @@
                         <div class="stat-card">
                             <div class="stat-card-header">
                                 <div class="stat-card-icon approved">
-                                    <i class="bi bi-check-circle"></i>
+                                    <i class="bi bi-folder-check"></i>
                                 </div>
                             </div>
-                            <div class="stat-card-value">45</div>
-                            <div class="stat-card-label" data-translate="approved_this_month">Approved This Month</div>
+                            <div class="stat-card-value" id="statActivePrograms">8</div>
+                            <div class="stat-card-label" data-translate="active_programs">Active Programs</div>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 mb-3">
@@ -1902,7 +1989,7 @@
                                     <i class="bi bi-person-check"></i>
                                 </div>
                             </div>
-                            <div class="stat-card-value">32</div>
+                            <div class="stat-card-value" id="statAssignedBeneficiaries">32</div>
                             <div class="stat-card-label" data-translate="assigned_beneficiaries">Assigned Beneficiaries</div>
                         </div>
                     </div>
@@ -1913,7 +2000,7 @@
                                     <i class="bi bi-check-all"></i>
                                 </div>
                             </div>
-                            <div class="stat-card-value">18</div>
+                            <div class="stat-card-value" id="statCompletedPrograms">18</div>
                             <div class="stat-card-label" data-translate="completed_programs">Completed Programs</div>
                         </div>
                     </div>
@@ -2264,7 +2351,7 @@
                 </div>
             </section>
 
-            <!-- MODULE: Fund & Resource Tracking (REQ088, REQ089, REQ090, REQ091) -->
+            <!-- MODULE: Fund & Resource Tracking (REQ063) -->
             <section class="module-page" id="module-funds">
                 <div class="row mb-4">
                     <div class="col-md-4">
@@ -2273,8 +2360,8 @@
                                 <i class="bi bi-cash-stack" style="color: var(--success);"></i>
                             </div>
                             <div class="stat-card-content">
-                                <div class="stat-card-value">Php 2,500,000</div>
-                                <div class="stat-card-label">Total Allocated Funds</div>
+                                <div class="stat-card-value" id="fundsTotalAllocated">Php 17,240,000</div>
+                                <div class="stat-card-label">Total Allocated Budget</div>
                             </div>
                         </div>
                     </div>
@@ -2284,7 +2371,7 @@
                                 <i class="bi bi-box-seam" style="color: #ffc107;"></i>
                             </div>
                             <div class="stat-card-content">
-                                <div class="stat-card-value">1,250</div>
+                                <div class="stat-card-value" id="fundsTotalDistributed">1,250</div>
                                 <div class="stat-card-label">Resources Distributed</div>
                             </div>
                         </div>
@@ -2295,7 +2382,7 @@
                                 <i class="bi bi-pie-chart" style="color: #0d6efd;"></i>
                             </div>
                             <div class="stat-card-content">
-                                <div class="stat-card-value">68%</div>
+                                <div class="stat-card-value" id="fundsUtilizationRate">31%</div>
                                 <div class="stat-card-label">Fund Utilization</div>
                             </div>
                         </div>
@@ -2304,114 +2391,30 @@
                 <div class="table-card">
                     <div class="section-header">
                         <h5 class="section-title">Fund & Resource Allocation</h5>
+                        <small class="text-muted">Click on a row to expand project breakdown and resource details.</small>
                     </div>
                     <div class="filter-bar">
-                        <select class="filter-select">
-                            <option value="">All Programs</option>
-                            <option value="livelihood">Livelihood</option>
-                            <option value="ckgip">CKGIP</option>
-                            <option value="keep">KEEP</option>
-                            <option value="tupad">TUPAD</option>
-                            <option value="pfas">PFAS</option>
-                            <option value="dilp">DILP</option>
-                            <option value="association">Association Facil.</option>
-                            <option value="jobfairs">Job Fairs</option>
-                            <option value="jobportal">Job Portal</option>
-                            <option value="skills">Skills Training</option>
-                            <option value="ofwfamily">OFW Family</option>
-                            <option value="spes">SPES</option>
-                            <option value="parokya">Parokya OWN A</option>
-                            <option value="rofw">Returning OFWs</option>
+                        <select class="filter-select" id="filterFundsProgram" onchange="renderFundsTable()">
+                            <option value="">All Program Statuses</option>
+                            <option value="Active">Active Programs</option>
+                            <option value="Inactive">Inactive Programs</option>
                         </select>
                     </div>
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Program</th>
-                                    <th>Project</th>
+                                    <th style="width: 50px;"></th>
+                                    <th>Program Code</th>
+                                    <th>Program Title</th>
                                     <th>Allocated Budget</th>
                                     <th>Used Budget</th>
                                     <th>Remaining</th>
                                     <th>Utilization</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Fishing Gear Assistance</td>
-                                    <td>Php 500,000</td>
-                                    <td>Php 350,000</td>
-                                    <td>Php 150,000</td>
-                                    <td><div class="progress-bar-container"><div class="progress-bar" style="width: 70%;">70%</div></div></td>
-                                </tr>
-                                <tr>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Agricultural Seeds Program</td>
-                                    <td>Php 300,000</td>
-                                    <td>Php 180,000</td>
-                                    <td>Php 120,000</td>
-                                    <td><div class="progress-bar-container"><div class="progress-bar" style="width: 60%;">60%</div></div></td>
-                                </tr>
-                                <tr>
-                                    <td><span class="badge bg-info">SPES</span></td>
-                                    <td>Educational Assistance</td>
-                                    <td>Php 800,000</td>
-                                    <td>Php 600,000</td>
-                                    <td>Php 200,000</td>
-                                    <td><div class="progress-bar-container"><div class="progress-bar" style="width: 75%;">75%</div></div></td>
-                                </tr>
-                                <tr>
-                                    <td><span class="badge bg-primary">TUPAD</span></td>
-                                    <td>Emergency Employment</td>
-                                    <td>Php 900,000</td>
-                                    <td>Php 570,000</td>
-                                    <td>Php 330,000</td>
-                                    <td><div class="progress-bar-container"><div class="progress-bar" style="width: 63%;">63%</div></div></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="table-card mt-4">
-                    <div class="section-header">
-                        <h5 class="section-title">Resource Distribution Summary</h5>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Resource Type</th>
-                                    <th>Total Units</th>
-                                    <th>Distributed</th>
-                                    <th>Remaining</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Fishing Gear Sets</td>
-                                    <td>150</td>
-                                    <td>105</td>
-                                    <td>45</td>
-                                </tr>
-                                <tr>
-                                    <td>Agricultural Seeds (kg)</td>
-                                    <td>500</td>
-                                    <td>350</td>
-                                    <td>150</td>
-                                </tr>
-                                <tr>
-                                    <td>Tailoring Kits</td>
-                                    <td>100</td>
-                                    <td>75</td>
-                                    <td>25</td>
-                                </tr>
-                                <tr>
-                                    <td>Food Carts</td>
-                                    <td>50</td>
-                                    <td>35</td>
-                                    <td>15</td>
-                                </tr>
+                            <tbody id="fundsTableBody">
+                                <!-- Rendered dynamically with expandable detailed rows -->
                             </tbody>
                         </table>
                     </div>
@@ -2507,8 +2510,8 @@
                                 <i class="bi bi-calendar-check" style="color: #0d6efd;"></i>
                             </div>
                             <div class="stat-card-content">
-                                <div class="stat-card-value">12</div>
-                                <div class="stat-card-label">Scheduled Today</div>
+                                <div class="stat-card-value" id="intCardScheduled">12</div>
+                                <div class="stat-card-label">Scheduled Interviews</div>
                             </div>
                         </div>
                     </div>
@@ -2518,8 +2521,8 @@
                                 <i class="bi bi-check-circle" style="color: var(--success);"></i>
                             </div>
                             <div class="stat-card-content">
-                                <div class="stat-card-value">45</div>
-                                <div class="stat-card-label">Completed</div>
+                                <div class="stat-card-value" id="intCardCompleted">45</div>
+                                <div class="stat-card-label">Completed Interviews</div>
                             </div>
                         </div>
                     </div>
@@ -2529,8 +2532,8 @@
                                 <i class="bi bi-arrow-repeat" style="color: #ffc107;"></i>
                             </div>
                             <div class="stat-card-content">
-                                <div class="stat-card-value">8</div>
-                                <div class="stat-card-label">Rescheduled</div>
+                                <div class="stat-card-value" id="intCardPending">8</div>
+                                <div class="stat-card-label">Pending Interviews</div>
                             </div>
                         </div>
                     </div>
@@ -2540,8 +2543,8 @@
                                 <i class="bi bi-x-circle" style="color: var(--danger);"></i>
                             </div>
                             <div class="stat-card-content">
-                                <div class="stat-card-value">5</div>
-                                <div class="stat-card-label">Cancelled</div>
+                                <div class="stat-card-value" id="intCardMissed">5</div>
+                                <div class="stat-card-label">Missed Interviews</div>
                             </div>
                         </div>
                     </div>
@@ -2620,14 +2623,15 @@
                     <div class="filter-bar">
                         <div class="search-box">
                             <i class="bi bi-search"></i>
-                            <input type="text" placeholder="Search interviews...">
+                            <input type="text" id="searchInterviews" placeholder="Search by applicant or ID..." onkeyup="renderInterviewsTable()">
                         </div>
-                        <select class="filter-select">
-                            <option value="">All Status</option>
-                            <option value="scheduled">Scheduled</option>
-                            <option value="completed">Completed</option>
-                            <option value="rescheduled">Rescheduled</option>
-                            <option value="cancelled">Cancelled</option>
+                        <input type="date" class="filter-select" id="filterInterviewsDate" onchange="renderInterviewsTable()" title="Filter by date">
+                        <select class="filter-select" id="filterInterviewsStatus" onchange="renderInterviewsTable()">
+                            <option value="">All Statuses</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Missed">Missed</option>
                         </select>
                     </div>
                     <div class="table-responsive">
@@ -2644,60 +2648,8 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>#INT-2026-0089</td>
-                                    <td>Pedro Santos</td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Apr 12, 2026</td>
-                                    <td>9:00 AM</td>
-                                    <td>PESO Office - Room 1</td>
-                                    <td><span class="status-badge for-review">Scheduled</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewInterviewDetails('INT-2026-0089')"><i class="bi bi-eye"></i></button>
-                                        <button class="action-btn edit" title="Reschedule" onclick="rescheduleInterview('INT-2026-0089')"><i class="bi bi-arrow-repeat"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#INT-2026-0088</td>
-                                    <td>Maria Garcia</td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Apr 11, 2026</td>
-                                    <td>2:00 PM</td>
-                                    <td>PESO Office - Room 2</td>
-                                    <td><span class="status-badge for-review">Scheduled</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewInterviewDetails('INT-2026-0088')"><i class="bi bi-eye"></i></button>
-                                        <button class="action-btn edit" title="Reschedule" onclick="rescheduleInterview('INT-2026-0088')"><i class="bi bi-arrow-repeat"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#INT-2026-0087</td>
-                                    <td>Juan Dela Cruz</td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Apr 10, 2026</td>
-                                    <td>10:00 AM</td>
-                                    <td>PESO Office - Room 1</td>
-                                    <td><span class="status-badge approved">Completed</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewInterviewDetails('INT-2026-0087')"><i class="bi bi-eye"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#INT-2026-0086</td>
-                                    <td>Ana Reyes</td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Apr 08, 2026</td>
-                                    <td>11:00 AM</td>
-                                    <td>PESO Office - Room 1</td>
-                                    <td><span class="status-badge pending">Rescheduled</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewInterviewDetails('INT-2026-0086')"><i class="bi bi-eye"></i></button>
-                                        <button class="action-btn edit" title="Reschedule" onclick="rescheduleInterview('INT-2026-0086')"><i class="bi bi-arrow-repeat"></i></button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                                </tr>
+                            <tbody id="interviewsTableBody">
+                                <!-- Will be rendered dynamically via JS -->
                             </tbody>
                         </table>
                     </div>
@@ -2839,6 +2791,46 @@
                 </div>
             </section>
 
+            <!-- MODULE: Daily Activity Log & Tasks (REQ067) -->
+            <section class="module-page" id="module-daily-log">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="table-card p-4">
+                            <h5 class="section-title mb-3">Filter & Log Task</h5>
+                            <div class="form-group mb-3">
+                                <label class="form-label fw-bold">Select Date</label>
+                                <input type="date" class="form-control" id="dailyLogDateInput" onchange="renderDailyLog()" value="2026-04-12">
+                            </div>
+                            <hr>
+                            <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle text-primary me-2"></i>Add Custom Task</h6>
+                            <div class="form-group mb-3">
+                                <label class="form-label">Task Description</label>
+                                <input type="text" class="form-control" id="newTaskDesc" placeholder="e.g. Review SPES summer job applications">
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label">Scheduled Time</label>
+                                <input type="time" class="form-control" id="newTaskTime" value="09:00">
+                            </div>
+                            <button class="btn btn-primary-custom w-100" onclick="addCustomTask()">
+                                <i class="bi bi-check-lg"></i> Add to Log
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="table-card p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="section-title m-0">Activity Timeline</h5>
+                                <span class="badge bg-primary px-3 py-2" id="dailyLogDateHeader" style="font-size: 0.85rem; font-weight: 700;">April 12, 2026</span>
+                            </div>
+                            
+                            <div class="timeline-container" style="position: relative; padding-left: 10px;" id="dailyLogTimeline">
+                                <!-- Chronological tasks & interviews loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- MODULE: Program Assignment -->
             <section class="module-page" id="module-assignments">
                 <div class="table-card">
@@ -2880,19 +2872,24 @@
                     <div class="filter-bar">
                         <div class="search-box">
                             <i class="bi bi-search"></i>
-                            <input type="text" id="searchBeneficiary" placeholder="Search by name, ID, or scan QR code..." onkeyup="searchBeneficiaries()">
+                            <input type="text" id="searchBeneficiary" placeholder="Search by name, ID, or contact..." onkeyup="renderBeneficiariesTable()">
                         </div>
-                        <select class="filter-select" id="filterBeneficiaryStatus" onchange="filterBeneficiaries()">
-                            <option value="">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                        <select class="filter-select" id="filterBeneficiaryStatus" onchange="renderBeneficiariesTable()">
+                            <option value="">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
                         </select>
-                        <select class="filter-select" id="filterBeneficiaryBarangay" onchange="filterBeneficiaries()">
+                        <select class="filter-select" id="filterBeneficiaryBarangay" onchange="renderBeneficiariesTable()">
                             <option value="">All Barangays</option>
-                            <option value="zone-i">Zone I</option>
-                            <option value="sto-nino">Sto. Nino</option>
-                            <option value="mabini">Mabini</option>
-                            <option value="morales">Morales</option>
+                            <option value="Zone I">Zone I</option>
+                            <option value="Sto. Nino">Sto. Nino</option>
+                            <option value="Mabini">Mabini</option>
+                            <option value="Morales">Morales</option>
+                        </select>
+                        <select class="filter-select" id="filterBeneficiaryDocuments" onchange="renderBeneficiariesTable()">
+                            <option value="">All Documents</option>
+                            <option value="complete">Complete Documents</option>
+                            <option value="flagged">Flagged / Incomplete</option>
                         </select>
                         <button class="btn btn-secondary-custom" onclick="openModal('qrScannerModal')">
                             <i class="bi bi-qr-code-scan"></i> Scan QR
@@ -2902,82 +2899,19 @@
                         <table class="data-table" id="beneficiariesTable">
                             <thead>
                                 <tr>
-                                    <th>Beneficiary ID</th>
-                                    <th>Full Name</th>
-                                    <th>Age</th>
-                                    <th>Purok</th>
-                                    <th>Barangay</th>
-                                    <th>Contact</th>
+                                    <th style="width: 40px;"></th>
+                                    <th onclick="sortBeneficiaries('id')" style="cursor: pointer; user-select: none;" title="Click to sort by ID">Beneficiary ID <i class="bi bi-arrow-down-up small text-muted ms-1" id="sortIcon-id"></i></th>
+                                    <th onclick="sortBeneficiaries('name')" style="cursor: pointer; user-select: none;" title="Click to sort by Name">Full Name <i class="bi bi-arrow-down-up small text-muted ms-1" id="sortIcon-name"></i></th>
+                                    <th onclick="sortBeneficiaries('contact')" style="cursor: pointer; user-select: none;" title="Click to sort by Contact">Contact <i class="bi bi-arrow-down-up small text-muted ms-1" id="sortIcon-contact"></i></th>
+                                    <th>Program Assignments</th>
+                                    <th>Address / Barangay</th>
+                                    <th onclick="sortBeneficiaries('status')" style="cursor: pointer; user-select: none;" title="Click to sort by Status">Status <i class="bi bi-arrow-down-up small text-muted ms-1" id="sortIcon-status"></i></th>
                                     <th>QR Code</th>
-                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="beneficiariesTableBody">
-                                <tr>
-                                    <td>#BEN-2026-0001</td>
-                                    <td>Juan Dela Cruz</td>
-                                    <td>36</td>
-                                    <td>Purok 1</td>
-                                    <td>Zone I</td>
-                                    <td>0912-345-6789</td>
-                                    <td><button class="action-btn" title="View QR Code" onclick="viewQRCode('BEN-2026-0001')"><i class="bi bi-qr-code"></i></button></td>
-                                    <td><span class="status-badge approved">Active</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewBeneficiary('BEN-2026-0001')"><i class="bi bi-eye"></i></button>
-                                        <button class="action-btn edit" title="Edit" onclick="editBeneficiary('BEN-2026-0001')"><i class="bi bi-pencil"></i></button>
-                                        <button class="action-btn" title="Evaluate" style="color: var(--info);" onclick="openEvaluationForBeneficiary('BEN-2026-0001')"><i class="bi bi-clipboard-check"></i></button>
-                                        <button class="action-btn" title="Deactivate" style="color: var(--danger);" onclick="toggleBeneficiaryStatus('BEN-2026-0001', 'inactive')"><i class="bi bi-person-dash"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#BEN-2026-0002</td>
-                                    <td>Maria Garcia</td>
-                                    <td>41</td>
-                                    <td>Purok 2</td>
-                                    <td>Sto. Nino</td>
-                                    <td>0913-456-7890</td>
-                                    <td><button class="action-btn" title="View QR Code" onclick="viewQRCode('BEN-2026-0002')"><i class="bi bi-qr-code"></i></button></td>
-                                    <td><span class="status-badge approved">Active</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewBeneficiary('BEN-2026-0002')"><i class="bi bi-eye"></i></button>
-                                        <button class="action-btn edit" title="Edit" onclick="editBeneficiary('BEN-2026-0002')"><i class="bi bi-pencil"></i></button>
-                                        <button class="action-btn" title="Evaluate" style="color: var(--info);" onclick="openEvaluationForBeneficiary('BEN-2026-0002')"><i class="bi bi-clipboard-check"></i></button>
-                                        <button class="action-btn" title="Deactivate" style="color: var(--danger);" onclick="toggleBeneficiaryStatus('BEN-2026-0002', 'inactive')"><i class="bi bi-person-dash"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#BEN-2026-0003</td>
-                                    <td>Pedro Santos</td>
-                                    <td>34</td>
-                                    <td>Purok 3</td>
-                                    <td>Mabini</td>
-                                    <td>0914-567-8901</td>
-                                    <td><button class="action-btn" title="View QR Code" onclick="viewQRCode('BEN-2026-0003')"><i class="bi bi-qr-code"></i></button></td>
-                                    <td><span class="status-badge pending">Inactive</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewBeneficiary('BEN-2026-0003')"><i class="bi bi-eye"></i></button>
-                                        <button class="action-btn edit" title="Edit" onclick="editBeneficiary('BEN-2026-0003')"><i class="bi bi-pencil"></i></button>
-                                        <button class="action-btn" title="Evaluate" style="color: var(--info);" onclick="openEvaluationForBeneficiary('BEN-2026-0003')"><i class="bi bi-clipboard-check"></i></button>
-                                        <button class="action-btn" title="Activate" style="color: var(--success);" onclick="toggleBeneficiaryStatus('BEN-2026-0003', 'active')"><i class="bi bi-person-check"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#BEN-2026-0004</td>
-                                    <td>Ana Reyes</td>
-                                    <td>38</td>
-                                    <td>Purok 4</td>
-                                    <td>Morales</td>
-                                    <td>0915-678-9012</td>
-                                    <td><button class="action-btn" title="View QR Code" onclick="viewQRCode('BEN-2026-0004')"><i class="bi bi-qr-code"></i></button></td>
-                                    <td><span class="status-badge approved">Active</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewBeneficiary('BEN-2026-0004')"><i class="bi bi-eye"></i></button>
-                                        <button class="action-btn edit" title="Edit" onclick="editBeneficiary('BEN-2026-0004')"><i class="bi bi-pencil"></i></button>
-                                        <button class="action-btn" title="Evaluate" style="color: var(--info);" onclick="openEvaluationForBeneficiary('BEN-2026-0004')"><i class="bi bi-clipboard-check"></i></button>
-                                        <button class="action-btn" title="Deactivate" style="color: var(--danger);" onclick="toggleBeneficiaryStatus('BEN-2026-0004', 'inactive')"><i class="bi bi-person-dash"></i></button>
-                                    </td>
-                                </tr>
+                                <!-- Will be loaded dynamically from beneficiaryData -->
                             </tbody>
                         </table>
                     </div>
@@ -5033,7 +4967,1038 @@
         </div>
     </div>
 
+    <!-- REQ070: Create New Beneficiary Modal -->
+    <div class="modal-overlay" id="createBeneficiaryModal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="bi bi-person-plus-fill text-primary me-2"></i>New Beneficiary Account</h4>
+                <button class="modal-close" onclick="closeModal('createBeneficiaryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createBeneficiaryForm" onsubmit="event.preventDefault(); submitCreateBeneficiary();">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" class="form-control" id="createBenFirstName" required placeholder="e.g. Juan">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" class="form-control" id="createBenLastName" required placeholder="e.g. Dela Cruz">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Birth *</label>
+                            <input type="date" class="form-control" id="createBenDob" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sex / Gender *</label>
+                            <select class="form-control" id="createBenSex" required>
+                                <option value="">Select gender...</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Purok / Street Address *</label>
+                            <input type="text" class="form-control" id="createBenPurok" required placeholder="e.g. Purok 1">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Barangay *</label>
+                            <select class="form-control" id="createBenBarangay" required>
+                                <option value="">Select barangay...</option>
+                                <option value="Zone I">Zone I</option>
+                                <option value="Sto. Nino">Sto. Nino</option>
+                                <option value="Mabini">Mabini</option>
+                                <option value="Morales">Morales</option>
+                                <option value="Poblacion">Poblacion</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Number *</label>
+                            <input type="text" class="form-control" id="createBenContact" required placeholder="e.g. 0912-345-6789">
+                            <small class="text-muted">Format: 09xx-xxx-xxxx</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" id="createBenEmail" required placeholder="name@domain.com">
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Initial Program Assignment</label>
+                        <select class="form-control" id="createBenProgram">
+                            <option value="">None (Unassigned)</option>
+                            <option value="SPES">SPES - Special Program for Employment of Students</option>
+                            <option value="TUPAD">TUPAD - Tulong Panghanapbuhay</option>
+                            <option value="Skills Training">Skills Training Program</option>
+                            <option value="GIP">GIP - Government Internship Program</option>
+                            <option value="PFAS">PFAS - Financial Assistance</option>
+                        </select>
+                    </div>
+
+                    <h6 class="fw-bold mt-4 mb-3 border-bottom pb-2"><i class="bi bi-paperclip text-primary me-2"></i>Valid ID & Requirements Upload</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Government ID Type *</label>
+                            <select class="form-control" id="createBenGovIdType" required>
+                                <option value="">Select ID type...</option>
+                                <option value="PhilHealth ID">PhilHealth ID</option>
+                                <option value="SSS/GSIS ID">SSS/GSIS UMID</option>
+                                <option value="Voter ID">Voter ID / Certificate</option>
+                                <option value="Barangay ID">Barangay ID</option>
+                                <option value="Postal ID">Postal ID</option>
+                                <option value="National ID">PhilSys National ID</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Government ID Upload *</label>
+                            <input type="file" class="form-control" id="createBenGovIdFile" accept="image/*,.pdf" required onchange="handleFileUploadPreview(this, 'createGovIdPreview')">
+                            <div class="small text-muted mt-1" id="createGovIdPreview">No file selected</div>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Barangay Clearance Upload *</label>
+                        <input type="file" class="form-control" id="createBenBarangayClearanceFile" accept="image/*,.pdf" required onchange="handleFileUploadPreview(this, 'createClearancePreview')">
+                        <div class="small text-muted mt-1" id="createClearancePreview">No file selected</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary-custom" onclick="closeModal('createBeneficiaryModal')">Cancel</button>
+                <button type="button" class="btn btn-primary-custom" onclick="submitCreateBeneficiary()"><i class="bi bi-check-lg"></i> Create Beneficiary</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REQ071: Edit Beneficiary Details Modal -->
+    <div class="modal-overlay" id="editBeneficiaryModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="bi bi-pencil-square text-primary me-2"></i>Edit Beneficiary Account</h4>
+                <button class="modal-close" onclick="closeModal('editBeneficiaryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editBeneficiaryId">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">First Name *</label>
+                        <input type="text" class="form-control" id="editBeneficiaryFirstName" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Last Name *</label>
+                        <input type="text" class="form-control" id="editBeneficiaryLastName" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Date of Birth *</label>
+                        <input type="date" class="form-control" id="editBeneficiaryDob" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sex / Gender *</label>
+                        <select class="form-control" id="editBeneficiarySex" required>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Purok / Street *</label>
+                        <input type="text" class="form-control" id="editBeneficiaryPurok" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Barangay *</label>
+                        <select class="form-control" id="editBeneficiaryBarangay" required>
+                            <option value="Zone I">Zone I</option>
+                            <option value="Sto. Nino">Sto. Nino</option>
+                            <option value="Mabini">Mabini</option>
+                            <option value="Morales">Morales</option>
+                            <option value="Poblacion">Poblacion</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Contact Number *</label>
+                        <input type="text" class="form-control" id="editBeneficiaryContact" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email Address *</label>
+                        <input type="email" class="form-control" id="editBeneficiaryEmail" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary-custom" onclick="closeModal('editBeneficiaryModal')">Cancel</button>
+                <button class="btn btn-primary-custom" onclick="promptConfirmEditBeneficiary()"><i class="bi bi-save me-1"></i> Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REQ071: Confirmation Modal for Edit -->
+    <div class="modal-overlay" id="confirmEditBeneficiaryModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="bi bi-shield-check text-primary me-2"></i>Confirm Account Update</h4>
+                <button class="modal-close" onclick="closeModal('confirmEditBeneficiaryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2 px-3 small mb-3">
+                    <i class="bi bi-info-circle-fill me-1"></i> You are about to update account details for <strong id="confirmEditBenName"></strong> (<span id="confirmEditBenId"></span>). This change will be logged for audit transparency.
+                </div>
+                <h6 class="fw-bold mb-2">Summary of Modifications:</h6>
+                <div id="confirmEditBenChanges" class="p-3 bg-light rounded border small mb-3">
+                    <!-- Changes breakdown populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary-custom" onclick="closeModal('confirmEditBeneficiaryModal')">Cancel</button>
+                <button class="btn btn-primary-custom" onclick="submitEditBeneficiary()"><i class="bi bi-check-circle-fill me-1"></i> Confirm Update</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REQ068: View Beneficiary Details Modal -->
+    <div class="modal-overlay" id="viewBeneficiaryModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="bi bi-person-vcard-fill text-primary me-2"></i>Beneficiary Profile & Audit Details</h4>
+                <button class="modal-close" onclick="closeModal('viewBeneficiaryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center justify-content-between p-3 mb-4 rounded" style="background: var(--primary-lighter); border-left: 4px solid var(--primary-pink);">
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark" id="viewBeneficiaryName">Juan Dela Cruz</h5>
+                        <small class="text-muted">Account ID: <strong id="viewBeneficiaryId">#BEN-2026-0001</strong></small>
+                    </div>
+                    <div id="viewBeneficiaryStatus">
+                        <span class="status-badge approved">Active</span>
+                    </div>
+                </div>
+
+                <ul class="nav nav-tabs mb-3" id="viewBenTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold" id="view-info-tab" data-bs-toggle="tab" data-bs-target="#view-info-pane" type="button">Personal Info</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold" id="view-audit-tab" data-bs-toggle="tab" data-bs-target="#view-audit-pane" type="button">Audit History</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="viewBenTabContent">
+                    <div class="tab-pane fade show active" id="view-info-pane">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Date of Birth:</strong> <span id="viewBeneficiaryDob">1990-03-15</span></p>
+                                <p class="mb-1"><strong>Sex:</strong> <span id="viewBeneficiarySex">Male</span></p>
+                                <p class="mb-1"><strong>Purok / Street:</strong> <span id="viewBeneficiaryAddress">Purok 1</span></p>
+                                <p class="mb-1"><strong>Barangay:</strong> <span id="viewBeneficiaryBarangay">Zone I</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Contact Number:</strong> <span id="viewBeneficiaryContact">0912-345-6789</span></p>
+                                <p class="mb-1"><strong>Email:</strong> <span id="viewBeneficiaryEmail">juan@email.com</span></p>
+                                <p class="mb-1"><strong>Date Registered:</strong> <span id="viewBeneficiaryCreated">Jan 10, 2026</span></p>
+                            </div>
+                        </div>
+                        <div class="row align-items-center border-top pt-3">
+                            <div class="col-md-6 text-center">
+                                <div id="viewBeneficiaryQR">
+                                    <i class="bi bi-qr-code" style="font-size:5rem; color:#333;"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-2">Documents Verified:</h6>
+                                <ul class="list-unstyled small mb-0">
+                                    <li><i class="bi bi-check-circle-fill text-success me-1"></i> Valid Gov ID (Verified)</li>
+                                    <li><i class="bi bi-check-circle-fill text-success me-1"></i> Barangay Clearance (Verified)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="view-audit-pane">
+                        <div class="audit-log-list" id="viewBeneficiaryAuditContainer" style="max-height: 250px; overflow-y: auto;">
+                            <!-- Audit logs for this beneficiary rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary-custom" onclick="closeModal('viewBeneficiaryModal')">Close</button>
+                <button class="btn btn-success" id="viewActivateBtn" onclick="openActivateModalFromView()"><i class="bi bi-person-check me-1"></i> Activate Account</button>
+                <button class="btn btn-danger" id="viewDeactivateBtn" onclick="openDeactivateModalFromView()"><i class="bi bi-person-dash me-1"></i> Deactivate Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REQ072: Activate Beneficiary Confirmation Modal -->
+    <div class="modal-overlay" id="activateBeneficiaryModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="bi bi-person-check-fill text-success me-2"></i>Activate Beneficiary Account</h4>
+                <button class="modal-close" onclick="closeModal('activateBeneficiaryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="activateBenIdInput">
+                <div class="alert alert-success py-2 px-3 small mb-3">
+                    <i class="bi bi-check-circle-fill me-1"></i> You are activating account <strong id="activateBenName"></strong> (<span id="activateBenId"></span>).
+                </div>
+                <p class="small text-muted m-0">
+                    Activating this account updates its status to <span class="badge bg-success">Active</span>, enables portal credentials, and dispatches an activation notification to the beneficiary.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary-custom" onclick="closeModal('activateBeneficiaryModal')">Cancel</button>
+                <button class="btn btn-success" onclick="submitActivateBeneficiary()"><i class="bi bi-check-lg me-1"></i> Confirm Activation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REQ073: Deactivate Beneficiary Modal with Required Reason -->
+    <div class="modal-overlay" id="deactivateBeneficiaryModal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="bi bi-person-dash-fill text-danger me-2"></i>Deactivate Beneficiary Account</h4>
+                <button class="modal-close" onclick="closeModal('deactivateBeneficiaryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deactivateBenIdInput">
+                <div class="alert alert-warning py-2 px-3 small mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Deactivating account <strong id="deactivateBenName"></strong> (<span id="deactivateBenId"></span>). This action will be logged for PESO Admin audit oversight.
+                </div>
+                <form id="deactivateBeneficiaryForm" onsubmit="event.preventDefault(); submitDeactivateBeneficiary();">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold">Reason for Deactivation *</label>
+                        <select class="form-control" id="deactivateBenReasonSelect" required>
+                            <option value="">Select reason...</option>
+                            <option value="Non-compliance with program guidelines">Non-compliance with program guidelines</option>
+                            <option value="Duplicate account registration">Duplicate account registration</option>
+                            <option value="Moved out of municipality">Moved out of municipality</option>
+                            <option value="Voluntarily opted out of programs">Voluntarily opted out of programs</option>
+                            <option value="Fraudulent or inaccurate document submission">Fraudulent or inaccurate document submission</option>
+                            <option value="Other administrative reason">Other administrative reason</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold">Detailed Explanation / Audit Remarks *</label>
+                        <textarea class="form-control" id="deactivateBenReasonNotes" rows="3" required placeholder="Provide specific justification details for audit compliance..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary-custom" onclick="closeModal('deactivateBeneficiaryModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="submitDeactivateBeneficiary()"><i class="bi bi-person-x-fill me-1"></i> Confirm Deactivation</button>
+            </div>
+        </div>
+    </div>
+
 <script>
+// Session Security Check (REQ060, REQ061)
+(async function checkSessionAndInitialize() {
+    console.log('Verifying session...');
+    const isValid = await SessionManager.verify();
+    if (!isValid) {
+        return;
+    }
+    const role = SessionManager.getRole();
+    if (role !== 'PESO Officer') {
+        SessionManager.forceLogout('Access denied. This portal is restricted to PESO Officers.');
+        return;
+    }
+    
+    // Set up user profile info in the UI
+    const fullName = sessionStorage.getItem('userFullName') || 'Jane Smith';
+    document.querySelectorAll('.user-name').forEach(el => el.textContent = fullName);
+    
+    // Generate initials for avatar
+    const initials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    document.querySelectorAll('.user-avatar').forEach(el => el.textContent = initials);
+    
+    // Set up welcome header text
+    const welcomeText = document.getElementById('welcomeText');
+    if (welcomeText) {
+        welcomeText.textContent = `Welcome back, ${fullName}!`;
+    }
+    
+    // Start background token checks
+    SessionManager.startPeriodicVerification();
+    
+    // Initialize date and time display on welcome banner
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // Load dynamic dashboard data
+    await loadDashboardData();
+})();
+
+function updateDateTime() {
+    const now = new Date();
+    const dateOpts = { month: 'long', day: 'numeric', year: 'numeric' };
+    const dateStr = now.toLocaleDateString('en-US', dateOpts);
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    const dateEl = document.getElementById('currentDateDisplay');
+    const timeEl = document.getElementById('currentTimeDisplay');
+    if (dateEl) dateEl.textContent = dateStr;
+    if (timeEl) timeEl.textContent = timeStr;
+}
+
+function logoutOfficer() {
+    if (confirm('Are you sure you want to sign out?')) {
+        SessionManager.logout('admin_login.html');
+    }
+}
+
+async function loadDashboardData() {
+    initPESODatabase(); // ensure fallback data is initialized
+    
+    let programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+    let applications = JSON.parse(localStorage.getItem('peso_applications')) || [];
+    let assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+    let beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+    
+    // Try to load from API if online
+    try {
+        const headers = SessionManager.authHeaders();
+        
+        // 1. Fetch programs
+        const resPrograms = await fetch(API_CONFIG.BASE_URL + '/api/programs', { headers });
+        if (resPrograms.ok) {
+            const data = await resPrograms.json();
+            if (data.success && data.data) {
+                programs = data.data;
+                localStorage.setItem('peso_programs', JSON.stringify(programs));
+            }
+        }
+        
+        // 2. Fetch applications
+        const resApps = await fetch(API_CONFIG.BASE_URL + '/api/applications?agency=PESO', { headers });
+        if (resApps.ok) {
+            const data = await resApps.json();
+            if (data.success && data.data) {
+                applications = data.data.map(app => ({
+                    id: 'LIV-' + app.id,
+                    application_number: app.application_number,
+                    beneficiary_id: app.beneficiary_id,
+                    beneficiary_name: `${app.first_name} ${app.last_name}`,
+                    programId: app.program_id,
+                    programCode: app.program_code,
+                    program_name: app.program_name,
+                    status: app.status,
+                    progress_percent: app.progress_percent,
+                    remarks: app.remarks,
+                    date_applied: app.date_applied ? app.date_applied.split('T')[0] : '',
+                    Barangay: app.beneficiary_address || 'Poblacion',
+                    age: app.age || 25,
+                    contact: app.beneficiary_phone || 'N/A',
+                    sex: app.sex || 'Male',
+                    Purok: 'Purok 1'
+                }));
+                localStorage.setItem('peso_applications', JSON.stringify(applications));
+            }
+        }
+        
+        // 3. Fetch beneficiaries (users with role=Beneficiary)
+        const resBens = await fetch(API_CONFIG.BASE_URL + '/api/users?role=Beneficiary', { headers });
+        if (resBens.ok) {
+            const data = await resBens.json();
+            if (data.success && data.data) {
+                beneficiaries = data.data.map(u => ({
+                    id: 'B' + u.id,
+                    name: `${u.first_name} ${u.last_name}`,
+                    contact: u.phone,
+                    barangay: u.address,
+                    status: 'Active'
+                }));
+                localStorage.setItem('peso_beneficiaries', JSON.stringify(beneficiaries));
+            }
+        }
+    } catch (err) {
+        console.warn('Could not sync with backend API (offline or down). Using local storage caching:', err.message);
+    }
+    
+    // Calculate dashboard statistics
+    const pendingAppsCount = applications.filter(a => ['Pending', 'Under Review', 'submitted', 'under-review'].includes(a.status)).length;
+    const activeProgramsCount = programs.filter(p => p.status === 'Active').length;
+    
+    // Assigned Beneficiaries: active assignments or approved applications
+    const assignedBenIds = new Set();
+    assignments.forEach(as => assignedBenIds.add(as.beneficiaryId));
+    applications.forEach(app => {
+        if (['Approved', 'Completed', 'Interview Scheduled', 'Training Scheduled', 'approved'].includes(app.status)) {
+            assignedBenIds.add(app.beneficiary_id);
+        }
+    });
+    const assignedBensCount = assignedBenIds.size || assignments.length;
+    
+    const completedProgramsCount = applications.filter(a => ['Completed', 'completed'].includes(a.status)).length;
+    
+    // Update count cards DOM
+    const pendingAppsEl = document.getElementById('statPendingApps');
+    const activeProgramsEl = document.getElementById('statActivePrograms');
+    const assignedBensEl = document.getElementById('statAssignedBeneficiaries');
+    const completedProgramsEl = document.getElementById('statCompletedPrograms');
+    
+    if (pendingAppsEl) pendingAppsEl.textContent = pendingAppsCount;
+    if (activeProgramsEl) activeProgramsEl.textContent = activeProgramsCount;
+    if (assignedBensEl) assignedBensEl.textContent = assignedBensCount;
+    if (completedProgramsEl) completedProgramsEl.textContent = completedProgramsCount;
+    
+    // Trigger chart renders and tables update
+    initChartsData(applications, programs);
+    
+    // If the active page is programs, refresh it
+    renderOfficerProgramsTable();
+    renderAssignmentsTable();
+    renderFundsTable();
+    renderLivelihoodTable();
+    renderInterviewsTable();
+    renderBeneficiariesTable();
+    renderDailyLog();
+}
+
+function initChartsData(applications, programs) {
+    try {
+        var isDark = localStorage.getItem('theme') === 'dark';
+        var colors = getChartColors(isDark);
+        var activeLang = localStorage.getItem('lang') || 'en';
+        var dict = translations[activeLang] || translations['en'];
+
+        // 1. Applications Per Program Chart
+        const appCountsByProg = {};
+        applications.forEach(a => {
+            const code = a.programCode || 'OTHER';
+            appCountsByProg[code] = (appCountsByProg[code] || 0) + 1;
+        });
+        
+        // If empty, default to some programs
+        if (Object.keys(appCountsByProg).length === 0) {
+            programs.slice(0, 4).forEach(p => {
+                appCountsByProg[p.code] = 0;
+            });
+        }
+
+        const labels = Object.keys(appCountsByProg);
+        const data = Object.values(appCountsByProg);
+        
+        var ctx = document.getElementById('programChart');
+        if (ctx) {
+            if (programChartInstance) programChartInstance.destroy();
+            
+            const bgColors = labels.map((_, i) => {
+                const colorsList = [
+                    'rgba(240, 182, 198, 0.8)', // pink
+                    'rgba(108, 91, 123, 0.8)',  // purple
+                    'rgba(53, 92, 125, 0.8)',   // blue
+                    'rgba(184, 138, 154, 0.8)', // dark pink
+                    'rgba(76, 175, 80, 0.8)',   // green
+                    'rgba(255, 152, 0, 0.8)'    // orange
+                ];
+                return colorsList[i % colorsList.length];
+            });
+
+            programChartInstance = new Chart(ctx.getContext('2d'), { 
+                type: 'bar', 
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        label: 'Applications', 
+                        data: data, 
+                        backgroundColor: bgColors, 
+                        borderWidth: 1 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: colors.gridColor },
+                            ticks: { color: colors.textColor, stepSize: 1 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: colors.textColor }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 2. Monthly Approvals Chart
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const currentMonthIdx = new Date().getMonth();
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
+            let mIdx = currentMonthIdx - i;
+            if (mIdx < 0) mIdx += 12;
+            last6Months.push(months[mIdx]);
+        }
+        
+        const monthlyCounts = last6Months.map(() => 0);
+        
+        applications.forEach(a => {
+            if (['Approved', 'Completed', 'approved', 'completed'].includes(a.status)) {
+                if (a.date_applied) {
+                    const dateParts = a.date_applied.split('-');
+                    const mVal = parseInt(dateParts[1]) - 1; // 0-11
+                    if (!isNaN(mVal)) {
+                        const mName = months[mVal];
+                        const idx = last6Months.indexOf(mName);
+                        if (idx !== -1) {
+                            monthlyCounts[idx]++;
+                        }
+                    }
+                }
+            }
+        });
+        
+        if (monthlyCounts.reduce((a, b) => a + b, 0) === 0) {
+            monthlyCounts[0] = 5;
+            monthlyCounts[1] = 12;
+            monthlyCounts[2] = 18;
+            monthlyCounts[3] = 15;
+            monthlyCounts[4] = 22;
+            monthlyCounts[5] = 28;
+        }
+
+        var ctx2 = document.getElementById('approvalChart');
+        if (ctx2) {
+            if (approvalChartInstance) approvalChartInstance.destroy();
+            approvalChartInstance = new Chart(ctx2.getContext('2d'), { 
+                type: 'line', 
+                data: { 
+                    labels: last6Months, 
+                    datasets: [{ 
+                        label: dict['chart_label_approvals'] || 'Approvals', 
+                        data: monthlyCounts, 
+                        borderColor: 'rgba(76, 175, 80, 1)', 
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)', 
+                        fill: true,
+                        tension: 0.3
+                    }] 
+                }, 
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: colors.gridColor },
+                            ticks: { color: colors.textColor, stepSize: 5 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: colors.textColor }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: colors.textColor }
+                        }
+                    }
+                } 
+            });
+        }
+    } catch(e) {
+        console.error('Error rendering charts:', e);
+    }
+}
+
+function toggleFundRow(rowId) {
+    const detailRow = document.getElementById(rowId + '-details');
+    const caretIcon = document.getElementById(rowId + '-caret');
+    if (detailRow) {
+        if (detailRow.classList.contains('d-none')) {
+            detailRow.classList.remove('d-none');
+            if (caretIcon) {
+                caretIcon.className = 'bi bi-chevron-down text-muted';
+            }
+        } else {
+            detailRow.classList.add('d-none');
+            if (caretIcon) {
+                caretIcon.className = 'bi bi-chevron-right text-muted';
+            }
+        }
+    }
+}
+
+function renderFundsTable() {
+    const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+    const filter = document.getElementById('filterFundsProgram')?.value || '';
+    const tbody = document.getElementById('fundsTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    const filtered = programs.filter(p => !filter || p.status === filter);
+    
+    // Detailed projects and resources per program code
+    const programDetails = {
+        'SPES': {
+            projects: [
+                { name: 'Student Summer Employment (LGU)', budget: 1500000, used: 1200000 },
+                { name: 'Private Sector Matching Program', budget: 1500000, used: 0 }
+            ],
+            resources: [
+                { type: 'Student Handbook & Kit', total: 500, dist: 380, rem: 120 },
+                { type: 'LGU ID Cards', total: 500, dist: 500, rem: 0 }
+            ]
+        },
+        'TUPAD': {
+            projects: [
+                { name: 'Community Sanitation Project', budget: 300000, used: 200000 },
+                { name: 'Barangay Clean & Green Initiative', budget: 200000, used: 50000 }
+            ],
+            resources: [
+                { type: 'Safety Vests', total: 200, dist: 160, rem: 40 },
+                { type: 'Cleanup Shovels & Brooms', total: 100, dist: 85, rem: 15 }
+            ]
+        },
+        'Skills Training': {
+            projects: [
+                { name: 'Technical-Vocational Bread & Pastry', budget: 500000, used: 200000 },
+                { name: 'Tailoring & Garments Training', budget: 500000, used: 100000 }
+            ],
+            resources: [
+                { type: 'Baking Starter Toolkits', total: 50, dist: 35, rem: 15 },
+                { type: 'Tailoring Starter Scissors/Tape', total: 80, dist: 55, rem: 25 }
+            ]
+        },
+        'GIP': {
+            projects: [
+                { name: 'LGU Administrative Internships', budget: 1200000, used: 800000 },
+                { name: 'Barangay Office Support Program', budget: 800000, used: 0 }
+            ],
+            resources: [
+                { type: 'Office Supplies Bundles', total: 100, dist: 80, rem: 20 },
+                { type: 'Orientation Materials', total: 150, dist: 125, rem: 25 }
+            ]
+        },
+        'KEEP': {
+            projects: [
+                { name: 'Emergency Post-Disaster Cleaning', budget: 1000000, used: 450000 },
+                { name: 'Urban Beautification Projects', budget: 500000, used: 0 }
+            ],
+            resources: [
+                { type: 'PPE Face Masks & Gloves (boxes)', total: 300, dist: 240, rem: 60 },
+                { type: 'Water Boots (pairs)', total: 150, dist: 110, rem: 40 }
+            ]
+        },
+        'PFAS': {
+            projects: [
+                { name: 'Micro-retail Startup Cash Assistance', budget: 4000000, used: 1500000 },
+                { name: 'Food Cart Livelihood Grants', budget: 3000000, used: 600000 }
+            ],
+            resources: [
+                { type: 'Custom Noodle/Rice Carts', total: 50, dist: 35, rem: 15 },
+                { type: 'Food Prep Starter Utensils', total: 50, dist: 35, rem: 15 }
+            ]
+        },
+        'DILP': {
+            projects: [
+                { name: 'Informal Sector Equipment Grants', budget: 300000, used: 120000 },
+                { name: 'PWD Livelihood Support Projects', budget: 200000, used: 0 }
+            ],
+            resources: [
+                { type: 'Heavy Duty Sewing Machines', total: 20, dist: 15, rem: 5 },
+                { type: 'Welding Machine Packages', total: 10, dist: 8, rem: 2 }
+            ]
+        }
+    };
+    
+    let totalAlloc = 0;
+    let totalUsed = 0;
+    let totalDist = 0;
+    
+    filtered.forEach((p, index) => {
+        const used = p.allocated !== undefined ? p.allocated : Math.round(p.budget * 0.4);
+        const rem = p.budget - used;
+        const utilPct = p.budget > 0 ? Math.round((used / p.budget) * 100) : 0;
+        
+        totalAlloc += p.budget;
+        totalUsed += used;
+        
+        const details = programDetails[p.code] || {
+            projects: [{ name: `${p.name} - General Operations`, budget: p.budget, used: used }],
+            resources: [{ type: `${p.code} Program Materials`, total: 100, dist: 40, rem: 60 }]
+        };
+        
+        let subtotalDist = 0;
+        details.resources.forEach(r => subtotalDist += r.dist);
+        totalDist += subtotalDist;
+        
+        const rowId = `fund-row-${index}`;
+        
+        tbody.innerHTML += `
+            <tr onclick="toggleFundRow('${rowId}')" style="cursor: pointer; border-left: 4px solid ${p.status === 'Active' ? 'var(--success)' : '#ccc'};">
+                <td class="text-center"><i class="bi bi-chevron-right text-muted" id="${rowId}-caret"></i></td>
+                <td><strong>${p.code}</strong></td>
+                <td>${p.name}</td>
+                <td>₱${formatCurrency(p.budget)}</td>
+                <td>₱${formatCurrency(used)}</td>
+                <td>₱${formatCurrency(rem)}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="progress" style="width: 70px; height: 6px; background-color: var(--primary-light); border-radius: 4px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: ${utilPct}%;"></div>
+                        </div>
+                        <span class="small fw-bold">${utilPct}%</span>
+                    </div>
+                </td>
+            </tr>
+            <tr id="${rowId}-details" class="d-none" style="border-left: 4px solid var(--primary-pink);">
+                <td colspan="7" class="p-3" style="background-color: var(--primary-lighter);">
+                    <div class="card p-3 border-0 shadow-sm" style="border-radius: 12px; background: white;">
+                        <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-info-circle-fill text-primary me-2"></i> ${p.name} (${p.code}) Breakdown</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <span class="badge bg-secondary mb-2" style="font-size: 0.8rem; font-weight: 700;">Project Allocations</span>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover" style="font-size: 0.85rem;">
+                                        <thead>
+                                            <tr class="table-dark">
+                                                <th>Project / Activity Name</th>
+                                                <th>Budget</th>
+                                                <th>Spent</th>
+                                                <th>Util.</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${details.projects.map(proj => `
+                                                <tr>
+                                                    <td>${proj.name}</td>
+                                                    <td>₱${formatCurrency(proj.budget)}</td>
+                                                    <td>₱${formatCurrency(proj.used)}</td>
+                                                    <td class="fw-bold text-success">${Math.round(proj.budget > 0 ? (proj.used/proj.budget)*100 : 0)}%</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="badge bg-success mb-2" style="font-size: 0.8rem; font-weight: 700;">Resource Distribution</span>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover" style="font-size: 0.85rem;">
+                                        <thead>
+                                            <tr class="table-dark">
+                                                <th>Material/Resource</th>
+                                                <th>Total Units</th>
+                                                <th>Distributed</th>
+                                                <th>Remaining</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${details.resources.map(res => `
+                                                <tr>
+                                                    <td>${res.type}</td>
+                                                    <td>${res.total}</td>
+                                                    <td class="text-success fw-bold">${res.dist}</td>
+                                                    <td class="text-muted">${res.rem}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    const fundsTotalAllocatedEl = document.getElementById('fundsTotalAllocated');
+    const fundsTotalDistributedEl = document.getElementById('fundsTotalDistributed');
+    const fundsUtilizationRateEl = document.getElementById('fundsUtilizationRate');
+    
+    if (fundsTotalAllocatedEl) fundsTotalAllocatedEl.textContent = 'Php ' + formatCurrency(totalAlloc);
+    if (fundsTotalDistributedEl) fundsTotalDistributedEl.textContent = formatCurrency(totalDist || 1250);
+    if (fundsUtilizationRateEl) {
+        const rate = totalAlloc > 0 ? Math.round((totalUsed / totalAlloc) * 100) : 0;
+        fundsUtilizationRateEl.textContent = rate + '%';
+    }
+}
+
+function renderLivelihoodTable() {
+    const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+    const tbody = document.getElementById('livelihoodTableBody');
+    if (!tbody) return;
+    
+    const searchVal = (document.getElementById('searchLivelihood')?.value || '').toLowerCase().trim();
+    const programFilter = document.getElementById('filterLivelihoodProgram')?.value || '';
+    const statusFilter = document.getElementById('filterLivelihoodStatus')?.value || '';
+    
+    tbody.innerHTML = '';
+    
+    const filtered = apps.filter(a => {
+        // Search filter
+        const matchesSearch = !searchVal || 
+            (a.beneficiary_name || '').toLowerCase().includes(searchVal) ||
+            (a.id || '').toLowerCase().includes(searchVal) ||
+            (a.application_number || '').toLowerCase().includes(searchVal) ||
+            (a.Barangay || '').toLowerCase().includes(searchVal);
+            
+        // Program filter
+        const matchesProgram = !programFilter || 
+            (a.programCode || '').toLowerCase() === programFilter.toLowerCase() ||
+            (a.programId || '').toLowerCase() === programFilter.toLowerCase();
+            
+        // Status filter
+        let statusNormalized = (a.status || '').toLowerCase();
+        let filterNormalized = statusFilter.toLowerCase();
+        if (filterNormalized === 'interview') filterNormalized = 'interview scheduled';
+        if (filterNormalized === 'under-review') filterNormalized = 'under review';
+        
+        const matchesStatus = !statusFilter || statusNormalized === filterNormalized;
+        
+        return matchesSearch && matchesProgram && matchesStatus;
+    });
+    
+    filtered.forEach(a => {
+        let statusClass = 'pending';
+        let statusLabel = a.status || 'Pending';
+        const stLower = statusLabel.toLowerCase();
+        if (['approved', 'validated'].includes(stLower)) statusClass = 'approved';
+        else if (['completed'].includes(stLower)) statusClass = 'completed';
+        else if (['under review', 'under-review', 'for-review'].includes(stLower)) statusClass = 'for-review';
+        
+        tbody.innerHTML += `
+            <tr>
+                <td>#${a.application_number || a.id}</td>
+                <td><a href="#" class="text-primary fw-bold" onclick="openApplicantTracking('${a.id}'); return false;">${a.beneficiary_name}</a></td>
+                <td><span class="badge bg-secondary-subtle text-dark" style="font-weight: 700;">${a.programCode}</span></td>
+                <td>${a.project_name || a.remarks || 'General Livelihood'}</td>
+                <td>${a.Barangay || 'Poblacion'}</td>
+                <td>${a.date_applied || 'N/A'}</td>
+                <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                <td>
+                    <button class="action-btn view" title="View Tracking" onclick="openApplicantTracking('${a.id}')"><i class="bi bi-activity text-white"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-folder-x fs-4 d-block mb-2"></i>No applications found matching filters.</td></tr>';
+    }
+}
+
+function openApplicantTracking(appId) {
+    const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+    const app = apps.find(a => a.id === appId || a.application_number === appId);
+    if (!app) {
+        alert('Application not found!');
+        return;
+    }
+    
+    document.getElementById('trackingAppId').textContent = app.application_number || app.id;
+    document.getElementById('trackingApplicantName').textContent = app.beneficiary_name;
+    document.getElementById('trackingProgram').textContent = app.program_name || app.programCode;
+    document.getElementById('trackingProject').textContent = app.project_name || app.remarks || 'N/A';
+    document.getElementById('trackingAddress').textContent = app.Barangay || 'N/A';
+    document.getElementById('trackingContact').textContent = app.contact || 'N/A';
+    document.getElementById('trackingSubmittedDate').textContent = app.date_applied || 'N/A';
+    
+    // Status Badge
+    let statusClass = 'pending';
+    if (['approved', 'approved'].includes(app.status.toLowerCase())) statusClass = 'approved';
+    else if (['completed'].includes(app.status.toLowerCase())) statusClass = 'completed';
+    else if (['under review', 'under-review'].includes(app.status.toLowerCase())) statusClass = 'for-review';
+    
+    document.getElementById('trackingCurrentPhase').innerHTML = `<span class="status-badge ${statusClass}">${app.status}</span>`;
+    
+    // Build Timeline Steps
+    const steps = [
+        { label: 'Application Submitted', desc: `Submitted on ${app.date_applied || 'N/A'}` },
+        { label: 'Under Review', desc: 'Documents and qualifications verification' },
+        { label: 'Interview Scheduled', desc: 'Pre-qualification interview and screening' },
+        { label: 'Training Scheduled', desc: 'Livelihood skills preparation training' },
+        { label: 'Approved & Assigned', desc: 'Assigned to program slots' },
+        { label: 'Program Completed', desc: 'Successful completion and payout release' }
+    ];
+    
+    // Determine active index
+    let activeIdx = 0;
+    const statusLower = (app.status || '').toLowerCase();
+    if (statusLower === 'pending' || statusLower === 'submitted') activeIdx = 0;
+    else if (statusLower === 'under review' || statusLower === 'under-review') activeIdx = 1;
+    else if (statusLower === 'interview scheduled' || statusLower === 'interview') activeIdx = 2;
+    else if (statusLower === 'training scheduled' || statusLower === 'training') activeIdx = 3;
+    else if (statusLower === 'approved') activeIdx = 4;
+    else if (statusLower === 'completed') activeIdx = 5;
+    
+    let timelineHTML = '';
+    steps.forEach((step, idx) => {
+        let stepClass = 'upcoming';
+        let icon = '<i class="bi bi-circle"></i>';
+        
+        if (idx < activeIdx) {
+            stepClass = 'completed';
+            icon = '<i class="bi bi-check-circle-fill text-success"></i>';
+        } else if (idx === activeIdx) {
+            stepClass = 'active';
+            icon = '<i class="bi bi-arrow-right-circle-fill text-primary"></i>';
+        }
+        
+        timelineHTML += `
+            <div class="timeline-item d-flex gap-3 mb-3 align-items-start ${stepClass}">
+                <div class="timeline-icon" style="font-size: 1.25rem;">
+                    ${icon}
+                </div>
+                <div class="timeline-content">
+                    <h6 class="fw-bold mb-1 ${idx === activeIdx ? 'text-primary' : ''}">${step.label}</h6>
+                    <p class="text-muted small m-0" style="font-size: 0.8rem;">${step.desc}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('trackingProgress').innerHTML = timelineHTML;
+    
+    // Also display progress bar matching the phase
+    const progressPercent = Math.round((activeIdx / (steps.length - 1)) * 100);
+    let progressBarContainer = document.getElementById('trackingProgressBarContainer');
+    if (!progressBarContainer) {
+        const div = document.createElement('div');
+        div.id = 'trackingProgressBarContainer';
+        div.className = 'mt-3 mb-4';
+        div.innerHTML = `
+            <div class="d-flex justify-content-between mb-1 small text-muted">
+                <span>Overall Progress</span>
+                <span id="trackingProgressPercentVal">0%</span>
+            </div>
+            <div class="progress" style="height: 10px; background-color: var(--primary-light); border-radius: 5px;">
+                <div class="progress-bar bg-success" id="trackingProgressBar" role="progressbar" style="width: 0%; border-radius: 5px;"></div>
+            </div>
+        `;
+        document.getElementById('trackingCurrentPhase').parentNode.appendChild(div);
+    }
+    
+    setTimeout(() => {
+        const bar = document.getElementById('trackingProgressBar');
+        const val = document.getElementById('trackingProgressPercentVal');
+        if (bar) bar.style.width = `${progressPercent}%`;
+        if (val) val.textContent = `${progressPercent}%`;
+    }, 100);
+
+    openModal('applicantTrackingModal');
+}
+
+window.openApplicantTracking = openApplicantTracking;
+window.renderLivelihoodTable = renderLivelihoodTable;
+
 console.log('Script loading...');
 function openModal(modalId) { 
     var m = document.getElementById(modalId);
@@ -5059,91 +6024,767 @@ window.generateReport = generateReport;
 window.createApplicant = createApplicant;
 window.updateApplicant = updateApplicant;
 console.log('Core functions initialized');
+var currentSortField = 'name';
+var currentSortOrder = 'asc';
+var expandedBenRows = new Set();
+
 var beneficiaryData = {
-    'BEN-2026-0001': { name: 'Juan Dela Cruz', dob: '1990-03-15', gender: 'Male', address: 'Purok 1', barangay: 'Zone I', contact: '0912-345-6789', email: 'juan@email.com', status: 'Active', created: 'Jan 10, 2026' },
-    'BEN-2026-0002': { name: 'Maria Garcia', dob: '1985-07-22', gender: 'Female', address: 'Purok 2', barangay: 'Sto. Nino', contact: '0913-456-7890', email: 'maria@email.com', status: 'Active', created: 'Jan 12, 2026' },
-    'BEN-2026-0003': { name: 'Pedro Santos', dob: '1992-11-05', gender: 'Male', address: 'Purok 3', barangay: 'Mabini', contact: '0914-567-8901', email: 'pedro@email.com', status: 'Inactive', created: 'Jan 15, 2026' },
-    'BEN-2026-0004': { name: 'Ana Reyes', dob: '1988-04-30', gender: 'Female', address: 'Purok 4', barangay: 'Morales', contact: '0915-678-9012', email: 'ana@email.com', status: 'Active', created: 'Jan 18, 2026' }
+    'BEN-2026-0001': { name: 'Juan Dela Cruz', dob: '1990-03-15', sex: 'Male', address: 'Purok 1', barangay: 'Zone I', contact: '0912-345-6789', email: 'juan@email.com', status: 'Active', created: 'Jan 10, 2026', age: 36, programCode: 'SPES' },
+    'BEN-2026-0002': { name: 'Maria Garcia', dob: '1985-07-22', sex: 'Female', address: 'Purok 2', barangay: 'Sto. Nino', contact: '0913-456-7890', email: 'maria@email.com', status: 'Active', created: 'Jan 12, 2026', age: 41, programCode: 'TUPAD' },
+    'BEN-2026-0003': { name: 'Pedro Santos', dob: '1992-11-05', sex: 'Male', address: 'Purok 3', barangay: 'Mabini', contact: '0914-567-8901', email: 'pedro@email.com', status: 'Inactive', created: 'Jan 15, 2026', age: 34, programCode: 'Skills Training' },
+    'BEN-2026-0004': { name: 'Ana Reyes', dob: '1988-04-30', sex: 'Female', address: 'Purok 4', barangay: 'Morales', contact: '0915-678-9012', email: 'ana@email.com', status: 'Active', created: 'Jan 18, 2026', age: 38, programCode: 'GIP' }
 };
+
+function logBeneficiaryAuditAction(action, benId, benName, details) {
+    const logs = JSON.parse(localStorage.getItem('peso_beneficiary_audit_logs')) || [];
+    const officerName = sessionStorage.getItem('userFullName') || 'Jane Smith';
+    const newLog = {
+        id: 'AUDIT-BEN-' + Date.now(),
+        action: action, // 'CREATE', 'UPDATE', 'ACTIVATE', 'DEACTIVATE'
+        beneficiaryId: benId,
+        beneficiaryName: benName,
+        officerName: officerName,
+        timestamp: new Date().toISOString(),
+        details: details
+    };
+    logs.unshift(newLog);
+    localStorage.setItem('peso_beneficiary_audit_logs', JSON.stringify(logs));
+}
+
+function renderBeneficiaryAuditTrail(benId, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const logs = JSON.parse(localStorage.getItem('peso_beneficiary_audit_logs')) || [];
+    const benLogs = logs.filter(l => l.beneficiaryId === benId);
+    
+    container.innerHTML = '';
+    if (benLogs.length === 0) {
+        container.innerHTML = '<div class="text-muted small p-3 text-center">No officer audit logs recorded for this beneficiary account.</div>';
+        return;
+    }
+    
+    benLogs.forEach(log => {
+        let badgeClass = 'bg-primary';
+        if (log.action === 'CREATE') badgeClass = 'bg-info text-dark';
+        if (log.action === 'ACTIVATE') badgeClass = 'bg-success';
+        if (log.action === 'DEACTIVATE') badgeClass = 'bg-danger';
+        if (log.action === 'UPDATE') badgeClass = 'bg-warning text-dark';
+        
+        container.innerHTML += `
+            <div class="p-2 mb-2 rounded bg-light border small">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge ${badgeClass}">${log.action}</span>
+                    <span class="text-muted" style="font-size:0.75rem;">${new Date(log.timestamp).toLocaleString()}</span>
+                </div>
+                <div class="fw-bold text-dark">${log.details}</div>
+                <div class="text-muted" style="font-size:0.75rem;"><i class="bi bi-person-badge me-1"></i>Officer: ${log.officerName}</div>
+            </div>
+        `;
+    });
+}
+
+function sortBeneficiaries(field) {
+    if (currentSortField === field) {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortField = field;
+        currentSortOrder = 'asc';
+    }
+    
+    // Update sort header icons
+    ['id', 'name', 'contact', 'status'].forEach(f => {
+        const icon = document.getElementById('sortIcon-' + f);
+        if (icon) {
+            if (f === currentSortField) {
+                icon.className = `bi bi-sort-${currentSortOrder === 'asc' ? 'alpha-down' : 'alpha-down-alt'} text-primary ms-1 fw-bold`;
+            } else {
+                icon.className = 'bi bi-arrow-down-up small text-muted ms-1';
+            }
+        }
+    });
+    
+    renderBeneficiariesTable();
+}
+
+function toggleBeneficiaryExpandRow(id) {
+    if (expandedBenRows.has(id)) {
+        expandedBenRows.delete(id);
+    } else {
+        expandedBenRows.add(id);
+    }
+    renderBeneficiariesTable();
+}
+
+function handleFileUploadPreview(input, previewId) {
+    const previewEl = document.getElementById(previewId);
+    if (!previewEl) return;
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const fileSizeKB = (file.size / 1024).toFixed(1);
+        previewEl.innerHTML = `<i class="bi bi-file-earmark-check-fill text-success me-1"></i> <strong>${file.name}</strong> (${fileSizeKB} KB)`;
+        previewEl.className = 'small text-success mt-1 fw-semibold';
+    } else {
+        previewEl.innerHTML = 'No file selected';
+        previewEl.className = 'small text-muted mt-1';
+    }
+}
+
+function getBeneficiaryProgramAssignments(benId) {
+    const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+    const applications = JSON.parse(localStorage.getItem('peso_applications')) || [];
+    const assignedPrograms = [];
+    
+    assignments.forEach(as => {
+        if (as.beneficiaryId === benId) {
+            assignedPrograms.push(as.programId || as.programCode || 'Assigned');
+        }
+    });
+    
+    applications.forEach(app => {
+        if (app.beneficiary_id === benId) {
+            if (!assignedPrograms.includes(app.programCode)) {
+                assignedPrograms.push(app.programCode);
+            }
+        }
+    });
+    
+    if (beneficiaryData[benId] && beneficiaryData[benId].programCode) {
+        if (!assignedPrograms.includes(beneficiaryData[benId].programCode)) {
+            assignedPrograms.push(beneficiaryData[benId].programCode);
+        }
+    }
+    
+    return assignedPrograms.length > 0 ? assignedPrograms : ['Unassigned'];
+}
+
+function renderBeneficiariesTable() {
+    const tbody = document.getElementById('beneficiariesTableBody');
+    if (!tbody) return;
+    
+    const searchVal = (document.getElementById('searchBeneficiary')?.value || '').toLowerCase().trim();
+    const statusFilter = document.getElementById('filterBeneficiaryStatus')?.value || '';
+    const barangayFilter = document.getElementById('filterBeneficiaryBarangay')?.value || '';
+    const docFilter = document.getElementById('filterBeneficiaryDocuments')?.value || '';
+    
+    tbody.innerHTML = '';
+    
+    // Convert beneficiaryData keys into list and sort
+    const benList = Object.keys(beneficiaryData).map(id => ({
+        id: id,
+        ...beneficiaryData[id]
+    }));
+    
+    benList.sort((a, b) => {
+        let valA = (a[currentSortField] || '').toString().toLowerCase();
+        let valB = (b[currentSortField] || '').toString().toLowerCase();
+        if (valA < valB) return currentSortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return currentSortOrder === 'asc' ? 1 : -1;
+        return 0;
+    });
+    
+    benList.forEach(b => {
+        const id = b.id;
+        let flagged = false;
+        let warningTooltip = '';
+        if (id === 'BEN-2026-0002') {
+            flagged = true;
+            warningTooltip = 'Missing: Signed SPES Work Contract';
+        } else if (id === 'BEN-2026-0003') {
+            flagged = true;
+            warningTooltip = 'Expiring: Barangay Clearance (Expires in 3 days)';
+        }
+        
+        const assignedPrograms = getBeneficiaryProgramAssignments(id);
+        const programsStr = assignedPrograms.join(', ');
+        
+        const matchesSearch = !searchVal || 
+            (b.name || '').toLowerCase().includes(searchVal) ||
+            id.toLowerCase().includes(searchVal) ||
+            (b.contact || '').toLowerCase().includes(searchVal) ||
+            (b.address || '').toLowerCase().includes(searchVal) ||
+            (b.barangay || '').toLowerCase().includes(searchVal) ||
+            programsStr.toLowerCase().includes(searchVal);
+            
+        const matchesStatus = !statusFilter || b.status.toLowerCase() === statusFilter.toLowerCase();
+        
+        let bBarangayNormalized = (b.barangay || '').toLowerCase().trim();
+        let barangayFilterNormalized = (barangayFilter || '').toLowerCase().trim();
+        const matchesBarangay = !barangayFilter || bBarangayNormalized === barangayFilterNormalized;
+        
+        const matchesDoc = !docFilter || 
+            (docFilter === 'flagged' && flagged) || 
+            (docFilter === 'complete' && !flagged);
+            
+        if (matchesSearch && matchesStatus && matchesBarangay && matchesDoc) {
+            let warningHTML = '';
+            if (flagged) {
+                warningHTML = `
+                    <span class="text-danger ms-2 position-relative" style="cursor: help;" title="${warningTooltip}" data-bs-toggle="tooltip">
+                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                    </span>
+                `;
+            }
+            
+            const isExpanded = expandedBenRows.has(id);
+            const chevronIcon = isExpanded ? 'bi-chevron-down text-primary' : 'bi-chevron-right text-muted';
+            
+            const programBadges = assignedPrograms.map(p => 
+                `<span class="badge bg-primary-subtle text-primary-emphasis me-1 mb-1">${p}</span>`
+            ).join('');
+            
+            tbody.innerHTML += `
+                <tr class="${isExpanded ? 'bg-light' : ''}">
+                    <td>
+                        <button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="toggleBeneficiaryExpandRow('${id}')" title="Toggle detailed view">
+                            <i class="bi ${chevronIcon} fs-6"></i>
+                        </button>
+                    </td>
+                    <td><span class="fw-bold">#${id}</span></td>
+                    <td>
+                        <span class="fw-bold text-dark">${b.name}</span>
+                        ${warningHTML}
+                    </td>
+                    <td>${b.contact}</td>
+                    <td>${programBadges}</td>
+                    <td>${b.address || 'Purok 1'}, ${b.barangay}</td>
+                    <td><span class="status-badge ${b.status === 'Active' ? 'approved' : 'pending'}">${b.status}</span></td>
+                    <td><button class="action-btn" title="View QR Code" onclick="viewQRCode('${id}')"><i class="bi bi-qr-code"></i></button></td>
+                    <td>
+                        <button class="action-btn view" title="View Details & Audit" onclick="viewBeneficiary('${id}')"><i class="bi bi-eye"></i></button>
+                        <button class="action-btn edit" title="Edit Account" onclick="editBeneficiary('${id}')"><i class="bi bi-pencil"></i></button>
+                        <button class="action-btn" title="${b.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}" style="color: ${b.status === 'Active' ? 'var(--danger)' : 'var(--success)'};" onclick="${b.status === 'Active' ? `openDeactivateBeneficiaryModal('${id}')` : `openActivateBeneficiaryModal('${id}')`}">
+                            <i class="bi ${b.status === 'Active' ? 'bi-person-dash' : 'bi-person-check'}"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            
+            if (isExpanded) {
+                tbody.innerHTML += `
+                    <tr class="bg-light border-bottom">
+                        <td colspan="9" class="p-3">
+                            <div class="p-3 bg-white rounded border">
+                                <div class="row mb-3">
+                                    <div class="col-md-4 border-end">
+                                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-lines-fill me-1"></i>Personal Information</h6>
+                                        <p class="mb-1 small"><strong>Date of Birth:</strong> ${b.dob || '1990-01-01'} (Age: ${b.age || calculateAge(b.dob)})</p>
+                                        <p class="mb-1 small"><strong>Sex / Gender:</strong> ${b.sex || 'Male'}</p>
+                                        <p class="mb-1 small"><strong>Email Address:</strong> ${b.email || 'N/A'}</p>
+                                        <p class="mb-1 small"><strong>Date Registered:</strong> ${b.created || 'Jan 10, 2026'}</p>
+                                    </div>
+                                    <div class="col-md-4 border-end">
+                                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-file-earmark-check-fill me-1"></i>Uploaded Documents</h6>
+                                        <ul class="list-unstyled small mb-0">
+                                            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i> Valid Gov ID (Verified)</li>
+                                            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i> Barangay Clearance (Verified)</li>
+                                            ${flagged ? `<li class="mb-1 text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> ${warningTooltip}</li>` : ''}
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-journal-text me-1"></i>Recent Audit Log</h6>
+                                        <div id="expandAuditContainer-${id}">
+                                            <!-- Sub-row audit trail -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                // Render audit trail inside expanded sub-row asynchronously
+                setTimeout(() => renderBeneficiaryAuditTrail(id, `expandAuditContainer-${id}`), 10);
+            }
+        }
+    });
+    
+    if (tbody.innerHTML === '') {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-people fs-4 d-block mb-2"></i>No beneficiaries found.</td></tr>';
+    }
+}
+
+function calculateAge(dobStr) {
+    if (!dobStr) return 30;
+    const birthDate = new Date(dobStr);
+    const difference = Date.now() - birthDate.getTime();
+    const ageDate = new Date(difference);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+}
+
+function submitCreateBeneficiary() {
+    const fn = document.getElementById('createBenFirstName')?.value.trim();
+    const ln = document.getElementById('createBenLastName')?.value.trim();
+    const dob = document.getElementById('createBenDob')?.value;
+    const sex = document.getElementById('createBenSex')?.value;
+    const purok = document.getElementById('createBenPurok')?.value.trim();
+    const barangay = document.getElementById('createBenBarangay')?.value;
+    const contact = document.getElementById('createBenContact')?.value.trim();
+    const email = document.getElementById('createBenEmail')?.value.trim();
+    const program = document.getElementById('createBenProgram')?.value;
+    const govIdType = document.getElementById('createBenGovIdType')?.value;
+    const govIdFile = document.getElementById('createBenGovIdFile')?.files[0];
+    const clearanceFile = document.getElementById('createBenBarangayClearanceFile')?.files[0];
+    
+    if (!fn || !ln || !dob || !sex || !purok || !barangay || !contact || !email || !govIdType || !govIdFile || !clearanceFile) {
+        alert('Please fill in all required fields and attach required documents.');
+        return;
+    }
+    
+    // Validation Check: Phone number format
+    const phonePattern = /^(\+?63|0)9\d{9}$/;
+    const cleanPhone = contact.replace(/[\s-]/g, '');
+    if (!phonePattern.test(cleanPhone)) {
+        alert('Please enter a valid Philippine phone number (e.g. 0912-345-6789 or 09123456789).');
+        return;
+    }
+    
+    // Validation Check: Email format
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
+    
+    const count = Object.keys(beneficiaryData).length + 1;
+    const newId = 'BEN-2026-000' + count;
+    const fullName = `${fn} ${ln}`;
+    
+    const newBen = {
+        name: fullName,
+        dob: dob,
+        sex: sex,
+        address: purok,
+        barangay: barangay,
+        contact: contact,
+        email: email,
+        status: 'Active',
+        created: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        age: calculateAge(dob),
+        programCode: program || ''
+    };
+    
+    beneficiaryData[newId] = newBen;
+    
+    // Persist to peso_beneficiaries in localStorage
+    const savedBens = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+    savedBens.push({ id: newId, ...newBen });
+    localStorage.setItem('peso_beneficiaries', JSON.stringify(savedBens));
+    
+    // If initial program assignment selected, create assignment
+    if (program) {
+        const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+        assignments.push({
+            id: 'A' + Date.now(),
+            beneficiaryId: newId,
+            programCode: program,
+            contact: contact,
+            requirements: 'Government ID, Barangay Clearance',
+            status: 'Active'
+        });
+        localStorage.setItem('peso_assignments', JSON.stringify(assignments));
+    }
+    
+    // Log CREATE action in audit log (REQ070)
+    logBeneficiaryAuditAction('CREATE', newId, fullName, `Created new beneficiary account with ${govIdType} and Barangay clearance.`);
+    
+    pushNotification('Account Created', `New beneficiary account ${fullName} (#${newId}) was created successfully.`, 'update');
+    alert(`Beneficiary account #${newId} (${fullName}) created successfully!`);
+    
+    closeModal('createBeneficiaryModal');
+    document.getElementById('createBeneficiaryForm')?.reset();
+    document.getElementById('createGovIdPreview').innerHTML = 'No file selected';
+    document.getElementById('createClearancePreview').innerHTML = 'No file selected';
+    
+    renderBeneficiariesTable();
+}
+
+function editBeneficiary(id) {
+    const a = beneficiaryData[id];
+    if (!a) return;
+    document.getElementById('editBeneficiaryId').value = id;
+    const nameParts = a.name.split(' ');
+    document.getElementById('editBeneficiaryFirstName').value = nameParts[0] || '';
+    document.getElementById('editBeneficiaryLastName').value = nameParts.slice(1).join(' ') || '';
+    document.getElementById('editBeneficiaryDob').value = a.dob || '';
+    document.getElementById('editBeneficiarySex').value = a.sex || 'Male';
+    document.getElementById('editBeneficiaryContact').value = a.contact || '';
+    document.getElementById('editBeneficiaryPurok').value = a.address || '';
+    document.getElementById('editBeneficiaryBarangay').value = a.barangay || 'Zone I';
+    document.getElementById('editBeneficiaryEmail').value = a.email || '';
+    
+    openModal('editBeneficiaryModal');
+}
+
+function promptConfirmEditBeneficiary() {
+    const id = document.getElementById('editBeneficiaryId')?.value;
+    const b = beneficiaryData[id];
+    if (!b) return;
+    
+    const fn = document.getElementById('editBeneficiaryFirstName')?.value.trim();
+    const ln = document.getElementById('editBeneficiaryLastName')?.value.trim();
+    const dob = document.getElementById('editBeneficiaryDob')?.value;
+    const sex = document.getElementById('editBeneficiarySex')?.value;
+    const contact = document.getElementById('editBeneficiaryContact')?.value.trim();
+    const purok = document.getElementById('editBeneficiaryPurok')?.value.trim();
+    const barangay = document.getElementById('editBeneficiaryBarangay')?.value;
+    const email = document.getElementById('editBeneficiaryEmail')?.value.trim();
+    
+    if (!fn || !ln || !dob || !contact || !purok || !barangay || !email) {
+        alert('Please complete all required form fields.');
+        return;
+    }
+    
+    const newName = `${fn} ${ln}`;
+    const changes = [];
+    
+    if (newName !== b.name) changes.push(`Name: <s>${b.name}</s> &rarr; <strong>${newName}</strong>`);
+    if (contact !== b.contact) changes.push(`Contact: <s>${b.contact}</s> &rarr; <strong>${contact}</strong>`);
+    if (email !== b.email) changes.push(`Email: <s>${b.email}</s> &rarr; <strong>${email}</strong>`);
+    if (purok !== b.address || barangay !== b.barangay) changes.push(`Address: <s>${b.address}, ${b.barangay}</s> &rarr; <strong>${purok}, ${barangay}</strong>`);
+    if (dob !== b.dob) changes.push(`DOB: <s>${b.dob}</s> &rarr; <strong>${dob}</strong>`);
+    
+    if (changes.length === 0) {
+        alert('No fields were changed.');
+        return;
+    }
+    
+    document.getElementById('confirmEditBenName').textContent = newName;
+    document.getElementById('confirmEditBenId').textContent = id;
+    document.getElementById('confirmEditBenChanges').innerHTML = `<ul class="mb-0 ps-3">${changes.map(c => `<li>${c}</li>`).join('')}</ul>`;
+    
+    closeModal('editBeneficiaryModal');
+    openModal('confirmEditBeneficiaryModal');
+}
+
+function submitEditBeneficiary() {
+    const id = document.getElementById('editBeneficiaryId')?.value;
+    const b = beneficiaryData[id];
+    if (!b) return;
+    
+    const fn = document.getElementById('editBeneficiaryFirstName')?.value.trim();
+    const ln = document.getElementById('editBeneficiaryLastName')?.value.trim();
+    const dob = document.getElementById('editBeneficiaryDob')?.value;
+    const sex = document.getElementById('editBeneficiarySex')?.value;
+    const contact = document.getElementById('editBeneficiaryContact')?.value.trim();
+    const purok = document.getElementById('editBeneficiaryPurok')?.value.trim();
+    const barangay = document.getElementById('editBeneficiaryBarangay')?.value;
+    const email = document.getElementById('editBeneficiaryEmail')?.value.trim();
+    
+    const newName = `${fn} ${ln}`;
+    
+    b.name = newName;
+    b.dob = dob;
+    b.sex = sex;
+    b.contact = contact;
+    b.address = purok;
+    b.barangay = barangay;
+    b.email = email;
+    b.age = calculateAge(dob);
+    
+    // Persist to peso_beneficiaries in localStorage
+    let savedBens = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+    const idx = savedBens.findIndex(x => x.id === id);
+    if (idx !== -1) {
+        savedBens[idx] = { id, ...b };
+    } else {
+        savedBens.push({ id, ...b });
+    }
+    localStorage.setItem('peso_beneficiaries', JSON.stringify(savedBens));
+    
+    // Log UPDATE action in audit log (REQ071)
+    logBeneficiaryAuditAction('UPDATE', id, newName, `Updated account information (Contact: ${contact}, Address: ${purok}, ${barangay}).`);
+    
+    pushNotification('Account Updated', `Beneficiary account ${newName} (#${id}) details were updated.`, 'update');
+    alert(`Account #${id} updated successfully!`);
+    
+    closeModal('confirmEditBeneficiaryModal');
+    renderBeneficiariesTable();
+}
+
+function openActivateBeneficiaryModal(id) {
+    const b = beneficiaryData[id];
+    if (!b) return;
+    document.getElementById('activateBenIdInput').value = id;
+    document.getElementById('activateBenName').textContent = b.name;
+    document.getElementById('activateBenId').textContent = id;
+    openModal('activateBeneficiaryModal');
+}
+
+function submitActivateBeneficiary() {
+    const id = document.getElementById('activateBenIdInput')?.value;
+    const b = beneficiaryData[id];
+    if (!b) return;
+    
+    b.status = 'Active';
+    
+    // Persist to peso_beneficiaries
+    let savedBens = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+    const idx = savedBens.findIndex(x => x.id === id);
+    if (idx !== -1) savedBens[idx].status = 'Active';
+    localStorage.setItem('peso_beneficiaries', JSON.stringify(savedBens));
+    
+    // Log ACTIVATE action (REQ072)
+    logBeneficiaryAuditAction('ACTIVATE', id, b.name, 'Account status updated to Active and credentials enabled.');
+    
+    pushNotification('Account Activated', `Beneficiary account ${b.name} (#${id}) was activated.`, 'update');
+    alert(`Account #${id} has been activated successfully!`);
+    
+    closeModal('activateBeneficiaryModal');
+    closeModal('viewBeneficiaryModal');
+    renderBeneficiariesTable();
+}
+
+function openDeactivateBeneficiaryModal(id) {
+    const b = beneficiaryData[id];
+    if (!b) return;
+    document.getElementById('deactivateBenIdInput').value = id;
+    document.getElementById('deactivateBenName').textContent = b.name;
+    document.getElementById('deactivateBenId').textContent = id;
+    document.getElementById('deactivateBeneficiaryForm')?.reset();
+    openModal('deactivateBeneficiaryModal');
+}
+
+function submitDeactivateBeneficiary() {
+    const id = document.getElementById('deactivateBenIdInput')?.value;
+    const b = beneficiaryData[id];
+    if (!b) return;
+    
+    const reasonSelect = document.getElementById('deactivateBenReasonSelect')?.value;
+    const reasonNotes = document.getElementById('deactivateBenReasonNotes')?.value.trim();
+    
+    if (!reasonSelect || !reasonNotes) {
+        alert('Deactivation requires selecting a reason and providing audit notes.');
+        return;
+    }
+    
+    b.status = 'Inactive';
+    
+    // Persist to peso_beneficiaries
+    let savedBens = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+    const idx = savedBens.findIndex(x => x.id === id);
+    if (idx !== -1) savedBens[idx].status = 'Inactive';
+    localStorage.setItem('peso_beneficiaries', JSON.stringify(savedBens));
+    
+    // Log DEACTIVATE action with reason (REQ073)
+    logBeneficiaryAuditAction('DEACTIVATE', id, b.name, `Reason: ${reasonSelect} - ${reasonNotes}`);
+    
+    pushNotification('Account Deactivated', `Beneficiary account ${b.name} (#${id}) was deactivated. Reason: ${reasonSelect}`, 'update');
+    alert(`Account #${id} has been deactivated.`);
+    
+    closeModal('deactivateBeneficiaryModal');
+    closeModal('viewBeneficiaryModal');
+    renderBeneficiariesTable();
+}
+
+function openActivateModalFromView() {
+    const id = document.getElementById('viewBeneficiaryId')?.textContent.replace('#', '');
+    if (id) openActivateBeneficiaryModal(id);
+}
+
+function openDeactivateModalFromView() {
+    const id = document.getElementById('viewBeneficiaryId')?.textContent.replace('#', '');
+    if (id) openDeactivateBeneficiaryModal(id);
+}
+
 function viewBeneficiary(id) {
-    var a = beneficiaryData[id];
+    const a = beneficiaryData[id];
     if (!a) return;
     document.getElementById('viewBeneficiaryId').textContent = '#' + id;
     document.getElementById('viewBeneficiaryName').textContent = a.name;
-    document.getElementById('viewBeneficiaryDob').textContent = a.dob;
-    document.getElementById('viewBeneficiarySex').textContent = a.sex;
-    document.getElementById('viewBeneficiaryAddress').textContent = a.address;
-    document.getElementById('viewBeneficiaryBarangay').textContent = a.barangay;
-    document.getElementById('viewBeneficiaryContact').textContent = a.contact;
-    document.getElementById('viewBeneficiaryEmail').textContent = a.email;
+    document.getElementById('viewBeneficiaryDob').textContent = a.dob || '1990-01-01';
+    document.getElementById('viewBeneficiarySex').textContent = a.sex || 'Male';
+    document.getElementById('viewBeneficiaryAddress').textContent = a.address || 'Purok 1';
+    document.getElementById('viewBeneficiaryBarangay').textContent = a.barangay || 'Zone I';
+    document.getElementById('viewBeneficiaryContact').textContent = a.contact || '0912-345-6789';
+    document.getElementById('viewBeneficiaryEmail').textContent = a.email || 'N/A';
     document.getElementById('viewBeneficiaryStatus').innerHTML = '<span class="status-badge ' + (a.status === 'Active' ? 'approved' : 'pending') + '">' + a.status + '</span>';
-    document.getElementById('viewBeneficiaryCreated').textContent = a.created;
+    document.getElementById('viewBeneficiaryCreated').textContent = a.created || 'Jan 10, 2026';
     document.getElementById('viewBeneficiaryQR').innerHTML = '<i class="bi bi-qr-code" style="font-size:5rem; color:#333;"></i><p class="mt-2 text-muted small">' + id + '</p>';
-    var isActive = a.status === 'Active';
+    
+    const isActive = a.status === 'Active';
     document.getElementById('viewActivateBtn').style.display = isActive ? 'none' : '';
     document.getElementById('viewDeactivateBtn').style.display = isActive ? '' : 'none';
+    
+    renderBeneficiaryAuditTrail(id, 'viewBeneficiaryAuditContainer');
     openModal('viewBeneficiaryModal');
 }
-function editBeneficiary(id) {
-    var a = beneficiaryData[id];
-    if (!a) return;
-    document.getElementById('editBeneficiaryId').value = id;
-    var nameParts = a.name.split(' ');
-    document.getElementById('editBeneficiaryFirstName').value = nameParts[0] || '';
-    document.getElementById('editBeneficiaryLastName').value = nameParts[nameParts.length - 1] || '';
-    document.getElementById('editBeneficiaryDob').value = a.dob;
-    document.getElementById('editBeneficiarySex').value = a.sex.toLowerCase();
-    document.getElementById('editBeneficiaryContact').value = a.contact;
-    document.getElementById('editBeneficiaryPurok').value = a.address;
-    document.getElementById('editBeneficiaryEmail').value = a.email;
-    openModal('editBeneficiaryModal');
-}
-function toggleBeneficiaryStatus(id, status) {
-    var action = status === 'inactive' ? 'deactivate' : 'activate';
-    if (confirm('Are you sure you want to ' + action + ' this beneficiary?')) {
-        var rows = document.querySelectorAll('#beneficiariesTableBody tr');
-        rows.forEach(function(row) {
-            if (row.querySelector('td:first-child') && row.querySelector('td:first-child').textContent.includes(id.replace('BEN-', '#BEN-'))) {
-                var badge = row.querySelector('.status-badge');
-                var actionBtn = row.querySelector('[onclick*="toggleBeneficiaryStatus"]');
-                if (status === 'inactive') {
-                    badge.className = 'status-badge pending';
-                    badge.textContent = 'Inactive';
-                    actionBtn.setAttribute('onclick', "toggleBeneficiaryStatus('" + id + "', 'active')");
-                    actionBtn.setAttribute('title', 'Activate');
-                    actionBtn.style.color = 'var(--success)';
-                    if (beneficiaryData[id]) beneficiaryData[id].status = 'Inactive';
-                } else {
-                    badge.className = 'status-badge approved';
-                    badge.textContent = 'Active';
-                    actionBtn.setAttribute('onclick', "toggleBeneficiaryStatus('" + id + "', 'inactive')");
-                    actionBtn.setAttribute('title', 'Deactivate');
-                    actionBtn.style.color = 'var(--danger)';
-                    if (beneficiaryData[id]) beneficiaryData[id].status = 'Active';
-                }
-            }
-        });
-        pushNotification('Beneficiary Status Toggled', 'Beneficiary status for ' + id + ' (' + (beneficiaryData[id] ? beneficiaryData[id].name : 'Unknown') + ') was set to ' + (status === 'inactive' ? 'Inactive' : 'Active') + '.', 'update');
-        alert('Beneficiary has been ' + action + 'd successfully.');
-    }
-}
+
 function viewQRCode(id) {
-    var a = beneficiaryData[id];
+    const a = beneficiaryData[id];
     document.getElementById('qrCodeBeneficiaryId').textContent = '#' + id;
     document.getElementById('qrCodeBeneficiaryName').textContent = a ? a.name : 'Unknown';
     document.getElementById('qrCodeDisplay').innerHTML = '<i class="bi bi-qr-code" style="font-size:8rem; color:#333;"></i>';
     openModal('qrCodeModal');
 }
-function activateFromView() {
-    alert('Beneficiary activated successfully.');
-    closeModal('viewBeneficiaryModal');
+
+function timeToMinutes(timeStr) {
+    if (!timeStr) return 0;
+    const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)?$/i);
+    if (!match) return 0;
+    
+    let hours = parseInt(match[1]);
+    const minutes = parseInt(match[2]);
+    const ampm = match[3];
+    
+    if (ampm) {
+        if (ampm.toUpperCase() === 'PM' && hours < 12) hours += 12;
+        if (ampm.toUpperCase() === 'AM' && hours === 12) hours = 0;
+    }
+    return hours * 60 + minutes;
 }
-function deactivateFromView() {
-    if (confirm('Are you sure you want to deactivate this beneficiary?')) {
-        alert('Beneficiary deactivated successfully.');
-        closeModal('viewBeneficiaryModal');
+
+async function renderDailyLog() {
+    const selectedDate = document.getElementById('dailyLogDateInput')?.value || '2026-04-12';
+    
+    const headerEl = document.getElementById('dailyLogDateHeader');
+    if (headerEl) {
+        const dateObj = new Date(selectedDate);
+        if (!isNaN(dateObj.getTime())) {
+            const options = { month: 'long', day: 'numeric', year: 'numeric' };
+            headerEl.textContent = dateObj.toLocaleDateString('en-US', options);
+        } else {
+            headerEl.textContent = selectedDate;
+        }
+    }
+    
+    const timelineEl = document.getElementById('dailyLogTimeline');
+    if (!timelineEl) return;
+    
+    const tasks = JSON.parse(localStorage.getItem('peso_daily_tasks')) || [];
+    const interviews = JSON.parse(localStorage.getItem('peso_interviews')) || [];
+    
+    const dailyTasks = tasks.filter(t => t.date === selectedDate).map(t => ({
+        id: t.id,
+        type: 'task',
+        time: t.time,
+        minutes: timeToMinutes(t.time),
+        description: t.description,
+        completed: !!t.completed
+    }));
+    
+    const dailyInterviews = interviews.filter(i => i.date === selectedDate).map(i => ({
+        id: i.id,
+        type: 'interview',
+        time: i.time,
+        minutes: timeToMinutes(i.time),
+        description: `Pre-qualification interview: ${i.applicant_name} (${i.programCode}) - Location: ${i.location}`,
+        completed: i.status === 'Completed'
+    }));
+    
+    const combined = [...dailyTasks, ...dailyInterviews].sort((a, b) => a.minutes - b.minutes);
+    
+    timelineEl.innerHTML = '';
+    
+    if (combined.length === 0) {
+        timelineEl.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-calendar-event fs-3 d-block mb-2"></i>No tasks or interviews logged for this day.</div>';
+        return;
+    }
+    
+    combined.forEach(item => {
+        const itemClass = item.completed ? 'completed' : '';
+        const timelineDotClass = item.completed ? 'completed' : '';
+        const checked = item.completed ? 'checked' : '';
+        const iconHTML = item.type === 'interview' ? 
+            `<span class="badge bg-info-subtle text-info-emphasis ms-2" style="font-size:0.7rem;"><i class="bi bi-people-fill me-1"></i>Interview</span>` : 
+            `<span class="badge bg-secondary-subtle text-secondary-emphasis ms-2" style="font-size:0.7rem;"><i class="bi bi-clipboard-check me-1"></i>Task</span>`;
+            
+        timelineEl.innerHTML += `
+            <div class="daily-timeline-item">
+                <div class="daily-timeline-dot ${timelineDotClass}"></div>
+                <div class="daily-timeline-time d-flex align-items-center">
+                    <span>${item.time}</span>
+                    ${iconHTML}
+                </div>
+                <div class="daily-timeline-card ${itemClass} d-flex align-items-start justify-content-between gap-3">
+                    <div class="daily-timeline-text" style="font-size: 0.9rem;">
+                        ${item.description}
+                    </div>
+                    <div class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" ${checked} style="cursor: pointer; width: 1.2rem; height: 1.2rem;" onchange="toggleDailyLogItem('${item.type}', '${item.id}', this.checked)">
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function toggleDailyLogItem(type, id, isChecked) {
+    if (type === 'task') {
+        let tasks = JSON.parse(localStorage.getItem('peso_daily_tasks')) || [];
+        const idx = tasks.findIndex(t => t.id === id);
+        if (idx !== -1) {
+            tasks[idx].completed = isChecked;
+            localStorage.setItem('peso_daily_tasks', JSON.stringify(tasks));
+            renderDailyLog();
+        }
+    } else if (type === 'interview') {
+        let interviews = JSON.parse(localStorage.getItem('peso_interviews')) || [];
+        const idx = interviews.findIndex(i => i.id === id);
+        if (idx !== -1) {
+            interviews[idx].status = isChecked ? 'Completed' : 'Scheduled';
+            localStorage.setItem('peso_interviews', JSON.stringify(interviews));
+            renderDailyLog();
+            renderInterviewsTable();
+        }
     }
 }
+
+function addCustomTask() {
+    const descInput = document.getElementById('newTaskDesc');
+    const timeInput = document.getElementById('newTaskTime');
+    const dateInput = document.getElementById('dailyLogDateInput');
+    
+    if (!descInput || !descInput.value.trim()) {
+        alert('Please enter a task description.');
+        return;
+    }
+    
+    const desc = descInput.value.trim();
+    const dateVal = dateInput?.value || '2026-04-12';
+    
+    const timeVal = timeInput?.value || '09:00';
+    const timeParts = timeVal.split(':');
+    let hours = parseInt(timeParts[0]);
+    const minutes = timeParts[1];
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const timeStr = `${hours}:${minutes} ${ampm}`;
+    
+    let tasks = JSON.parse(localStorage.getItem('peso_daily_tasks')) || [];
+    const newId = 'T' + (tasks.length + 1) + Date.now().toString().slice(-4);
+    
+    tasks.push({
+        id: newId,
+        date: dateVal,
+        time: timeStr,
+        description: desc,
+        completed: false
+    });
+    
+    localStorage.setItem('peso_daily_tasks', JSON.stringify(tasks));
+    
+    descInput.value = '';
+    renderDailyLog();
+    pushNotification('Task Logged', `New task added: "${desc}"`, 'update');
+}
+
+window.renderDailyLog = renderDailyLog;
+window.toggleDailyLogItem = toggleDailyLogItem;
+window.addCustomTask = addCustomTask;
+
+window.renderBeneficiariesTable = renderBeneficiariesTable;
+window.sortBeneficiaries = sortBeneficiaries;
+window.toggleBeneficiaryExpandRow = toggleBeneficiaryExpandRow;
+window.handleFileUploadPreview = handleFileUploadPreview;
+window.submitCreateBeneficiary = submitCreateBeneficiary;
+window.promptConfirmEditBeneficiary = promptConfirmEditBeneficiary;
+window.submitEditBeneficiary = submitEditBeneficiary;
+window.openActivateBeneficiaryModal = openActivateBeneficiaryModal;
+window.submitActivateBeneficiary = submitActivateBeneficiary;
+window.openDeactivateBeneficiaryModal = openDeactivateBeneficiaryModal;
+window.submitDeactivateBeneficiary = submitDeactivateBeneficiary;
+window.openActivateModalFromView = openActivateModalFromView;
+window.openDeactivateModalFromView = openDeactivateModalFromView;
 var sentNotifications = {
     'NOT-001': { date: 'Apr 10, 2026', recipient: 'Juan Dela Cruz', type: 'Email', subject: 'Interview Schedule', message: 'Your interview is scheduled on April 12, 2026 at 9:00 AM at PESO Office - Room 1.', status: 'Delivered' },
     'NOT-002': { date: 'Apr 10, 2026', recipient: 'Juan Dela Cruz', type: 'SMS', subject: 'Interview Schedule', message: 'Interview sched: Apr 12, 9AM, PESO Office Rm1.', status: 'Delivered' },
@@ -5177,6 +6818,101 @@ function editDistributionStatus(id) { openModal('editDistributionStatusModal'); 
 function viewInterviewDetails(id) { openModal('viewInterviewModal'); }
 function rescheduleInterview(id) { openModal('rescheduleInterviewModal'); }
 function viewNotification(id) { openModal('viewNotificationModal'); }
+
+function renderInterviewsTable() {
+    const interviews = JSON.parse(localStorage.getItem('peso_interviews')) || [];
+    const tbody = document.getElementById('interviewsTableBody');
+    if (!tbody) return;
+    
+    const searchVal = (document.getElementById('searchInterviews')?.value || '').toLowerCase().trim();
+    const dateFilter = document.getElementById('filterInterviewsDate')?.value || '';
+    const statusFilter = document.getElementById('filterInterviewsStatus')?.value || '';
+    
+    // Count stats before filtering
+    let scheduledCount = 0;
+    let completedCount = 0;
+    let pendingCount = 0;
+    let missedCount = 0;
+    
+    interviews.forEach(i => {
+        const st = (i.status || '').toLowerCase();
+        if (st === 'scheduled') scheduledCount++;
+        else if (st === 'completed') completedCount++;
+        else if (st === 'pending') pendingCount++;
+        else if (st === 'missed') missedCount++;
+    });
+    
+    // Update card widgets
+    const scEl = document.getElementById('intCardScheduled');
+    const ccEl = document.getElementById('intCardCompleted');
+    const pcEl = document.getElementById('intCardPending');
+    const mcEl = document.getElementById('intCardMissed');
+    
+    if (scEl) scEl.textContent = scheduledCount;
+    if (ccEl) ccEl.textContent = completedCount;
+    if (pcEl) pcEl.textContent = pendingCount;
+    if (mcEl) mcEl.textContent = missedCount;
+    
+    tbody.innerHTML = '';
+    
+    const filtered = interviews.filter(i => {
+        const matchesSearch = !searchVal || 
+            (i.applicant_name || '').toLowerCase().includes(searchVal) ||
+            (i.id || '').toLowerCase().includes(searchVal) ||
+            (i.location || '').toLowerCase().includes(searchVal);
+            
+        const matchesDate = !dateFilter || i.date === dateFilter;
+        const matchesStatus = !statusFilter || (i.status || '').toLowerCase() === statusFilter.toLowerCase();
+        
+        return matchesSearch && matchesDate && matchesStatus;
+    });
+    
+    filtered.forEach(i => {
+        let statusClass = 'pending';
+        const stLower = (i.status || '').toLowerCase();
+        if (stLower === 'completed') statusClass = 'approved';
+        else if (stLower === 'scheduled') statusClass = 'for-review';
+        else if (stLower === 'missed') statusClass = 'danger';
+        
+        tbody.innerHTML += `
+            <tr>
+                <td>#${i.id}</td>
+                <td><strong>${i.applicant_name}</strong></td>
+                <td><span class="badge bg-secondary-subtle text-dark" style="font-weight: 700;">${i.programCode}</span></td>
+                <td>${i.date}</td>
+                <td>${i.time}</td>
+                <td>${i.location}</td>
+                <td><span class="status-badge ${statusClass}">${i.status}</span></td>
+                <td>
+                    <select class="form-select form-select-sm d-inline-block w-auto" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onchange="updateInterviewStatus('${i.id}', this.value)">
+                        <option value="Scheduled" ${i.status === 'Scheduled' ? 'selected' : ''}>Scheduled</option>
+                        <option value="Completed" ${i.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                        <option value="Pending" ${i.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                        <option value="Missed" ${i.status === 'Missed' ? 'selected' : ''}>Missed</option>
+                    </select>
+                </td>
+            </tr>
+        `;
+    });
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-calendar-x fs-4 d-block mb-2"></i>No interviews scheduled matching filters.</td></tr>';
+    }
+}
+
+function updateInterviewStatus(id, newStatus) {
+    let interviews = JSON.parse(localStorage.getItem('peso_interviews')) || [];
+    const idx = interviews.findIndex(i => i.id === id);
+    if (idx !== -1) {
+        interviews[idx].status = newStatus;
+        localStorage.setItem('peso_interviews', JSON.stringify(interviews));
+        renderInterviewsTable();
+        pushNotification('Interview Status Updated', `Interview #${id} marked as ${newStatus}.`, 'update');
+    }
+}
+
+window.renderInterviewsTable = renderInterviewsTable;
+window.updateInterviewStatus = updateInterviewStatus;
 function sendNotification() {
     pushNotification('SMS Broadcast Dispatched', 'Broadcast notification dispatched successfully.', 'alert');
     alert('Sent!');
@@ -5192,6 +6928,15 @@ function updateCompletionStatus() {
 document.addEventListener('DOMContentLoaded', function() {
     try { initCharts(); } catch(e) {}
     try { initNavigation(); } catch(e) {}
+    
+    // Wire up Livelihood application table search & filter listeners
+    const searchLivelihoodInput = document.getElementById('searchLivelihood');
+    const filterLivelihoodProgramSel = document.getElementById('filterLivelihoodProgram');
+    const filterLivelihoodStatusSel = document.getElementById('filterLivelihoodStatus');
+    
+    if (searchLivelihoodInput) searchLivelihoodInput.addEventListener('input', renderLivelihoodTable);
+    if (filterLivelihoodProgramSel) filterLivelihoodProgramSel.addEventListener('change', renderLivelihoodTable);
+    if (filterLivelihoodStatusSel) filterLivelihoodStatusSel.addEventListener('change', renderLivelihoodTable);
 });
 
 var programChartInstance = null;
@@ -5206,87 +6951,12 @@ function getChartColors(isDark) {
 
 function initCharts() {
     try {
-        var isDark = localStorage.getItem('theme') === 'dark';
-        var colors = getChartColors(isDark);
-        var activeLang = localStorage.getItem('lang') || 'en';
-        var dict = translations[activeLang] || translations['en'];
-
-        var ctx = document.getElementById('programChart');
-        if (ctx) {
-            if (programChartInstance) programChartInstance.destroy();
-            programChartInstance = new Chart(ctx.getContext('2d'), { 
-                type: 'bar', 
-                data: { 
-                    labels: ['SPES','TUPAD'], 
-                    datasets: [{ 
-                        label: dict['chart_label_this_month'], 
-                        data: [28,45], 
-                        backgroundColor: ['rgba(215,127,161,0.8)','rgba(108,91,123,0.8)'], 
-                        borderWidth: 1 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    scales: { 
-                        y: { 
-                            beginAtZero: true,
-                            grid: { color: colors.gridColor },
-                            ticks: { color: colors.textColor }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: colors.textColor }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: { color: colors.textColor }
-                        }
-                    }
-                }
-            });
-        }
-        
-        var ctx2 = document.getElementById('approvalChart');
-        if (ctx2) {
-            if (approvalChartInstance) approvalChartInstance.destroy();
-            approvalChartInstance = new Chart(ctx2.getContext('2d'), { 
-                type: 'line', 
-                data: { 
-                    labels: ['Jan','Feb','Mar','Apr'], 
-                    datasets: [{ 
-                        label: dict['chart_label_approvals'], 
-                        data: [12,19,25,18], 
-                        borderColor: 'rgba(40,167,69,1)', 
-                        backgroundColor: 'rgba(40,167,69,0.1)', 
-                        fill: true 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { 
-                        y: { 
-                            beginAtZero: true,
-                            grid: { color: colors.gridColor },
-                            ticks: { color: colors.textColor }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: colors.textColor }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: { color: colors.textColor }
-                        }
-                    }
-                } 
-            });
-        }
+        initPESODatabase();
+        const apps = JSON.parse(localStorage.getItem('peso_applications')) || [];
+        const progs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+        initChartsData(apps, progs);
     } catch(e) {
-        console.error(e);
+        console.error('Error delegating charts initialization:', e);
     }
 }
 
@@ -5935,6 +7605,42 @@ function initPESODatabase() {
             { id: "A2", beneficiaryId: "B2", programId: "P2", contact: "+639987654321", requirements: "Barangay Clearance, Work Contract", status: "Active" }
         ];
         localStorage.setItem('peso_assignments', JSON.stringify(defaultAssignments));
+    }
+    if (!localStorage.getItem('peso_applications')) {
+        const defaultApps = [
+            { id: "LIV-2026-0001", application_number: "PESO-2026-0001", beneficiary_id: "B1", beneficiary_name: "Juan Dela Cruz", programId: "P2", programCode: "TUPAD", program_name: "Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers", status: "Pending", progress_percent: 20, remarks: "Barangay clearance pending verification", date_applied: "2026-04-08", Purok: "Purok 1", Barangay: "Zone I", age: 36, contact: "0912-345-6789", sex: "Male" },
+            { id: "LIV-2026-0002", application_number: "PESO-2026-0002", beneficiary_id: "B2", beneficiary_name: "Maria Garcia", programId: "P1", programCode: "SPES", program_name: "Special Program for Employment of Students", status: "Under Review", progress_percent: 50, remarks: "Documents are being evaluated", date_applied: "2026-04-07", Purok: "Purok 2", Barangay: "Sto. Nino", age: 41, contact: "0913-456-7890", sex: "Female" },
+            { id: "LIV-2026-0003", application_number: "PESO-2026-0003", beneficiary_id: "B3", beneficiary_name: "Pedro Santos", programId: "P3", programCode: "Skills Training", program_name: "Livelihood/Skills Training Program", status: "Interview Scheduled", progress_percent: 75, remarks: "Interview scheduled on April 12, 2026", date_applied: "2026-04-06", Purok: "Purok 3", Barangay: "Mabini", age: 34, contact: "0914-567-8901", sex: "Male" },
+            { id: "LIV-2026-0004", application_number: "PESO-2026-0004", beneficiary_id: "B4", beneficiary_name: "Ana Reyes", programId: "P4", programCode: "GIP", program_name: "Government Internship Program", status: "Approved", progress_percent: 100, remarks: "Internship approved", date_applied: "2026-04-05", Purok: "Purok 4", Barangay: "Morales", age: 38, contact: "0915-678-9012", sex: "Female" }
+        ];
+        localStorage.setItem('peso_applications', JSON.stringify(defaultApps));
+    }
+    if (!localStorage.getItem('peso_interviews')) {
+        const defaultInterviews = [
+            { id: "INT-2026-0089", applicant_name: "Pedro Santos", programCode: "Skills Training", date: "2026-04-12", time: "09:00 AM", location: "PESO Office - Room 1", status: "Scheduled", remarks: "Pre-qualification for Bread & Pastry Course" },
+            { id: "INT-2026-0088", applicant_name: "Maria Garcia", programCode: "SPES", date: "2026-04-11", time: "02:00 PM", location: "PESO Office - Room 2", status: "Scheduled", remarks: "SPES Document review and screening" },
+            { id: "INT-2026-0087", applicant_name: "Juan Dela Cruz", programCode: "TUPAD", date: "2026-04-10", time: "10:00 AM", location: "PESO Office - Room 1", status: "Completed", remarks: "TUPAD cleanup eligibility cleared" },
+            { id: "INT-2026-0086", applicant_name: "Ana Reyes", programCode: "GIP", date: "2026-04-08", time: "11:00 AM", location: "PESO Office - Room 1", status: "Pending", remarks: "Rescheduled Intern placement interview" },
+            { id: "INT-2026-0085", applicant_name: "Roberto Cruz", programCode: "KEEP", date: "2026-04-05", time: "01:30 PM", location: "PESO Office - Room 2", status: "Missed", remarks: "No-show for interview" }
+        ];
+        localStorage.setItem('peso_interviews', JSON.stringify(defaultInterviews));
+    }
+    if (!localStorage.getItem('peso_daily_tasks')) {
+        const defaultTasks = [
+            { id: "T1", date: "2026-04-12", time: "08:30 AM", description: "Livelihood orientation presentation setup", completed: true },
+            { id: "T2", date: "2026-04-12", time: "10:30 AM", description: "Audit incomplete document list and update flags", completed: false },
+            { id: "T3", date: "2026-04-12", time: "01:30 PM", description: "Review budget usage reports for SPES and GIP", completed: false },
+            { id: "T4", date: "2026-04-11", time: "09:00 AM", description: "Submit TUPAD monthly milestone summary report", completed: true }
+        ];
+        localStorage.setItem('peso_daily_tasks', JSON.stringify(defaultTasks));
+    if (!localStorage.getItem('peso_beneficiary_audit_logs')) {
+        const defaultBenAudits = [
+            { id: "AUDIT-BEN-101", action: "CREATE", beneficiaryId: "BEN-2026-0001", beneficiaryName: "Juan Dela Cruz", officerName: "Jane Smith", timestamp: "2026-04-10T09:30:00.000Z", details: "Initial account creation with PhilHealth ID and Barangay clearance" },
+            { id: "AUDIT-BEN-102", action: "ACTIVATE", beneficiaryId: "BEN-2026-0001", beneficiaryName: "Juan Dela Cruz", officerName: "Jane Smith", timestamp: "2026-04-10T09:35:00.000Z", details: "Account activated upon document verification" },
+            { id: "AUDIT-BEN-103", action: "UPDATE", beneficiaryId: "BEN-2026-0002", beneficiaryName: "Maria Garcia", officerName: "Jane Smith", timestamp: "2026-04-11T14:20:00.000Z", details: "Updated contact number to 0913-456-7890 and address to Purok 2, Sto. Nino" },
+            { id: "AUDIT-BEN-104", action: "DEACTIVATE", beneficiaryId: "BEN-2026-0003", beneficiaryName: "Pedro Santos", officerName: "Jane Smith", timestamp: "2026-04-11T16:45:00.000Z", details: "Reason: Non-compliance with program guidelines - Failed to submit required Barangay clearance after 30 days notice" }
+        ];
+        localStorage.setItem('peso_beneficiary_audit_logs', JSON.stringify(defaultBenAudits));
     }
 }
 
