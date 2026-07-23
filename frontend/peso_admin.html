@@ -7207,36 +7207,58 @@
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
             let tableHtml = `
-                <div class="table-responsive">
-                    <table class="table table-bordered border-dark-subtle text-center align-middle" style="font-size: 0.75rem;">
+                <div class="table-responsive" style="overflow-x: auto;">
+                    <table class="table table-bordered text-center align-middle m-0" style="font-size: 0.72rem; table-layout: fixed; width: 100%; min-width: 600px;">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width: 80px;">Time</th>
-                                ${days.map(d => `<th>${d}</th>`).join('')}
+                                <th style="width: 75px;">Time</th>
+                                ${days.map(d => `<th style="width: 13.2%;">${d}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody>
             `;
 
-            hours.forEach(hour => {
-                tableHtml += `<tr><td class="fw-bold bg-light text-muted">${hour}</td>`;
+            hours.forEach((hour, hIdx) => {
+                tableHtml += `<tr><td class="fw-bold bg-light text-muted p-1" style="font-size: 0.68rem; width: 75px; white-space: nowrap;">${hour}</td>`;
                 days.forEach((day, dayIdx) => {
                     const daySchedules = schedules.filter(s => s.status === 'Active' || s.status === 'Scheduled');
                     let evCardHtml = '';
 
-                    if (daySchedules.length > 0 && dayIdx < 5) {
-                        const ev = daySchedules[dayIdx % daySchedules.length];
+                    // Match schedule assigned to this day/hour slot cleanly
+                    const matchingSched = daySchedules.find(s => {
+                        const sDate = new Date(s.from || s.dateTime);
+                        if (isNaN(sDate.getTime())) return false;
+                        const dDay = sDate.getDay(); // 0=Sun, 1=Mon...
+                        const targetDayNum = (dayIdx + 1) % 7;
+                        if (dDay !== targetDayNum) return false;
+                        const sHour = sDate.getHours();
+                        return sHour === (hIdx + 8);
+                    });
+
+                    if (matchingSched) {
+                        const ev = matchingSched;
                         const prog = programs.find(p => p.id === ev.programId) || { code: 'PESO' };
+                        let bgStyle = 'background-color: #4f46e5;';
+                        if (prog.code === 'SPES') bgStyle = 'background-color: #4f46e5;';
+                        else if (prog.code === 'TUPAD') bgStyle = 'background-color: #059669;';
+                        else if (ev.type === 'Training' || prog.code.includes('Train')) bgStyle = 'background-color: #d97706;';
+                        else if (prog.code === 'CKGIP' || prog.code === 'GIP') bgStyle = 'background-color: #7c3aed;';
+
                         evCardHtml = `
-                            <div class="p-1 rounded text-white fw-bold shadow-sm" style="background-color: #4f46e5; font-size: 0.68rem; cursor: pointer;" draggable="true" ondragstart="handleScheduleDragStart(event, '${ev.id}')" onclick="openScheduleDetailModal('${ev.id}')">
-                                <div>${prog.code} - ${ev.type}</div>
-                                <small class="fw-normal text-white-50 d-block">${ev.location}</small>
+                            <div class="p-1 rounded text-white fw-bold shadow-sm text-start" 
+                                 style="${bgStyle} font-size: 0.65rem; line-height: 1.2; cursor: pointer; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 100%;" 
+                                 draggable="true" 
+                                 ondragstart="handleScheduleDragStart(event, '${ev.id}')" 
+                                 onclick="openScheduleDetailModal('${ev.id}')"
+                                 title="${ev.title} (${prog.code}) | ${ev.location}">
+                                <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;"><i class="bi bi-clock-fill me-1 opacity-75"></i>${prog.code}: ${ev.title}</div>
+                                <div style="font-weight: normal; opacity: 0.85; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" class="small"><i class="bi bi-geo-alt-fill me-1"></i>${ev.location}</div>
                             </div>
                         `;
                     }
 
                     tableHtml += `
-                        <td style="height: 50px; vertical-align: top;" ondragover="event.preventDefault()" ondrop="handleScheduleDrop(event, '${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15')">
+                        <td style="height: 48px; min-width: 0; width: 13.2%; vertical-align: top; padding: 3px; overflow: hidden;" ondragover="event.preventDefault()" ondrop="handleScheduleDrop(event, '${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15')">
                             ${evCardHtml}
                         </td>
                     `;
