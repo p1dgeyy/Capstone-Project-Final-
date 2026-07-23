@@ -362,6 +362,64 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('[USERS] DELETE /:id error:', error.message);
     return res.status(500).json({ success: false, message: 'Internal server error.' });
+// =============================================================================
+// GET /api/users/beneficiary-by-qr/:qrCode
+// Quick retrieval of beneficiary profile, applications, and documents via QR scan
+// =============================================================================
+router.get('/beneficiary-by-qr/:qrCode', async (req, res) => {
+  let connection;
+  try {
+    const rawQr = req.params.qrCode ? req.params.qrCode.trim() : '';
+    // Support formats like "BEN-6", "USER-6", "6", "juan_dela_cruz", or JSON string
+    let parsedId = rawQr;
+    if (rawQr.startsWith('{')) {
+      try {
+        const obj = JSON.parse(rawQr);
+        parsedId = obj.id || obj.user_id || obj.username || rawQr;
+      } catch (e) {}
+    } else if (rawQr.includes('-')) {
+      const parts = rawQr.split('-');
+      parsedId = parts[parts.length - 1];
+    }
+
+    connection = await pool.getConnection();
+
+    // Query user by ID or username or email
+    const [userRows] = await connection.execute(
+      `SELECT \`id\`, \`username\`, \`role\`, \`first_name\`, \`middle_name\`, \`last_name\`, \`suffix\`,
+              \`age\`, \`date_of_birth\`, \`sex\`, \`nationality\`, \`marital_status\`,
+              \`email\`, \`phone\`, \`address\`, \`id_type\`, \`id_file_path\`,
+              \`terms_agreed\`, \`data_consent\`, \`created_at\`
+       FROM \`users\`
+       WHERE \`id\` = ? OR \`username\` = ? OR \`email\` = ?
+       LIMIT 1`,
+      [parsedId, rawQr, rawQr]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Beneficiary not found for the provided QR code.' });
+    }
+
+    const beneficiary = userRows[0];
+
+    // Query submitted applications for this beneficiary
+    const [appRows] = await connection.execute(
+      `SELECT a.*, p.code AS program_code, p.name AS program_name, p.agency
+       FROM \`applications\` a
+       JOIN \`programs\` p ON a.program_id = p.id
+       WHERE a.beneficiary_id = ?
+       ORDER BY a.created_at DESC`,
+      [beneficiary.id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      beneficiary,
+      applications: appRows
+    });
+  } catch (error) {
+    console.error('[USERS] GET /beneficiary-by-qr/:qrCode error:', error.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
   } finally {
     if (connection) connection.release();
   }

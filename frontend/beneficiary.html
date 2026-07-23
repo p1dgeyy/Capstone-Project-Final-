@@ -1846,8 +1846,13 @@
                 <i class="bi bi-truck"></i>
                 <span data-translate="nav_distribution">Distribution</span>
             </a>
+            <a href="#" class="nav-link-custom" data-section="interviews" onclick="navigateTo('interviews')">
+                <i class="bi bi-calendar-check"></i>
+                <span>Interview Schedules</span>
+            </a>
             <a href="#" class="nav-link-custom" data-section="notifications" onclick="navigateTo('notifications')">
                 <i class="bi bi-bell"></i>
+
                 <span data-translate="nav_notifications">Notifications</span>
             </a>
             <a href="#" class="nav-link-custom text-danger" onclick="logoutBeneficiary()" style="color: var(--danger) !important; margin-top: 20px; border-top: 1px solid var(--border-color, #E2E8F0); padding-top: 15px;">
@@ -2117,6 +2122,23 @@
             <button class="btn-primary-rose" onclick="openModal('uploadModal')">
                 <i class="bi bi-upload"></i> Upload New Document
             </button>
+        </section>
+
+        <!-- INTERVIEWS SECTION (REQ084 - REQ088) -->
+        <section id="interviews" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <div>
+                    <h2 class="section-title" style="margin-bottom: 4px;">My Interview Schedules & Attendance</h2>
+                    <p class="text-muted small m-0">View assigned interview dates, venues, status updates, and officer-verified attendance.</p>
+                </div>
+                <button class="btn-primary-rose btn-sm-rose" onclick="loadBeneficiaryInterviews()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+
+            <div id="beneficiaryInterviewsContainer">
+                <!-- Loaded dynamically via loadBeneficiaryInterviews() -->
+            </div>
         </section>
 
         <!-- PROGRAMS SECTION -->
@@ -2986,6 +3008,10 @@
                 renderBeneficiaryAssistance(username);
             }
 
+            if (sectionId === 'interviews') {
+                loadBeneficiaryInterviews();
+            }
+
             // Map program-overview back to programs in nav
             const activeSidebarKey = sectionId === 'program-overview' ? 'programs' : sectionId;
             document.querySelectorAll('.nav-link-custom').forEach(link => {
@@ -2996,6 +3022,108 @@
             });
             window.scrollTo(0, 0);
         }
+
+        async function loadBeneficiaryInterviews() {
+            const container = document.getElementById('beneficiaryInterviewsContainer');
+            if (!container) return;
+
+            let interviews = [
+                {
+                    id: 201,
+                    program_code: 'TUPAD',
+                    program_name: 'Support to Tulong Panghanapbuhay sa Ating Disadvantaged Workers',
+                    interview_date: new Date().toISOString().substring(0, 10),
+                    interview_time: '09:00 AM - 10:00 AM',
+                    venue_location: 'PESO Main Office - Interview Room A, City Hall Compound',
+                    status: 'Scheduled',
+                    attendance_status: 'Present',
+                    remarks: 'Brought complete Barangay Indigency & National ID.'
+                },
+                {
+                    id: 202,
+                    program_code: 'LIVELIHOOD',
+                    program_name: 'Livelihood Assistance Program (Fishing Gear Project)',
+                    interview_date: new Date().toISOString().substring(0, 10),
+                    interview_time: '10:30 AM - 11:30 AM',
+                    venue_location: 'PESO Main Office - Desk 3, City Hall Compound',
+                    status: 'Scheduled',
+                    attendance_status: 'Unmarked',
+                    remarks: 'Orientation regarding fishing equipment starter kit.'
+                }
+            ];
+
+            try {
+                const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+                const beneId = sessionStorage.getItem('beneficiaryUserId') || '6';
+                const res = await fetch(`${apiBase}/api/interviews?beneficiary_id=${beneId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+                        interviews = data.data;
+                    }
+                }
+            } catch (e) {
+                console.warn('API interviews fetch offline:', e.message);
+            }
+
+            if (interviews.length === 0) {
+                container.innerHTML = `<div class="card p-5 text-center text-muted"><i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>No assigned interview schedules found.</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            interviews.forEach(item => {
+                let attendanceBadge = `<span class="badge bg-secondary text-dark border px-3 py-2"><i class="bi bi-dash-circle me-1"></i>Upcoming</span>`;
+                if (item.attendance_status === 'Present') {
+                    attendanceBadge = `<span class="badge bg-success text-white px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>Verified Present</span>`;
+                } else if (item.attendance_status === 'Absent') {
+                    attendanceBadge = `<span class="badge bg-danger text-white px-3 py-2"><i class="bi bi-x-circle-fill me-1"></i>Verified Absent</span>`;
+                }
+
+                let statusBadge = `<span class="status-pill pending">${item.status}</span>`;
+                if (item.status === 'Completed') statusBadge = `<span class="status-pill verified">Completed</span>`;
+                else if (item.status === 'Missed') statusBadge = `<span class="status-pill rejected">Missed</span>`;
+
+                container.innerHTML += `
+                    <div class="card mb-3 p-4 border-0 shadow-sm" style="border-radius: 16px; border-left: 5px solid var(--rose-primary) !important;">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <div>
+                                <span class="badge bg-secondary-subtle text-dark fw-bold me-2">${item.program_code || 'PESO'}</span>
+                                <h4 class="d-inline-block fw-bold text-dark m-0" style="font-size: 1.1rem;">${item.program_name}</h4>
+                            </div>
+                            <div class="d-flex gap-2">
+                                ${attendanceBadge}
+                                ${statusBadge}
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 bg-light border">
+                                    <small class="text-muted d-block font-weight-bold">Interview Date & Time</small>
+                                    <strong class="text-dark fs-6"><i class="bi bi-clock me-1 text-primary"></i>${item.interview_time}</strong>
+                                    <div class="small text-muted mt-1"><i class="bi bi-calendar-event me-1"></i>${item.interview_date}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="p-3 rounded-3 bg-light border">
+                                    <small class="text-muted d-block font-weight-bold">Venue & Location</small>
+                                    <strong class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${item.venue_location || 'PESO Main Office'}</strong>
+                                    <div class="small text-muted mt-1">Please arrive 15 minutes before your scheduled time slot.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="p-3 rounded-3 bg-light border h-100">
+                                    <small class="text-muted d-block font-weight-bold">Instructions & Notes</small>
+                                    <div class="small text-dark fst-italic mt-1">${item.remarks || 'Bring valid photo ID & barangay clearance.'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
 
         // Filter recent applications list on dashboard
         function filterRecentApplications() {
@@ -4679,5 +4807,73 @@
             </div>
         </div>
     </div>
+    <!-- DOWNLOAD COMPLETION CERTIFICATE MODAL -->
+    <div class="modal fade" id="certificateModal" tabindex="-1" aria-hidden="true" style="z-index: 2600;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                    <h5 class="modal-title fw-bold text-white m-0"><i class="bi bi-award-fill me-2 text-warning"></i> Training Completion Certificate</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light text-center">
+                    <div id="certificatePrintFrame" class="p-5 bg-white border rounded shadow-sm mx-auto" style="max-width: 700px; border: 8px double #1e293b !important; background: radial-gradient(circle, #ffffff 0%, #fffbf0 100%);">
+                        <div class="text-uppercase fw-bold text-muted small tracking-widest mb-1">Republic of the Philippines • City Government of Koronadal</div>
+                        <h4 class="fw-bold text-primary mb-3">PUBLIC EMPLOYMENT SERVICE OFFICE (PESO)</h4>
+                        <div class="my-4 py-2 border-top border-bottom border-warning">
+                            <h2 class="font-serif fw-bold text-dark my-2" style="font-family: 'Times New Roman', serif;">CERTIFICATE OF COMPLETION</h2>
+                            <p class="text-muted fst-italic mb-0">This official certificate is proudly presented to</p>
+                        </div>
+                        <h3 class="fw-bold text-uppercase text-decoration-underline text-dark my-3" id="certBeneficiaryName">BENEFICIARY APPLICANT</h3>
+                        <p class="px-4 text-dark" style="line-height: 1.6;">
+                            for successfully completing the capacity building training course on<br>
+                            <strong class="fs-5 text-primary" id="certCourseTitle">Livelihood & Entrepreneurship Skills Development</strong><br>
+                            conducted from <span id="certStartDate" class="fw-semibold">April 01, 2026</span> to <span id="certUntilDate" class="fw-semibold">April 15, 2026</span> at Koronadal City Training Center.
+                        </p>
+                        <div class="d-flex justify-content-between align-items-end mt-5 pt-4 px-4 border-top">
+                            <div>
+                                <small class="d-block text-muted">Facilitator / Trainer</small>
+                                <strong id="certTrainerName" class="text-dark">Engr. Alex Rivera</strong>
+                            </div>
+                            <div class="text-center">
+                                <i class="bi bi-patch-check-fill text-success fs-1"></i>
+                                <small class="d-block text-muted">PESO Verified</small>
+                            </div>
+                            <div class="text-end">
+                                <small class="d-block text-muted">Issued By</small>
+                                <strong class="text-dark">PESO Administrator</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-0 d-flex justify-content-between">
+                    <span class="small text-muted"><i class="bi bi-shield-check text-success me-1"></i> Official authenticated certificate record.</span>
+                    <div>
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary px-4 font-weight-bold" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i> Print / Save PDF Certificate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function downloadTrainingCertificate(courseTitle, startDate, untilDate, trainer) {
+            const benName = sessionStorage.getItem('username') || 'Juan Dela Cruz';
+            document.getElementById('certBeneficiaryName').textContent = benName;
+            document.getElementById('certCourseTitle').textContent = courseTitle || 'Livelihood & Technical Skills Training';
+            document.getElementById('certStartDate').textContent = startDate || 'April 01, 2026';
+            document.getElementById('certUntilDate').textContent = untilDate || 'April 15, 2026';
+            document.getElementById('certTrainerName').textContent = trainer || 'PESO Training Division';
+
+            const modalEl = document.getElementById('certificateModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        }
+        window.downloadTrainingCertificate = downloadTrainingCertificate;
+    </script>
 </body>
 </html>

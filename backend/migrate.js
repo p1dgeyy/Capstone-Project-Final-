@@ -71,7 +71,6 @@ async function runMigrations() {
     console.log('Database schema successfully initialized/verified.');
 
     // 3.5. Ensure current_session_token column exists on existing deployments
-    // (ALTER TABLE is idempotent-safe with the IF NOT EXISTS check below)
     try {
       const [columns] = await connection.query(
         "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'current_session_token'"
@@ -82,12 +81,118 @@ async function runMigrations() {
           "ALTER TABLE `users` ADD COLUMN `current_session_token` VARCHAR(128) DEFAULT NULL AFTER `data_consent`"
         );
         console.log('current_session_token column added successfully.');
-      } else {
-        console.log('current_session_token column already exists. Skipping.');
       }
     } catch (alterError) {
       console.warn('Warning: Could not verify/add current_session_token column:', alterError.message);
     }
+
+    // 3.6. Ensure officer/admin evaluation columns exist on applications table
+    try {
+      const appCols = ['officer_decision', 'officer_id', 'officer_notes', 'officer_action_at', 'admin_id', 'admin_notes', 'documents_json'];
+      for (const col of appCols) {
+        const [chk] = await connection.query(
+          "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'applications' AND COLUMN_NAME = ?",
+          [col]
+        );
+        if (chk.length === 0) {
+          console.log(`Adding ${col} column to applications table...`);
+          if (col === 'officer_decision') {
+            await connection.query("ALTER TABLE `applications` ADD COLUMN `officer_decision` ENUM('Approved', 'Denied', 'Pending Requirements', 'None') DEFAULT 'None'");
+          } else if (col === 'officer_id' || col === 'admin_id') {
+            await connection.query(`ALTER TABLE \`applications\` ADD COLUMN \`${col}\` INT DEFAULT NULL`);
+          } else if (col === 'officer_action_at') {
+            await connection.query("ALTER TABLE `applications` ADD COLUMN `officer_action_at` TIMESTAMP NULL DEFAULT NULL");
+          } else {
+            await connection.query(`ALTER TABLE \`applications\` ADD COLUMN \`${col}\` TEXT DEFAULT NULL`);
+          }
+        }
+      }
+
+      // Modify status ENUM to include Officer Approved / Officer Denied / Pending Requirements if needed
+      await connection.query(
+        "ALTER TABLE `applications` MODIFY COLUMN `status` ENUM('Pending', 'Pending Requirements', 'Under Review', 'Interview Scheduled', 'Training Scheduled', 'Officer Approved', 'Officer Denied', 'Approved', 'Rejected', 'Completed') DEFAULT 'Pending'"
+      );
+    } catch (appAlterErr) {
+      console.warn('Warning: Could not add applications evaluation columns:', appAlterErr.message);
+    }
+
+    // 3.7. Ensure audit_logs table exists
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`audit_logs\` (
+          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+          \`user_id\` INT NOT NULL,
+          \`action\` VARCHAR(100) NOT NULL,
+          \`entity_type\` VARCHAR(50) DEFAULT 'application',
+          \`entity_id\` INT DEFAULT NULL,
+          \`details\` TEXT DEFAULT NULL,
+          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT \`fk_audit_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
+          INDEX \`idx_audit_user\` (\`user_id\`),
+          INDEX \`idx_audit_action\` (\`action\`),
+          INDEX \`idx_audit_entity\` (\`entity_type\`, \`entity_id\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+      console.log('audit_logs table verified.');
+    } catch (auditErr) {
+      console.warn('Warning: Could not verify audit_logs table:', auditErr.message);
+    }
+
+    // 3.8. Ensure approved_assistance table exists (REQ082, REQ083)
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`approved_assistance\` (
+          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+          \`application_id\` INT DEFAULT NULL,
+          \`beneficiary_id\` INT NOT NULL,
+          \`program_id\` INT NOT NULL,
+          \`assistance_type\` VARCHAR(100) NOT NULL,
+          \`quantity_amount\` VARCHAR(255) NOT NULL,
+          \`conditions\` TEXT DEFAULT NULL,
+          \`approval_date\` DATE NOT NULL,
+          \`officer_id\` INT NOT NULL,
+          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT \`fk_ast_beneficiary\` FOREIGN KEY (\`beneficiary_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
+          CONSTRAINT \`fk_ast_program\` FOREIGN KEY (\`program_id\`) REFERENCES \`programs\` (\`id\`) ON DELETE CASCADE,
+          CONSTRAINT \`fk_ast_officer\` FOREIGN KEY (\`officer_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
+          INDEX \`idx_ast_beneficiary\` (\`beneficiary_id\`),
+          INDEX \`idx_ast_program\` (\`program_id\`),
+          INDEX \`idx_ast_date\` (\`approval_date\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+      console.log('approved_assistance table verified.');
+    // 3.9. Ensure interview_schedules table exists (REQ084 - REQ088)
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`interview_schedules\` (
+          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+          \`application_id\` INT DEFAULT NULL,
+          \`beneficiary_id\` INT NOT NULL,
+          \`program_id\` INT NOT NULL,
+          \`officer_id\` INT NOT NULL,
+          \`interview_date\` DATE NOT NULL,
+          \`interview_time\` VARCHAR(50) NOT NULL,
+          \`venue_location\` VARCHAR(255) NOT NULL DEFAULT 'PESO Main Office - Interview Room A',
+          \`status\` ENUM('Scheduled', 'Pending', 'Completed', 'Missed', 'Cancelled') DEFAULT 'Scheduled',
+          \`attendance_status\` ENUM('Unmarked', 'Present', 'Absent') DEFAULT 'Unmarked',
+          \`remarks\` TEXT DEFAULT NULL,
+          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          CONSTRAINT \`fk_int_beneficiary\` FOREIGN KEY (\`beneficiary_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
+          CONSTRAINT \`fk_int_program\` FOREIGN KEY (\`program_id\`) REFERENCES \`programs\` (\`id\`) ON DELETE CASCADE,
+          CONSTRAINT \`fk_int_officer\` FOREIGN KEY (\`officer_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
+          INDEX \`idx_int_beneficiary\` (\`beneficiary_id\`),
+          INDEX \`idx_int_date\` (\`interview_date\`),
+          INDEX \`idx_int_status\` (\`status\`),
+          INDEX \`idx_int_attendance\` (\`attendance_status\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+      console.log('interview_schedules table verified.');
+    } catch (intErr) {
+      console.warn('Warning: Could not verify interview_schedules table:', intErr.message);
+    }
+
+
 
     // 4. Determine if seeding is necessary
     // We only seed if the users table is empty to prevent overwriting production data

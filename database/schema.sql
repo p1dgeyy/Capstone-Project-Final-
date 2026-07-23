@@ -66,9 +66,16 @@ CREATE TABLE IF NOT EXISTS `applications` (
   `beneficiary_id` INT NOT NULL,
   `program_id` INT NOT NULL,
   `date_applied` DATE NOT NULL,
-  `status` ENUM('Pending', 'Under Review', 'Interview Scheduled', 'Training Scheduled', 'Approved', 'Rejected', 'Completed') DEFAULT 'Pending',
+  `status` ENUM('Pending', 'Pending Requirements', 'Under Review', 'Interview Scheduled', 'Training Scheduled', 'Officer Approved', 'Officer Denied', 'Approved', 'Rejected', 'Completed') DEFAULT 'Pending',
   `progress_percent` INT DEFAULT 0,
   `remarks` TEXT DEFAULT NULL,
+  `officer_decision` ENUM('Approved', 'Denied', 'Pending Requirements', 'None') DEFAULT 'None',
+  `officer_id` INT DEFAULT NULL,
+  `officer_notes` TEXT DEFAULT NULL,
+  `officer_action_at` TIMESTAMP NULL DEFAULT NULL,
+  `admin_id` INT DEFAULT NULL,
+  `admin_notes` TEXT DEFAULT NULL,
+  `documents_json` TEXT DEFAULT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
@@ -109,3 +116,69 @@ CREATE TABLE IF NOT EXISTS `distributions` (
   INDEX `idx_dist_date` (`distribution_date`),
   INDEX `idx_dist_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. AUDIT LOGS TABLE
+-- Tracks officer and administrator evaluation actions for governance and accountability
+CREATE TABLE IF NOT EXISTS `audit_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `action` VARCHAR(100) NOT NULL,
+  `entity_type` VARCHAR(50) DEFAULT 'application',
+  `entity_id` INT DEFAULT NULL,
+  `details` TEXT DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT `fk_audit_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  INDEX `idx_audit_user` (`user_id`),
+  INDEX `idx_audit_action` (`action`),
+  INDEX `idx_audit_entity` (`entity_type`, `entity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. APPROVED ASSISTANCE TABLE (REQ082, REQ083)
+-- Records approved aid details (type, quantity/amount, conditions, approval date, officer identity)
+CREATE TABLE IF NOT EXISTS `approved_assistance` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `application_id` INT DEFAULT NULL,
+  `beneficiary_id` INT NOT NULL,
+  `program_id` INT NOT NULL,
+  `assistance_type` VARCHAR(100) NOT NULL, -- e.g. 'Cash Grant', 'Starter Kit', 'Tools & Equipment', etc.
+  `quantity_amount` VARCHAR(255) NOT NULL, -- e.g. '₱ 10,000.00' or '2 Sewing Machines'
+  `conditions` TEXT DEFAULT NULL,
+  `approval_date` DATE NOT NULL,
+  `officer_id` INT NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT `fk_ast_beneficiary` FOREIGN KEY (`beneficiary_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_ast_program` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_ast_officer` FOREIGN KEY (`officer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  INDEX `idx_ast_beneficiary` (`beneficiary_id`),
+  INDEX `idx_ast_program` (`program_id`),
+  INDEX `idx_ast_date` (`approval_date`)
+-- 8. INTERVIEW SCHEDULES TABLE (REQ084 - REQ088)
+-- Stores assigned interview schedules, attendance tracking, and completion statuses
+CREATE TABLE IF NOT EXISTS `interview_schedules` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `application_id` INT DEFAULT NULL,
+  `beneficiary_id` INT NOT NULL,
+  `program_id` INT NOT NULL,
+  `officer_id` INT NOT NULL,
+  `interview_date` DATE NOT NULL,
+  `interview_time` VARCHAR(50) NOT NULL, -- e.g. '09:00 AM - 10:00 AM'
+  `venue_location` VARCHAR(255) NOT NULL DEFAULT 'PESO Main Office - Interview Room A',
+  `status` ENUM('Scheduled', 'Pending', 'Completed', 'Missed', 'Cancelled') DEFAULT 'Scheduled',
+  `attendance_status` ENUM('Unmarked', 'Present', 'Absent') DEFAULT 'Unmarked',
+  `remarks` TEXT DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  CONSTRAINT `fk_int_beneficiary` FOREIGN KEY (`beneficiary_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_int_program` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_int_officer` FOREIGN KEY (`officer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  INDEX `idx_int_beneficiary` (`beneficiary_id`),
+  INDEX `idx_int_date` (`interview_date`),
+  INDEX `idx_int_status` (`status`),
+  INDEX `idx_int_attendance` (`attendance_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+

@@ -73,12 +73,20 @@ const applicationRoutes = require('./routes/applications');
 const distributionRoutes = require('./routes/distributions');
 const notificationRoutes = require('./routes/notifications');
 const userRoutes = require('./routes/users');
+const auditLogRoutes = require('./routes/audit_logs');
+const assistanceRoutes = require('./routes/assistance');
+const interviewRoutes = require('./routes/interviews');
 
 app.use('/api/programs', programRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/distributions', distributionRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/assistance', assistanceRoutes);
+app.use('/api/interviews', interviewRoutes);
+
+
 
 // =============================================================================
 // Error Handling

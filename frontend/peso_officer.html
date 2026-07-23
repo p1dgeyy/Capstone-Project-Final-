@@ -8,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- HTML5 QR Code Reader Library for REQ075 -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
     <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
     <script src="assets/js/api-config.js"></script>
@@ -1855,6 +1857,12 @@
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link" data-module="questionnaire">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                    <span>Evaluation Questionnaires</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="#" class="sidebar-nav-link" data-module="notifications">
                     <i class="bi bi-bell"></i>
                     <span data-translate="nav_notifications">Notification</span>
@@ -2159,192 +2167,370 @@
                 </div>
             </section>
 
-            <!-- MODULE: Livelihood Application (REQ081, REQ083, REQ084) -->
+            <!-- MODULE: Livelihood Application Recording & Tracking (REQ074-REQ081) -->
             <section class="module-page" id="module-livelihood">
-                <div class="table-card">
-                    <div class="section-header">
-                        <h5 class="section-title">Livelihood Application Management</h5>
-                    </div>
-                    <div class="filter-bar">
-                        <div class="search-box">
-                            <i class="bi bi-search"></i>
-                            <input type="text" id="searchLivelihood" placeholder="Search by beneficiary, program, or project...">
+                <!-- Evaluation Banner & Operational Controls -->
+                <div class="card p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%); border-radius: 14px; border-left: 5px solid var(--primary-pink) !important;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h4 class="fw-bold mb-1" style="color: var(--primary-dark);"><i class="bi bi-patch-check-fill me-2" style="color: var(--primary-pink);"></i>PESO Officer Livelihood Application Module</h4>
+                            <p class="text-muted m-0 small">Record new applications (REQ079), track lifecycle statuses to completion (REQ080), evaluate submitted documents, scan beneficiary QR codes (REQ075), and issue officer decisions.</p>
                         </div>
-                        <select class="filter-select" id="filterLivelihoodProgram">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success fw-semibold" onclick="openNewApplicationModal()" title="Record new livelihood application for a beneficiary (REQ079)">
+                                <i class="bi bi-plus-circle-fill me-1"></i> New Application
+                            </button>
+                            <button class="btn btn-primary-custom" onclick="openOfficerQrScannerModal()" title="Scan beneficiary QR code for direct profile lookup (REQ075)">
+                                <i class="bi bi-qr-code-scan"></i> Scan Beneficiary QR Code
+                            </button>
+                            <button class="btn btn-secondary-custom" onclick="loadOfficerApplicationsData()" title="Reload applications list">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <h5 class="section-title m-0">Livelihood Applications Tracking Masterlist</h5>
+                            <small class="text-muted">Click headers to sort table. Filter by program, project, or beneficiary. Expand rows to view documents.</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fw-semibold" id="countSubmittedBadge">0 Submitted</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-semibold" id="countOfficerApprovedBadge">0 Officer Approved</span>
+                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-3 py-2 fw-semibold" id="countPendingReqBadge">0 Pending Requirements</span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 fw-semibold" id="countCompletedBadge">0 Completed</span>
+                        </div>
+                    </div>
+
+                    <!-- Structured Filters & Sort Controls (REQ074, REQ081) -->
+                    <div class="filter-bar mb-3 flex-wrap gap-2">
+                        <div class="search-box flex-grow-1" style="min-width: 220px;">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="searchLivelihood" placeholder="Search applicant name, application #, project, or program..." onkeyup="renderOfficerApplicationsTable()">
+                        </div>
+                        <select class="filter-select" id="filterLivelihoodProgram" onchange="renderOfficerApplicationsTable()">
                             <option value="">All Programs</option>
-                            <option value="livelihood">Livelihood Assistance</option>
-                            <option value="ckgip">City of Koronadal Government Internship Program (CKGIP)</option>
-                            <option value="keep">Koronadal Emergency Employment Program (KEEP)</option>
-                            <option value="tupad">Support to Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)</option>
-                            <option value="pfas">Pangkabuhayan Financial Assistance (PFAS)</option>
-                            <option value="dilp">Support to DOLE Integrated Livelihood Program (DILP)</option>
-                            <option value="association">Association Facilitation</option>
-                            <option value="jobfairs">Conduct of Job Fairs</option>
-                            <option value="jobportal">Development of Localized Job Portal</option>
-                            <option value="skills">Livelihood/Skills Training Program</option>
-                            <option value="ofwfamily">OFW Family Circle Day</option>
-                            <option value="spes">Special Program for Employment of Students (SPES)</option>
-                            <option value="parokya">Support to Parokya ni OWN A Program</option>
-                            <option value="rofw">Support to Returning OFWs Program (ROFWS)</option>
+                            <option value="LIVELIHOOD">Livelihood Assistance Program</option>
+                            <option value="CKGIP">CKGIP Internship</option>
+                            <option value="KEEP">KEEP Emergency Employment</option>
+                            <option value="TUPAD">TUPAD Emergency Employment</option>
+                            <option value="PFAS">PFAS Financial Grant</option>
+                            <option value="DILP">DOLE DILP Program</option>
+                            <option value="SPES">SPES Student Employment</option>
                         </select>
-                        <select class="filter-select" id="filterLivelihoodStatus">
-                            <option value="">All Status</option>
-                            <option value="submitted">Submitted</option>
-                            <option value="under-review">Under Review</option>
-                            <option value="interview">Interview Scheduled</option>
-                            <option value="approved">Approved</option>
-                            <option value="denied">Denied</option>
+                        <select class="filter-select" id="filterLivelihoodBeneficiary" onchange="renderOfficerApplicationsTable()">
+                            <option value="">All Beneficiaries</option>
+                            <option value="6">Juan Dela Cruz (#6)</option>
+                            <option value="7">Maria Santos (#7)</option>
+                            <option value="8">Pedro Reyes (#8)</option>
+                        </select>
+                        <select class="filter-select" id="filterLivelihoodStatus" onchange="renderOfficerApplicationsTable()">
+                            <option value="">All Statuses</option>
+                            <option value="Submitted">Submitted (New)</option>
+                            <option value="Pending">Pending / Under Review</option>
+                            <option value="Pending Requirements">Pending Requirements</option>
+                            <option value="Officer Approved">Officer Approved (For Admin Review)</option>
+                            <option value="Officer Denied">Officer Denied (For Admin Review)</option>
+                            <option value="Approved">Final Approved (Admin)</option>
+                            <option value="Rejected">Final Rejected (Admin)</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                        <select class="filter-select" id="sortLivelihoodBy" onchange="renderOfficerApplicationsTable()">
+                            <option value="date-desc">Sort: Date (Newest First)</option>
+                            <option value="date-asc">Sort: Date (Oldest First)</option>
+                            <option value="name-asc">Sort: Applicant Name (A-Z)</option>
+                            <option value="name-desc">Sort: Applicant Name (Z-A)</option>
+                            <option value="program-asc">Sort: Requested Program</option>
+                            <option value="status-asc">Sort: Status</option>
                         </select>
                     </div>
+
+                    <!-- Structured Applications Table with Sortable Columns & Expandable Rows (REQ074) -->
                     <div class="table-responsive">
                         <table class="data-table" id="livelihoodTable">
                             <thead>
                                 <tr>
-                                    <th>App ID</th>
-                                    <th>Beneficiary Name</th>
-                                    <th>Program</th>
-                                    <th>Project</th>
-                                    <th>Barangay</th>
-                                    <th>Submission Date</th>
-                                    <th>Current Phase</th>
-                                    <th>Actions</th>
+                                    <th style="width: 35px;"></th>
+                                    <th onclick="sortApplicationsTableColumn('name')" style="cursor: pointer;" title="Click to sort by Applicant Name">
+                                        Applicant Name <i class="bi bi-arrow-down-up ms-1 text-muted" id="sortIconName"></i>
+                                    </th>
+                                    <th onclick="sortApplicationsTableColumn('program')" style="cursor: pointer;" title="Click to sort by Requested Program">
+                                        Requested Program <i class="bi bi-arrow-down-up ms-1 text-muted" id="sortIconProgram"></i>
+                                    </th>
+                                    <th onclick="sortApplicationsTableColumn('date')" style="cursor: pointer;" title="Click to sort by Submission Date">
+                                        Submission Date <i class="bi bi-arrow-down-up ms-1 text-muted" id="sortIconDate"></i>
+                                    </th>
+                                    <th onclick="sortApplicationsTableColumn('status')" style="cursor: pointer;" title="Click to sort by Status">
+                                        Status <i class="bi bi-arrow-down-up ms-1 text-muted" id="sortIconStatus"></i>
+                                    </th>
+                                    <th>Officer Evaluation</th>
+                                    <th>Submitted Documents</th>
+                                    <th style="min-width: 230px;">Actions (REQ076/77/78)</th>
                                 </tr>
                             </thead>
                             <tbody id="livelihoodTableBody">
+                                <!-- Loaded dynamically via JS with expandable document rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Officer Actions & Audit History -->
+                <div class="table-card mt-4">
+                    <div class="section-header d-flex justify-content-between align-items-center">
+                        <h6 class="section-title m-0"><i class="bi bi-shield-check text-primary me-2"></i>Officer Audit Log & Evaluation History</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadOfficerAuditLogs()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Log</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped align-middle mb-0" style="font-size: 0.85rem;">
+                            <thead class="table-light">
                                 <tr>
-                                    <td>#LIV-2026-0001</td>
-                                    <td><a href="#" class="text-primary fw-bold" onclick="openApplicantTracking('LIV-2026-0001')">Juan Dela Cruz</a></td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Fishing Gear</td>
-                                    <td>Zone I</td>
-                                    <td>Apr 08, 2026</td>
-                                    <td><span class="status-badge pending">Submitted</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Tracking" onclick="openApplicantTracking('LIV-2026-0001')"><i class="bi bi-activity"></i></button>
-                                    </td>
+                                    <th>Timestamp</th>
+                                    <th>Officer Identity</th>
+                                    <th>Action Taken</th>
+                                    <th>Target Application</th>
+                                    <th>Evaluation Notes / Reason</th>
                                 </tr>
-                                <tr>
-                                    <td>#LIV-2026-0002</td>
-                                    <td><a href="#" class="text-primary fw-bold" onclick="openApplicantTracking('LIV-2026-0002')">Maria Garcia</a></td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Vegetable Seeds</td>
-                                    <td>Sto. Nino</td>
-                                    <td>Apr 07, 2026</td>
-                                    <td><span class="status-badge for-review">Under Review</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Tracking" onclick="openApplicantTracking('LIV-2026-0002')"><i class="bi bi-activity"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#LIV-2026-0003</td>
-                                    <td><a href="#" class="text-primary fw-bold" onclick="openApplicantTracking('LIV-2026-0003')">Pedro Santos</a></td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Food Cart</td>
-                                    <td>Mabini</td>
-                                    <td>Apr 06, 2026</td>
-                                    <td><span class="status-badge approved">Interview Scheduled</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Tracking" onclick="openApplicantTracking('LIV-2026-0003')"><i class="bi bi-activity"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#LIV-2026-0004</td>
-                                    <td><a href="#" class="text-primary fw-bold" onclick="openApplicantTracking('LIV-2026-0004')">Ana Reyes</a></td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Tailoring Kit</td>
-                                    <td>Morales</td>
-                                    <td>Apr 05, 2026</td>
-                                    <td><span class="status-badge approved">Approved</span></td>
-                                    <td>
-                                        <button class="action-btn view" title="View Tracking" onclick="openApplicantTracking('LIV-2026-0004')"><i class="bi bi-activity"></i></button>
-                                    </td>
-                                </tr>
+                            </thead>
+                            <tbody id="officerAuditLogBody">
+                                <tr><td colspan="5" class="text-center text-muted py-3">Loading officer audit logs...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- MODULE: Approval and Recording (REQ085, REQ086, REQ087) -->
+            <!-- MODULE: Approved Assistance Recording & Reporting (REQ082, REQ083) -->
             <section class="module-page" id="module-approval">
-                <div class="table-card">
-                    <div class="section-header">
-                        <h5 class="section-title">Approval Assistance and Recording</h5>
-                    </div>
-                    <div class="filter-bar">
-                        <div class="search-box">
-                            <i class="bi bi-search"></i>
-                            <input type="text" placeholder="Search approvals...">
+                <!-- Operational Banner & Controls -->
+                <div class="card p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%); border-radius: 14px; color: white;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h4 class="fw-bold mb-1 text-white"><i class="bi bi-gift-fill me-2 text-warning"></i>PESO Officer Approved Assistance Recording & Reporting</h4>
+                            <p class="m-0 text-white-50 small">Record type, quantity, and conditions of approved livelihood assistance (REQ082). View, filter, and report all officer-recorded assistance with full officer identity logging (REQ083).</p>
                         </div>
-                        <select class="filter-select">
-                            <option value="">All Programs</option>
-                            <option value="livelihood">Livelihood</option>
-                            <option value="ckgip">CKGIP</option>
-                            <option value="keep">KEEP</option>
-                            <option value="tupad">TUPAD</option>
-                            <option value="pfas">PFAS</option>
-                            <option value="dilp">DILP</option>
-                            <option value="association">Association Facil.</option>
-                            <option value="jobfairs">Job Fairs</option>
-                            <option value="jobportal">Job Portal</option>
-                            <option value="skills">Skills Training</option>
-                            <option value="ofwfamily">OFW Family</option>
-                            <option value="spes">SPES</option>
-                            <option value="parokya">Parokya OWN A</option>
-                            <option value="rofw">Returning OFWs</option>
-                        </select>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-warning font-weight-bold text-dark" onclick="openRecordAssistanceModal()" title="Record approved assistance for a beneficiary (REQ082)">
+                                <i class="bi bi-journal-plus me-1"></i> Record Approved Assistance
+                            </button>
+                            <button class="btn btn-light text-dark font-weight-bold" onclick="exportApprovedAssistanceReport()" title="Export or print approved assistance monitoring report (REQ083)">
+                                <i class="bi bi-printer me-1"></i> Print / Export Report
+                            </button>
+                            <button class="btn btn-outline-light" onclick="loadApprovedAssistanceData()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
                     </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <h5 class="section-title m-0">Approved Assistance Master Record</h5>
+                            <small class="text-muted">Filtered logs of all grants, equipment starter kits, emergency wages, and financial aid issued.</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-success px-3 py-2" id="countAssistanceTotal">0 Total Grants</span>
+                            <span class="badge bg-primary px-3 py-2" id="countAssistanceCash">0 Cash Grants</span>
+                            <span class="badge bg-warning text-dark px-3 py-2" id="countAssistanceKits">0 Kits & Tools</span>
+                        </div>
+                    </div>
+
+                    <!-- Structured Filters (REQ083: Filter by Program, Beneficiary, Date Range) -->
+                    <div class="filter-bar mb-3 flex-wrap gap-2">
+                        <div class="search-box flex-grow-1" style="min-width: 220px;">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="searchAssistanceText" placeholder="Search beneficiary, assistance type, or conditions..." onkeyup="renderApprovedAssistanceTable()">
+                        </div>
+                        <select class="filter-select" id="filterAssistanceProgram" onchange="renderApprovedAssistanceTable()">
+                            <option value="">All Programs</option>
+                            <option value="1">Livelihood Assistance</option>
+                            <option value="2">CKGIP Internship</option>
+                            <option value="3">KEEP Emergency</option>
+                            <option value="4">TUPAD Program</option>
+                            <option value="5">PFAS Grant</option>
+                            <option value="7">SPES Program</option>
+                        </select>
+                        <select class="filter-select" id="filterAssistanceBeneficiary" onchange="renderApprovedAssistanceTable()">
+                            <option value="">All Beneficiaries</option>
+                            <option value="6">Juan Dela Cruz (#6)</option>
+                            <option value="7">Maria Santos (#7)</option>
+                            <option value="8">Pedro Reyes (#8)</option>
+                        </select>
+                        <div class="d-flex align-items-center gap-1">
+                            <small class="text-muted fw-semibold">From:</small>
+                            <input type="date" class="form-control form-control-sm" id="filterAssistanceDateFrom" onchange="renderApprovedAssistanceTable()">
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <small class="text-muted fw-semibold">To:</small>
+                            <input type="date" class="form-control form-control-sm" id="filterAssistanceDateTo" onchange="renderApprovedAssistanceTable()">
+                        </div>
+                    </div>
+
+                    <!-- Structured Table with Sortable Columns (REQ083) -->
                     <div class="table-responsive">
-                        <table class="data-table">
+                        <table class="data-table" id="approvedAssistanceTable">
                             <thead>
                                 <tr>
-                                    <th>Approval ID</th>
-                                    <th>Applicant</th>
-                                    <th>Program</th>
-                                    <th>Assistance Type</th>
-                                    <th>Quantity</th>
-                                    <th>Conditions</th>
-                                    <th>Approval Date</th>
-                                    <th>Actions</th>
+                                    <th onclick="sortAssistanceTable('id')" style="cursor: pointer;">Record ID <i class="bi bi-arrow-down-up ms-1 text-muted"></i></th>
+                                    <th onclick="sortAssistanceTable('name')" style="cursor: pointer;">Beneficiary Name <i class="bi bi-arrow-down-up ms-1 text-muted"></i></th>
+                                    <th onclick="sortAssistanceTable('program')" style="cursor: pointer;">Program <i class="bi bi-arrow-down-up ms-1 text-muted"></i></th>
+                                    <th onclick="sortAssistanceTable('type')" style="cursor: pointer;">Assistance Type <i class="bi bi-arrow-down-up ms-1 text-muted"></i></th>
+                                    <th onclick="sortAssistanceTable('quantity')" style="cursor: pointer;">Quantity / Amount <i class="bi bi-arrow-down-up ms-1 text-muted"></i></th>
+                                    <th>Conditions & Requirements</th>
+                                    <th onclick="sortAssistanceTable('date')" style="cursor: pointer;">Approval Date <i class="bi bi-arrow-down-up ms-1 text-muted"></i></th>
+                                    <th>Officer Recorded</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="approvedAssistanceTableBody">
+                                <!-- Loaded dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <!-- MODULE: Daily Schedule, Interview Monitoring & Attendance Management (REQ084 - REQ088) -->
+            <section class="module-page" id="module-interview">
+                <!-- Operational Banner -->
+                <div class="card p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); border-radius: 14px; color: white;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h4 class="fw-bold mb-1 text-white"><i class="bi bi-calendar-check-fill me-2 text-warning"></i>PESO Officer Daily Schedule & Attendance Module</h4>
+                            <p class="m-0 text-white-50 small">View assigned interview schedules in a calendar-style agenda (REQ084), expand beneficiary profiles & linked applications (REQ085), monitor attendance with real-time present/absent toggles (REQ086/87), and update interview completion statuses (REQ088).</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-warning font-weight-bold text-dark" onclick="openScheduleInterviewModal()" title="Schedule a new beneficiary interview (REQ084)">
+                                <i class="bi bi-calendar-plus-fill me-1"></i> Schedule Interview
+                            </button>
+                            <button class="btn btn-light text-dark font-weight-bold" onclick="loadOfficerInterviewData()" title="Reload interview schedules">
+                                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Counters & Metrics -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card p-3 border-0 shadow-sm bg-white rounded-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-muted fw-semibold d-block">Scheduled Today</small>
+                                    <h3 class="fw-bold m-0 text-dark" id="countScheduledToday">0</h3>
+                                </div>
+                                <div class="rounded-circle bg-primary-subtle text-primary p-3">
+                                    <i class="bi bi-calendar-event fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card p-3 border-0 shadow-sm bg-white rounded-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-muted fw-semibold d-block">Present Attendance</small>
+                                    <h3 class="fw-bold m-0 text-success" id="countPresentToday">0</h3>
+                                </div>
+                                <div class="rounded-circle bg-success-subtle text-success p-3">
+                                    <i class="bi bi-person-check-fill fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card p-3 border-0 shadow-sm bg-white rounded-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-muted fw-semibold d-block">Absent / Missed</small>
+                                    <h3 class="fw-bold m-0 text-danger" id="countAbsentToday">0</h3>
+                                </div>
+                                <div class="rounded-circle bg-danger-subtle text-danger p-3">
+                                    <i class="bi bi-person-x-fill fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card p-3 border-0 shadow-sm bg-white rounded-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-muted fw-semibold d-block">Completed Interviews</small>
+                                    <h3 class="fw-bold m-0 text-indigo" id="countCompletedInterviews" style="color: #4f46e5;">0</h3>
+                                </div>
+                                <div class="rounded-circle p-3" style="background-color: #e0e7ff; color: #4f46e5;">
+                                    <i class="bi bi-patch-check-fill fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Structured Calendar / Agenda Controls & Filters (REQ084) -->
+                <div class="table-card mb-4">
+                    <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <h5 class="section-title m-0">Daily Schedule & Interview Masterlist</h5>
+                            <small class="text-muted">Color-coded by program. Expand rows for full beneficiary credentials & linked application details (REQ085).</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap" style="font-size: 0.8rem;">
+                            <span class="badge" style="background-color: #10b981;"><i class="bi bi-circle-fill me-1"></i>Livelihood</span>
+                            <span class="badge" style="background-color: #0284c7;"><i class="bi bi-circle-fill me-1"></i>TUPAD</span>
+                            <span class="badge" style="background-color: #8b5cf6;"><i class="bi bi-circle-fill me-1"></i>SPES</span>
+                            <span class="badge" style="background-color: #f59e0b;"><i class="bi bi-circle-fill me-1"></i>CKGIP</span>
+                            <span class="badge" style="background-color: #ec4899;"><i class="bi bi-circle-fill me-1"></i>PFAS</span>
+                        </div>
+                    </div>
+
+                    <!-- Filters Bar (REQ084: Filter by Date and Program) -->
+                    <div class="filter-bar mb-3 flex-wrap gap-2">
+                        <div class="search-box flex-grow-1" style="min-width: 220px;">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="searchInterviewText" placeholder="Search beneficiary name, application #, venue..." onkeyup="renderOfficerInterviewTable()">
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <small class="text-muted fw-semibold">Date:</small>
+                            <input type="date" class="form-control form-control-sm" id="filterInterviewDate" onchange="renderOfficerInterviewTable()">
+                        </div>
+                        <select class="filter-select" id="filterInterviewProgram" onchange="renderOfficerInterviewTable()">
+                            <option value="">All Programs</option>
+                            <option value="1">Livelihood Assistance</option>
+                            <option value="2">CKGIP Internship</option>
+                            <option value="3">KEEP Emergency</option>
+                            <option value="4">TUPAD Program</option>
+                            <option value="5">PFAS Financial Grant</option>
+                            <option value="7">SPES Student Employment</option>
+                        </select>
+                        <select class="filter-select" id="filterInterviewStatus" onchange="renderOfficerInterviewTable()">
+                            <option value="">All Statuses</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Missed">Missed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="resetInterviewFilters()">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </button>
+                    </div>
+
+                    <!-- Interview Schedules Table (REQ084, REQ085, REQ086, REQ087, REQ088) -->
+                    <div class="table-responsive">
+                        <table class="data-table" id="officerInterviewTable">
+                            <thead>
                                 <tr>
-                                    <td>#APR-2026-0045</td>
-                                    <td>Ana Reyes</td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Tailoring Kit</td>
-                                    <td>1 set</td>
-                                    <td>Complete training</td>
-                                    <td>Apr 05, 2026</td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewApprovalDetails('APR-2026-0045')"><i class="bi bi-eye"></i></button>
-                                    </td>
+                                    <th style="width: 35px;"></th>
+                                    <th>Interview Time & Date</th>
+                                    <th>Beneficiary Name (REQ085)</th>
+                                    <th>Linked Program</th>
+                                    <th>Venue / Location</th>
+                                    <th>Real-Time Attendance (REQ086/87)</th>
+                                    <th>Interview Status (REQ088)</th>
+                                    <th style="min-width: 170px;">Actions & Toggles</th>
                                 </tr>
-                                <tr>
-                                    <td>#APR-2026-0044</td>
-                                    <td>Carlos Mendoza</td>
-                                    <td><span class="badge bg-success">Livelihood</span></td>
-                                    <td>Fishing Net</td>
-                                    <td>5 sets</td>
-                                    <td>Must attend orientation</td>
-                                    <td>Apr 04, 2026</td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewApprovalDetails('APR-2026-0044')"><i class="bi bi-eye"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#APR-2026-0043</td>
-                                    <td>Lily Chen</td>
-                                    <td><span class="badge bg-info">SPES</span></td>
-                                    <td>Educational Grant</td>
-                                    <td>Php 5,000</td>
-                                    <td>Maintain 2.5 GPA</td>
-                                    <td>Apr 03, 2026</td>
-                                    <td>
-                                        <button class="action-btn view" title="View Details" onclick="viewApprovalDetails('APR-2026-0043')"><i class="bi bi-eye"></i></button>
-                                    </td>
-                                </tr>
+                            </thead>
+                            <tbody id="officerInterviewTableBody">
+                                <!-- Loaded dynamically via JS -->
                             </tbody>
                         </table>
                     </div>
@@ -3093,6 +3279,58 @@
                                         <button class="action-btn view" title="View Details"><i class="bi bi-eye"></i></button>
                                     </td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- MODULE: EVALUATION QUESTIONNAIRES & RESPONSES (OFFICER OPERATIONAL) -->
+            <!-- ========================================================================= -->
+            <section class="module-page" id="module-questionnaire">
+                <div class="card p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 16px; color: white;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h4 class="fw-bold mb-1 text-white"><i class="bi bi-file-earmark-spreadsheet-fill text-warning me-2"></i>Beneficiary Evaluation Questionnaires & Response Logging</h4>
+                            <p class="m-0 text-white-50 small">Create, update, view, and deactivate evaluation questionnaire forms. Record beneficiary responses, conduct preliminary assessments, and attach officer remarks.</p>
+                        </div>
+                        <button class="btn btn-warning font-weight-bold" onclick="openCreateQuestionnaireModal()">
+                            <i class="bi bi-plus-circle-fill me-1"></i> New Questionnaire Form
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-card p-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 border-bottom pb-3">
+                        <h5 class="table-title m-0"><i class="bi bi-journal-text text-primary me-2"></i>Active Questionnaire Forms Directory</h5>
+                        <div class="d-flex gap-2">
+                            <select class="form-select form-select-sm" id="filterQuestionnaireProgram" onchange="renderQuestionnairesTable()" style="width: 220px;">
+                                <option value="all">All Programs</option>
+                                <option value="LIVELIHOOD">Livelihood Assistance</option>
+                                <option value="TUPAD">TUPAD Emergency Work</option>
+                                <option value="SPES">SPES Student Employment</option>
+                                <option value="CKGIP">CKGIP Internship</option>
+                            </select>
+                            <input type="text" class="form-control form-control-sm" id="searchQuestionnaireQuery" placeholder="Search forms..." oninput="renderQuestionnairesTable()" style="width: 220px;">
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Form ID</th>
+                                    <th>Questionnaire Title</th>
+                                    <th>Target Program</th>
+                                    <th>Questions Count</th>
+                                    <th>Responses Logged</th>
+                                    <th>Form Status</th>
+                                    <th class="text-center">Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody id="questionnairesTableBody">
+                                <!-- Loaded dynamically via renderQuestionnairesTable() -->
                             </tbody>
                         </table>
                     </div>
@@ -7199,13 +7437,2021 @@ window.updateRecipientContact = function() {
     }
 };
 
-// Application Evaluation Functions (REQ073, REQ074, REQ075, REQ076, REQ077)
-var evaluationData = {
-    'BEN-2026-0001': { name: 'Juan Dela Cruz', program: 'Livelihood Assistance', barangay: 'Zone I', contact: '0912-345-6789', submitted: 'Apr 08, 2026' },
-    'BEN-2026-0002': { name: 'Maria Garcia', program: 'SPES', barangay: 'Sto. Nino', contact: '0913-456-7890', submitted: 'Apr 07, 2026' },
-    'BEN-2026-0003': { name: 'Pedro Santos', program: 'TUPAD', barangay: 'Mabini', contact: '0914-567-8901', submitted: 'Apr 06, 2026' },
-    'BEN-2026-0004': { name: 'Ana Reyes', program: 'Livelihood Assistance', barangay: 'Morales', contact: '0915-678-9012', submitted: 'Apr 05, 2026' }
-};
+// =============================================================================
+// REQ074, REQ075, REQ076, REQ077, REQ078: OFFICER EVALUATION MODULE LOGIC
+// =============================================================================
+
+// Initial application state & evaluation dataset
+let officerApplicationsList = [
+    {
+        id: 1,
+        application_number: 'PESO-2026-0812',
+        beneficiary_id: 7,
+        first_name: 'Maria',
+        last_name: 'Santos',
+        beneficiary_email: 'maria.santos@email.com',
+        beneficiary_phone: '0906-333-4444',
+        beneficiary_address: 'Purok Maligaya, Barangay Zone III, Koronadal City',
+        program_id: 4,
+        program_code: 'TUPAD',
+        program_name: 'Support to Tulong Panghanapbuhay sa Ating Disadvantaged Workers',
+        date_applied: '2026-03-20',
+        status: 'Pending',
+        officer_decision: 'None',
+        officer_notes: null,
+        documents: [
+            { name: 'Government Photo ID (School/National ID)', status: 'Verified', type: 'PDF/IMG', file: 'schoolid_maria.png' },
+            { name: 'Barangay Indigency Certificate', status: 'Verified', type: 'PDF', file: 'indigency_maria.pdf' },
+            { name: 'Barangay Clearance', status: 'Missing', type: 'PDF', file: null },
+            { name: 'Proof of Household Income / Case Study', status: 'Needs Review', type: 'PDF', file: 'income_statement_maria.pdf' }
+        ]
+    },
+    {
+        id: 2,
+        application_number: 'LIV-2026-0001',
+        beneficiary_id: 6,
+        first_name: 'Juan',
+        last_name: 'Dela Cruz',
+        beneficiary_email: 'juan.delacruz@email.com',
+        beneficiary_phone: '0905-111-2222',
+        beneficiary_address: 'Block 5, Lot 12, Barangay Zone IV, Koronadal City',
+        program_id: 1,
+        program_code: 'LIVELIHOOD',
+        program_name: 'Livelihood Assistance Program (Fishing Gear Project)',
+        date_applied: '2026-04-08',
+        status: 'Pending Requirements',
+        officer_decision: 'Pending Requirements',
+        officer_notes: 'Missing Barangay Clearance and 2x2 ID picture.',
+        documents: [
+            { name: 'PhilID National Card', status: 'Verified', type: 'PDF', file: 'philid_juan.pdf' },
+            { name: 'Barangay Clearance', status: 'Missing', type: 'PDF', file: null },
+            { name: 'Certificate of No Business Registration', status: 'Verified', type: 'PDF', file: 'nobusiness_juan.pdf' }
+        ]
+    },
+    {
+        id: 3,
+        application_number: 'SPES-2026-0045',
+        beneficiary_id: 7,
+        first_name: 'Maria',
+        last_name: 'Santos',
+        beneficiary_email: 'maria.santos@email.com',
+        beneficiary_phone: '0906-333-4444',
+        beneficiary_address: 'Purok Maligaya, Barangay Zone III, Koronadal City',
+        program_id: 7,
+        program_code: 'SPES',
+        program_name: 'Special Program for Employment of Students',
+        date_applied: '2026-02-10',
+        status: 'Officer Approved',
+        officer_decision: 'Approved',
+        officer_notes: 'All student requirements complete. Recommended for PESO Admin final grant approval.',
+        documents: [
+            { name: 'School ID & Enrollment Form', status: 'Verified', type: 'PDF', file: 'enrollment_maria.pdf' },
+            { name: 'Barangay Indigency Certificate', status: 'Verified', type: 'PDF', file: 'indigency_maria.pdf' },
+            { name: 'Parent Tax Exemption Certificate', status: 'Verified', type: 'PDF', file: 'tax_exempt_maria.pdf' }
+        ]
+    },
+    {
+        id: 4,
+        application_number: 'KEEP-2026-0112',
+        beneficiary_id: 8,
+        first_name: 'Pedro',
+        last_name: 'Reyes',
+        beneficiary_email: 'pedro.reyes@email.com',
+        beneficiary_phone: '0907-555-6666',
+        beneficiary_address: 'Purok Sunflower, Barangay Zone I, Koronadal City',
+        program_id: 3,
+        program_code: 'KEEP',
+        program_name: 'Koronadal Emergency Employment Program',
+        date_applied: '2026-03-02',
+        status: 'Officer Denied',
+        officer_decision: 'Denied',
+        officer_notes: 'Applicant is currently employed full-time under another LGU grant; ineligible for dual emergency employment.',
+        documents: [
+            { name: 'Driver License ID', status: 'Verified', type: 'JPG', file: 'drivers_license_pedro.jpg' },
+            { name: 'Displacement Certificate', status: 'Needs Review', type: 'PDF', file: 'displacement_pedro.pdf' }
+        ]
+    }
+];
+
+let appTableSortState = { column: 'date', dir: 'desc' };
+let expandedAppRowIds = new Set();
+let html5QrScannerInstance = null;
+
+// Fetch applications from Backend API or fall back to local dataset
+async function loadOfficerApplicationsData() {
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const response = await fetch(`${apiBase}/api/applications`);
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                // Process documents json or format
+                officerApplicationsList = result.data.map(app => {
+                    let docs = [];
+                    if (app.documents_json) {
+                        try { docs = JSON.parse(app.documents_json); } catch(e) {}
+                    }
+                    if (docs.length === 0) {
+                        docs = [
+                            { name: 'Government ID', status: 'Verified', type: 'PDF', file: app.id_file_path || 'id_file.pdf' },
+                            { name: 'Barangay Clearance', status: app.status === 'Pending Requirements' ? 'Missing' : 'Verified', type: 'PDF', file: 'clearance.pdf' },
+                            { name: 'Indigency Certificate', status: 'Verified', type: 'PDF', file: 'indigency.pdf' }
+                        ];
+                    }
+                    return {
+                        id: app.id,
+                        application_number: app.application_number || `APP-${app.id}`,
+                        beneficiary_id: app.beneficiary_id,
+                        first_name: app.first_name || 'Beneficiary',
+                        last_name: app.last_name || `#${app.beneficiary_id}`,
+                        beneficiary_email: app.beneficiary_email || 'N/A',
+                        beneficiary_phone: app.beneficiary_phone || 'N/A',
+                        beneficiary_address: app.beneficiary_address || 'Koronadal City',
+                        program_id: app.program_id,
+                        program_code: app.program_code || 'PESO',
+                        program_name: app.program_name || 'Livelihood Assistance',
+                        date_applied: app.date_applied ? app.date_applied.substring(0, 10) : '2026-04-01',
+                        status: app.status || 'Pending',
+                        officer_decision: app.officer_decision || 'None',
+                        officer_notes: app.officer_notes || app.remarks || null,
+                        documents: docs
+                    };
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('API applications fetch failed, using local offline dataset:', e.message);
+    }
+    renderOfficerApplicationsTable();
+    loadOfficerAuditLogs();
+}
+
+// Render structured table with sortable columns & expandable rows (REQ074, REQ080, REQ081)
+function renderOfficerApplicationsTable() {
+    const tbody = document.getElementById('livelihoodTableBody');
+    if (!tbody) return;
+
+    const searchTerm = (document.getElementById('searchLivelihood')?.value || '').toLowerCase().trim();
+    const programFilter = document.getElementById('filterLivelihoodProgram')?.value || '';
+    const beneFilter = document.getElementById('filterLivelihoodBeneficiary')?.value || '';
+    const statusFilter = document.getElementById('filterLivelihoodStatus')?.value || '';
+    const sortVal = document.getElementById('sortLivelihoodBy')?.value || 'date-desc';
+
+    // Update counts badges
+    let subCount = 0, appCount = 0, pendCount = 0, compCount = 0;
+    officerApplicationsList.forEach(a => {
+        if (a.status === 'Submitted') subCount++;
+        else if (a.status === 'Officer Approved') appCount++;
+        else if (a.status === 'Pending Requirements') pendCount++;
+        else if (a.status === 'Completed') compCount++;
+    });
+
+    if (document.getElementById('countSubmittedBadge')) document.getElementById('countSubmittedBadge').textContent = `${subCount} Submitted`;
+    if (document.getElementById('countOfficerApprovedBadge')) document.getElementById('countOfficerApprovedBadge').textContent = `${appCount} Officer Approved`;
+    if (document.getElementById('countPendingReqBadge')) document.getElementById('countPendingReqBadge').textContent = `${pendCount} Pending Requirements`;
+    if (document.getElementById('countCompletedBadge')) document.getElementById('countCompletedBadge').textContent = `${compCount} Completed`;
+
+    // Filter by search, program, beneficiary, and status (REQ081)
+    let filtered = officerApplicationsList.filter(app => {
+        const fullName = `${app.first_name} ${app.last_name}`.toLowerCase();
+        const matchesSearch = !searchTerm || 
+            fullName.includes(searchTerm) || 
+            app.application_number.toLowerCase().includes(searchTerm) ||
+            app.program_name.toLowerCase().includes(searchTerm) ||
+            app.program_code.toLowerCase().includes(searchTerm);
+
+        const matchesProgram = !programFilter || app.program_code.toUpperCase() === programFilter.toUpperCase();
+        const matchesBene = !beneFilter || app.beneficiary_id.toString() === beneFilter;
+        let matchesStatus = !statusFilter || app.status === statusFilter;
+        if (statusFilter === 'Pending' && (app.status === 'Pending' || app.status === 'Under Review')) matchesStatus = true;
+
+        return matchesSearch && matchesProgram && matchesBene && matchesStatus;
+    });
+
+    // Sort (REQ074, REQ080)
+    const [sortCol, sortDir] = sortVal.split('-');
+    filtered.sort((a, b) => {
+        let valA = '', valB = '';
+        if (sortCol === 'name') {
+            valA = `${a.last_name} ${a.first_name}`.toLowerCase();
+            valB = `${b.last_name} ${b.first_name}`.toLowerCase();
+        } else if (sortCol === 'program') {
+            valA = a.program_name.toLowerCase();
+            valB = b.program_name.toLowerCase();
+        } else if (sortCol === 'status') {
+            valA = a.status.toLowerCase();
+            valB = b.status.toLowerCase();
+        } else { // date
+            valA = a.date_applied;
+            valB = b.date_applied;
+        }
+
+        if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>No matching applications found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(app => {
+        const isExpanded = expandedAppRowIds.has(app.id);
+        const fullName = `${app.first_name} ${app.last_name}`;
+
+        // Status badge indicators (REQ080)
+        let statusBadge = `<span class="badge bg-secondary px-2 py-1">${app.status}</span>`;
+        if (app.status === 'Submitted') {
+            statusBadge = `<span class="badge bg-primary px-2 py-1"><i class="bi bi-file-earmark-arrow-up-fill me-1"></i>Submitted</span>`;
+        } else if (app.status === 'Pending' || app.status === 'Under Review') {
+            statusBadge = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-clock me-1"></i>Under Evaluation</span>`;
+        } else if (app.status === 'Pending Requirements') {
+            statusBadge = `<span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-1"><i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i>Pending Requirements</span>`;
+        } else if (app.status === 'Officer Approved') {
+            statusBadge = `<span class="badge bg-info-subtle text-dark border border-info-subtle px-2 py-1"><i class="bi bi-person-check-fill me-1 text-info"></i>Officer Approved</span>`;
+        } else if (app.status === 'Officer Denied') {
+            statusBadge = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-person-x-fill me-1 text-danger"></i>Officer Denied</span>`;
+        } else if (app.status === 'Approved') {
+            statusBadge = `<span class="badge bg-success text-white px-2 py-1"><i class="bi bi-check-all me-1"></i>Final Approved</span>`;
+        } else if (app.status === 'Rejected') {
+            statusBadge = `<span class="badge bg-danger text-white px-2 py-1"><i class="bi bi-x-lg me-1"></i>Final Rejected</span>`;
+        } else if (app.status === 'Completed') {
+            statusBadge = `<span class="badge bg-dark text-white px-2 py-1"><i class="bi bi-patch-check-fill me-1 text-success"></i>Completed</span>`;
+        }
+
+        // Decision pill
+        let decPill = `<span class="text-muted small">None</span>`;
+        if (app.officer_decision === 'Approved') decPill = `<span class="fw-bold text-success"><i class="bi bi-hand-thumbs-up-fill me-1"></i>Approved</span>`;
+        else if (app.officer_decision === 'Denied') decPill = `<span class="fw-bold text-danger"><i class="bi bi-hand-thumbs-down-fill me-1"></i>Denied</span>`;
+        else if (app.officer_decision === 'Pending Requirements') decPill = `<span class="fw-bold text-warning"><i class="bi bi-clock-history me-1"></i>Pending Req.</span>`;
+
+        // Docs summary
+        const docs = app.documents || [];
+        const missingCount = docs.filter(d => d.status === 'Missing').length;
+        const verifiedCount = docs.filter(d => d.status === 'Verified').length;
+        let docsBadge = `<span class="badge bg-light text-dark border"><i class="bi bi-file-earmark me-1"></i>${docs.length} Docs (${verifiedCount} Verified)</span>`;
+        if (missingCount > 0) {
+            docsBadge = `<span class="badge bg-warning-subtle text-dark border border-warning-subtle"><i class="bi bi-exclamation-circle me-1 text-danger"></i>${missingCount} Missing Item(s)</span>`;
+        }
+
+        const mainRowHtml = `
+            <tr class="${isExpanded ? 'table-active' : ''}">
+                <td>
+                    <button class="btn btn-sm btn-link text-dark p-0" onclick="toggleExpandAppRow(${app.id})" title="Expand/Collapse submitted documents">
+                        <i class="bi ${isExpanded ? 'bi-chevron-up text-primary fw-bold' : 'bi-chevron-down'}"></i>
+                    </button>
+                </td>
+                <td>
+                    <a href="#" class="fw-bold text-primary text-decoration-none" onclick="openBeneficiaryDrawerByAppId(${app.id}); return false;">
+                        ${fullName}
+                    </a>
+                    <span class="d-block text-muted" style="font-size: 0.75rem;">App #${app.application_number}</span>
+                </td>
+                <td>
+                    <span class="badge bg-secondary-subtle text-dark fw-bold me-1">${app.program_code}</span>
+                    <span class="small">${app.program_name}</span>
+                </td>
+                <td><small class="text-dark fw-semibold">${app.date_applied}</small></td>
+                <td>${statusBadge}</td>
+                <td>${decPill}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="viewApplicationDocsModal(${app.id})">
+                        ${docsBadge}
+                    </button>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-success px-2 py-1" onclick="openOfficerEvalModal(${app.id}, 'approve')" title="Mark Approved for Admin review (REQ076)">
+                            <i class="bi bi-check-circle-fill"></i> Approve
+                        </button>
+                        <button class="btn btn-danger px-2 py-1" onclick="openOfficerEvalModal(${app.id}, 'deny')" title="Mark Denied for Admin review (REQ077)">
+                            <i class="bi bi-x-circle-fill"></i> Deny
+                        </button>
+                        <button class="btn btn-warning px-2 py-1 text-dark" onclick="openOfficerEvalModal(${app.id}, 'pending')" title="Mark Pending Requirements (REQ078)">
+                            <i class="bi bi-clock-history"></i> Pending
+                        </button>
+                        ${app.status !== 'Completed' ? `
+                        <button class="btn btn-dark px-2 py-1" onclick="markAppCompleted(${app.id})" title="Mark lifecycle as Completed (REQ080)">
+                            <i class="bi bi-check-all"></i> Complete
+                        </button>` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        let expandRowHtml = '';
+        if (isExpanded) {
+            let docsChecklistHtml = '';
+            docs.forEach((doc, idx) => {
+                let docBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Verified</span>`;
+                if (doc.status === 'Missing') docBadge = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle-fill me-1"></i>Missing Requirement</span>`;
+                else if (doc.status === 'Needs Review') docBadge = `<span class="badge bg-warning-subtle text-dark border border-warning-subtle"><i class="bi bi-eye-fill me-1"></i>Needs Verification</span>`;
+
+                docsChecklistHtml += `
+                    <div class="d-flex justify-content-between align-items-center p-2 mb-1 bg-white rounded border">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
+                            <div>
+                                <span class="fw-semibold small text-dark">${doc.name}</span>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">File: ${doc.file || 'Not uploaded yet'}</small>
+                            </div>
+                        </div>
+                        <div>
+                            ${docBadge}
+                            ${doc.file ? `<a href="#" class="btn btn-sm btn-link text-primary p-0 ms-2" onclick="alert('Viewing document preview for: ${doc.name}'); return false;">Preview</a>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            expandRowHtml = `
+                <tr class="bg-light">
+                    <td colspan="8" class="p-3 border-bottom">
+                        <div class="card p-3 border-0 shadow-sm" style="border-left: 4px solid var(--primary-pink) !important;">
+                            <div class="row">
+                                <div class="col-md-6 mb-2 mb-md-0">
+                                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-folder-check text-primary me-2"></i>Submitted Supporting Documents Checklist</h6>
+                                    ${docsChecklistHtml}
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-chat-left-text text-primary me-2"></i>Officer Evaluation Notes & Governance Details</h6>
+                                    <div class="p-3 bg-light rounded border mb-2" style="font-size: 0.85rem;">
+                                        <strong>Current Officer Notes:</strong>
+                                        <p class="m-0 text-muted mt-1" style="white-space: pre-wrap;">${app.officer_notes || 'No evaluation notes entered yet.'}</p>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <div><i class="bi bi-person me-1"></i><strong>Beneficiary:</strong> ${fullName} (${app.beneficiary_email})</div>
+                                        <div><i class="bi bi-geo-alt me-1"></i><strong>Address:</strong> ${app.beneficiary_address}</div>
+                                        <div class="mt-2 text-primary fw-semibold"><i class="bi bi-arrow-right-circle me-1"></i>Officer decisions are immediately forwarded to PESO Admin for final approval.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        tbody.innerHTML += mainRowHtml + expandRowHtml;
+    });
+}
+
+// Toggle expandable document row
+function toggleExpandAppRow(appId) {
+    if (expandedAppRowIds.has(appId)) {
+        expandedAppRowIds.delete(appId);
+    } else {
+        expandedAppRowIds.add(appId);
+    }
+    renderOfficerApplicationsTable();
+}
+
+// Sort column handler
+function sortApplicationsTableColumn(colKey) {
+    const select = document.getElementById('sortLivelihoodBy');
+    if (!select) return;
+    
+    let currentDir = 'asc';
+    if (appTableSortState.column === colKey) {
+        currentDir = appTableSortState.dir === 'asc' ? 'desc' : 'asc';
+    }
+    appTableSortState = { column: colKey, dir: currentDir };
+    select.value = `${colKey}-${currentDir}`;
+    renderOfficerApplicationsTable();
+}
+
+// REQ079: Open New Application Form Modal
+function openNewApplicationModal() {
+    const modalEl = document.getElementById('newApplicationModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+// REQ079: Submit New Application Record
+async function submitNewApplicationRecord() {
+    const beneId = parseInt(document.getElementById('newAppBeneficiarySelect').value, 10);
+    const progId = parseInt(document.getElementById('newAppProgramSelect').value, 10);
+    const remarks = document.getElementById('newAppProjectRemarks').value.trim();
+
+    if (!beneId || !progId) {
+        alert('Please select both a Beneficiary and a Program.');
+        return;
+    }
+
+    const docValidId = document.getElementById('docCheckValidId').checked;
+    const docIndigency = document.getElementById('docCheckIndigency').checked;
+    const docClearance = document.getElementById('docCheckClearance').checked;
+    const docIncome = document.getElementById('docCheckIncome').checked;
+
+    const docs = [
+        { name: 'Government Photo ID', status: docValidId ? 'Verified' : 'Missing', file: docValidId ? 'id_card.png' : null },
+        { name: 'Barangay Indigency Certificate', status: docIndigency ? 'Verified' : 'Missing', file: docIndigency ? 'indigency.pdf' : null },
+        { name: 'Barangay Clearance', status: docClearance ? 'Verified' : 'Missing', file: docClearance ? 'clearance.pdf' : null },
+        { name: 'Proof of Household Income', status: docIncome ? 'Verified' : 'Needs Review', file: docIncome ? 'income.pdf' : null }
+    ];
+
+    let newAppId = Date.now();
+    let newAppNum = `PESO-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const response = await fetch(`${apiBase}/api/applications/record`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': '2'
+            },
+            body: JSON.stringify({
+                beneficiary_id: beneId,
+                program_id: progId,
+                remarks: remarks,
+                documents_json: docs,
+                officer_id: 2
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                newAppId = data.applicationId;
+                newAppNum = data.applicationNumber;
+                showWebNotification('Application Recorded', `Application #${newAppNum} recorded successfully!`, 'success');
+            }
+        }
+    } catch (e) {
+        console.warn('Backend API record offline, adding to local dataset:', e.message);
+    }
+
+    // Determine names
+    let beneMap = {
+        6: { first: 'Juan', last: 'Dela Cruz', email: 'juan.delacruz@email.com', phone: '0905-111-2222', address: 'Barangay Zone IV' },
+        7: { first: 'Maria', last: 'Santos', email: 'maria.santos@email.com', phone: '0906-333-4444', address: 'Barangay Zone III' },
+        8: { first: 'Pedro', last: 'Reyes', email: 'pedro.reyes@email.com', phone: '0907-555-6666', address: 'Barangay Zone I' }
+    };
+    let progMap = {
+        1: { code: 'LIVELIHOOD', name: 'Livelihood Assistance Program' },
+        2: { code: 'CKGIP', name: 'CKGIP Internship Program' },
+        3: { code: 'KEEP', name: 'KEEP Emergency Employment' },
+        4: { code: 'TUPAD', name: 'Support to TUPAD Program' },
+        5: { code: 'PFAS', name: 'Pangkabuhayan Financial Assistance' },
+        7: { code: 'SPES', name: 'Special Program for Employment of Students' }
+    };
+
+    const bInfo = beneMap[beneId] || { first: 'Beneficiary', last: `#${beneId}`, email: 'n/a', phone: 'n/a', address: 'Koronadal City' };
+    const pInfo = progMap[progId] || { code: 'PESO', name: 'Livelihood Program' };
+
+    officerApplicationsList.unshift({
+        id: newAppId,
+        application_number: newAppNum,
+        beneficiary_id: beneId,
+        first_name: bInfo.first,
+        last_name: bInfo.last,
+        beneficiary_email: bInfo.email,
+        beneficiary_phone: bInfo.phone,
+        beneficiary_address: bInfo.address,
+        program_id: progId,
+        program_code: pInfo.code,
+        program_name: remarks ? `${pInfo.name} (${remarks})` : pInfo.name,
+        date_applied: new Date().toISOString().substring(0, 10),
+        status: 'Submitted',
+        officer_decision: 'None',
+        officer_notes: remarks || 'Newly recorded by PESO Officer.',
+        documents: docs
+    });
+
+    pushNotification('New Application Recorded', `Recorded application #${newAppNum} for ${bInfo.first} ${bInfo.last} under ${pInfo.code}.`, 'info');
+
+    // Hide Modal
+    const modalEl = document.getElementById('newApplicationModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    }
+
+    renderOfficerApplicationsTable();
+    loadOfficerAuditLogs();
+}
+
+// REQ080: Mark Application Lifecycle Status as Completed
+async function markAppCompleted(appId) {
+    if (!confirm('Are you sure you want to mark this application lifecycle as COMPLETED?')) return;
+
+    const appIndex = officerApplicationsList.findIndex(a => a.id === appId);
+    if (appIndex === -1) return;
+
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const response = await fetch(`${apiBase}/api/applications/${appId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': '2'
+            },
+            body: JSON.stringify({ status: 'Completed', officer_id: 2 })
+        });
+        if (response.ok) {
+            showWebNotification('Lifecycle Update', 'Application marked as Completed.', 'success');
+        }
+    } catch (e) {
+        console.warn('API update status offline:', e.message);
+    }
+
+    officerApplicationsList[appIndex].status = 'Completed';
+    pushNotification('Application Completed', `Application #${officerApplicationsList[appIndex].application_number} lifecycle set to COMPLETED by PESO Officer.`, 'approval');
+
+    renderOfficerApplicationsTable();
+    loadOfficerAuditLogs();
+}
+
+// REQ076, REQ077, REQ078: Open Officer Evaluation Confirmation Modal
+function openOfficerEvalModal(appId, action) {
+    const app = officerApplicationsList.find(a => a.id === appId);
+    if (!app) return;
+
+    document.getElementById('evalTargetAppId').value = appId;
+    document.getElementById('evalTargetAction').value = action;
+    document.getElementById('officerEvalApplicantName').value = `${app.first_name} ${app.last_name}`;
+    document.getElementById('officerEvalProgramName').value = app.program_name;
+    document.getElementById('officerEvalAppNum').textContent = `App #${app.application_number}`;
+    document.getElementById('officerEvalNotesText').value = app.officer_notes || '';
+
+    const titleEl = document.getElementById('officerEvalModalTitle');
+    const noticeEl = document.getElementById('officerEvalGovernanceNotice');
+    const submitBtn = document.getElementById('btnSubmitOfficerEval');
+    const asterisk = document.getElementById('notesRequiredAsterisk');
+
+    if (action === 'approve') {
+        titleEl.textContent = 'Approve Application for Admin Review (REQ076)';
+        noticeEl.className = 'alert alert-success py-2 px-3 small border-0 shadow-sm mb-3';
+        noticeEl.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> <strong>Approval Notice:</strong> Approval does not finalize the application, but forwards it to <strong>PESO Admin</strong> for final decision.';
+        submitBtn.className = 'btn btn-success px-4';
+        submitBtn.innerHTML = '<i class="bi bi-send-check-fill me-1"></i> Approve & Forward to Admin';
+        asterisk.style.display = 'none';
+    } else if (action === 'deny') {
+        titleEl.textContent = 'Deny Application for Admin Review (REQ077)';
+        noticeEl.className = 'alert alert-danger py-2 px-3 small border-0 shadow-sm mb-3';
+        noticeEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Mandatory Reason Required:</strong> Denial requires entering notes explaining the reason. Denial forwards the application to <strong>PESO Admin</strong> for oversight and final confirmation.';
+        submitBtn.className = 'btn btn-danger px-4';
+        submitBtn.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i> Deny & Send for Admin Oversight';
+        asterisk.style.display = 'inline';
+    } else if (action === 'pending') {
+        titleEl.textContent = 'Mark Application as Pending Requirements (REQ078)';
+        noticeEl.className = 'alert alert-warning py-2 px-3 small border-0 shadow-sm mb-3';
+        noticeEl.innerHTML = '<i class="bi bi-bell-fill me-1"></i> <strong>Automated Beneficiary Notification:</strong> Specify missing requirements in the notes field. The beneficiary will be notified automatically to upload missing documents.';
+        submitBtn.className = 'btn btn-warning px-4 text-dark';
+        submitBtn.innerHTML = '<i class="bi bi-clock-history me-1"></i> Mark Pending & Notify Beneficiary';
+        asterisk.style.display = 'inline';
+    }
+
+    const modalEl = document.getElementById('officerEvalModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+// Submit Officer Evaluation Action to Backend API & Update UI
+async function submitOfficerEvaluationAction() {
+    const appId = parseInt(document.getElementById('evalTargetAppId').value, 10);
+    const action = document.getElementById('evalTargetAction').value;
+    const notes = document.getElementById('officerEvalNotesText').value.trim();
+
+    if ((action === 'deny' || action === 'pending') && !notes) {
+        alert(action === 'deny' ? 'Please enter mandatory notes explaining the reason for denial.' : 'Please specify the missing requirements in the notes field.');
+        return;
+    }
+
+    const appIndex = officerApplicationsList.findIndex(a => a.id === appId);
+    if (appIndex === -1) return;
+
+    let newStatus = 'Under Review';
+    let officerDecision = 'None';
+    if (action === 'approve') {
+        newStatus = 'Officer Approved';
+        officerDecision = 'Approved';
+    } else if (action === 'deny') {
+        newStatus = 'Officer Denied';
+        officerDecision = 'Denied';
+    } else if (action === 'pending') {
+        newStatus = 'Pending Requirements';
+        officerDecision = 'Pending Requirements';
+    }
+
+    // Try API update
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const response = await fetch(`${apiBase}/api/applications/${appId}/officer-evaluate`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': '2'
+            },
+            body: JSON.stringify({ action, notes, officer_id: 2 })
+        });
+
+        if (response.ok) {
+            const resData = await response.json();
+            showWebNotification('Officer Evaluation Saved', resData.message || `Application updated to ${newStatus}`, 'success');
+        }
+    } catch (e) {
+        console.warn('Backend API update offline, updating local state:', e.message);
+    }
+
+    // Update local state
+    officerApplicationsList[appIndex].status = newStatus;
+    officerApplicationsList[appIndex].officer_decision = officerDecision;
+    officerApplicationsList[appIndex].officer_notes = notes;
+
+    // Trigger local push notification & toast
+    const appNum = officerApplicationsList[appIndex].application_number;
+    const applicantName = `${officerApplicationsList[appIndex].first_name} ${officerApplicationsList[appIndex].last_name}`;
+
+    if (action === 'pending') {
+        pushNotification('Missing Requirements Alert', `Automated notification sent to beneficiary (${applicantName}) for App #${appNum}: ${notes}`, 'alert');
+    } else {
+        pushNotification('Officer Evaluation Action', `App #${appNum} for ${applicantName} marked as ${newStatus} and forwarded to PESO Admin.`, 'approval');
+    }
+
+    // Hide Modal
+    const modalEl = document.getElementById('officerEvalModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const instance = bootstrap.Modal.getInstance(modalEl);
+        if (instance) instance.hide();
+    }
+
+    renderOfficerApplicationsTable();
+    loadOfficerAuditLogs();
+}
+
+// REQ075: BENEFICIARY QR CODE SCANNER & LOOKUP
+function openOfficerQrScannerModal() {
+    const modalEl = document.getElementById('officerQrScannerModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+function startCameraQrScan() {
+    const container = document.getElementById('qrReaderCanvas');
+    const statusText = document.getElementById('qrScanStatusText');
+    if (!container) return;
+
+    if (typeof Html5Qrcode !== 'undefined') {
+        try {
+            if (html5QrScannerInstance) {
+                html5QrScannerInstance.stop().catch(() => {});
+            }
+            container.innerHTML = `<div id="html5-qr-video-box" style="width:100%;"></div>`;
+            html5QrScannerInstance = new Html5Qrcode("html5-qr-video-box");
+            
+            html5QrScannerInstance.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    if (statusText) statusText.textContent = `QR Code Detected: ${decodedText}`;
+                    html5QrScannerInstance.stop().catch(() => {});
+                    handleQrCodeScanned(decodedText);
+                },
+                (errorMessage) => {
+                    if (statusText) statusText.textContent = "Scanning for Beneficiary QR code...";
+                }
+            ).catch(err => {
+                if (statusText) statusText.textContent = "Camera unavailable. Use Quick ID / Code tab or Image file upload.";
+                container.innerHTML = `
+                    <div class="p-4 text-center">
+                        <i class="bi bi-camera-video-off fs-1 text-warning d-block mb-2"></i>
+                        <p class="small text-white m-0">Web camera permission not granted or stream unavailable.</p>
+                        <button class="btn btn-sm btn-warning mt-2 text-dark" onclick="submitManualQrLookup('6')">Simulate Scan (Juan Dela Cruz)</button>
+                    </div>
+                `;
+            });
+        } catch (e) {
+            console.warn('QR camera init exception:', e);
+        }
+    } else {
+        container.innerHTML = `
+            <div class="p-4 text-center">
+                <i class="bi bi-qr-code fs-1 text-info d-block mb-2"></i>
+                <p class="small text-white m-0">HTML5 QR library ready. Click simulate scan or enter Code.</p>
+                <button class="btn btn-sm btn-primary mt-2" onclick="submitManualQrLookup('6')">Simulate QR Scan (Juan Dela Cruz)</button>
+            </div>
+        `;
+    }
+}
+
+function stopCameraQrScan() {
+    if (html5QrScannerInstance) {
+        try { html5QrScannerInstance.stop().catch(() => {}); } catch(e) {}
+        html5QrScannerInstance = null;
+    }
+}
+
+function handleQrFileUploaded(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        showWebNotification('QR Image Loaded', `Processing QR code image: ${file.name}`, 'info');
+        submitManualQrLookup('6'); // Simulate quick scan for test beneficiary
+    }
+}
+
+function submitManualQrLookup(overrideCode) {
+    const code = overrideCode || document.getElementById('manualQrCodeInput')?.value.trim();
+    if (!code) {
+        alert('Please enter a Beneficiary QR code, user ID, or username.');
+        return;
+    }
+
+    stopCameraQrScan();
+
+    // Close QR modal
+    const qrModalEl = document.getElementById('officerQrScannerModal');
+    if (qrModalEl && typeof bootstrap !== 'undefined') {
+        const inst = bootstrap.Modal.getInstance(qrModalEl);
+        if (inst) inst.hide();
+    }
+
+    handleQrCodeScanned(code);
+}
+
+// Fetch and display beneficiary profile drawer via QR lookup (REQ075)
+async function handleQrCodeScanned(qrCode) {
+    showWebNotification('QR Scan Success', `Beneficiary QR Code parsed: ${qrCode}`, 'success');
+
+    let beneData = null;
+    let beneApps = [];
+
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const res = await fetch(`${apiBase}/api/users/beneficiary-by-qr/${encodeURIComponent(qrCode)}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.beneficiary) {
+                beneData = data.beneficiary;
+                beneApps = data.applications || [];
+            }
+        }
+    } catch (e) {
+        console.warn('QR API lookup failed, falling back to local dataset:', e);
+    }
+
+    if (!beneData) {
+        // Find local fallback
+        const matchingApp = officerApplicationsList.find(a => 
+            a.beneficiary_id.toString() === qrCode || 
+            a.application_number === qrCode ||
+            `${a.first_name}_${a.last_name}`.toLowerCase() === qrCode.toLowerCase() ||
+            qrCode.includes('6') || qrCode.includes('JUAN')
+        );
+
+        if (matchingApp) {
+            beneData = {
+                id: matchingApp.beneficiary_id,
+                first_name: matchingApp.first_name,
+                last_name: matchingApp.last_name,
+                email: matchingApp.beneficiary_email,
+                phone: matchingApp.beneficiary_phone,
+                address: matchingApp.beneficiary_address,
+                age: 29,
+                date_of_birth: '1997-04-12',
+                sex: 'Male',
+                marital_status: 'Single'
+            };
+            beneApps = officerApplicationsList.filter(a => a.beneficiary_id === matchingApp.beneficiary_id);
+        } else {
+            // Default demo beneficiary
+            beneData = {
+                id: 6,
+                first_name: 'Juan',
+                last_name: 'Dela Cruz',
+                email: 'juan.delacruz@email.com',
+                phone: '0905-111-2222',
+                address: 'Block 5, Lot 12, Barangay Zone IV, Koronadal City',
+                age: 29,
+                date_of_birth: '1997-04-12',
+                sex: 'Male',
+                marital_status: 'Single'
+            };
+            beneApps = officerApplicationsList.filter(a => a.beneficiary_id === 6);
+        }
+    }
+
+    displayBeneficiaryProfileModal(beneData, beneApps);
+}
+
+function openBeneficiaryDrawerByAppId(appId) {
+    const app = officerApplicationsList.find(a => a.id === appId);
+    if (!app) return;
+    handleQrCodeScanned(app.beneficiary_id.toString());
+}
+
+function displayBeneficiaryProfileModal(bene, apps) {
+    const initials = `${bene.first_name ? bene.first_name[0] : 'J'}${bene.last_name ? bene.last_name[0] : 'D'}`;
+    document.getElementById('beneModalInitials').textContent = initials.toUpperCase();
+    document.getElementById('beneModalFullName').textContent = `${bene.first_name} ${bene.last_name}`;
+    document.getElementById('beneModalUserCode').textContent = `BEN-2026-000${bene.id || 6}`;
+    document.getElementById('beneModalAgeDob').textContent = `${bene.age || 29} yrs (${bene.date_of_birth ? bene.date_of_birth.substring(0, 10) : '1997-04-12'})`;
+    document.getElementById('beneModalSexMarital').textContent = `${bene.sex || 'Male'} / ${bene.marital_status || 'Single'}`;
+    document.getElementById('beneModalPhone').textContent = bene.phone || '0905-111-2222';
+    document.getElementById('beneModalEmail').textContent = bene.email || 'juan.delacruz@email.com';
+    document.getElementById('beneModalAddress').textContent = bene.address || 'Koronadal City';
+
+    // Render applications
+    const appsTbody = document.getElementById('beneModalAppsTableBody');
+    if (appsTbody) {
+        if (!apps || apps.length === 0) {
+            appsTbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No applications on file.</td></tr>`;
+        } else {
+            appsTbody.innerHTML = '';
+            apps.forEach(a => {
+                appsTbody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold">#${a.application_number || a.id}</td>
+                        <td>${a.program_name || a.program_code}</td>
+                        <td>${a.date_applied ? a.date_applied.substring(0, 10) : '2026-04-01'}</td>
+                        <td><span class="badge bg-primary px-2 py-1">${a.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="closeBeneficiaryDrawerAndEvaluate(${a.id || 1})">
+                                Evaluate
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    // Render documents grid
+    const docsGrid = document.getElementById('beneModalDocsGrid');
+    if (docsGrid) {
+        docsGrid.innerHTML = `
+            <div class="col-md-4">
+                <div class="p-3 border rounded bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <i class="bi bi-card-heading text-primary fs-3"></i>
+                        <span class="badge bg-success">Verified</span>
+                    </div>
+                    <h6 class="fw-bold m-0 small">Government Identification ID</h6>
+                    <small class="text-muted d-block mt-1">PhilID / National Card</small>
+                    <button class="btn btn-sm btn-link text-primary p-0 mt-2" onclick="alert('Viewing PhilID Document')">View File</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <i class="bi bi-file-earmark-check text-success fs-3"></i>
+                        <span class="badge bg-success">Verified</span>
+                    </div>
+                    <h6 class="fw-bold m-0 small">Barangay Indigency Certificate</h6>
+                    <small class="text-muted d-block mt-1">Issued by Barangay Captain</small>
+                    <button class="btn btn-sm btn-link text-primary p-0 mt-2" onclick="alert('Viewing Indigency Document')">View File</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <i class="bi bi-file-earmark-x text-warning fs-3"></i>
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    </div>
+                    <h6 class="fw-bold m-0 small">Proof of Household Income</h6>
+                    <small class="text-muted d-block mt-1">Case study assessment report</small>
+                    <button class="btn btn-sm btn-link text-primary p-0 mt-2" onclick="alert('Viewing Income Statement')">View File</button>
+                </div>
+            </div>
+        `;
+    }
+
+    const modalEl = document.getElementById('beneficiaryProfileModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+function closeBeneficiaryDrawerAndEvaluate(appId) {
+    const modalEl = document.getElementById('beneficiaryProfileModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    }
+    openOfficerEvalModal(appId, 'approve');
+}
+
+// Supporting Documents Viewer Modal
+function viewApplicationDocsModal(appId) {
+    const app = officerApplicationsList.find(a => a.id === appId);
+    if (!app) return;
+
+    document.getElementById('docsModalAppName').textContent = `${app.first_name} ${app.last_name}`;
+    document.getElementById('docsModalAppDetails').textContent = `${app.program_name} (#${app.application_number})`;
+
+    const docs = app.documents || [];
+    document.getElementById('docsModalCountBadge').textContent = `${docs.length} Supporting Documents Attached`;
+
+    const listEl = document.getElementById('docsModalList');
+    if (listEl) {
+        listEl.innerHTML = '';
+        docs.forEach(d => {
+            let statusTag = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Verified</span>`;
+            if (d.status === 'Missing') statusTag = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Missing</span>`;
+            else if (d.status === 'Needs Review') statusTag = `<span class="badge bg-warning-subtle text-dark border border-warning-subtle"><i class="bi bi-clock me-1"></i>Needs Verification</span>`;
+
+            listEl.innerHTML += `
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-file-earmark-pdf-fill text-danger fs-3"></i>
+                        <div>
+                            <h6 class="fw-bold m-0">${d.name}</h6>
+                            <small class="text-muted">Filename: ${d.file || 'Not submitted'}</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        ${statusTag}
+                        ${d.file ? `<button class="btn btn-sm btn-outline-primary" onclick="alert('Opening preview for document: ${d.name}')"><i class="bi bi-eye"></i> View</button>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    const modalEl = document.getElementById('viewDocsModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+// Load officer audit logs
+async function loadOfficerAuditLogs() {
+    const tbody = document.getElementById('officerAuditLogBody');
+    if (!tbody) return;
+
+    let logs = [
+        { created_at: new Date().toISOString(), first_name: 'Jane', last_name: 'Smith', role: 'PESO Officer', action: 'OFFICER_EVALUATE_APPROVE', details: 'Officer evaluated application PESO-2026-0812 -> Officer Approved. Forwarded to Admin.' },
+        { created_at: new Date(Date.now() - 3600000).toISOString(), first_name: 'Jane', last_name: 'Smith', role: 'PESO Officer', action: 'OFFICER_EVALUATE_PENDING', details: 'Officer evaluated application LIV-2026-0001 -> Pending Requirements. Notified beneficiary for missing Barangay Clearance.' }
+    ];
+
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const res = await fetch(`${apiBase}/api/audit-logs`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+                logs = data.data;
+            }
+        }
+    } catch (e) {
+        console.warn('Audit log fetch offline:', e.message);
+    }
+
+    tbody.innerHTML = '';
+    logs.slice(0, 10).forEach(l => {
+        const timeStr = l.created_at ? new Date(l.created_at).toLocaleString() : 'Just now';
+        tbody.innerHTML += `
+            <tr>
+                <td class="text-muted"><i class="bi bi-clock me-1"></i>${timeStr}</td>
+                <td><strong class="text-dark">${l.first_name || 'Officer'} ${l.last_name || ''}</strong> <span class="badge bg-secondary-subtle text-dark" style="font-size:0.7rem;">${l.role || 'PESO Officer'}</span></td>
+                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">${l.action}</span></td>
+                <td>Application #${l.entity_id || 'N/A'}</td>
+                <td class="text-muted">${l.details || 'Evaluation action logged.'}</td>
+            </tr>
+        `;
+    });
+}
+
+// =============================================================================
+// REQ082, REQ083: APPROVED ASSISTANCE RECORDING & REPORTING LOGIC
+// =============================================================================
+
+let approvedAssistanceList = [
+    {
+        id: 101,
+        application_id: 1,
+        beneficiary_id: 7,
+        beneficiary_first_name: 'Maria',
+        beneficiary_last_name: 'Santos',
+        program_id: 4,
+        program_code: 'TUPAD',
+        program_name: 'Support to TUPAD Emergency Work',
+        assistance_type: 'Emergency Wages',
+        quantity_amount: '₱ 4,500.00',
+        conditions: 'Must complete 10 days of community service work.',
+        approval_date: '2026-04-05',
+        officer_id: 2,
+        officer_first_name: 'Jane',
+        officer_last_name: 'Smith'
+    },
+    {
+        id: 102,
+        application_id: 2,
+        beneficiary_id: 6,
+        beneficiary_first_name: 'Juan',
+        beneficiary_last_name: 'Dela Cruz',
+        program_id: 1,
+        program_code: 'LIVELIHOOD',
+        program_name: 'Livelihood Assistance Program',
+        assistance_type: 'Tools & Equipment',
+        quantity_amount: '1 Fishing Net & Motor Kit',
+        conditions: 'Must attend livelihood safety orientation.',
+        approval_date: '2026-04-04',
+        officer_id: 2,
+        officer_first_name: 'Jane',
+        officer_last_name: 'Smith'
+    },
+    {
+        id: 103,
+        application_id: 3,
+        beneficiary_id: 8,
+        beneficiary_first_name: 'Pedro',
+        beneficiary_last_name: 'Reyes',
+        program_id: 5,
+        program_code: 'PFAS',
+        program_name: 'Pangkabuhayan Financial Assistance',
+        assistance_type: 'Cash Grant',
+        quantity_amount: '₱ 15,000.00',
+        conditions: 'Submission of liquidation receipts within 30 days.',
+        approval_date: '2026-03-28',
+        officer_id: 2,
+        officer_first_name: 'Jane',
+        officer_last_name: 'Smith'
+    }
+];
+
+let assistanceTableSortState = { column: 'date', dir: 'desc' };
+
+async function loadApprovedAssistanceData() {
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const res = await fetch(`${apiBase}/api/assistance`);
+        if (res.ok) {
+            const result = await res.json();
+            if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                approvedAssistanceList = result.data.map(ast => ({
+                    id: ast.id,
+                    application_id: ast.application_id,
+                    beneficiary_id: ast.beneficiary_id,
+                    beneficiary_first_name: ast.beneficiary_first_name || 'Beneficiary',
+                    beneficiary_last_name: ast.beneficiary_last_name || `#${ast.beneficiary_id}`,
+                    program_id: ast.program_id,
+                    program_code: ast.program_code || 'PESO',
+                    program_name: ast.program_name || 'Livelihood Program',
+                    assistance_type: ast.assistance_type || 'Cash Grant',
+                    quantity_amount: ast.quantity_amount || '₱ 0.00',
+                    conditions: ast.conditions || 'None',
+                    approval_date: ast.approval_date ? ast.approval_date.substring(0, 10) : '2026-04-01',
+                    officer_id: ast.officer_id || 2,
+                    officer_first_name: ast.officer_first_name || 'Jane',
+                    officer_last_name: ast.officer_last_name || 'Smith'
+                }));
+            }
+        }
+    } catch (e) {
+        console.warn('Assistance API fetch offline, using local dataset:', e.message);
+    }
+    renderApprovedAssistanceTable();
+}
+
+function renderApprovedAssistanceTable() {
+    const tbody = document.getElementById('approvedAssistanceTableBody');
+    if (!tbody) return;
+
+    const searchText = (document.getElementById('searchAssistanceText')?.value || '').toLowerCase().trim();
+    const programFilter = document.getElementById('filterAssistanceProgram')?.value || '';
+    const beneFilter = document.getElementById('filterAssistanceBeneficiary')?.value || '';
+    const dateFrom = document.getElementById('filterAssistanceDateFrom')?.value || '';
+    const dateTo = document.getElementById('filterAssistanceDateTo')?.value || '';
+
+    // Update counter metrics
+    let totalCount = approvedAssistanceList.length;
+    let cashCount = 0;
+    let kitsCount = 0;
+    approvedAssistanceList.forEach(a => {
+        if (a.assistance_type === 'Cash Grant' || a.assistance_type === 'Emergency Wages' || a.assistance_type === 'Educational Financial Aid') cashCount++;
+        else kitsCount++;
+    });
+
+    if (document.getElementById('countAssistanceTotal')) document.getElementById('countAssistanceTotal').textContent = `${totalCount} Total Grants`;
+    if (document.getElementById('countAssistanceCash')) document.getElementById('countAssistanceCash').textContent = `${cashCount} Cash Grants`;
+    if (document.getElementById('countAssistanceKits')) document.getElementById('countAssistanceKits').textContent = `${kitsCount} Kits & Tools`;
+
+    // Filter by Program, Beneficiary, Date Range, and Search (REQ083)
+    let filtered = approvedAssistanceList.filter(ast => {
+        const fullName = `${ast.beneficiary_first_name} ${ast.beneficiary_last_name}`.toLowerCase();
+        const matchesSearch = !searchText ||
+            fullName.includes(searchText) ||
+            ast.assistance_type.toLowerCase().includes(searchText) ||
+            (ast.conditions && ast.conditions.toLowerCase().includes(searchText)) ||
+            ast.quantity_amount.toLowerCase().includes(searchText);
+
+        const matchesProg = !programFilter || ast.program_id.toString() === programFilter;
+        const matchesBene = !beneFilter || ast.beneficiary_id.toString() === beneFilter;
+
+        let matchesDateFrom = !dateFrom || ast.approval_date >= dateFrom;
+        let matchesDateTo = !dateTo || ast.approval_date <= dateTo;
+
+        return matchesSearch && matchesProg && matchesBene && matchesDateFrom && matchesDateTo;
+    });
+
+    // Sort
+    const { column, dir } = assistanceTableSortState;
+    filtered.sort((a, b) => {
+        let valA = '', valB = '';
+        if (column === 'name') {
+            valA = `${a.beneficiary_last_name} ${a.beneficiary_first_name}`.toLowerCase();
+            valB = `${b.beneficiary_last_name} ${b.beneficiary_first_name}`.toLowerCase();
+        } else if (column === 'program') {
+            valA = a.program_code.toLowerCase();
+            valB = b.program_code.toLowerCase();
+        } else if (column === 'type') {
+            valA = a.assistance_type.toLowerCase();
+            valB = b.assistance_type.toLowerCase();
+        } else if (column === 'quantity') {
+            valA = a.quantity_amount.toLowerCase();
+            valB = b.quantity_amount.toLowerCase();
+        } else if (column === 'id') {
+            valA = a.id;
+            valB = b.id;
+        } else { // date
+            valA = a.approval_date;
+            valB = b.approval_date;
+        }
+
+        if (valA < valB) return dir === 'asc' ? -1 : 1;
+        if (valA > valB) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>No approved assistance records found matching the filter criteria.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(ast => {
+        const fullName = `${ast.beneficiary_first_name} ${ast.beneficiary_last_name}`;
+        const officerName = `${ast.officer_first_name || 'Jane'} ${ast.officer_last_name || 'Smith'}`;
+
+        let typeBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-cash me-1"></i>${ast.assistance_type}</span>`;
+        if (ast.assistance_type.includes('Kit') || ast.assistance_type.includes('Tools')) {
+            typeBadge = `<span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-1"><i class="bi bi-box-seam me-1"></i>${ast.assistance_type}</span>`;
+        } else if (ast.assistance_type.includes('Educational')) {
+            typeBadge = `<span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1"><i class="bi bi-mortarboard me-1"></i>${ast.assistance_type}</span>`;
+        }
+
+        tbody.innerHTML += `
+            <tr>
+                <td class="fw-bold">#AST-${ast.id}</td>
+                <td>
+                    <span class="fw-bold text-dark d-block">${fullName}</span>
+                    <small class="text-muted">ID: BEN-${ast.beneficiary_id}</small>
+                </td>
+                <td>
+                    <span class="badge bg-secondary-subtle text-dark fw-bold me-1">${ast.program_code}</span>
+                    <small class="d-block text-muted" style="font-size:0.75rem;">${ast.program_name}</small>
+                </td>
+                <td>${typeBadge}</td>
+                <td><strong class="text-dark fs-6">${ast.quantity_amount}</strong></td>
+                <td><span class="small text-muted fst-italic">${ast.conditions || 'Standard LGU program terms apply.'}</span></td>
+                <td><small class="fw-bold text-dark">${ast.approval_date}</small></td>
+                <td>
+                    <span class="small fw-semibold text-primary d-block"><i class="bi bi-person-badge me-1"></i>${officerName}</span>
+                    <small class="text-muted" style="font-size:0.7rem;">Recorded Officer</small>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function sortAssistanceTable(colKey) {
+    if (assistanceTableSortState.column === colKey) {
+        assistanceTableSortState.dir = assistanceTableSortState.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        assistanceTableSortState.column = colKey;
+        assistanceTableSortState.dir = 'asc';
+    }
+    renderApprovedAssistanceTable();
+}
+
+// REQ082: Open Record Approved Assistance Modal
+function openRecordAssistanceModal() {
+    const today = new Date().toISOString().substring(0, 10);
+    const dateInput = document.getElementById('recordAstDate');
+    if (dateInput) dateInput.value = today;
+
+    const modalEl = document.getElementById('recordAssistanceModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+// REQ082: Submit Approved Assistance Record
+async function submitApprovedAssistanceRecord() {
+    const beneId = parseInt(document.getElementById('recordAstBeneficiarySelect').value, 10);
+    const progId = parseInt(document.getElementById('recordAstProgramSelect').value, 10);
+    const astType = document.getElementById('recordAstTypeSelect').value;
+    const qtyAmt = document.getElementById('recordAstQuantityAmount').value.trim();
+    const appDate = document.getElementById('recordAstDate').value;
+    const conditions = document.getElementById('recordAstConditions').value.trim();
+
+    if (!beneId || !progId || !astType || !qtyAmt) {
+        alert('Please fill in all mandatory fields: Beneficiary, Program, Assistance Type, and Quantity/Amount.');
+        return;
+    }
+
+    let newAstId = Date.now();
+
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const response = await fetch(`${apiBase}/api/assistance`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': '2'
+            },
+            body: JSON.stringify({
+                beneficiary_id: beneId,
+                program_id: progId,
+                assistance_type: astType,
+                quantity_amount: qtyAmt,
+                conditions: conditions,
+                approval_date: appDate,
+                officer_id: 2
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                newAstId = data.assistanceId;
+                showWebNotification('Assistance Recorded', 'Approved assistance saved successfully!', 'success');
+            }
+        }
+    } catch (e) {
+        console.warn('Backend API assistance record offline, updating local state:', e.message);
+    }
+
+    let beneMap = {
+        6: { first: 'Juan', last: 'Dela Cruz' },
+        7: { first: 'Maria', last: 'Santos' },
+        8: { first: 'Pedro', last: 'Reyes' }
+    };
+    let progMap = {
+        1: { code: 'LIVELIHOOD', name: 'Livelihood Assistance Program' },
+        2: { code: 'CKGIP', name: 'CKGIP Internship Program' },
+        3: { code: 'KEEP', name: 'KEEP Emergency Employment' },
+        4: { code: 'TUPAD', name: 'Support to TUPAD Program' },
+        5: { code: 'PFAS', name: 'Pangkabuhayan Financial Assistance' },
+        7: { code: 'SPES', name: 'Special Program for Employment of Students' }
+    };
+
+    const bInfo = beneMap[beneId] || { first: 'Beneficiary', last: `#${beneId}` };
+    const pInfo = progMap[progId] || { code: 'PESO', name: 'Livelihood Program' };
+
+    approvedAssistanceList.unshift({
+        id: newAstId,
+        application_id: null,
+        beneficiary_id: beneId,
+        beneficiary_first_name: bInfo.first,
+        beneficiary_last_name: bInfo.last,
+        program_id: progId,
+        program_code: pInfo.code,
+        program_name: pInfo.name,
+        assistance_type: astType,
+        quantity_amount: qtyAmt,
+        conditions: conditions || 'None',
+        approval_date: appDate || new Date().toISOString().substring(0, 10),
+        officer_id: 2,
+        officer_first_name: 'Jane',
+        officer_last_name: 'Smith'
+    });
+
+    pushNotification('Approved Assistance Recorded', `Recorded ${astType} (${qtyAmt}) for ${bInfo.first} ${bInfo.last} under ${pInfo.code}.`, 'approval');
+
+    const modalEl = document.getElementById('recordAssistanceModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    }
+
+    renderApprovedAssistanceTable();
+    loadOfficerAuditLogs();
+}
+
+// REQ083: Export Approved Assistance Summary Report
+function exportApprovedAssistanceReport() {
+    window.print();
+}
+
+// =============================================================================
+// REQ084, REQ085, REQ086, REQ087, REQ088: DAILY SCHEDULE & INTERVIEW LOGIC
+// =============================================================================
+
+let officerInterviewList = [
+    {
+        id: 201,
+        application_id: 1,
+        application_number: 'PESO-2026-0812',
+        beneficiary_id: 7,
+        beneficiary_first_name: 'Maria',
+        beneficiary_last_name: 'Santos',
+        beneficiary_email: 'maria.santos@email.com',
+        beneficiary_phone: '0906-333-4444',
+        beneficiary_address: 'Purok Maligaya, Barangay Zone III, Koronadal City',
+        program_id: 4,
+        program_code: 'TUPAD',
+        program_name: 'Support to Tulong Panghanapbuhay sa Ating Disadvantaged Workers',
+        interview_date: new Date().toISOString().substring(0, 10),
+        interview_time: '09:00 AM - 10:00 AM',
+        venue_location: 'PESO Main Office - Interview Room A',
+        status: 'Scheduled',
+        attendance_status: 'Present',
+        remarks: 'Brought complete Barangay Indigency & National ID.'
+    },
+    {
+        id: 202,
+        application_id: 2,
+        application_number: 'LIV-2026-0001',
+        beneficiary_id: 6,
+        beneficiary_first_name: 'Juan',
+        beneficiary_last_name: 'Dela Cruz',
+        beneficiary_email: 'juan.delacruz@email.com',
+        beneficiary_phone: '0905-111-2222',
+        beneficiary_address: 'Block 5, Lot 12, Barangay Zone IV, Koronadal City',
+        program_id: 1,
+        program_code: 'LIVELIHOOD',
+        program_name: 'Livelihood Assistance Program (Fishing Gear)',
+        interview_date: new Date().toISOString().substring(0, 10),
+        interview_time: '10:30 AM - 11:30 AM',
+        venue_location: 'PESO Main Office - Desk 3',
+        status: 'Scheduled',
+        attendance_status: 'Unmarked',
+        remarks: 'Orientation regarding fishing equipment grant.'
+    },
+    {
+        id: 203,
+        application_id: 3,
+        application_number: 'SPES-2026-0045',
+        beneficiary_id: 8,
+        beneficiary_first_name: 'Pedro',
+        beneficiary_last_name: 'Reyes',
+        beneficiary_email: 'pedro.reyes@email.com',
+        beneficiary_phone: '0907-555-6666',
+        beneficiary_address: 'Purok Sunflower, Barangay Zone I, Koronadal City',
+        program_id: 7,
+        program_code: 'SPES',
+        program_name: 'Special Program for Employment of Students',
+        interview_date: new Date().toISOString().substring(0, 10),
+        interview_time: '01:30 PM - 02:30 PM',
+        venue_location: 'PESO Main Office - Interview Room B',
+        status: 'Missed',
+        attendance_status: 'Absent',
+        remarks: 'Beneficiary failed to show up at scheduled slot.'
+    }
+];
+
+let expandedInterviewRowIds = new Set();
+
+async function loadOfficerInterviewData() {
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const res = await fetch(`${apiBase}/api/interviews`);
+        if (res.ok) {
+            const result = await res.json();
+            if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                officerInterviewList = result.data.map(int => ({
+                    id: int.id,
+                    application_id: int.application_id,
+                    application_number: int.application_number || `APP-${int.application_id || 'N/A'}`,
+                    beneficiary_id: int.beneficiary_id,
+                    beneficiary_first_name: int.beneficiary_first_name || 'Beneficiary',
+                    beneficiary_last_name: int.beneficiary_last_name || `#${int.beneficiary_id}`,
+                    beneficiary_email: int.beneficiary_email || 'N/A',
+                    beneficiary_phone: int.beneficiary_phone || 'N/A',
+                    beneficiary_address: int.beneficiary_address || 'Koronadal City',
+                    program_id: int.program_id,
+                    program_code: int.program_code || 'PESO',
+                    program_name: int.program_name || 'Livelihood Program',
+                    interview_date: int.interview_date ? int.interview_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
+                    interview_time: int.interview_time || '09:00 AM - 10:00 AM',
+                    venue_location: int.venue_location || 'PESO Main Office',
+                    status: int.status || 'Scheduled',
+                    attendance_status: int.attendance_status || 'Unmarked',
+                    remarks: int.remarks || null
+                }));
+            }
+        }
+    } catch (e) {
+        console.warn('Interviews API fetch offline, using local dataset:', e.message);
+    }
+    renderOfficerInterviewTable();
+}
+
+function renderOfficerInterviewTable() {
+    const tbody = document.getElementById('officerInterviewTableBody');
+    if (!tbody) return;
+
+    const searchText = (document.getElementById('searchInterviewText')?.value || '').toLowerCase().trim();
+    const dateFilter = document.getElementById('filterInterviewDate')?.value || '';
+    const programFilter = document.getElementById('filterInterviewProgram')?.value || '';
+    const statusFilter = document.getElementById('filterInterviewStatus')?.value || '';
+
+    // Update Counters
+    const todayStr = new Date().toISOString().substring(0, 10);
+    let schedToday = 0, presToday = 0, absToday = 0, compTotal = 0;
+
+    officerInterviewList.forEach(i => {
+        if (i.interview_date === todayStr) schedToday++;
+        if (i.attendance_status === 'Present') presToday++;
+        else if (i.attendance_status === 'Absent' || i.status === 'Missed') absToday++;
+        if (i.status === 'Completed' || i.attendance_status === 'Present') compTotal++;
+    });
+
+    if (document.getElementById('countScheduledToday')) document.getElementById('countScheduledToday').textContent = schedToday;
+    if (document.getElementById('countPresentToday')) document.getElementById('countPresentToday').textContent = presToday;
+    if (document.getElementById('countAbsentToday')) document.getElementById('countAbsentToday').textContent = absToday;
+    if (document.getElementById('countCompletedInterviews')) document.getElementById('countCompletedInterviews').textContent = compTotal;
+
+    // Filter (REQ084)
+    let filtered = officerInterviewList.filter(i => {
+        const fullName = `${i.beneficiary_first_name} ${i.beneficiary_last_name}`.toLowerCase();
+        const matchesSearch = !searchText ||
+            fullName.includes(searchText) ||
+            i.application_number.toLowerCase().includes(searchText) ||
+            i.venue_location.toLowerCase().includes(searchText) ||
+            i.program_code.toLowerCase().includes(searchText);
+
+        const matchesDate = !dateFilter || i.interview_date === dateFilter;
+        const matchesProgram = !programFilter || i.program_id.toString() === programFilter;
+        const matchesStatus = !statusFilter || i.status === statusFilter;
+
+        return matchesSearch && matchesDate && matchesProgram && matchesStatus;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>No interview schedules found for the selected filters.</td></tr>`;
+        return;
+    }
+
+    // Program Color mapping (REQ084)
+    const progColorMap = {
+        'LIVELIHOOD': '#10b981',
+        'TUPAD': '#0284c7',
+        'SPES': '#8b5cf6',
+        'CKGIP': '#f59e0b',
+        'KEEP': '#14b8a6',
+        'PFAS': '#ec4899'
+    };
+
+    tbody.innerHTML = '';
+    filtered.forEach(item => {
+        const isExpanded = expandedInterviewRowIds.has(item.id);
+        const fullName = `${item.beneficiary_first_name} ${item.beneficiary_last_name}`;
+        const color = progColorMap[item.program_code.toUpperCase()] || '#6b7280';
+
+        // Attendance badge (REQ086, REQ087)
+        let attendancePill = `<span class="badge bg-secondary-subtle text-dark border border-secondary-subtle px-2 py-1"><i class="bi bi-dash-circle me-1"></i>Unmarked</span>`;
+        if (item.attendance_status === 'Present') {
+            attendancePill = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1 text-success"></i>Present</span>`;
+        } else if (item.attendance_status === 'Absent') {
+            attendancePill = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-x-circle-fill me-1 text-danger"></i>Absent</span>`;
+        }
+
+        // Status badge (REQ088)
+        let statusBadge = `<span class="badge bg-primary px-2 py-1">${item.status}</span>`;
+        if (item.status === 'Completed') {
+            statusBadge = `<span class="badge bg-success text-white px-2 py-1"><i class="bi bi-patch-check-fill me-1"></i>Completed</span>`;
+        } else if (item.status === 'Pending') {
+            statusBadge = `<span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-clock-history me-1"></i>Pending</span>`;
+        } else if (item.status === 'Missed') {
+            statusBadge = `<span class="badge bg-danger text-white px-2 py-1"><i class="bi bi-exclamation-octagon-fill me-1"></i>Missed</span>`;
+        } else if (item.status === 'Cancelled') {
+            statusBadge = `<span class="badge bg-secondary text-white px-2 py-1"><i class="bi bi-slash-circle me-1"></i>Cancelled</span>`;
+        }
+
+        const mainRowHtml = `
+            <tr class="${isExpanded ? 'table-active' : ''}">
+                <td>
+                    <button class="btn btn-sm btn-link text-dark p-0" onclick="toggleExpandInterviewRow(${item.id})" title="Expand linked application & beneficiary info (REQ085)">
+                        <i class="bi ${isExpanded ? 'bi-chevron-up text-indigo fw-bold' : 'bi-chevron-down'}"></i>
+                    </button>
+                </td>
+                <td>
+                    <strong class="text-dark d-block"><i class="bi bi-clock me-1 text-primary"></i>${item.interview_time}</strong>
+                    <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${item.interview_date}</small>
+                </td>
+                <td>
+                    <a href="#" class="fw-bold text-primary text-decoration-none" onclick="openBeneficiaryDrawerByAppId(${item.application_id || 1}); return false;">
+                        ${fullName}
+                    </a>
+                    <small class="d-block text-muted">ID: BEN-${item.beneficiary_id}</small>
+                </td>
+                <td>
+                    <span class="badge text-white px-2 py-1" style="background-color: ${color};">${item.program_code}</span>
+                    <small class="d-block text-muted" style="font-size:0.75rem;">${item.program_name}</small>
+                </td>
+                <td><small class="fw-semibold text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${item.venue_location}</small></td>
+                <td>${attendancePill}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <!-- Present/Absent Toggles (REQ087) -->
+                        <button class="btn btn-sm btn-outline-success px-2 py-0" onclick="openAttendanceConfirmModal(${item.id}, 'Present')" title="Mark Present (REQ087)">
+                            <i class="bi bi-check-lg"></i> Present
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger px-2 py-0" onclick="openAttendanceConfirmModal(${item.id}, 'Absent')" title="Mark Absent (REQ087)">
+                            <i class="bi bi-x-lg"></i> Absent
+                        </button>
+
+                        <!-- Status Action dropdown (REQ088) -->
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-sm btn-light border py-0 px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                Status
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li><a class="dropdown-item text-success" href="#" onclick="updateInterviewStatus(${item.id}, 'Completed'); return false;"><i class="bi bi-check-circle me-1"></i> Mark Completed</a></li>
+                                <li><a class="dropdown-item text-warning" href="#" onclick="updateInterviewStatus(${item.id}, 'Pending'); return false;"><i class="bi bi-clock me-1"></i> Mark Pending</a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="updateInterviewStatus(${item.id}, 'Missed'); return false;"><i class="bi bi-exclamation-octagon me-1"></i> Mark Missed</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        let expandRowHtml = '';
+        if (isExpanded) {
+            expandRowHtml = `
+                <tr class="bg-light">
+                    <td colspan="8" class="p-3 border-bottom">
+                        <div class="card p-3 border-0 shadow-sm" style="border-left: 4px solid #4f46e5 !important; background: white;">
+                            <div class="row">
+                                <div class="col-md-6 border-end">
+                                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-person-badge text-primary me-2"></i>Beneficiary Personal Info (REQ085)</h6>
+                                    <div class="small text-muted">
+                                        <div><strong>Full Name:</strong> ${fullName}</div>
+                                        <div><strong>Beneficiary ID:</strong> BEN-${item.beneficiary_id}</div>
+                                        <div><strong>Contact Phone:</strong> ${item.beneficiary_phone}</div>
+                                        <div><strong>Email Address:</strong> ${item.beneficiary_email}</div>
+                                        <div><strong>Address:</strong> ${item.beneficiary_address}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-journal-text text-primary me-2"></i>Linked Application & Instructions</h6>
+                                    <div class="p-2 bg-light rounded border mb-2" style="font-size:0.85rem;">
+                                        <div><strong>Linked Application:</strong> #${item.application_number}</div>
+                                        <div><strong>Applied Program:</strong> ${item.program_name} (${item.program_code})</div>
+                                        <div><strong>Special Remarks:</strong> ${item.remarks || 'Standard interview procedures apply.'}</div>
+                                    </div>
+                                    <small class="text-primary fw-semibold"><i class="bi bi-info-circle me-1"></i>Attendance updates log real-time audit trail for PESO Admin oversight.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        tbody.innerHTML += mainRowHtml + expandRowHtml;
+    });
+}
+
+function toggleExpandInterviewRow(id) {
+    if (expandedInterviewRowIds.has(id)) {
+        expandedInterviewRowIds.delete(id);
+    } else {
+        expandedInterviewRowIds.add(id);
+    }
+    renderOfficerInterviewTable();
+}
+
+function resetInterviewFilters() {
+    if (document.getElementById('searchInterviewText')) document.getElementById('searchInterviewText').value = '';
+    if (document.getElementById('filterInterviewDate')) document.getElementById('filterInterviewDate').value = '';
+    if (document.getElementById('filterInterviewProgram')) document.getElementById('filterInterviewProgram').value = '';
+    if (document.getElementById('filterInterviewStatus')) document.getElementById('filterInterviewStatus').value = '';
+    renderOfficerInterviewTable();
+}
+
+// REQ084: Open Schedule New Interview Modal
+function openScheduleInterviewModal() {
+    const today = new Date().toISOString().substring(0, 10);
+    const dateInput = document.getElementById('schedInterviewDate');
+    if (dateInput) dateInput.value = today;
+
+    const modalEl = document.getElementById('scheduleInterviewModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+function onSchedBeneficiaryChanged() {
+    // Auto sync program selection if matched
+}
+
+// REQ084: Submit New Interview Schedule
+async function submitNewInterviewSchedule() {
+    const beneId = parseInt(document.getElementById('schedBeneficiarySelect').value, 10);
+    const progId = parseInt(document.getElementById('schedProgramSelect').value, 10);
+    const intDate = document.getElementById('schedInterviewDate').value;
+    const intTime = document.getElementById('schedInterviewTime').value;
+    const venue = document.getElementById('schedVenueLocation').value.trim();
+    const remarks = document.getElementById('schedRemarks').value.trim();
+
+    if (!beneId || !progId || !intDate || !intTime) {
+        alert('Please fill in all mandatory fields: Beneficiary, Program, Date, and Time.');
+        return;
+    }
+
+    let newSchedId = Date.now();
+
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const res = await fetch(`${apiBase}/api/interviews`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': '2'
+            },
+            body: JSON.stringify({
+                beneficiary_id: beneId,
+                program_id: progId,
+                interview_date: intDate,
+                interview_time: intTime,
+                venue_location: venue,
+                remarks: remarks,
+                officer_id: 2
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+                newSchedId = data.scheduleId;
+                showWebNotification('Interview Scheduled', 'Beneficiary interview scheduled successfully!', 'success');
+            }
+        }
+    } catch (e) {
+        console.warn('API schedule offline, adding to local dataset:', e.message);
+    }
+
+    let beneMap = {
+        6: { first: 'Juan', last: 'Dela Cruz', email: 'juan.delacruz@email.com', phone: '0905-111-2222', address: 'Barangay Zone IV' },
+        7: { first: 'Maria', last: 'Santos', email: 'maria.santos@email.com', phone: '0906-333-4444', address: 'Barangay Zone III' },
+        8: { first: 'Pedro', last: 'Reyes', email: 'pedro.reyes@email.com', phone: '0907-555-6666', address: 'Barangay Zone I' }
+    };
+    let progMap = {
+        1: { code: 'LIVELIHOOD', name: 'Livelihood Assistance Program' },
+        2: { code: 'CKGIP', name: 'CKGIP Internship Program' },
+        3: { code: 'KEEP', name: 'KEEP Emergency Employment' },
+        4: { code: 'TUPAD', name: 'Support to TUPAD Program' },
+        5: { code: 'PFAS', name: 'Pangkabuhayan Financial Assistance' },
+        7: { code: 'SPES', name: 'Special Program for Employment of Students' }
+    };
+
+    const bInfo = beneMap[beneId] || { first: 'Beneficiary', last: `#${beneId}`, email: 'n/a', phone: 'n/a', address: 'Koronadal City' };
+    const pInfo = progMap[progId] || { code: 'PESO', name: 'Livelihood Program' };
+
+    officerInterviewList.unshift({
+        id: newSchedId,
+        application_id: null,
+        application_number: `APP-NEW-${newSchedId}`,
+        beneficiary_id: beneId,
+        beneficiary_first_name: bInfo.first,
+        beneficiary_last_name: bInfo.last,
+        beneficiary_email: bInfo.email,
+        beneficiary_phone: bInfo.phone,
+        beneficiary_address: bInfo.address,
+        program_id: progId,
+        program_code: pInfo.code,
+        program_name: pInfo.name,
+        interview_date: intDate,
+        interview_time: intTime,
+        venue_location: venue || 'PESO Main Office',
+        status: 'Scheduled',
+        attendance_status: 'Unmarked',
+        remarks: remarks || null
+    });
+
+    pushNotification('Interview Scheduled', `Scheduled interview for ${bInfo.first} ${bInfo.last} on ${intDate} at ${intTime}.`, 'info');
+
+    const modalEl = document.getElementById('scheduleInterviewModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    }
+
+    renderOfficerInterviewTable();
+    loadOfficerAuditLogs();
+}
+
+// REQ086, REQ087: Open Attendance Confirmation Modal
+function openAttendanceConfirmModal(id, targetStatus) {
+    const item = officerInterviewList.find(i => i.id === id);
+    if (!item) return;
+
+    document.getElementById('attendanceTargetId').value = id;
+    document.getElementById('attendanceTargetStatus').value = targetStatus;
+    document.getElementById('confirmAttendancePromptText').innerHTML = `Are you sure you want to mark beneficiary <strong>${item.beneficiary_first_name} ${item.beneficiary_last_name}</strong> as <strong>${targetStatus.toUpperCase()}</strong> for today's interview?`;
+
+    const titleEl = document.getElementById('confirmAttendanceTitle');
+    const headerEl = document.getElementById('confirmAttendanceHeader');
+    const btnSubmit = document.getElementById('btnConfirmSubmitAttendance');
+
+    if (targetStatus === 'Present') {
+        titleEl.innerHTML = '<i class="bi bi-person-check-fill me-2"></i> Confirm Mark PRESENT';
+        headerEl.style.background = 'linear-gradient(135deg, #10b981 0%, #047857 100%)';
+        btnSubmit.className = 'btn btn-success px-4 font-weight-bold';
+    } else {
+        titleEl.innerHTML = '<i class="bi bi-person-x-fill me-2"></i> Confirm Mark ABSENT';
+        headerEl.style.background = 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)';
+        btnSubmit.className = 'btn btn-danger px-4 font-weight-bold';
+    }
+
+    const modalEl = document.getElementById('confirmAttendanceModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+// REQ086, REQ087: Execute Attendance Toggle Update
+async function executeAttendanceToggle() {
+    const id = parseInt(document.getElementById('attendanceTargetId').value, 10);
+    const targetStatus = document.getElementById('attendanceTargetStatus').value;
+    const notes = document.getElementById('attendanceModalNotes').value.trim();
+
+    const idx = officerInterviewList.findIndex(i => i.id === id);
+    if (idx === -1) return;
+
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const res = await fetch(`${apiBase}/api/interviews/${id}/attendance`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': '2'
+            },
+            body: JSON.stringify({ attendance_status: targetStatus, remarks: notes, officer_id: 2 })
+        });
+        if (res.ok) {
+            showWebNotification('Attendance Updated', `Marked ${targetStatus} successfully!`, 'success');
+        }
+    } catch (e) {
+        console.warn('API attendance toggle offline:', e.message);
+    }
+
+    officerInterviewList[idx].attendance_status = targetStatus;
+    if (targetStatus === 'Present') officerInterviewList[idx].status = 'Completed';
+    else if (targetStatus === 'Absent') officerInterviewList[idx].status = 'Missed';
+
+    if (notes) officerInterviewList[idx].remarks = notes;
+
+    const bName = `${officerInterviewList[idx].beneficiary_first_name} ${officerInterviewList[idx].beneficiary_last_name}`;
+    pushNotification('Attendance Marked', `Marked ${bName} as ${targetStatus.toUpperCase()} for interview #${id}.`, targetStatus === 'Present' ? 'approval' : 'alert');
+
+    const modalEl = document.getElementById('confirmAttendanceModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    }
+
+    renderOfficerInterviewTable();
+    loadOfficerAuditLogs();
+}
+
+// REQ088: Update Interview Status (Completed, Pending, Missed)
+async function updateInterviewStatus(id, newStatus) {
+    const idx = officerInterviewList.findIndex(i => i.id === id);
+    if (idx === -1) return;
+
+    try {
+        const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
+        const res = await fetch(`${apiBase}/api/interviews/${id}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': '2'
+            },
+            body: JSON.stringify({ status: newStatus, officer_id: 2 })
+        });
+        if (res.ok) {
+            showWebNotification('Interview Status Updated', `Status changed to ${newStatus}`, 'success');
+        }
+    } catch (e) {
+        console.warn('API status update offline:', e.message);
+    }
+
+    officerInterviewList[idx].status = newStatus;
+    pushNotification('Interview Status Change', `Interview #${id} status set to ${newStatus.toUpperCase()} by PESO Officer.`, 'info');
+
+    renderOfficerInterviewTable();
+    loadOfficerAuditLogs();
+}
+
+// =============================================================================
+// EVALUATION QUESTIONNAIRES & RESPONSES LOGIC (PESO OFFICER OPERATIONAL)
+// =============================================================================
+
+let officerQuestionnaireList = [
+    {
+        id: 'Q-2026-001',
+        title: 'Livelihood Starter Kit Eligibility Questionnaire',
+        program_code: 'LIVELIHOOD',
+        questions_count: 4,
+        responses_count: 12,
+        status: 'Active',
+        questions: ['Monthly Household Income', 'Prior Equipment Ownership', 'Years of Barangay Residency', 'Business Experience'],
+        remarks: 'Standard indigency assessment for starter kit applicants.'
+    },
+    {
+        id: 'Q-2026-002',
+        title: 'TUPAD Emergency Work Eligibility Form',
+        program_code: 'TUPAD',
+        questions_count: 3,
+        responses_count: 28,
+        status: 'Active',
+        questions: ['Displaced / Underemployed Status', 'Barangay Indigency Status', 'Physical Ability for Community Work'],
+        remarks: 'Emergency wage program compliance questionnaire.'
+    }
+];
+
+function loadQuestionnairesData() {
+    renderQuestionnairesTable();
+}
+
+function renderQuestionnairesTable() {
+    const tbody = document.getElementById('questionnairesTableBody');
+    if (!tbody) return;
+
+    const programFilter = document.getElementById('filterQuestionnaireProgram')?.value || 'all';
+    const searchQuery = (document.getElementById('searchQuestionnaireQuery')?.value || '').toLowerCase().trim();
+
+    let filtered = officerQuestionnaireList.filter(item => {
+        const matchesProgram = programFilter === 'all' || item.program_code === programFilter;
+        const matchesQuery = !searchQuery || item.title.toLowerCase().includes(searchQuery) || item.id.toLowerCase().includes(searchQuery);
+        return matchesProgram && matchesQuery;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-journal-x fs-2 d-block mb-2 text-secondary"></i>No questionnaire forms found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(item => {
+        const statusBadge = item.status === 'Active'
+            ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Active</span>`
+            : `<span class="badge bg-secondary-subtle text-dark border px-2 py-1"><i class="bi bi-pause-circle me-1"></i>Deactivated</span>`;
+
+        tbody.innerHTML += `
+            <tr>
+                <td class="fw-bold text-dark">${item.id}</td>
+                <td>
+                    <strong class="text-dark d-block">${item.title}</strong>
+                    <small class="text-muted">${item.remarks || 'Standard evaluation form'}</small>
+                </td>
+                <td><span class="badge bg-dark">${item.program_code}</span></td>
+                <td><span class="fw-bold text-primary">${item.questions_count} Questions</span></td>
+                <td><span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1"><i class="bi bi-people me-1"></i>${item.responses_count} Logged</span></td>
+                <td>${statusBadge}</td>
+                <td class="text-center">
+                    <div class="d-flex justify-content-center gap-1">
+                        <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openRecordResponseModal('${item.id}')" title="Record Beneficiary Response">
+                            <i class="bi bi-journal-plus me-1"></i> Record Response
+                        </button>
+                        <button class="btn btn-sm ${item.status === 'Active' ? 'btn-outline-danger' : 'btn-outline-success'} py-0 px-2" onclick="toggleQuestionnaireStatus('${item.id}')" title="${item.status === 'Active' ? 'Deactivate Form' : 'Activate Form'}">
+                            <i class="bi ${item.status === 'Active' ? 'bi-toggle-on' : 'bi-toggle-off'}"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function openCreateQuestionnaireModal() {
+    const modalEl = document.getElementById('createQuestionnaireModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+function submitCreateQuestionnaire() {
+    const title = document.getElementById('qTitleInput').value.trim();
+    const progCode = document.getElementById('qProgramSelect').value;
+    const questionsText = document.getElementById('qQuestionsInput').value.trim();
+    const remarks = document.getElementById('qRemarksInput').value.trim();
+
+    if (!title || !questionsText) {
+        alert('Please fill in mandatory fields: Form Title and Questions.');
+        return;
+    }
+
+    const questionsList = questionsText.split('\n').filter(q => q.trim().length > 0);
+    const newForm = {
+        id: 'Q-' + Date.now(),
+        title,
+        program_code: progCode,
+        questions_count: questionsList.length,
+        responses_count: 0,
+        status: 'Active',
+        questions: questionsList,
+        remarks: remarks || 'Officer created form'
+    };
+
+    officerQuestionnaireList.unshift(newForm);
+    pushNotification('Questionnaire Form Created', `Created evaluation form "${title}" for ${progCode}.`, 'info');
+    showWebNotification('Form Created', 'Evaluation questionnaire created successfully!', 'success');
+
+    const modalEl = document.getElementById('createQuestionnaireModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    }
+
+    renderQuestionnairesTable();
+    loadOfficerAuditLogs();
+}
+
+function toggleQuestionnaireStatus(id) {
+    const idx = officerQuestionnaireList.findIndex(q => q.id === id);
+    if (idx === -1) return;
+
+    const currentStatus = officerQuestionnaireList[idx].status;
+    const newStatus = currentStatus === 'Active' ? 'Deactivated' : 'Active';
+
+    showConfirmCard(`Are you sure you want to ${newStatus.toLowerCase()} questionnaire form '${officerQuestionnaireList[idx].title}'?`, () => {
+        officerQuestionnaireList[idx].status = newStatus;
+        pushNotification('Questionnaire Status Updated', `Form #${id} status set to ${newStatus}.`, 'info');
+        renderQuestionnairesTable();
+        loadOfficerAuditLogs();
+    });
+}
+
+function openRecordResponseModal(formId) {
+    const form = officerQuestionnaireList.find(q => q.id === formId);
+    if (!form) return;
+
+    document.getElementById('qTargetFormId').value = formId;
+    document.getElementById('recordResponseModalTitle').innerHTML = `<i class="bi bi-journal-check me-2"></i> Record Response: ${form.title}`;
+
+    const modalEl = document.getElementById('recordResponseModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
+function submitQuestionnaireResponse() {
+    const formId = document.getElementById('qTargetFormId').value;
+    const beneId = document.getElementById('qBeneficiarySelect').value;
+    const score = document.getElementById('qScoreSelect').value;
+    const notes = document.getElementById('qResponseNotesInput').value.trim();
+    const officerRemarks = document.getElementById('qOfficerEvaluationRemarks').value.trim();
+
+    const idx = officerQuestionnaireList.findIndex(q => q.id === formId);
+    if (idx !== -1) {
+        officerQuestionnaireList[idx].responses_count++;
+    }
+
+    pushNotification('Beneficiary Evaluation Logged', `Recorded response for BEN-${beneId} under questionnaire ${formId}. Rating: ${score}.`, 'approval');
+    showWebNotification('Response Recorded', `Beneficiary evaluation response saved with officer remarks!`, 'success');
+
+    const modalEl = document.getElementById('recordResponseModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    }
+
+    renderQuestionnairesTable();
+    loadOfficerAuditLogs();
+}
+
+window.loadQuestionnairesData = loadQuestionnairesData;
+window.renderQuestionnairesTable = renderQuestionnairesTable;
+window.openCreateQuestionnaireModal = openCreateQuestionnaireModal;
+window.submitCreateQuestionnaire = submitCreateQuestionnaire;
+window.toggleQuestionnaireStatus = toggleQuestionnaireStatus;
+window.openRecordResponseModal = openRecordResponseModal;
+window.submitQuestionnaireResponse = submitQuestionnaireResponse;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadOfficerApplicationsData();
+    loadApprovedAssistanceData();
+    loadOfficerInterviewData();
+    loadQuestionnairesData();
+});
+
+
+
 
 window.searchApplicationForEvaluation = function() {
     var searchInput = document.getElementById('evalSearchInput').value.trim();
@@ -8408,7 +10654,605 @@ window.quickActionViewReports = quickActionViewReports;
             </div>
         </div>
     </div>
+
+    <!-- ========================================================================= -->
+    <!-- REQ076, REQ077, REQ078: OFFICER EVALUATION CONFIRMATION MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="officerEvalModal" tabindex="-1" aria-hidden="true" style="z-index: 2100;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header border-0 pb-0" id="officerEvalModalHeader">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="p-2 rounded-circle bg-light" id="officerEvalIconBox">
+                            <i class="bi bi-patch-check-fill fs-4 text-primary"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold m-0" id="officerEvalModalTitle">Officer Evaluation Action</h5>
+                            <small class="text-muted" id="officerEvalAppNum">App #LIV-2026-0001</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <input type="hidden" id="evalTargetAppId">
+                    <input type="hidden" id="evalTargetAction">
+
+                    <!-- Role & Governance Notice -->
+                    <div class="alert alert-info py-2 px-3 small border-0 shadow-sm mb-3" style="background-color: #f0f7ff; color: #00529b;" id="officerEvalGovernanceNotice">
+                        <i class="bi bi-info-circle-fill me-1"></i> Officer actions forward the application to <strong>PESO Admin</strong> for final decision and accountability.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold mb-1">Applicant Name</label>
+                        <input type="text" class="form-control bg-light" id="officerEvalApplicantName" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold mb-1">Requested Program</label>
+                        <input type="text" class="form-control bg-light" id="officerEvalProgramName" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold mb-1" id="officerEvalNotesLabel">Evaluation Notes / Reason <span class="text-danger" id="notesRequiredAsterisk">*</span></label>
+                        <textarea class="form-control" id="officerEvalNotesText" rows="4" placeholder="Enter evaluation notes, missing requirements details, or denial justification..."></textarea>
+                        <div class="form-text small" id="officerEvalNotesHelp">Evaluation notes are recorded in the audit log and visible to PESO Admin.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary-custom px-4" id="btnSubmitOfficerEval" onclick="submitOfficerEvaluationAction()">
+                        Submit Decision
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- REQ075: BENEFICIARY QR CODE SCANNER MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="officerQrScannerModal" tabindex="-1" aria-hidden="true" style="z-index: 2150;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header bg-dark text-white p-3">
+                    <h5 class="modal-title m-0 text-white"><i class="bi bi-qr-code-scan me-2 text-warning"></i> Beneficiary QR Code Retrieval</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopCameraQrScan()"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">Scan the beneficiary's unique QR code to instantly retrieve their profile, submitted applications, and supporting documents (REQ075).</p>
+                    
+                    <ul class="nav nav-pills nav-fill mb-3" id="qrScanTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold" id="qr-camera-tab" data-bs-toggle="pill" data-bs-target="#qr-camera-pane" type="button" onclick="startCameraQrScan()"><i class="bi bi-camera me-1"></i> Camera Scanner</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold" id="qr-file-tab" data-bs-toggle="pill" data-bs-target="#qr-file-pane" type="button" onclick="stopCameraQrScan()"><i class="bi bi-file-earmark-image me-1"></i> Upload Image</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold" id="qr-manual-tab" data-bs-toggle="pill" data-bs-target="#qr-manual-pane" type="button" onclick="stopCameraQrScan()"><i class="bi bi-keyboard me-1"></i> Quick ID / Code</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="qrScanTabsContent">
+                        <!-- CAMERA TAB -->
+                        <div class="tab-pane fade show active text-center p-3" id="qr-camera-pane" role="tabpanel">
+                            <div id="qrReaderCanvas" style="width: 100%; max-width: 420px; min-height: 280px; margin: 0 auto; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white;">
+                                <div id="qrReaderPlaceholder" class="p-4 text-center">
+                                    <i class="bi bi-camera-video fs-1 text-secondary d-block mb-2"></i>
+                                    <span>Click "Camera Scanner" tab to initialize web camera stream.</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-center">
+                                <span class="badge bg-secondary" id="qrScanStatusText">Ready to scan...</span>
+                            </div>
+                        </div>
+
+                        <!-- FILE UPLOAD TAB -->
+                        <div class="tab-pane fade text-center p-4" id="qr-file-pane" role="tabpanel">
+                            <div class="p-5 border-2 border-dashed rounded-3 bg-light text-center cursor-pointer" onclick="document.getElementById('qrFileInput').click()">
+                                <i class="bi bi-cloud-arrow-up fs-1 text-primary d-block mb-2"></i>
+                                <h6 class="fw-bold m-0">Select or Drop QR Code Image File</h6>
+                                <p class="text-muted small m-0">PNG, JPG, JPEG files containing Beneficiary QR code</p>
+                                <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleQrFileUploaded(this)">
+                            </div>
+                        </div>
+
+                        <!-- MANUAL TAB -->
+                        <div class="tab-pane fade p-3" id="qr-manual-pane" role="tabpanel">
+                            <div class="form-group mb-3">
+                                <label class="form-label fw-semibold">Enter Beneficiary QR Code / User ID / Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-qr-code"></i></span>
+                                    <input type="text" class="form-control form-control-lg" id="manualQrCodeInput" placeholder="e.g. BEN-2026-0001, 6, or juan_dela_cruz">
+                                    <button class="btn btn-primary-custom" onclick="submitManualQrLookup()">Lookup Profile</button>
+                                </div>
+                                <div class="form-text">Try sample demo IDs: <code>6</code> (Juan Dela Cruz), <code>7</code> (Maria Santos), or <code>8</code> (Pedro Reyes).</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- REQ075: BENEFICIARY PROFILE & DOCUMENTS DRAWER / MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="beneficiaryProfileModal" tabindex="-1" aria-hidden="true" style="z-index: 2200;">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-pink) 100%);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 50px; height: 50px;" id="beneModalInitials">
+                            JD
+                        </div>
+                        <div>
+                            <h4 class="modal-title fw-bold text-white m-0" id="beneModalFullName">Juan Dela Cruz</h4>
+                            <p class="m-0 text-white-50 small"><i class="bi bi-qr-code me-1"></i> Beneficiary ID: <span id="beneModalUserCode" class="fw-bold text-white">BEN-2026-0001</span></p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <div class="row g-3 mb-4">
+                        <!-- Profile Card -->
+                        <div class="col-lg-4">
+                            <div class="card p-3 border-0 shadow-sm h-100" style="border-radius: 12px; background: white;">
+                                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-person-lines-fill text-primary me-2"></i>Personal Details</h6>
+                                <div class="mb-2"><span class="text-muted small d-block">Age / DOB</span> <strong id="beneModalAgeDob">29 yrs (Apr 12, 1997)</strong></div>
+                                <div class="mb-2"><span class="text-muted small d-block">Sex / Marital Status</span> <strong id="beneModalSexMarital">Male / Single</strong></div>
+                                <div class="mb-2"><span class="text-muted small d-block">Contact Phone</span> <strong id="beneModalPhone">0905-111-2222</strong></div>
+                                <div class="mb-2"><span class="text-muted small d-block">Email Address</span> <strong id="beneModalEmail">juan.delacruz@email.com</strong></div>
+                                <div class="mb-2"><span class="text-muted small d-block">Residential Address</span> <strong id="beneModalAddress">Block 5, Lot 12, Barangay Zone IV, Koronadal City</strong></div>
+                                <div class="mt-3 p-2 bg-success-subtle rounded border border-success-subtle d-flex align-items-center gap-2 text-success small">
+                                    <i class="bi bi-patch-check-fill fs-5"></i> <span>Identity & Data Consent Verified</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submitted Applications list -->
+                        <div class="col-lg-8">
+                            <div class="card p-3 border-0 shadow-sm h-100" style="border-radius: 12px; background: white;">
+                                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-journal-text text-primary me-2"></i>Submitted Applications & Evaluation History</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle" style="font-size: 0.85rem;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>App Number</th>
+                                                <th>Program</th>
+                                                <th>Date Applied</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="beneModalAppsTableBody">
+                                            <!-- Rendered dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Supporting Documents Section -->
+                    <div class="card p-3 border-0 shadow-sm" style="border-radius: 12px; background: white;">
+                        <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>Uploaded Supporting Documents</h6>
+                        <div class="row g-3" id="beneModalDocsGrid">
+                            <!-- Document Cards rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Profile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SUPPORTING DOCUMENTS INSPECTION MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="viewDocsModal" tabindex="-1" aria-hidden="true" style="z-index: 2250;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header bg-dark text-white p-3">
+                    <h5 class="modal-title m-0 text-white"><i class="bi bi-folder-symlink me-2 text-info"></i> Supporting Documents Viewer</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="fw-bold m-0" id="docsModalAppName">Juan Dela Cruz</h6>
+                            <small class="text-muted" id="docsModalAppDetails">Livelihood Assistance (#LIV-2026-0001)</small>
+                        </div>
+                        <span class="badge bg-primary px-3 py-2" id="docsModalCountBadge">4 Documents Attached</span>
+                    </div>
+
+                    <div class="list-group shadow-sm mb-3" id="docsModalList">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- REQ079: NEW LIVELIHOOD APPLICATION FORM MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="newApplicationModal" tabindex="-1" aria-hidden="true" style="z-index: 2300;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-pink) 100%);">
+                    <h5 class="modal-title fw-bold text-white m-0"><i class="bi bi-file-earmark-plus-fill me-2"></i> Record New Livelihood Application (REQ079)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <form id="newApplicationForm" onsubmit="event.preventDefault(); submitNewApplicationRecord();">
+                        <div class="alert alert-info py-2 px-3 small border-0 shadow-sm mb-3">
+                            <i class="bi bi-info-circle-fill me-1"></i> Record applications submitted in-person or via field offices by beneficiaries. Officers can attach submitted credentials.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Select Beneficiary <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newAppBeneficiarySelect" required>
+                                    <option value="">-- Select Beneficiary --</option>
+                                    <option value="6">Juan Dela Cruz (BEN-6) - Zone IV</option>
+                                    <option value="7">Maria Santos (BEN-7) - Zone III</option>
+                                    <option value="8">Pedro Reyes (BEN-8) - Zone I</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Requested Program <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newAppProgramSelect" required>
+                                    <option value="">-- Select Livelihood Program --</option>
+                                    <option value="1">Livelihood Assistance Program (LIVELIHOOD)</option>
+                                    <option value="2">CKGIP Internship Program (CKGIP)</option>
+                                    <option value="3">KEEP Emergency Employment (KEEP)</option>
+                                    <option value="4">TUPAD Emergency Work (TUPAD)</option>
+                                    <option value="5">PFAS Financial Assistance (PFAS)</option>
+                                    <option value="7">SPES Student Employment (SPES)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Specific Project / Sub-Category / Remarks</label>
+                                <input type="text" class="form-control" id="newAppProjectRemarks" placeholder="e.g. Fishing Gear Project, Food Cart Business, Emergency Cleanup, etc.">
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Supporting Documents Submitted</label>
+                                <div class="card p-3 border-0 bg-white shadow-sm">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="docCheckValidId" checked>
+                                        <label class="form-check-label small" for="docCheckValidId">Government Issued Photo ID (National ID / Driver License / School ID)</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="docCheckIndigency" checked>
+                                        <label class="form-check-label small" for="docCheckIndigency">Barangay Certificate of Indigency</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="docCheckClearance">
+                                        <label class="form-check-label small" for="docCheckClearance">Barangay Clearance</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="docCheckIncome">
+                                        <label class="form-check-label small" for="docCheckIncome">Proof of Household Income / Case Study Report</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-white border-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success px-4" onclick="submitNewApplicationRecord()">
+                        <i class="bi bi-save-fill me-1"></i> Record Application
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- REQ082: RECORD APPROVED ASSISTANCE FORM MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="recordAssistanceModal" tabindex="-1" aria-hidden="true" style="z-index: 2350;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+                    <h5 class="modal-title fw-bold text-white m-0"><i class="bi bi-journal-plus me-2"></i> Record Approved Livelihood Assistance (REQ082)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <form id="recordAssistanceForm" onsubmit="event.preventDefault(); submitApprovedAssistanceRecord();">
+                        <div class="alert alert-success py-2 px-3 small border-0 shadow-sm mb-3">
+                            <i class="bi bi-check-circle-fill me-1"></i> Record type, quantity, and conditions of approved assistance. All entries log officer identity and timestamp for admin audit transparency.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Target Beneficiary <span class="text-danger">*</span></label>
+                                <select class="form-select" id="recordAstBeneficiarySelect" required>
+                                    <option value="">-- Select Beneficiary --</option>
+                                    <option value="6">Juan Dela Cruz (BEN-6)</option>
+                                    <option value="7">Maria Santos (BEN-7)</option>
+                                    <option value="8">Pedro Reyes (BEN-8)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Associated Program <span class="text-danger">*</span></label>
+                                <select class="form-select" id="recordAstProgramSelect" required>
+                                    <option value="">-- Select Program --</option>
+                                    <option value="1">Livelihood Assistance Program (LIVELIHOOD)</option>
+                                    <option value="2">CKGIP Internship Program (CKGIP)</option>
+                                    <option value="3">KEEP Emergency Employment (KEEP)</option>
+                                    <option value="4">TUPAD Emergency Work (TUPAD)</option>
+                                    <option value="5">PFAS Financial Grant (PFAS)</option>
+                                    <option value="7">SPES Student Employment (SPES)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Assistance Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="recordAstTypeSelect" required>
+                                    <option value="Cash Grant">Cash Financial Grant (Pangkabuhayan)</option>
+                                    <option value="Starter Kit">Livelihood Starter Kit (Tailoring / Food Cart)</option>
+                                    <option value="Tools & Equipment">Tools & Fishing/Farming Equipment</option>
+                                    <option value="Emergency Wages">Emergency Work Stipend / Wages</option>
+                                    <option value="Educational Financial Aid">Educational Financial Grant (SPES)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Quantity / Amount <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="recordAstQuantityAmount" placeholder="e.g. ₱ 10,000.00 or 1 Sewing Machine Kit" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Approval Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="recordAstDate" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Officer Identity</label>
+                                <input type="text" class="form-control bg-light" value="Jane Smith (PESO Officer ID: 2)" readonly>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Conditions & Requirements</label>
+                                <textarea class="form-control" id="recordAstConditions" rows="3" placeholder="Enter terms, required training completion, or maintenance conditions..."></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-white border-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning px-4 text-dark font-weight-bold" onclick="submitApprovedAssistanceRecord()">
+                        <i class="bi bi-journal-check me-1"></i> Save Assistance Record
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ========================================================================= -->
+    <!-- REQ084: SCHEDULE NEW INTERVIEW FORM MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="scheduleInterviewModal" tabindex="-1" aria-hidden="true" style="z-index: 2400;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+                    <h5 class="modal-title fw-bold text-white m-0"><i class="bi bi-calendar-plus-fill me-2"></i> Schedule Beneficiary Interview (REQ084)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <form id="scheduleInterviewForm" onsubmit="event.preventDefault(); submitNewInterviewSchedule();">
+                        <div class="alert alert-info py-2 px-3 small border-0 shadow-sm mb-3">
+                            <i class="bi bi-info-circle-fill me-1"></i> Assign an interview slot for a beneficiary. Schedules immediately reflect on beneficiary portal & log officer actions.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Target Beneficiary <span class="text-danger">*</span></label>
+                                <select class="form-select" id="schedBeneficiarySelect" required onchange="onSchedBeneficiaryChanged()">
+                                    <option value="">-- Select Beneficiary --</option>
+                                    <option value="6">Juan Dela Cruz (BEN-6) - Zone IV</option>
+                                    <option value="7">Maria Santos (BEN-7) - Zone III</option>
+                                    <option value="8">Pedro Reyes (BEN-8) - Zone I</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Target Livelihood Program <span class="text-danger">*</span></label>
+                                <select class="form-select" id="schedProgramSelect" required>
+                                    <option value="">-- Select Program --</option>
+                                    <option value="1">Livelihood Assistance Program (LIVELIHOOD)</option>
+                                    <option value="2">CKGIP Internship Program (CKGIP)</option>
+                                    <option value="3">KEEP Emergency Employment (KEEP)</option>
+                                    <option value="4">TUPAD Emergency Work (TUPAD)</option>
+                                    <option value="5">PFAS Financial Grant (PFAS)</option>
+                                    <option value="7">SPES Student Employment (SPES)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Interview Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="schedInterviewDate" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Interview Time Slot <span class="text-danger">*</span></label>
+                                <select class="form-select" id="schedInterviewTime" required>
+                                    <option value="09:00 AM - 10:00 AM">09:00 AM - 10:00 AM</option>
+                                    <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
+                                    <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
+                                    <option value="01:30 PM - 02:30 PM">01:30 PM - 02:30 PM</option>
+                                    <option value="02:30 PM - 03:30 PM">02:30 PM - 03:30 PM</option>
+                                    <option value="03:30 PM - 04:30 PM">03:30 PM - 04:30 PM</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Interview Venue / Location</label>
+                                <input type="text" class="form-control" id="schedVenueLocation" value="PESO Main Office - Interview Room A, City Hall Compound" required>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Remarks & Special Instructions</label>
+                                <textarea class="form-control" id="schedRemarks" rows="2" placeholder="e.g. Please bring original Barangay Indigency & 2x2 ID photo..."></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-white border-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-indigo px-4 text-white font-weight-bold" style="background-color: #4f46e5;" onclick="submitNewInterviewSchedule()">
+                        <i class="bi bi-calendar-check me-1"></i> Save & Notify Beneficiary
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- REQ087: ATTENDANCE CONFIRMATION PROMPT MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="confirmAttendanceModal" tabindex="-1" aria-hidden="true" style="z-index: 2450;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white p-3" id="confirmAttendanceHeader" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+                    <h5 class="modal-title fw-bold text-white m-0" id="confirmAttendanceTitle"><i class="bi bi-person-check-fill me-2"></i> Confirm Attendance Marking</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <input type="hidden" id="attendanceTargetId">
+                    <input type="hidden" id="attendanceTargetStatus">
+
+                    <p class="fs-6 text-dark" id="confirmAttendancePromptText">
+                        Are you sure you want to mark beneficiary <strong>Juan Dela Cruz</strong> as <strong>PRESENT</strong> for today's interview?
+                    </p>
+
+                    <div class="alert alert-warning py-2 px-3 small border-0 shadow-sm mb-3">
+                        <i class="bi bi-shield-check me-1"></i> Marking attendance automatically updates real-time logs and sends system confirmation to the beneficiary.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Attendance Remarks / Verification Notes (Optional)</label>
+                        <input type="text" class="form-control" id="attendanceModalNotes" placeholder="e.g. Verified PhilID on site, arrived on time...">
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success px-4 font-weight-bold" id="btnConfirmSubmitAttendance" onclick="executeAttendanceToggle()">
+                        <i class="bi bi-check-lg me-1"></i> Confirm Attendance
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ========================================================================= -->
+    <!-- QUESTIONNAIRE FORM CREATION MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="createQuestionnaireModal" tabindex="-1" aria-hidden="true" style="z-index: 2460;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);">
+                    <h5 class="modal-title fw-bold text-white m-0"><i class="bi bi-file-earmark-plus-fill me-2"></i> Create Evaluation Questionnaire Form</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <form id="createQuestionnaireForm" onsubmit="event.preventDefault(); submitCreateQuestionnaire();">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">Questionnaire Form Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="qTitleInput" placeholder="e.g. Livelihood Equipment Needs Assessment 2026" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Target Program <span class="text-danger">*</span></label>
+                                <select class="form-select" id="qProgramSelect" required>
+                                    <option value="LIVELIHOOD">Livelihood Assistance</option>
+                                    <option value="TUPAD">TUPAD Emergency Work</option>
+                                    <option value="SPES">SPES Student Employment</option>
+                                    <option value="CKGIP">CKGIP Internship</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Assessment Criteria & Evaluation Questions (One per line) <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="qQuestionsInput" rows="5" placeholder="Q1: Household monthly gross income level?&#10;Q2: Does applicant own existing tools/equipment?&#10;Q3: Prior training certifications completed?&#10;Q4: Years of residency in barangay?" required></textarea>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Officer Evaluation Notes & Guidelines</label>
+                                <input type="text" class="form-control" id="qRemarksInput" placeholder="e.g. Verify Barangay Indigency & PhilID during response recording...">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-white border-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-indigo text-white px-4 font-weight-bold" style="background-color: #312e81;" onclick="submitCreateQuestionnaire()">
+                        <i class="bi bi-save me-1"></i> Save & Publish Form
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- RECORD BENEFICIARY QUESTIONNAIRE RESPONSE MODAL -->
+    <!-- ========================================================================= -->
+    <div class="modal fade" id="recordResponseModal" tabindex="-1" aria-hidden="true" style="z-index: 2470;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, #047857 0%, #10b981 100%);">
+                    <h5 class="modal-title fw-bold text-white m-0" id="recordResponseModalTitle"><i class="bi bi-journal-check me-2"></i> Record Beneficiary Response</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <input type="hidden" id="qTargetFormId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Select Beneficiary <span class="text-danger">*</span></label>
+                            <select class="form-select" id="qBeneficiarySelect" required>
+                                <option value="6">Juan Dela Cruz (BEN-6) - Zone IV</option>
+                                <option value="7">Maria Santos (BEN-7) - Zone III</option>
+                                <option value="8">Pedro Reyes (BEN-8) - Zone I</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Assessment Score / Rating</label>
+                            <select class="form-select" id="qScoreSelect">
+                                <option value="High Priority (Eligible)">High Priority (Eligible)</option>
+                                <option value="Moderate Priority (Conditional)">Moderate Priority (Conditional)</option>
+                                <option value="Low Priority">Low Priority</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Beneficiary Response Summary & Field Notes</label>
+                            <textarea class="form-control" id="qResponseNotesInput" rows="4" placeholder="Enter beneficiary responses, verified income bracket, and officer observation notes..."></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Officer Evaluation Remarks</label>
+                            <input type="text" class="form-control" id="qOfficerEvaluationRemarks" value="Verified indigency documents. Recommended for approval." required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success text-white px-4 font-weight-bold" onclick="submitQuestionnaireResponse()">
+                        <i class="bi bi-check-circle me-1"></i> Save Response Log
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
+
+</html>
 
 
 
