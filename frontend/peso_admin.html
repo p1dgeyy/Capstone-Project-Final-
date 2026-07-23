@@ -846,13 +846,13 @@
         }
 
         .calendar-event-badge {
-            font-size: 0.65rem;
+            font-size: 0.68rem;
             font-weight: 700;
-            padding: 2px 4px;
+            padding: 3px 5px;
             border-radius: 4px;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            overflow: hidden;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.25;
             max-width: 100%;
             box-sizing: border-box;
             color: white;
@@ -3576,6 +3576,23 @@
                 <div id="schedDetailActionButtons" class="d-flex gap-2">
                     <!-- Edit/Cancel buttons rendered dynamically -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Agenda Inspection Modal for busy dates (+ N more) -->
+    <div class="custom-modal-overlay" id="dayScheduleModal" style="z-index: 2150;">
+        <div class="custom-modal-content" style="max-width: 580px;">
+            <div class="custom-modal-header bg-dark text-white p-3">
+                <h5 class="custom-modal-title text-white fs-6 m-0" id="daySchedHeaderTitle"><i class="bi bi-calendar-date me-2 text-info"></i>Day Schedule Agenda</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeDayScheduleModal()"></button>
+            </div>
+            <div class="custom-modal-body p-4" id="daySchedBodyContent" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Rendered dynamically -->
+            </div>
+            <div class="custom-modal-footer bg-light p-3 border-top d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-secondary px-3" onclick="closeDayScheduleModal()">Close Agenda</button>
+                <button type="button" class="btn btn-warning px-3 fw-bold text-dark" onclick="closeDayScheduleModal(); openAddScheduleModal();"><i class="bi bi-plus-circle me-1"></i>New Activity</button>
             </div>
         </div>
     </div>
@@ -7108,7 +7125,8 @@
                 const hasConflict = checkHasConflictLocal(dateStr, allSchedules);
                 
                 let eventsHtml = '';
-                dayEvents.forEach(ev => {
+                const displayEvents = dayEvents.slice(0, 2);
+                displayEvents.forEach(ev => {
                     const prog = programs.find(p => p.id === ev.programId) || { code: 'OTHER' };
                     
                     let bgStyle = 'background-color: #4f46e5;'; // default Indigo
@@ -7128,7 +7146,7 @@
 
                     eventsHtml += `
                         <div class="calendar-event-badge p-1 mb-1 rounded text-white small fw-bold shadow-sm" 
-                             style="${bgStyle} cursor: pointer; font-size: 0.68rem; line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" 
+                             style="${bgStyle} cursor: pointer; font-size: 0.68rem; line-height: 1.25; white-space: normal; word-break: break-word;" 
                              draggable="true" 
                              ondragstart="handleScheduleDragStart(event, '${ev.id}')"
                              onclick="openScheduleDetailModal('${ev.id}')"
@@ -7138,6 +7156,18 @@
                         </div>
                     `;
                 });
+
+                if (dayEvents.length > 2) {
+                    const remaining = dayEvents.length - 2;
+                    eventsHtml += `
+                        <div class="badge bg-dark text-white p-1 w-100 fw-bold shadow-sm text-center" 
+                             style="cursor: pointer; font-size: 0.65rem;" 
+                             onclick="openDayScheduleModal('${dateStr}')"
+                             title="Click to view all ${dayEvents.length} activities scheduled for this date">
+                             + ${remaining} more
+                        </div>
+                    `;
+                }
 
                 const todayClass = (isCurrentMonth && today.getDate() === day) ? 'bg-primary-subtle border-primary' : '';
 
@@ -7273,6 +7303,62 @@
             `;
 
             gridContainer.innerHTML = tableHtml;
+        }
+
+        function openDayScheduleModal(dateStr) {
+            const schedules = getFilteredSchedules();
+            const dayEvents = schedules.filter(s => (s.from || s.dateTime || '').startsWith(dateStr) && (s.status === 'Active' || s.status === 'Scheduled'));
+            const modal = document.getElementById('dayScheduleModal');
+            const titleEl = document.getElementById('daySchedHeaderTitle');
+            const bodyEl = document.getElementById('daySchedBodyContent');
+            if (!modal || !bodyEl) return;
+
+            const dateFormatted = new Date(dateStr).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            if (titleEl) titleEl.innerHTML = `<i class="bi bi-calendar-date me-2 text-info"></i>Schedule Agenda for ${dateFormatted}`;
+
+            if (dayEvents.length === 0) {
+                bodyEl.innerHTML = `<div class="text-center text-muted p-4"><i class="bi bi-calendar-x fs-3 d-block mb-1"></i>No active activities scheduled for this date.</div>`;
+            } else {
+                const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+                let html = `<div class="d-flex flex-column gap-3">`;
+                dayEvents.forEach(sc => {
+                    const prog = programs.find(p => p.id === sc.programId) || { code: 'PESO' };
+                    let badgeClass = 'bg-secondary';
+                    if (prog.code === 'SPES') badgeClass = 'bg-indigo text-white';
+                    else if (prog.code === 'TUPAD') badgeClass = 'bg-success';
+                    else if (sc.type === 'Training') badgeClass = 'bg-warning text-dark';
+
+                    const startT = new Date(sc.from || sc.dateTime);
+                    const endT = sc.to ? new Date(sc.to) : null;
+                    const formatTime = startT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + 
+                                       (endT ? ' - ' + endT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+
+                    html += `
+                        <div class="p-3 border rounded shadow-sm bg-white" onclick="closeDayScheduleModal(); openScheduleDetailModal('${sc.id}')" style="cursor: pointer;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div>
+                                    <span class="badge ${badgeClass} me-1">${prog.code}</span>
+                                    <span class="badge bg-light text-dark border">${sc.type}</span>
+                                </div>
+                                <span class="badge bg-success-subtle text-success border border-success fw-bold">${sc.status || 'Active'}</span>
+                            </div>
+                            <h6 class="mb-1 fw-bold text-dark">${sc.title}</h6>
+                            <p class="mb-1 small text-muted"><i class="bi bi-people-fill me-1 text-primary"></i>Target Batch: <strong>${sc.beneficiaryId === 'all' ? 'All Registered Batches' : sc.beneficiaryId}</strong></p>
+                            <p class="mb-1 small text-muted"><i class="bi bi-clock me-1 text-muted"></i>Time Slot: ${formatTime}</p>
+                            <p class="mb-0 small text-muted"><i class="bi bi-geo-alt me-1 text-danger"></i>Venue: ${sc.location}</p>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                bodyEl.innerHTML = html;
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeDayScheduleModal() {
+            const modal = document.getElementById('dayScheduleModal');
+            if (modal) modal.classList.remove('active');
         }
 
         function openScheduleDetailModal(schedId) {
