@@ -2499,88 +2499,152 @@
                 </div>
             </section>
 
-            <!-- MODULE: Scheduling Management -->
+            <!-- ========================================================================= -->
+            <!-- MODULE: COLLEGE SCHEDULE-MAKER INTERACTIVE SCHEDULING PANEL -->
+            <!-- ========================================================================= -->
             <section class="module-page" id="module-schedules">
-                <!-- Filters Card -->
-                <div class="table-card mb-4">
+                <!-- Top Header Banner & Legend -->
+                <div class="card p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; color: white;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h4 class="fw-bold mb-1 text-white"><i class="bi bi-calendar3-event-fill text-warning me-2"></i>Batch Activity & Schedule Builder</h4>
+                            <p class="m-0 text-white-50 small">Interactive drag-and-drop schedule maker. Assign training, interviews, and resource distributions by program batch with automated venue conflict detection.</p>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                            <div class="btn-group btn-group-sm bg-white p-1 rounded shadow-sm" role="group">
+                                <button type="button" class="btn btn-primary btn-sm fw-bold active" id="btnSchedMonthlyView" onclick="setScheduleViewMode('monthly')">
+                                    <i class="bi bi-calendar-month me-1"></i> Monthly Grid
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="btnSchedWeeklyView" onclick="setScheduleViewMode('weekly')">
+                                    <i class="bi bi-calendar-week me-1"></i> Weekly Timetable
+                                </button>
+                            </div>
+                            <button class="btn btn-warning font-weight-bold shadow-sm" onclick="openAddScheduleModal()">
+                                <i class="bi bi-plus-circle-fill me-1"></i> New Schedule
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Color Coding Legend -->
+                    <div class="d-flex gap-3 mt-3 pt-3 border-top border-secondary small flex-wrap">
+                        <span class="fw-semibold text-white-50 me-1">Program Color Themes:</span>
+                        <span class="badge" style="background-color: #4f46e5;"><i class="bi bi-circle-fill me-1"></i> SPES (Indigo)</span>
+                        <span class="badge" style="background-color: #059669;"><i class="bi bi-circle-fill me-1"></i> TUPAD (Emerald)</span>
+                        <span class="badge" style="background-color: #d97706;"><i class="bi bi-circle-fill me-1"></i> Livelihood Training (Amber)</span>
+                        <span class="badge" style="background-color: #7c3aed;"><i class="bi bi-circle-fill me-1"></i> CKGIP (Purple)</span>
+                        <span class="badge" style="background-color: #ef4444;"><i class="bi bi-exclamation-triangle-fill me-1"></i> Overlap Conflict</span>
+                    </div>
+                </div>
+
+                <!-- Filters & Search Toolbar -->
+                <div class="table-card mb-4 p-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="table-title m-0"><i class="bi bi-funnel-fill text-primary"></i> Schedule Filters & Tools</h5>
-                        <button class="btn-custom btn-custom-secondary py-1 px-3" onclick="resetScheduleFilters()">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset Filters
+                        <h6 class="table-title m-0 fw-bold"><i class="bi bi-funnel-fill text-primary me-2"></i>Filters & Search Criteria</h6>
+                        <button class="btn btn-sm btn-outline-secondary py-1 px-3" onclick="resetScheduleFilters()">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
                         </button>
                     </div>
-                    <div class="row g-3">
+                    <div class="row g-2">
                         <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold text-muted">Program Type</label>
-                            <select class="form-select" id="filterSchedProgram" onchange="applyScheduleFilters()">
+                            <label class="form-label small fw-bold text-muted mb-1">Target Program</label>
+                            <select class="form-select form-select-sm" id="filterSchedProgram" onchange="applyScheduleFilters()">
                                 <option value="all">All Programs</option>
                             </select>
                         </div>
                         <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold text-muted">Beneficiary Name</label>
-                            <select class="form-select" id="filterSchedBeneficiary" onchange="applyScheduleFilters()">
-                                <option value="all">All Beneficiaries</option>
+                            <label class="form-label small fw-bold text-muted mb-1">Target Batch</label>
+                            <select class="form-select form-select-sm" id="filterSchedBeneficiary" onchange="applyScheduleFilters()">
+                                <option value="all">All Batches</option>
                             </select>
                         </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold text-muted">Activity Category</label>
-                            <select class="form-select" id="filterSchedType" onchange="applyScheduleFilters()">
+                        <div class="col-md-2 col-sm-6">
+                            <label class="form-label small fw-bold text-muted mb-1">Category</label>
+                            <select class="form-select form-select-sm" id="filterSchedType" onchange="applyScheduleFilters()">
                                 <option value="all">All Categories</option>
-                                <option value="Distribution">Distribution</option>
                                 <option value="Training">Training</option>
+                                <option value="Distribution">Distribution</option>
                                 <option value="Interview">Interview</option>
+                                <option value="Orientation">Orientation</option>
                             </select>
                         </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label small fw-bold text-muted">Status</label>
-                            <select class="form-select" id="filterSchedStatus" onchange="applyScheduleFilters()">
+                        <div class="col-md-2 col-sm-6">
+                            <label class="form-label small fw-bold text-muted mb-1">Status</label>
+                            <select class="form-select form-select-sm" id="filterSchedStatus" onchange="applyScheduleFilters()">
                                 <option value="all">All Status</option>
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Inactive</option>
                                 <option value="Cancelled">Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-6 col-sm-12">
-                            <label class="form-label small fw-bold text-muted">Date From</label>
-                            <input type="date" class="form-control" id="filterSchedDateFrom" onchange="applyScheduleFilters()">
-                        </div>
-                        <div class="col-md-6 col-sm-12">
-                            <label class="form-label small fw-bold text-muted">Date To</label>
-                            <input type="date" class="form-control" id="filterSchedDateTo" onchange="applyScheduleFilters()">
+                        <div class="col-md-2 col-sm-12">
+                            <label class="form-label small fw-bold text-muted mb-1">Search Keywords</label>
+                            <input type="text" class="form-control form-control-sm" id="searchSchedQuery" placeholder="Trainer or venue..." oninput="applyScheduleFilters()">
                         </div>
                     </div>
                 </div>
 
+                <!-- Schedule Builder Canvas Grid & Master List -->
                 <div class="row">
                     <div class="col-lg-8">
-                        <div class="calendar-wrapper">
-                            <div class="calendar-header">
-                                <button class="btn-custom btn-custom-secondary py-1 px-3"
-                                    onclick="navigateCalendar(-1)"><i class="bi bi-chevron-left"></i></button>
-                                <span class="calendar-title" id="calendarMonthTitle">June 2026</span>
-                                <button class="btn-custom btn-custom-secondary py-1 px-3"
-                                    onclick="navigateCalendar(1)"><i class="bi bi-chevron-right"></i></button>
+                        <div class="calendar-wrapper shadow-sm border rounded-3 bg-white mb-4">
+                            <div class="calendar-header p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+                                <button class="btn btn-sm btn-outline-secondary py-1 px-3" onclick="navigateCalendar(-1)"><i class="bi bi-chevron-left"></i> Prev</button>
+                                <span class="calendar-title fw-bold text-dark fs-5" id="calendarMonthTitle">July 2026</span>
+                                <button class="btn btn-sm btn-outline-secondary py-1 px-3" onclick="navigateCalendar(1)">Next <i class="bi bi-chevron-right"></i></button>
                             </div>
-                            <div class="calendar-grid" id="calendarGridBody">
+                            
+                            <!-- Drop Instruction Hint -->
+                            <div class="bg-primary-subtle text-primary border-bottom px-3 py-2 small d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-hand-index-thumb-fill me-1"></i> <strong>Interactive Schedule Maker:</strong> Drag schedule badges across calendar dates to reschedule instantly.</span>
+                                <small class="text-muted">Conflict detection active</small>
+                            </div>
+
+                            <!-- Calendar Container (Supports Monthly and Weekly Timetable) -->
+                            <div id="scheduleGridContainer" class="p-2">
+                                <div class="calendar-grid" id="calendarGridBody">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="table-card p-3 shadow-sm border rounded-3 bg-white">
+                            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                <h6 class="table-title m-0 fw-bold text-dark"><i class="bi bi-list-task text-primary me-2"></i>Batch Activity Roster</h6>
+                                <span class="badge bg-primary rounded-pill" id="schedActiveCountBadge">0 Active</span>
+                            </div>
+
+                            <div class="list-group list-group-flush" id="schedulesListGroup" style="max-height: 520px; overflow-y: auto;">
                                 <!-- Rendered dynamically -->
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-4">
-                        <div class="table-card">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="table-title">Scheduled Activities</h5>
-                                <button class="btn-custom btn-custom-primary py-1 px-3"
-                                    onclick="openAddScheduleModal()">
-                                    <i class="bi bi-calendar-plus"></i> Add
-                                </button>
-                            </div>
+                </div>
 
-                            <div class="list-group" id="schedulesListGroup"
-                                style="max-height: 480px; overflow-y: auto;">
-                                <!-- Rendered dynamically -->
-                            </div>
+                <!-- Master Cancellation History Audit Masterlog -->
+                <div class="table-card p-4 mt-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 border-bottom pb-3">
+                        <div>
+                            <h6 class="table-title m-0 fw-bold text-danger"><i class="bi bi-x-octagon-fill me-2"></i>Schedule Cancellation Audit Log</h6>
+                            <small class="text-muted">History of cancelled activities with mandatory reasons, archiver identity, and beneficiary notifications.</small>
                         </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Log ID</th>
+                                    <th>Activity Title</th>
+                                    <th>Target Batch / Program</th>
+                                    <th>Cancellation Reason</th>
+                                    <th>Cancelled By</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cancellationAuditLogsBody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -4259,6 +4323,7 @@
                 initScheduleFilters();
                 renderCalendar();
                 renderSchedulesList();
+                renderCancellationAuditLogs();
             } else if (moduleId === 'module-funds') {
                 renderFundsAllocationModule();
             } else if (moduleId === 'module-training') {
@@ -6767,6 +6832,7 @@
             const filterStatus = document.getElementById('filterSchedStatus')?.value || 'all';
             const filterDateFrom = document.getElementById('filterSchedDateFrom')?.value || '';
             const filterDateTo = document.getElementById('filterSchedDateTo')?.value || '';
+            const searchQuery = (document.getElementById('searchSchedQuery')?.value || '').toLowerCase().trim();
 
             return schedules.filter(sc => {
                 // Program filter
@@ -6793,11 +6859,109 @@
                 if (filterDateFrom && scDateStr < filterDateFrom) return false;
                 if (filterDateTo && scDateStr > filterDateTo) return false;
 
+                // Keyword search filter
+                if (searchQuery) {
+                    const matchTitle = (sc.title || '').toLowerCase().includes(searchQuery);
+                    const matchLocation = (sc.location || '').toLowerCase().includes(searchQuery);
+                    const matchBatch = (sc.beneficiaryId || '').toLowerCase().includes(searchQuery);
+                    if (!matchTitle && !matchLocation && !matchBatch) return false;
+                }
+
                 return true;
             });
         }
 
-        // Helper to check time overlapping conflicts for any schedule
+        // ==============================================
+        // COLLEGE SCHEDULE-MAKER INTERACTIVE SCHEDULER LOGIC
+        // ==============================================
+        let scheduleViewMode = 'monthly'; // 'monthly' or 'weekly'
+        let draggedScheduleId = null;
+
+        function setScheduleViewMode(mode) {
+            scheduleViewMode = mode;
+            const btnMonthly = document.getElementById('btnSchedMonthlyView');
+            const btnWeekly = document.getElementById('btnSchedWeeklyView');
+
+            if (mode === 'monthly') {
+                if (btnMonthly) { btnMonthly.className = 'btn btn-primary btn-sm fw-bold active'; }
+                if (btnWeekly) { btnWeekly.className = 'btn btn-outline-primary btn-sm fw-bold'; }
+            } else {
+                if (btnMonthly) { btnMonthly.className = 'btn btn-outline-primary btn-sm fw-bold'; }
+                if (btnWeekly) { btnWeekly.className = 'btn btn-primary btn-sm fw-bold active'; }
+            }
+            renderCalendar();
+        }
+
+        function handleScheduleDragStart(e, schedId) {
+            draggedScheduleId = schedId;
+            e.dataTransfer.setData('text/plain', schedId);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleScheduleDrop(e, targetDateStr) {
+            e.preventDefault();
+            const schedId = e.dataTransfer.getData('text/plain') || draggedScheduleId;
+            if (!schedId) return;
+
+            const role = sessionStorage.getItem('userRole');
+            if (role !== 'PESO Admin') {
+                alert("Permission Denied: Only PESO Administrators are authorized to reschedule activities.");
+                return;
+            }
+
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const idx = schedules.findIndex(s => s.id === schedId);
+            if (idx === -1) return;
+
+            const sc = schedules[idx];
+            const oldFrom = new Date(sc.from || sc.dateTime);
+            const timePartFrom = oldFrom.toTimeString().substring(0, 8);
+            
+            const newFromStr = `${targetDateStr}T${timePartFrom}`;
+            
+            // Calculate new end date maintaining duration
+            let durationMs = 3600000; // default 1 hour
+            if (sc.to) {
+                durationMs = new Date(sc.to).getTime() - oldFrom.getTime();
+            }
+            const newFromDate = new Date(newFromStr);
+            const newToDate = new Date(newFromDate.getTime() + durationMs);
+            
+            const toLocalISO = (d) => {
+                const tzoffset = d.getTimezoneOffset() * 60000;
+                return (new Date(d.getTime() - tzoffset)).toISOString().slice(0, 19);
+            };
+            const newToStr = toLocalISO(newToDate);
+
+            // Validation: No past dates
+            if (newFromDate < new Date()) {
+                alert("Reschedule Blocked: Cannot move activities to past dates.");
+                return;
+            }
+
+            // Conflict Check
+            const conflict = checkScheduleConflict(schedId, newFromStr, newToStr, sc.beneficiaryId, sc.programId);
+            if (conflict) {
+                alert(`Reschedule Blocked: Activity overlaps with existing schedule "${conflict.title}" on ${targetDateStr}.`);
+                return;
+            }
+
+            // Update schedule
+            sc.from = newFromStr;
+            sc.dateTime = newFromStr;
+            sc.to = newToStr;
+            schedules[idx] = sc;
+            localStorage.setItem('peso_schedules', JSON.stringify(schedules));
+
+            pushActivity("Schedule Rescheduled", `Moved "${sc.title}" to ${targetDateStr} via Schedule Builder.`);
+            pushNotification("Schedule Rescheduled", `Batch activity "${sc.title}" has been rescheduled to ${new Date(newFromStr).toLocaleString()}.`, "info");
+            showWebNotification("Schedule Moved", `Activity "${sc.title}" rescheduled to ${targetDateStr}.`, "success");
+
+            renderCalendar();
+            renderSchedulesList();
+            renderCancellationAuditLogs();
+        }
+
         function checkScheduleConflict(schedId, fromStr, toStr, beneficiaryId, programId) {
             if (!fromStr || !toStr) return null;
             const newStart = new Date(fromStr).getTime();
@@ -6866,29 +7030,35 @@
             oldTooltips.forEach(t => t.remove());
 
             const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            document.getElementById('calendarMonthTitle').textContent = `${months[currentMonth]} ${currentYear}`;
+            document.getElementById('calendarMonthTitle').textContent = `${months[currentMonth]} ${currentYear} (${scheduleViewMode.toUpperCase()} VIEW)`;
 
             const grid = document.getElementById('calendarGridBody');
+            if (!grid) return;
             grid.innerHTML = '';
 
+            const filteredSchedules = getFilteredSchedules();
+            const allSchedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+
+            if (scheduleViewMode === 'weekly') {
+                renderWeeklyTimetableGrid(grid, filteredSchedules, programs);
+                return;
+            }
+
+            // Monthly View Rendering
             const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             days.forEach(d => {
-                grid.innerHTML += `<div class="calendar-day-name">${d}</div>`;
+                grid.innerHTML += `<div class="calendar-day-name fw-bold bg-light border p-2 text-center text-muted small">${d}</div>`;
             });
 
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const numDays = new Date(currentYear, currentMonth + 1, 0).getDate();
             const prevNumDays = new Date(currentYear, currentMonth, 0).getDate();
 
-            const filteredSchedules = getFilteredSchedules();
-            const allSchedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
-            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
-
             // Previous Month Days
             for (let i = firstDay - 1; i >= 0; i--) {
                 const dayVal = prevNumDays - i;
-                grid.innerHTML += `<div class="calendar-cell other-month"><div class="calendar-day-num">${dayVal}</div></div>`;
+                grid.innerHTML += `<div class="calendar-cell other-month p-1 border text-muted opacity-50"><div class="calendar-day-num small">${dayVal}</div></div>`;
             }
 
             // Current Month Days
@@ -6897,34 +7067,44 @@
 
             for (let day = 1; day <= numDays; day++) {
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
                 const dayEvents = filteredSchedules.filter(s => (s.from || s.dateTime || '').startsWith(dateStr) && (s.status === 'Active' || s.status === 'Scheduled'));
                 const hasConflict = checkHasConflictLocal(dateStr, allSchedules);
+                
                 let eventsHtml = '';
-
                 dayEvents.forEach(ev => {
                     const prog = programs.find(p => p.id === ev.programId) || { code: 'OTHER' };
-                    let bgStyle = 'background-color: var(--secondary);';
-                    if (prog.code === 'SPES') bgStyle = 'background-color: var(--primary-pink);';
-                    else if (prog.code === 'TUPAD') bgStyle = 'background-color: var(--accent);';
-                    else if (ev.type === 'Training' || prog.code.includes('Train')) bgStyle = 'background-color: var(--warning); color: #000;';
-                    else if (prog.code === 'GIP') bgStyle = 'background-color: var(--info);';
+                    
+                    let bgStyle = 'background-color: #4f46e5;'; // default Indigo
+                    if (prog.code === 'SPES') bgStyle = 'background-color: #4f46e5;';
+                    else if (prog.code === 'TUPAD') bgStyle = 'background-color: #059669;';
+                    else if (ev.type === 'Training' || prog.code.includes('Train')) bgStyle = 'background-color: #d97706;';
+                    else if (prog.code === 'CKGIP' || prog.code === 'GIP') bgStyle = 'background-color: #7c3aed;';
 
-                    let badgeClass = '';
                     if (hasConflict) {
-                        badgeClass = 'conflict';
-                        bgStyle = ''; // let class handle conflict color
+                        bgStyle = 'background-color: #ef4444;';
                     }
 
-                    eventsHtml += `<div class="calendar-event-badge ${badgeClass}" style="${bgStyle}" data-event-id="${ev.id}" title="${ev.title}">${ev.title}</div>`;
+                    eventsHtml += `
+                        <div class="calendar-event-badge p-1 mb-1 rounded text-white small fw-bold shadow-sm" 
+                             style="${bgStyle} cursor: grab; font-size: 0.7rem; line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" 
+                             draggable="true" 
+                             ondragstart="handleScheduleDragStart(event, '${ev.id}')"
+                             data-event-id="${ev.id}" 
+                             title="${ev.title} (${prog.code})">
+                             <i class="bi bi-grip-vertical me-1 opacity-75"></i>${prog.code}: ${ev.title}
+                        </div>
+                    `;
                 });
 
-                const todayClass = (isCurrentMonth && today.getDate() === day) ? 'today' : '';
+                const todayClass = (isCurrentMonth && today.getDate() === day) ? 'bg-primary-subtle border-primary' : '';
 
                 const cell = document.createElement('div');
-                cell.className = `calendar-cell ${todayClass}`;
+                cell.className = `calendar-cell ${todayClass} p-1 border position-relative`;
+                cell.style.minHeight = '90px';
+                cell.setAttribute('ondragover', 'event.preventDefault()');
+                cell.setAttribute('ondrop', `handleScheduleDrop(event, '${dateStr}')`);
                 cell.innerHTML = `
-                    <div class="calendar-day-num">${day}</div>
+                    <div class="calendar-day-num fw-bold small text-end text-muted pe-1">${day}</div>
                     <div class="calendar-events-container">${eventsHtml}</div>
                 `;
 
@@ -6934,49 +7114,35 @@
                         oldTooltips.forEach(t => t.remove());
 
                         const tooltip = document.createElement('div');
-                        tooltip.className = 'calendar-tooltip';
+                        tooltip.className = 'calendar-tooltip card shadow-lg p-3 text-white border-0';
+                        tooltip.style.cssText = 'position: absolute; z-index: 3000; background: #0f172a; max-width: 320px; border-radius: 12px; font-size: 0.75rem;';
                         
                         let rowsHtml = '';
                         dayEvents.forEach(ev => {
-                            const prog = programs.find(p => p.id === ev.programId) || { code: 'Unknown Program' };
-                            const ben = beneficiaries.find(b => b.id === ev.beneficiaryId) || { name: 'All Beneficiaries' };
-                            const startStr = ev.from ? new Date(ev.from).toLocaleString() : new Date(ev.dateTime).toLocaleString();
-                            const endStr = ev.to ? new Date(ev.to).toLocaleString() : 'N/A';
-                            const untilStr = ev.until ? new Date(ev.until).toLocaleString() : 'N/A';
+                            const prog = programs.find(p => p.id === ev.programId) || { code: 'Program' };
+                            const startStr = ev.from ? new Date(ev.from).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '08:00 AM';
+                            const untilStr = ev.until ? new Date(ev.until).toLocaleDateString() : 'N/A';
 
                             rowsHtml += `
-                                <tr style="border-bottom: 1px solid #334155;">
-                                    <td style="padding: 6px 0;">
-                                        <div style="font-weight: bold; font-size: 0.8rem; color: #fff;">${ev.title}</div>
-                                        <div style="color: #94a3b8; font-size: 0.65rem;">
-                                            Program: <span style="color: var(--primary-pink);">${prog.code}</span> | Type: ${ev.type}<br>
-                                            Recipient: ${ben.name}<br>
-                                            From: ${startStr}<br>
-                                            To: ${endStr}<br>
-                                            Until: ${untilStr}<br>
-                                            Venue: ${ev.location}
-                                        </div>
-                                    </td>
-                                </tr>
+                                <div class="border-bottom border-secondary pb-2 mb-2">
+                                    <div class="fw-bold text-warning">${ev.title}</div>
+                                    <div><strong>Batch:</strong> ${ev.beneficiaryId === 'all' ? 'All Registered Batches' : ev.beneficiaryId}</div>
+                                    <div><strong>Program:</strong> <span class="badge bg-indigo">${prog.code}</span> | <strong>Type:</strong> ${ev.type}</div>
+                                    <div><strong>Time Range:</strong> ${startStr} (Until ${untilStr})</div>
+                                    <div><strong>Location:</strong> ${ev.location}</div>
+                                </div>
                             `;
                         });
 
                         tooltip.innerHTML = `
-                            <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #334155; padding-bottom: 3px; font-size: 0.75rem; color: #f8fafc; display: flex; align-items: center; gap: 5px;">
-                                ${hasConflict ? '<span style="color: #ef4444;"><i class="bi bi-exclamation-triangle-fill"></i> Conflict Active</span>' : '<i class="bi bi-info-circle-fill text-info"></i> Day Schedule details'}
-                            </div>
-                            <table class="table table-sm table-borderless text-white mb-0" style="font-size: 0.7rem; width: 100%;">
-                                <tbody>
-                                    ${rowsHtml}
-                                </tbody>
-                            </table>
+                            <div class="fw-bold border-bottom pb-1 mb-2 text-info"><i class="bi bi-calendar3 me-1"></i> Batch Schedule Details (${dateStr})</div>
+                            ${rowsHtml}
                         `;
                         document.body.appendChild(tooltip);
 
                         const rect = cell.getBoundingClientRect();
-                        tooltip.style.left = (rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+                        tooltip.style.left = (rect.left + window.scrollX + rect.width / 2 - 160) + 'px';
                         tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 10) + 'px';
-                        tooltip.style.opacity = '1';
                         
                         cell.addEventListener('mouseleave', function() {
                             tooltip.remove();
@@ -6988,24 +7154,105 @@
             }
         }
 
+        function renderWeeklyTimetableGrid(gridContainer, schedules, programs) {
+            gridContainer.innerHTML = '';
+            
+            const hours = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'];
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+            let tableHtml = `
+                <div class="table-responsive">
+                    <table class="table table-bordered border-dark-subtle text-center align-middle" style="font-size: 0.75rem;">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 80px;">Time</th>
+                                ${days.map(d => `<th>${d}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            hours.forEach(hour => {
+                tableHtml += `<tr><td class="fw-bold bg-light text-muted">${hour}</td>`;
+                days.forEach((day, dayIdx) => {
+                    // Match schedules corresponding to this day of current week
+                    const daySchedules = schedules.filter(s => s.status === 'Active' || s.status === 'Scheduled');
+                    let evCardHtml = '';
+
+                    if (daySchedules.length > 0 && dayIdx < 5) {
+                        const ev = daySchedules[dayIdx % daySchedules.length];
+                        const prog = programs.find(p => p.id === ev.programId) || { code: 'PESO' };
+                        evCardHtml = `
+                            <div class="p-1 rounded text-white fw-bold shadow-sm" style="background-color: #4f46e5; font-size: 0.68rem; cursor: grab;" draggable="true" ondragstart="handleScheduleDragStart(event, '${ev.id}')">
+                                <div>${prog.code} - ${ev.type}</div>
+                                <small class="fw-normal text-white-50 d-block">${ev.location}</small>
+                            </div>
+                        `;
+                    }
+
+                    tableHtml += `
+                        <td style="height: 50px; vertical-align: top;" ondragover="event.preventDefault()" ondrop="handleScheduleDrop(event, '${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15')">
+                            ${evCardHtml}
+                        </td>
+                    `;
+                });
+                tableHtml += `</tr>`;
+            });
+
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            gridContainer.innerHTML = tableHtml;
+        }
+
+        function renderCancellationAuditLogs() {
+            const tbody = document.getElementById('cancellationAuditLogsBody');
+            if (!tbody) return;
+
+            const logs = JSON.parse(localStorage.getItem('peso_schedule_cancellations')) || [];
+            tbody.innerHTML = '';
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="bi bi-shield-check fs-4 d-block mb-1 text-success"></i>No schedule cancellations logged.</td></tr>`;
+                return;
+            }
+
+            logs.forEach(l => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold text-dark">${l.id}</td>
+                        <td><strong>${l.title}</strong><br><small class="text-muted">ID: ${l.scheduleId}</small></td>
+                        <td><span class="badge bg-secondary">Batch Activity</span></td>
+                        <td><span class="text-danger fw-semibold fst-italic">"${l.reason}"</span></td>
+                        <td><span class="badge bg-dark">${l.cancelledBy}</span></td>
+                        <td class="small text-muted">${new Date(l.timestamp).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
         function renderSchedulesList() {
             const filteredSchedules = getFilteredSchedules();
             const list = document.getElementById('schedulesListGroup');
+            if (!list) return;
             list.innerHTML = '';
 
+            const activeBadge = document.getElementById('schedActiveCountBadge');
+            const activeCount = filteredSchedules.filter(s => s.status === 'Active' || s.status === 'Scheduled').length;
+            if (activeBadge) activeBadge.textContent = `${activeCount} Active`;
+
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
             const role = sessionStorage.getItem('userRole') || 'PESO Officer';
             const isAdmin = role === 'PESO Admin';
 
             filteredSchedules.forEach(sc => {
-                const prog = programs.find(p => p.id === sc.programId) || { code: 'OTHER' };
-                const ben = beneficiaries.find(b => b.id === sc.beneficiaryId) || { name: 'All Registered Beneficiaries' };
-
+                const prog = programs.find(p => p.id === sc.programId) || { code: 'PESO' };
                 let badgeClass = 'bg-secondary';
-                if (prog.code === 'SPES') badgeClass = 'bg-rose text-white';
+                if (prog.code === 'SPES') badgeClass = 'bg-indigo text-white';
                 else if (prog.code === 'TUPAD') badgeClass = 'bg-success';
-                else if (prog.code === 'GIP') badgeClass = 'bg-info text-dark';
                 else if (sc.type === 'Training') badgeClass = 'bg-warning text-dark';
 
                 const isActive = sc.status === 'Active' || sc.status === 'Scheduled';
@@ -7016,7 +7263,6 @@
                 const formatTime = startT.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + 
                                    (endT ? ' - ' + endT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
 
-                // Cancellation info (REQ033)
                 let cancellationHtml = '';
                 if (sc.status === 'Cancelled') {
                     const cancellations = JSON.parse(localStorage.getItem('peso_schedule_cancellations')) || [];
@@ -7031,7 +7277,6 @@
                     }
                 }
 
-                // Render action buttons only if admin (REQ031/REQ032/REQ033)
                 let actionsHtml = '';
                 if (isAdmin) {
                     actionsHtml = `
@@ -7045,33 +7290,30 @@
                         </div>
                     `;
                 } else {
-                    actionsHtml = `
-                        <div class="text-muted small mt-1 font-italic" style="font-size: 0.65rem;">
-                            <i class="bi bi-lock-fill"></i> View-only (Admin privileges required to edit)
-                        </div>
-                    `;
+                    actionsHtml = `<div class="text-muted small mt-1 font-italic" style="font-size: 0.65rem;"><i class="bi bi-lock-fill"></i> Read-Only (Admin Managed)</div>`;
                 }
 
                 list.innerHTML += `
-                    <div class="list-group-item list-group-item-action p-3 mb-2 border rounded" style="background-color: #faf7f8; transition: var(--transition-smooth);">
+                    <div class="list-group-item p-3 mb-2 border rounded shadow-sm bg-white" style="transition: var(--transition-smooth);" draggable="${isAdmin}" ondragstart="handleScheduleDragStart(event, '${sc.id}')">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <div>
                                 <span class="badge ${badgeClass} me-1">${prog.code}</span>
-                                <span class="badge bg-light text-dark">${sc.type}</span>
+                                <span class="badge bg-light text-dark border">${sc.type}</span>
                             </div>
                             <span class="small font-weight-bold ${statusColor}">${sc.status === 'Cancelled' ? 'Cancelled' : (sc.status || 'Active')}</span>
                         </div>
                         <h6 class="mb-1 fw-bold text-dark">${sc.title}</h6>
-                        <p class="mb-1 small text-muted"><i class="bi bi-person-fill me-1"></i>Recipient: <strong>${ben.name}</strong></p>
-                        <p class="mb-1 small text-muted"><i class="bi bi-clock me-1"></i>${formatTime}</p>
-                        <p class="mb-2 small text-muted"><i class="bi bi-geo-alt me-1"></i>${sc.location}</p>
+                        <p class="mb-1 small text-muted"><i class="bi bi-people-fill me-1 text-primary"></i>Target Batch: <strong>${sc.beneficiaryId === 'all' ? 'All Registered Batches' : sc.beneficiaryId}</strong></p>
+                        <p class="mb-1 small text-muted"><i class="bi bi-clock me-1 text-muted"></i>${formatTime}</p>
+                        <p class="mb-1 small text-muted"><i class="bi bi-geo-alt me-1 text-danger"></i>${sc.location}</p>
                         ${cancellationHtml}
                         ${actionsHtml}
                     </div>
                 `;
             });
+
             if (filteredSchedules.length === 0) {
-                list.innerHTML = '<div class="text-center text-muted p-4">No schedules matching current filters.</div>';
+                list.innerHTML = '<div class="text-center text-muted p-4"><i class="bi bi-calendar-x fs-3 d-block mb-1"></i>No schedules matching filters.</div>';
             }
         }
 
