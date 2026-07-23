@@ -746,10 +746,13 @@
         .calendar-wrapper {
             background: #FFFFFF;
             border-radius: var(--radius-lg);
-            padding: 30px;
+            padding: 20px;
             border: 1px solid var(--border-color);
             margin-bottom: 30px;
             box-shadow: var(--shadow-premium);
+            width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
         }
 
         .calendar-header {
@@ -767,26 +770,35 @@
 
         .calendar-grid {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .calendar-day-name {
             font-weight: 700;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             text-align: center;
             color: var(--text-muted);
-            padding: 10px 0;
+            padding: 8px 0;
             border-bottom: 2px solid var(--border-color);
             letter-spacing: 0.05em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .calendar-cell {
             min-height: 90px;
+            min-width: 0;
+            width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 10px;
+            padding: 6px;
             background: #FFF;
             position: relative;
             cursor: pointer;
@@ -796,7 +808,7 @@
         .calendar-cell:hover {
             background: var(--primary-lighter);
             border-color: var(--primary-pink);
-            transform: scale(1.02);
+            transform: scale(1.01);
             box-shadow: var(--shadow-subtle);
         }
 
@@ -817,9 +829,9 @@
         }
 
         .calendar-day-num {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: var(--secondary);
             display: block;
         }
@@ -828,16 +840,21 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
+            min-width: 0;
+            width: 100%;
+            overflow: hidden;
         }
 
         .calendar-event-badge {
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             font-weight: 700;
-            padding: 3px 6px;
+            padding: 2px 4px;
             border-radius: 4px;
             text-overflow: ellipsis;
             white-space: nowrap;
             overflow: hidden;
+            max-width: 100%;
+            box-sizing: border-box;
             color: white;
             box-shadow: var(--shadow-subtle);
         }
@@ -3413,65 +3430,60 @@
                 <button type="button" class="btn-close" onclick="closeScheduleModal()"></button>
             </div>
             <form id="scheduleForm" onsubmit="handleScheduleSubmit(event)">
-                <div class="custom-modal-body">
-                    <div class="form-group">
-                        <label class="form-label">Activity Subject Title</label>
-                        <input type="text" class="form-control" id="schedTitle" placeholder="e.g. SPES Interview"
-                            required>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-col form-group">
-                            <label class="form-label">Activity Category</label>
-                            <select class="form-control" id="schedType" required>
+                <div class="custom-modal-body p-4" style="max-width: 720px;">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold mb-1">Activity Subject Title</label>
+                            <input type="text" class="form-control" id="schedTitle" placeholder="e.g. SPES Interview" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold mb-1">Activity Category</label>
+                            <select class="form-select" id="schedType" required>
                                 <option value="Training">Training Session</option>
                                 <option value="Interview">Evaluation Interview</option>
                                 <option value="Distribution">Assistance Release / Distribution</option>
+                                <option value="Orientation">Orientation</option>
                             </select>
                         </div>
-                        <div class="form-col form-group">
-                            <label class="form-label">Target Program</label>
-                            <select class="form-control" id="schedProgramSelect" required>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold mb-1">Target Program</label>
+                            <select class="form-select" id="schedProgramSelect" required>
                                 <!-- Options rendered dynamically -->
                             </select>
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-col form-group">
-                            <label class="form-label">From (Start Date & Time)</label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold mb-1">From (Start Date & Time)</label>
                             <input type="datetime-local" class="form-control" id="schedFrom" required onchange="validateScheduleDates()">
                         </div>
-                        <div class="form-col form-group">
-                            <label class="form-label">To (End Date & Time)</label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold mb-1">To (End Date & Time)</label>
                             <input type="datetime-local" class="form-control" id="schedTo" required onchange="validateScheduleDates()">
                         </div>
-                        <div class="form-col form-group">
-                            <label class="form-label">Until (Validity / Expiry Limit)</label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold mb-1">Until (Validity / Expiry Limit)</label>
                             <input type="datetime-local" class="form-control" id="schedUntil" required onchange="validateScheduleDates()">
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-col form-group">
-                            <label class="form-label">Target Recipient Group</label>
-                            <select class="form-control" id="schedRecipient" required>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold mb-1">Target Recipient Group / Batch</label>
+                            <select class="form-select" id="schedRecipient" required>
                                 <option value="all">All Registered Beneficiaries</option>
                                 <!-- Options rendered dynamically -->
                             </select>
                         </div>
-                        <div class="form-col form-group">
-                            <label class="form-label">Location / Platform</label>
-                            <input type="text" class="form-control" id="schedLocation"
-                                placeholder="e.g. City Hall Lobby" required>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold mb-1">Location / Venue</label>
+                            <input type="text" class="form-control" id="schedLocation" placeholder="e.g. City Hall Lobby" required>
                         </div>
-                        <div class="form-col form-group">
-                            <label class="form-label">Schedule Status</label>
-                            <select class="form-control" id="schedStatus" required>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold mb-1">Schedule Status</label>
+                            <select class="form-select" id="schedStatus" required>
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Inactive</option>
                             </select>
                         </div>
                     </div>
                     <!-- Alert for conflicts -->
-                    <div id="schedConflictAlert" class="alert alert-warning" style="display: none; font-size: 0.8rem;"></div>
+                    <div id="schedConflictAlert" class="alert alert-warning mt-3 mb-0" style="display: none; font-size: 0.8rem;"></div>
                 </div>
                 <div class="custom-modal-footer">
                     <button type="button" class="btn-custom btn-custom-secondary"
