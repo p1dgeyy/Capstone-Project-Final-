@@ -3549,6 +3549,25 @@
         </div>
     </div>
 
+    <!-- Interactive Schedule Detail Inspection Modal -->
+    <div class="custom-modal-overlay" id="scheduleDetailModal" style="z-index: 2100;">
+        <div class="custom-modal-content" style="max-width: 520px;">
+            <div class="custom-modal-header bg-dark text-white p-3">
+                <h5 class="custom-modal-title text-white fs-6 m-0" id="schedDetailHeaderTitle"><i class="bi bi-calendar3-event me-2 text-warning"></i>Batch Activity Details</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeScheduleDetailModal()"></button>
+            </div>
+            <div class="custom-modal-body p-4" id="schedDetailBodyContent">
+                <!-- Rendered dynamically -->
+            </div>
+            <div class="custom-modal-footer bg-light p-3 border-top d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-secondary px-3" onclick="closeScheduleDetailModal()">Close</button>
+                <div id="schedDetailActionButtons" class="d-flex gap-2">
+                    <!-- Edit/Cancel buttons rendered dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Training Modal -->
     <div class="custom-modal-overlay" id="trainingModal">
         <div class="custom-modal-content">
@@ -7090,14 +7109,20 @@
                         bgStyle = 'background-color: #ef4444;';
                     }
 
+                    // Category micro-badge label
+                    let catPill = ev.type || 'Event';
+                    if (catPill === 'Distribution') catPill = 'Dist';
+                    else if (catPill === 'Orientation') catPill = 'Orient';
+
                     eventsHtml += `
                         <div class="calendar-event-badge p-1 mb-1 rounded text-white small fw-bold shadow-sm" 
-                             style="${bgStyle} cursor: grab; font-size: 0.7rem; line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" 
+                             style="${bgStyle} cursor: pointer; font-size: 0.68rem; line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" 
                              draggable="true" 
                              ondragstart="handleScheduleDragStart(event, '${ev.id}')"
+                             onclick="openScheduleDetailModal('${ev.id}')"
                              data-event-id="${ev.id}" 
-                             title="${ev.title} (${prog.code})">
-                             <i class="bi bi-grip-vertical me-1 opacity-75"></i>${prog.code}: ${ev.title}
+                             title="Click for full details | ${ev.title} (${prog.code})">
+                             <span class="badge bg-black bg-opacity-25 px-1 py-0 me-1" style="font-size:0.6rem;">${catPill}</span>${prog.code}: ${ev.title}
                         </div>
                     `;
                 });
@@ -7132,16 +7157,19 @@
                             rowsHtml += `
                                 <div class="border-bottom border-secondary pb-2 mb-2">
                                     <div class="fw-bold text-warning">${ev.title}</div>
-                                    <div><strong>Batch:</strong> ${ev.beneficiaryId === 'all' ? 'All Registered Batches' : ev.beneficiaryId}</div>
+                                    <div><strong>Target Batch:</strong> ${ev.beneficiaryId === 'all' ? 'All Registered Batches' : ev.beneficiaryId}</div>
                                     <div><strong>Program:</strong> <span class="badge bg-indigo">${prog.code}</span> | <strong>Type:</strong> ${ev.type}</div>
                                     <div><strong>Time Range:</strong> ${startStr} (Until ${untilStr})</div>
-                                    <div><strong>Location:</strong> ${ev.location}</div>
+                                    <div><strong>Venue:</strong> ${ev.location}</div>
                                 </div>
                             `;
                         });
 
                         tooltip.innerHTML = `
-                            <div class="fw-bold border-bottom pb-1 mb-2 text-info"><i class="bi bi-calendar3 me-1"></i> Batch Schedule Details (${dateStr})</div>
+                            <div class="fw-bold border-bottom pb-1 mb-2 text-info d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-calendar3 me-1"></i> Batch Schedule Details (${dateStr})</span>
+                                <small class="text-white-50">Click for modal</small>
+                            </div>
                             ${rowsHtml}
                         `;
                         document.body.appendChild(tooltip);
@@ -7181,7 +7209,6 @@
             hours.forEach(hour => {
                 tableHtml += `<tr><td class="fw-bold bg-light text-muted">${hour}</td>`;
                 days.forEach((day, dayIdx) => {
-                    // Match schedules corresponding to this day of current week
                     const daySchedules = schedules.filter(s => s.status === 'Active' || s.status === 'Scheduled');
                     let evCardHtml = '';
 
@@ -7189,7 +7216,7 @@
                         const ev = daySchedules[dayIdx % daySchedules.length];
                         const prog = programs.find(p => p.id === ev.programId) || { code: 'PESO' };
                         evCardHtml = `
-                            <div class="p-1 rounded text-white fw-bold shadow-sm" style="background-color: #4f46e5; font-size: 0.68rem; cursor: grab;" draggable="true" ondragstart="handleScheduleDragStart(event, '${ev.id}')">
+                            <div class="p-1 rounded text-white fw-bold shadow-sm" style="background-color: #4f46e5; font-size: 0.68rem; cursor: pointer;" draggable="true" ondragstart="handleScheduleDragStart(event, '${ev.id}')" onclick="openScheduleDetailModal('${ev.id}')">
                                 <div>${prog.code} - ${ev.type}</div>
                                 <small class="fw-normal text-white-50 d-block">${ev.location}</small>
                             </div>
@@ -7212,6 +7239,71 @@
             `;
 
             gridContainer.innerHTML = tableHtml;
+        }
+
+        function openScheduleDetailModal(schedId) {
+            const schedules = JSON.parse(localStorage.getItem('peso_schedules')) || [];
+            const sc = schedules.find(s => s.id === schedId);
+            if (!sc) return;
+
+            const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
+            const prog = programs.find(p => p.id === sc.programId) || { code: 'PESO Program' };
+            const role = sessionStorage.getItem('userRole') || 'PESO Officer';
+            const isAdmin = role === 'PESO Admin';
+
+            document.getElementById('schedDetailHeaderTitle').innerHTML = `<i class="bi bi-info-circle-fill text-warning me-2"></i>${sc.title}`;
+
+            const startT = new Date(sc.from || sc.dateTime);
+            const endT = sc.to ? new Date(sc.to) : null;
+            const untilT = sc.until ? new Date(sc.until) : null;
+
+            document.getElementById('schedDetailBodyContent').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-indigo fs-6 px-3 py-2">${prog.code}</span>
+                    <span class="badge ${sc.status === 'Cancelled' ? 'bg-danger' : 'bg-success'} fs-6 px-3 py-2">${sc.status || 'Active'}</span>
+                </div>
+                <table class="table table-sm table-borderless small mb-0">
+                    <tbody>
+                        <tr><td class="text-muted fw-bold" style="width: 130px;"><i class="bi bi-hash me-1"></i>Schedule ID:</td><td class="fw-bold">${sc.id}</td></tr>
+                        <tr><td class="text-muted fw-bold"><i class="bi bi-tag me-1"></i>Category:</td><td><span class="badge bg-light text-dark border">${sc.type}</span></td></tr>
+                        <tr><td class="text-muted fw-bold"><i class="bi bi-people-fill me-1 text-primary"></i>Target Batch:</td><td><strong>${sc.beneficiaryId === 'all' ? 'All Registered Batches' : sc.beneficiaryId}</strong></td></tr>
+                        <tr><td class="text-muted fw-bold"><i class="bi bi-clock me-1 text-muted"></i>Start Time:</td><td>${startT.toLocaleString()}</td></tr>
+                        ${endT ? `<tr><td class="text-muted fw-bold"><i class="bi bi-clock-history me-1 text-muted"></i>End Time:</td><td>${endT.toLocaleString()}</td></tr>` : ''}
+                        ${untilT ? `<tr><td class="text-muted fw-bold"><i class="bi bi-calendar-event me-1 text-muted"></i>Date Until:</td><td>${untilT.toLocaleDateString()}</td></tr>` : ''}
+                        <tr><td class="text-muted fw-bold"><i class="bi bi-geo-alt-fill me-1 text-danger"></i>Venue Location:</td><td class="fw-bold text-dark">${sc.location}</td></tr>
+                    </tbody>
+                </table>
+            `;
+
+            const actionContainer = document.getElementById('schedDetailActionButtons');
+            if (isAdmin) {
+                actionContainer.innerHTML = `
+                    <button class="btn btn-sm btn-outline-secondary px-3" onclick="closeScheduleDetailModal(); openEditScheduleModal('${sc.id}');"><i class="bi bi-pencil me-1"></i>Edit</button>
+                    ${sc.status !== 'Cancelled' ? `<button class="btn btn-sm btn-danger px-3" onclick="closeScheduleDetailModal(); deactivateSchedule('${sc.id}');"><i class="bi bi-x-octagon me-1"></i>Cancel Activity</button>` : ''}
+                `;
+            } else {
+                actionContainer.innerHTML = `<span class="badge bg-secondary">Read-Only</span>`;
+            }
+
+            document.getElementById('scheduleDetailModal').classList.add('active');
+        }
+
+        function closeScheduleDetailModal() {
+            document.getElementById('scheduleDetailModal').classList.remove('active');
+        }
+
+        function toggleRosterDetail(schedId) {
+            const body = document.getElementById(`rosterDetail_${schedId}`);
+            const icon = document.getElementById(`rosterChevron_${schedId}`);
+            if (body) {
+                if (body.style.display === 'none' || !body.style.display) {
+                    body.style.display = 'block';
+                    if (icon) icon.className = 'bi bi-chevron-up me-1';
+                } else {
+                    body.style.display = 'none';
+                    if (icon) icon.className = 'bi bi-chevron-down me-1';
+                }
+            }
         }
 
         function renderCancellationAuditLogs() {
@@ -7275,7 +7367,7 @@
                     const log = cancellations.find(c => c.scheduleId === sc.id);
                     if (log) {
                         cancellationHtml = `
-                            <div class="mt-2 p-2 border-start border-danger border-3 bg-danger-subtle rounded small text-danger" style="font-size: 0.7rem; line-height: 1.3;">
+                            <div class="mt-2 p-2 border-start border-danger border-3 bg-danger-subtle rounded small text-danger" style="font-size: 0.75rem; line-height: 1.3;">
                                 <strong><i class="bi bi-x-octagon-fill"></i> Cancelled by ${log.cancelledBy}</strong> on ${new Date(log.timestamp).toLocaleString()}<br>
                                 <em>Reason: "${log.reason}"</em>
                             </div>
@@ -7286,17 +7378,17 @@
                 let actionsHtml = '';
                 if (isAdmin) {
                     actionsHtml = `
-                        <div class="d-flex gap-2 mt-2">
+                        <div class="d-flex gap-2 mt-2 pt-2 border-top">
                             ${isActive ? `
-                                <button class="btn btn-sm btn-outline-danger py-0 px-2 font-weight-bold" onclick="deactivateSchedule('${sc.id}')">Cancel Activity</button>
-                                <button class="btn btn-sm btn-outline-secondary py-0 px-2 font-weight-bold" onclick="openEditScheduleModal('${sc.id}')"><i class="bi bi-pencil"></i> Edit</button>
+                                <button class="btn btn-sm btn-outline-danger py-1 px-2 fw-bold" onclick="deactivateSchedule('${sc.id}')"><i class="bi bi-x-circle me-1"></i>Cancel Activity</button>
+                                <button class="btn btn-sm btn-outline-secondary py-1 px-2 fw-bold" onclick="openEditScheduleModal('${sc.id}')"><i class="bi bi-pencil me-1"></i>Edit</button>
                             ` : `
-                                <button class="btn btn-sm btn-outline-success py-0 px-2 font-weight-bold" onclick="activateSchedule('${sc.id}')">Activate</button>
+                                <button class="btn btn-sm btn-outline-success py-1 px-2 fw-bold" onclick="activateSchedule('${sc.id}')"><i class="bi bi-check-circle me-1"></i>Activate</button>
                             `}
                         </div>
                     `;
                 } else {
-                    actionsHtml = `<div class="text-muted small mt-1 font-italic" style="font-size: 0.65rem;"><i class="bi bi-lock-fill"></i> Read-Only (Admin Managed)</div>`;
+                    actionsHtml = `<div class="text-muted small mt-2 pt-1 border-top font-italic" style="font-size: 0.68rem;"><i class="bi bi-lock-fill me-1"></i>Read-Only (Admin Managed)</div>`;
                 }
 
                 list.innerHTML += `
@@ -7306,14 +7398,23 @@
                                 <span class="badge ${badgeClass} me-1">${prog.code}</span>
                                 <span class="badge bg-light text-dark border">${sc.type}</span>
                             </div>
-                            <span class="small font-weight-bold ${statusColor}">${sc.status === 'Cancelled' ? 'Cancelled' : (sc.status || 'Active')}</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="small font-weight-bold ${statusColor}">${sc.status === 'Cancelled' ? 'Cancelled' : (sc.status || 'Active')}</span>
+                                <button class="btn btn-sm btn-link p-0 text-decoration-none text-muted" onclick="toggleRosterDetail('${sc.id}')">
+                                    <i class="bi bi-chevron-down me-1" id="rosterChevron_${sc.id}"></i>Details
+                                </button>
+                            </div>
                         </div>
                         <h6 class="mb-1 fw-bold text-dark">${sc.title}</h6>
                         <p class="mb-1 small text-muted"><i class="bi bi-people-fill me-1 text-primary"></i>Target Batch: <strong>${sc.beneficiaryId === 'all' ? 'All Registered Batches' : sc.beneficiaryId}</strong></p>
-                        <p class="mb-1 small text-muted"><i class="bi bi-clock me-1 text-muted"></i>${formatTime}</p>
-                        <p class="mb-1 small text-muted"><i class="bi bi-geo-alt me-1 text-danger"></i>${sc.location}</p>
-                        ${cancellationHtml}
-                        ${actionsHtml}
+                        
+                        <!-- Collapsible Detail Section -->
+                        <div id="rosterDetail_${sc.id}" style="display: none;" class="mt-2 pt-2 border-top">
+                            <p class="mb-1 small text-muted"><i class="bi bi-clock me-1 text-muted"></i>Time: ${formatTime}</p>
+                            <p class="mb-1 small text-muted"><i class="bi bi-geo-alt me-1 text-danger"></i>Venue: ${sc.location}</p>
+                            ${cancellationHtml}
+                            ${actionsHtml}
+                        </div>
                     </div>
                 `;
             });
