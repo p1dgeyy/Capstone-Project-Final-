@@ -2541,6 +2541,9 @@
                                 <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="btnSchedWeeklyView" onclick="setScheduleViewMode('weekly')">
                                     <i class="bi bi-calendar-week me-1"></i> Weekly Timetable
                                 </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="btnSchedDailyView" onclick="setScheduleViewMode('daily')">
+                                    <i class="bi bi-calendar-day me-1"></i> Daily Agenda
+                                </button>
                             </div>
                             <button class="btn btn-warning font-weight-bold shadow-sm" onclick="openAddScheduleModal()">
                                 <i class="bi bi-plus-circle-fill me-1"></i> New Schedule
@@ -6928,21 +6931,33 @@
         // ==============================================
         // COLLEGE SCHEDULE-MAKER INTERACTIVE SCHEDULER LOGIC
         // ==============================================
-        let scheduleViewMode = 'monthly'; // 'monthly' or 'weekly'
+        let scheduleViewMode = 'monthly'; // 'monthly', 'weekly', or 'daily'
         let draggedScheduleId = null;
+        let currentAgendaDate = new Date().toISOString().split('T')[0];
 
         function setScheduleViewMode(mode) {
             scheduleViewMode = mode;
             const btnMonthly = document.getElementById('btnSchedMonthlyView');
             const btnWeekly = document.getElementById('btnSchedWeeklyView');
+            const btnDaily = document.getElementById('btnSchedDailyView');
 
-            if (mode === 'monthly') {
-                if (btnMonthly) { btnMonthly.className = 'btn btn-primary btn-sm fw-bold active'; }
-                if (btnWeekly) { btnWeekly.className = 'btn btn-outline-primary btn-sm fw-bold'; }
-            } else {
-                if (btnMonthly) { btnMonthly.className = 'btn btn-outline-primary btn-sm fw-bold'; }
-                if (btnWeekly) { btnWeekly.className = 'btn btn-primary btn-sm fw-bold active'; }
-            }
+            if (btnMonthly) btnMonthly.className = (mode === 'monthly') ? 'btn btn-primary btn-sm fw-bold active' : 'btn btn-outline-primary btn-sm fw-bold';
+            if (btnWeekly) btnWeekly.className = (mode === 'weekly') ? 'btn btn-primary btn-sm fw-bold active' : 'btn btn-outline-primary btn-sm fw-bold';
+            if (btnDaily) btnDaily.className = (mode === 'daily') ? 'btn btn-primary btn-sm fw-bold active' : 'btn btn-outline-primary btn-sm fw-bold';
+
+            renderCalendar();
+        }
+
+        function changeAgendaDate(daysDelta) {
+            const dt = new Date(currentAgendaDate + 'T00:00:00');
+            dt.setDate(dt.getDate() + daysDelta);
+            currentAgendaDate = dt.toISOString().split('T')[0];
+            renderCalendar();
+        }
+
+        function setAgendaDateFromPicker(dateVal) {
+            if (!dateVal) return;
+            currentAgendaDate = dateVal;
             renderCalendar();
         }
 
@@ -7096,6 +7111,9 @@
 
             if (scheduleViewMode === 'weekly') {
                 renderWeeklyTimetableGrid(grid, filteredSchedules, programs);
+                return;
+            } else if (scheduleViewMode === 'daily') {
+                renderDailyAgendaView(grid, filteredSchedules, programs);
                 return;
             }
 
@@ -7303,6 +7321,77 @@
             `;
 
             gridContainer.innerHTML = tableHtml;
+        }
+
+        function renderDailyAgendaView(gridContainer, schedules, programs) {
+            gridContainer.innerHTML = '';
+            
+            const dayEvents = schedules.filter(s => (s.from || s.dateTime || '').startsWith(currentAgendaDate) && (s.status === 'Active' || s.status === 'Scheduled'));
+            const dateObj = new Date(currentAgendaDate + 'T00:00:00');
+            const dateFormatted = dateObj.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+            let html = `
+                <div class="p-3 bg-light rounded border mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button class="btn btn-sm btn-outline-secondary font-weight-bold" onclick="changeAgendaDate(-1)"><i class="bi bi-chevron-left"></i> Prev Day</button>
+                        <input type="date" class="form-control form-control-sm text-dark font-weight-bold" value="${currentAgendaDate}" style="max-width: 170px;" onchange="setAgendaDateFromPicker(this.value)">
+                        <button class="btn btn-sm btn-outline-secondary font-weight-bold" onclick="changeAgendaDate(1)">Next Day <i class="bi bi-chevron-right"></i></button>
+                        <button class="btn btn-sm btn-primary font-weight-bold" onclick="setAgendaDateFromPicker(new Date().toISOString().split('T')[0])">Today</button>
+                    </div>
+                    <div>
+                        <span class="badge bg-dark px-3 py-2 fs-6"><i class="bi bi-calendar-event me-2 text-warning"></i>${dateFormatted}</span>
+                    </div>
+                </div>
+            `;
+
+            if (dayEvents.length === 0) {
+                html += `
+                    <div class="text-center text-muted p-5 bg-white rounded border">
+                        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+                        <h5>No scheduled activities for this date</h5>
+                        <p class="small text-muted mb-3">Click "+ New Schedule" to assign training sessions, interviews, or distributions.</p>
+                        <button class="btn btn-sm btn-warning font-weight-bold text-dark" onclick="openAddScheduleModal()"><i class="bi bi-plus-circle-fill me-1"></i>New Activity</button>
+                    </div>
+                `;
+            } else {
+                html += `<div class="d-flex flex-column gap-3">`;
+                dayEvents.forEach((sc) => {
+                    const prog = programs.find(p => p.id === sc.programId) || { code: 'PESO' };
+                    let badgeClass = 'bg-secondary';
+                    if (prog.code === 'SPES') badgeClass = 'bg-indigo text-white';
+                    else if (prog.code === 'TUPAD') badgeClass = 'bg-success';
+                    else if (sc.type === 'Training') badgeClass = 'bg-warning text-dark';
+
+                    const startT = new Date(sc.from || sc.dateTime);
+                    const endT = sc.to ? new Date(sc.to) : null;
+                    const formatTime = startT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + 
+                                       (endT ? ' - ' + endT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+
+                    html += `
+                        <div class="card border shadow-sm rounded p-3 bg-white" style="border-left: 5px solid #4f46e5 !important;">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge ${badgeClass} fs-6">${prog.code}</span>
+                                    <span class="badge bg-light text-dark border fs-6">${sc.type}</span>
+                                    <span class="badge bg-success-subtle text-success border border-success fw-bold">${sc.status || 'Active'}</span>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-primary py-1 px-3 fw-bold" onclick="openScheduleDetailModal('${sc.id}')"><i class="bi bi-eye me-1"></i>Inspect Details</button>
+                                </div>
+                            </div>
+                            <h5 class="fw-bold text-dark mb-2">${sc.title}</h5>
+                            <div class="row g-2 text-muted small">
+                                <div class="col-md-4"><i class="bi bi-people-fill me-1 text-primary"></i><strong>Target Batch:</strong> ${sc.beneficiaryId === 'all' ? 'All Registered Batches' : sc.beneficiaryId}</div>
+                                <div class="col-md-4"><i class="bi bi-clock me-1 text-muted"></i><strong>Time Slot:</strong> ${formatTime}</div>
+                                <div class="col-md-4"><i class="bi bi-geo-alt me-1 text-danger"></i><strong>Venue:</strong> ${sc.location}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            gridContainer.innerHTML = html;
         }
 
         function openDayScheduleModal(dateStr) {
