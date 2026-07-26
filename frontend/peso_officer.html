@@ -297,6 +297,22 @@
             width: 100%;
         }
 
+        .module-page.active {
+            display: block !important;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Cards */
         .stat-card {
             background: var(--primary-lighter);
@@ -7367,10 +7383,17 @@ function initCharts() {
 
 function switchModule(moduleId, linkEl) {
     const pages = document.querySelectorAll('.module-page');
-    pages.forEach(p => p.classList.remove('active'));
-    
     const targetPage = document.getElementById(moduleId);
-    if (targetPage) targetPage.classList.add('active');
+
+    pages.forEach(p => {
+        p.classList.remove('active');
+        p.style.display = 'none';
+    });
+    
+    if (targetPage) {
+        targetPage.classList.add('active');
+        targetPage.style.display = 'block';
+    }
 
     // Update active nav link if provided or find matching data-module
     const links = document.querySelectorAll('.sidebar-nav-link');
@@ -7386,20 +7409,29 @@ function switchModule(moduleId, linkEl) {
 
     // Update breadcrumb and header title
     const activeLang = localStorage.getItem('lang') || 'en';
-    const dict = translations[activeLang] || translations['en'];
+    const dict = (typeof translations !== 'undefined' && translations[activeLang]) ? translations[activeLang] : (typeof translations !== 'undefined' ? translations['en'] : {});
     const moduleTitleKey = 'title-module-' + modName;
     const navTitleKey = 'nav_' + (modName === 'notifications' ? 'notifications' : modName);
     
     const titleEl = document.getElementById('pageTitle');
     const breadcrumbEl = document.getElementById('breadcrumb');
-    if (titleEl) titleEl.textContent = dict[moduleTitleKey] || dict[navTitleKey] || modName;
-    if (breadcrumbEl) breadcrumbEl.textContent = dict[navTitleKey] || modName;
+    const displayTitle = (dict && (dict[moduleTitleKey] || dict[navTitleKey])) ? (dict[moduleTitleKey] || dict[navTitleKey]) : modName.replace(/-/g, ' ').toUpperCase();
+    const displayBreadcrumb = (dict && dict[navTitleKey]) ? dict[navTitleKey] : modName.replace(/-/g, ' ');
+
+    if (titleEl) titleEl.textContent = displayTitle;
+    if (breadcrumbEl) breadcrumbEl.textContent = displayBreadcrumb;
 
     // Trigger tab-specific renders
     if (modName === 'assignments') {
-        renderAssignmentsTable();
+        if (typeof renderAssignmentsTable === 'function') renderAssignmentsTable();
     } else if (modName === 'programs') {
-        renderOfficerProgramsTable();
+        if (typeof renderOfficerProgramsTable === 'function') renderOfficerProgramsTable();
+    } else if (modName === 'livelihood' || modName === 'approval') {
+        if (typeof loadOfficerApplicationsData === 'function') loadOfficerApplicationsData();
+    } else if (modName === 'interview') {
+        if (typeof loadOfficerInterviewData === 'function') loadOfficerInterviewData();
+    } else if (modName === 'daily-log') {
+        if (typeof loadOfficerAuditLogs === 'function') loadOfficerAuditLogs();
     }
 }
 
