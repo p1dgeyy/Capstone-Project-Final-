@@ -36,7 +36,7 @@ router.post('/login', async (req, res) => {
 
     // Query user by username OR email (supports both login methods)
     const [rows] = await connection.execute(
-      'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token`, `is_verified`, `qr_code_url` FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
+      'SELECT * FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
       [username.trim(), username.trim()]
     );
 

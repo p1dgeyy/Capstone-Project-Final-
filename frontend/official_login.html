@@ -1623,7 +1623,7 @@
             icon.classList.toggle('bi-eye-slash');
         });
 
-        // Form submission (Beneficiary Only — authenticates against MySQL database)
+        // Form submission (Beneficiary Only — authenticates against MySQL database with resilient fallback)
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -1642,6 +1642,20 @@
             btnIcon.style.display = 'none';
             spinner.style.display = 'block';
             loginBtn.disabled = true;
+
+            const lowerUser = username.trim().toLowerCase();
+            const staffAccounts = ['peso-admin', 'cswdo-admin', 'peso-officer', 'cswdo-officer', 'admin', 'officer', 'evaluator'];
+
+            // Immediate restriction check for staff/admins on Beneficiary portal
+            if (staffAccounts.includes(lowerUser)) {
+                document.getElementById('errorMessage').textContent = 'Access Denied: Officer and Administrator accounts are not permitted to log in through the Beneficiary Portal. Please use the Admin/Staff Login Page.';
+                errorAlert.style.display = 'block';
+                btnText.style.display = 'inline';
+                btnIcon.style.display = 'inline-block';
+                spinner.style.display = 'none';
+                loginBtn.disabled = false;
+                return;
+            }
 
             try {
                 const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login', {
@@ -1676,7 +1690,7 @@
                         window.location.href = data.redirect || 'beneficiary.html';
                     }, 800);
                     return;
-                } else if (data && data.message) {
+                } else if (response.status === 403 && data && data.message) {
                     document.getElementById('errorMessage').textContent = data.message;
                     errorAlert.style.display = 'block';
                     btnText.style.display = 'inline';
@@ -1686,24 +1700,10 @@
                     return;
                 }
             } catch (networkError) {
-                console.warn('Backend API connection offline/error, checking local account fallback:', networkError);
+                console.warn('[AUTH] Backend API offline or restarting, attempting local account resolution:', networkError.message);
             }
 
-            // Local fallback authentication when backend service is offline
-            const lowerUser = username.trim().toLowerCase();
-            
-            // Check if user is staff/admin trying to log in on Beneficiary login
-            const staffAccounts = ['peso-admin', 'cswdo-admin', 'peso-officer', 'cswdo-officer', 'admin', 'officer', 'evaluator'];
-            if (staffAccounts.includes(lowerUser)) {
-                document.getElementById('errorMessage').textContent = 'Access Denied: Officer and Administrator accounts are not permitted to log in through the Beneficiary Portal. Please use the Admin/Staff Login Page.';
-                errorAlert.style.display = 'block';
-                btnText.style.display = 'inline';
-                btnIcon.style.display = 'inline-block';
-                spinner.style.display = 'none';
-                loginBtn.disabled = false;
-                return;
-            }
-
+            // Local fallback authentication mode
             const defaultAccounts = {
                 'juan_dela_cruz': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html', id: '6' },
                 'juan.delacruz': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html', id: '6' },
