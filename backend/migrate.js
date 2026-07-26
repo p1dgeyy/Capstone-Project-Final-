@@ -161,8 +161,19 @@ async function runMigrations() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
       `);
       console.log('approved_assistance table verified.');
-    // 3.9. Ensure interview_schedules table exists (REQ084 - REQ088)
-    try {
+
+      // Ensure status column exists on approved_assistance table
+      const [astCols] = await connection.query(
+        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'approved_assistance' AND COLUMN_NAME = 'status'"
+      );
+      if (astCols.length === 0) {
+        await connection.query(
+          "ALTER TABLE `approved_assistance` ADD COLUMN `status` ENUM('Pending', 'Disbursed', 'Released', 'Completed', 'Cancelled') DEFAULT 'Completed' AFTER `conditions`"
+        );
+      }
+    } catch (astErr) {
+      console.warn('Warning: Could not verify approved_assistance table:', astErr.message);
+    }
       await connection.query(`
         CREATE TABLE IF NOT EXISTS \`interview_schedules\` (
           \`id\` INT AUTO_INCREMENT PRIMARY KEY,

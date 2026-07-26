@@ -89,6 +89,14 @@ router.get('/', async (req, res) => {
     const conditions = [];
     const params = [];
 
+    if (req.query.agency) {
+      if (req.query.agency.toUpperCase() === 'PESO') {
+        conditions.push("`role` IN ('PESO Admin', 'PESO Officer')");
+      } else if (req.query.agency.toUpperCase() === 'CSWDO') {
+        conditions.push("`role` IN ('CSWDO Admin', 'CSWDO Officer')");
+      }
+    }
+
     if (req.query.role) {
       conditions.push('`role` = ?');
       params.push(req.query.role);
@@ -362,6 +370,10 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('[USERS] DELETE /:id error:', error.message);
     return res.status(500).json({ success: false, message: 'Internal server error.' });
+  } finally {
+    if (connection) connection.release();
+  }
+});
 // =============================================================================
 // GET /api/users/beneficiary-by-qr/:qrCode
 // Quick retrieval of beneficiary profile, applications, and documents via QR scan

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db');
+const pool = require('../db');
 
 // =============================================================================
 // REQ084, REQ085, REQ086, REQ087, REQ088: INTERVIEW SCHEDULES & ATTENDANCE API
@@ -9,11 +9,11 @@ const pool = require('../config/db');
 /**
  * GET /api/interviews
  * Fetches interview schedules joined with beneficiary, program, application, and officer.
- * Supports query params: date, program_id, officer_id, beneficiary_id, status, attendance_status
+ * Supports query params: agency, date, program_id, officer_id, beneficiary_id, status, attendance_status
  */
 router.get('/', async (req, res) => {
   try {
-    const { date, program_id, officer_id, beneficiary_id, status, attendance_status } = req.query;
+    const { agency, date, program_id, officer_id, beneficiary_id, status, attendance_status } = req.query;
 
     let query = `
       SELECT 
@@ -33,11 +33,11 @@ router.get('/', async (req, res) => {
         u_ben.first_name AS beneficiary_first_name,
         u_ben.last_name AS beneficiary_last_name,
         u_ben.email AS beneficiary_email,
-        u_ben.phone_number AS beneficiary_phone,
+        u_ben.phone AS beneficiary_phone,
         u_ben.address AS beneficiary_address,
-        u_ben.user_code AS beneficiary_code,
-        p.program_name,
+        p.name AS program_name,
         p.code AS program_code,
+        p.agency AS program_agency,
         app.application_number,
         app.status AS application_status,
         u_off.first_name AS officer_first_name,
@@ -52,6 +52,10 @@ router.get('/', async (req, res) => {
 
     const params = [];
 
+    if (agency) {
+      query += ` AND p.agency = ?`;
+      params.push(agency);
+    }
     if (date) {
       query += ` AND i.interview_date = ?`;
       params.push(date);
