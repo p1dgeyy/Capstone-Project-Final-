@@ -76,6 +76,8 @@ const userRoutes = require('./routes/users');
 const auditLogRoutes = require('./routes/audit_logs');
 const assistanceRoutes = require('./routes/assistance');
 const interviewRoutes = require('./routes/interviews');
+const officerRoutes = require('./routes/officers');
+const beneficiaryRoutes = require('./routes/beneficiaries');
 
 app.use('/api/programs', programRoutes);
 app.use('/api/applications', applicationRoutes);
@@ -85,6 +87,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/assistance', assistanceRoutes);
 app.use('/api/interviews', interviewRoutes);
+
+// Role-isolated roster endpoints (see Objective #1 — Officers vs Beneficiaries)
+app.use('/api/officers', officerRoutes);
+app.use('/api/beneficiaries', beneficiaryRoutes);
 
 
 
