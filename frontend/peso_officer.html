@@ -1989,7 +1989,7 @@
                 <!-- Summary Cards -->
                 <div class="row mb-4">
                     <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="stat-card">
+                        <div class="stat-card" onclick="switchModule('module-livelihood')" style="cursor: pointer;" title="Click to view Livelihood Applications">
                             <div class="stat-card-header">
                                 <div class="stat-card-icon pending">
                                     <i class="bi bi-hourglass-split"></i>
@@ -2000,7 +2000,7 @@
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="stat-card">
+                        <div class="stat-card" onclick="switchModule('module-programs')" style="cursor: pointer;" title="Click to view Active Livelihood Programs">
                             <div class="stat-card-header">
                                 <div class="stat-card-icon approved">
                                     <i class="bi bi-folder-check"></i>
@@ -2011,7 +2011,7 @@
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="stat-card">
+                        <div class="stat-card" onclick="switchModule('module-beneficiaries')" style="cursor: pointer;" title="Click to view Beneficiaries Management">
                             <div class="stat-card-header">
                                 <div class="stat-card-icon assigned">
                                     <i class="bi bi-person-check"></i>
@@ -2022,7 +2022,7 @@
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="stat-card">
+                        <div class="stat-card" onclick="switchModule('module-programs')" style="cursor: pointer;" title="Click to view Program Directory & Completed Programs">
                             <div class="stat-card-header">
                                 <div class="stat-card-icon completed">
                                     <i class="bi bi-check-all"></i>
@@ -9830,25 +9830,28 @@ function updatePaginationDisplay() {
 }
 
 window.viewAllRecentActivity = function() {
-    alert('Viewing all recent activity records...\n\nThis would navigate to a full activity log view.');
+    switchModule('module-daily-log');
 };
 
 /* Quick Action Buttons */
+window.quickActionAddBeneficiary = function() {
+    openModal('createBeneficiaryModal');
+};
+
 window.quickActionAddApplicant = function() {
-    openModal('createApplicantModal');
+    openModal('createBeneficiaryModal');
 };
 
 window.quickActionNewApplication = function() {
-    alert('Creating new application...');
-    // This would open a form to start a new application
+    if (typeof openNewApplicationModal === 'function') {
+        openNewApplicationModal();
+    } else {
+        switchModule('module-livelihood');
+    }
 };
 
 window.quickActionViewReports = function() {
-    alert('Opening Reports module...');
-    var reportLink = document.querySelector('[data-module=\"reports\"]');
-    if (reportLink) {
-        reportLink.click();
-    }
+    switchModule('module-reports');
 };
 
 /* Initialize on document load */
@@ -10306,6 +10309,7 @@ window.exportActivityToExcel = exportActivityToExcel;
 window.nextPage = nextPage;
 window.previousPage = previousPage;
 window.viewAllRecentActivity = viewAllRecentActivity;
+window.quickActionAddBeneficiary = quickActionAddBeneficiary;
 window.quickActionAddApplicant = quickActionAddApplicant;
 window.quickActionNewApplication = quickActionNewApplication;
 window.quickActionViewReports = quickActionViewReports;
