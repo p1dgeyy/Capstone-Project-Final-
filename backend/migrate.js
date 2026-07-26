@@ -174,6 +174,8 @@ async function runMigrations() {
     } catch (astErr) {
       console.warn('Warning: Could not verify approved_assistance table:', astErr.message);
     }
+
+    try {
       await connection.query(`
         CREATE TABLE IF NOT EXISTS \`interview_schedules\` (
           \`id\` INT AUTO_INCREMENT PRIMARY KEY,
