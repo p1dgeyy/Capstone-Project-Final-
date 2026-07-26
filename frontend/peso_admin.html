@@ -776,6 +776,12 @@
             box-sizing: border-box;
         }
 
+        .calendar-view-container {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
         .calendar-day-name {
             font-weight: 700;
             font-size: 0.75rem;
@@ -7110,14 +7116,17 @@
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
 
             if (scheduleViewMode === 'weekly') {
+                grid.className = 'calendar-view-container w-100';
                 renderWeeklyTimetableGrid(grid, filteredSchedules, programs);
                 return;
             } else if (scheduleViewMode === 'daily') {
+                grid.className = 'calendar-view-container w-100';
                 renderDailyAgendaView(grid, filteredSchedules, programs);
                 return;
             }
 
             // Monthly View Rendering
+            grid.className = 'calendar-grid';
             const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             days.forEach(d => {
                 grid.innerHTML += `<div class="calendar-day-name fw-bold bg-light border p-2 text-center text-muted small">${d}</div>`;
@@ -7254,20 +7263,34 @@
             const hours = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'];
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+            // Compute dates for current active week (Monday through Sunday)
+            const baseDate = new Date(currentYear, currentMonth, 15);
+            const dayOfWeek = baseDate.getDay();
+            const distanceToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+            const mondayDate = new Date(baseDate);
+            mondayDate.setDate(baseDate.getDate() + distanceToMon);
+
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(mondayDate);
+                d.setDate(mondayDate.getDate() + i);
+                weekDates.push(d.toISOString().split('T')[0]);
+            }
+
             let tableHtml = `
-                <div class="table-responsive" style="overflow-x: auto;">
-                    <table class="table table-bordered text-center align-middle m-0" style="font-size: 0.72rem; table-layout: fixed; width: 100%; min-width: 600px;">
+                <div class="table-responsive" style="overflow-x: auto; width: 100%;">
+                    <table class="table table-bordered text-center align-middle m-0" style="font-size: 0.72rem; table-layout: fixed; width: 100%; min-width: 650px;">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width: 75px;">Time</th>
-                                ${days.map(d => `<th style="width: 13.2%;">${d}</th>`).join('')}
+                                <th style="width: 80px;">Time</th>
+                                ${days.map((d, idx) => `<th style="width: 13.1%;">${d} <br><small class="fw-normal text-white-50">${weekDates[idx].substring(5)}</small></th>`).join('')}
                             </tr>
                         </thead>
                         <tbody>
             `;
 
             hours.forEach((hour, hIdx) => {
-                tableHtml += `<tr><td class="fw-bold bg-light text-muted p-1" style="font-size: 0.68rem; width: 75px; white-space: nowrap;">${hour}</td>`;
+                tableHtml += `<tr><td class="fw-bold bg-light text-muted p-1" style="font-size: 0.68rem; width: 80px; white-space: nowrap;">${hour}</td>`;
                 days.forEach((day, dayIdx) => {
                     const daySchedules = schedules.filter(s => s.status === 'Active' || s.status === 'Scheduled');
                     let evCardHtml = '';
@@ -7306,7 +7329,7 @@
                     }
 
                     tableHtml += `
-                        <td style="height: 48px; min-width: 0; width: 13.2%; vertical-align: top; padding: 3px; overflow: hidden;" ondragover="event.preventDefault()" ondrop="handleScheduleDrop(event, '${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15')">
+                        <td style="height: 48px; min-width: 0; width: 13.1%; vertical-align: top; padding: 3px; overflow: hidden;" ondragover="event.preventDefault()" ondrop="handleScheduleDrop(event, '${weekDates[dayIdx]}')">
                             ${evCardHtml}
                         </td>
                     `;
