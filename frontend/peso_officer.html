@@ -5537,6 +5537,30 @@
                 <button class="btn btn-secondary-custom" onclick="closeModal('deactivateBeneficiaryModal')">Cancel</button>
                 <button class="btn btn-danger" onclick="submitDeactivateBeneficiary()"><i class="bi bi-person-x-fill me-1"></i> Confirm Deactivation</button>
             </div>
+    <!-- System Pop-up Confirmation Modal -->
+    <div class="modal-overlay" id="systemConfirmModal" style="z-index: 11000;">
+        <div class="modal-content text-center p-4" style="max-width: 480px; border-radius: 16px; border: 0; box-shadow: 0 20px 40px rgba(0,0,0,0.3); background: #ffffff;">
+            <div id="systemConfirmIconContainer" class="mb-3">
+                <i class="bi bi-question-circle-fill text-warning" style="font-size: 3.5rem;"></i>
+            </div>
+            <h4 class="fw-bold mb-2 text-dark" id="systemConfirmTitle">System Confirmation</h4>
+            <p class="text-muted small mb-4 px-2" id="systemConfirmMessage">Are you sure you want to proceed with this action?</p>
+            <div class="d-flex justify-content-center gap-3">
+                <button type="button" class="btn btn-light px-4 py-2 fw-bold" id="systemConfirmCancelBtn" style="border-radius: 8px; border: 1px solid #ddd;">Cancel</button>
+                <button type="button" class="btn btn-primary px-4 py-2 fw-bold shadow-sm" id="systemConfirmProceedBtn" style="border-radius: 8px;">Confirm Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Pop-up Alert Modal -->
+    <div class="modal-overlay" id="systemAlertModal" style="z-index: 11000;">
+        <div class="modal-content text-center p-4" style="max-width: 450px; border-radius: 16px; border: 0; box-shadow: 0 20px 40px rgba(0,0,0,0.3); background: #ffffff;">
+            <div id="systemAlertIconContainer" class="mb-3">
+                <i class="bi bi-info-circle-fill text-info" style="font-size: 3.5rem;"></i>
+            </div>
+            <h4 class="fw-bold mb-2 text-dark" id="systemAlertTitle">System Notification</h4>
+            <p class="text-muted small mb-4 px-2" id="systemAlertMessage">Action completed successfully.</p>
+            <button type="button" class="btn btn-primary px-5 py-2 fw-bold shadow-sm mx-auto" id="systemAlertOkBtn" style="border-radius: 8px;" onclick="closeModal('systemAlertModal')">OK</button>
         </div>
     </div>
 
@@ -5591,8 +5615,13 @@ function updateDateTime() {
     if (timeEl) timeEl.textContent = timeStr;
 }
 
-function logoutOfficer() {
-    if (confirm('Are you sure you want to sign out?')) {
+async function logoutOfficer() {
+    const confirmed = await showSystemConfirm(
+        'Sign Out Confirmation',
+        'Are you sure you want to sign out of the PESO Officer Portal?',
+        { type: 'warning', confirmText: 'Sign Out' }
+    );
+    if (confirmed) {
         SessionManager.logout('admin_login.html');
     }
 }
@@ -7049,10 +7078,15 @@ function viewSentNotification(id) {
 }
 function viewTraining(id) { openModal('viewTrainingModal'); }
 function editTraining(id) { openModal('editTrainingModal'); }
-function toggleTrainingStatus(id, status) {
-    if(confirm('Sure?')) {
+async function toggleTrainingStatus(id, status) {
+    const confirmed = await showSystemConfirm(
+        'Change Capacity Training Status',
+        'Are you sure you want to change the status of this capacity training program?',
+        { type: 'warning', confirmText: 'Change Status' }
+    );
+    if (confirmed) {
         pushNotification('Training Status Changed', 'Capacity training program status changed.', 'update');
-        alert('Done!');
+        showWebNotification('Training Updated', 'Capacity training status changed successfully!', 'success');
     }
 }
 function viewAssistance(id) { openModal('viewAssistanceModal'); }
@@ -7944,7 +7978,12 @@ async function submitNewApplicationRecord() {
 
 // REQ080: Mark Application Lifecycle Status as Completed
 async function markAppCompleted(appId) {
-    if (!confirm('Are you sure you want to mark this application lifecycle as COMPLETED?')) return;
+    const confirmed = await showSystemConfirm(
+        'Complete Application Lifecycle',
+        'Are you sure you want to mark this application lifecycle as COMPLETED?',
+        { type: 'info', confirmText: 'Mark Completed' }
+    );
+    if (!confirmed) return;
 
     const appIndex = officerApplicationsList.findIndex(a => a.id === appId);
     if (appIndex === -1) return;
@@ -8027,12 +8066,25 @@ async function submitOfficerEvaluationAction() {
     const notes = document.getElementById('officerEvalNotesText').value.trim();
 
     if ((action === 'deny' || action === 'pending') && !notes) {
-        alert(action === 'deny' ? 'Please enter mandatory notes explaining the reason for denial.' : 'Please specify the missing requirements in the notes field.');
+        showSystemPopup('Mandatory Notes Required', action === 'deny' ? 'Please enter mandatory notes explaining the reason for denial.' : 'Please specify the missing requirements in the notes field.', 'warning');
         return;
     }
 
     const appIndex = officerApplicationsList.findIndex(a => a.id === appId);
     if (appIndex === -1) return;
+
+    const appNum = officerApplicationsList[appIndex].application_number || ('LIV-' + appId);
+    const applicantName = `${officerApplicationsList[appIndex].first_name || ''} ${officerApplicationsList[appIndex].last_name || ''}`.trim() || 'Beneficiary';
+
+    const actionText = action === 'approve' ? 'APPROVE' : (action === 'deny' ? 'DENY' : 'MARK AS PENDING');
+    const confirmType = action === 'deny' ? 'danger' : (action === 'approve' ? 'success' : 'warning');
+    
+    const confirmed = await showSystemConfirm(
+        `Officer Evaluation: ${actionText}`,
+        `Are you sure you want to ${actionText.toLowerCase()} Application #${appNum} for ${applicantName}? This action will be recorded in audit logs and sent to PESO Admin.`,
+        { type: confirmType, confirmText: `Confirm ${actionText}` }
+    );
+    if (!confirmed) return;
 
     let newStatus = 'Under Review';
     let officerDecision = 'None';
@@ -10001,8 +10053,13 @@ function handleAssignmentSubmit(e) {
     renderAssignmentsTable();
 }
 
-function removeAssignment(id) {
-    if (confirm("Are you sure you want to deactivate/revoke this program assignment?")) {
+async function removeAssignment(id) {
+    const confirmed = await showSystemConfirm(
+        'Revoke Assignment',
+        'Are you sure you want to deactivate/revoke this program assignment?',
+        { type: 'danger', confirmText: 'Revoke Assignment' }
+    );
+    if (confirmed) {
         let assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
         assignments = assignments.filter(a => a.id !== id);
         localStorage.setItem('peso_assignments', JSON.stringify(assignments));
@@ -10010,6 +10067,7 @@ function removeAssignment(id) {
             pushActivity("Assignment Revoked", `Deactivated assignment ID: ${id}`);
         }
         renderAssignmentsTable();
+        showWebNotification('Assignment Revoked', 'Program assignment deactivated successfully.', 'info');
     }
 }
 
@@ -10230,8 +10288,97 @@ window.quickActionNewApplication = quickActionNewApplication;
 window.quickActionViewReports = quickActionViewReports;
 
     // ==============================================
-    // WEB NOTIFICATIONS SYSTEM & ALERT OVERRIDE
+    // SYSTEM POP-UP CONFIRMATION & ALERT ENGINE
     // ==============================================
+    function showSystemConfirm(title, message, options = {}) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('systemConfirmModal');
+            const titleEl = document.getElementById('systemConfirmTitle');
+            const msgEl = document.getElementById('systemConfirmMessage');
+            const iconContainer = document.getElementById('systemConfirmIconContainer');
+            const cancelBtn = document.getElementById('systemConfirmCancelBtn');
+            const proceedBtn = document.getElementById('systemConfirmProceedBtn');
+
+            if (!modal) {
+                const confirmed = window.confirm(`${title}\n\n${message}`);
+                return resolve(confirmed);
+            }
+
+            titleEl.textContent = title || 'System Confirmation';
+            msgEl.textContent = message || 'Are you sure you want to proceed with this action?';
+
+            const type = options.type || 'warning';
+            let iconHtml = '<i class="bi bi-question-circle-fill text-warning" style="font-size: 3.5rem;"></i>';
+            let btnClass = 'btn btn-warning px-4 py-2 fw-bold text-dark';
+
+            if (type === 'danger') {
+                iconHtml = '<i class="bi bi-exclamation-octagon-fill text-danger" style="font-size: 3.5rem;"></i>';
+                btnClass = 'btn btn-danger px-4 py-2 fw-bold text-white';
+            } else if (type === 'success') {
+                iconHtml = '<i class="bi bi-check-circle-fill text-success" style="font-size: 3.5rem;"></i>';
+                btnClass = 'btn btn-success px-4 py-2 fw-bold text-white';
+            } else if (type === 'info') {
+                iconHtml = '<i class="bi bi-info-circle-fill text-info" style="font-size: 3.5rem;"></i>';
+                btnClass = 'btn btn-info px-4 py-2 fw-bold text-white';
+            }
+
+            iconContainer.innerHTML = iconHtml;
+            proceedBtn.className = btnClass;
+            proceedBtn.textContent = options.confirmText || 'Confirm Proceed';
+
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+
+            const cleanup = () => {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            };
+
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            proceedBtn.onclick = () => {
+                cleanup();
+                resolve(true);
+            };
+        });
+    }
+
+    function showSystemPopup(title, message, type = 'info') {
+        const modal = document.getElementById('systemAlertModal');
+        const titleEl = document.getElementById('systemAlertTitle');
+        const msgEl = document.getElementById('systemAlertMessage');
+        const iconContainer = document.getElementById('systemAlertIconContainer');
+        const okBtn = document.getElementById('systemAlertOkBtn');
+
+        if (!modal) return;
+
+        titleEl.textContent = title || 'System Notification';
+        msgEl.textContent = message || '';
+
+        let iconHtml = '<i class="bi bi-info-circle-fill text-info" style="font-size: 3.5rem;"></i>';
+        let btnClass = 'btn btn-primary px-5 py-2 fw-bold shadow-sm mx-auto';
+
+        if (type === 'error' || type === 'danger') {
+            iconHtml = '<i class="bi bi-exclamation-circle-fill text-danger" style="font-size: 3.5rem;"></i>';
+            btnClass = 'btn btn-danger px-5 py-2 fw-bold shadow-sm mx-auto';
+        } else if (type === 'success') {
+            iconHtml = '<i class="bi bi-check-circle-fill text-success" style="font-size: 3.5rem;"></i>';
+            btnClass = 'btn btn-success px-5 py-2 fw-bold shadow-sm mx-auto';
+        } else if (type === 'warning') {
+            iconHtml = '<i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3.5rem;"></i>';
+            btnClass = 'btn btn-warning px-5 py-2 fw-bold text-dark shadow-sm mx-auto';
+        }
+
+        iconContainer.innerHTML = iconHtml;
+        if (okBtn) okBtn.className = btnClass;
+
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+    }
+
     function showWebNotification(title, message, type = 'success') {
         // 1. Native HTML5 Browser Notification
         if ('Notification' in window) {
@@ -10246,45 +10393,16 @@ window.quickActionViewReports = quickActionViewReports;
             }
         }
 
-        // 2. Custom In-App Notification Toast
-        let container = document.getElementById('web-notification-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'web-notification-container';
-            container.className = 'web-notification-container';
-            document.body.appendChild(container);
+        // 2. Display Centered System Pop-up Modal
+        showSystemPopup(title, message, type);
+
+        // 3. Log to System Notifications Panel
+        const catMap = { success: 'approval', error: 'alert', warning: 'alert', info: 'update' };
+        if (typeof pushNotification === 'function' && !window._insidePushNotification) {
+            window._insidePushNotification = true;
+            pushNotification(title, message, catMap[type] || 'update');
+            window._insidePushNotification = false;
         }
-
-        const notification = document.createElement('div');
-        notification.className = `web-notification ${type}`;
-        
-        let iconClass = 'bi-check-circle-fill';
-        if (type === 'error') iconClass = 'bi-exclamation-circle-fill';
-        else if (type === 'warning') iconClass = 'bi-exclamation-triangle-fill';
-        else if (type === 'info') iconClass = 'bi-info-circle-fill';
-
-        notification.innerHTML = `
-            <i class="bi ${iconClass} web-notification-icon"></i>
-            <div class="web-notification-content">
-                <div class="web-notification-title">${title}</div>
-                <p class="web-notification-message">${message}</p>
-            </div>
-            <button class="web-notification-close" onclick="this.parentElement.remove()">&times;</button>
-        `;
-
-        container.appendChild(notification);
-
-        // Reflow trigger
-        void notification.offsetWidth;
-        notification.classList.add('show');
-
-        // Auto dismiss after 4 seconds
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                notification.remove();
-            }, 400);
-        }, 4000);
     }
 
     // Global Alert Override
@@ -10305,6 +10423,9 @@ window.quickActionViewReports = quickActionViewReports;
         }
         showWebNotification(title, message, type);
     };
+
+    window.showSystemConfirm = showSystemConfirm;
+    window.showSystemPopup = showSystemPopup;
 
     // ==============================================
     // NOTIFICATIONS SYSTEM CONTROLLER
