@@ -78,6 +78,26 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // --- Role Access Restriction Enforcement ---
+    // 1. Beneficiary Login Portal is exclusive to Beneficiary role only. Officers & Admins CANNOT log in via Beneficiary portal.
+    const loginType = req.body.loginType || req.body.portal;
+    if (loginType === 'beneficiary' && user.role !== 'Beneficiary') {
+      console.warn(`[AUTH] Login blocked — Staff/Admin role (${user.role}) attempted login through Beneficiary portal: ${username}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Officer and Administrator accounts are not permitted to log in through the Beneficiary Portal. Please use the Admin/Staff Login Page.'
+      });
+    }
+
+    // 2. Admin & Staff Login Portal is exclusive to Staff/Admin roles only. Beneficiaries CANNOT log in via Admin/Staff portal.
+    if ((loginType === 'official' || loginType === 'admin') && user.role === 'Beneficiary') {
+      console.warn(`[AUTH] Login blocked — Beneficiary role attempted login through Staff/Admin portal: ${username}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Beneficiary accounts are not permitted to log in through the Admin/Staff Portal. Please use the Beneficiary Login Page.'
+      });
+    }
+
     // --- Email Verification Gate (Beneficiaries only) ---
     // A Beneficiary record is only fully "active" once its email OTP has
     // been confirmed. Officer/staff accounts are created by an admin and

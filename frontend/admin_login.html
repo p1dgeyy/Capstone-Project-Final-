@@ -1636,7 +1636,7 @@
                 const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username.trim(), password })
+                    body: JSON.stringify({ username: username.trim(), password, loginType: 'official' })
                 });
 
                 if (response.ok) {
@@ -1673,7 +1673,19 @@
                 'officer': { role: 'PESO Officer', fullName: 'PESO Officer', redirect: 'peso_officer.html', id: '2' }
             };
 
+            
             if (defaultAccounts[lowerUser]) {
+                const userAcc = defaultAccounts[lowerUser];
+                if (userAcc.role === 'Beneficiary') {
+                    document.getElementById('errorMessage').textContent = 'Access Denied: Beneficiary accounts are not permitted to log in through the Admin/Staff Portal. Please use the Beneficiary Login Page.';
+                    errorAlert.style.display = 'block';
+                    btnText.style.display = 'inline';
+                    btnIcon.style.display = 'inline-block';
+                    spinner.style.display = 'none';
+                    loginBtn.disabled = false;
+                    return;
+                }
+
                 const userAcc = defaultAccounts[lowerUser];
                 const mockToken = 'mock_session_token_' + Date.now();
                 SessionManager.save(userAcc.id, mockToken, userAcc.role);
