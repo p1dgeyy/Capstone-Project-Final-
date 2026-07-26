@@ -2019,8 +2019,7 @@
                                 style="height: 100%;">
                                 <option value="all">All Statuses</option>
                                 <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                                <option value="Pending">Pending</option>
+                                <option value="Deactivated">Deactivated</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -2033,8 +2032,19 @@
                         </div>
                     </div>
                     <div class="row g-3 px-3 pb-3" id="officersGridBody"
-                        style="max-height: 70vh; overflow-y: auto; margin-top: 10px;">
-                        <!-- Cards rendered dynamically -->
+                        style="max-height: 50vh; overflow-y: auto; margin-top: 10px;">
+                        <!-- Active Officers cards rendered dynamically -->
+                    </div>
+
+                    <!-- Dedicated Archive Box for Officers -->
+                    <div class="mt-4 pt-3 border-top px-3 pb-3" id="archivedOfficersContainer">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-secondary mb-0"><i class="bi bi-archive-fill text-muted me-2"></i>Archived & Deactivated Officers Box</h6>
+                            <span class="badge bg-secondary rounded-pill" id="archivedOfficerCount">0 Archived</span>
+                        </div>
+                        <div class="row g-3" id="archivedOfficersGridBody" style="max-height: 35vh; overflow-y: auto;">
+                            <!-- Archived officers rendered dynamically -->
+                        </div>
                     </div>
                 </div>
             </section>
@@ -2058,8 +2068,19 @@
                                 </div>
                             </div>
                             <div class="row g-3 px-3 pb-3" id="programsGridBody"
-                                style="max-height: 70vh; overflow-y: auto; margin-top: 10px;">
-                                <!-- Rendered dynamically as cards -->
+                                style="max-height: 50vh; overflow-y: auto; margin-top: 10px;">
+                                <!-- Active Programs rendered dynamically as cards -->
+                            </div>
+
+                            <!-- Dedicated Archive Box for Programs -->
+                            <div class="mt-4 pt-3 border-top px-3 pb-3" id="archivedProgramsContainer">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-bold text-secondary mb-0"><i class="bi bi-archive-fill text-muted me-2"></i>Archived & Deactivated Programs Box</h6>
+                                    <span class="badge bg-secondary rounded-pill" id="archivedProgramCount">0 Archived</span>
+                                </div>
+                                <div class="row g-3" id="archivedProgramsGridBody" style="max-height: 35vh; overflow-y: auto;">
+                                    <!-- Deactivated Programs rendered dynamically -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2360,6 +2381,21 @@
                                         <!-- Rendered dynamically from peso_beneficiary_audit_logs -->
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                <!-- Dedicated Archive Box for Program Assignments -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="table-card p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                <div>
+                                    <h6 class="fw-bold text-secondary m-0"><i class="bi bi-archive-fill text-muted me-2"></i>Archived & Unassigned Beneficiary Records Box</h6>
+                                    <small class="text-muted">Isolates all deactivated or unassigned beneficiary records away from the main active batch list.</small>
+                                </div>
+                                <span class="badge bg-secondary rounded-pill" id="archivedAssignmentCount">0 Archived</span>
+                            </div>
+                            <div class="row g-3" id="archivedAssignmentsGridBody" style="max-height: 250px; overflow-y: auto;">
+                                <!-- Deactivated/Archived beneficiary records rendered dynamically -->
                             </div>
                         </div>
                     </div>
@@ -4592,24 +4628,28 @@
         function renderOfficersTable() {
             const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
             const gridBody = document.getElementById('officersGridBody');
+            const archivedGridBody = document.getElementById('archivedOfficersGridBody');
+            const archivedCountBadge = document.getElementById('archivedOfficerCount');
             if (!gridBody) return;
-            const search = document.getElementById('officerSearchInput').value.toLowerCase().trim();
-            const roleFilter = document.getElementById('officerFilterRole').value;
-            const statusFilter = document.getElementById('officerFilterStatus').value;
-            const sortBy = document.getElementById('officerSortBy').value;
+
+            const search = (document.getElementById('officerSearchInput')?.value || '').toLowerCase().trim();
+            const roleFilter = document.getElementById('officerFilterRole')?.value || 'all';
+            const statusFilter = document.getElementById('officerFilterStatus')?.value || 'all';
+            const sortBy = document.getElementById('officerSortBy')?.value || 'dateCreated';
 
             gridBody.innerHTML = '';
+            if (archivedGridBody) archivedGridBody.innerHTML = '';
 
             let filtered = officers.filter(o => {
-                const matchesSearch = o.name.toLowerCase().includes(search) || o.email.toLowerCase().includes(search) || o.username.toLowerCase().includes(search);
+                const matchesSearch = (o.name || '').toLowerCase().includes(search) || (o.email || '').toLowerCase().includes(search) || (o.username || '').toLowerCase().includes(search);
                 const matchesRole = roleFilter === 'all' || o.role === roleFilter;
-                const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
+                const matchesStatus = statusFilter === 'all' || (statusFilter === 'Deactivated' ? (o.status === 'Deactivated' || o.status === 'Inactive') : o.status === statusFilter);
                 return matchesSearch && matchesRole && matchesStatus;
             });
 
             // Sorting
             if (sortBy === 'name') {
-                filtered.sort((a, b) => a.name.localeCompare(b.name));
+                filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             } else if (sortBy === 'beneficiaries') {
                 filtered.sort((a, b) => {
                     const countA = a.beneficiariesCount || (a.id === 'O1' ? 142 : a.id === 'O2' ? 84 : a.id === 'O3' ? 116 : 0);
@@ -4617,23 +4657,24 @@
                     return countB - countA;
                 });
             } else {
-                // dateCreated
                 filtered.sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''));
             }
 
-            filtered.forEach(o => {
-                const statusBadgeClass = o.status === 'Active' ? 'active' : (o.status === 'Inactive' ? 'inactive' : 'pending');
-                const actionText = o.status === 'Active' ? 'Deactivate' : 'Activate';
-                const actionIcon = o.status === 'Active' ? 'bi-toggle2-on' : 'bi-toggle2-off';
+            const activeOfficers = filtered.filter(o => o.status === 'Active');
+            const deactivatedOfficers = filtered.filter(o => o.status === 'Deactivated' || o.status === 'Inactive' || o.status === 'Archived');
 
+            if (archivedCountBadge) {
+                archivedCountBadge.textContent = `${deactivatedOfficers.length} Archived`;
+            }
+
+            // Render Active Officers
+            activeOfficers.forEach(o => {
                 const nameParts = o.name.split(' ');
                 const initials = nameParts.length >= 2 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : o.name.substring(0, 2).toUpperCase();
-
-                const deptText = o.department || (o.role === 'PESO Officer' ? 'PESO Department' : 'PESO Department');
-                const programs = o.assignedPrograms || (o.role === 'PESO Officer' ? ['Medical Assistance', 'Financial Assistance'] : ['SPES', 'TUPAD']);
+                const deptText = o.department || 'PESO Department';
+                const programs = o.assignedPrograms || ['Medical Assistance', 'Financial Assistance'];
                 const lastLoginText = o.lastLogin || '2026-07-07 11:24';
-                const benCount = o.beneficiariesCount || (o.id === 'O1' ? 142 : o.id === 'O2' ? 84 : o.id === 'O3' ? 116 : Math.floor(Math.random() * 50) + 10);
-
+                const benCount = o.beneficiariesCount || (o.id === 'O1' ? 142 : o.id === 'O2' ? 84 : o.id === 'O3' ? 116 : 30);
                 const progBadges = programs.map(p => `<span class="badge bg-secondary-subtle text-dark me-1" style="font-size: 0.72rem;">${p}</span>`).join('');
 
                 gridBody.innerHTML += `
@@ -4650,7 +4691,7 @@
                                             <small class="text-muted">@${o.username}</small>
                                         </div>
                                     </div>
-                                    <span class="status-badge ${statusBadgeClass}">${o.status}</span>
+                                    <span class="status-badge approved">Active</span>
                                 </div>
                                 
                                 <div class="officer-info-list mb-3" style="font-size: 0.85rem; color: #443c3f;">
@@ -4681,19 +4722,60 @@
                                 <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 flex-grow-1 justify-content-center" onclick="openEditOfficerModal('${o.id}')" title="Edit officer details" style="border-radius: 8px; font-weight: 600; font-size: 0.75rem;">
                                     <i class="bi bi-pencil"></i> Edit
                                 </button>
-                                <button class="btn btn-sm ${o.status === 'Active' ? 'btn-outline-danger' : 'btn-outline-success'} d-flex align-items-center gap-1 justify-content-center" onclick="toggleOfficerStatus('${o.id}')" title="${actionText} Account" style="border-radius: 8px; font-weight: 600; min-width: 32px; padding: 4px 6px;">
-                                    <i class="bi ${actionIcon} fs-6"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" onclick="archiveRecord('Officer', '${o.id}')" title="Archive account" style="border-radius: 8px; font-weight: 600; min-width: 32px; padding: 4px 6px;">
-                                    <i class="bi bi-archive"></i>
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 justify-content-center" onclick="toggleOfficerStatus('${o.id}')" title="Deactivate Account" style="border-radius: 8px; font-weight: 600; min-width: 32px; padding: 4px 6px;">
+                                    <i class="bi bi-toggle2-on fs-6 me-1"></i> Deactivate
                                 </button>
                             </div>
                         </div>
                     </div>
                 `;
             });
-            if (filtered.length === 0) {
-                gridBody.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="bi bi-person-x fs-1 d-block mb-2"></i>No officers registered.</div>';
+
+            if (activeOfficers.length === 0) {
+                gridBody.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="bi bi-person-x fs-1 d-block mb-2"></i>No active officer accounts found.</div>';
+            }
+
+            // Render Deactivated / Archived Officers in Dedicated Archive Box
+            if (archivedGridBody) {
+                deactivatedOfficers.forEach(o => {
+                    const nameParts = o.name.split(' ');
+                    const initials = nameParts.length >= 2 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : o.name.substring(0, 2).toUpperCase();
+                    
+                    archivedGridBody.innerHTML += `
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card p-3 shadow-sm border-0 position-relative" style="border-radius: 12px; background-color: #f8fafc; border: 1px solid #cbd5e1 !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 38px; height: 38px; background: #64748b; font-size: 0.9rem;">
+                                            ${initials}
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold text-secondary mb-0" style="font-size: 0.9rem;">${o.name}</h6>
+                                            <small class="text-muted">@${o.username}</small>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge denied">Deactivated</span>
+                                </div>
+                                <div class="small text-muted mb-2">
+                                    <div><i class="bi bi-envelope me-1"></i>${o.email}</div>
+                                    <div><i class="bi bi-shield me-1"></i>${o.role}</div>
+                                </div>
+                                <div class="d-flex gap-2 pt-2 border-top">
+                                    <button class="btn btn-sm btn-success d-flex align-items-center gap-1 flex-grow-1 justify-content-center" onclick="toggleOfficerStatus('${o.id}')" style="border-radius: 6px; font-size: 0.75rem;">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Restore & Activate
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 justify-content-center" onclick="deleteOfficerPermanently('${o.id}')" title="Permanently Delete Account" style="border-radius: 6px; font-size: 0.75rem;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (deactivatedOfficers.length === 0) {
+                    archivedGridBody.innerHTML = '<div class="col-12 text-center py-4 text-muted small"><i class="bi bi-inbox fs-4 d-block mb-1"></i>No archived or deactivated officer accounts.</div>';
+                }
             }
         }
 
@@ -5398,30 +5480,38 @@
             const idx = officers.findIndex(o => o.id === id);
             if (idx !== -1) {
                 const currentStatus = officers[idx].status;
-                const actionVerb = currentStatus === 'Active' ? 'deactivate' : 'activate';
-                showConfirmCard(`Are you sure you want to ${actionVerb} the officer account for '${officers[idx].name}'?`, async () => {
-                    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+                const newStatus = (currentStatus === 'Active') ? 'Deactivated' : 'Active';
+                const actionVerb = (currentStatus === 'Active') ? 'deactivate' : 'activate';
 
-                    // --- Sync status change to API ---
-                    try {
-                        const response = await fetch(API_CONFIG.BASE_URL + '/api/users/' + id, {
-                            method: 'PUT',
-                            headers: SessionManager.authHeaders(),
-                            body: JSON.stringify({ role: officers[idx].role }) // Status is managed locally; send a no-op update to keep session alive
-                        });
-                        if (!response.ok) {
-                            const data = await response.json().catch(() => ({}));
-                            console.error('[PESO_ADMIN] toggleOfficerStatus API error:', data.message || response.status);
-                        }
-                    } catch (networkError) {
-                        console.error('[PESO_ADMIN] toggleOfficerStatus request failed:', networkError);
-                    }
-
+                showConfirmCard(`Are you sure you want to ${actionVerb} the officer account for '${officers[idx].name}'?`, () => {
+                    // Instant optimistic local update
                     officers[idx].status = newStatus;
                     localStorage.setItem('peso_officers', JSON.stringify(officers));
+                    renderOfficersTable();
                     pushActivity("Officer Status Toggled", `${newStatus} status set for: ${officers[idx].name}`);
                     pushNotification("Officer Status Changed", `Officer account status for ${officers[idx].name} has been set to ${newStatus}.`, "alert");
+
+                    // Async API sync in background without blocking UI
+                    fetch(API_CONFIG.BASE_URL + '/api/users/' + id, {
+                        method: 'PUT',
+                        headers: SessionManager.authHeaders(),
+                        body: JSON.stringify({ role: officers[idx].role, status: newStatus })
+                    }).catch(networkError => {
+                        console.warn('[PESO_ADMIN] toggleOfficerStatus background sync:', networkError);
+                    });
+                });
+            }
+        }
+
+        function deleteOfficerPermanently(id) {
+            const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+            const idx = officers.findIndex(o => o.id === id);
+            if (idx !== -1) {
+                showConfirmCard(`Are you sure you want to PERMANENTLY DELETE officer account for '${officers[idx].name}'? This action cannot be undone.`, () => {
+                    officers.splice(idx, 1);
+                    localStorage.setItem('peso_officers', JSON.stringify(officers));
                     renderOfficersTable();
+                    pushActivity("Officer Account Deleted", `Permanently removed officer account ID: ${id}`);
                 });
             }
         }
@@ -5586,22 +5676,26 @@
         function renderProgramsTable() {
             const programs = JSON.parse(localStorage.getItem('peso_programs')) || [];
             const gridBody = document.getElementById('programsGridBody');
+            const archivedGridBody = document.getElementById('archivedProgramsGridBody');
+            const archivedCountBadge = document.getElementById('archivedProgramCount');
             if (!gridBody) return;
-            const search = document.getElementById('programSearchInput').value.toLowerCase().trim();
+
+            const search = (document.getElementById('programSearchInput')?.value || '').toLowerCase().trim();
             gridBody.innerHTML = '';
+            if (archivedGridBody) archivedGridBody.innerHTML = '';
 
-            const filtered = programs.filter(p => p.code.toLowerCase().includes(search) || p.name.toLowerCase().includes(search));
-
-            // Load arrays for dynamic beneficiary accumulation count
+            const filtered = programs.filter(p => (p.code || '').toLowerCase().includes(search) || (p.name || '').toLowerCase().includes(search));
             const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
             const applications = JSON.parse(localStorage.getItem('peso_applications')) || [];
 
-            filtered.forEach(p => {
-                const statusBadgeClass = p.status === 'Active' ? 'active' : 'inactive';
-                const actionText = p.status === 'Active' ? 'Deactivate' : 'Activate';
-                const actionIcon = p.status === 'Active' ? 'bi-toggle2-on' : 'bi-toggle2-off';
+            const activePrograms = filtered.filter(p => p.status === 'Active');
+            const deactivatedPrograms = filtered.filter(p => p.status === 'Inactive' || p.status === 'Deactivated' || p.status === 'Archived');
 
-                // Calculate accumulated and received beneficiaries dynamically
+            if (archivedCountBadge) {
+                archivedCountBadge.textContent = `${deactivatedPrograms.length} Archived`;
+            }
+
+            activePrograms.forEach(p => {
                 const countAssignments = assignments.filter(a => a.programId === p.id).length;
                 const countApps = applications.filter(a => (a.programId === p.id || a.programCode === p.code) && (a.status === 'Approved' || a.status === 'Completed')).length;
                 const accumulatedCount = Math.max(countAssignments, countApps);
@@ -5616,7 +5710,7 @@
                             <div>
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <span class="status-badge active" style="font-weight: 700;">${p.code}</span>
-                                    <span class="status-badge ${statusBadgeClass}">${p.status}</span>
+                                    <span class="status-badge approved">Active</span>
                                 </div>
                                 <h5 class="fw-bold mb-2" style="font-size: 1.15rem; line-height: 1.4;">${p.name}</h5>
                                 <p class="text-muted mb-3 small" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px;">${p.description || 'No description available.'}</p>
@@ -5652,17 +5746,49 @@
                                 <button class="btn btn-sm btn-custom btn-custom-secondary flex-grow-1 justify-content-center" onclick="openEditProgramModal('${p.id}')" title="Edit program" style="padding: 8px 12px; font-size: 0.75rem; border-color: var(--primary-pink); color: var(--primary-pink);">
                                     <i class="bi bi-pencil"></i> Edit
                                 </button>
-                                <button class="btn btn-sm btn-custom ${p.status === 'Active' ? 'btn-custom-secondary' : 'btn-custom-primary'} d-flex align-items-center justify-content-center" onclick="toggleProgramStatus('${p.id}')" title="${actionText} Program" style="padding: 8px; min-width: 36px;">
-                                    <i class="bi ${actionIcon} fs-6"></i>
-                                </button>
-                                <button class="btn btn-sm btn-custom btn-custom-danger d-flex align-items-center justify-content-center" onclick="archiveRecord('Program', '${p.id}')" title="Archive program" style="padding: 8px; min-width: 36px;">
-                                    <i class="bi bi-archive"></i>
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" onclick="toggleProgramStatus('${p.id}')" title="Deactivate Program" style="padding: 8px 12px; font-size: 0.75rem;">
+                                    <i class="bi bi-toggle2-on fs-6 me-1"></i> Deactivate
                                 </button>
                             </div>
                         </div>
                     </div>
                 `;
             });
+
+            if (activePrograms.length === 0) {
+                gridBody.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="bi bi-folder-x fs-1 d-block mb-2"></i>No active programs found.</div>';
+            }
+
+            // Render Deactivated Programs in Archive Box
+            if (archivedGridBody) {
+                deactivatedPrograms.forEach(p => {
+                    archivedGridBody.innerHTML += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card p-3 shadow-sm border-0 position-relative" style="border-radius: 12px; background-color: #f8fafc; border: 1px solid #cbd5e1 !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-secondary text-white fw-bold">${p.code}</span>
+                                    <span class="status-badge denied">Deactivated</span>
+                                </div>
+                                <h6 class="fw-bold text-secondary mb-1" style="font-size: 0.95rem;">${p.name}</h6>
+                                <p class="text-muted small mb-2 text-truncate">${p.description || 'No description available.'}</p>
+                                <div class="d-flex gap-2 pt-2 border-top">
+                                    <button class="btn btn-sm btn-success d-flex align-items-center gap-1 flex-grow-1 justify-content-center" onclick="toggleProgramStatus('${p.id}')" style="border-radius: 6px; font-size: 0.75rem;">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Restore Program
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 justify-content-center" onclick="deleteProgram('${p.id}')" title="Permanently Delete Program" style="border-radius: 6px; font-size: 0.75rem;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (deactivatedPrograms.length === 0) {
+                    archivedGridBody.innerHTML = '<div class="col-12 text-center py-4 text-muted small"><i class="bi bi-inbox fs-4 d-block mb-1"></i>No archived or deactivated programs.</div>';
+                }
+            }
+        }
             if (filtered.length === 0) {
                 gridBody.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="bi bi-folder-x fs-1 d-block mb-2"></i>No livelihood programs registered.</div>';
             }
@@ -5864,13 +5990,26 @@
             const idx = programs.findIndex(p => p.id === id);
             if (idx !== -1) {
                 const currentStatus = programs[idx].status;
+                const newStatus = currentStatus === 'Active' ? 'Deactivated' : 'Active';
                 const actionVerb = currentStatus === 'Active' ? 'deactivate' : 'activate';
-                showConfirmCard(`Are you sure you want to ${actionVerb} the program '${programs[idx].code}'?`, () => {
-                    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+
+                // Check active beneficiary & application usage restriction
+                const assignments = JSON.parse(localStorage.getItem('peso_assignments')) || [];
+                const applications = JSON.parse(localStorage.getItem('peso_applications')) || [];
+                const activeAssignments = assignments.filter(a => a.programId === id || a.programCode === programs[idx].code);
+                const activeApps = applications.filter(a => (a.programId === id || a.programCode === programs[idx].code) && a.status !== 'Denied');
+                const totalActiveCount = activeAssignments.length + activeApps.length;
+
+                let confirmPrompt = `Are you sure you want to ${actionVerb} the program '${programs[idx].code}'?`;
+                if (currentStatus === 'Active' && totalActiveCount > 0) {
+                    confirmPrompt = `RESTRICTION WARNING: Program '${programs[idx].code}' is currently in use with ${totalActiveCount} active applications/enrolled beneficiaries.\n\nDeactivating this program will move it to the Archive Box. Are you sure you want to proceed?`;
+                }
+
+                showConfirmCard(confirmPrompt, () => {
                     programs[idx].status = newStatus;
                     localStorage.setItem('peso_programs', JSON.stringify(programs));
                     pushActivity("Program Status Toggled", `${newStatus} status set for program: ${programs[idx].code}`);
-                    pushNotification("Program Status Toggled", `Program '${programs[idx].code}' has been set to ${newStatus}.`, "update");
+                    pushNotification("Program Status Toggled", `Program '${programs[idx].code}' status updated to ${newStatus}.`, "update");
                     renderProgramsTable();
                 });
             }
@@ -7664,13 +7803,13 @@
                 select.innerHTML += `<option value="${p.id}">${p.code}</option>`;
             });
 
-            // Dynamic recipient list
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            // Dynamic batch recipient list (Batch-based scheduling)
+            const trainings = JSON.parse(localStorage.getItem('peso_trainings')) || [];
             const recSelect = document.getElementById('schedRecipient');
             if (recSelect) {
-                recSelect.innerHTML = '<option value="all">All Registered Beneficiaries</option>';
-                beneficiaries.forEach(b => {
-                    recSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+                recSelect.innerHTML = '<option value="all">All Program Batches (Broadcasting)</option>';
+                trainings.forEach(t => {
+                    recSelect.innerHTML += `<option value="${t.id}">Batch: ${t.id} - ${t.title}</option>`;
                 });
             }
 
@@ -7976,6 +8115,7 @@
 
                 renderCalendar();
                 renderSchedulesList();
+                renderCancellationAuditLogs();
             }
         }
 
