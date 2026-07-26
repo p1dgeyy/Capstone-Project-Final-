@@ -8407,6 +8407,14 @@
                             }
                             document.addEventListener('DOMContentLoaded', initNavigation);
                             window.initNavigation = initNavigation;
+                            function toggleBeneficiaryStatus(id, currentStatus) {
+                                if (currentStatus === 'Active' || currentStatus === 'active') {
+                                    if (typeof openDeactivateBeneficiaryModal === 'function') openDeactivateBeneficiaryModal(id);
+                                } else {
+                                    if (typeof openActivateBeneficiaryModal === 'function') openActivateBeneficiaryModal(id);
+                                }
+                            }
+
                             // Make functions globally accessible on window
                             window.viewBeneficiary = viewBeneficiary;
                             window.editBeneficiary = editBeneficiary;
@@ -10721,13 +10729,14 @@
                             /* ===== NEW UI FUNCTIONS ===== */
 
                             /* Global Search Bar */
-                            window.performGlobalSearch = function (query) {
+                            function performGlobalSearch(query) {
                                 if (!query) {
                                     alert('Please enter a search term');
                                     return;
                                 }
                                 alert('Searching for: ' + query + '\n\nSearching across applicants, programs, and beneficiaries...');
-                            };
+                            }
+                            window.performGlobalSearch = performGlobalSearch;
 
                             document.addEventListener('DOMContentLoaded', function () {
                                 var globalSearch = document.getElementById('globalSearch');
@@ -10741,7 +10750,7 @@
                             });
 
                             /* Chart Filters and Updates */
-                            window.updateChartFilter = function (chartId, filterValue) {
+                            function updateChartFilter(chartId, filterValue) {
                                 var filterText = '';
                                 switch (filterValue) {
                                     case 'this-week': filterText = 'This Week'; break;
@@ -10751,46 +10760,46 @@
                                     case 'custom-range': filterText = 'Custom Range'; break;
                                 }
                                 console.log('Chart ' + chartId + ' filtered by: ' + filterText);
-                                // In a real application, this would update chart data via API call
                                 alert('Chart filtered by: ' + filterText);
-                            };
+                            }
+                            window.updateChartFilter = updateChartFilter;
 
                             /* Export Dropdown Toggle */
-                            window.toggleExportDropdown = function (button) {
+                            function toggleExportDropdown(button) {
                                 var dropdown = button.nextElementSibling;
                                 if (dropdown && dropdown.classList.contains('export-dropdown')) {
                                     dropdown.classList.toggle('active');
-                                    // Close other dropdowns
                                     document.querySelectorAll('.export-dropdown.active').forEach(function (d) {
                                         if (d !== dropdown) d.classList.remove('active');
                                     });
                                 }
-                            };
+                            }
+                            window.toggleExportDropdown = toggleExportDropdown;
 
                             /* Export Functions */
-                            window.exportChartToPDF = function (chartName) {
-                                alert('Exporting \"' + chartName + '\" chart to PDF...');
-                                // In a real application, this would generate and download a PDF
+                            function exportChartToPDF(chartName) {
+                                alert('Exporting "' + chartName + '" chart to PDF...');
                                 closeExportDropdowns();
-                            };
+                            }
+                            window.exportChartToPDF = exportChartToPDF;
 
-                            window.exportChartToExcel = function (chartName) {
-                                alert('Exporting \"' + chartName + '\" chart to Excel...');
-                                // In a real application, this would generate and download an Excel file
+                            function exportChartToExcel(chartName) {
+                                alert('Exporting "' + chartName + '" chart to Excel...');
                                 closeExportDropdowns();
-                            };
+                            }
+                            window.exportChartToExcel = exportChartToExcel;
 
-                            window.exportActivityToPDF = function () {
+                            function exportActivityToPDF() {
                                 alert('Exporting Recent Activity table to PDF...');
-                                // In a real application, this would generate and download a PDF
                                 closeExportDropdowns();
-                            };
+                            }
+                            window.exportActivityToPDF = exportActivityToPDF;
 
-                            window.exportActivityToExcel = function () {
+                            function exportActivityToExcel() {
                                 alert('Exporting Recent Activity table to Excel...');
-                                // In a real application, this would generate and download an Excel file
                                 closeExportDropdowns();
-                            };
+                            }
+                            window.exportActivityToExcel = exportActivityToExcel;
 
                             function closeExportDropdowns() {
                                 document.querySelectorAll('.export-dropdown.active').forEach(function (d) {
@@ -10809,19 +10818,21 @@
                             var currentPage = 1;
                             var totalPages = 12;
 
-                            window.nextPage = function () {
+                            function nextPage() {
                                 if (currentPage < totalPages) {
                                     currentPage++;
                                     updatePaginationDisplay();
                                 }
-                            };
+                            }
+                            window.nextPage = nextPage;
 
-                            window.previousPage = function () {
+                            function previousPage() {
                                 if (currentPage > 1) {
                                     currentPage--;
                                     updatePaginationDisplay();
                                 }
-                            };
+                            }
+                            window.previousPage = previousPage;
 
                             function updatePaginationDisplay() {
                                 var currentPageEl = document.getElementById('currentPage');
@@ -10832,30 +10843,35 @@
                                 // In a real application, this would fetch and display data for the current page
                             }
 
-                            window.viewAllRecentActivity = function () {
+                            function viewAllRecentActivity() {
                                 switchModule('module-daily-log');
-                            };
+                            }
+                            window.viewAllRecentActivity = viewAllRecentActivity;
 
                             /* Quick Action Buttons */
-                            window.quickActionAddBeneficiary = function () {
+                            function quickActionAddBeneficiary() {
                                 openModal('createBeneficiaryModal');
-                            };
+                            }
+                            window.quickActionAddBeneficiary = quickActionAddBeneficiary;
 
-                            window.quickActionAddApplicant = function () {
+                            function quickActionAddApplicant() {
                                 openModal('createBeneficiaryModal');
-                            };
+                            }
+                            window.quickActionAddApplicant = quickActionAddApplicant;
 
-                            window.quickActionNewApplication = function () {
+                            function quickActionNewApplication() {
                                 if (typeof openNewApplicationModal === 'function') {
                                     openNewApplicationModal();
                                 } else {
                                     switchModule('module-livelihood');
                                 }
-                            };
+                            }
+                            window.quickActionNewApplication = quickActionNewApplication;
 
-                            window.quickActionViewReports = function () {
+                            function quickActionViewReports() {
                                 switchModule('module-reports');
-                            };
+                            }
+                            window.quickActionViewReports = quickActionViewReports;
 
                             /* Initialize on document load */
                             document.addEventListener('DOMContentLoaded', function () {
