@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS `users` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `username` VARCHAR(50) NOT NULL UNIQUE,
-  `password` VARCHAR(255) NOT NULL, -- Hashed password
+  `password` VARCHAR(255) NOT NULL,
   `role` ENUM('Beneficiary', 'PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator') NOT NULL,
   
   -- Profile Details
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- Details of the livelihood and internship assistance programs
 CREATE TABLE IF NOT EXISTS `programs` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `code` VARCHAR(20) NOT NULL UNIQUE, -- E.g., 'TUPAD', 'SPES', 'KEEP', 'CKGIP'
+  `code` VARCHAR(20) NOT NULL UNIQUE,
   `name` VARCHAR(255) NOT NULL,
   `description` TEXT,
   `agency` ENUM('PESO', 'CSWDO') NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS `programs` (
 -- Stores applications made by beneficiaries to specific programs
 CREATE TABLE IF NOT EXISTS `applications` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `application_number` VARCHAR(50) NOT NULL UNIQUE, -- Format: agency-year-sequence (e.g. 'CSWDO-2026-0290')
+  `application_number` VARCHAR(50) NOT NULL UNIQUE,
   `beneficiary_id` INT NOT NULL,
   `program_id` INT NOT NULL,
   `date_applied` DATE NOT NULL,
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS `distributions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `application_id` INT NOT NULL,
   `distribution_date` DATE NOT NULL,
-  `distribution_time` VARCHAR(100) NOT NULL, -- e.g., '9:00 AM - 4:00 PM'
+  `distribution_time` VARCHAR(100) NOT NULL,
   `location` VARCHAR(255) NOT NULL,
   `amount` DECIMAL(10,2) NOT NULL,
   `status` ENUM('Pending', 'Confirmed', 'Claimed') DEFAULT 'Pending',
@@ -141,8 +141,8 @@ CREATE TABLE IF NOT EXISTS `approved_assistance` (
   `application_id` INT DEFAULT NULL,
   `beneficiary_id` INT NOT NULL,
   `program_id` INT NOT NULL,
-  `assistance_type` VARCHAR(100) NOT NULL, -- e.g. 'Cash Grant', 'Starter Kit', 'Tools & Equipment', etc.
-  `quantity_amount` VARCHAR(255) NOT NULL, -- e.g. '₱ 10,000.00' or '2 Sewing Machines'
+  `assistance_type` VARCHAR(100) NOT NULL,
+  `quantity_amount` VARCHAR(255) NOT NULL,
   `conditions` TEXT DEFAULT NULL,
   `approval_date` DATE NOT NULL,
   `officer_id` INT NOT NULL,
@@ -154,6 +154,8 @@ CREATE TABLE IF NOT EXISTS `approved_assistance` (
   INDEX `idx_ast_beneficiary` (`beneficiary_id`),
   INDEX `idx_ast_program` (`program_id`),
   INDEX `idx_ast_date` (`approval_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 8. INTERVIEW SCHEDULES TABLE (REQ084 - REQ088)
 -- Stores assigned interview schedules, attendance tracking, and completion statuses
 CREATE TABLE IF NOT EXISTS `interview_schedules` (
@@ -163,7 +165,7 @@ CREATE TABLE IF NOT EXISTS `interview_schedules` (
   `program_id` INT NOT NULL,
   `officer_id` INT NOT NULL,
   `interview_date` DATE NOT NULL,
-  `interview_time` VARCHAR(50) NOT NULL, -- e.g. '09:00 AM - 10:00 AM'
+  `interview_time` VARCHAR(50) NOT NULL,
   `venue_location` VARCHAR(255) NOT NULL DEFAULT 'PESO Main Office - Interview Room A',
   `status` ENUM('Scheduled', 'Pending', 'Completed', 'Missed', 'Cancelled') DEFAULT 'Scheduled',
   `attendance_status` ENUM('Unmarked', 'Present', 'Absent') DEFAULT 'Unmarked',

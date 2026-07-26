@@ -20,9 +20,29 @@ function parseSqlFile(filePath) {
     if (!trimmed || trimmed.startsWith('--') || trimmed.startsWith('#')) {
       continue;
     }
-    // Remove inline comment if present (excluding inside strings)
-    // For capstone, simple line filter is robust enough
-    cleanSql += line + '\n';
+    // Remove inline -- comments (not inside quoted strings)
+    let cleanLine = trimmed;
+    let inString = false;
+    let stringChar = '';
+    for (let i = 0; i < cleanLine.length; i++) {
+      const ch = cleanLine[i];
+      if (inString) {
+        if (ch === stringChar && cleanLine[i - 1] !== '\\') {
+          inString = false;
+        }
+      } else {
+        if (ch === "'" || ch === '"') {
+          inString = true;
+          stringChar = ch;
+        } else if (ch === '-' && cleanLine[i + 1] === '-') {
+          cleanLine = cleanLine.substring(0, i).trimEnd();
+          break;
+        }
+      }
+    }
+    if (cleanLine.length > 0) {
+      cleanSql += cleanLine + '\n';
+    }
   }
 
   // Split by semicolon, filter empty statements
