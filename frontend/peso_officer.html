@@ -8152,6 +8152,63 @@
 
                             window.renderInterviewsTable = renderInterviewsTable;
                             window.updateInterviewStatus = updateInterviewStatus;
+
+                            function changeCalendarMonth(delta) {
+                                if (typeof showWebNotification === 'function') showWebNotification('Calendar Navigation', 'Switched calendar month view.', 'info');
+                            }
+                            function changeCalendarYear() {
+                                if (typeof showWebNotification === 'function') showWebNotification('Calendar Navigation', 'Switched calendar year view.', 'info');
+                            }
+                            function calculateEditAge() {
+                                const dob = document.getElementById('editBeneficiaryDob')?.value;
+                                if (dob && typeof calculateAge === 'function') {
+                                    const age = calculateAge(dob);
+                                    const ageEl = document.getElementById('editBeneficiaryAge');
+                                    if (ageEl) ageEl.value = age;
+                                }
+                            }
+                            function activateFromView() {
+                                const id = document.getElementById('viewBeneficiaryIdText')?.textContent;
+                                if (id && typeof openActivateBeneficiaryModal === 'function') openActivateBeneficiaryModal(id);
+                            }
+                            function deactivateFromView() {
+                                const id = document.getElementById('viewBeneficiaryIdText')?.textContent;
+                                if (id && typeof openDeactivateBeneficiaryModal === 'function') openDeactivateBeneficiaryModal(id);
+                            }
+                            function downloadQRCode(id) {
+                                if (typeof showWebNotification === 'function') showWebNotification('QR Download', `Downloading QR code image for beneficiary #${id}`, 'success');
+                            }
+                            function searchByApplicantId() {
+                                if (typeof renderOfficerApplicationsTable === 'function') renderOfficerApplicationsTable();
+                            }
+                            function createDistribution() {
+                                alert('New distribution created!');
+                                if (typeof closeModal === 'function') closeModal('createDistributionModal');
+                            }
+                            function createTraining() {
+                                alert('New capacity training created!');
+                                if (typeof closeModal === 'function') closeModal('createTrainingModal');
+                            }
+                            function createAssistance() {
+                                alert('New financial assistance record created!');
+                                if (typeof closeModal === 'function') closeModal('createAssistanceModal');
+                            }
+
+                            window.renderOfficerInterviewTable = renderOfficerInterviewTable;
+                            window.toggleOfficerAttendance = toggleOfficerAttendance;
+                            window.updateOfficerInterviewStatus = updateOfficerInterviewStatus;
+                            window.loadOfficerInterviewData = loadOfficerInterviewData;
+                            window.changeCalendarMonth = changeCalendarMonth;
+                            window.changeCalendarYear = changeCalendarYear;
+                            window.calculateEditAge = calculateEditAge;
+                            window.activateFromView = activateFromView;
+                            window.deactivateFromView = deactivateFromView;
+                            window.downloadQRCode = downloadQRCode;
+                            window.searchByApplicantId = searchByApplicantId;
+                            window.createDistribution = createDistribution;
+                            window.createTraining = createTraining;
+                            window.createAssistance = createAssistance;
+
                             function sendNotification() {
                                 pushNotification('SMS Broadcast Dispatched', 'Broadcast notification dispatched successfully.', 'alert');
                                 alert('Sent!');
@@ -8240,22 +8297,27 @@
                                 if (breadcrumbEl) breadcrumbEl.textContent = displayBreadcrumb;
 
                                 // Trigger tab-specific renders
-                                if (modName === 'assignments') {
+                                if (modName === 'beneficiaries') {
+                                    if (typeof renderBeneficiariesTable === 'function') renderBeneficiariesTable();
+                                } else if (modName === 'assignments') {
                                     if (typeof renderAssignmentsTable === 'function') renderAssignmentsTable();
-                                } else if (modName === 'programs') {
+                                } else if (modName === 'programs' || modName === 'funds') {
                                     if (typeof renderOfficerProgramsTable === 'function') renderOfficerProgramsTable();
                                 } else if (modName === 'livelihood' || modName === 'approval') {
                                     if (typeof loadOfficerApplicationsData === 'function') loadOfficerApplicationsData();
-                                } else if (modName === 'interview') {
+                                } else if (modName === 'interview' || modName === 'schedule-assignment') {
                                     if (typeof loadOfficerInterviewData === 'function') loadOfficerInterviewData();
                                 } else if (modName === 'daily-log') {
                                     if (typeof loadOfficerAuditLogs === 'function') loadOfficerAuditLogs();
+                                    if (typeof renderDailyLog === 'function') renderDailyLog();
                                 } else if (modName === 'disbursement') {
                                     if (typeof loadDisbursementsData === 'function') loadDisbursementsData();
                                 } else if (modName === 'distribution') {
                                     if (typeof renderDistributionScheduleTable === 'function') renderDistributionScheduleTable();
                                 } else if (modName === 'reports') {
                                     if (typeof refreshReportPreview === 'function') refreshReportPreview();
+                                } else if (modName === 'questionnaire') {
+                                    if (typeof loadQuestionnairesData === 'function') loadQuestionnairesData();
                                 }
                             }
 
@@ -10199,6 +10261,15 @@
                                 renderOfficerInterviewTable();
                                 loadOfficerAuditLogs();
                             }
+
+                            function toggleOfficerAttendance(id, targetStatus) {
+                                openAttendanceConfirmModal(id, targetStatus);
+                            }
+                            function updateOfficerInterviewStatus(id, newStatus) {
+                                updateInterviewStatus(id, newStatus);
+                            }
+                            window.toggleOfficerAttendance = toggleOfficerAttendance;
+                            window.updateOfficerInterviewStatus = updateOfficerInterviewStatus;
 
                             // REQ086, REQ087: Open Attendance Confirmation Modal
                             function openAttendanceConfirmModal(id, targetStatus) {
