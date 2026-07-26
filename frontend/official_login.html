@@ -1655,17 +1655,20 @@
                     if (data.success) {
                         SessionManager.save(data.user.id, data.sessionToken, data.user.role);
 
+                        sessionStorage.setItem('userRole', data.user.role);
+                        sessionStorage.setItem('username', data.user.username);
+                        sessionStorage.setItem('userId', data.user.id);
+                        sessionStorage.setItem('userFullName', data.user.fullName);
                         sessionStorage.setItem('beneficiaryLoggedIn', 'true');
                         sessionStorage.setItem('beneficiaryUsername', data.user.username);
                         sessionStorage.setItem('beneficiaryName', data.user.fullName);
-                        sessionStorage.setItem('userId', data.user.id);
                         sessionStorage.removeItem('privacyAccepted_' + data.user.username);
 
                         successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
                         successAlert.style.display = 'block';
 
                         setTimeout(() => {
-                            window.location.href = data.redirect || 'beneficiary.html';
+                            window.location.href = data.redirect || (data.user.role.includes('CSWDO') ? 'cswdo_officer.html' : (data.user.role.includes('Officer') ? 'peso_officer.html' : 'beneficiary.html'));
                         }, 1000);
                         return;
                     }
@@ -1677,21 +1680,24 @@
             // Local fallback authentication when backend service is offline/restarting
             const lowerUser = username.trim().toLowerCase();
             const defaultAccounts = {
-                'peso-admin': { role: 'PESO Admin', fullName: 'PESO Administrator', redirect: 'peso_admin.html' },
-                'cswdo-admin': { role: 'CSWDO Admin', fullName: 'CSWDO Administrator', redirect: 'cswdo_admin.html' },
-                'peso-officer': { role: 'PESO Officer', fullName: 'PESO Officer', redirect: 'peso_officer.html' },
-                'cswdo-officer': { role: 'CSWDO Officer', fullName: 'CSWDO Officer', redirect: 'cswdo_officer.html' },
-                'admin': { role: 'PESO Admin', fullName: 'PESO Administrator', redirect: 'peso_admin.html' },
-                'officer': { role: 'PESO Officer', fullName: 'PESO Officer', redirect: 'peso_officer.html' },
-                'juan.delacruz': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html' },
-                'beneficiary': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html' }
+                'peso-admin': { role: 'PESO Admin', fullName: 'PESO Administrator', redirect: 'peso_admin.html', id: '1' },
+                'cswdo-admin': { role: 'CSWDO Admin', fullName: 'CSWDO Administrator', redirect: 'cswdo_admin.html', id: '3' },
+                'peso-officer': { role: 'PESO Officer', fullName: 'PESO Officer', redirect: 'peso_officer.html', id: '2' },
+                'cswdo-officer': { role: 'CSWDO Officer', fullName: 'CSWDO Officer', redirect: 'cswdo_officer.html', id: '4' },
+                'admin': { role: 'PESO Admin', fullName: 'PESO Administrator', redirect: 'peso_admin.html', id: '1' },
+                'officer': { role: 'PESO Officer', fullName: 'PESO Officer', redirect: 'peso_officer.html', id: '2' },
+                'juan.delacruz': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html', id: '5' },
+                'beneficiary': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html', id: '5' }
             };
 
             if (defaultAccounts[lowerUser]) {
                 const userAcc = defaultAccounts[lowerUser];
+                const mockToken = 'mock_session_token_' + Date.now();
+                SessionManager.save(userAcc.id, mockToken, userAcc.role);
+
                 sessionStorage.setItem('userRole', userAcc.role);
                 sessionStorage.setItem('username', lowerUser);
-                sessionStorage.setItem('userId', '1');
+                sessionStorage.setItem('userId', userAcc.id);
                 sessionStorage.setItem('userFullName', userAcc.fullName);
 
                 successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
