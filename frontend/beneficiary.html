@@ -1850,6 +1850,10 @@
                 <i class="bi bi-calendar-check"></i>
                 <span>Interview Schedules</span>
             </a>
+            <a href="#" class="nav-link-custom" data-section="myqrcode" onclick="navigateTo('myqrcode')">
+                <i class="bi bi-qr-code"></i>
+                <span>My QR Code</span>
+            </a>
             <a href="#" class="nav-link-custom" data-section="notifications" onclick="navigateTo('notifications')">
                 <i class="bi bi-bell"></i>
 
@@ -2430,6 +2434,59 @@
                 </div>
             </div>
         </section>
+
+        <!-- MY QR CODE SECTION -->
+        <section id="myqrcode" class="section">
+            <h2 class="section-title">My QR Code</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px; font-size: 0.95rem;">
+                Your unique QR code can be scanned by PESO/CSWDO Officers to quickly verify your identity and view your application status.
+            </p>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start;">
+                <!-- QR Code Card -->
+                <div class="card" style="padding: 35px; text-align: center; flex: 0 0 340px; max-width: 340px; border-radius: var(--radius-lg); border: 1px solid var(--rose-light); box-shadow: var(--shadow-premium);">
+                    <div id="qrCodeContainer" style="margin-bottom: 20px;">
+                        <div id="qrLoading" style="padding: 40px; color: var(--text-muted);">
+                            <i class="bi bi-arrow-repeat" style="font-size: 2rem; animation: spin 1s linear infinite;"></i>
+                            <p style="margin-top: 10px; font-size: 0.9rem;">Loading QR Code...</p>
+                        </div>
+                        <img id="qrCodeImage" src="" alt="Beneficiary QR Code" style="display: none; width: 250px; height: 250px; border-radius: 12px; border: 3px solid var(--rose-light); padding: 8px; background: white;" />
+                        <div id="qrError" style="display: none; padding: 30px; color: var(--danger);">
+                            <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                            <p style="margin-top: 10px; font-size: 0.9rem;">Unable to load QR code</p>
+                        </div>
+                    </div>
+                    <div id="qrBenCode" style="font-size: 1.1rem; font-weight: 800; color: var(--rose-dark); letter-spacing: 0.05em; margin-bottom: 6px;"></div>
+                    <div id="qrBenName" style="font-size: 0.88rem; color: var(--text-muted); font-weight: 500; margin-bottom: 20px;"></div>
+                    <button id="downloadQrBtn" onclick="downloadQrCode()" style="display: none; width: 100%; padding: 12px; background: var(--rose-primary); color: white; border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: var(--transition-smooth);" onmouseover="this.style.background='var(--rose-dark)'" onmouseout="this.style.background='var(--rose-primary)'">
+                        <i class="bi bi-download"></i> Download QR Code
+                    </button>
+                </div>
+
+                <!-- QR Info Card -->
+                <div style="flex: 1; min-width: 280px;">
+                    <div class="card" style="padding: 25px; border-radius: var(--radius-lg); border: 1px solid var(--rose-light); box-shadow: var(--shadow-premium); margin-bottom: 20px;">
+                        <h4 style="font-size: 1rem; margin-bottom: 16px; color: var(--text-dark);"><i class="bi bi-info-circle" style="color: var(--rose-primary); margin-right: 8px;"></i>How to Use</h4>
+                        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-muted); line-height: 2;">
+                            <li><i class="bi bi-check-circle-fill" style="color: var(--success); margin-right: 8px;"></i>Present this QR code when visiting PESO or CSWDO offices</li>
+                            <li><i class="bi bi-check-circle-fill" style="color: var(--success); margin-right: 8px;"></i>Officers will scan it to quickly pull up your profile</li>
+                            <li><i class="bi bi-check-circle-fill" style="color: var(--success); margin-right: 8px;"></i>Download and save it to your phone for easy access</li>
+                            <li><i class="bi bi-check-circle-fill" style="color: var(--success); margin-right: 8px;"></i>Show during assistance distribution for verification</li>
+                        </ul>
+                    </div>
+                    <div class="card" style="padding: 20px; border-radius: var(--radius-lg); border: 1px solid #FEF3C7; background: #FFFBEB; box-shadow: var(--shadow-subtle);">
+                        <p style="font-size: 0.85rem; color: #B45309; margin: 0; font-weight: 500;">
+                            <i class="bi bi-shield-lock" style="margin-right: 6px;"></i>
+                            <strong>Security Notice:</strong> Do not share your QR code with unauthorized persons. It contains your unique beneficiary identifier.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            </style>
+        </section>
     </main>
 
     <!-- Apply for Assistance Modal -->
@@ -2773,6 +2830,10 @@
             
             if (section === 'programs') {
                 renderBeneficiaryPrograms();
+            }
+
+            if (section === 'myqrcode') {
+                loadQrCode();
             }
             
             window.scrollTo(0, 0);
@@ -4611,8 +4672,12 @@
 
         function logoutBeneficiary() {
             if (confirm("Are you sure you want to log out of the Beneficiary Portal?")) {
-                sessionStorage.clear();
-                window.location.href = "official_login.html";
+                if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
+                    SessionManager.logout('official_login.html');
+                } else {
+                    sessionStorage.clear();
+                    window.location.href = "official_login.html";
+                }
             }
         }
 
