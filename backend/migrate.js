@@ -1,314 +1,352 @@
+// Database Migration Script for Capstone Portal (Refactored)
+//
+// Handles two scenarios:
+//   1. Fresh install — creates officers + beneficiaries tables from schema.sql
+//   2. Upgrade from old schema — migrates data from single 'users' table to
+//      officers + beneficiaries, then renames users to users_legacy
+//
+// Safely detects existing tables/columns before making changes.
+// Also bcrypt-hashes any plaintext passwords found during migration.
+//
+// Usage:
+//   node backend/migrate.js
+
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
-const pool = require('./db.js');
+const crypto = require('crypto');
+const pool = require('./db');
 
-// Helper to parse SQL file into individual statements
-function parseSqlFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`SQL file not found at: ${filePath}`);
-  }
+// Schema file path
+const SCHEMA_PATH = path.join(__dirname, '..', 'database', 'schema.sql');
+const SEED_PATH = path.join(__dirname, '..', 'database', 'seed.sql');
 
-  const rawContent = fs.readFileSync(filePath, 'utf8');
-  const lines = rawContent.split('\n');
-  let cleanSql = '';
-
-  for (let line of lines) {
-    const trimmed = line.trim();
-    // Skip empty lines and comments
-    if (!trimmed || trimmed.startsWith('--') || trimmed.startsWith('#')) {
-      continue;
-    }
-    // Remove inline -- comments (not inside quoted strings)
-    let cleanLine = trimmed;
-    let inString = false;
-    let stringChar = '';
-    for (let i = 0; i < cleanLine.length; i++) {
-      const ch = cleanLine[i];
-      if (inString) {
-        if (ch === stringChar && cleanLine[i - 1] !== '\\') {
-          inString = false;
-        }
-      } else {
-        if (ch === "'" || ch === '"') {
-          inString = true;
-          stringChar = ch;
-        } else if (ch === '-' && cleanLine[i + 1] === '-') {
-          cleanLine = cleanLine.substring(0, i).trimEnd();
-          break;
-        }
-      }
-    }
-    if (cleanLine.length > 0) {
-      cleanSql += cleanLine + '\n';
-    }
-  }
-
-  // Split by semicolon, filter empty statements
-  return cleanSql
-    .split(';')
-    .map(stmt => stmt.trim())
-    .filter(stmt => stmt.length > 0);
+/**
+ * Generate a QR code ID (UUID format) for beneficiary migration
+ */
+function generateQrCodeId() {
+  return `BEN-${crypto.randomUUID()}`;
 }
 
-async function runMigrations() {
-  console.log('--- STARTING DATABASE MIGRATION PROCESS ---');
+/**
+ * Check if a table exists in the current database
+ */
+async function tableExists(connection, tableName) {
+  const [rows] = await connection.execute(
+    `SELECT COUNT(*) AS cnt FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?`,
+    [tableName]
+  );
+  return rows[0].cnt > 0;
+}
+
+/**
+ * Check if a column exists on a table
+ */
+async function columnExists(connection, tableName, columnName) {
+  const [rows] = await connection.execute(
+    `SELECT COUNT(*) AS cnt FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`,
+    [tableName, columnName]
+  );
+  return rows[0].cnt > 0;
+}
+
+/**
+ * Execute a multi-statement SQL file by splitting on semicolons
+ */
+async function executeSqlFile(connection, filePath, label) {
+  const sql = fs.readFileSync(filePath, 'utf8');
+  const statements = sql
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && !s.startsWith('--'));
+
+  console.log(`[MIGRATE] Executing ${label} (${statements.length} statements)...`);
+
+  for (const stmt of statements) {
+    try {
+      await connection.execute(stmt);
+    } catch (err) {
+      // Skip errors for CREATE TABLE IF NOT EXISTS, TRUNCATE, etc.
+      if (err.code === 'ER_TABLE_EXISTS_ERROR') continue;
+      console.warn(`[MIGRATE] Warning in ${label}: ${err.message}`);
+      console.warn(`[MIGRATE]   Statement: ${stmt.substring(0, 100)}...`);
+    }
+  }
+  console.log(`[MIGRATE] ✅ ${label} completed.`);
+}
+
+/**
+ * Hash a password if it's plaintext (doesn't already start with $2a$ / $2b$ / $2y$)
+ */
+async function hashIfPlaintext(password) {
+  if (password && !password.startsWith('$2a$') && !password.startsWith('$2b$') && !password.startsWith('$2y$')) {
+    return await bcrypt.hash(password, 10);
+  }
+  return password;
+}
+
+/**
+ * Main migration logic
+ */
+async function migrate() {
   let connection;
-
   try {
-    // 1. Get database connection from pool with retry logic for container startup synchronization
-    let retries = 10;
-    while (retries > 0) {
-      try {
-        connection = await pool.getConnection();
-        console.log('Successfully connected to the database.');
-        break;
-      } catch (err) {
-        retries--;
-        if (retries === 0) {
-          console.error('All database connection retries exhausted.');
-          throw err;
-        }
-        console.log(`Database not ready yet. Retrying connection in 5 seconds... (${retries} retries left)`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
-      }
+    console.log('================================================================');
+    console.log(' Capstone Portal — Database Migration');
+    console.log('================================================================');
+    console.log(`[MIGRATE] Connecting to database...`);
+
+    connection = await pool.getConnection();
+    console.log('[MIGRATE] ✅ Database connection established.');
+
+    // Determine current state
+    const hasOldUsersTable = await tableExists(connection, 'users');
+    const hasOfficersTable = await tableExists(connection, 'officers');
+    const hasBeneficiariesTable = await tableExists(connection, 'beneficiaries');
+
+    console.log(`[MIGRATE] Current state:`);
+    console.log(`  - 'users' table (old):       ${hasOldUsersTable ? 'EXISTS' : 'not found'}`);
+    console.log(`  - 'officers' table (new):     ${hasOfficersTable ? 'EXISTS' : 'not found'}`);
+    console.log(`  - 'beneficiaries' table (new): ${hasBeneficiariesTable ? 'EXISTS' : 'not found'}`);
+
+    // -----------------------------------------------------------------------
+    // Scenario 1: Old 'users' table exists and new tables don't → migrate
+    // -----------------------------------------------------------------------
+    if (hasOldUsersTable && !hasOfficersTable && !hasBeneficiariesTable) {
+      console.log('\n[MIGRATE] 📦 Detected old schema. Starting data migration...');
+      await migrateFromUsersTable(connection);
     }
 
-    // 2. Load schema.sql and split into queries
-    const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
-    console.log(`Reading schema definitions from: ${schemaPath}`);
-    const schemaStatements = parseSqlFile(schemaPath);
+    // -----------------------------------------------------------------------
+    // Scenario 2: No tables exist → fresh install
+    // -----------------------------------------------------------------------
+    else if (!hasOfficersTable && !hasBeneficiariesTable) {
+      console.log('\n[MIGRATE] 🆕 Fresh install detected. Creating tables...');
+      await executeSqlFile(connection, SCHEMA_PATH, 'schema.sql');
 
-    // 3. Execute schema queries sequentially
-    console.log(`Executing ${schemaStatements.length} schema statements...`);
-    for (const statement of schemaStatements) {
-      // Print first 80 characters of statement for visibility
-      const snippet = statement.substring(0, 80).replace(/\s+/g, ' ');
-      console.log(`Executing: ${snippet}...`);
-      await connection.query(statement);
-    }
-    console.log('Database schema successfully initialized/verified.');
-
-    // 3.5. Ensure current_session_token column exists on existing deployments
-    try {
-      const [columns] = await connection.query(
-        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'current_session_token'"
-      );
-      if (columns.length === 0) {
-        console.log('Adding current_session_token column to users table...');
-        await connection.query(
-          "ALTER TABLE `users` ADD COLUMN `current_session_token` VARCHAR(128) DEFAULT NULL AFTER `data_consent`"
-        );
-        console.log('current_session_token column added successfully.');
-      }
-    } catch (alterError) {
-      console.warn('Warning: Could not verify/add current_session_token column:', alterError.message);
-    }
-
-    // 3.6. Ensure officer/admin evaluation columns exist on applications table
-    try {
-      const appCols = ['officer_decision', 'officer_id', 'officer_notes', 'officer_action_at', 'admin_id', 'admin_notes', 'documents_json'];
-      for (const col of appCols) {
-        const [chk] = await connection.query(
-          "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'applications' AND COLUMN_NAME = ?",
-          [col]
-        );
-        if (chk.length === 0) {
-          console.log(`Adding ${col} column to applications table...`);
-          if (col === 'officer_decision') {
-            await connection.query("ALTER TABLE `applications` ADD COLUMN `officer_decision` ENUM('Approved', 'Denied', 'Pending Requirements', 'None') DEFAULT 'None'");
-          } else if (col === 'officer_id' || col === 'admin_id') {
-            await connection.query(`ALTER TABLE \`applications\` ADD COLUMN \`${col}\` INT DEFAULT NULL`);
-          } else if (col === 'officer_action_at') {
-            await connection.query("ALTER TABLE `applications` ADD COLUMN `officer_action_at` TIMESTAMP NULL DEFAULT NULL");
-          } else {
-            await connection.query(`ALTER TABLE \`applications\` ADD COLUMN \`${col}\` TEXT DEFAULT NULL`);
-          }
+      // Optionally seed
+      if (fs.existsSync(SEED_PATH)) {
+        const seedArg = process.argv.includes('--seed') || process.argv.includes('--with-seed');
+        if (seedArg) {
+          console.log('[MIGRATE] Seeding database with initial data...');
+          await executeSqlFile(connection, SEED_PATH, 'seed.sql');
+          await hashAllPlaintextPasswords(connection);
+        } else {
+          console.log('[MIGRATE] Skipping seed data. Use --seed flag to include seed data.');
         }
       }
-
-      // Modify status ENUM to include Officer Approved / Officer Denied / Pending Requirements if needed
-      await connection.query(
-        "ALTER TABLE `applications` MODIFY COLUMN `status` ENUM('Pending', 'Pending Requirements', 'Under Review', 'Interview Scheduled', 'Training Scheduled', 'Officer Approved', 'Officer Denied', 'Approved', 'Rejected', 'Completed') DEFAULT 'Pending'"
-      );
-    } catch (appAlterErr) {
-      console.warn('Warning: Could not add applications evaluation columns:', appAlterErr.message);
     }
 
-    // 3.7. Ensure audit_logs table exists
-    try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS \`audit_logs\` (
-          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
-          \`user_id\` INT NOT NULL,
-          \`action\` VARCHAR(100) NOT NULL,
-          \`entity_type\` VARCHAR(50) DEFAULT 'application',
-          \`entity_id\` INT DEFAULT NULL,
-          \`details\` TEXT DEFAULT NULL,
-          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT \`fk_audit_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
-          INDEX \`idx_audit_user\` (\`user_id\`),
-          INDEX \`idx_audit_action\` (\`action\`),
-          INDEX \`idx_audit_entity\` (\`entity_type\`, \`entity_id\`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-      `);
-      console.log('audit_logs table verified.');
-    } catch (auditErr) {
-      console.warn('Warning: Could not verify audit_logs table:', auditErr.message);
+    // -----------------------------------------------------------------------
+    // Scenario 3: New tables already exist → verify/upgrade schema
+    // -----------------------------------------------------------------------
+    else {
+      console.log('\n[MIGRATE] ✅ New schema already in place. Verifying columns...');
+      await verifyAndUpgradeSchema(connection);
     }
 
-    // 3.8. Ensure approved_assistance table exists (REQ082, REQ083)
-    try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS \`approved_assistance\` (
-          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
-          \`application_id\` INT DEFAULT NULL,
-          \`beneficiary_id\` INT NOT NULL,
-          \`program_id\` INT NOT NULL,
-          \`assistance_type\` VARCHAR(100) NOT NULL,
-          \`quantity_amount\` VARCHAR(255) NOT NULL,
-          \`conditions\` TEXT DEFAULT NULL,
-          \`approval_date\` DATE NOT NULL,
-          \`officer_id\` INT NOT NULL,
-          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT \`fk_ast_beneficiary\` FOREIGN KEY (\`beneficiary_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
-          CONSTRAINT \`fk_ast_program\` FOREIGN KEY (\`program_id\`) REFERENCES \`programs\` (\`id\`) ON DELETE CASCADE,
-          CONSTRAINT \`fk_ast_officer\` FOREIGN KEY (\`officer_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
-          INDEX \`idx_ast_beneficiary\` (\`beneficiary_id\`),
-          INDEX \`idx_ast_program\` (\`program_id\`),
-          INDEX \`idx_ast_date\` (\`approval_date\`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-      `);
-      console.log('approved_assistance table verified.');
+    // Hash any remaining plaintext passwords
+    await hashAllPlaintextPasswords(connection);
 
-      // Ensure status column exists on approved_assistance table
-      const [astCols] = await connection.query(
-        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'approved_assistance' AND COLUMN_NAME = 'status'"
-      );
-      if (astCols.length === 0) {
-        await connection.query(
-          "ALTER TABLE `approved_assistance` ADD COLUMN `status` ENUM('Pending', 'Disbursed', 'Released', 'Completed', 'Cancelled') DEFAULT 'Completed' AFTER `conditions`"
-        );
-      }
-    } catch (astErr) {
-      console.warn('Warning: Could not verify approved_assistance table:', astErr.message);
-    }
+    console.log('\n================================================================');
+    console.log(' Migration completed successfully!');
+    console.log('================================================================');
 
-    try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS \`interview_schedules\` (
-          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
-          \`application_id\` INT DEFAULT NULL,
-          \`beneficiary_id\` INT NOT NULL,
-          \`program_id\` INT NOT NULL,
-          \`officer_id\` INT NOT NULL,
-          \`interview_date\` DATE NOT NULL,
-          \`interview_time\` VARCHAR(50) NOT NULL,
-          \`venue_location\` VARCHAR(255) NOT NULL DEFAULT 'PESO Main Office - Interview Room A',
-          \`status\` ENUM('Scheduled', 'Pending', 'Completed', 'Missed', 'Cancelled') DEFAULT 'Scheduled',
-          \`attendance_status\` ENUM('Unmarked', 'Present', 'Absent') DEFAULT 'Unmarked',
-          \`remarks\` TEXT DEFAULT NULL,
-          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          CONSTRAINT \`fk_int_beneficiary\` FOREIGN KEY (\`beneficiary_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
-          CONSTRAINT \`fk_int_program\` FOREIGN KEY (\`program_id\`) REFERENCES \`programs\` (\`id\`) ON DELETE CASCADE,
-          CONSTRAINT \`fk_int_officer\` FOREIGN KEY (\`officer_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
-          INDEX \`idx_int_beneficiary\` (\`beneficiary_id\`),
-          INDEX \`idx_int_date\` (\`interview_date\`),
-          INDEX \`idx_int_status\` (\`status\`),
-          INDEX \`idx_int_attendance\` (\`attendance_status\`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-      `);
-      console.log('interview_schedules table verified.');
-    } catch (intErr) {
-      console.warn('Warning: Could not verify interview_schedules table:', intErr.message);
-    }
-
-
-
-    // 4. Determine if seeding is necessary
-    // We only seed if the users table is empty to prevent overwriting production data
-    console.log('Checking database content for seeding condition...');
-    const [rows] = await connection.query('SELECT COUNT(*) AS count FROM users');
-    const userCount = rows[0].count;
-    console.log(`Found ${userCount} existing users in the database.`);
-
-    if (userCount === 0) {
-      console.log('No users found. Seeding default capstone portal data...');
-      const seedPath = path.join(__dirname, '..', 'database', 'seed.sql');
-      console.log(`Reading seed queries from: ${seedPath}`);
-      const seedStatements = parseSqlFile(seedPath);
-
-      console.log(`Executing ${seedStatements.length} seed statements...`);
-      for (const statement of seedStatements) {
-        const snippet = statement.substring(0, 80).replace(/\s+/g, ' ');
-        console.log(`Executing: ${snippet}...`);
-        await connection.query(statement);
-      }
-      console.log('Database seeding successfully completed.');
-
-      // 4.5. Hash all plaintext passwords in the seeded data
-      // The seed.sql uses plaintext passwords for readability, but production must use bcrypt
-      console.log('Hashing seed user passwords with bcrypt...');
-      const [seedUsers] = await connection.query('SELECT `id`, `username`, `password` FROM `users`');
-      let hashedCount = 0;
-
-      for (const user of seedUsers) {
-        // Skip if already a bcrypt hash (starts with $2a$, $2b$, or $2y$)
-        if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$')) {
-          continue;
-        }
-        const hashedPassword = await bcrypt.hash(user.password, 10);
-        await connection.execute(
-          'UPDATE `users` SET `password` = ? WHERE `id` = ?',
-          [hashedPassword, user.id]
-        );
-        hashedCount++;
-        console.log(`  Hashed password for user: ${user.username}`);
-      }
-      console.log(`Password hashing complete. ${hashedCount} password(s) upgraded to bcrypt.`);
-
-    } else {
-      console.log('Database already contains data. Skipping seeding phase to preserve existing records.');
-
-      // 4.6. Still check for any remaining plaintext passwords and hash them
-      // (handles edge case where previous deployment seeded but didn't hash)
-      console.log('Checking for any remaining plaintext passwords...');
-      const [allUsers] = await connection.query('SELECT `id`, `username`, `password` FROM `users`');
-      let legacyCount = 0;
-
-      for (const user of allUsers) {
-        if (!user.password.startsWith('$2a$') && !user.password.startsWith('$2b$') && !user.password.startsWith('$2y$')) {
-          const hashedPassword = await bcrypt.hash(user.password, 10);
-          await connection.execute(
-            'UPDATE `users` SET `password` = ? WHERE `id` = ?',
-            [hashedPassword, user.id]
-          );
-          legacyCount++;
-          console.log(`  Migrated plaintext password for user: ${user.username}`);
-        }
-      }
-
-      if (legacyCount > 0) {
-        console.log(`Migrated ${legacyCount} plaintext password(s) to bcrypt.`);
-      } else {
-        console.log('All passwords are already bcrypt-hashed. No migration needed.');
-      }
-    }
-
-    console.log('--- DATABASE MIGRATIONS COMPLETE ---');
   } catch (error) {
-    console.error('CRITICAL ERROR during migration execution:', error);
+    console.error('\n❌ [MIGRATE] Migration failed:', error.message);
+    console.error('[MIGRATE] Stack:', error.stack);
     process.exit(1);
   } finally {
-    if (connection) {
-      connection.release();
-    }
-    // Close the connection pool to allow the migration process to exit cleanly
+    if (connection) connection.release();
     await pool.end();
-    console.log('Database pool closed. Exiting process.');
   }
 }
 
-runMigrations();
+/**
+ * Migrate data from old 'users' table to new officers + beneficiaries tables
+ */
+async function migrateFromUsersTable(connection) {
+  const STAFF_ROLES = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
+
+  // Step 1: Create new tables
+  console.log('[MIGRATE] Creating new tables (officers, beneficiaries)...');
+  await executeSqlFile(connection, SCHEMA_PATH, 'schema.sql');
+
+  // Step 2: Migrate staff/admin to officers
+  console.log('[MIGRATE] Migrating staff/admin users to officers table...');
+
+  const [staffRows] = await connection.execute(
+    `SELECT * FROM \`users\` WHERE \`role\` IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator') ORDER BY \`id\` ASC`
+  );
+
+  for (const user of staffRows) {
+    const hashedPw = await hashIfPlaintext(user.password);
+    const department = user.role.includes('PESO') ? 'PESO' : (user.role.includes('CSWDO') ? 'CSWDO' : 'General');
+
+    try {
+      await connection.execute(
+        `INSERT INTO \`officers\` (\`id\`, \`username\`, \`password\`, \`role\`, \`first_name\`, \`middle_name\`, \`last_name\`, \`suffix\`, \`email\`, \`phone\`, \`department\`, \`status\`, \`current_session_token\`, \`created_at\`, \`updated_at\`)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?, ?)`,
+        [
+          user.id, user.username, hashedPw, user.role,
+          user.first_name, user.middle_name, user.last_name, user.suffix,
+          user.email, user.phone || 'N/A', department,
+          user.current_session_token,
+          user.created_at, user.updated_at
+        ]
+      );
+      console.log(`  → Migrated officer: ${user.username} (${user.role})`);
+    } catch (err) {
+      console.warn(`  ⚠ Failed to migrate officer ${user.username}: ${err.message}`);
+    }
+  }
+
+  // Step 3: Migrate beneficiaries
+  console.log('[MIGRATE] Migrating beneficiary users to beneficiaries table...');
+
+  const [benRows] = await connection.execute(
+    `SELECT * FROM \`users\` WHERE \`role\` = 'Beneficiary' ORDER BY \`id\` ASC`
+  );
+
+  for (const user of benRows) {
+    const hashedPw = await hashIfPlaintext(user.password);
+    const qrCodeId = generateQrCodeId();
+
+    try {
+      await connection.execute(
+        `INSERT INTO \`beneficiaries\` (\`qr_code_id\`, \`id\`, \`username\`, \`password\`, \`first_name\`, \`middle_name\`, \`last_name\`, \`suffix\`, \`age\`, \`date_of_birth\`, \`sex\`, \`nationality\`, \`marital_status\`, \`email\`, \`phone\`, \`address\`, \`id_type\`, \`id_file_path\`, \`terms_agreed\`, \`data_consent\`, \`current_session_token\`, \`is_verified\`, \`qr_code_data\`, \`created_at\`, \`updated_at\`)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          qrCodeId, user.id, user.username, hashedPw,
+          user.first_name, user.middle_name, user.last_name, user.suffix,
+          user.age || 0, user.date_of_birth || '1990-01-01',
+          user.sex || 'Male', user.nationality || 'Filipino',
+          user.marital_status || 'Single',
+          user.email, user.phone || 'N/A',
+          user.address || 'Not Provided',
+          user.id_type, user.id_file_path,
+          user.terms_agreed ? 1 : 0, user.data_consent ? 1 : 0,
+          user.current_session_token,
+          user.is_verified ? 1 : 1, // Mark migrated users as verified
+          user.qr_code_data || null,
+          user.created_at, user.updated_at
+        ]
+      );
+      console.log(`  → Migrated beneficiary: ${user.username} (QR: ${qrCodeId})`);
+    } catch (err) {
+      console.warn(`  ⚠ Failed to migrate beneficiary ${user.username}: ${err.message}`);
+    }
+  }
+
+  // Step 4: Update notifications to include user_type
+  console.log('[MIGRATE] Updating notifications with user_type...');
+  if (await columnExists(connection, 'notifications', 'user_type')) {
+    // Set user_type based on whether user_id is in officers or beneficiaries
+    await connection.execute(`
+      UPDATE \`notifications\` n SET n.\`user_type\` = 'officer'
+      WHERE EXISTS (SELECT 1 FROM \`officers\` o WHERE o.\`id\` = n.\`user_id\`)
+    `);
+    await connection.execute(`
+      UPDATE \`notifications\` n SET n.\`user_type\` = 'beneficiary'
+      WHERE EXISTS (SELECT 1 FROM \`beneficiaries\` b WHERE b.\`id\` = n.\`user_id\`)
+    `);
+  }
+
+  // Step 5: Rename old users table
+  console.log('[MIGRATE] Renaming old users table to users_legacy...');
+  try {
+    await connection.execute('RENAME TABLE `users` TO `users_legacy`');
+    console.log('[MIGRATE] ✅ Old users table renamed to users_legacy.');
+  } catch (err) {
+    console.warn(`[MIGRATE] ⚠ Could not rename users table: ${err.message}`);
+  }
+
+  console.log(`[MIGRATE] ✅ Data migration complete. Officers: ${staffRows.length}, Beneficiaries: ${benRows.length}`);
+}
+
+/**
+ * Verify and upgrade the schema (add missing columns)
+ */
+async function verifyAndUpgradeSchema(connection) {
+  // Officers table checks
+  if (await tableExists(connection, 'officers')) {
+    if (!(await columnExists(connection, 'officers', 'department'))) {
+      await connection.execute("ALTER TABLE `officers` ADD COLUMN `department` VARCHAR(100) DEFAULT NULL AFTER `phone`");
+      console.log('[MIGRATE] Added column: officers.department');
+    }
+    if (!(await columnExists(connection, 'officers', 'status'))) {
+      await connection.execute("ALTER TABLE `officers` ADD COLUMN `status` ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active' AFTER `department`");
+      console.log('[MIGRATE] Added column: officers.status');
+    }
+  }
+
+  // Beneficiaries table checks
+  if (await tableExists(connection, 'beneficiaries')) {
+    if (!(await columnExists(connection, 'beneficiaries', 'email_otp'))) {
+      await connection.execute("ALTER TABLE `beneficiaries` ADD COLUMN `email_otp` VARCHAR(6) DEFAULT NULL AFTER `is_verified`");
+      console.log('[MIGRATE] Added column: beneficiaries.email_otp');
+    }
+    if (!(await columnExists(connection, 'beneficiaries', 'email_otp_expires_at'))) {
+      await connection.execute("ALTER TABLE `beneficiaries` ADD COLUMN `email_otp_expires_at` TIMESTAMP NULL DEFAULT NULL AFTER `email_otp`");
+      console.log('[MIGRATE] Added column: beneficiaries.email_otp_expires_at');
+    }
+  }
+
+  // Notifications table — add user_type if missing
+  if (await tableExists(connection, 'notifications')) {
+    if (!(await columnExists(connection, 'notifications', 'user_type'))) {
+      await connection.execute("ALTER TABLE `notifications` ADD COLUMN `user_type` ENUM('officer', 'beneficiary') NOT NULL DEFAULT 'beneficiary' AFTER `user_id`");
+      console.log('[MIGRATE] Added column: notifications.user_type');
+    }
+  }
+
+  // Audit logs table — add user_type if missing
+  if (await tableExists(connection, 'audit_logs')) {
+    if (!(await columnExists(connection, 'audit_logs', 'user_type'))) {
+      await connection.execute("ALTER TABLE `audit_logs` ADD COLUMN `user_type` ENUM('officer', 'beneficiary') NOT NULL DEFAULT 'officer' AFTER `user_id`");
+      console.log('[MIGRATE] Added column: audit_logs.user_type');
+    }
+  }
+
+  console.log('[MIGRATE] ✅ Schema verification complete.');
+}
+
+/**
+ * Hash any plaintext passwords in both tables
+ */
+async function hashAllPlaintextPasswords(connection) {
+  console.log('[MIGRATE] Checking for plaintext passwords...');
+
+  // Officers
+  if (await tableExists(connection, 'officers')) {
+    const [offRows] = await connection.execute('SELECT `id`, `password` FROM `officers`');
+    for (const row of offRows) {
+      if (row.password && !row.password.startsWith('$2a$') && !row.password.startsWith('$2b$') && !row.password.startsWith('$2y$')) {
+        const hashed = await bcrypt.hash(row.password, 10);
+        await connection.execute('UPDATE `officers` SET `password` = ? WHERE `id` = ?', [hashed, row.id]);
+        console.log(`  → Hashed plaintext password for officer ID: ${row.id}`);
+      }
+    }
+  }
+
+  // Beneficiaries
+  if (await tableExists(connection, 'beneficiaries')) {
+    const [benRows] = await connection.execute('SELECT `id`, `password` FROM `beneficiaries`');
+    for (const row of benRows) {
+      if (row.password && !row.password.startsWith('$2a$') && !row.password.startsWith('$2b$') && !row.password.startsWith('$2y$')) {
+        const hashed = await bcrypt.hash(row.password, 10);
+        await connection.execute('UPDATE `beneficiaries` SET `password` = ? WHERE `id` = ?', [hashed, row.id]);
+        console.log(`  → Hashed plaintext password for beneficiary ID: ${row.id}`);
+      }
+    }
+  }
+
+  console.log('[MIGRATE] ✅ Password hashing check complete.');
+}
+
+// Run migration
+migrate().catch(err => {
+  console.error('[MIGRATE] Fatal error:', err);
+  process.exit(1);
+});

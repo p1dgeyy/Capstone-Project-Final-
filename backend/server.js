@@ -46,6 +46,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Clerk authentication middleware (optional — activates only when CLERK_SECRET_KEY is set)
+const { clerkMiddleware } = require('./middleware/clerk');
+app.use(clerkMiddleware);
+
+
 // =============================================================================
 // Routes
 // =============================================================================
@@ -87,8 +92,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/assistance', assistanceRoutes);
 app.use('/api/interviews', interviewRoutes);
-
-// Role-isolated roster endpoints (see Objective #1 — Officers vs Beneficiaries)
 app.use('/api/officers', officerRoutes);
 app.use('/api/beneficiaries', beneficiaryRoutes);
 

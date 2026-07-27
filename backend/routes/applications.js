@@ -20,15 +20,15 @@ router.get('/', async (req, res) => {
 
     let query = `
       SELECT a.*, 
-             u.first_name, u.last_name, u.username, u.email AS beneficiary_email, u.phone AS beneficiary_phone, u.address AS beneficiary_address,
+             u.first_name, u.last_name, u.username, u.email AS beneficiary_email, u.phone AS beneficiary_phone, u.address AS beneficiary_address, u.qr_code_id,
              p.code AS program_code, p.name AS program_name, p.agency,
              u_off.first_name AS officer_first_name, u_off.last_name AS officer_last_name,
              u_adm.first_name AS admin_first_name, u_adm.last_name AS admin_last_name
-      FROM \`applications\` a
-      JOIN \`users\` u ON a.beneficiary_id = u.id
-      JOIN \`programs\` p ON a.program_id = p.id
-      LEFT JOIN \`users\` u_off ON a.officer_id = u_off.id
-      LEFT JOIN \`users\` u_adm ON a.admin_id = u_adm.id
+       FROM \`applications\` a
+       JOIN \`beneficiaries\` u ON a.beneficiary_id = u.id
+       JOIN \`programs\` p ON a.program_id = p.id
+       LEFT JOIN \`officers\` u_off ON a.officer_id = u_off.id
+       LEFT JOIN \`officers\` u_adm ON a.admin_id = u_adm.id
     `;
     const conditions = [];
     const params = [];
@@ -93,7 +93,7 @@ router.get('/:id', async (req, res) => {
               u.phone AS beneficiary_phone, u.address AS beneficiary_address,
               p.code AS program_code, p.name AS program_name, p.agency
        FROM \`applications\` a
-       JOIN \`users\` u ON a.beneficiary_id = u.id
+       JOIN \`beneficiaries\` u ON a.beneficiary_id = u.id
        JOIN \`programs\` p ON a.program_id = p.id
        WHERE a.\`id\` = ? LIMIT 1`,
       [req.params.id]
@@ -134,7 +134,7 @@ router.post('/', async (req, res) => {
 
     // Verify beneficiary exists and has Beneficiary role
     const [beneficiary] = await connection.execute(
-      'SELECT `id`, `role` FROM `users` WHERE `id` = ? LIMIT 1',
+      'SELECT `id` FROM `beneficiaries` WHERE `id` = ? LIMIT 1',
       [beneficiary_id]
     );
     if (beneficiary.length === 0) {
@@ -289,7 +289,7 @@ router.put('/:id/officer-evaluate', async (req, res) => {
       `SELECT a.*, p.name AS program_name, u.first_name, u.last_name
        FROM \`applications\` a
        JOIN \`programs\` p ON a.program_id = p.id
-       JOIN \`users\` u ON a.beneficiary_id = u.id
+       JOIN \`beneficiaries\` u ON a.beneficiary_id = u.id
        WHERE a.\`id\` = ? LIMIT 1`,
       [req.params.id]
     );
@@ -335,7 +335,7 @@ router.put('/:id/officer-evaluate', async (req, res) => {
     }
 
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', ?, ?, FALSE)`,
       [app.beneficiary_id, notifTitle, notifMsg]
     );
 
@@ -343,7 +343,7 @@ router.put('/:id/officer-evaluate', async (req, res) => {
     const auditAction = `OFFICER_EVALUATE_${action.toUpperCase()}`;
     const auditDetails = `Officer (ID: ${callerId}) evaluated application ${app.application_number} -> ${newStatus}. Notes: ${notes || 'None'}`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, ?, 'application', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', ?, 'application', ?, ?)`,
       [callerId, auditAction, req.params.id, auditDetails]
     );
 
@@ -407,7 +407,7 @@ router.put('/:id/admin-finalize', async (req, res) => {
     const notifMsg = `Your application ${app.application_number} for ${app.program_name} has been officially ${newStatus} by PESO Admin. ${notes ? 'Remarks: ' + notes : ''}`;
 
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', ?, ?, FALSE)`,
       [app.beneficiary_id, notifTitle, notifMsg]
     );
 
@@ -415,7 +415,7 @@ router.put('/:id/admin-finalize', async (req, res) => {
     const auditAction = `ADMIN_FINALIZE_${action.toUpperCase()}`;
     const auditDetails = `PESO Admin (ID: ${callerId}) finalized application ${app.application_number} -> ${newStatus}. Remarks: ${notes || 'None'}`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, ?, 'application', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', ?, 'application', ?, ?)`,
       [callerId, auditAction, req.params.id, auditDetails]
     );
 
@@ -452,7 +452,7 @@ router.post('/record', async (req, res) => {
 
     // Verify beneficiary
     const [bene] = await connection.execute(
-      'SELECT `id`, `first_name`, `last_name` FROM `users` WHERE `id` = ? LIMIT 1',
+      'SELECT `id`, `first_name`, `last_name` FROM `beneficiaries` WHERE `id` = ? LIMIT 1',
       [beneficiary_id]
     );
     if (bene.length === 0) {
@@ -485,14 +485,14 @@ router.post('/record', async (req, res) => {
 
     // Notify beneficiary
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', ?, ?, FALSE)`,
       [beneficiary_id, 'New Application Recorded', `Your application ${applicationNumber} for ${prog[0].name} has been recorded by PESO Officer.`]
     );
 
     // Write audit log
     const auditDetails = `PESO Officer (ID: ${callerId}) recorded new application ${applicationNumber} for Beneficiary #${beneficiary_id} (${bene[0].first_name} ${bene[0].last_name}).`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'OFFICER_RECORD_APPLICATION', 'application', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', 'OFFICER_RECORD_APPLICATION', 'application', ?, ?)`,
       [callerId, result.insertId, auditDetails]
     );
 
@@ -547,14 +547,14 @@ router.put('/:id/status', async (req, res) => {
 
     // Notify beneficiary
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', ?, ?, FALSE)`,
       [app.beneficiary_id, 'Application Lifecycle Update', `Your application ${app.application_number} status updated to ${status}.`]
     );
 
     // Log audit
     const auditDetails = `User (ID: ${callerId}) updated application ${app.application_number} status to ${status}.`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'APPLICATION_STATUS_UPDATE', 'application', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', 'APPLICATION_STATUS_UPDATE', 'application', ?, ?)`,
       [callerId, req.params.id, auditDetails]
     );
 

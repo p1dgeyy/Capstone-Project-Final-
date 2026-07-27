@@ -588,21 +588,40 @@
         </div>
     </div>
 
-    <!-- Email OTP Verification Modal — shown after successful registration.
-         The account is NOT usable for login until this code (sent via
-         Resend) is confirmed; on success, the backend generates the
-         beneficiary's QR code and emails a copy. -->
-    <div id="otpModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center;">
-        <div style="background:#fff; border-radius:12px; max-width:420px; width:90%; padding:32px; text-align:center;">
-            <h3 style="color:var(--primary-dark); margin-bottom:8px;">Verify your email</h3>
-            <p style="color:#666; font-size:0.92rem; margin-bottom:20px;">
-                We sent a 6-digit code to <strong id="otpTargetEmail"></strong>. Enter it below to activate your account and generate your Beneficiary QR code.
+    <!-- OTP Verification Overlay -->
+    <div id="otpOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 40px; max-width: 480px; width: 90%; box-shadow: 0 30px 80px rgba(0,0,0,0.4); animation: slideUp 0.4s ease; text-align: center;">
+            <div style="width: 70px; height: 70px; background: linear-gradient(135deg, var(--primary-dark), var(--primary-pink)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <i class="bi bi-envelope-check" style="font-size: 2rem; color: white;"></i>
+            </div>
+            <h2 style="font-size: 1.5rem; color: #333; margin-bottom: 8px;">Verify Your Email</h2>
+            <p style="color: #666; font-size: 0.95rem; margin-bottom: 25px;">
+                We've sent a 6-digit verification code to<br>
+                <strong id="otpEmailDisplay" style="color: var(--primary-dark);">your email</strong>
             </p>
-            <input id="otpCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
-                   style="width:100%; font-size:1.6rem; letter-spacing:10px; text-align:center; padding:12px; border:2px solid var(--primary-light); border-radius:8px; margin-bottom:16px;">
-            <div id="otpError" style="display:none; color:#c0392b; font-size:0.88rem; margin-bottom:12px;"></div>
-            <button type="button" onclick="handleVerifyOtp()" style="width:100%; padding:12px; background:var(--primary-dark); color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer;">Verify & Activate Account</button>
-            <button type="button" onclick="handleResendOtp()" style="width:100%; padding:10px; background:none; border:none; color:var(--primary-dark); font-size:0.88rem; margin-top:8px; cursor:pointer;">Didn't get it? Resend code</button>
+
+            <div id="otpErrorMessage" style="display: none; background: #FEE2E2; color: #B91C1C; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.88rem;"></div>
+            <div id="otpSuccessMessage" style="display: none; background: #D1FAE5; color: #047857; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.88rem;"></div>
+
+            <div id="otpInputGroup" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 25px;">
+                <input type="text" maxlength="1" class="otp-digit" data-index="0" style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; transition: all 0.2s ease; color: #333;" oninput="handleOtpInput(this, 0)" onkeydown="handleOtpKeydown(event, 0)" autofocus>
+                <input type="text" maxlength="1" class="otp-digit" data-index="1" style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; transition: all 0.2s ease; color: #333;" oninput="handleOtpInput(this, 1)" onkeydown="handleOtpKeydown(event, 1)">
+                <input type="text" maxlength="1" class="otp-digit" data-index="2" style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; transition: all 0.2s ease; color: #333;" oninput="handleOtpInput(this, 2)" onkeydown="handleOtpKeydown(event, 2)">
+                <input type="text" maxlength="1" class="otp-digit" data-index="3" style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; transition: all 0.2s ease; color: #333;" oninput="handleOtpInput(this, 3)" onkeydown="handleOtpKeydown(event, 3)">
+                <input type="text" maxlength="1" class="otp-digit" data-index="4" style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; transition: all 0.2s ease; color: #333;" oninput="handleOtpInput(this, 4)" onkeydown="handleOtpKeydown(event, 4)">
+                <input type="text" maxlength="1" class="otp-digit" data-index="5" style="width: 50px; height: 58px; text-align: center; font-size: 1.5rem; font-weight: 700; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; transition: all 0.2s ease; color: #333;" oninput="handleOtpInput(this, 5)" onkeydown="handleOtpKeydown(event, 5)">
+            </div>
+
+            <button id="verifyOtpBtn" onclick="verifyOtp()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary-dark), var(--primary-pink)); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; margin-bottom: 16px;">
+                Verify Email
+            </button>
+
+            <p style="color: #888; font-size: 0.85rem; margin-bottom: 0;">
+                Didn't receive the code?
+                <button id="resendOtpBtn" onclick="resendOtp()" style="background: none; border: none; color: var(--primary-dark); font-weight: 600; cursor: pointer; text-decoration: underline; font-size: 0.85rem;">Resend Code</button>
+                <span id="resendTimer" style="color: #999; font-size: 0.85rem;"></span>
+            </p>
+            <p style="color: #aaa; font-size: 0.78rem; margin-top: 10px;">Code expires in 10 minutes</p>
         </div>
     </div>
 
@@ -746,12 +765,16 @@
 
                 if (response.ok && data.success) {
                     if (data.requiresVerification) {
-                        // Account is pending email verification — open the OTP modal
-                        // rather than redirecting to login (login is blocked until verified).
+                        // Show OTP verification overlay
                         pendingUserId = data.userId;
-                        document.getElementById('otpTargetEmail').textContent = email;
-                        document.getElementById('otpModalOverlay').style.display = 'flex';
-                        showSuccess(data.message || 'Check your email for a verification code.');
+                        document.getElementById('otpEmailDisplay').textContent = email;
+                        const overlay = document.getElementById('otpOverlay');
+                        overlay.style.display = 'flex';
+                        // Focus first OTP input
+                        setTimeout(() => {
+                            document.querySelector('.otp-digit[data-index="0"]').focus();
+                        }, 300);
+                        startResendCooldown();
                     } else {
                         showSuccess('Account created successfully! Redirecting to login...');
                         setTimeout(() => {
@@ -775,61 +798,6 @@
 
         function validateEmail(email) {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
-
-        // --- Email OTP Verification (Resend-delivered code) ---
-        let pendingUserId = null;
-
-        async function handleVerifyOtp() {
-            const code = document.getElementById('otpCodeInput').value.trim();
-            const otpError = document.getElementById('otpError');
-            otpError.style.display = 'none';
-
-            if (!pendingUserId) return;
-            if (!/^\d{6}$/.test(code)) {
-                otpError.textContent = 'Enter the 6-digit code from your email.';
-                otpError.style.display = 'block';
-                return;
-            }
-
-            try {
-                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register/verify-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: pendingUserId, code })
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    document.getElementById('otpModalOverlay').style.display = 'none';
-                    showSuccess('Email verified! Your QR code has been emailed to you. Redirecting to login...');
-                    setTimeout(() => { window.location.href = 'official_login.html'; }, 2000);
-                } else {
-                    otpError.textContent = data.message || 'Verification failed. Please try again.';
-                    otpError.style.display = 'block';
-                }
-            } catch (err) {
-                otpError.textContent = 'Unable to reach the server. Please try again.';
-                otpError.style.display = 'block';
-            }
-        }
-
-        async function handleResendOtp() {
-            if (!pendingUserId) return;
-            try {
-                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register/resend-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: pendingUserId })
-                });
-                const data = await response.json();
-                const otpError = document.getElementById('otpError');
-                otpError.style.color = data.success ? '#2e7d32' : '#c0392b';
-                otpError.textContent = data.message || (data.success ? 'A new code was sent.' : 'Could not resend code.');
-                otpError.style.display = 'block';
-            } catch (err) {
-                console.error('Resend OTP failed:', err);
-            }
         }
 
         function showError(message) {
@@ -913,6 +881,158 @@
             // Update progress bar width as percentage
             const progressPercentage = (filledInputs / totalInputs) * 100;
             document.getElementById('progressFill').style.width = progressPercentage + '%';
+        }
+
+        // =====================================================================
+        // OTP Verification Logic
+        // =====================================================================
+        let pendingUserId = null;
+        let resendCooldownInterval = null;
+
+        function handleOtpInput(el, index) {
+            // Only allow digits
+            el.value = el.value.replace(/[^0-9]/g, '');
+            if (el.value.length === 1 && index < 5) {
+                document.querySelector(`.otp-digit[data-index="${index + 1}"]`).focus();
+            }
+            // Auto-submit when all 6 digits entered
+            const allDigits = document.querySelectorAll('.otp-digit');
+            const code = Array.from(allDigits).map(d => d.value).join('');
+            if (code.length === 6) {
+                verifyOtp();
+            }
+        }
+
+        function handleOtpKeydown(e, index) {
+            if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                document.querySelector(`.otp-digit[data-index="${index - 1}"]`).focus();
+            }
+        }
+
+        // Handle paste of full OTP code
+        document.addEventListener('paste', function(e) {
+            const overlay = document.getElementById('otpOverlay');
+            if (overlay.style.display !== 'flex') return;
+            const paste = (e.clipboardData || window.clipboardData).getData('text').trim();
+            if (/^\d{6}$/.test(paste)) {
+                e.preventDefault();
+                const digits = document.querySelectorAll('.otp-digit');
+                paste.split('').forEach((ch, i) => { digits[i].value = ch; });
+                verifyOtp();
+            }
+        });
+
+        async function verifyOtp() {
+            const allDigits = document.querySelectorAll('.otp-digit');
+            const code = Array.from(allDigits).map(d => d.value).join('');
+
+            if (code.length !== 6) {
+                showOtpError('Please enter the complete 6-digit code.');
+                return;
+            }
+
+            const btn = document.getElementById('verifyOtpBtn');
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: pendingUserId, otp: code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showOtpSuccess('Email verified successfully! Redirecting to login...');
+                    setTimeout(() => {
+                        window.location.href = 'official_login.html';
+                    }, 2500);
+                } else {
+                    showOtpError(data.message || 'Verification failed.');
+                    // Clear OTP inputs on error
+                    allDigits.forEach(d => { d.value = ''; });
+                    allDigits[0].focus();
+                    btn.disabled = false;
+                    btn.textContent = 'Verify Email';
+
+                    if (data.expired) {
+                        showOtpError('Code expired. Click "Resend Code" to get a new one.');
+                    }
+                }
+            } catch (err) {
+                console.error('OTP verify error:', err);
+                showOtpError('Unable to connect to server. Please try again.');
+                btn.disabled = false;
+                btn.textContent = 'Verify Email';
+            }
+        }
+
+        async function resendOtp() {
+            const btn = document.getElementById('resendOtpBtn');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/resend-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: pendingUserId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showOtpSuccess('New verification code sent! Check your email.');
+                    startResendCooldown();
+                } else {
+                    showOtpError(data.message || 'Failed to resend code.');
+                    if (data.retryAfterSeconds) {
+                        startResendCooldown(data.retryAfterSeconds);
+                    } else {
+                        btn.disabled = false;
+                    }
+                }
+            } catch (err) {
+                console.error('Resend OTP error:', err);
+                showOtpError('Unable to connect to server.');
+                btn.disabled = false;
+            }
+        }
+
+        function startResendCooldown(seconds = 60) {
+            const btn = document.getElementById('resendOtpBtn');
+            const timer = document.getElementById('resendTimer');
+            btn.disabled = true;
+            btn.style.display = 'none';
+            let remaining = seconds;
+            timer.textContent = `(${remaining}s)`;
+
+            if (resendCooldownInterval) clearInterval(resendCooldownInterval);
+            resendCooldownInterval = setInterval(() => {
+                remaining--;
+                timer.textContent = `(${remaining}s)`;
+                if (remaining <= 0) {
+                    clearInterval(resendCooldownInterval);
+                    btn.disabled = false;
+                    btn.style.display = 'inline';
+                    timer.textContent = '';
+                }
+            }, 1000);
+        }
+
+        function showOtpError(msg) {
+            const el = document.getElementById('otpErrorMessage');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('otpSuccessMessage').style.display = 'none';
+        }
+
+        function showOtpSuccess(msg) {
+            const el = document.getElementById('otpSuccessMessage');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('otpErrorMessage').style.display = 'none';
         }
     </script>
 </body>
