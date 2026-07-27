@@ -10,7 +10,6 @@ let isClerkActive = false;
 // Attempt SDK initialization
 if (process.env.CLERK_SECRET_KEY) {
   try {
-    // Try @clerk/express first, fallback to @clerk/backend or @clerk/clerk-sdk-node
     try {
       const { createClerkClient } = require('@clerk/backend');
       clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
@@ -88,7 +87,7 @@ async function requireClerkAuth(req, res, next) {
     try {
       connection = await pool.getConnection();
       const [rows] = await connection.execute(
-        'SELECT `id`, `username`, `role`, `current_session_token` FROM `users` WHERE `id` = ? LIMIT 1',
+        'SELECT `id`, `username`, `role`, `current_session_token` FROM `officers` WHERE `id` = ? LIMIT 1',
         [callerId]
       );
       if (rows.length > 0 && rows[0].current_session_token === sessionToken) {

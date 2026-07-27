@@ -138,7 +138,6 @@ router.post('/', async (req, res) => {
 
     const scheduleId = result.insertId;
 
-    // Optional: update application status if linked
     if (application_id) {
       await connection.query(
         `UPDATE applications SET status = 'Interview Scheduled' WHERE id = ?`,
@@ -146,7 +145,6 @@ router.post('/', async (req, res) => {
       );
     }
 
-    // Insert Notification for Beneficiary
     await connection.query(
       `INSERT INTO notifications (user_id, title, message, type, is_read) 
        VALUES (?, 'Interview Scheduled', ?, 'info', 0)`,
@@ -156,7 +154,6 @@ router.post('/', async (req, res) => {
       ]
     );
 
-    // Audit log entry
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_SCHEDULE_INTERVIEW', 'interview_schedules', ?, ?)`,
@@ -201,7 +198,6 @@ router.put('/:id/attendance', async (req, res) => {
 
     await connection.beginTransaction();
 
-    // Check existing
     const [existing] = await connection.query(`SELECT * FROM interview_schedules WHERE id = ?`, [scheduleId]);
     if (existing.length === 0) {
       await connection.rollback();
@@ -210,7 +206,6 @@ router.put('/:id/attendance', async (req, res) => {
 
     const current = existing[0];
 
-    // Auto-update schedule status if marked Present -> Completed or Absent -> Pending/Missed
     let newStatus = current.status;
     if (attendance_status === 'Present') {
       newStatus = 'Completed';
@@ -225,7 +220,6 @@ router.put('/:id/attendance', async (req, res) => {
       [attendance_status, newStatus, remarks || null, scheduleId]
     );
 
-    // Notify Beneficiary
     await connection.query(
       `INSERT INTO notifications (user_id, title, message, type, is_read) 
        VALUES (?, 'Interview Attendance Updated', ?, 'info', 0)`,
@@ -235,7 +229,6 @@ router.put('/:id/attendance', async (req, res) => {
       ]
     );
 
-    // Log to Audit Trail
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_UPDATE_ATTENDANCE', 'interview_schedules', ?, ?)`,
@@ -298,7 +291,6 @@ router.put('/:id/status', async (req, res) => {
       [status, remarks || null, scheduleId]
     );
 
-    // Log Audit Event
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_UPDATE_INTERVIEW_STATUS', 'interview_schedules', ?, ?)`,
