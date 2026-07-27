@@ -1,11 +1,11 @@
 // Express API Server for Capstone Portal
 // Serves as the bridge between the static frontend and MySQL database on Railway
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception thrown:', err);
+  console.error('CRITICAL UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION:', reason);
 });
 
 const express = require('express');
@@ -120,17 +120,17 @@ app.use((err, req, res, next) => {
 });
 
 // =============================================================================
-// Start Server & Safe Background Database Table Creation
+// Start Server & Dynamic Safe Migration
 // =============================================================================
 
 const pool = require('./db');
 
-async function initDatabaseSchema() {
+async function runAutoMigration() {
   let connection;
   try {
     connection = await pool.getConnection();
 
-    // SQL 1: Create officers table
+    // Statement A: Create table officers
     try {
       await connection.execute(`
         CREATE TABLE IF NOT EXISTS officers (
@@ -141,16 +141,17 @@ async function initDatabaseSchema() {
           first_name VARCHAR(100),
           last_name VARCHAR(100),
           role VARCHAR(50) DEFAULT 'PESO Officer',
+          department VARCHAR(100) DEFAULT 'PESO',
           status VARCHAR(50) DEFAULT 'Active',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log('[DB-INIT] ✅ Officers table created/verified.');
-    } catch (err1) {
-      console.error('[DB-INIT] SQL 1 Error (officers table):', err1);
+      console.log('[MIGRATE] ✅ Statement A: `officers` table verified.');
+    } catch (errA) {
+      console.error('[MIGRATE] Statement A Notice:', errA.message);
     }
 
-    // SQL 2: Create beneficiaries table
+    // Statement B: Create table beneficiaries
     try {
       await connection.execute(`
         CREATE TABLE IF NOT EXISTS beneficiaries (
@@ -161,28 +162,27 @@ async function initDatabaseSchema() {
           email VARCHAR(150) UNIQUE,
           first_name VARCHAR(100),
           last_name VARCHAR(100),
+          middle_name VARCHAR(100),
           role VARCHAR(50) DEFAULT 'Beneficiary',
           status VARCHAR(50) DEFAULT 'Active',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log('[DB-INIT] ✅ Beneficiaries table created/verified.');
-    } catch (err2) {
-      console.error('[DB-INIT] SQL 2 Error (beneficiaries table):', err2);
+      console.log('[MIGRATE] ✅ Statement B: `beneficiaries` table verified.');
+    } catch (errB) {
+      console.error('[MIGRATE] Statement B Notice:', errB.message);
     }
 
-    // Determine source legacy table name ('users' vs 'users_legacy')
+    // Determine source table
     let sourceTable = 'users_legacy';
     try {
       const [uCheck] = await connection.execute(
         `SELECT COUNT(*) AS cnt FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'users'`
       );
-      if (uCheck[0].cnt > 0) {
-        sourceTable = 'users';
-      }
+      if (uCheck[0].cnt > 0) sourceTable = 'users';
     } catch (e) {}
 
-    // SQL 3: Copy staff to officers
+    // Statement C: Copy staff/admins to officers
     try {
       await connection.execute(`
         INSERT IGNORE INTO officers (username, password, email, first_name, last_name, role)
@@ -190,12 +190,12 @@ async function initDatabaseSchema() {
         FROM \`${sourceTable}\`
         WHERE role LIKE '%Admin%' OR role LIKE '%Officer%' OR role LIKE '%Staff%' OR role = 'Evaluator';
       `);
-      console.log('[DB-INIT] ✅ SQL 3 Transferred staff accounts.');
-    } catch (err3) {
-      console.error('[DB-INIT] SQL 3 Error (copy officers):', err3);
+      console.log('[MIGRATE] ✅ Statement C: Staff records transferred.');
+    } catch (errC) {
+      console.error('[MIGRATE] Statement C Notice:', errC.message);
     }
 
-    // SQL 4: Copy beneficiaries to beneficiaries
+    // Statement D: Copy beneficiaries to beneficiaries
     try {
       await connection.execute(`
         INSERT IGNORE INTO beneficiaries (qr_code_id, username, password, email, first_name, last_name, role)
@@ -203,9 +203,9 @@ async function initDatabaseSchema() {
         FROM \`${sourceTable}\`
         WHERE role = 'Beneficiary' OR role IS NULL OR (role NOT LIKE '%Admin%' AND role NOT LIKE '%Officer%' AND role NOT LIKE '%Staff%');
       `);
-      console.log('[DB-INIT] ✅ SQL 4 Transferred beneficiary accounts.');
-    } catch (err4) {
-      console.error('[DB-INIT] SQL 4 Error (copy beneficiaries):', err4);
+      console.log('[MIGRATE] ✅ Statement D: Beneficiary records transferred.');
+    } catch (errD) {
+      console.error('[MIGRATE] Statement D Notice:', errD.message);
     }
 
     if (sourceTable === 'users') {
@@ -214,7 +214,7 @@ async function initDatabaseSchema() {
       } catch (rErr) {}
     }
 
-    // Ensure default officer seed accounts exist
+    // Seed default officer accounts if officers table is empty
     try {
       const [offCnt] = await connection.execute('SELECT COUNT(*) AS cnt FROM officers');
       if (offCnt[0].cnt === 0) {
@@ -226,13 +226,13 @@ async function initDatabaseSchema() {
           (4, 'cswdo-officer', 'password123', 'CSWDO Officer', 'Mary', 'Williams', 'cswdo.officer@koronadal.gov.ph', 'CSWDO'),
           (5, 'evaluator', 'password123', 'Evaluator', 'Edward', 'Davis', 'evaluator@koronadal.gov.ph', 'PESO');
         `);
-        console.log('[DB-INIT] ✅ Default officer seed accounts inserted.');
+        console.log('[MIGRATE] ✅ Default officer seed accounts inserted.');
       }
     } catch (sErr1) {
-      console.error('[DB-INIT] Seed officers notice:', sErr1);
+      console.error('[MIGRATE] Seed officers notice:', sErr1.message);
     }
 
-    // Ensure default beneficiary seed accounts exist
+    // Seed default beneficiary accounts if beneficiaries table is empty
     try {
       const [benCnt] = await connection.execute('SELECT COUNT(*) AS cnt FROM beneficiaries');
       if (benCnt[0].cnt === 0) {
@@ -242,14 +242,14 @@ async function initDatabaseSchema() {
           ('QR-BEN-7', 7, 'maria_santos', 'Sample5678', 'Beneficiary', 'Maria', 'Santos', 'maria.santos@email.com'),
           ('QR-BEN-8', 8, 'pedro_reyes', 'DemoPass90', 'Beneficiary', 'Pedro', 'Reyes', 'pedro.reyes@email.com');
         `);
-        console.log('[DB-INIT] ✅ Default beneficiary seed accounts inserted.');
+        console.log('[MIGRATE] ✅ Default beneficiary seed accounts inserted.');
       }
     } catch (sErr2) {
-      console.error('[DB-INIT] Seed beneficiaries notice:', sErr2);
+      console.error('[MIGRATE] Seed beneficiaries notice:', sErr2.message);
     }
 
   } catch (globalErr) {
-    console.error('[DB-INIT] Non-fatal DB init notice:', globalErr);
+    console.error('[MIGRATE] Non-fatal migration notice:', globalErr.message);
   } finally {
     if (connection) connection.release();
   }
@@ -259,9 +259,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[API] Capstone Portal API server running on port ${PORT}`);
   console.log(`[API] Environment: ${process.env.NODE_ENV || 'development'}`);
 
-  // Safely trigger table creation in background without blocking server responsiveness
-  initDatabaseSchema().catch(err => {
-    console.error('[API] Background schema init notice:', err);
+  runAutoMigration().catch(err => {
+    console.error('[API] Background auto-migration notice:', err.message);
   });
 });
 
