@@ -27,13 +27,13 @@ VALUES
 
 -- 2. SEED BENEFICIARIES (with QR code IDs)
 INSERT INTO `beneficiaries`
-  (`qr_code_id`, `id`, `username`, `password`, `first_name`, `middle_name`, `last_name`, `suffix`,
+  (`qr_code_id`, `id`, `username`, `password`, `role`, `status`, `first_name`, `middle_name`, `last_name`, `suffix`,
    `age`, `date_of_birth`, `sex`, `nationality`, `marital_status`,
    `email`, `phone`, `address`, `id_type`, `id_file_path`, `terms_agreed`, `data_consent`, `is_verified`)
 VALUES
-  ('BEN-seed-0006-juan-dela-cruz',  6, 'juan_dela_cruz', 'Test1234',   'Juan',  'Santos', 'Dela Cruz', NULL, 29, '1997-04-12', 'Male',   'Filipino', 'Single',  'juan.delacruz@email.com',  '0905-111-2222', 'Block 5, Lot 12, Barangay Zone IV, Koronadal City',   'philid',          'philid_juan.pdf',          TRUE, TRUE, TRUE),
-  ('BEN-seed-0007-maria-santos',    7, 'maria_santos',   'Sample5678', 'Maria', 'Cruz',   'Santos',    NULL, 21, '2005-06-15', 'Female', 'Filipino', 'Single',  'maria.santos@email.com',   '0906-333-4444', 'Purok Maligaya, Barangay Zone III, Koronadal City',    'school_id',       'schoolid_maria.png',       TRUE, TRUE, TRUE),
-  ('BEN-seed-0008-pedro-reyes',     8, 'pedro_reyes',    'DemoPass90', 'Pedro', 'Gomez',  'Reyes',     NULL, 45, '1981-12-01', 'Male',   'Filipino', 'Married', 'pedro.reyes@email.com',    '0907-555-6666', 'Purok Sunflower, Barangay Zone I, Koronadal City',     'drivers_license', 'drivers_license_pedro.jpg', TRUE, TRUE, TRUE);
+  ('BEN-seed-0006-juan-dela-cruz',  6, 'juan_dela_cruz', 'Test1234',   'Beneficiary', 'Active', 'Juan',  'Santos', 'Dela Cruz', NULL, 29, '1997-04-12', 'Male',   'Filipino', 'Single',  'juan.delacruz@email.com',  '0905-111-2222', 'Block 5, Lot 12, Barangay Zone IV, Koronadal City',   'philid',          'philid_juan.pdf',          TRUE, TRUE, TRUE),
+  ('BEN-seed-0007-maria-santos',    7, 'maria_santos',   'Sample5678', 'Beneficiary', 'Active', 'Maria', 'Cruz',   'Santos',    NULL, 21, '2005-06-15', 'Female', 'Filipino', 'Single',  'maria.santos@email.com',   '0906-333-4444', 'Purok Maligaya, Barangay Zone III, Koronadal City',    'school_id',       'schoolid_maria.png',       TRUE, TRUE, TRUE),
+  ('BEN-seed-0008-pedro-reyes',     8, 'pedro_reyes',    'DemoPass90', 'Beneficiary', 'Active', 'Pedro', 'Gomez',  'Reyes',     NULL, 45, '1981-12-01', 'Male',   'Filipino', 'Married', 'pedro.reyes@email.com',    '0907-555-6666', 'Purok Sunflower, Barangay Zone I, Koronadal City',     'drivers_license', 'drivers_license_pedro.jpg', TRUE, TRUE, TRUE);
 
 -- 3. SEED PROGRAMS
 INSERT INTO `programs`

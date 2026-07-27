@@ -120,12 +120,18 @@ app.use((err, req, res, next) => {
 });
 
 // =============================================================================
-// Start Server
+// Start Server & Auto-Initialize Database
 // =============================================================================
 
-app.listen(PORT, '0.0.0.0', () => {
+const pool = require('./db');
+const { autoInitDatabase } = require('./migrate');
+
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`[API] Capstone Portal API server running on port ${PORT}`);
   console.log(`[API] Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Automatically ensure database schema and tables exist on startup (Railway compatibility)
+  await autoInitDatabase(pool);
 });
 
 module.exports = app;

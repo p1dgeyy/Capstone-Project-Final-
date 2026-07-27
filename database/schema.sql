@@ -34,10 +34,12 @@ CREATE TABLE IF NOT EXISTS `officers` (
 -- 2. BENEFICIARIES TABLE
 -- Holds beneficiary metadata. QR code ID is the primary unique digital identifier.
 CREATE TABLE IF NOT EXISTS `beneficiaries` (
-  `qr_code_id` VARCHAR(64) NOT NULL,
+  `qr_code_id` VARCHAR(100) NOT NULL,
   `id` INT AUTO_INCREMENT UNIQUE,
   `username` VARCHAR(50) NOT NULL UNIQUE,
   `password` VARCHAR(255) NOT NULL,
+  `role` VARCHAR(50) DEFAULT 'Beneficiary',
+  `status` ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',
 
   -- Profile Details
   `first_name` VARCHAR(100) NOT NULL,

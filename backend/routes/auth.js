@@ -136,10 +136,10 @@ router.post('/officer/login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[AUTH] Officer login error:', error.message);
+    console.error('DB Login Error (Officer):', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error. Please try again later.'
+      message: 'Internal server error during officer login. Please try again later.'
     });
   } finally {
     if (connection) connection.release();
@@ -255,10 +255,10 @@ router.post('/beneficiary/login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[AUTH] Beneficiary login error:', error.message);
+    console.error('DB Login Error (Beneficiary):', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error. Please try again later.'
+      message: 'Internal server error during beneficiary login. Please try again later.'
     });
   } finally {
     if (connection) connection.release();
@@ -377,7 +377,7 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[AUTH] Legacy login error:', error.message);
+    console.error('DB Login Error (Legacy):', error);
     return res.status(500).json({ success: false, message: 'Internal server error.' });
   } finally {
     if (connection) connection.release();
