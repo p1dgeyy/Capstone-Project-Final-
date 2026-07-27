@@ -120,21 +120,19 @@ app.use((err, req, res, next) => {
 });
 
 // =============================================================================
-// Start Server & Auto-Initialize Database
+// Start Server & Run Safe Background Migration
 // =============================================================================
 
-const { migrateDatabase } = require('./migrate');
+const { runSafeMigration } = require('./safe-migrate');
 
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[API] Capstone Portal API server running on port ${PORT}`);
   console.log(`[API] Environment: ${process.env.NODE_ENV || 'development'}`);
 
-  // Execute database table migration & creation on server startup gracefully
-  try {
-    await migrateDatabase();
-  } catch (err) {
-    console.error('[API] Non-fatal startup database migration error:', err.message);
-  }
+  // Execute non-blocking safe database migration in background
+  runSafeMigration().catch(err => {
+    console.error('[API] Background migration notice:', err.message);
+  });
 });
 
 module.exports = app;
