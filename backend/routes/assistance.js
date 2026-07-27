@@ -1,6 +1,5 @@
-// Approved Assistance CRUD & Reporting Routes
-// REQ082: Record approved assistance type, quantity, conditions, timestamp, officer identity
-// REQ083: View & filter approved assistance records for monitoring and reporting
+// Approved Assistance API Routes — Records and lists approved assistance grants
+// Updated for split tables architecture: beneficiaries and officers
 
 const express = require('express');
 const pool = require('../db');
@@ -9,8 +8,7 @@ const router = express.Router();
 
 // =============================================================================
 // GET /api/assistance
-// REQ083: View & filter record of all approved assistance
-// Filters: ?agency=PESO|CSWDO&program_id=...&beneficiary_id=...&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
+// REQ083: Return list of approved assistance records (optionally filtered by agency, program, beneficiary, date range)
 // =============================================================================
 router.get('/', async (req, res) => {
   let connection;
@@ -19,13 +17,20 @@ router.get('/', async (req, res) => {
 
     let query = `
       SELECT ast.*,
-             u_ben.first_name AS beneficiary_first_name, u_ben.last_name AS beneficiary_last_name, u_ben.email AS beneficiary_email, u_ben.phone AS beneficiary_phone,
-             p.code AS program_code, p.name AS program_name, p.agency AS program_agency,
-             u_off.first_name AS officer_first_name, u_off.last_name AS officer_last_name
+             u_ben.username AS beneficiary_username,
+             u_ben.first_name AS beneficiary_first_name,
+             u_ben.last_name AS beneficiary_last_name,
+             u_ben.qr_code_id AS beneficiary_qr_code_id,
+             p.code AS program_code,
+             p.name AS program_name,
+             p.agency AS program_agency,
+             u_off.username AS officer_username,
+             u_off.first_name AS officer_first_name,
+             u_off.last_name AS officer_last_name
       FROM \`approved_assistance\` ast
-      JOIN \`users\` u_ben ON ast.beneficiary_id = u_ben.id
+      JOIN \`beneficiaries\` u_ben ON ast.beneficiary_id = u_ben.id
       JOIN \`programs\` p ON ast.program_id = p.id
-      LEFT JOIN \`users\` u_off ON ast.officer_id = u_off.id
+      LEFT JOIN \`officers\` u_off ON ast.officer_id = u_off.id
     `;
     const conditions = [];
     const params = [];
@@ -84,7 +89,7 @@ router.post('/', async (req, res) => {
   let connection;
   try {
     const { application_id, beneficiary_id, program_id, assistance_type, quantity_amount, conditions, approval_date, officer_id, status } = req.body;
-    const callerId = req.headers['x-user-id'] || officer_id || 2;
+    const callerId = req.headers['x-user-id'] || officer_id || 1;
 
     if (!beneficiary_id || !program_id || !assistance_type || !quantity_amount) {
       return res.status(400).json({
@@ -95,9 +100,9 @@ router.post('/', async (req, res) => {
 
     connection = await pool.getConnection();
 
-    // Verify beneficiary
+    // Verify beneficiary in beneficiaries table
     const [bene] = await connection.execute(
-      'SELECT `id`, `first_name`, `last_name` FROM `users` WHERE `id` = ? LIMIT 1',
+      'SELECT `id`, `first_name`, `last_name` FROM `beneficiaries` WHERE `id` = ? LIMIT 1',
       [beneficiary_id]
     );
     if (bene.length === 0) {
@@ -127,14 +132,14 @@ router.post('/', async (req, res) => {
     const agencyName = prog[0].agency || 'Department';
     const notifMsg = `Your assistance payout grant (${assistance_type}: ${quantity_amount}) for ${prog[0].name} has been processed by ${agencyName}. Status: ${initialStatus}.`;
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'Assistance Transaction Update', ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', 'Assistance Transaction Update', ?, FALSE)`,
       [beneficiary_id, notifMsg]
     );
 
     // Log to Audit Trail
     const auditDetails = `Officer/Admin (ID: ${callerId}) recorded assistance grant ID #${result.insertId} for Beneficiary #${beneficiary_id} (${bene[0].first_name} ${bene[0].last_name}): ${assistance_type} - ${quantity_amount}. Status: ${initialStatus}. Conditions: ${conditions || 'None'}`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'RECORD_ASSISTANCE', 'assistance', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', 'RECORD_ASSISTANCE', 'assistance', ?, ?)`,
       [callerId, result.insertId, auditDetails]
     );
 
@@ -173,7 +178,7 @@ router.put('/:id/status', async (req, res) => {
       `SELECT ast.*, p.name AS program_name, u.first_name, u.last_name 
        FROM \`approved_assistance\` ast 
        JOIN \`programs\` p ON ast.program_id = p.id 
-       JOIN \`users\` u ON ast.beneficiary_id = u.id 
+       JOIN \`beneficiaries\` u ON ast.beneficiary_id = u.id 
        WHERE ast.\`id\` = ? LIMIT 1`,
       [req.params.id]
     );
@@ -192,14 +197,14 @@ router.put('/:id/status', async (req, res) => {
     // Notify Beneficiary
     const notifMsg = `Your assistance payout grant (#${astRecord.id}) status has been updated to '${status}'. Remarks: ${conditions || 'No additional remarks.'}`;
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'Assistance Payout Status Update', ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', 'Assistance Payout Status Update', ?, FALSE)`,
       [astRecord.beneficiary_id, notifMsg]
     );
 
     // Write Audit Log
     const auditDetails = `User (ID: ${callerId}) updated assistance grant ID #${req.params.id} status to ${status}.`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'UPDATE_ASSISTANCE_STATUS', 'assistance', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', 'UPDATE_ASSISTANCE_STATUS', 'assistance', ?, ?)`,
       [callerId, req.params.id, auditDetails]
     );
 
