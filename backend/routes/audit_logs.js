@@ -17,9 +17,14 @@ router.get('/', async (req, res) => {
 
     let query = `
       SELECT al.*, 
-             u.first_name, u.last_name, u.role, u.username, u.email
+             COALESCE(off.first_name, ben.first_name) AS first_name,
+             COALESCE(off.last_name, ben.last_name) AS last_name,
+             COALESCE(off.role, ben.role) AS role,
+             COALESCE(off.username, ben.username) AS username,
+             COALESCE(off.email, ben.email) AS email
       FROM \`audit_logs\` al
-      JOIN \`users\` u ON al.user_id = u.id
+      LEFT JOIN \`officers\` off ON al.user_id = off.id AND (al.user_type = 'officer' OR al.user_type IS NULL)
+      LEFT JOIN \`beneficiaries\` ben ON al.user_id = ben.id AND al.user_type = 'beneficiary'
     `;
     const conditions = [];
     const params = [];

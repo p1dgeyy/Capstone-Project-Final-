@@ -43,10 +43,10 @@ router.get('/', async (req, res) => {
         u_off.first_name AS officer_first_name,
         u_off.last_name AS officer_last_name
       FROM interview_schedules i
-      JOIN users u_ben ON i.beneficiary_id = u_ben.id
+      JOIN beneficiaries u_ben ON i.beneficiary_id = u_ben.id
       JOIN programs p ON i.program_id = p.id
       LEFT JOIN applications app ON i.application_id = app.id
-      LEFT JOIN users u_off ON i.officer_id = u_off.id
+      LEFT JOIN officers u_off ON i.officer_id = u_off.id
       WHERE 1=1
     `;
 
