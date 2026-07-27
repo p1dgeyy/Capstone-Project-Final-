@@ -123,89 +123,18 @@ app.use((err, req, res, next) => {
 // Start Server & Auto-Initialize Database
 // =============================================================================
 
-const pool = require('./db');
-
-async function initDatabase() {
-  let connection;
-  try {
-    console.log('[DB-INIT] Running database table auto-initialization...');
-    connection = await pool.getConnection();
-
-    // 1. Create officers table if not exists
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS \`officers\` (
-        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
-        \`username\` VARCHAR(50) NOT NULL UNIQUE,
-        \`password\` VARCHAR(255) NOT NULL,
-        \`role\` ENUM('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator') NOT NULL,
-        \`first_name\` VARCHAR(100) NOT NULL,
-        \`middle_name\` VARCHAR(100) DEFAULT NULL,
-        \`last_name\` VARCHAR(100) NOT NULL,
-        \`suffix\` VARCHAR(20) DEFAULT NULL,
-        \`email\` VARCHAR(100) NOT NULL UNIQUE,
-        \`phone\` VARCHAR(20) DEFAULT 'N/A',
-        \`department\` VARCHAR(100) DEFAULT NULL,
-        \`status\` ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',
-        \`current_session_token\` VARCHAR(128) DEFAULT NULL,
-        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX \`idx_off_role\` (\`role\`),
-        INDEX \`idx_off_username\` (\`username\`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `);
-
-    // 2. Create beneficiaries table if not exists (qr_code_id PRIMARY KEY)
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS \`beneficiaries\` (
-        \`qr_code_id\` VARCHAR(100) NOT NULL PRIMARY KEY,
-        \`id\` INT AUTO_INCREMENT UNIQUE,
-        \`username\` VARCHAR(50) NOT NULL UNIQUE,
-        \`password\` VARCHAR(255) NOT NULL,
-        \`role\` VARCHAR(50) DEFAULT 'Beneficiary',
-        \`status\` ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',
-        \`first_name\` VARCHAR(100) NOT NULL,
-        \`middle_name\` VARCHAR(100) DEFAULT NULL,
-        \`last_name\` VARCHAR(100) NOT NULL,
-        \`suffix\` VARCHAR(20) DEFAULT NULL,
-        \`age\` INT DEFAULT 18,
-        \`date_of_birth\` DATE DEFAULT '2000-01-01',
-        \`sex\` ENUM('Male', 'Female') DEFAULT 'Male',
-        \`nationality\` VARCHAR(50) DEFAULT 'Filipino',
-        \`marital_status\` ENUM('Single', 'Married', 'Widowed', 'Divorced') DEFAULT 'Single',
-        \`email\` VARCHAR(100) NOT NULL UNIQUE,
-        \`phone\` VARCHAR(20) DEFAULT 'N/A',
-        \`address\` TEXT DEFAULT NULL,
-        \`id_type\` VARCHAR(100) DEFAULT NULL,
-        \`id_file_path\` VARCHAR(255) DEFAULT NULL,
-        \`terms_agreed\` BOOLEAN DEFAULT TRUE,
-        \`data_consent\` BOOLEAN DEFAULT TRUE,
-        \`current_session_token\` VARCHAR(128) DEFAULT NULL,
-        \`is_verified\` BOOLEAN DEFAULT TRUE,
-        \`email_otp\` VARCHAR(6) DEFAULT NULL,
-        \`email_otp_expires_at\` TIMESTAMP NULL DEFAULT NULL,
-        \`qr_code_data\` TEXT DEFAULT NULL,
-        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX \`idx_ben_id\` (\`id\`),
-        INDEX \`idx_ben_username\` (\`username\`),
-        INDEX \`idx_ben_verified\` (\`is_verified\`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `);
-
-    console.log('[DB-INIT] ✅ Database tables `officers` and `beneficiaries` verified/created successfully.');
-  } catch (err) {
-    console.warn('[DB-INIT] Non-fatal notice during DB table auto-initialization:', err.message);
-  } finally {
-    if (connection) connection.release();
-  }
-}
+const { migrateDatabase } = require('./migrate');
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`[API] Capstone Portal API server running on port ${PORT}`);
   console.log(`[API] Environment: ${process.env.NODE_ENV || 'development'}`);
 
-  // Automatically initialize database tables on server startup safely
-  await initDatabase();
+  // Execute database table migration & creation on server startup gracefully
+  try {
+    await migrateDatabase();
+  } catch (err) {
+    console.error('[API] Non-fatal startup database migration error:', err.message);
+  }
 });
 
 module.exports = app;
