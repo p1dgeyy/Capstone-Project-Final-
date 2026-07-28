@@ -53,6 +53,10 @@ app.use((req, res, next) => {
 const { clerkMiddleware } = require('./middleware/clerk');
 app.use(clerkMiddleware);
 
+// Safeguards Middleware — Command Validation & Destructive Command Interceptor
+const { commandValidationMiddleware } = require('./middleware/safeguards');
+app.use(commandValidationMiddleware);
+
 // =============================================================================
 // Routes
 // =============================================================================
