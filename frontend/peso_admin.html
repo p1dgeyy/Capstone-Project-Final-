@@ -4357,61 +4357,80 @@
         let chartFundInstance = null;
         let chartTrendInstance = null;
 
-        // Dynamic Module switcher
-        function switchModule(moduleId, linkElement) {
+        // Global Dynamic Module Switcher Attached to window
+        window.switchModule = function(moduleId, linkElement) {
             if (window.event) window.event.preventDefault();
-            // Close mobile sidebar if open
-            document.getElementById('mainSidebar').classList.remove('active');
+            console.log(`[Navigation] Activating module: ${moduleId}`);
 
-            // Set active navigation tab link
-            document.querySelectorAll('.sidebar-nav-link').forEach(link => {
+            // Close mobile sidebar if active
+            const sidebar = document.getElementById('mainSidebar');
+            if (sidebar) sidebar.classList.remove('active');
+
+            // Deactivate all sidebar links
+            document.querySelectorAll('.sidebar-nav-link, .sidebar-nav a, .nav-item, a[onclick]').forEach(link => {
                 link.classList.remove('active');
             });
+
             if (linkElement) {
                 linkElement.classList.add('active');
+            } else {
+                const currentLink = document.querySelector(`a[onclick*="${moduleId}"]`);
+                if (currentLink) currentLink.classList.add('active');
             }
 
-            // Set visible module view section
-            document.querySelectorAll('.module-page').forEach(page => {
+            // Hide all module sections dynamically
+            document.querySelectorAll('.module-page, .module-section, section[id^="module-"]').forEach(page => {
                 page.classList.remove('active');
             });
-            const activePage = document.getElementById(moduleId);
-            activePage.classList.add('active');
 
-            // Dynamically update portal sub-header title
-            const activeLang = localStorage.getItem('lang') || 'en';
-            const dict = translations[activeLang] || translations['en'];
-            const headerTitleKey = 'title-' + moduleId;
-            document.getElementById('pageMainHeader').textContent = dict[headerTitleKey] || 'PESO WIMS Portal';
+            // Find and activate target section
+            const target = document.getElementById(moduleId) || 
+                           document.getElementById(`${moduleId}Section`) || 
+                           document.getElementById(`${moduleId}-section`);
 
-            // Refresh specific module data view renders
-            if (moduleId === 'module-dashboard') {
-                loadDashboardStats();
-            } else if (moduleId === 'module-officers') {
-                renderOfficersTable();
-            } else if (moduleId === 'module-programs') {
-                renderProgramsTable();
-            } else if (moduleId === 'module-assignments') {
-                renderAssignmentProgramsTable();
-            } else if (moduleId === 'module-evaluation') {
-                renderEvalProgramsTable();
-                updateEvaluationSummaryStats();
-            } else if (moduleId === 'module-schedules') {
-                initScheduleFilters();
-                renderCalendar();
-                renderSchedulesList();
-                renderCancellationAuditLogs();
-            } else if (moduleId === 'module-funds') {
-                renderFundsAllocationModule();
-            } else if (moduleId === 'module-training') {
-                renderTrainingTable();
-            } else if (moduleId === 'module-assistance') {
-                renderAssistanceTable();
-            } else if (moduleId === 'module-notifications') {
-                renderBroadcastLogs();
-            } else if (moduleId === 'module-reports') {
-                generateReportView();
+            if (target) {
+                target.classList.add('active');
+            } else {
+                console.warn(`[Navigation Warning] Section #${moduleId} not found in DOM.`);
             }
+
+            // Update portal sub-header title dynamically
+            const activeLang = localStorage.getItem('lang') || 'en';
+            const dict = (typeof translations !== 'undefined' && translations[activeLang]) ? translations[activeLang] : {};
+            const headerTitleKey = 'title-' + moduleId;
+            const titleEl = document.getElementById('pageMainHeader');
+            if (titleEl) {
+                titleEl.textContent = dict[headerTitleKey] || (moduleId.replace('module-', '').replace('-', ' ').toUpperCase()) || 'PESO WIMS Portal';
+            }
+
+            // Safe, protected execution of module refresh handlers
+            try {
+                if (moduleId === 'module-dashboard' && typeof loadDashboardStats === 'function') loadDashboardStats();
+                else if (moduleId === 'module-officers' && typeof renderOfficersTable === 'function') renderOfficersTable();
+                else if (moduleId === 'module-programs' && typeof renderProgramsTable === 'function') renderProgramsTable();
+                else if (moduleId === 'module-assignments' && typeof renderAssignmentProgramsTable === 'function') renderAssignmentProgramsTable();
+                else if (moduleId === 'module-evaluation') {
+                    if (typeof renderEvalProgramsTable === 'function') renderEvalProgramsTable();
+                    if (typeof updateEvaluationSummaryStats === 'function') updateEvaluationSummaryStats();
+                } else if (moduleId === 'module-schedules') {
+                    if (typeof initScheduleFilters === 'function') initScheduleFilters();
+                    if (typeof renderCalendar === 'function') renderCalendar();
+                    if (typeof renderSchedulesList === 'function') renderSchedulesList();
+                    if (typeof renderCancellationAuditLogs === 'function') renderCancellationAuditLogs();
+                } else if (moduleId === 'module-funds' && typeof renderFundsAllocationModule === 'function') renderFundsAllocationModule();
+                else if (moduleId === 'module-training' && typeof renderTrainingTable === 'function') renderTrainingTable();
+                else if (moduleId === 'module-assistance' && typeof renderAssistanceTable === 'function') renderAssistanceTable();
+                else if (moduleId === 'module-notifications' && typeof renderBroadcastLogs === 'function') renderBroadcastLogs();
+                else if (moduleId === 'module-reports' && typeof generateReportView === 'function') generateReportView();
+                else if (moduleId === 'module-archive' && typeof renderArchivedRecordsTable === 'function') renderArchivedRecordsTable();
+            } catch (err) {
+                console.error(`[Navigation Error] Render exception in module ${moduleId}:`, err);
+            }
+        };
+
+        // Alias function for backwards compatibility
+        function switchModule(moduleId, linkElement) {
+            window.switchModule(moduleId, linkElement);
         }
 
         // Sidebar Responsive Toggle
