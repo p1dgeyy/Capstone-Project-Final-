@@ -1,7 +1,7 @@
 // Authentication Routes — Role-Gated Login, Registration, OTP Verification & Session Management
 // Split architecture: officers table + beneficiaries table (QR code primary key)
 // Implements role-specific login endpoints to enforce strict portal boundaries
-// Integrates Resend for OTP email delivery and QR code generation for verified beneficiaries
+// Integrates OTP email delivery and QR code generation for verified beneficiaries
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -856,73 +856,50 @@ router.post('/logout', async (req, res) => {
 
 // =============================================================================
 // GET /api/auth/me
-// Returns caller identity and profile details for Clerk or legacy sessions
+// Returns caller identity and profile details based on session headers
 // =============================================================================
-const { requireClerkAuth } = require('../middleware/clerk');
-
-router.get('/me', requireClerkAuth, async (req, res) => {
+router.get('/me', async (req, res) => {
   try {
-    return res.status(200).json({
-      success: true,
-      user: req.caller || { id: req.clerkUserId },
-      isClerkAuthenticated: !!req.isClerkAuthenticated
-    });
+    const callerId = req.headers['x-user-id'];
+    const sessionToken = req.headers['x-session-token'];
+
+    if (!callerId || !sessionToken) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      // Check officers
+      const [offRows] = await connection.execute(
+        'SELECT `id`, `username`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `officers` WHERE `id` = ? LIMIT 1',
+        [callerId]
+      );
+      if (offRows.length > 0 && offRows[0].current_session_token === sessionToken) {
+        return res.status(200).json({
+          success: true,
+          user: { id: offRows[0].id, username: offRows[0].username, role: offRows[0].role, firstName: offRows[0].first_name, lastName: offRows[0].last_name, email: offRows[0].email, userType: 'officer' }
+        });
+      }
+
+      // Check beneficiaries
+      const [benRows] = await connection.execute(
+        'SELECT `id`, `username`, `first_name`, `last_name`, `email`, `qr_code_id`, `current_session_token` FROM `beneficiaries` WHERE `id` = ? LIMIT 1',
+        [callerId]
+      );
+      if (benRows.length > 0 && benRows[0].current_session_token === sessionToken) {
+        return res.status(200).json({
+          success: true,
+          user: { id: benRows[0].id, username: benRows[0].username, role: 'Beneficiary', firstName: benRows[0].first_name, lastName: benRows[0].last_name, email: benRows[0].email, qrCodeId: benRows[0].qr_code_id, userType: 'beneficiary' }
+        });
+      }
+
+      return res.status(401).json({ success: false, message: 'Session invalid or expired.' });
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('[AUTH] Profile fetch error:', error.message);
     return res.status(500).json({ success: false, message: 'Internal server error.' });
-  }
-});
-
-// =============================================================================
-// POST /api/auth/clerk-sync
-// Synchronizes a Clerk authenticated user with the MySQL database user record
-// =============================================================================
-router.post('/clerk-sync', requireClerkAuth, async (req, res) => {
-  let connection;
-  try {
-    const { email, firstName, lastName, role } = req.body;
-    const clerkUserId = req.clerkUserId || (req.caller && req.caller.id);
-
-    connection = await pool.getConnection();
-
-    // Check if officer or beneficiary exists with matching email
-    const [officers] = await connection.execute(
-      'SELECT `id`, `username`, `email`, `role` FROM `officers` WHERE `email` = ? LIMIT 1',
-      [email || '']
-    );
-
-    if (officers.length > 0) {
-      return res.status(200).json({
-        success: true,
-        message: 'Clerk session linked to Officer account.',
-        user: { id: officers[0].id, username: officers[0].username, email: officers[0].email, role: officers[0].role }
-      });
-    }
-
-    const [bens] = await connection.execute(
-      'SELECT `id`, `username`, `email` FROM `beneficiaries` WHERE `email` = ? LIMIT 1',
-      [email || '']
-    );
-
-    if (bens.length > 0) {
-      return res.status(200).json({
-        success: true,
-        message: 'Clerk session linked to Beneficiary account.',
-        user: { id: bens[0].id, username: bens[0].username, email: bens[0].email, role: 'Beneficiary' }
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: 'Clerk session verified.',
-      user: { id: clerkUserId, email: email, role: role || 'Beneficiary' }
-    });
-
-  } catch (error) {
-    console.error('[AUTH] Clerk sync error:', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to sync Clerk session.' });
-  } finally {
-    if (connection) connection.release();
   }
 });
 

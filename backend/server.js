@@ -10,6 +10,10 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 require('dotenv').config();
 
 const app = express();
@@ -43,19 +47,76 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Express Session Middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your_random_session_secret_key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
+
+// Initialize Passport & Passport Session
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport serialization
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+// Configure Google OAuth Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID || 'your_google_client_id_here',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'your_google_client_secret_here',
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/auth/google/callback'
+  },
+  (accessToken, refreshToken, profile, done) => {
+    return done(null, profile);
+  }
+));
+
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`[API] ${req.method} ${req.url} — ${new Date().toISOString()}`);
   next();
 });
 
-// Clerk authentication middleware (optional — activates only when CLERK_SECRET_KEY is set)
-const { clerkMiddleware } = require('./middleware/clerk');
-app.use(clerkMiddleware);
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // =============================================================================
 // Routes
 // =============================================================================
+
+// Google Auth Routes
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/official_login.html' }),
+  (req, res) => {
+    res.redirect('/index.html');
+  }
+);
+
+app.get('/auth/logout', (req, res, next) => {
+  req.logout((err) => {
+    if (err) return next(err);
+    req.session.destroy(() => {
+      res.redirect('/');
+    });
+  });
+});
+
+app.get('/api/user', (req, res) => {
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    return res.json({ success: true, user: req.user });
+  }
+  return res.json({ success: false, user: null });
+});
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
