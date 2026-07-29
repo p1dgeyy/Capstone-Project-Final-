@@ -26,7 +26,9 @@ const PORT = process.env.API_PORT || process.env.PORT || 8080;
 // CORS — allow frontend origin(s)
 const defaultAllowedOrigins = [
   'https://capstone-project-final-sooty.vercel.app',
+  'https://capstone-project-final-production.up.railway.app',
   'http://localhost:3000',
+  'http://localhost:5000',
   'http://localhost:8080',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:8080'
@@ -80,10 +82,14 @@ passport.deserializeUser((user, done) => {
 });
 
 // Configure Google OAuth Strategy
+const defaultCallbackURL = process.env.NODE_ENV === 'production'
+  ? 'https://capstone-project-final-sooty.vercel.app/auth/google/callback'
+  : 'http://localhost:3000/auth/google/callback';
+
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'your_google_client_id_here',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'your_google_client_secret_here',
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/auth/google/callback'
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || defaultCallbackURL
   },
   (accessToken, refreshToken, profile, done) => {
     return done(null, profile);
