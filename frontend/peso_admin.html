@@ -10115,57 +10115,6 @@ function openSystemNotificationAuditModal() {
                     <td style="max-width: 300px;"><strong>${n.title}</strong><div class="small text-muted text-truncate">${n.message}</div></td>
                     <td><small>${timeStr}</small></td>
                     <td><span class="badge bg-success"><i class="bi bi-check-all me-1"></i> Delivered</span></td>
-                </tr>
-            `;
-        });
-    }
-
-    const modal = new bootstrap.Modal(document.getElementById('systemNotificationAuditModal'));
-    modal.show();
-}
-
-// --- OFFICER MANAGEMENT (STRICT ACTIVE / DEACTIVATED & ARCHIVE BOX) ---
-function renderOfficersTable() {
-    const tbody = ((document.getElementById('officersTableBody') || document.getElementById('officersGridBody')) || document.getElementById('officersGridBody')) || document.getElementById('officersGridBody');
-    if (!tbody) return;
-    const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
-    const filterStatus = ((document.getElementById('officerStatusFilter') || document.getElementById('officerFilterStatus')) || document.getElementById('officerFilterStatus')) ? ((document.getElementById('officerStatusFilter') || document.getElementById('officerFilterStatus')) || document.getElementById('officerFilterStatus')).value : 'All';
-    
-    tbody.innerHTML = '';
-    const filtered = officers.filter(o => {
-        const status = o.status === 'Inactive' ? 'Deactivated' : o.status;
-        if (filterStatus === 'All') return true;
-        return status === filterStatus;
-    });
-
-    if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No officers found matching selected criteria.</td></tr>';
-        return;
-    }
-
-    filtered.forEach(o => {
-        const currentStatus = (o.status === 'Inactive' || o.status === 'Deactivated') ? 'Deactivated' : 'Active';
-        
-        tbody.innerHTML += `
-            <tr>
-                <td><strong>${o.name || o.firstName + ' ' + o.lastName}</strong><br><small class="text-muted">ID: ${o.id}</small></td>
-                <td>${o.username}</td>
-                <td>${o.email}</td>
-                <td><span class="badge bg-dark">${o.role || 'PESO Officer'}</span></td>
-                <td>
-                    <select class="form-select form-select-sm fw-bold border-2 ${currentStatus === 'Active' ? 'border-success text-success' : 'border-danger text-danger'}" style="width: 140px;" onchange="toggleOfficerStatus('${o.id}', this.value)">
-                        <option value="Active" ${currentStatus === 'Active' ? 'selected' : ''}>Active</option>
-                        <option value="Deactivated" ${currentStatus === 'Deactivated' ? 'selected' : ''}>Deactivated</option>
-                    </select>
-                </td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditOfficerModal('${o.id}')"><i class="bi bi-pencil"></i> Edit</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="archiveOfficer('${o.id}')"><i class="bi bi-archive"></i> Archive</button>
-                </td>
-            </tr>
-        `;
-    });
-}
 
 function toggleOfficerStatus(id, newStatus) {
     const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
