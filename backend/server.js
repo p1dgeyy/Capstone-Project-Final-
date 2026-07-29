@@ -133,6 +133,176 @@ app.get('/api/user', (req, res) => {
   return res.json({ success: false, user: null });
 });
 
+// =============================================================================
+// Nodemailer Helper & Password Reset OTP Routes
+// =============================================================================
+const nodemailer = require('nodemailer');
+
+const mailTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587', 10),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER || process.env.EMAIL_USER || '',
+    pass: process.env.SMTP_PASS || process.env.EMAIL_PASS || ''
+  }
+});
+
+async function sendOtpMail(toEmail, otpCode) {
+  const mailOptions = {
+    from: process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@capstone.gov.ph',
+    to: toEmail,
+    subject: 'Your Password Reset OTP Code - Capstone Portal',
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Password Reset Verification Code</h2>
+        <p>You requested a password reset. Use the following 6-digit OTP code to complete your request:</p>
+        <h1 style="color: #b85c7a; letter-spacing: 5px;">${otpCode}</h1>
+        <p>This code will expire in 10 minutes.</p>
+        <p>If you did not request a password reset, please ignore this email.</p>
+      </div>
+    `
+  };
+
+  try {
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      await mailTransporter.sendMail(mailOptions);
+      console.log(`[NODEMAILER] ✅ OTP sent to ${toEmail}`);
+    } else {
+      console.log(`[NODEMAILER] (Development Fallback) OTP for ${toEmail}: ${otpCode}`);
+    }
+    return { success: true };
+  } catch (err) {
+    console.error(`[NODEMAILER] Email error for ${toEmail}:`, err.message);
+    console.log(`[NODEMAILER] (Fallback Log) OTP for ${toEmail}: ${otpCode}`);
+    return { success: true, warning: 'Email dispatch failed, code logged to server console.' };
+  }
+}
+
+// 1. Send OTP Endpoint
+app.post(['/api/auth/send-otp', '/api/auth/forgot-password/send-otp'], async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.trim()) {
+    return res.status(400).json({ success: false, message: 'Email address is required.' });
+  }
+  const targetEmail = email.trim().toLowerCase();
+
+  let connection;
+  try {
+    const pool = require('./db');
+    connection = await pool.getConnection();
+
+    // Check if email exists in officers or beneficiaries
+    const [offRows] = await connection.execute('SELECT id FROM officers WHERE LOWER(email) = ? LIMIT 1', [targetEmail]);
+    const [benRows] = await connection.execute('SELECT id FROM beneficiaries WHERE LOWER(email) = ? LIMIT 1', [targetEmail]);
+
+    if (offRows.length === 0 && benRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'No account found with this email address.' });
+    }
+
+    const otpCode = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    await connection.execute(
+      'INSERT INTO password_otps (email, otp_code, expires_at) VALUES (?, ?, ?)',
+      [targetEmail, otpCode, expiresAt]
+    );
+
+    await sendOtpMail(targetEmail, otpCode);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Verification OTP has been sent to your email address.'
+    });
+  } catch (error) {
+    console.error('[OTP] Error sending OTP:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to send OTP.', error: error.message });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// 2. Verify OTP Endpoint
+app.post(['/api/auth/verify-otp', '/api/auth/forgot-password/verify-otp'], async (req, res) => {
+  const { email, otp } = req.body;
+  const otpCode = req.body.otpCode || otp;
+
+  if (!email || !otpCode) {
+    return res.status(400).json({ success: false, message: 'Email and OTP code are required.' });
+  }
+  const targetEmail = email.trim().toLowerCase();
+
+  let connection;
+  try {
+    const pool = require('./db');
+    connection = await pool.getConnection();
+
+    const [rows] = await connection.execute(
+      'SELECT id, expires_at FROM password_otps WHERE LOWER(email) = ? AND otp_code = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+      [targetEmail, String(otpCode).trim()]
+    );
+
+    if (rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP code.' });
+    }
+
+    return res.status(200).json({ success: true, message: 'OTP verified successfully.' });
+  } catch (error) {
+    console.error('[OTP] Error verifying OTP:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to verify OTP.', error: error.message });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// 3. Reset Password Endpoint
+app.post(['/api/auth/reset-password', '/api/auth/forgot-password/reset-password'], async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  const otpCode = req.body.otpCode || otp;
+  const password = req.body.password || newPassword;
+
+  if (!email || !otpCode || !password) {
+    return res.status(400).json({ success: false, message: 'Email, OTP code, and new password are required.' });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long.' });
+  }
+
+  const targetEmail = email.trim().toLowerCase();
+
+  let connection;
+  try {
+    const pool = require('./db');
+    connection = await pool.getConnection();
+
+    const [rows] = await connection.execute(
+      'SELECT id FROM password_otps WHERE LOWER(email) = ? AND otp_code = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+      [targetEmail, String(otpCode).trim()]
+    );
+
+    if (rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP code.' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await connection.execute('UPDATE officers SET password = ? WHERE LOWER(email) = ?', [hashedPassword, targetEmail]);
+    await connection.execute('UPDATE beneficiaries SET password = ? WHERE LOWER(email) = ?', [hashedPassword, targetEmail]);
+
+    // Clear used OTPs for this email
+    await connection.execute('DELETE FROM password_otps WHERE LOWER(email) = ?', [targetEmail]);
+
+    return res.status(200).json({ success: true, message: 'Password has been reset successfully. You may now log in.' });
+  } catch (error) {
+    console.error('[OTP] Error resetting password:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to reset password.', error: error.message });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   try {
@@ -282,6 +452,22 @@ async function initializeDatabaseTables(dbConnection) {
       console.log('[DB-INIT] ✅ Query 4 executed: Beneficiary accounts transferred.');
     } catch (err4) {
       console.error('[DB-INIT] Query 4 Notice:', err4.message);
+    }
+
+    // Query 5: Create table password_otps
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS password_otps (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) NOT NULL,
+            otp_code VARCHAR(6) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log('[DB-INIT] ✅ Query 5 executed: `password_otps` table verified.');
+    } catch (err5) {
+      console.error('[DB-INIT] Query 5 Notice:', err5.message);
     }
 
     if (sourceTable === 'users') {
