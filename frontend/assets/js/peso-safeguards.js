@@ -9,7 +9,8 @@
  * 5. Design System Integrity & Structural Compliance Validation.
  */
 
-const PESOSafeguards = (() => {
+if (typeof window.PESOSafeguards === 'undefined') {
+  window.PESOSafeguards = (() => {
   'use strict';
 
   // ---------------------------------------------------------------------------
@@ -721,9 +722,7 @@ const PESOSafeguards = (() => {
     executeWithSafeguards,
     validateDesignSystemIntegrity
   });
-})();
-
-// Export globally for browser & modular scripts
-if (typeof window !== 'undefined') {
-  window.PESOSafeguards = PESOSafeguards;
+  })();
 }
+
+var PESOSafeguards = window.PESOSafeguards;

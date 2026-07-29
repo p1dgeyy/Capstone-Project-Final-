@@ -11,7 +11,8 @@
  *   3. On logout, call: SessionManager.logout()
  */
 
-const SessionManager = (() => {
+if (typeof window.SessionManager === 'undefined') {
+  window.SessionManager = (() => {
   'use strict';
 
   const STORAGE_KEYS = {
@@ -90,7 +91,7 @@ const SessionManager = (() => {
     // Notify server to clear the session token
     if (userId) {
       try {
-        await fetch(API_CONFIG.BASE_URL + '/api/auth/logout', {
+        await fetch((typeof API_CONFIG !== 'undefined' ? API_CONFIG.BASE_URL : '') + '/api/auth/logout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId, sessionToken: token })
@@ -147,7 +148,7 @@ const SessionManager = (() => {
     }
 
     try {
-      const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/verify-session', {
+      const response = await fetch((typeof API_CONFIG !== 'undefined' ? API_CONFIG.BASE_URL : '') + '/api/auth/verify-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, sessionToken: token })
@@ -194,4 +195,7 @@ const SessionManager = (() => {
     verify,
     startPeriodicVerification
   });
-})();
+  })();
+}
+
+var SessionManager = window.SessionManager;

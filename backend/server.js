@@ -457,6 +457,25 @@ async function initializeDatabaseTables(dbConnection) {
       console.error('[DB-INIT] Query 5 Notice:', err5.message);
     }
 
+    // Query 6: Create table audit_logs
+    try {
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT,
+            user_type VARCHAR(50) DEFAULT 'officer',
+            action VARCHAR(255) NOT NULL,
+            entity_type VARCHAR(100),
+            entity_id VARCHAR(100),
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log('[DB-INIT] ✅ Query 6 executed: `audit_logs` table verified.');
+    } catch (err6) {
+      console.error('[DB-INIT] Query 6 Notice:', err6.message);
+    }
+
     if (sourceTable === 'users') {
       try {
         await connection.execute('RENAME TABLE users TO users_legacy;');
