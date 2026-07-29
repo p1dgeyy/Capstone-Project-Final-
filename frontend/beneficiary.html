@@ -1834,10 +1834,6 @@
                 <i class="bi bi-folder"></i>
                 <span data-translate="nav_documents">Documents</span>
             </a>
-            <a href="#" class="nav-link-custom" data-section="my-qr-code" onclick="navigateTo('my-qr-code'); loadMyQrCode();">
-                <i class="bi bi-qr-code"></i>
-                <span>My QR Code</span>
-            </a>
             <a href="#" class="nav-link-custom" data-section="programs" onclick="navigateTo('programs')">
                 <i class="bi bi-grid"></i>
                 <span data-translate="nav_programs">Programs</span>
@@ -1883,29 +1879,6 @@
                 English
             </button>
         </div>
-
-        <!-- MY QR CODE SECTION -->
-        <!-- Displays the beneficiary's personal QR code, generated server-side
-             (backend/lib/qrcode.js) once email OTP verification completes.
-             Officers can scan this code — GET /api/beneficiaries/lookup/:token —
-             to pull up the beneficiary's profile during interviews/distributions. -->
-        <section id="my-qr-code" class="section">
-            <div class="hero-banner">
-                <h1>My QR Code</h1>
-                <p>Show this to a PESO/CSWDO officer for quick verification, or download a copy.</p>
-            </div>
-            <div class="card-custom p-4 text-center" style="max-width: 420px; margin: 0 auto;">
-                <div id="qrCodeLoading">Loading your QR code…</div>
-                <div id="qrCodeContent" style="display:none;">
-                    <img id="qrCodeImage" src="" alt="Beneficiary QR Code" style="width: 260px; height: 260px; border-radius: 8px; border: 1px solid var(--border-color, #E2E8F0);">
-                    <p class="text-muted mt-2" style="font-size: 0.85rem;">Generated after email verification. Keep it handy on your phone.</p>
-                    <a id="qrCodeDownloadBtn" class="btn-primary-rose mt-2 d-inline-block" download="beneficiary-qr-code.png">
-                        <i class="bi bi-download"></i> Download QR Code
-                    </a>
-                </div>
-                <div id="qrCodeError" style="display:none; color: var(--danger);"></div>
-            </div>
-        </section>
 
         <!-- DASHBOARD SECTION -->
         <section id="dashboard" class="section active">
@@ -2699,8 +2672,6 @@
         </div>
     </div>
 
-    <script src="assets/js/api-config.js"></script>
-    <script src="assets/js/session-manager.js"></script>
     <script>
         // Sample application data
         const applications = {
@@ -2785,53 +2756,6 @@
         };
 
         let unreadCount = 3;
-
-        // --- My QR Code (backend-integrated) ---
-        // Fetches the beneficiary's QR code (generated after email OTP
-        // verification — see backend/routes/auth.js#register/verify-otp).
-        let qrCodeLoaded = false;
-        async function loadMyQrCode() {
-            const loadingEl = document.getElementById('qrCodeLoading');
-            const contentEl = document.getElementById('qrCodeContent');
-            const errorEl = document.getElementById('qrCodeError');
-            const imgEl = document.getElementById('qrCodeImage');
-            const downloadBtn = document.getElementById('qrCodeDownloadBtn');
-
-            const userId = (typeof SessionManager !== 'undefined') ? SessionManager.getUserId() : null;
-            if (!userId) {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-                errorEl.textContent = 'Please log in to view your QR code.';
-                return;
-            }
-
-            loadingEl.style.display = 'block';
-            contentEl.style.display = 'none';
-            errorEl.style.display = 'none';
-
-            try {
-                const response = await fetch(API_CONFIG.BASE_URL + `/api/beneficiaries/${userId}/qr-code`, {
-                    headers: SessionManager.authHeaders()
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    imgEl.src = data.qrCodeUrl;
-                    downloadBtn.href = data.qrCodeUrl;
-                    loadingEl.style.display = 'none';
-                    contentEl.style.display = 'block';
-                    qrCodeLoaded = true;
-                } else {
-                    loadingEl.style.display = 'none';
-                    errorEl.style.display = 'block';
-                    errorEl.textContent = data.message || 'QR code is not available yet.';
-                }
-            } catch (err) {
-                loadingEl.style.display = 'none';
-                errorEl.style.display = 'block';
-                errorEl.textContent = 'Unable to reach the server. Please try again later.';
-            }
-        }
 
         // Navigation
         function navigateTo(section) {

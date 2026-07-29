@@ -33,30 +33,13 @@ CREATE TABLE IF NOT EXISTS `users` (
   
   -- Session Management (single-session enforcement)
   `current_session_token` VARCHAR(128) DEFAULT NULL,
-
-  -- Clerk Integration (authentication / session provider)
-  `clerk_user_id` VARCHAR(191) DEFAULT NULL UNIQUE,
-
-  -- Email OTP Verification (Resend-delivered, required before a Beneficiary
-  -- record is considered fully active/verified)
-  `is_verified` BOOLEAN NOT NULL DEFAULT FALSE,
-  `email_otp_hash` VARCHAR(255) DEFAULT NULL,
-  `email_otp_expires_at` DATETIME DEFAULT NULL,
-  `email_otp_attempts` INT NOT NULL DEFAULT 0,
-  `verified_at` TIMESTAMP NULL DEFAULT NULL,
-
-  -- Beneficiary QR Code (generated on successful verification)
-  `qr_code_token` VARCHAR(191) DEFAULT NULL UNIQUE,
-  `qr_code_url` VARCHAR(500) DEFAULT NULL,
-
+  
   -- Metadata
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
   INDEX `idx_role` (`role`),
-  INDEX `idx_username` (`username`),
-  INDEX `idx_is_verified` (`is_verified`),
-  INDEX `idx_clerk_user_id` (`clerk_user_id`)
+  INDEX `idx_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. PROGRAMS TABLE

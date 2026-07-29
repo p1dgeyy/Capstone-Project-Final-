@@ -588,24 +588,6 @@
         </div>
     </div>
 
-    <!-- Email OTP Verification Modal — shown after successful registration.
-         The account is NOT usable for login until this code (sent via
-         Resend) is confirmed; on success, the backend generates the
-         beneficiary's QR code and emails a copy. -->
-    <div id="otpModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center;">
-        <div style="background:#fff; border-radius:12px; max-width:420px; width:90%; padding:32px; text-align:center;">
-            <h3 style="color:var(--primary-dark); margin-bottom:8px;">Verify your email</h3>
-            <p style="color:#666; font-size:0.92rem; margin-bottom:20px;">
-                We sent a 6-digit code to <strong id="otpTargetEmail"></strong>. Enter it below to activate your account and generate your Beneficiary QR code.
-            </p>
-            <input id="otpCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
-                   style="width:100%; font-size:1.6rem; letter-spacing:10px; text-align:center; padding:12px; border:2px solid var(--primary-light); border-radius:8px; margin-bottom:16px;">
-            <div id="otpError" style="display:none; color:#c0392b; font-size:0.88rem; margin-bottom:12px;"></div>
-            <button type="button" onclick="handleVerifyOtp()" style="width:100%; padding:12px; background:var(--primary-dark); color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer;">Verify & Activate Account</button>
-            <button type="button" onclick="handleResendOtp()" style="width:100%; padding:10px; background:none; border:none; color:var(--primary-dark); font-size:0.88rem; margin-top:8px; cursor:pointer;">Didn't get it? Resend code</button>
-        </div>
-    </div>
-
     <script>
         // File upload handler
         function handleFileUpload(event) {
@@ -745,19 +727,11 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    if (data.requiresVerification) {
-                        // Account is pending email verification — open the OTP modal
-                        // rather than redirecting to login (login is blocked until verified).
-                        pendingUserId = data.userId;
-                        document.getElementById('otpTargetEmail').textContent = email;
-                        document.getElementById('otpModalOverlay').style.display = 'flex';
-                        showSuccess(data.message || 'Check your email for a verification code.');
-                    } else {
-                        showSuccess('Account created successfully! Redirecting to login...');
-                        setTimeout(() => {
-                            window.location.href = 'official_login.html';
-                        }, 2000);
-                    }
+                    showSuccess('Account created successfully! Redirecting to login...');
+
+                    setTimeout(() => {
+                        window.location.href = 'official_login.html';
+                    }, 2000);
                 } else if (response.status === 409) {
                     // Duplicate username or email
                     showError(data.message || 'An account with this username or email already exists.');
@@ -775,61 +749,6 @@
 
         function validateEmail(email) {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
-
-        // --- Email OTP Verification (Resend-delivered code) ---
-        let pendingUserId = null;
-
-        async function handleVerifyOtp() {
-            const code = document.getElementById('otpCodeInput').value.trim();
-            const otpError = document.getElementById('otpError');
-            otpError.style.display = 'none';
-
-            if (!pendingUserId) return;
-            if (!/^\d{6}$/.test(code)) {
-                otpError.textContent = 'Enter the 6-digit code from your email.';
-                otpError.style.display = 'block';
-                return;
-            }
-
-            try {
-                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register/verify-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: pendingUserId, code })
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    document.getElementById('otpModalOverlay').style.display = 'none';
-                    showSuccess('Email verified! Your QR code has been emailed to you. Redirecting to login...');
-                    setTimeout(() => { window.location.href = 'official_login.html'; }, 2000);
-                } else {
-                    otpError.textContent = data.message || 'Verification failed. Please try again.';
-                    otpError.style.display = 'block';
-                }
-            } catch (err) {
-                otpError.textContent = 'Unable to reach the server. Please try again.';
-                otpError.style.display = 'block';
-            }
-        }
-
-        async function handleResendOtp() {
-            if (!pendingUserId) return;
-            try {
-                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register/resend-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: pendingUserId })
-                });
-                const data = await response.json();
-                const otpError = document.getElementById('otpError');
-                otpError.style.color = data.success ? '#2e7d32' : '#c0392b';
-                otpError.textContent = data.message || (data.success ? 'A new code was sent.' : 'Could not resend code.');
-                otpError.style.display = 'block';
-            } catch (err) {
-                console.error('Resend OTP failed:', err);
-            }
         }
 
         function showError(message) {

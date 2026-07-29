@@ -6,10 +6,6 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const pool = require('../db');
-const { generateOtpCode, hashOtp, expiresAt, verifyOtp, OTP_TTL_MINUTES } = require('../lib/otp');
-const { sendOtpEmail, sendWelcomeEmail, sendQrCodeEmail } = require('../lib/resend');
-const { generateQrToken, buildPayload, generateQrCodeDataUrl } = require('../lib/qrcode');
-const { isClerkEnabled, createClerkUser, linkClerkUserToDbId, setClerkUserVerified, deleteClerkUser } = require('../lib/clerk');
 
 const router = express.Router();
 
@@ -36,7 +32,7 @@ router.post('/login', async (req, res) => {
 
     // Query user by username OR email (supports both login methods)
     const [rows] = await connection.execute(
-      'SELECT * FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
+      'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
       [username.trim(), username.trim()]
     );
 
@@ -78,40 +74,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // --- Role Access Restriction Enforcement ---
-    // 1. Beneficiary Login Portal is exclusive to Beneficiary role only. Officers & Admins CANNOT log in via Beneficiary portal.
-    const loginType = req.body.loginType || req.body.portal;
-    if (loginType === 'beneficiary' && user.role !== 'Beneficiary') {
-      console.warn(`[AUTH] Login blocked — Staff/Admin role (${user.role}) attempted login through Beneficiary portal: ${username}`);
-      return res.status(403).json({
-        success: false,
-        message: 'Access Denied: Officer and Administrator accounts are not permitted to log in through the Beneficiary Portal. Please use the Admin/Staff Login Page.'
-      });
-    }
-
-    // 2. Admin & Staff Login Portal is exclusive to Staff/Admin roles only. Beneficiaries CANNOT log in via Admin/Staff portal.
-    if ((loginType === 'official' || loginType === 'admin') && user.role === 'Beneficiary') {
-      console.warn(`[AUTH] Login blocked — Beneficiary role attempted login through Staff/Admin portal: ${username}`);
-      return res.status(403).json({
-        success: false,
-        message: 'Access Denied: Beneficiary accounts are not permitted to log in through the Admin/Staff Portal. Please use the Beneficiary Login Page.'
-      });
-    }
-
-    // --- Email Verification Gate (Beneficiaries only) ---
-    // A Beneficiary record is only fully "active" once its email OTP has
-    // been confirmed. Officer/staff accounts are created by an admin and
-    // are considered verified by default (see users.role !== 'Beneficiary').
-    if (user.role === 'Beneficiary' && !user.is_verified) {
-      console.warn(`[AUTH] Login blocked — unverified Beneficiary email: ${username}`);
-      return res.status(403).json({
-        success: false,
-        message: 'Please verify your email address before logging in.',
-        requiresVerification: true,
-        userId: user.id
-      });
-    }
-
     // --- Single-Session Enforcement ---
     // Generate a new session token; this invalidates any previous session
     const sessionToken = crypto.randomBytes(48).toString('hex');
@@ -148,8 +110,7 @@ router.post('/login', async (req, res) => {
         firstName: user.first_name,
         lastName: user.last_name,
         fullName: `${user.first_name} ${user.last_name}`,
-        email: user.email,
-        qrCodeUrl: user.qr_code_url || null
+        email: user.email
       },
       redirect
     });
@@ -253,44 +214,14 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // --- Clerk: create the authenticated account (best-effort) ---
-    // Clerk owns credential storage/session issuance going forward. If Clerk
-    // isn't configured (no CLERK_SECRET_KEY) we fall back to the legacy
-    // bcrypt-only flow so local/dev environments keep working.
-    let clerkUser = null;
-    if (isClerkEnabled()) {
-      try {
-        clerkUser = await createClerkUser({
-          email: email.trim(),
-          password,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          role: 'Beneficiary'
-        });
-      } catch (clerkError) {
-        return res.status(400).json({
-          success: false,
-          message: `Account could not be created: ${clerkError.message}`
-        });
-      }
-    }
-
-    // --- Email OTP (Resend-delivered) ---
-    // The record is inserted as unverified (`is_verified = 0`) and is only
-    // usable for login once POST /api/auth/register/verify-otp succeeds.
-    const otpCode = generateOtpCode();
-    const otpHash = await hashOtp(otpCode);
-    const otpExpiresAt = expiresAt();
-
     // Insert new beneficiary user
     // NOTE: Role is hardcoded to 'Beneficiary' — the client CANNOT set or override this
     const insertQuery = `
       INSERT INTO users
         (username, password, role, first_name, middle_name, last_name, suffix,
          age, date_of_birth, sex, nationality, marital_status,
-         email, phone, address, id_type, terms_agreed, data_consent,
-         clerk_user_id, is_verified, email_otp_hash, email_otp_expires_at, email_otp_attempts)
-      VALUES (?, ?, 'Beneficiary', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0)
+         email, phone, address, id_type, terms_agreed, data_consent)
+      VALUES (?, ?, 'Beneficiary', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const insertValues = [
@@ -310,39 +241,17 @@ router.post('/register', async (req, res) => {
       address.trim(),
       idType,
       termsAgreed ? 1 : 0,
-      dataConsent ? 1 : 0,
-      clerkUser ? clerkUser.id : null,
-      otpHash,
-      otpExpiresAt
+      dataConsent ? 1 : 0
     ];
 
-    let result;
-    try {
-      [result] = await connection.execute(insertQuery, insertValues);
-    } catch (dbError) {
-      // Roll back the Clerk account if the local DB insert failed, so we
-      // don't end up with an orphaned Clerk user with no matching row.
-      if (clerkUser) await deleteClerkUser(clerkUser.id);
-      throw dbError;
-    }
+    const [result] = await connection.execute(insertQuery, insertValues);
 
-    if (clerkUser) await linkClerkUserToDbId(clerkUser.id, result.insertId, 'Beneficiary');
-
-    // Send the OTP email via Resend. Registration still succeeds even if the
-    // email fails to send — the user can request a resend.
-    try {
-      await sendOtpEmail({ to: email.trim(), firstName: firstName.trim(), code: otpCode, expiresInMinutes: OTP_TTL_MINUTES });
-    } catch (emailError) {
-      console.error('[AUTH] OTP email failed to send:', emailError.message);
-    }
-
-    console.log(`[AUTH] Registration pending verification — new user ID: ${result.insertId}, username: ${username.trim()}, role: Beneficiary`);
+    console.log(`[AUTH] Registration successful — new user ID: ${result.insertId}, username: ${username.trim()}, role: Beneficiary`);
 
     return res.status(201).json({
       success: true,
-      message: `Account created! Enter the 6-digit code sent to ${email.trim()} to activate it.`,
-      userId: result.insertId,
-      requiresVerification: true
+      message: 'Account created successfully!',
+      userId: result.insertId
     });
 
   } catch (error) {
@@ -367,140 +276,6 @@ router.post('/register', async (req, res) => {
     if (connection) {
       connection.release();
     }
-  }
-});
-
-// =============================================================================
-// POST /api/auth/register/verify-otp
-// Confirms the 6-digit code sent via Resend during registration.
-// On success: marks the Beneficiary as verified, generates their QR code,
-// and sends the welcome + QR code emails. This is the point at which the
-// account is considered "fully saved/verified" per the project requirements.
-// =============================================================================
-router.post('/register/verify-otp', async (req, res) => {
-  let connection;
-  try {
-    const { userId, code } = req.body;
-    if (!userId || !code) {
-      return res.status(400).json({ success: false, message: 'userId and code are required.' });
-    }
-
-    connection = await pool.getConnection();
-
-    const [rows] = await connection.execute(
-      `SELECT \`id\`, \`role\`, \`first_name\`, \`email\`, \`is_verified\`,
-              \`email_otp_hash\`, \`email_otp_expires_at\`, \`email_otp_attempts\`, \`clerk_user_id\`
-       FROM \`users\` WHERE \`id\` = ? LIMIT 1`,
-      [userId]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Account not found.' });
-    }
-
-    const user = rows[0];
-
-    if (user.is_verified) {
-      return res.status(200).json({ success: true, message: 'Account is already verified.', alreadyVerified: true });
-    }
-
-    const result = await verifyOtp({
-      storedHash: user.email_otp_hash,
-      storedExpiresAt: user.email_otp_expires_at,
-      attempts: user.email_otp_attempts,
-      submittedCode: code
-    });
-
-    if (!result.ok) {
-      // Track failed attempts for basic rate-limiting
-      await connection.execute('UPDATE `users` SET `email_otp_attempts` = `email_otp_attempts` + 1 WHERE `id` = ?', [userId]);
-
-      const messages = {
-        NO_ACTIVE_OTP: 'No verification code is pending. Please request a new one.',
-        TOO_MANY_ATTEMPTS: 'Too many incorrect attempts. Please request a new code.',
-        EXPIRED: 'This code has expired. Please request a new one.',
-        INCORRECT: 'Incorrect verification code.'
-      };
-      return res.status(400).json({ success: false, message: messages[result.reason] || 'Verification failed.', reason: result.reason });
-    }
-
-    // --- Generate the Beneficiary QR code now that the email is confirmed ---
-    const qrToken = generateQrToken();
-    const accountNumber = `BEN-${String(user.id).padStart(6, '0')}`;
-    const payload = buildPayload({ userId: user.id, accountNumber, qrToken });
-    const qrCodeDataUrl = await generateQrCodeDataUrl(payload);
-
-    await connection.execute(
-      `UPDATE \`users\`
-       SET \`is_verified\` = 1, \`verified_at\` = NOW(),
-           \`email_otp_hash\` = NULL, \`email_otp_expires_at\` = NULL, \`email_otp_attempts\` = 0,
-           \`qr_code_token\` = ?, \`qr_code_url\` = ?
-       WHERE \`id\` = ?`,
-      [qrToken, qrCodeDataUrl, user.id]
-    );
-
-    if (user.clerk_user_id) await setClerkUserVerified(user.clerk_user_id, true);
-
-    // Best-effort welcome + QR emails — don't block the response on these
-    sendWelcomeEmail({ to: user.email, firstName: user.first_name }).catch(e => console.error('[AUTH] Welcome email failed:', e.message));
-    sendQrCodeEmail({ to: user.email, firstName: user.first_name, qrCodeDataUrl }).catch(e => console.error('[AUTH] QR email failed:', e.message));
-
-    console.log(`[AUTH] Beneficiary verified — user ID: ${user.id}`);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Email verified! Your account is now active.',
-      qrCodeUrl: qrCodeDataUrl
-    });
-  } catch (error) {
-    console.error('[AUTH] verify-otp error:', error.message);
-    return res.status(500).json({ success: false, message: 'Internal server error.' });
-  } finally {
-    if (connection) connection.release();
-  }
-});
-
-// =============================================================================
-// POST /api/auth/register/resend-otp
-// Issues a fresh 6-digit code for a not-yet-verified account.
-// =============================================================================
-router.post('/register/resend-otp', async (req, res) => {
-  let connection;
-  try {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ success: false, message: 'userId is required.' });
-
-    connection = await pool.getConnection();
-    const [rows] = await connection.execute(
-      'SELECT `id`, `first_name`, `email`, `is_verified` FROM `users` WHERE `id` = ? LIMIT 1',
-      [userId]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Account not found.' });
-    }
-    if (rows[0].is_verified) {
-      return res.status(200).json({ success: true, message: 'Account is already verified.', alreadyVerified: true });
-    }
-
-    const otpCode = generateOtpCode();
-    const otpHash = await hashOtp(otpCode);
-    const otpExpiresAt = expiresAt();
-
-    await connection.execute(
-      'UPDATE `users` SET `email_otp_hash` = ?, `email_otp_expires_at` = ?, `email_otp_attempts` = 0 WHERE `id` = ?',
-      [otpHash, otpExpiresAt, userId]
-    );
-
-    await sendOtpEmail({ to: rows[0].email, firstName: rows[0].first_name, code: otpCode, expiresInMinutes: OTP_TTL_MINUTES });
-
-    console.log(`[AUTH] OTP resent — user ID: ${userId}`);
-    return res.status(200).json({ success: true, message: 'A new verification code has been sent to your email.' });
-  } catch (error) {
-    console.error('[AUTH] resend-otp error:', error.message);
-    return res.status(500).json({ success: false, message: 'Internal server error.' });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
