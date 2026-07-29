@@ -1,8 +1,5 @@
 /**
- * Central API Configuration
- * 
- * Resolves the backend API base URL for all frontend pages.
- * On Vercel deployments (*.vercel.app), defaults to live Railway backend.
+ * Central API Configuration Alias
  */
 
 if (typeof window.API_CONFIG === 'undefined') {
