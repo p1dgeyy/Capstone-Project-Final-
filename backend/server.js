@@ -88,6 +88,10 @@ app.use((req, res, next) => {
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+// Safeguards Middleware — Command Validation & Destructive Command Interceptor
+const { commandValidationMiddleware } = require('./middleware/safeguards');
+app.use(commandValidationMiddleware);
+
 // =============================================================================
 // Routes
 // =============================================================================
