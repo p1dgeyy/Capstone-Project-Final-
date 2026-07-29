@@ -7,7 +7,6 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const pool = require('../db');
-const { sendOtpEmail, sendWelcomeEmail } = require('../utils/mailer');
 const { generateQrCodeId, generateBeneficiaryQR } = require('../utils/qrcode');
 
 const router = express.Router();
