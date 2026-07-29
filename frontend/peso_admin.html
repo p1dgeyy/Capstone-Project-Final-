@@ -4595,34 +4595,38 @@
         }
 
         async function fetchOfficersFromApi() {
+            const BASE_URL = (window.location.hostname.includes('vercel.app')) 
+                ? 'https://capstone-project-final-production.up.railway.app' 
+                : ((typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) ? API_CONFIG.BASE_URL : '');
+            const endpointUrl = `${BASE_URL}/api/officers`;
+
             try {
-                const endpointUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL)
-                    ? (API_CONFIG.BASE_URL + '/api/officers')
-                    : '/api/officers';
+                console.log(`[Officers Debug] Fetching from: ${endpointUrl}`);
                 const response = await fetch(endpointUrl, {
                     method: 'GET',
-                    headers: SessionManager.authHeaders()
+                    headers: (typeof SessionManager !== 'undefined') ? SessionManager.authHeaders() : { 'Content-Type': 'application/json' }
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    const list = Array.isArray(data) ? data : (data.data || []);
+                    console.log('[Officers Debug] Raw response received:', data);
+                    const list = Array.isArray(data) ? data : (data.data || data.officers || []);
                     if (Array.isArray(list) && list.length > 0) {
                         const formatted = list.map(o => {
                             const nameParts = [o.first_name, o.middle_name, o.last_name, o.suffix].filter(Boolean);
-                            const name = nameParts.length > 0 ? nameParts.join(' ') : (o.username || 'Officer');
+                            const name = nameParts.length > 0 ? nameParts.join(' ') : (o.username || o.full_name || o.name || 'Officer');
                             return {
-                                id: String(o.id),
+                                id: String(o.id || o.qr_code_id || Math.random()),
                                 name: name,
                                 firstName: o.first_name || '',
                                 middleInitial: o.middle_name || '',
                                 lastName: o.last_name || '',
                                 suffix: o.suffix || '',
                                 username: o.username || '',
-                                email: o.email || '',
+                                email: o.email || 'N/A',
                                 role: o.role || 'PESO Officer',
                                 department: o.department || 'PESO Department',
                                 status: o.status || 'Active',
-                                dateCreated: o.created_at ? o.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+                                dateCreated: o.created_at ? (typeof o.created_at === 'string' ? o.created_at.split('T')[0] : new Date(o.created_at).toLocaleDateString()) : 'N/A'
                             };
                         });
                         localStorage.setItem('peso_officers', JSON.stringify(formatted));
@@ -4645,19 +4649,28 @@
             if (!gridBody) return;
 
             const officers = await fetchOfficersFromApi();
-            const search = document.getElementById('officerSearchInput').value.toLowerCase().trim();
-            const roleFilter = document.getElementById('officerFilterRole').value;
-            const statusFilter = document.getElementById('officerFilterStatus').value;
-            const sortBy = document.getElementById('officerSortBy').value;
+            const searchEl = document.getElementById('officerSearchInput');
+            const roleFilterEl = document.getElementById('officerFilterRole');
+            const statusFilterEl = document.getElementById('officerFilterStatus');
+            const sortByEl = document.getElementById('officerSortBy');
+
+            const search = searchEl ? searchEl.value.toLowerCase().trim() : '';
+            const roleFilter = roleFilterEl ? roleFilterEl.value : 'all';
+            const statusFilter = statusFilterEl ? statusFilterEl.value : 'all';
+            const sortBy = sortByEl ? sortByEl.value : 'dateCreated';
 
             gridBody.innerHTML = '';
 
             let filtered = officers.filter(o => {
-                const matchesSearch = o.name.toLowerCase().includes(search) || o.email.toLowerCase().includes(search) || o.username.toLowerCase().includes(search);
+                const matchesSearch = !search || o.name.toLowerCase().includes(search) || o.email.toLowerCase().includes(search) || o.username.toLowerCase().includes(search);
                 const matchesRole = roleFilter === 'all' || o.role === roleFilter;
                 const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
                 return matchesSearch && matchesRole && matchesStatus;
             });
+
+            if (filtered.length === 0 && officers.length > 0) {
+                filtered = officers;
+            }
 
             // Sorting
             if (sortBy === 'name') {
