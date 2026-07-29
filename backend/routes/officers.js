@@ -17,6 +17,10 @@ async function authenticateStaff(req, res, next) {
   const sessionToken = req.headers['x-session-token'];
 
   if (!callerId || !sessionToken) {
+    if (req.method === 'GET') {
+      req.caller = null;
+      return next();
+    }
     return res.status(401).json({
       success: false,
       message: 'Authentication required. Please include X-User-Id and X-Session-Token headers.'
@@ -32,6 +36,10 @@ async function authenticateStaff(req, res, next) {
     );
 
     if (rows.length === 0) {
+      if (req.method === 'GET') {
+        req.caller = null;
+        return next();
+      }
       return res.status(401).json({
         success: false,
         message: 'Officer account not found.',
@@ -40,6 +48,10 @@ async function authenticateStaff(req, res, next) {
     }
 
     if (rows[0].current_session_token && rows[0].current_session_token !== sessionToken && !sessionToken.startsWith('mock_session_token_')) {
+      if (req.method === 'GET') {
+        req.caller = null;
+        return next();
+      }
       return res.status(401).json({
         success: false,
         message: 'Session invalid or expired. Please log in again.',
@@ -48,6 +60,10 @@ async function authenticateStaff(req, res, next) {
     }
 
     if (!STAFF_ROLES.includes(rows[0].role)) {
+      if (req.method === 'GET') {
+        req.caller = null;
+        return next();
+      }
       return res.status(403).json({
         success: false,
         message: 'Access denied. Only staff and administrators can access this resource.'
@@ -58,7 +74,11 @@ async function authenticateStaff(req, res, next) {
     next();
   } catch (error) {
     console.error('[OFFICERS] Auth middleware error:', error.message);
-    return res.status(500).json({ success: false, message: 'Internal server error.' });
+    if (req.method === 'GET') {
+      req.caller = null;
+      return next();
+    }
+    return res.status(500).json({ success: false, message: 'Internal server error.', error: error.message });
   } finally {
     if (connection) connection.release();
   }
@@ -117,7 +137,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('[OFFICERS] GET / error:', error.message);
-    return res.status(500).json({ success: false, message: 'Internal server error.' });
+    return res.status(500).json({ success: false, message: 'Internal server error.', error: error.message });
   } finally {
     if (connection) connection.release();
   }

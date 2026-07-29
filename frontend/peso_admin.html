@@ -4593,13 +4593,54 @@
             });
         }
 
+        async function fetchOfficersFromApi() {
+            try {
+                const response = await fetch(API_CONFIG.BASE_URL + '/api/officers', {
+                    method: 'GET',
+                    headers: SessionManager.authHeaders()
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const list = Array.isArray(data) ? data : (data.data || []);
+                    if (Array.isArray(list) && list.length > 0) {
+                        const formatted = list.map(o => {
+                            const nameParts = [o.first_name, o.middle_name, o.last_name, o.suffix].filter(Boolean);
+                            const name = nameParts.length > 0 ? nameParts.join(' ') : (o.username || 'Officer');
+                            return {
+                                id: String(o.id),
+                                name: name,
+                                firstName: o.first_name || '',
+                                middleInitial: o.middle_name || '',
+                                lastName: o.last_name || '',
+                                suffix: o.suffix || '',
+                                username: o.username || '',
+                                email: o.email || '',
+                                role: o.role || 'PESO Officer',
+                                department: o.department || 'PESO Department',
+                                status: o.status || 'Active',
+                                dateCreated: o.created_at ? o.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+                            };
+                        });
+                        localStorage.setItem('peso_officers', JSON.stringify(formatted));
+                        return formatted;
+                    }
+                } else {
+                    console.error('[PESO_ADMIN] GET /api/officers HTTP error status:', response.status);
+                }
+            } catch (err) {
+                console.error('[PESO_ADMIN] GET /api/officers fetch error:', err.message || err);
+            }
+            return JSON.parse(localStorage.getItem('peso_officers')) || [];
+        }
+
         // ==============================================
         // MODULE LOGIC: OFFICERS MANAGEMENT (REQ007-REQ011)
         // ==============================================
-        function renderOfficersTable() {
-            const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+        async function renderOfficersTable() {
             const gridBody = document.getElementById('officersGridBody');
             if (!gridBody) return;
+
+            const officers = await fetchOfficersFromApi();
             const search = document.getElementById('officerSearchInput').value.toLowerCase().trim();
             const roleFilter = document.getElementById('officerFilterRole').value;
             const statusFilter = document.getElementById('officerFilterStatus').value;

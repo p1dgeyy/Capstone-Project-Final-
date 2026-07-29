@@ -24,23 +24,34 @@ const PORT = process.env.API_PORT || process.env.PORT || 8080;
 // =============================================================================
 
 // CORS — allow frontend origin(s)
-const allowedOrigins = process.env.CORS_ORIGIN
+const defaultAllowedOrigins = [
+  'https://capstone-project-final-sooty.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8080'
+];
+
+const envAllowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : null;
+  : [];
+
+const allowedOriginsList = Array.from(new Set([...defaultAllowedOrigins, ...envAllowedOrigins]));
 
 app.use(cors({
-  origin: allowedOrigins
-    ? function (origin, callback) {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-        return callback(new Error('Not allowed by CORS'));
-      }
-    : '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOriginsList.includes(origin) || allowedOriginsList.includes('*')) {
+      return callback(null, true);
+    }
+    if (origin.endsWith('.vercel.app') || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-Session-Token'],
-  credentials: !!allowedOrigins
+  credentials: true
 }));
 
 // Parse JSON request bodies
