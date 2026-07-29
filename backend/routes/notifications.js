@@ -65,11 +65,12 @@ router.post('/', async (req, res) => {
 
     connection = await pool.getConnection();
 
-    // Verify user exists in officers or beneficiaries
-    const [off] = await connection.execute('SELECT `id` FROM `officers` WHERE `id` = ? LIMIT 1', [user_id]);
-    const [ben] = await connection.execute('SELECT `id` FROM `beneficiaries` WHERE `id` = ? LIMIT 1', [user_id]);
-
-    if (off.length === 0 && ben.length === 0) {
+    // Verify user exists
+    const [user] = await connection.execute(
+      'SELECT `id` FROM `users` WHERE `id` = ? LIMIT 1',
+      [user_id]
+    );
+    if (user.length === 0) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 

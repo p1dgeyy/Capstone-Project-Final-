@@ -43,10 +43,10 @@ router.get('/', async (req, res) => {
         u_off.first_name AS officer_first_name,
         u_off.last_name AS officer_last_name
       FROM interview_schedules i
-      JOIN beneficiaries u_ben ON i.beneficiary_id = u_ben.id
+      JOIN users u_ben ON i.beneficiary_id = u_ben.id
       JOIN programs p ON i.program_id = p.id
       LEFT JOIN applications app ON i.application_id = app.id
-      LEFT JOIN officers u_off ON i.officer_id = u_off.id
+      LEFT JOIN users u_off ON i.officer_id = u_off.id
       WHERE 1=1
     `;
 
@@ -138,6 +138,7 @@ router.post('/', async (req, res) => {
 
     const scheduleId = result.insertId;
 
+    // Optional: update application status if linked
     if (application_id) {
       await connection.query(
         `UPDATE applications SET status = 'Interview Scheduled' WHERE id = ?`,
@@ -145,6 +146,7 @@ router.post('/', async (req, res) => {
       );
     }
 
+    // Insert Notification for Beneficiary
     await connection.query(
       `INSERT INTO notifications (user_id, title, message, type, is_read) 
        VALUES (?, 'Interview Scheduled', ?, 'info', 0)`,
@@ -154,6 +156,7 @@ router.post('/', async (req, res) => {
       ]
     );
 
+    // Audit log entry
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_SCHEDULE_INTERVIEW', 'interview_schedules', ?, ?)`,
@@ -198,6 +201,7 @@ router.put('/:id/attendance', async (req, res) => {
 
     await connection.beginTransaction();
 
+    // Check existing
     const [existing] = await connection.query(`SELECT * FROM interview_schedules WHERE id = ?`, [scheduleId]);
     if (existing.length === 0) {
       await connection.rollback();
@@ -206,6 +210,7 @@ router.put('/:id/attendance', async (req, res) => {
 
     const current = existing[0];
 
+    // Auto-update schedule status if marked Present -> Completed or Absent -> Pending/Missed
     let newStatus = current.status;
     if (attendance_status === 'Present') {
       newStatus = 'Completed';
@@ -220,6 +225,7 @@ router.put('/:id/attendance', async (req, res) => {
       [attendance_status, newStatus, remarks || null, scheduleId]
     );
 
+    // Notify Beneficiary
     await connection.query(
       `INSERT INTO notifications (user_id, title, message, type, is_read) 
        VALUES (?, 'Interview Attendance Updated', ?, 'info', 0)`,
@@ -229,6 +235,7 @@ router.put('/:id/attendance', async (req, res) => {
       ]
     );
 
+    // Log to Audit Trail
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_UPDATE_ATTENDANCE', 'interview_schedules', ?, ?)`,
@@ -291,6 +298,7 @@ router.put('/:id/status', async (req, res) => {
       [status, remarks || null, scheduleId]
     );
 
+    // Log Audit Event
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_UPDATE_INTERVIEW_STATUS', 'interview_schedules', ?, ?)`,

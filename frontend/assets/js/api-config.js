@@ -1,28 +1,38 @@
 /**
- * Central API Configuration
+ * API Configuration
  * 
- * Resolves the backend API base URL for all frontend pages.
- * On Vercel deployments (*.vercel.app), defaults to live Railway backend.
+ * Centralises the backend API base URL so every frontend page
+ * resolves it from one place instead of hard-coding paths.
+ *
+ * How it works (in priority order):
+ *   1. window.__API_BASE_URL__  – set at runtime (e.g. by a CI/CD injected <script>)
+ *   2. <meta name="api-base-url"> – set in the HTML <head>
+ *   3. ''  (empty string)        – falls back to relative paths (works when
+ *                                   frontend and backend share the same origin,
+ *                                   e.g. behind the Nginx reverse-proxy in Docker)
+ *
+ * For Vercel (or any separate deployment), set the <meta> tag or the global
+ * variable to your backend's public URL, for example:
+ *
+ *   <meta name="api-base-url" content="https://your-backend.up.railway.app">
+ *
+ * The value must NOT end with a trailing slash.
  */
 
-if (typeof window.API_CONFIG === 'undefined') {
-  const isVercel = typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app');
-  
-  let baseUrl = '';
+const API_CONFIG = (() => {
+  'use strict';
+
+  // 1. Runtime override (highest priority)
   if (typeof window.__API_BASE_URL__ === 'string' && window.__API_BASE_URL__) {
-    baseUrl = window.__API_BASE_URL__.replace(/\/+$/, '');
-  } else {
-    const meta = document.querySelector('meta[name="api-base-url"]');
-    if (meta && meta.content) {
-      baseUrl = meta.content.replace(/\/+$/, '');
-    } else if (isVercel) {
-      baseUrl = 'https://capstone-project-final-production.up.railway.app';
-    }
+    return Object.freeze({ BASE_URL: window.__API_BASE_URL__.replace(/\/+$/, '') });
   }
 
-  window.API_CONFIG = Object.freeze({
-    BASE_URL: baseUrl
-  });
-}
+  // 2. <meta name="api-base-url" content="...">
+  const meta = document.querySelector('meta[name="api-base-url"]');
+  if (meta && meta.content) {
+    return Object.freeze({ BASE_URL: meta.content.replace(/\/+$/, '') });
+  }
 
-var API_CONFIG = window.API_CONFIG;
+  // 3. Fallback — same-origin (relative paths, works behind Nginx/Docker)
+  return Object.freeze({ BASE_URL: '' });
+})();

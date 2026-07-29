@@ -17,14 +17,9 @@ router.get('/', async (req, res) => {
 
     let query = `
       SELECT al.*, 
-             COALESCE(off.first_name, ben.first_name) AS first_name,
-             COALESCE(off.last_name, ben.last_name) AS last_name,
-             COALESCE(off.role, ben.role) AS role,
-             COALESCE(off.username, ben.username) AS username,
-             COALESCE(off.email, ben.email) AS email
+             u.first_name, u.last_name, u.role, u.username, u.email
       FROM \`audit_logs\` al
-      LEFT JOIN \`officers\` off ON al.user_id = off.id AND (al.user_type = 'officer' OR al.user_type IS NULL)
-      LEFT JOIN \`beneficiaries\` ben ON al.user_id = ben.id AND al.user_type = 'beneficiary'
+      JOIN \`users\` u ON al.user_id = u.id
     `;
     const conditions = [];
     const params = [];
@@ -55,15 +50,7 @@ router.get('/', async (req, res) => {
 
     query += ' ORDER BY al.`created_at` DESC LIMIT 200';
 
-    let [rows] = await connection.execute(query, params);
-
-    if (rows.length === 0) {
-      rows = [
-        { id: 1, user_id: 1, first_name: 'Maria', last_name: 'Santos', username: 'maria_santos', role: 'PESO Admin', action: 'System Login', details: 'Admin logged into portal from Vercel.', created_at: new Date().toISOString() },
-        { id: 2, user_id: 2, first_name: 'Juan', last_name: 'Dela Cruz', username: 'juan_delacruz', role: 'PESO Officer', action: 'Application Verification', details: 'Verified beneficiary application APP-2026-001.', created_at: new Date().toISOString() },
-        { id: 3, user_id: 3, first_name: 'Elena', last_name: 'Reyes', username: 'elena_reyes', role: 'CSWDO Admin', action: 'Program Budget Allocation', details: 'Updated budget allocation for Medical Assistance Program.', created_at: new Date().toISOString() }
-      ];
-    }
+    const [rows] = await connection.execute(query, params);
 
     return res.status(200).json({
       success: true,
@@ -71,15 +58,8 @@ router.get('/', async (req, res) => {
       count: rows.length
     });
   } catch (error) {
-    console.error('[AUDIT_LOGS] GET / error (returning seed array):', error.message);
-    return res.status(200).json({
-      success: true,
-      data: [
-        { id: 1, user_id: 1, first_name: 'Maria', last_name: 'Santos', username: 'maria_santos', role: 'PESO Admin', action: 'System Login', details: 'Admin logged into portal from Vercel.', created_at: new Date().toISOString() },
-        { id: 2, user_id: 2, first_name: 'Juan', last_name: 'Dela Cruz', username: 'juan_delacruz', role: 'PESO Officer', action: 'Application Verification', details: 'Verified beneficiary application APP-2026-001.', created_at: new Date().toISOString() }
-      ],
-      count: 2
-    });
+    console.error('[AUDIT_LOGS] GET / error:', error.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
   } finally {
     if (connection) connection.release();
   }

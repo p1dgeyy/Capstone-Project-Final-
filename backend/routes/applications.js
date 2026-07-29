@@ -20,15 +20,15 @@ router.get('/', async (req, res) => {
 
     let query = `
       SELECT a.*, 
-             u.first_name, u.last_name, u.username, u.email AS beneficiary_email, u.phone AS beneficiary_phone, u.address AS beneficiary_address, u.qr_code_id,
+             u.first_name, u.last_name, u.username, u.email AS beneficiary_email, u.phone AS beneficiary_phone, u.address AS beneficiary_address,
              p.code AS program_code, p.name AS program_name, p.agency,
              u_off.first_name AS officer_first_name, u_off.last_name AS officer_last_name,
              u_adm.first_name AS admin_first_name, u_adm.last_name AS admin_last_name
-       FROM \`applications\` a
-       JOIN \`beneficiaries\` u ON a.beneficiary_id = u.id
-       JOIN \`programs\` p ON a.program_id = p.id
-       LEFT JOIN \`officers\` u_off ON a.officer_id = u_off.id
-       LEFT JOIN \`officers\` u_adm ON a.admin_id = u_adm.id
+      FROM \`applications\` a
+      JOIN \`users\` u ON a.beneficiary_id = u.id
+      JOIN \`programs\` p ON a.program_id = p.id
+      LEFT JOIN \`users\` u_off ON a.officer_id = u_off.id
+      LEFT JOIN \`users\` u_adm ON a.admin_id = u_adm.id
     `;
     const conditions = [];
     const params = [];
@@ -62,16 +62,9 @@ router.get('/', async (req, res) => {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    let [rows] = await connection.execute(query, params);
+    query += ' ORDER BY a.`created_at` DESC';
 
-    if (rows.length === 0) {
-      rows = [
-        { id: 1, application_no: 'APP-2026-001', beneficiary_id: 1, first_name: 'Juan', last_name: 'Dela Cruz', username: 'juan_delacruz', program_id: 1, program_name: 'SPES Youth Employment', agency: 'PESO', status: 'Pending', officer_decision: 'Approved', admin_decision: 'Pending', created_at: new Date().toISOString() },
-        { id: 2, application_no: 'APP-2026-002', beneficiary_id: 2, first_name: 'Maria', last_name: 'Santos', username: 'maria_santos', program_id: 2, program_name: 'TUPAD Emergency Employment', agency: 'PESO', status: 'Approved', officer_decision: 'Approved', admin_decision: 'Approved', created_at: new Date().toISOString() },
-        { id: 3, application_no: 'APP-2026-003', beneficiary_id: 3, first_name: 'Pedro', last_name: 'Reyes', username: 'pedro_reyes', program_id: 3, program_name: 'Medical Assistance Program', agency: 'CSWDO', status: 'Approved', officer_decision: 'Approved', admin_decision: 'Approved', created_at: new Date().toISOString() },
-        { id: 4, application_no: 'APP-2026-004', beneficiary_id: 4, first_name: 'Ana', last_name: 'Gonzales', username: 'ana_gonzales', program_id: 4, program_name: 'Solo Parent Livelihood Support', agency: 'CSWDO', status: 'Pending', officer_decision: 'Pending', admin_decision: 'Pending', created_at: new Date().toISOString() }
-      ];
-    }
+    const [rows] = await connection.execute(query, params);
 
     return res.status(200).json({
       success: true,
@@ -79,15 +72,8 @@ router.get('/', async (req, res) => {
       count: rows.length
     });
   } catch (error) {
-    console.error('[APPLICATIONS] GET / error (returning seed array):', error.message);
-    return res.status(200).json({
-      success: true,
-      data: [
-        { id: 1, application_no: 'APP-2026-001', beneficiary_id: 1, first_name: 'Juan', last_name: 'Dela Cruz', username: 'juan_delacruz', program_id: 1, program_name: 'SPES Youth Employment', agency: 'PESO', status: 'Pending', officer_decision: 'Approved', admin_decision: 'Pending', created_at: new Date().toISOString() },
-        { id: 2, application_no: 'APP-2026-002', beneficiary_id: 2, first_name: 'Maria', last_name: 'Santos', username: 'maria_santos', program_id: 2, program_name: 'TUPAD Emergency Employment', agency: 'PESO', status: 'Approved', officer_decision: 'Approved', admin_decision: 'Approved', created_at: new Date().toISOString() }
-      ],
-      count: 2
-    });
+    console.error('[APPLICATIONS] GET / error:', error.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
   } finally {
     if (connection) connection.release();
   }
@@ -107,7 +93,7 @@ router.get('/:id', async (req, res) => {
               u.phone AS beneficiary_phone, u.address AS beneficiary_address,
               p.code AS program_code, p.name AS program_name, p.agency
        FROM \`applications\` a
-       JOIN \`beneficiaries\` u ON a.beneficiary_id = u.id
+       JOIN \`users\` u ON a.beneficiary_id = u.id
        JOIN \`programs\` p ON a.program_id = p.id
        WHERE a.\`id\` = ? LIMIT 1`,
       [req.params.id]
@@ -148,7 +134,7 @@ router.post('/', async (req, res) => {
 
     // Verify beneficiary exists and has Beneficiary role
     const [beneficiary] = await connection.execute(
-      'SELECT `id` FROM `beneficiaries` WHERE `id` = ? LIMIT 1',
+      'SELECT `id`, `role` FROM `users` WHERE `id` = ? LIMIT 1',
       [beneficiary_id]
     );
     if (beneficiary.length === 0) {
@@ -303,7 +289,7 @@ router.put('/:id/officer-evaluate', async (req, res) => {
       `SELECT a.*, p.name AS program_name, u.first_name, u.last_name
        FROM \`applications\` a
        JOIN \`programs\` p ON a.program_id = p.id
-       JOIN \`beneficiaries\` u ON a.beneficiary_id = u.id
+       JOIN \`users\` u ON a.beneficiary_id = u.id
        WHERE a.\`id\` = ? LIMIT 1`,
       [req.params.id]
     );
@@ -349,7 +335,7 @@ router.put('/:id/officer-evaluate', async (req, res) => {
     }
 
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', ?, ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
       [app.beneficiary_id, notifTitle, notifMsg]
     );
 
@@ -357,7 +343,7 @@ router.put('/:id/officer-evaluate', async (req, res) => {
     const auditAction = `OFFICER_EVALUATE_${action.toUpperCase()}`;
     const auditDetails = `Officer (ID: ${callerId}) evaluated application ${app.application_number} -> ${newStatus}. Notes: ${notes || 'None'}`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', ?, 'application', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, ?, 'application', ?, ?)`,
       [callerId, auditAction, req.params.id, auditDetails]
     );
 
@@ -421,7 +407,7 @@ router.put('/:id/admin-finalize', async (req, res) => {
     const notifMsg = `Your application ${app.application_number} for ${app.program_name} has been officially ${newStatus} by PESO Admin. ${notes ? 'Remarks: ' + notes : ''}`;
 
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', ?, ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
       [app.beneficiary_id, notifTitle, notifMsg]
     );
 
@@ -429,7 +415,7 @@ router.put('/:id/admin-finalize', async (req, res) => {
     const auditAction = `ADMIN_FINALIZE_${action.toUpperCase()}`;
     const auditDetails = `PESO Admin (ID: ${callerId}) finalized application ${app.application_number} -> ${newStatus}. Remarks: ${notes || 'None'}`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', ?, 'application', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, ?, 'application', ?, ?)`,
       [callerId, auditAction, req.params.id, auditDetails]
     );
 
@@ -466,7 +452,7 @@ router.post('/record', async (req, res) => {
 
     // Verify beneficiary
     const [bene] = await connection.execute(
-      'SELECT `id`, `first_name`, `last_name` FROM `beneficiaries` WHERE `id` = ? LIMIT 1',
+      'SELECT `id`, `first_name`, `last_name` FROM `users` WHERE `id` = ? LIMIT 1',
       [beneficiary_id]
     );
     if (bene.length === 0) {
@@ -499,14 +485,14 @@ router.post('/record', async (req, res) => {
 
     // Notify beneficiary
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', ?, ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
       [beneficiary_id, 'New Application Recorded', `Your application ${applicationNumber} for ${prog[0].name} has been recorded by PESO Officer.`]
     );
 
     // Write audit log
     const auditDetails = `PESO Officer (ID: ${callerId}) recorded new application ${applicationNumber} for Beneficiary #${beneficiary_id} (${bene[0].first_name} ${bene[0].last_name}).`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', 'OFFICER_RECORD_APPLICATION', 'application', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'OFFICER_RECORD_APPLICATION', 'application', ?, ?)`,
       [callerId, result.insertId, auditDetails]
     );
 
@@ -561,14 +547,14 @@ router.put('/:id/status', async (req, res) => {
 
     // Notify beneficiary
     await connection.execute(
-      `INSERT INTO \`notifications\` (\`user_id\`, \`user_type\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, 'beneficiary', ?, ?, FALSE)`,
+      `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
       [app.beneficiary_id, 'Application Lifecycle Update', `Your application ${app.application_number} status updated to ${status}.`]
     );
 
     // Log audit
     const auditDetails = `User (ID: ${callerId}) updated application ${app.application_number} status to ${status}.`;
     await connection.execute(
-      `INSERT INTO \`audit_logs\` (\`user_id\`, \`user_type\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'officer', 'APPLICATION_STATUS_UPDATE', 'application', ?, ?)`,
+      `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, 'APPLICATION_STATUS_UPDATE', 'application', ?, ?)`,
       [callerId, req.params.id, auditDetails]
     );
 

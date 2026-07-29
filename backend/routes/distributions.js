@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
              p.code AS program_code, p.name AS program_name
       FROM \`distributions\` d
       JOIN \`applications\` a ON d.application_id = a.id
-      JOIN \`beneficiaries\` u ON a.beneficiary_id = u.id
+      JOIN \`users\` u ON a.beneficiary_id = u.id
       JOIN \`programs\` p ON a.program_id = p.id
     `;
     const conditions = [];
@@ -81,7 +81,7 @@ router.get('/:id', async (req, res) => {
               p.code AS program_code, p.name AS program_name
        FROM \`distributions\` d
        JOIN \`applications\` a ON d.application_id = a.id
-       JOIN \`beneficiaries\` u ON a.beneficiary_id = u.id
+       JOIN \`users\` u ON a.beneficiary_id = u.id
        JOIN \`programs\` p ON a.program_id = p.id
        WHERE d.\`id\` = ? LIMIT 1`,
       [req.params.id]

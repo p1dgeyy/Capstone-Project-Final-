@@ -33,16 +33,9 @@ router.get('/', async (req, res) => {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    let [rows] = await connection.execute(query, params);
+    query += ' ORDER BY `created_at` DESC';
 
-    if (rows.length === 0) {
-      rows = [
-        { id: 1, code: 'PRG-001', name: 'Special Program for Employment of Students (SPES)', agency: 'PESO', category: 'Educational Assistance', allocation: 500000.00, budget_allocated: 500000.00, budget_spent: 320000.00, status: 'Active', slots_available: 150, description: 'Youth employment bridge program for students.' },
-        { id: 2, code: 'PRG-002', name: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)', agency: 'PESO', category: 'Emergency Employment', allocation: 1200000.00, budget_allocated: 1200000.00, budget_spent: 850000.00, status: 'Active', slots_available: 300, description: 'Community-based emergency employment program.' },
-        { id: 3, code: 'PRG-003', name: 'Medical & Healthcare Assistance Program', agency: 'CSWDO', category: 'Medical Assistance', allocation: 750000.00, budget_allocated: 750000.00, budget_spent: 490000.00, status: 'Active', slots_available: 200, description: 'Financial support for medical bills and prescription medicine.' },
-        { id: 4, code: 'PRG-004', name: 'Livelihood Assistance for Solo Parents', agency: 'CSWDO', category: 'Livelihood Assistance', allocation: 400000.00, budget_allocated: 400000.00, budget_spent: 210000.00, status: 'Active', slots_available: 100, description: 'Micro-grant assistance for solo parents starting small businesses.' }
-      ];
-    }
+    const [rows] = await connection.execute(query, params);
 
     return res.status(200).json({
       success: true,
@@ -50,15 +43,8 @@ router.get('/', async (req, res) => {
       count: rows.length
     });
   } catch (error) {
-    console.error('[PROGRAMS] GET / error (returning seed array):', error.message);
-    return res.status(200).json({
-      success: true,
-      data: [
-        { id: 1, code: 'PRG-001', name: 'Special Program for Employment of Students (SPES)', agency: 'PESO', category: 'Educational Assistance', allocation: 500000.00, budget_allocated: 500000.00, budget_spent: 320000.00, status: 'Active', slots_available: 150, description: 'Youth employment bridge program for students.' },
-        { id: 2, code: 'PRG-002', name: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)', agency: 'PESO', category: 'Emergency Employment', allocation: 1200000.00, budget_allocated: 1200000.00, budget_spent: 850000.00, status: 'Active', slots_available: 300, description: 'Community-based emergency employment program.' }
-      ],
-      count: 2
-    });
+    console.error('[PROGRAMS] GET / error:', error.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
   } finally {
     if (connection) connection.release();
   }

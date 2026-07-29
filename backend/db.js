@@ -1,14 +1,14 @@
 // Node.js Database Connection Pool Module
 // Utilizes mysql2 library for connection pooling and promise-based interface
-// Hardened for Railway deployment — safe startup initialization without process exits
+// Hardened for Railway deployment — no silent fallbacks to localhost
 
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+require('dotenv').config(); // Load environment variables from .env file
 
 let pool;
 
-// Detect connection string or individual environment variables (Railway / standard MySQL)
-const connectionUri = process.env.MYSQL_URL || process.env.DATABASE_URL || process.env.MYSQLPUBLICURL || process.env.MYSQL_PRIVATE_URL;
+// Check for unified connection string first (Railway standard)
+const connectionUri = process.env.MYSQL_URL || process.env.DATABASE_URL;
 
 if (connectionUri) {
   console.log('[DB] Connection string detected. Initializing MySQL pool...');
@@ -17,22 +17,28 @@ if (connectionUri) {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    // Railway MySQL requires SSL in production
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined
   });
 } else {
-  const host = process.env.MYSQLHOST || process.env.DB_HOST || 'localhost';
-  const user = process.env.MYSQLUSER || process.env.DB_USER || 'root';
-  const password = process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '';
-  const database = process.env.MYSQLDATABASE || process.env.DB_NAME || 'capstone';
-  const port = parseInt(process.env.MYSQLPORT || process.env.DB_PORT || '3306', 10);
+  // Require ALL individual env vars — never silently fall back to localhost/root
+  const requiredVars = ['MYSQLHOST', 'MYSQLUSER', 'MYSQLPASSWORD', 'MYSQLDATABASE'];
+  const missing = requiredVars.filter(v => !process.env[v]);
 
-  console.log(`[DB] Initializing MySQL pool (host: ${host}, port: ${port}, db: ${database})`);
+  if (missing.length > 0) {
+    console.error(`[DB] CRITICAL: Missing required environment variables: ${missing.join(', ')}`);
+    console.error('[DB] Set MYSQL_URL / DATABASE_URL, or provide all individual MYSQL* variables.');
+    console.error('[DB] Refusing to fall back to localhost/root to prevent silent data loss.');
+    process.exit(1);
+  }
+
+  console.log(`[DB] Initializing MySQL pool via individual env vars (host: ${process.env.MYSQLHOST}, port: ${process.env.MYSQLPORT || 3306}, db: ${process.env.MYSQLDATABASE})`);
   pool = mysql.createPool({
-    host,
-    user,
-    password,
-    database,
-    port,
+    host: process.env.MYSQLHOST,
+    user: process.env.MYSQLUSER,
+    password: process.env.MYSQLPASSWORD,
+    database: process.env.MYSQLDATABASE,
+    port: parseInt(process.env.MYSQLPORT || '3306', 10),
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -43,13 +49,14 @@ if (connectionUri) {
 // Export the pool to be used throughout the application
 module.exports = pool;
 
-// Non-fatal database connection test on start
+// Test the database connection on start
 (async () => {
   try {
     const connection = await pool.getConnection();
-    console.log('[DB] ✅ MySQL connection successfully established!');
+    console.log('[DB] MySQL connection successfully established!');
     connection.release();
   } catch (error) {
-    console.warn('[DB] Notice: MySQL connection pending or unavailable on startup:', error.message);
+    console.error('[DB] CRITICAL: Failed to connect to MySQL database:', error.message);
+    console.error('[DB] Connection details — check your MYSQL_URL or MYSQL* environment variables.');
   }
 })();

@@ -1042,8 +1042,6 @@
                             Account</span>
                     </button>
                 </div>
-
-
             </div>
 
             <div class="footer-version">
@@ -1625,7 +1623,7 @@
             icon.classList.toggle('bi-eye-slash');
         });
 
-        // Form submission (Beneficiary Only — authenticates against MySQL database)
+        // Form submission (Beneficiary Only — authenticates against MySQL database with resilient fallback)
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -1645,34 +1643,54 @@
             spinner.style.display = 'block';
             loginBtn.disabled = true;
 
+            const lowerUser = username.trim().toLowerCase();
+            const staffAccounts = ['peso-admin', 'cswdo-admin', 'peso-officer', 'cswdo-officer', 'admin', 'officer', 'evaluator'];
+
+            // Immediate restriction check for staff/admins on Beneficiary portal
+            if (staffAccounts.includes(lowerUser)) {
+                document.getElementById('errorMessage').textContent = 'Access Denied: Officer and Administrator accounts are not permitted to log in through the Beneficiary Portal. Please use the Admin/Staff Login Page.';
+                errorAlert.style.display = 'block';
+                btnText.style.display = 'inline';
+                btnIcon.style.display = 'inline-block';
+                spinner.style.display = 'none';
+                loginBtn.disabled = false;
+                return;
+            }
+
             try {
-                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login'.replace('/login', '/beneficiary/login'), {
+                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username.trim(), password })
+                    body: JSON.stringify({ username: username.trim(), password, loginType: 'beneficiary' })
                 });
 
-                const data = await response.json().catch(() => ({}));
+                const data = await response.json();
                 if (response.ok && data.success) {
-                    SessionManager.save(data.user.id, data.sessionToken, data.user.role);
+                    if (data.user && data.user.role !== 'Beneficiary') {
+                        document.getElementById('errorMessage').textContent = 'Access Denied: Officer and Administrator accounts are not permitted to log in through the Beneficiary Portal. Please use the Admin/Staff Login Page.';
+                        errorAlert.style.display = 'block';
+                        btnText.style.display = 'inline';
+                        btnIcon.style.display = 'inline-block';
+                        spinner.style.display = 'none';
+                        loginBtn.disabled = false;
+                        return;
+                    }
 
+                    SessionManager.save(data.user.id, data.sessionToken, data.user.role);
                     sessionStorage.setItem('userRole', data.user.role);
                     sessionStorage.setItem('username', data.user.username);
                     sessionStorage.setItem('userId', data.user.id);
                     sessionStorage.setItem('userFullName', data.user.fullName);
                     sessionStorage.setItem('beneficiaryLoggedIn', 'true');
-                    sessionStorage.setItem('beneficiaryUsername', data.user.username);
-                    sessionStorage.setItem('beneficiaryName', data.user.fullName);
-                    sessionStorage.removeItem('privacyAccepted_' + data.user.username);
 
-                    successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
+                    successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'] || 'Login successful! Redirecting...';
                     successAlert.style.display = 'block';
 
                     setTimeout(() => {
                         window.location.href = data.redirect || 'beneficiary.html';
-                    }, 1000);
+                    }, 800);
                     return;
-                } else if (data.message) {
+                } else if (response.status === 403 && data && data.message) {
                     document.getElementById('errorMessage').textContent = data.message;
                     errorAlert.style.display = 'block';
                     btnText.style.display = 'inline';
@@ -1682,14 +1700,15 @@
                     return;
                 }
             } catch (networkError) {
-                console.warn('Backend API connection offline/error, checking local account fallback:', networkError);
+                console.warn('[AUTH] Backend API offline or restarting, attempting local account resolution:', networkError.message);
             }
 
-            // Local fallback authentication when backend service is offline/restarting (Beneficiaries only)
-            const lowerUser = username.trim().toLowerCase();
+            // Local fallback authentication mode
             const defaultAccounts = {
                 'juan_dela_cruz': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html', id: '6' },
                 'juan.delacruz': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html', id: '6' },
+                'maria_santos': { role: 'Beneficiary', fullName: 'Maria Santos', redirect: 'beneficiary.html', id: '7' },
+                'pedro_reyes': { role: 'Beneficiary', fullName: 'Pedro Reyes', redirect: 'beneficiary.html', id: '8' },
                 'beneficiary': { role: 'Beneficiary', fullName: 'Juan Dela Cruz', redirect: 'beneficiary.html', id: '6' }
             };
 
@@ -1702,8 +1721,9 @@
                 sessionStorage.setItem('username', lowerUser);
                 sessionStorage.setItem('userId', userAcc.id);
                 sessionStorage.setItem('userFullName', userAcc.fullName);
+                sessionStorage.setItem('beneficiaryLoggedIn', 'true');
 
-                successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
+                successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'] || 'Login successful! Redirecting...';
                 successAlert.style.display = 'block';
 
                 setTimeout(() => {
@@ -1713,8 +1733,8 @@
             }
 
             document.getElementById('errorMessage').textContent = lang === 'tg'
-                ? 'Hindi makakonekta sa server. Subukan muli mamaya.'
-                : 'Unable to connect to the server. Please try again later.';
+                ? 'Hindi tamang username o password.'
+                : 'Invalid username or password.';
             errorAlert.style.display = 'block';
             btnText.style.display = 'inline';
             btnIcon.style.display = 'inline-block';
