@@ -4972,15 +4972,14 @@
 
             updateWizardUI();
             clearFormValidationStyles();
-            document.getElementById('officerModal').classList.add('active');
-        }
+}
 
         function closeOfficerModal() {
             document.getElementById('officerModal').classList.remove('active');
         }
 
         async function handleOfficerSubmit(e) {
-            e.preventDefault();
+            if (e && e.preventDefault) e.preventDefault();
             const id = document.getElementById('officerIdInput').value;
             const firstName = document.getElementById('officerFirstNameInput').value.trim();
             const mi = document.getElementById('officerMiInput').value.trim();
@@ -4993,129 +4992,55 @@
             const assignedProgram = document.getElementById('officerProgramInput').value;
             const password = document.getElementById('officerPasswordInput').value;
 
-            // Construct full name display
-            let fullName = firstName;
-            if (mi) fullName += " " + mi + ".";
-            fullName += " " + lastName;
-            if (suffix) fullName += " " + suffix;
+            const BASE_URL = window.location.hostname.includes('vercel.app')
+                ? 'https://capstone-project-final-production.up.railway.app'
+                : ((typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) ? API_CONFIG.BASE_URL : '');
 
-            const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+            const payload = {
+                username,
+                password,
+                role,
+                first_name: firstName,
+                firstName,
+                middle_name: mi || null,
+                middleName: mi || null,
+                mi: mi || null,
+                last_name: lastName,
+                lastName,
+                suffix: suffix || null,
+                email,
+                department,
+                status: 'Active'
+            };
 
-            if (id) {
-                // ===== EDIT: PUT to API, then update localStorage =====
-                let apiSuccess = false;
-                try {
-                    const payload = {
-                        first_name: firstName,
-                        middle_name: mi || null,
-                        last_name: lastName,
-                        suffix: suffix || null,
-                        username,
-                        email,
-                        role
-                    };
-                    const response = await fetch(API_CONFIG.BASE_URL + '/api/users/' + id, {
-                        method: 'PUT',
-                        headers: SessionManager.authHeaders(),
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await response.json();
-                    if (response.ok && data.success) {
-                        apiSuccess = true;
-                    } else {
-                        console.error('[PESO_ADMIN] Edit officer API error:', data.message || response.status, 'Payload:', payload);
-                    }
-                } catch (networkError) {
-                    console.error('[PESO_ADMIN] Edit officer request failed (saving to localStorage only):', networkError);
+            const endpointUrl = id ? `${BASE_URL}/api/officers/${id}` : `${BASE_URL}/api/officers`;
+            const httpMethod = id ? 'PUT' : 'POST';
+
+            try {
+                console.log(`[Create Officer] Sending ${httpMethod} request to ${endpointUrl}...`);
+                const response = await fetch(endpointUrl, {
+                    method: httpMethod,
+                    headers: (typeof SessionManager !== 'undefined') ? SessionManager.authHeaders() : { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || result.error || 'Failed to process officer account on Railway database.');
                 }
 
-                // Always update localStorage for immediate UI consistency
-                const idx = officers.findIndex(o => o.id === id);
-                if (idx !== -1) {
-                    officers[idx].firstName = firstName;
-                    officers[idx].middleInitial = mi;
-                    officers[idx].lastName = lastName;
-                    officers[idx].suffix = suffix;
-                    officers[idx].name = fullName;
-                    officers[idx].department = department;
-                    officers[idx].username = username;
-                    officers[idx].email = email;
-                    officers[idx].role = role;
-                    officers[idx].assignedPrograms = [assignedProgram];
-                    localStorage.setItem('peso_officers', JSON.stringify(officers));
-                }
-                pushActivity("Officer Details Updated", `Modified details for officer: ${fullName}`);
-                pushNotification("Officer Account Updated", `Account details for officer ${fullName} (@${username}) have been updated.`, "alert");
-                alert(apiSuccess ? "Officer details updated successfully." : "Officer details saved locally (server sync pending).");
+                alert(`Success: Officer ${result.name || payload.first_name || username || 'account'} saved in online database!`);
 
-            } else {
-                // ===== CREATE: POST to API, then cache in localStorage =====
-                const exists = officers.some(o => o.username.toLowerCase() === username.toLowerCase());
-                if (exists) {
-                    alert("Error: Username is already registered.");
-                    return;
+                closeOfficerModal();
+                if (typeof renderOfficersTable === 'function') {
+                    renderOfficersTable();
                 }
-
-                let apiSuccess = false;
-                let newDbId = null;
-                try {
-                    const payload = {
-                        username,
-                        password,
-                        role,
-                        firstName,
-                        middleName: mi || null,
-                        lastName,
-                        suffix: suffix || null,
-                        email
-                    };
-                    const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register-officer', {
-                        method: 'POST',
-                        headers: SessionManager.authHeaders(),
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await response.json();
-                    if (response.ok && data.success) {
-                        apiSuccess = true;
-                        newDbId = data.userId;
-                    } else if (response.status === 409) {
-                        alert('Error: ' + (data.message || 'Username or email already exists.'));
-                        return;
-                    } else if (response.status === 400 && data.errors) {
-                        alert('Validation Error: ' + data.errors.join(' '));
-                        return;
-                    } else {
-                        console.error('[PESO_ADMIN] Create officer API error:', data.message || response.status, 'Payload:', payload);
-                    }
-                } catch (networkError) {
-                    console.error('[PESO_ADMIN] Create officer request failed (saving to localStorage only):', networkError);
-                }
-
-                // Cache in localStorage for immediate UI rendering
-                const newOfficer = {
-                    id: newDbId ? String(newDbId) : "O" + (Date.now()),
-                    firstName,
-                    middleInitial: mi,
-                    lastName,
-                    suffix,
-                    name: fullName,
-                    department,
-                    username,
-                    email,
-                    role,
-                    assignedPrograms: [assignedProgram],
-                    status: "Active",
-                    dateCreated: new Date().toISOString().split('T')[0]
-                };
-                officers.push(newOfficer);
-                localStorage.setItem('peso_officers', JSON.stringify(officers));
-                pushActivity("Officer Registered", `Created account for officer: ${fullName}`);
-                pushNotification("New Officer Registered", `A new officer account for ${fullName} (${role}) has been successfully created.`, "alert");
-                alert(apiSuccess ? "New officer account created successfully." : "Officer saved locally (server sync pending).");
+            } catch (error) {
+                console.error('[Create Officer Error]', error);
+                alert(`Error saving officer in database: ${error.message}`);
             }
-            closeOfficerModal();
-            renderOfficersTable();
-        }
+        };
 
         // ==============================================
         // WIZARD WIDGET CONTROLLER & VALIDATIONS
