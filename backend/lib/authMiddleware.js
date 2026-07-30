@@ -2,16 +2,40 @@
 // Extracted from routes/users.js so every role-scoped router (users,
 // officers, beneficiaries) enforces IDENTICAL rules for who can call what.
 //
-// Session auth: X-User-Id + X-Session-Token headers, validated against the
-// `current_session_token` column on the `users` table.
+// Accepts EITHER:
+//   - Legacy headers: X-User-Id + X-Session-Token (current DB session_token flow)
+//   - Clerk session:  Authorization: Bearer <clerk-session-jwt>
+// so routes work whether the caller has migrated to Clerk-issued sessions yet.
 
 const pool = require('../db');
+const { isClerkEnabled, clerkClient } = require('./clerk');
+const { verifyToken } = require('@clerk/backend');
 
 const VALID_ROLES = ['Beneficiary', 'PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
 const STAFF_ROLES = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
 const ADMIN_ROLES = ['PESO Admin', 'CSWDO Admin'];
 
 async function authenticateCaller(req, res, next) {
+  const authHeader = req.headers['authorization'];
+
+  // --- Path A: Clerk-issued session token ---
+  if (authHeader && authHeader.startsWith('Bearer ') && isClerkEnabled()) {
+    try {
+      const token = authHeader.slice('Bearer '.length).trim();
+      const claims = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
+      const dbUserId = claims?.publicMetadata?.dbUserId || claims?.public_metadata?.dbUserId;
+      const role = claims?.publicMetadata?.role || claims?.public_metadata?.role;
+      if (dbUserId && role) {
+        req.caller = { id: dbUserId, role };
+        return next();
+      }
+      // Fall through to legacy headers if Clerk metadata isn't populated yet
+    } catch (err) {
+      console.warn('[AUTH] Clerk token verification failed, trying legacy session:', err.message);
+    }
+  }
+
+  // --- Path B: Legacy X-User-Id / X-Session-Token ---
   const callerId = req.headers['x-user-id'];
   const sessionToken = req.headers['x-session-token'];
 
@@ -21,7 +45,7 @@ async function authenticateCaller(req, res, next) {
     if (req.method !== 'GET') {
       return res.status(401).json({
         success: false,
-        message: 'Authentication required. Please include X-User-Id and X-Session-Token headers.'
+        message: 'Authentication required. Please include X-User-Id and X-Session-Token headers, or a Clerk Bearer token.'
       });
     }
     req.caller = null;

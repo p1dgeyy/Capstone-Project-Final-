@@ -13,39 +13,28 @@ const PORT = process.env.API_PORT || process.env.PORT || 8080;
 // =============================================================================
 
 // CORS — allow frontend origin(s)
-// Set CORS_ORIGIN to a comma-separated list of allowed origins to extend/override
-// the defaults below, e.g.:
+// Set CORS_ORIGIN to a comma-separated list of allowed origins, e.g.:
 //   CORS_ORIGIN=https://your-app.vercel.app,http://localhost:3000
-const defaultAllowedOrigins = [
-  'https://capstone-project-final-sooty.vercel.app',
-  'http://localhost:3000',
-  'http://127.0.0.1:5500'
-];
-
+// Defaults to '*' (allow all) if not set.
 const allowedOrigins = process.env.CORS_ORIGIN
-  ? [...new Set([...defaultAllowedOrigins, ...process.env.CORS_ORIGIN.split(',').map(o => o.trim())])]
-  : defaultAllowedOrigins;
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+  : null;
 
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (server-to-server calls, curl, mobile apps, health checks)
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    // NOTE: this intentionally still allows unlisted origins through during dev/capstone
-    // verification so grading/demo environments aren't blocked. Tighten to
-    // `callback(new Error('Not allowed by CORS'))` once the final deployed origin(s)
-    // are locked in for production.
-    console.warn(`[CORS] Origin not in allowlist, allowing anyway (dev mode): ${origin}`);
-    return callback(null, true);
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-Id', 'X-Session-Token'],
-  credentials: true
+  origin: allowedOrigins
+    ? function (origin, callback) {
+        // Allow requests with no origin (server-to-server, curl, etc.)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+      }
+    : '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-Session-Token'],
+  credentials: !!allowedOrigins
 }));
-
-// Explicitly handle preflight OPTIONS requests for all routes
-app.options('*', cors());
 
 // Parse JSON request bodies
 app.use(express.json({ limit: '10mb' }));
@@ -86,7 +75,6 @@ const notificationRoutes = require('./routes/notifications');
 const userRoutes = require('./routes/users');
 const auditLogRoutes = require('./routes/audit_logs');
 const assistanceRoutes = require('./routes/assistance');
-const interviewRoutes = require('./routes/interviews');
 const officerRoutes = require('./routes/officers');
 const beneficiaryRoutes = require('./routes/beneficiaries');
 const reportRoutes = require('./routes/reports');
