@@ -30,11 +30,31 @@ router.post('/login', async (req, res) => {
     // Acquire connection from pool
     connection = await pool.getConnection();
 
-    // Query user by username OR email (supports both login methods)
-    const [rows] = await connection.execute(
+    // Query user by username OR email (supports both users and officers tables)
+    let [rows] = await connection.execute(
       'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
       [username.trim(), username.trim()]
     );
+
+    if (rows.length === 0) {
+      try {
+        const [offRows] = await connection.execute(
+          'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `officers` WHERE `username` = ? OR `email` = ? LIMIT 1',
+          [username.trim(), username.trim()]
+        );
+        if (offRows.length > 0) rows = offRows;
+      } catch (e) {}
+    }
+
+    if (rows.length === 0) {
+      try {
+        const [benRows] = await connection.execute(
+          'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `beneficiaries` WHERE `username` = ? OR `email` = ? LIMIT 1',
+          [username.trim(), username.trim()]
+        );
+        if (benRows.length > 0) rows = benRows;
+      } catch (e) {}
+    }
 
     if (rows.length === 0) {
       console.warn(`[AUTH] Login failed — user not found: ${username}`);
