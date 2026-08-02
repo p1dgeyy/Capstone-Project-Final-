@@ -89,6 +89,7 @@ const assistanceRoutes = require('./routes/assistance');
 const interviewRoutes = require('./routes/interviews');
 const officerRoutes = require('./routes/officers');
 const beneficiaryRoutes = require('./routes/beneficiaries');
+const pesoOfficerRoutes = require('./routes/peso_officer');
 
 app.use('/api/programs', programRoutes);
 app.use('/api/applications', applicationRoutes);
@@ -100,6 +101,7 @@ app.use('/api/assistance', assistanceRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/officers', officerRoutes);
 app.use('/api/beneficiaries', beneficiaryRoutes);
+app.use('/api/peso-officer', pesoOfficerRoutes);
 
 // =============================================================================
 // Error Handling

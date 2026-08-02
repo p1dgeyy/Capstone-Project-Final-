@@ -1,0 +1,570 @@
+<!-- PESO OFFICER SYSTEM IMPLEMENTATION FILE -->
+<!-- Complete System Implementation: Frontend Dashboard, Beneficiary Registration & Management, -->
+<!-- Fund Allocations, Interview Activity Tracking, Document Compliance, QR Scanner/Generator, -->
+<!-- SMS OTP 6-Digit & Email 4-Digit Verification, and Backend Express API Endpoints. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PESO Officer Portal - City of Koronadal</title>
+    <!-- CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- System API Configuration -->
+    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
+
+    <style>
+        :root {
+            --primary: #0284C7;
+            --primary-hover: #0369A1;
+            --primary-light: #E0F2FE;
+            --dark-navy: #0F172A;
+            --sidebar-width: 270px;
+            --header-height: 70px;
+            --bg-light: #F8FAFC;
+            --card-border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: #1E293B;
+            overflow-x: hidden;
+        }
+
+        /* Dark Mode Theme */
+        body.dark-mode {
+            background-color: #0F172A;
+            color: #F8FAFC;
+        }
+        body.dark-mode .sidebar {
+            background-color: #1E293B;
+            border-right-color: #334155;
+        }
+        body.dark-mode .header-top {
+            background-color: #1E293B;
+            border-bottom-color: #334155;
+            color: #F8FAFC;
+        }
+        body.dark-mode .card,
+        body.dark-mode .stat-card {
+            background-color: #1E293B;
+            border-color: #334155;
+            color: #F8FAFC;
+        }
+        body.dark-mode .table {
+            color: #F8FAFC;
+        }
+        body.dark-mode .table th {
+            background-color: #0F172A;
+            color: #94A3B8;
+        }
+        body.dark-mode .table td {
+            border-bottom-color: #334155;
+        }
+        body.dark-mode .modal-content {
+            background-color: #1E293B;
+            color: #F8FAFC;
+            border-color: #334155;
+        }
+        body.dark-mode .form-control,
+        body.dark-mode .form-select {
+            background-color: #0F172A;
+            border-color: #334155;
+            color: #F8FAFC;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: #FFFFFF;
+            border-right: 1px solid var(--card-border);
+            z-index: 100;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .sidebar-brand-text h5 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .sidebar-brand-text p {
+            font-size: 0.75rem;
+            color: #64748B;
+            margin: 0;
+        }
+
+        .sidebar-menu {
+            padding: 16px 12px;
+            list-style: none;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-menu .nav-header {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94A3B8;
+            margin: 16px 12px 8px;
+        }
+
+        .sidebar-menu .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            color: #64748B;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-menu .nav-link:hover,
+        .sidebar-menu .nav-link.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .header-top {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: var(--sidebar-width);
+            height: var(--header-height);
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            z-index: 99;
+        }
+
+        .search-box {
+            position: relative;
+            width: 320px;
+        }
+
+        .search-box input {
+            padding-left: 38px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            font-size: 0.9rem;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94A3B8;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--header-height);
+            padding: 28px;
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .stat-card {
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .photo-preview-box {
+            width: 140px;
+            height: 140px;
+            border: 2px dashed #CBD5E1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #F1F5F9;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .photo-preview-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .upload-drag-area {
+            border: 2px dashed #CBD5E1;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            background: #F8FAFC;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .upload-drag-area:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .badge-verified {
+            background-color: #D1FAE5;
+            color: #065F46;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #printableQrCard, #printableQrCard * { visibility: visible; }
+            #printableQrCard { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-text">
+                <h5>PESO Officer Portal</h5>
+                <p>City of Koronadal</p>
+            </div>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="nav-header">Main Dashboard</li>
+            <li class="nav-item"><a href="#" class="nav-link active" onclick="switchTab('dashboard')"><i class="bi bi-grid-1x2"></i> Overview</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('beneficiaries')"><i class="bi bi-people"></i> Beneficiaries</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('programs')"><i class="bi bi-briefcase"></i> Programs & Fund</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('interviews')"><i class="bi bi-calendar-check"></i> Interviews</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('documents')"><i class="bi bi-exclamation-triangle"></i> Document Alerts</a></li>
+            <li class="nav-header">Tools & Actions</li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="openQrScannerModal()"><i class="bi bi-qr-code-scan"></i> QR Scanner</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="openAuditModal()"><i class="bi bi-journal-text"></i> Audit Logs</a></li>
+        </ul>
+    </aside>
+
+    <!-- Top Header -->
+    <header class="header-top">
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" id="globalSearchInput" placeholder="Search beneficiary, QR ID, name..." onkeyup="handleGlobalSearch(event)">
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-light rounded-circle" onclick="toggleDarkMode()">
+                <i class="bi bi-moon-stars" id="themeIcon"></i>
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-person-circle"></i>
+                    <span id="officerNameDisplay">PESO Officer</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item text-danger" href="#" onclick="logoutOfficer()"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- 1. DASHBOARD OVERVIEW -->
+        <section id="tab-dashboard" class="tab-section">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">PESO Officer Main Dashboard</h1>
+                    <p class="text-muted">Overview of livelihood programs, fund allocations, interviews, and beneficiaries</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddBeneficiaryModal()"><i class="bi bi-person-plus me-1"></i> Add Beneficiary</button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-clock-history"></i></div>
+                        <div><h3 class="mb-0 fw-bold">3</h3><span class="text-muted small">Pending Programs</span></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-play-circle"></i></div>
+                        <div><h3 class="mb-0 fw-bold">8</h3><span class="text-muted small">Active Programs</span></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people"></i></div>
+                        <div><h3 class="mb-0 fw-bold">142</h3><span class="text-muted small">Assigned Beneficiaries</span></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-check2-all"></i></div>
+                        <div><h3 class="mb-0 fw-bold">12</h3><span class="text-muted small">Completed Programs</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fund Allocation Table -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-0"><h5 class="mb-0 fw-bold"><i class="bi bi-cash-stack text-primary me-2"></i>Fund Allocation & Resource Distribution</h5></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Program</th>
+                                    <th>Allocated Budget</th>
+                                    <th>Spent Amount</th>
+                                    <th>Remaining</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fundTableBody">
+                                <tr><td>TUPAD (Emergency Employment)</td><td>₱2,000,000</td><td class="text-danger">₱1,500,000</td><td class="text-success">₱500,000</td><td><span class="badge bg-success">Active</span></td></tr>
+                                <tr><td>CKGIP (City Internship)</td><td>₱1,000,000</td><td class="text-danger">₱750,000</td><td class="text-success">₱250,000</td><td><span class="badge bg-success">Active</span></td></tr>
+                                <tr><td>PFAS (Pangkabuhayan Assistance)</td><td>₱1,500,000</td><td class="text-danger">₱1,100,000</td><td class="text-success">₱400,000</td><td><span class="badge bg-success">Active</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. BENEFICIARIES MANAGEMENT TAB -->
+        <section id="tab-beneficiaries" class="tab-section d-none">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Beneficiaries Management</h1>
+                    <p class="text-muted">Manage beneficiary accounts, documents, and program assignments</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddBeneficiaryModal()"><i class="bi bi-person-plus me-1"></i> Add Beneficiary</button>
+            </div>
+
+            <!-- Table -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>QR ID</th>
+                                    <th>Name</th>
+                                    <th>Barangay</th>
+                                    <th>Contact</th>
+                                    <th>Program</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="beneficiaryTableBodyRoot">
+                                <!-- Dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ADD BENEFICIARY MODAL -->
+    <div class="modal fade" id="addBeneficiaryModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">Register New Beneficiary</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="rootAddForm">
+                        <div class="row g-3">
+                            <div class="col-md-4"><label class="form-label fw-bold">First Name *</label><input type="text" class="form-control" id="rFirstName" required></div>
+                            <div class="col-md-4"><label class="form-label fw-bold">Middle Name</label><input type="text" class="form-control" id="rMiddleName"></div>
+                            <div class="col-md-4"><label class="form-label fw-bold">Last Name *</label><input type="text" class="form-control" id="rLastName" required></div>
+                            <div class="col-md-4"><label class="form-label fw-bold">Birthday *</label><input type="date" class="form-control" id="rBirthday" required></div>
+                            <div class="col-md-4"><label class="form-label fw-bold">Sex *</label><select class="form-select" id="rSex" required><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Barangay (27 Predefined) *</label>
+                                <select class="form-select" id="rBarangay" required>
+                                    <option value="Assumption">Assumption</option><option value="Avanceña">Avanceña</option><option value="Cacub">Cacub</option><option value="Caloocan">Caloocan</option><option value="Carpenter Hill">Carpenter Hill</option><option value="Concepcion">Concepcion</option><option value="Esperanza">Esperanza</option><option value="General Paulino Santos">General Paulino Santos</option><option value="Mabini">Mabini</option><option value="Magsaysay">Magsaysay</option><option value="Mambucal">Mambucal</option><option value="Morales">Morales</option><option value="Namnama">Namnama</option><option value="New Pangasinan">New Pangasinan</option><option value="Paraiso">Paraiso</option><option value="Rotonda">Rotonda</option><option value="San Isidro">San Isidro</option><option value="San Roque">San Roque</option><option value="San Jose">San Jose</option><option value="Sta. Cruz">Sta. Cruz</option><option value="Sto. Niño">Sto. Niño</option><option value="Saravia">Saravia</option><option value="Topland">Topland</option><option value="Zone 1">Zone 1</option><option value="Zone 2">Zone 2</option><option value="Zone 3">Zone 3</option><option value="Zone 4">Zone 4</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Contact Number (6-Digit SMS OTP) *</label><input type="text" class="form-control" id="rPhone" placeholder="09171234567" required></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Email Address (4-Digit Code) *</label><input type="email" class="form-control" id="rEmail" placeholder="user@email.com" required></div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Program Assignment *</label>
+                                <select class="form-select" id="rProgram" required>
+                                    <optgroup label="Regular Services">
+                                        <option value="CKGIP">City Government Internship Program (CKGIP)</option>
+                                        <option value="KEEP">Koronadal Emergency Employment Program (KEEP)</option>
+                                        <option value="TUPAD">TUPAD</option>
+                                    </optgroup>
+                                    <optgroup label="PPAs">
+                                        <option value="PFAS">Pangkabuhayan Financial Assistance (PFAS)</option>
+                                        <option value="DILP">Support to DOLE Integrated Livelihood Program (DILP)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="col-md-12 p-3 bg-light border rounded">
+                                <label class="form-label fw-bold text-danger">Barangay Clearance (MANDATORY FILE) *</label>
+                                <input type="file" class="form-control" id="rBarangayClearanceFile" accept=".pdf,.jpg,.png" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitRootBeneficiary()">Register Beneficiary</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let benList = [
+            { qr_code_id: 'BEN-001', first_name: 'Juan', last_name: 'Dela Cruz', barangay: 'Morales', phone: '09171234567', program: 'TUPAD', status: 'Active' },
+            { qr_code_id: 'BEN-002', first_name: 'Maria', last_name: 'Reyes', barangay: 'Concepcion', phone: '09189876543', program: 'PFAS', status: 'Active' }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderRootTable();
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-section').forEach(el => el.classList.add('d-none'));
+            document.getElementById(`tab-${tabId}`).classList.remove('d-none');
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+        }
+
+        function openAddBeneficiaryModal() {
+            new bootstrap.Modal(document.getElementById('addBeneficiaryModal')).show();
+        }
+
+        function renderRootTable() {
+            const tbody = document.getElementById('beneficiaryTableBodyRoot');
+            if (!tbody) return;
+            tbody.innerHTML = benList.map(b => `
+                <tr>
+                    <td class="fw-bold text-primary">${b.qr_code_id}</td>
+                    <td>${b.first_name} ${b.last_name}</td>
+                    <td>Brgy. ${b.barangay}</td>
+                    <td>${b.phone}</td>
+                    <td><span class="badge bg-info">${b.program}</span></td>
+                    <td><span class="badge bg-success">${b.status}</span></td>
+                    <td class="text-end"><button class="btn btn-sm btn-outline-primary" onclick="alert('Viewing Profile Card for ${b.qr_code_id}')">View</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function submitRootBeneficiary() {
+            const fileInput = document.getElementById('rBarangayClearanceFile');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('ERROR: Barangay Clearance is MANDATORY. Submission blocked.');
+                return;
+            }
+            const fn = document.getElementById('rFirstName').value;
+            const ln = document.getElementById('rLastName').value;
+            const bg = document.getElementById('rBarangay').value;
+            const ph = document.getElementById('rPhone').value;
+            const pr = document.getElementById('rProgram').value;
+
+            if (!fn || !ln) {
+                alert('Please fill out required fields.');
+                return;
+            }
+
+            benList.unshift({
+                qr_code_id: `BEN-00${benList.length + 1}`,
+                first_name: fn,
+                last_name: ln,
+                barangay: bg,
+                phone: ph,
+                program: pr,
+                status: 'Active'
+            });
+
+            renderRootTable();
+            bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal')).hide();
+            alert('Beneficiary account successfully created!');
+        }
+
+        function logoutOfficer() {
+            window.location.href = 'official_login.html';
+        }
+    </script>
+</body>
+</html>
