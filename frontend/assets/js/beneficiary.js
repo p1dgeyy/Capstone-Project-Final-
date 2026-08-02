@@ -214,10 +214,44 @@
     `).join('');
   }
 
+  function resetBeneficiaryPortal() {
+    localStorage.removeItem('peso_beneficiary_user');
+    localStorage.removeItem('peso_beneficiary_applications');
+    localStorage.removeItem('peso_beneficiary_documents');
+    localStorage.removeItem('peso_beneficiary_trainings');
+    localStorage.removeItem('peso_beneficiary_releases');
+    localStorage.removeItem('peso_beneficiary_notifications');
+    sessionStorage.removeItem('beneficiaryLoggedIn');
+    sessionStorage.removeItem('beneficiaryUsername');
+    sessionStorage.removeItem('beneficiaryName');
+    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('sessionToken');
+    sessionStorage.removeItem('userRole');
+
+    state.applications = [
+      { id: 'APP-2026-001', type: 'Livelihood Assistance', program: 'TUPAD', date: '2026-07-15', status: 'Approved', remarks: 'Eligible for batch release' },
+      { id: 'APP-2026-002', type: 'Educational / SPES', program: 'SPES', date: '2026-07-20', status: 'Under Review', remarks: 'Document verification in progress' }
+    ];
+    state.documents = [
+      { id: 'DOC-01', name: 'Barangay Clearance Certificate', type: 'Barangay Clearance', status: 'Approved', date_uploaded: '2026-07-15' },
+      { id: 'DOC-02', name: 'Valid Government Issued ID', type: 'Valid ID', status: 'Approved', date_uploaded: '2026-07-15' },
+      { id: 'DOC-03', name: 'Project Proposal / Business Plan', type: 'Business Plan', status: 'Under Review', date_uploaded: '2026-07-20' }
+    ];
+    state.notifications = [
+      { id: 1, title: 'Document Verified', message: 'Your Barangay Clearance Certificate has been verified by PESO Officer.', date: '2026-07-25', isRead: false },
+      { id: 2, title: 'Interview Scheduled', message: 'You are scheduled for a brief verification call on July 30, 2026 at 09:00 AM.', date: '2026-07-26', isRead: false }
+    ];
+
+    saveBeneficiaryState();
+    renderDashboardOverview();
+    console.log('[BENEFICIARY-PORTAL] Reset complete.');
+  }
+
   // Global Scope Exports
   window.submitAssistanceRequest = submitAssistanceRequest;
   window.viewCompletionCertificate = viewCompletionCertificate;
   window.renderDashboardOverview = renderDashboardOverview;
+  window.resetBeneficiaryPortal = resetBeneficiaryPortal;
 
   document.addEventListener('DOMContentLoaded', function () {
     renderDashboardOverview();
@@ -227,3 +261,4 @@
   });
 
 })();
+
