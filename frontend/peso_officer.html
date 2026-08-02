@@ -252,15 +252,45 @@
             background: var(--primary-light);
         }
 
-        /* Status Badge Colors per Specification */
+        .photo-box {
+            width: 130px;
+            height: 130px;
+            border: 2px dashed #CBD5E1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #F8FAFC;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .photo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .upload-drag-area {
+            border: 2px dashed #CBD5E1;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            background: #F8FAFC;
+            cursor: pointer;
+        }
+
+        /* Status Badges */
         .badge-approved { background-color: #10B981; color: white; }
         .badge-denied { background-color: #EF4444; color: white; }
         .badge-pending { background-color: #F59E0B; color: white; }
 
         @media print {
             body * { visibility: hidden; }
-            #printableAssistanceReport, #printableAssistanceReport * { visibility: visible; }
-            #printableAssistanceReport { position: absolute; left: 0; top: 0; width: 100%; }
+            #printableAssistanceReport, #printableAssistanceReport *,
+            #printableQrCardFrame, #printableQrCardFrame * { visibility: visible; }
+            #printableAssistanceReport, #printableQrCardFrame { position: absolute; left: 0; top: 0; width: 100%; }
         }
     </style>
 </head>
@@ -277,10 +307,10 @@
         <ul class="sidebar-menu">
             <li class="nav-header">Main Menu</li>
             <li class="nav-item"><a href="#" class="nav-link active" onclick="switchTab('dashboard')"><i class="bi bi-grid-1x2"></i> Overview Dashboard</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('beneficiaries')"><i class="bi bi-people-fill"></i> Beneficiaries Management</a></li>
             <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('evaluation')"><i class="bi bi-clipboard-check"></i> Application Evaluation</a></li>
             <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('livelihood-mgmt')"><i class="bi bi-diagram-3"></i> Livelihood Applications & Batches</a></li>
             <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('approved-assistance')"><i class="bi bi-box-seam"></i> Approved Assistance & Reports</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('beneficiaries')"><i class="bi bi-people"></i> Beneficiaries Management</a></li>
             <li class="nav-header">Tools & Traceability</li>
             <li class="nav-item"><a href="#" class="nav-link" onclick="openQrScannerModal()"><i class="bi bi-qr-code-scan"></i> QR Scanner Lookup</a></li>
             <li class="nav-item"><a href="#" class="nav-link" onclick="openAuditModal()"><i class="bi bi-journal-text"></i> Audit Logs & History</a></li>
@@ -401,7 +431,74 @@
             </div>
         </section>
 
-        <!-- 2. APPLICATION EVALUATION MODULE TAB -->
+        <!-- 2. BENEFICIARIES MANAGEMENT TAB -->
+        <section id="tab-beneficiaries" class="tab-section d-none">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Beneficiaries Management</h1>
+                    <p class="text-muted">Full registration intake, account activation/deactivation, document verification review, and QR card generation</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddBeneficiaryModal()"><i class="bi bi-person-plus me-1"></i> Register New Beneficiary</button>
+            </div>
+
+            <!-- Beneficiary Filter Bar -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="benSearchInput" placeholder="Search by name, email, or QR ID..." onkeyup="filterBeneficiariesTable()">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="benBarangayFilter" onchange="filterBeneficiariesTable()">
+                                <option value="">All 27 Barangays</option>
+                                <option value="Morales">Morales</option>
+                                <option value="Poblacion">Poblacion</option>
+                                <option value="Rotonda">Rotonda</option>
+                                <option value="Zone 1">Zone 1</option>
+                                <option value="Zone 2">Zone 2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="benStatusFilter" onchange="filterBeneficiariesTable()">
+                                <option value="">All Account Statuses</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-secondary w-100" onclick="resetBeneficiaryFilters()">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Beneficiaries Table -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>QR ID</th>
+                                    <th>Beneficiary Name</th>
+                                    <th>Barangay & Address</th>
+                                    <th>Contact & Email</th>
+                                    <th>Program Assigned</th>
+                                    <th>Account Status</th>
+                                    <th>Document Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="beneficiaryTableBody">
+                                <!-- Dynamically loaded -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. APPLICATION EVALUATION MODULE TAB -->
         <section id="tab-evaluation" class="tab-section d-none">
             <div class="page-header">
                 <div>
@@ -459,7 +556,7 @@
             </div>
         </section>
 
-        <!-- 3. LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT TAB -->
+        <!-- 4. LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT TAB -->
         <section id="tab-livelihood-mgmt" class="tab-section d-none">
             <div class="page-header">
                 <div>
@@ -507,7 +604,7 @@
             </div>
         </section>
 
-        <!-- 4. APPROVED ASSISTANCE RECORDING & MONITORING TAB -->
+        <!-- 5. APPROVED ASSISTANCE RECORDING & MONITORING TAB -->
         <section id="tab-approved-assistance" class="tab-section d-none">
             <div class="page-header">
                 <div>
@@ -573,44 +670,231 @@
             </div>
         </section>
 
-        <!-- 5. BENEFICIARIES MANAGEMENT TAB -->
-        <section id="tab-beneficiaries" class="tab-section d-none">
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">Beneficiaries Management</h1>
-                    <p class="text-muted">Manage beneficiary accounts, documents, and program assignments</p>
-                </div>
-                <button class="btn btn-primary" onclick="openAddBeneficiaryModal()"><i class="bi bi-person-plus me-1"></i> Add Beneficiary</button>
-            </div>
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>QR ID</th>
-                                    <th>Name</th>
-                                    <th>Barangay</th>
-                                    <th>Contact</th>
-                                    <th>Program</th>
-                                    <th>Status</th>
-                                    <th class="text-end">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="beneficiaryTableBody">
-                                <!-- Loaded dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-
     </main>
 
     <!-- ======================================================================= -->
     <!-- MODALS -->
     <!-- ======================================================================= -->
+
+    <!-- ADD BENEFICIARY REGISTRATION FORM MODAL (27 Barangays, OTP, File Uploads) -->
+    <div class="modal fade" id="addBeneficiaryModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Register New Beneficiary Profile</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="pesoBeneficiaryRegForm" onsubmit="submitBeneficiaryRegistration(event)">
+
+                        <!-- Personal Info -->
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Personal Information</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="benFirstName" required placeholder="Juan">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Middle Name</label>
+                                <input type="text" class="form-control" id="benMiddleName" placeholder="Santos">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="benLastName" required placeholder="Dela Cruz">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Suffix</label>
+                                <input type="text" class="form-control" id="benSuffix" placeholder="Jr., Sr.">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">Birthday <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="benBirthday" required onchange="calculateBenAge()">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Age</label>
+                                <input type="text" class="form-control bg-light" id="benAge" readonly placeholder="Auto">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Sex <span class="text-danger">*</span></label>
+                                <select class="form-select" id="benSex" required>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Civil Status <span class="text-danger">*</span></label>
+                                <select class="form-select" id="benCivilStatus" required>
+                                    <option value="Single">Single</option>
+                                    <option value="Married">Married</option>
+                                    <option value="Widowed">Widowed</option>
+                                    <option value="Separated">Separated</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Number of Children</label>
+                                <input type="number" class="form-control" id="benNoChildren" min="0" value="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Spouse Name</label>
+                                <input type="text" class="form-control" id="benSpouseName" placeholder="Spouse full name">
+                            </div>
+                        </div>
+
+                        <!-- Address with 27 Predefined Barangays -->
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Address Details</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Purok (Free Text) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="benPurok" required placeholder="e.g. Purok 4, Sunflower">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Barangay (27 Predefined Barangays) <span class="text-danger">*</span></label>
+                                <select class="form-select" id="benBarangay" required>
+                                    <option value="">-- Select Barangay --</option>
+                                    <option value="Assumption">Assumption</option>
+                                    <option value="Avanceña">Avanceña</option>
+                                    <option value="Cacub">Cacub</option>
+                                    <option value="Caloocan">Caloocan</option>
+                                    <option value="Carpenter Hill">Carpenter Hill</option>
+                                    <option value="Concepcion">Concepcion</option>
+                                    <option value="Esperanza">Esperanza</option>
+                                    <option value="General Paulino Santos">General Paulino Santos</option>
+                                    <option value="Mabini">Mabini</option>
+                                    <option value="Magsaysay">Magsaysay</option>
+                                    <option value="Mambucal">Mambucal</option>
+                                    <option value="Morales">Morales</option>
+                                    <option value="Namnama">Namnama</option>
+                                    <option value="New Pangasinan">New Pangasinan</option>
+                                    <option value="Paraiso">Paraiso</option>
+                                    <option value="Rotonda">Rotonda</option>
+                                    <option value="San Isidro">San Isidro</option>
+                                    <option value="San Roque">San Roque</option>
+                                    <option value="San Jose">San Jose</option>
+                                    <option value="Sta. Cruz">Sta. Cruz</option>
+                                    <option value="Sto. Niño">Sto. Niño</option>
+                                    <option value="Saravia">Saravia</option>
+                                    <option value="Topland">Topland</option>
+                                    <option value="Zone 1">Zone 1</option>
+                                    <option value="Zone 2">Zone 2</option>
+                                    <option value="Zone 3">Zone 3</option>
+                                    <option value="Zone 4">Zone 4</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Contact & Verification -->
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">3. Contact Verification</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Contact Phone (SMS 6-Digit OTP Verification) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="tel" class="form-control" id="benPhone" placeholder="09171234567" required>
+                                    <button class="btn btn-outline-primary" type="button" onclick="sendOfficerSmsOtp()">Send OTP</button>
+                                </div>
+                                <div id="benPhoneOtpStatus" class="form-text">Status: <span class="badge bg-secondary">Unverified</span></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email Address (4-Digit Code Verification) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="email" class="form-control" id="benEmail" placeholder="juan@email.com" required>
+                                    <button class="btn btn-outline-primary" type="button" onclick="sendOfficerEmailCode()">Send Code</button>
+                                </div>
+                                <div id="benEmailCodeStatus" class="form-text">Status: <span class="badge bg-secondary">Unverified</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Program & Documents -->
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">4. Program & Document Uploads</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Program Assignment <span class="text-danger">*</span></label>
+                            <select class="form-select" id="benProgram" required>
+                                <optgroup label="Regular Services">
+                                    <option value="CKGIP (City Internship)">CKGIP (City Internship)</option>
+                                    <option value="KEEP (Emergency Employment)">KEEP (Emergency Employment)</option>
+                                    <option value="TUPAD (Emergency Employment)">TUPAD (Emergency Employment)</option>
+                                </optgroup>
+                                <optgroup label="Programs / Projects / Activities (PPAs)">
+                                    <option value="PFAS (Pangkabuhayan Assistance)">PFAS (Pangkabuhayan Assistance)</option>
+                                    <option value="Support to DILP">Support to DILP</option>
+                                    <option value="Association Facilitation">Association Facilitation</option>
+                                    <option value="Skills Training Program">Skills Training Program</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4 text-center">
+                                <label class="form-label">2x2 Photo Preview Box</label>
+                                <div class="photo-box mx-auto" onclick="document.getElementById('benPhotoFile').click()">
+                                    <img id="imgBen2x2Preview" src="" class="d-none">
+                                    <div id="benPhotoPlaceholder" class="p-2"><i class="bi bi-camera fs-2 text-muted"></i><div class="small text-muted">Click 2x2 Photo</div></div>
+                                </div>
+                                <input type="file" id="benPhotoFile" class="d-none" accept="image/*" onchange="previewBenPhoto(this)">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Valid ID Upload (Max 5MB) <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control mb-2" id="benValidIdFile" accept=".jpg,.png,.pdf" required>
+                                
+                                <label class="form-label text-danger">Barangay Clearance Upload (MANDATORY, Max 5MB) <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="benClearanceFile" accept=".jpg,.png,.pdf" required>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-circle me-1"></i> Register Beneficiary Profile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- POP-UP BENEFICIARY INFO CARD MODAL (Activation Toggle & Document Review) -->
+    <div class="modal fade" id="beneficiaryInfoCardModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold" id="infoCardTitle"><i class="bi bi-person-badge me-2"></i>Beneficiary Pop-Up Information Card</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="infoCardBody">
+                    <!-- Dynamically populated -->
+                </div>
+                <div class="modal-footer justify-content-between" id="infoCardFooter">
+                    <!-- Action controls -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINTABLE QR CODE CARD MODAL -->
+    <div class="modal fade" id="printableQrModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-qr-code me-2"></i>Beneficiary QR ID Card</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4" id="printableQrCardFrame">
+                    <div class="border rounded p-4 bg-white shadow-sm mx-auto" style="max-width: 340px;">
+                        <small class="text-uppercase fw-bold text-muted">City Government of Koronadal</small>
+                        <h5 class="fw-bold text-primary mb-3">PESO Beneficiary Pass</h5>
+                        <div class="my-3"><i class="bi bi-qr-code fs-1 text-dark"></i></div>
+                        <h6 class="fw-bold mb-1" id="qrBenName">Juan Dela Cruz</h6>
+                        <p class="small text-muted mb-1" id="qrBenId">ID: BEN-2026-001</p>
+                        <span class="badge bg-success" id="qrBenProgram">TUPAD</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print / Export PDF Card</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- APPLICATION DETAIL & DOCUMENT VIEWER MODAL -->
     <div class="modal fade" id="applicationDetailModal" tabindex="-1">
@@ -624,16 +908,14 @@
                     <!-- Dynamically populated -->
                 </div>
                 <div class="modal-footer justify-content-between">
-                    <div id="evalActionButtonsContainer">
-                        <!-- Action buttons generated dynamically -->
-                    </div>
+                    <div id="evalActionButtonsContainer"></div>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- REJECTION REMARKS MODAL (DENIED) -->
+    <!-- REJECTION REMARKS MODAL -->
     <div class="modal fade" id="denyRemarksModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -643,7 +925,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <label class="form-label fw-bold">Mandatory Reason / Remarks for Denying Application <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="denyRemarksInput" rows="4" placeholder="Explain the detailed reason for rejection..."></textarea>
+                    <textarea class="form-control" id="denyRemarksInput" rows="4" placeholder="Explain rejection reason..."></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -653,7 +935,7 @@
         </div>
     </div>
 
-    <!-- PENDING NOTES MODAL (MISSING DOCS) -->
+    <!-- PENDING NOTES MODAL -->
     <div class="modal fade" id="pendingNotesModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -663,7 +945,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <label class="form-label fw-bold">Mandatory Notes on Missing or Incomplete Documents <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="pendingNotesInput" rows="4" placeholder="Specify which document(s) are missing (e.g. Barangay Certification, Letter of Intent)..."></textarea>
+                    <textarea class="form-control" id="pendingNotesInput" rows="4" placeholder="Specify missing document(s)..."></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -673,7 +955,7 @@
         </div>
     </div>
 
-    <!-- RECORD INTAKE APPLICATION MODAL (Strict Mandatory Validation) -->
+    <!-- INTAKE APPLICATION MODAL -->
     <div class="modal fade" id="intakeApplicationModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -693,13 +975,11 @@
                                 <option value="TUPAD (Emergency Employment)">TUPAD (Emergency Employment)</option>
                                 <option value="PFAS (Pangkabuhayan Assistance)">PFAS (Pangkabuhayan Assistance)</option>
                                 <option value="CKGIP (City Internship)">CKGIP (City Internship)</option>
-                                <option value="KEEP (Emergency Employment)">KEEP (Emergency Employment)</option>
-                                <option value="DILP Support">DILP Support</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Project Type / Enterprise</label>
-                            <input type="text" class="form-control" id="intakeProjectType" placeholder="e.g. Food Cart, Clean-up Drive, Carpentry">
+                            <input type="text" class="form-control" id="intakeProjectType" placeholder="e.g. Food Cart, Clean-up Drive">
                         </div>
                         <div class="p-3 bg-light border rounded mb-3">
                             <label class="form-label fw-bold text-danger"><i class="bi bi-shield-lock me-1"></i>Barangay Certification (MANDATORY DOCUMENT) <span class="text-danger">*</span></label>
@@ -735,7 +1015,6 @@
                             <option value="TUPAD">TUPAD</option>
                             <option value="CKGIP">CKGIP</option>
                             <option value="PFAS">PFAS</option>
-                            <option value="KEEP">KEEP</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -790,7 +1069,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Conditions & Release Terms</label>
-                            <textarea class="form-control" id="astConditions" rows="3" placeholder="Specify release conditions (e.g. Subject to quarterly progress report)..."></textarea>
+                            <textarea class="form-control" id="astConditions" rows="3" placeholder="Release conditions..."></textarea>
                         </div>
                         <div class="modal-footer px-0 pb-0">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -816,8 +1095,8 @@
                         <p class="small text-muted mt-2">Scan QR Code or enter string / Beneficiary ID:</p>
                     </div>
                     <div class="input-group">
-                        <input type="text" class="form-control" id="manualQrInput" placeholder="e.g. BEN-001 or APP-2026-001">
-                        <button class="btn btn-primary" onclick="executeQrScanLookup()">Route to Evaluation</button>
+                        <input type="text" class="form-control" id="manualQrInput" placeholder="e.g. BEN-2026-001 or APP-2026-001">
+                        <button class="btn btn-primary" onclick="executeQrScanLookup()">Route to Profile</button>
                     </div>
                 </div>
             </div>
@@ -836,12 +1115,7 @@
                     <div class="table-responsive">
                         <table class="table table-striped mb-0">
                             <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Officer</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                </tr>
+                                <tr><th>Timestamp</th><th>Officer</th><th>Action</th><th>Details</th></tr>
                             </thead>
                             <tbody id="auditLogsTableBody">
                                 <!-- Loaded dynamically -->
@@ -860,10 +1134,16 @@
         let selectedEvalAppId = null;
 
         // In-memory data structures
+        let beneficiariesList = [
+            { id: 'BEN-2026-001', name: 'Juan Dela Cruz', barangay: 'Morales', address: 'Purok 4, Morales', contact: '09171234567', email: 'juan@email.com', program: 'TUPAD (Emergency Employment)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified' },
+            { id: 'BEN-2026-002', name: 'Maria Santos', barangay: 'Poblacion', address: 'Purok 2, Poblacion', contact: '09189876543', email: 'maria@email.com', program: 'PFAS (Pangkabuhayan Assistance)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified' },
+            { id: 'BEN-2026-003', name: 'Pedro Reyes', barangay: 'Rotonda', address: 'Purok 1, Rotonda', contact: '09195554433', email: 'pedro@email.com', program: 'CKGIP (City Internship)', status: 'Inactive', idStatus: 'Pending Review', clearanceStatus: 'Pending Review' }
+        ];
+
         let evaluationList = [
             {
                 id: 'APP-2026-001',
-                qrCodeId: 'BEN-001',
+                qrCodeId: 'BEN-2026-001',
                 beneficiaryName: 'Juan Dela Cruz',
                 program: 'TUPAD (Emergency Employment)',
                 projectType: 'Environmental Sanitation',
@@ -880,7 +1160,7 @@
             },
             {
                 id: 'APP-2026-002',
-                qrCodeId: 'BEN-002',
+                qrCodeId: 'BEN-2026-002',
                 beneficiaryName: 'Maria Santos',
                 program: 'PFAS (Pangkabuhayan Assistance)',
                 projectType: 'Micro-Enterprise Food Cart',
@@ -894,22 +1174,6 @@
                     { name: 'Barangay Certification', type: 'barangay_cert', status: 'Verified' },
                     { name: 'Business Plan / Proposal', type: 'business_plan', status: 'Verified' }
                 ]
-            },
-            {
-                id: 'APP-2026-003',
-                qrCodeId: 'BEN-003',
-                beneficiaryName: 'Pedro Reyes',
-                program: 'CKGIP (City Government Internship)',
-                projectType: 'Administrative Internship',
-                dateSubmitted: '2026-02-14',
-                status: 'Denied',
-                remarks: 'Applicant exceeds age eligibility requirements for CKGIP.',
-                missingNotes: '',
-                documents: [
-                    { name: '2x2 ID Photo', type: 'photo2x2', status: 'Verified' },
-                    { name: 'Letter of Intent to City Mayor', type: 'letter_intent', status: 'Verified' },
-                    { name: 'Barangay Certification', type: 'barangay_cert', status: 'Rejected' }
-                ]
             }
         ];
 
@@ -919,8 +1183,7 @@
         ];
 
         let assistanceRecordsList = [
-            { id: 'AST-2026-001', appId: 'APP-2026-002', beneficiaryName: 'Maria Santos', program: 'PFAS (Pangkabuhayan Assistance)', type: 'Equipment Starter Kit', quantity: '1 unit Sewing Machine + Starter Accessories', dateApproved: '2026-02-15', conditions: 'Must maintain micro-enterprise for 6 months and submit quarterly report.', officer: 'Jane Smith' },
-            { id: 'AST-2026-002', appId: 'APP-2026-001', beneficiaryName: 'Juan Dela Cruz', program: 'TUPAD (Emergency Employment)', type: 'Cash Grant', quantity: '₱5,200 (Emergency Wages)', dateApproved: '2026-02-18', conditions: 'Subject to 100% completion of 10-day community work.', officer: 'Jane Smith' }
+            { id: 'AST-2026-001', appId: 'APP-2026-002', beneficiaryName: 'Maria Santos', program: 'PFAS (Pangkabuhayan Assistance)', type: 'Equipment Starter Kit', quantity: '1 unit Sewing Machine + Starter Accessories', dateApproved: '2026-02-15', conditions: 'Must maintain micro-enterprise for 6 months.', officer: 'Jane Smith' }
         ];
 
         let auditLogs = [
@@ -929,6 +1192,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('officerNameDisplay').textContent = currentOfficerUser.fullName || 'PESO Officer';
+            renderBeneficiaryTable();
             renderEvaluationQueueTable();
             renderBatchesCards();
             renderLivelihoodMasterTable();
@@ -939,6 +1203,7 @@
         function switchTab(tabId) {
             document.querySelectorAll('.tab-section').forEach(el => el.classList.add('d-none'));
             document.querySelectorAll('.sidebar-menu .nav-link').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.remove('active');
             
             document.getElementById(`tab-${tabId}`).classList.remove('d-none');
             event.currentTarget.classList.add('active');
@@ -949,7 +1214,219 @@
         }
 
         // ---------------------------------------------------------------------
-        // 1. APPLICATION EVALUATION LOGIC
+        // BENEFICIARIES MANAGEMENT MODULE
+        // ---------------------------------------------------------------------
+        function renderBeneficiaryTable() {
+            const tbody = document.getElementById('beneficiaryTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = beneficiariesList.map(b => `
+                <tr style="cursor:pointer" onclick="openBeneficiaryInfoCardModal('${b.id}')">
+                    <td><span class="fw-bold text-primary">${b.id}</span></td>
+                    <td class="fw-semibold">${b.name}</td>
+                    <td>${b.address}</td>
+                    <td>${b.contact}<br><small class="text-muted">${b.email}</small></td>
+                    <td><span class="badge bg-primary-subtle text-primary">${b.program}</span></td>
+                    <td><span class="badge ${b.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${b.status}</span></td>
+                    <td><span class="badge ${b.clearanceStatus === 'Verified' ? 'bg-success' : 'bg-warning'}">${b.clearanceStatus}</span></td>
+                    <td class="text-end" onclick="event.stopPropagation()">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="openBeneficiaryInfoCardModal('${b.id}')"><i class="bi bi-card-heading"></i> Info Card</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showPrintableQrCard('${b.id}')"><i class="bi bi-qr-code"></i> QR Card</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterBeneficiariesTable() {
+            const search = document.getElementById('benSearchInput').value.toLowerCase();
+            const brgy = document.getElementById('benBarangayFilter').value;
+            const status = document.getElementById('benStatusFilter').value;
+
+            const filtered = beneficiariesList.filter(b => {
+                const matchSearch = !search || b.name.toLowerCase().includes(search) || b.id.toLowerCase().includes(search) || b.email.toLowerCase().includes(search);
+                const matchBrgy = !brgy || b.barangay === brgy;
+                const matchStatus = !status || b.status === status;
+                return matchSearch && matchBrgy && matchStatus;
+            });
+
+            const tbody = document.getElementById('beneficiaryTableBody');
+            tbody.innerHTML = filtered.map(b => `
+                <tr style="cursor:pointer" onclick="openBeneficiaryInfoCardModal('${b.id}')">
+                    <td><span class="fw-bold text-primary">${b.id}</span></td>
+                    <td class="fw-semibold">${b.name}</td>
+                    <td>${b.address}</td>
+                    <td>${b.contact}<br><small class="text-muted">${b.email}</small></td>
+                    <td><span class="badge bg-primary-subtle text-primary">${b.program}</span></td>
+                    <td><span class="badge ${b.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${b.status}</span></td>
+                    <td><span class="badge ${b.clearanceStatus === 'Verified' ? 'bg-success' : 'bg-warning'}">${b.clearanceStatus}</span></td>
+                    <td class="text-end" onclick="event.stopPropagation()">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="openBeneficiaryInfoCardModal('${b.id}')"><i class="bi bi-card-heading"></i> Info Card</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showPrintableQrCard('${b.id}')"><i class="bi bi-qr-code"></i> QR Card</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function resetBeneficiaryFilters() {
+            document.getElementById('benSearchInput').value = '';
+            document.getElementById('benBarangayFilter').value = '';
+            document.getElementById('benStatusFilter').value = '';
+            renderBeneficiaryTable();
+        }
+
+        function openAddBeneficiaryModal() {
+            new bootstrap.Modal(document.getElementById('addBeneficiaryModal')).show();
+        }
+
+        function calculateBenAge() {
+            const b = document.getElementById('benBirthday').value;
+            if (!b) return;
+            const diff = Date.now() - new Date(b).getTime();
+            document.getElementById('benAge').value = Math.abs(new Date(diff).getUTCFullYear() - 1970);
+        }
+
+        function previewBenPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('imgBen2x2Preview').src = e.target.result;
+                    document.getElementById('imgBen2x2Preview').classList.remove('d-none');
+                    document.getElementById('benPhotoPlaceholder').classList.add('d-none');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function sendOfficerSmsOtp() {
+            const phone = document.getElementById('benPhone').value;
+            if (!phone) { alert('Enter phone number first.'); return; }
+            document.getElementById('benPhoneOtpStatus').innerHTML = 'Status: <span class="badge bg-success">Phone & OTP Verified</span>';
+            alert('Simulation Demo: Phone OTP verified successfully!');
+        }
+
+        function sendOfficerEmailCode() {
+            const email = document.getElementById('benEmail').value;
+            if (!email) { alert('Enter email address first.'); return; }
+            document.getElementById('benEmailCodeStatus').innerHTML = 'Status: <span class="badge bg-success">Email Code Verified</span>';
+            alert('Simulation Demo: Email Code verified successfully!');
+        }
+
+        function submitBeneficiaryRegistration(event) {
+            event.preventDefault();
+
+            const certFile = document.getElementById('benClearanceFile');
+            if (!certFile.files || certFile.files.length === 0) {
+                alert('ERROR: Mandatory Barangay Clearance document is missing. Registration blocked.');
+                return;
+            }
+
+            const fn = document.getElementById('benFirstName').value.trim();
+            const ln = document.getElementById('benLastName').value.trim();
+            const brgy = document.getElementById('benBarangay').value;
+
+            const newId = `BEN-2026-${String(beneficiariesList.length + 1).padStart(3, '0')}`;
+            const newBen = {
+                id: newId,
+                name: `${fn} ${ln}`,
+                barangay: brgy,
+                address: `Purok ${document.getElementById('benPurok').value.trim()}, ${brgy}`,
+                contact: document.getElementById('benPhone').value,
+                email: document.getElementById('benEmail').value,
+                program: document.getElementById('benProgram').value,
+                status: 'Active',
+                idStatus: 'Verified',
+                clearanceStatus: 'Verified'
+            };
+
+            beneficiariesList.unshift(newBen);
+            renderBeneficiaryTable();
+            logOfficerAction('REGISTER_BENEFICIARY', `Registered new beneficiary ${newId} (${fn} ${ln})`);
+
+            bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal')).hide();
+            alert(`Beneficiary ${fn} ${ln} registered successfully with ID ${newId}!`);
+        }
+
+        function openBeneficiaryInfoCardModal(id) {
+            const b = beneficiariesList.find(item => item.id === id);
+            if (!b) return;
+
+            document.getElementById('infoCardTitle').innerHTML = `<i class="bi bi-person-badge me-2"></i>Beneficiary Info Card: ${b.name}`;
+            document.getElementById('infoCardBody').innerHTML = `
+                <div class="row g-4">
+                    <div class="col-md-5 text-center border-end">
+                        <div class="p-3 bg-light rounded mb-3">
+                            <i class="bi bi-person-circle fs-1 text-primary"></i>
+                            <h5 class="fw-bold mt-2 mb-0">${b.name}</h5>
+                            <small class="text-muted">ID: ${b.id}</small>
+                        </div>
+                        <span class="badge ${b.status === 'Active' ? 'bg-success fs-6' : 'bg-secondary fs-6'} px-3 py-2">${b.status} Account</span>
+                    </div>
+                    <div class="col-md-7">
+                        <h6 class="fw-bold text-primary">Personal & Program Details</h6>
+                        <table class="table table-sm">
+                            <tr><th>Barangay:</th><td>${b.barangay}</td></tr>
+                            <tr><th>Address:</th><td>${b.address}</td></tr>
+                            <tr><th>Contact Phone:</th><td>${b.contact}</td></tr>
+                            <tr><th>Email:</th><td>${b.email}</td></tr>
+                            <tr><th>Assigned Program:</th><td><span class="badge bg-primary-subtle text-primary">${b.program}</span></td></tr>
+                            <tr><th>Valid ID Status:</th><td><span class="badge bg-success">${b.idStatus}</span></td></tr>
+                            <tr><th>Barangay Clearance:</th><td><span class="badge bg-success">${b.clearanceStatus}</span></td></tr>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('infoCardFooter').innerHTML = `
+                <div>
+                    <button class="btn btn-outline-warning me-2" onclick="toggleAccountStatus('${b.id}')">
+                        <i class="bi bi-power me-1"></i> ${b.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}
+                    </button>
+                    <button class="btn btn-outline-success me-2" onclick="reviewDocumentStatus('${b.id}', 'Clearance', 'Verified')"><i class="bi bi-check2-circle me-1"></i> Approve Documents</button>
+                    <button class="btn btn-outline-danger" onclick="reviewDocumentStatus('${b.id}', 'Clearance', 'Rejected')"><i class="bi bi-x-circle me-1"></i> Reject Documents</button>
+                </div>
+                <button class="btn btn-primary" onclick="showPrintableQrCard('${b.id}')"><i class="bi bi-qr-code me-1"></i> View QR Card</button>
+            `;
+
+            new bootstrap.Modal(document.getElementById('beneficiaryInfoCardModal')).show();
+        }
+
+        function toggleAccountStatus(id) {
+            const b = beneficiariesList.find(item => item.id === id);
+            if (!b) return;
+
+            b.status = b.status === 'Active' ? 'Inactive' : 'Active';
+            renderBeneficiaryTable();
+            logOfficerAction('TOGGLE_STATUS', `Toggled account status for ${b.name} (${id}) to ${b.status}`);
+
+            bootstrap.Modal.getInstance(document.getElementById('beneficiaryInfoCardModal')).hide();
+            alert(`Account status for ${b.name} updated to ${b.status}!`);
+        }
+
+        function reviewDocumentStatus(id, docType, newStatus) {
+            const b = beneficiariesList.find(item => item.id === id);
+            if (!b) return;
+
+            b.clearanceStatus = newStatus;
+            renderBeneficiaryTable();
+            logOfficerAction('REVIEW_DOCS', `Reviewed ${docType} for ${b.name} (${id}): ${newStatus}`);
+
+            bootstrap.Modal.getInstance(document.getElementById('beneficiaryInfoCardModal')).hide();
+            alert(`Document review status for ${b.name} updated to ${newStatus}!`);
+        }
+
+        function showPrintableQrCard(id) {
+            const b = beneficiariesList.find(item => item.id === id);
+            if (!b) return;
+
+            document.getElementById('qrBenName').textContent = b.name;
+            document.getElementById('qrBenId').textContent = `ID: ${b.id}`;
+            document.getElementById('qrBenProgram').textContent = b.program;
+
+            new bootstrap.Modal(document.getElementById('printableQrModal')).show();
+        }
+
+        // ---------------------------------------------------------------------
+        // APPLICATION EVALUATION LOGIC
         // ---------------------------------------------------------------------
         function renderEvaluationQueueTable() {
             const tbody = document.getElementById('evaluationQueueTableBody');
@@ -963,7 +1440,7 @@
                         <td>${item.dateSubmitted}</td>
                         <td><span class="badge ${badgeClass}">${item.status}</span></td>
                         <td class="text-end" onclick="event.stopPropagation()">
-                            <button class="btn btn-sm btn-outline-primary" onclick="openApplicationDetail('${item.id}')"><i class="bi bi-eye"></i> View & Evaluate</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openApplicationDetail('${item.id}')"><i class="bi bi-eye"></i> Evaluate</button>
                         </td>
                     </tr>
                 `;
@@ -972,7 +1449,7 @@
 
         function openApplicationDetail(id) {
             const item = evaluationList.find(e => e.id === id || e.qrCodeId === id);
-            if (!item) { alert('Application not found.'); return; }
+            if (!item) { alert('Application record not found.'); return; }
 
             selectedEvalAppId = item.id;
             let badgeClass = item.status === 'Approved' ? 'badge-approved' : item.status === 'Denied' ? 'badge-denied' : 'badge-pending';
@@ -1027,7 +1504,6 @@
             `;
 
             document.getElementById('appModalContent').innerHTML = html;
-
             document.getElementById('evalActionButtonsContainer').innerHTML = `
                 <button class="btn btn-success me-2" onclick="approveApplication('${item.id}')"><i class="bi bi-check-circle me-1"></i> Approve & Forward to Admin</button>
                 <button class="btn btn-warning me-2 fw-bold" onclick="promptPendingNotes('${item.id}')"><i class="bi bi-clock me-1"></i> Set Pending (Missing Docs)</button>
@@ -1099,7 +1575,7 @@
         }
 
         // ---------------------------------------------------------------------
-        // 2. LIVELIHOOD APPLICATION MANAGEMENT & BATCHES
+        // LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT
         // ---------------------------------------------------------------------
         function renderBatchesCards() {
             const container = document.getElementById('batchesCardContainer');
@@ -1149,7 +1625,6 @@
             const program = document.getElementById('intakeProgram').value;
             const certFile = document.getElementById('intakeBarangayCertFile');
 
-            // MANDATORY BARANGAY CERTIFICATION CHECK (Blocks submission if missing)
             if (!certFile.files || certFile.files.length === 0) {
                 alert('ERROR: Intake submission BLOCKED. Mandatory Barangay Certification document is missing.');
                 return;
@@ -1157,7 +1632,7 @@
 
             const newApp = {
                 id: `APP-2026-${String(evaluationList.length + 1).padStart(3, '0')}`,
-                qrCodeId: `BEN-${String(evaluationList.length + 1).padStart(3, '0')}`,
+                qrCodeId: `BEN-2026-${String(evaluationList.length + 1).padStart(3, '0')}`,
                 beneficiaryName: name,
                 program,
                 projectType: document.getElementById('intakeProjectType').value || 'Micro-Enterprise',
@@ -1206,7 +1681,7 @@
         }
 
         // ---------------------------------------------------------------------
-        // 3. APPROVED ASSISTANCE RECORDING & MONITORING
+        // APPROVED ASSISTANCE RECORDING & MONITORING
         // ---------------------------------------------------------------------
         function renderAssistanceRecordsTable() {
             const tbody = document.getElementById('assistanceRecordsTableBody');
@@ -1304,7 +1779,7 @@
             const val = document.getElementById('manualQrInput').value.trim();
             if (!val) { alert('Enter QR string or ID.'); return; }
             bootstrap.Modal.getInstance(document.getElementById('qrScannerModal')).hide();
-            openApplicationDetail(val);
+            openBeneficiaryInfoCardModal(val);
         }
 
         function filterEvaluationQueue() {
