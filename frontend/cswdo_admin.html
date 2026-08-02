@@ -13,8 +13,6 @@
     <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
     <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
     <script src="assets/js/api-config.js"></script>
-    <script src="assets/js/session-manager.js"></script>
-    <script src="assets/js/peso-safeguards.js"></script>
     <style>
         :root {
             --primary-pink: #F0B6C6;
@@ -939,11 +937,6 @@
             border-top-color: var(--border-color) !important;
         }
     </style>
-    <!-- API Configuration & Clerk SDK -->
-    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
-    <script src="assets/js/api-config.js"></script>
-    <script src="assets/js/session-manager.js"></script>
-    <script src="assets/js/clerk-init.js"></script>
 </head>
 <body>
 
@@ -1025,7 +1018,6 @@
                 </div>
             </div>
             <div class="header-controls">
-                <div id="clerk-user-button"></div>
                 <!-- Theme Toggle -->
                 <button class="header-btn" id="darkModeToggle" title="Toggle Light/Dark Theme" onclick="toggleDarkMode()">
                     <i class="bi bi-moon-fill" id="darkModeIcon"></i>
@@ -2302,12 +2294,8 @@
         // Sign Out
         function logoutAdmin() {
             if (confirm("Are you sure you want to log out of the CSWDO Admin Portal?")) {
-                if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
-                    SessionManager.logout('admin_login.html');
-                } else {
-                    sessionStorage.clear();
-                    window.location.href = "admin_login.html";
-                }
+                sessionStorage.clear();
+                window.location.href = "admin_login.html";
             }
         }
 
@@ -3938,73 +3926,5 @@
             <button class="btn btn-sm btn-link text-danger text-decoration-none font-weight-bold" onclick="clearAllNotifications()" data-translate="clear_all">Clear all</button>
         </div>
     </div>
-    <!-- Dry Run Confirmation & Impact Analysis Modal -->
-    <div class="modal fade" id="dryRunConfirmModal" tabindex="-1" aria-hidden="true" style="z-index: 3000;">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
-                <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="p-2 rounded-circle bg-warning bg-opacity-20 text-warning">
-                            <i class="bi bi-shield-lock-fill fs-4"></i>
-                        </div>
-                        <div>
-                            <h5 class="modal-title fw-bold text-white m-0" id="dryRunTitle">Action Confirmation & Impact Analysis</h5>
-                            <small class="text-white-50">CSWDO System Safeguards (beforeExecute Validation Hook)</small>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" id="btnDryRunHeaderClose" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 bg-light">
-                    <div class="d-flex align-items-center justify-content-between mb-3 p-3 bg-white rounded border shadow-sm">
-                        <div>
-                            <span class="badge bg-primary px-3 py-2 me-2" id="dryRunIntentBadge">Modify Record</span>
-                            <strong class="text-dark fs-6" id="dryRunTargetEntity">Target System Entity</strong>
-                        </div>
-                        <span class="badge bg-warning text-dark px-3 py-2 fw-bold" id="dryRunRiskBadge">MEDIUM RISK</span>
-                    </div>
-
-                    <h6 class="fw-bold text-secondary mb-2" style="font-size: 0.85rem;"><i class="bi bi-graph-up-arrow me-1 text-primary"></i> Dry-Run Impact Matrix</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <div class="p-3 bg-white rounded border text-center shadow-sm">
-                                <small class="text-muted d-block mb-1">Affected Records</small>
-                                <span class="fs-4 fw-bold text-dark" id="dryRunAffectedRecords">1</span>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 bg-white rounded border text-center shadow-sm">
-                                <small class="text-muted d-block mb-1">Financial Budget Value</small>
-                                <span class="fs-4 fw-bold text-primary" id="dryRunFinancialValue">₱ 0.00</span>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 bg-white rounded border text-center shadow-sm">
-                                <small class="text-muted d-block mb-1">Linked Dependencies</small>
-                                <span class="fs-4 fw-bold text-danger" id="dryRunDependencies">0</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h6 class="fw-bold text-secondary mb-2" style="font-size: 0.85rem;"><i class="bi bi-list-check me-1 text-warning"></i> Projected System Side Effects</h6>
-                    <div class="p-3 bg-white rounded border shadow-sm mb-3">
-                        <ul class="list-unstyled mb-0 small text-dark" id="dryRunSideEffectsList">
-                            <li class="mb-1"><i class="bi bi-shield-exclamation text-warning me-2"></i>Record state will be updated in ledger.</li>
-                        </ul>
-                    </div>
-
-                    <div class="alert alert-dark border-0 py-2 px-3 small shadow-sm m-0" style="background-color: #0F172A; color: #F8FAFC;">
-                        <i class="bi bi-info-circle-fill text-info me-2"></i> All actions executed following dry-run confirmation are committed to the <strong>Immutable System Audit Log</strong> with timestamp and user role.
-                    </div>
-                </div>
-                <div class="modal-footer bg-white border-0 p-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-light px-4 font-weight-bold" id="btnDryRunCancel" data-bs-dismiss="modal">Abort & Cancel</button>
-                    <button type="button" class="btn btn-danger px-4 font-weight-bold" id="btnDryRunExecute">
-                        <i class="bi bi-check-circle-fill me-1"></i> Confirm & Execute Action
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 </body>
-
 </html>

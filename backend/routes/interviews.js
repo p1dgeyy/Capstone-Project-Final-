@@ -43,10 +43,10 @@ router.get('/', async (req, res) => {
         u_off.first_name AS officer_first_name,
         u_off.last_name AS officer_last_name
       FROM interview_schedules i
-      JOIN beneficiaries u_ben ON i.beneficiary_id = u_ben.id
+      JOIN users u_ben ON i.beneficiary_id = u_ben.id
       JOIN programs p ON i.program_id = p.id
       LEFT JOIN applications app ON i.application_id = app.id
-      LEFT JOIN officers u_off ON i.officer_id = u_off.id
+      LEFT JOIN users u_off ON i.officer_id = u_off.id
       WHERE 1=1
     `;
 
@@ -138,6 +138,7 @@ router.post('/', async (req, res) => {
 
     const scheduleId = result.insertId;
 
+    // Optional: update application status if linked
     if (application_id) {
       await connection.query(
         `UPDATE applications SET status = 'Interview Scheduled' WHERE id = ?`,
@@ -145,6 +146,7 @@ router.post('/', async (req, res) => {
       );
     }
 
+    // Insert Notification for Beneficiary
     await connection.query(
       `INSERT INTO notifications (user_id, title, message, type, is_read) 
        VALUES (?, 'Interview Scheduled', ?, 'info', 0)`,
@@ -154,6 +156,7 @@ router.post('/', async (req, res) => {
       ]
     );
 
+    // Audit log entry
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_SCHEDULE_INTERVIEW', 'interview_schedules', ?, ?)`,
@@ -198,6 +201,7 @@ router.put('/:id/attendance', async (req, res) => {
 
     await connection.beginTransaction();
 
+    // Check existing
     const [existing] = await connection.query(`SELECT * FROM interview_schedules WHERE id = ?`, [scheduleId]);
     if (existing.length === 0) {
       await connection.rollback();
@@ -206,6 +210,7 @@ router.put('/:id/attendance', async (req, res) => {
 
     const current = existing[0];
 
+    // Auto-update schedule status if marked Present -> Completed or Absent -> Pending/Missed
     let newStatus = current.status;
     if (attendance_status === 'Present') {
       newStatus = 'Completed';
@@ -220,6 +225,7 @@ router.put('/:id/attendance', async (req, res) => {
       [attendance_status, newStatus, remarks || null, scheduleId]
     );
 
+    // Notify Beneficiary
     await connection.query(
       `INSERT INTO notifications (user_id, title, message, type, is_read) 
        VALUES (?, 'Interview Attendance Updated', ?, 'info', 0)`,
@@ -229,6 +235,7 @@ router.put('/:id/attendance', async (req, res) => {
       ]
     );
 
+    // Log to Audit Trail
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_UPDATE_ATTENDANCE', 'interview_schedules', ?, ?)`,
@@ -291,6 +298,7 @@ router.put('/:id/status', async (req, res) => {
       [status, remarks || null, scheduleId]
     );
 
+    // Log Audit Event
     await connection.query(
       `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
        VALUES (?, 'OFFICER_UPDATE_INTERVIEW_STATUS', 'interview_schedules', ?, ?)`,
@@ -316,6 +324,123 @@ router.put('/:id/status', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update interview status', error: error.message });
   } finally {
     connection.release();
+  }
+});
+
+/**
+ * POST /api/interviews/:id/cancel
+ * Cancels schedule with mandatory cancellation reason logged into audit_logs (REQ088)
+ */
+router.post('/:id/cancel', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const scheduleId = req.params.id;
+    const { reason, officer_id } = req.body;
+    const actingOfficerId = officer_id || req.headers['x-user-id'] || 1;
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ success: false, message: 'Cancellation reason is mandatory.' });
+    }
+
+    await connection.beginTransaction();
+
+    const [existing] = await connection.query(`SELECT * FROM interview_schedules WHERE id = ?`, [scheduleId]);
+    if (existing.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: 'Interview schedule not found' });
+    }
+
+    const current = existing[0];
+
+    // Update status to Cancelled
+    await connection.query(
+      `UPDATE interview_schedules SET status = 'Cancelled', remarks = ?, updated_at = NOW() WHERE id = ?`,
+      [reason.trim(), scheduleId]
+    );
+
+    // Audit Log Entry for cancellation
+    const auditDetails = `Cancelled Schedule #${scheduleId} (${current.interview_date} ${current.interview_time}). Reason: ${reason.trim()}`;
+    await connection.query(
+      `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) 
+       VALUES (?, 'OFFICER_CANCEL_SCHEDULE', 'schedule_cancellations', ?, ?)`,
+      [actingOfficerId, scheduleId, auditDetails]
+    );
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: 'Schedule cancelled and logged to audit trail successfully.',
+      scheduleId: scheduleId,
+      reason: reason.trim()
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error cancelling schedule:', error);
+    res.status(500).json({ success: false, message: 'Failed to cancel schedule', error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Archival support endpoints for schedules
+router.post('/:id/archive', async (req, res) => {
+  try {
+    await pool.query('UPDATE interview_schedules SET status = \'Cancelled\' WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Schedule archived.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/restore', async (req, res) => {
+  try {
+    await pool.query('UPDATE interview_schedules SET status = \'Scheduled\' WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Schedule restored.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/permanent', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM interview_schedules WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Schedule permanently deleted.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/interviews/attendance or /api/schedules/attendance
+ * Records interview attendance (Present/Absent) and interview outcome (Completed/Pending/Missed)
+ */
+router.post('/attendance', async (req, res) => {
+  let connection;
+  try {
+    const { scheduleId, beneficiaryId, attendance, outcome, remarks } = req.body;
+    if (!scheduleId || !attendance) {
+      return res.status(400).json({ success: false, message: 'Schedule ID and attendance status are required.' });
+    }
+
+    connection = await pool.getConnection();
+    const finalOutcome = outcome || (attendance === 'Present' ? 'Completed' : 'Missed');
+
+    await connection.execute(
+      `UPDATE interview_schedules SET status = ?, remarks = ?, updated_at = NOW() WHERE id = ?`,
+      [finalOutcome, remarks || `Attendance: ${attendance}`, scheduleId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Interview attendance marked as ${attendance} (${finalOutcome}).`,
+      data: { scheduleId, attendance, outcome: finalOutcome, remarks }
+    });
+  } catch (error) {
+    console.error('[INTERVIEWS] POST /attendance error:', error.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 

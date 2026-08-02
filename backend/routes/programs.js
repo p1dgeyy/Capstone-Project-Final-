@@ -220,4 +220,66 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// =============================================================================
+// GET /api/programs/:id/active-assignments-check
+// Check count of active beneficiaries / applications linked to this program
+// =============================================================================
+router.get('/:id/active-assignments-check', async (req, res) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    const [rows] = await connection.execute(
+      'SELECT COUNT(*) AS count FROM `applications` WHERE `program_id` = ? AND `status` NOT IN (\'Rejected\', \'Officer Denied\', \'Completed\')',
+      [req.params.id]
+    );
+    const activeCount = rows[0] ? rows[0].count : 0;
+    return res.status(200).json({ success: true, activeCount });
+  } catch (error) {
+    console.error('[PROGRAMS] GET /:id/active-assignments-check error:', error.message);
+    return res.status(500).json({ success: false, message: 'Internal server error.', activeCount: 0 });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// Archival endpoints
+router.post('/:id/archive', async (req, res) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.execute('UPDATE `programs` SET `status` = \'Deactivated\' WHERE `id` = ?', [req.params.id]);
+    return res.status(200).json({ success: true, message: 'Program archived/deactivated.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+router.post('/:id/restore', async (req, res) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.execute('UPDATE `programs` SET `status` = \'Active\' WHERE `id` = ?', [req.params.id]);
+    return res.status(200).json({ success: true, message: 'Program restored.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+router.delete('/:id/permanent', async (req, res) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.execute('DELETE FROM `programs` WHERE `id` = ?', [req.params.id]);
+    return res.status(200).json({ success: true, message: 'Program permanently deleted.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
 module.exports = router;

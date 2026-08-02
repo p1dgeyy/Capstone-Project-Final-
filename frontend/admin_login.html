@@ -870,7 +870,6 @@
     <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/session-manager.js"></script>
-    <script src="assets/js/clerk-init.js"></script>
 </head>
 <body>
     
@@ -974,9 +973,6 @@
                 <div class="back-portal-link">
                     <a href="official_login.html"><i class="bi bi-arrow-left me-1"></i><span data-translate="back_to_beneficiary">Back to Beneficiary Portal</span></a>
                 </div>
-
-                <!-- Clerk SSO & Sign-In Container -->
-                <div id="clerk-sign-in" class="mt-4 text-center"></div>
             </div>
             
             <div class="footer-version">
@@ -1637,36 +1633,30 @@
             loginBtn.disabled = true;
 
             try {
-                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login'.replace('/login', '/officer/login'), {
+                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: username.trim(), password })
                 });
 
-                const data = await response.json().catch(() => ({}));
-                if (response.ok && data.success) {
-                    SessionManager.save(data.user.id, data.sessionToken, data.user.role);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        SessionManager.save(data.user.id, data.sessionToken, data.user.role);
 
-                    sessionStorage.setItem('userRole', data.user.role);
-                    sessionStorage.setItem('username', data.user.username);
-                    sessionStorage.setItem('userId', data.user.id);
-                    sessionStorage.setItem('userFullName', data.user.fullName);
+                        sessionStorage.setItem('userRole', data.user.role);
+                        sessionStorage.setItem('username', data.user.username);
+                        sessionStorage.setItem('userId', data.user.id);
+                        sessionStorage.setItem('userFullName', data.user.fullName);
 
-                    successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
-                    successAlert.style.display = 'block';
+                        successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
+                        successAlert.style.display = 'block';
 
-                    setTimeout(() => {
-                        window.location.href = data.redirect || (data.user.role.includes('CSWDO') ? 'cswdo_officer.html' : 'peso_officer.html');
-                    }, 1000);
-                    return;
-                } else if (data.message) {
-                    document.getElementById('errorMessage').textContent = data.message;
-                    errorAlert.style.display = 'block';
-                    btnText.style.display = 'inline';
-                    btnIcon.style.display = 'inline-block';
-                    spinner.style.display = 'none';
-                    loginBtn.disabled = false;
-                    return;
+                        setTimeout(() => {
+                            window.location.href = data.redirect || (data.user.role.includes('CSWDO') ? 'cswdo_officer.html' : 'peso_officer.html');
+                        }, 1000);
+                        return;
+                    }
                 }
             } catch (networkError) {
                 console.warn('Backend API connection offline/error, checking local account fallback:', networkError);
