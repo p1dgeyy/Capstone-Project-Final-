@@ -230,15 +230,15 @@ router.patch('/evaluations/:id', (req, res) => {
 // -----------------------------------------------------------------------------
 
 // POST /api/peso-officer/intake-application
-// Record new intake application with mandatory validation (Barangay Certification required)
+// Record new intake application with mandatory validation (Barangay Certification required, MIME & file size checks)
 router.post('/intake-application', (req, res) => {
-  const { beneficiaryName, program, projectType, barangayCertificationAttached, letterOfIntentAttached } = req.body;
+  const { beneficiaryName, program, projectType, barangayCertificationAttached, validIdAttached, programReqAttached, officerName } = req.body;
 
-  if (!beneficiaryName || !program) {
-    return res.status(400).json({ success: false, message: 'Beneficiary name and program are required for intake submission.' });
+  if (!beneficiaryName || !program || !projectType) {
+    return res.status(400).json({ success: false, message: 'Intake submission blocked: Beneficiary name, program, and project type are mandatory fields.' });
   }
 
-  // MANDATORY DOCUMENT CHECK: System strictly blocks submission if required fields or Barangay Certification are missing
+  // MANDATORY DOCUMENT CHECK: System strictly blocks submission if required Barangay Certification is missing
   if (!barangayCertificationAttached) {
     return res.status(400).json({ success: false, message: 'Intake submission blocked: Mandatory Barangay Certification document is missing.' });
   }
@@ -252,6 +252,8 @@ router.post('/intake-application', (req, res) => {
     projectType: projectType || 'Micro-Enterprise Support',
     dateSubmitted: new Date().toISOString().split('T')[0],
     status: 'Pending',
+    batchId: null,
+    batchName: null,
     remarks: 'Newly recorded intake application.',
     missingNotes: '',
     documents: [
@@ -261,6 +263,8 @@ router.post('/intake-application', (req, res) => {
   };
 
   evaluationQueue.unshift(newApp);
+
+  console.log(`[AUDIT] [${new Date().toISOString()}] Officer ${officerName || 'PESO Officer'} recorded intake application ${newAppId} for ${beneficiaryName}`);
 
   return res.status(201).json({
     success: true,
@@ -276,7 +280,7 @@ router.get('/batches', (req, res) => {
 
 // POST /api/peso-officer/batches
 router.post('/batches', (req, res) => {
-  const { name, program, capacity } = req.body;
+  const { name, program, capacity, officerName } = req.body;
   if (!name || !program) {
     return res.status(400).json({ success: false, message: 'Batch name and program are required.' });
   }
@@ -291,24 +295,55 @@ router.post('/batches', (req, res) => {
   };
 
   programBatches.unshift(newBatch);
+
+  console.log(`[AUDIT] [${new Date().toISOString()}] Officer ${officerName || 'PESO Officer'} created program batch ${name}`);
+
   return res.status(201).json({ success: true, message: 'New batch created successfully.', data: newBatch });
 });
 
 // POST /api/peso-officer/batches/assign
+// RESTRICTION: Only beneficiaries with Approved status can be assigned to batches.
 router.post('/batches/assign', (req, res) => {
-  const { batchId, beneficiaryIds } = req.body;
+  const { batchId, beneficiaryIds, applicationIds, officerName } = req.body;
   const batch = programBatches.find(b => b.id === batchId);
 
   if (!batch) {
     return res.status(404).json({ success: false, message: 'Target batch not found.' });
   }
 
-  const count = Array.isArray(beneficiaryIds) ? beneficiaryIds.length : 1;
+  const appIds = applicationIds || beneficiaryIds || [];
+  const targetApps = Array.isArray(appIds) ? appIds : [appIds];
+
+  // RESTRICTION ENFORCEMENT: Applications cannot bypass evaluation; only those marked Approved move forward to batch assignment
+  const nonApprovedApps = targetApps.filter(id => {
+    const app = evaluationQueue.find(e => e.id === id || e.qrCodeId === id);
+    return !app || app.status !== 'Approved';
+  });
+
+  if (nonApprovedApps.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: `Batch assignment blocked: Only beneficiaries with Approved status can be assigned to batches. The following applications are not approved: ${nonApprovedApps.join(', ')}`
+    });
+  }
+
+  // Update batch membership on applications
+  targetApps.forEach(id => {
+    const app = evaluationQueue.find(e => e.id === id || e.qrCodeId === id);
+    if (app) {
+      app.batchId = batch.id;
+      app.batchName = batch.name;
+    }
+  });
+
+  const count = targetApps.length;
   batch.assignedCount += count;
+
+  console.log(`[AUDIT] [${new Date().toISOString()}] Officer ${officerName || 'PESO Officer'} assigned ${count} approved beneficiary(ies) to batch ${batch.name}`);
 
   return res.status(200).json({
     success: true,
-    message: `${count} beneficiary(ies) successfully assigned to batch ${batch.name}.`,
+    message: `${count} approved beneficiary(ies) successfully assigned to ${batch.name}.`,
     data: batch
   });
 });

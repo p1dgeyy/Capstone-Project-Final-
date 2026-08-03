@@ -574,11 +574,54 @@
                 <!-- Dynamically loaded -->
             </div>
 
+            <!-- Searchable & Filterable Control Bar -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">Search Beneficiary / ID</label>
+                            <input type="text" class="form-control" id="livelihoodSearchInput" placeholder="Beneficiary name, App ID, or QR..." onkeyup="filterLivelihoodMasterTable()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">Filter by Program</label>
+                            <select class="form-select" id="livelihoodProgramFilter" onchange="filterLivelihoodMasterTable()">
+                                <option value="">All Programs</option>
+                                <option value="TUPAD">TUPAD (Emergency Employment)</option>
+                                <option value="PFAS">PFAS (Pangkabuhayan Assistance)</option>
+                                <option value="CKGIP">CKGIP (City Internship)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">Filter by Project Type</label>
+                            <select class="form-select" id="livelihoodProjectFilter" onchange="filterLivelihoodMasterTable()">
+                                <option value="">All Project Types</option>
+                                <option value="Environmental Sanitation">Environmental Sanitation</option>
+                                <option value="Micro-Enterprise">Micro-Enterprise / Food Cart</option>
+                                <option value="Administrative Internship">Administrative Internship</option>
+                                <option value="Skills Training">Skills Training</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold text-muted mb-1">Filter Status</label>
+                            <select class="form-select" id="livelihoodStatusFilter" onchange="filterLivelihoodMasterTable()">
+                                <option value="">All Statuses</option>
+                                <option value="Pending">Pending (Yellow)</option>
+                                <option value="Approved">Approved (Green)</option>
+                                <option value="Denied">Denied (Red)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary w-100" onclick="resetLivelihoodFilters()"><i class="bi bi-arrow-counterclockwise"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Master Applications Table -->
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold"><i class="bi bi-list-task me-2 text-primary"></i>Livelihood Applications Master List</h5>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="openBatchAssignModal()"><i class="bi bi-box-seam me-1"></i> Batch Assign Selected</button>
+                    <button class="btn btn-sm btn-primary" onclick="openBatchAssignModal()"><i class="bi bi-box-seam me-1"></i> Assign Selected to Batch</button>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -592,6 +635,7 @@
                                     <th>Project Type</th>
                                     <th>Submission Date</th>
                                     <th>Status</th>
+                                    <th>Batch Assignment</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
@@ -957,38 +1001,69 @@
 
     <!-- INTAKE APPLICATION MODAL -->
     <div class="modal fade" id="intakeApplicationModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-plus me-2"></i>Record New Intake Application</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-plus me-2"></i>Record New Livelihood Assistance Application</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <form id="intakeForm" onsubmit="submitIntakeApplication(event)">
+                    <form id="intakeForm" onsubmit="submitIntakeApplication(event)" novalidate>
+                        
+                        <div id="intakeValidationAlert" class="alert alert-danger d-none" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="intakeValidationText"></span>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Beneficiary & Program Details</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Beneficiary Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="intakeBenName" required placeholder="e.g. Maria Santos Dela Cruz">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Barangay & Address <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="intakeBenAddress" required placeholder="e.g. Purok 4, Barangay Morales">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Livelihood Program <span class="text-danger">*</span></label>
+                                <select class="form-select" id="intakeProgram" required>
+                                    <option value="TUPAD (Emergency Employment)">TUPAD (Emergency Employment)</option>
+                                    <option value="PFAS (Pangkabuhayan Assistance)">PFAS (Pangkabuhayan Assistance)</option>
+                                    <option value="CKGIP (City Internship)">CKGIP (City Internship)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Project / Business Type <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="intakeProjectType" required placeholder="e.g. Micro-Enterprise Food Cart, Environmental Sanitation">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Required Document Uploads</h6>
+                        
+                        <!-- Barangay Certification (Mandatory) -->
+                        <div class="p-3 bg-light border border-danger-subtle rounded mb-3">
+                            <label class="form-label fw-bold text-danger"><i class="bi bi-shield-lock-fill me-1"></i>Barangay Certification (MANDATORY) <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="intakeBarangayCertFile" accept=".pdf,.jpg,.jpeg,.png" required onchange="validateIntakeFileInput(this, 5)">
+                            <div class="form-text text-danger fw-semibold mt-1">System strictly blocks submission if Barangay Certification is missing. Allowed formats: PDF, JPG, PNG (Max 5MB).</div>
+                        </div>
+
+                        <!-- Valid ID (Mandatory) -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Beneficiary Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="intakeBenName" required placeholder="Full Name of Beneficiary">
+                            <label class="form-label fw-bold"><i class="bi bi-card-heading me-1"></i>Valid Government ID <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="intakeValidIdFile" accept=".pdf,.jpg,.jpeg,.png" required onchange="validateIntakeFileInput(this, 5)">
+                            <div class="form-text text-muted">MIME validation: JPG, PNG, PDF formats only. Max file size: 5MB.</div>
                         </div>
+
+                        <!-- Program Requirements Document (Mandatory) -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Livelihood Program <span class="text-danger">*</span></label>
-                            <select class="form-select" id="intakeProgram" required>
-                                <option value="TUPAD (Emergency Employment)">TUPAD (Emergency Employment)</option>
-                                <option value="PFAS (Pangkabuhayan Assistance)">PFAS (Pangkabuhayan Assistance)</option>
-                                <option value="CKGIP (City Internship)">CKGIP (City Internship)</option>
-                            </select>
+                            <label class="form-label fw-bold"><i class="bi bi-file-earmark-text me-1"></i>Program Requirements Document / Business Proposal <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="intakeProgramReqFile" accept=".pdf,.jpg,.jpeg,.png" required onchange="validateIntakeFileInput(this, 5)">
+                            <div class="form-text text-muted">MIME validation: JPG, PNG, PDF formats only. Max file size: 5MB.</div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Project Type / Enterprise</label>
-                            <input type="text" class="form-control" id="intakeProjectType" placeholder="e.g. Food Cart, Clean-up Drive">
-                        </div>
-                        <div class="p-3 bg-light border rounded mb-3">
-                            <label class="form-label fw-bold text-danger"><i class="bi bi-shield-lock me-1"></i>Barangay Certification (MANDATORY DOCUMENT) <span class="text-danger">*</span></label>
-                            <input type="file" class="form-control" id="intakeBarangayCertFile" accept=".pdf,.jpg,.png" required>
-                            <div class="form-text text-danger fw-semibold mt-1">System strictly blocks submission if Barangay Certification is missing.</div>
-                        </div>
+
                         <div class="modal-footer px-0 pb-0">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-circle me-1"></i> Submit Intake Record</button>
+                            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-circle me-1"></i> Submit Intake Application</button>
                         </div>
                     </form>
                 </div>
@@ -1007,7 +1082,7 @@
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Batch Name / Title <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="batchNameInput" placeholder="e.g. TUPAD Batch 3 - Barangay Morales Clean-up">
+                        <input type="text" class="form-control" id="batchNameInput" placeholder="e.g. Batch 1 – TUPAD Morales Clean-up">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Program <span class="text-danger">*</span></label>
@@ -1025,6 +1100,62 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="submitCreateBatch()"><i class="bi bi-plus-circle me-1"></i> Create Batch</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BATCH ASSIGNMENT MODAL (Restricted to Approved Beneficiaries Only) -->
+    <div class="modal fade" id="batchAssignModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-box-seam me-2"></i>Assign Approved Beneficiaries to Program Batch</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    
+                    <!-- Alert Banner for Restrictions -->
+                    <div id="batchAssignRestrictionAlert" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-shield-x-fill me-2 fs-5"></i>
+                        <div>
+                            <strong>Batch Assignment Blocked!</strong>
+                            <div id="batchAssignRestrictionText" class="small mt-1"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Select Target Batch <span class="text-danger">*</span></label>
+                        <select class="form-select" id="targetBatchSelect">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Selected Beneficiaries / Applications</h6>
+                    <div class="table-responsive border rounded mb-3">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>App ID</th>
+                                    <th>Beneficiary Name</th>
+                                    <th>Program</th>
+                                    <th>Current Status</th>
+                                    <th>Eligibility</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchAssignSelectedTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-info py-2 small mb-0">
+                        <i class="bi bi-info-circle-fill me-1"></i> <strong>Restriction Rule:</strong> Only applications marked with <strong>Approved</strong> status can be assigned to program batches. Applications cannot bypass evaluation.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary px-4" id="confirmBatchAssignBtn" onclick="submitBatchAssignment()"><i class="bi bi-check-circle me-1"></i> Confirm Batch Assignment</button>
                 </div>
             </div>
         </div>
@@ -1597,62 +1728,208 @@
             `).join('');
         }
 
-        function renderLivelihoodMasterTable() {
-            const tbody = document.getElementById('livelihoodMasterTableBody');
-            tbody.innerHTML = evaluationList.map(item => `
-                <tr>
-                    <td><input type="checkbox" class="app-row-checkbox" value="${item.id}"></td>
-                    <td class="fw-bold text-primary">${item.id}</td>
-                    <td class="fw-semibold">${item.beneficiaryName}</td>
-                    <td>${item.program}</td>
-                    <td>${item.projectType}</td>
-                    <td>${item.dateSubmitted}</td>
-                    <td><span class="badge ${item.status === 'Approved' ? 'bg-success' : item.status === 'Denied' ? 'bg-danger' : 'bg-warning'}">${item.status}</span></td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="openApplicationDetail('${item.id}')">Details</button>
-                    </td>
-                </tr>
+        // ---------------------------------------------------------------------
+        // LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT
+        // ---------------------------------------------------------------------
+        let selectedBatchAssignAppIds = [];
+
+        function renderBatchesCards() {
+            const container = document.getElementById('batchesCardContainer');
+            if (!container) return;
+            container.innerHTML = batchesList.map(b => `
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="fw-bold mb-0">${b.name}</h5>
+                                <span class="badge bg-primary">${b.program}</span>
+                            </div>
+                            <p class="text-muted small mb-2">Created: ${b.dateCreated} | Assigned: ${b.assignedCount} / ${b.capacity} slots</p>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" style="width: ${Math.min(100, (b.assignedCount / b.capacity) * 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             `).join('');
         }
 
+        function renderLivelihoodMasterTable(listToRender) {
+            const tbody = document.getElementById('livelihoodMasterTableBody');
+            if (!tbody) return;
+
+            const list = listToRender || evaluationList;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No livelihood applications match the filter criteria.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(item => {
+                let badgeClass = item.status === 'Approved' ? 'badge-approved' : item.status === 'Denied' ? 'badge-denied' : 'badge-pending';
+                let batchBadge = item.batchName 
+                    ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-box-seam me-1"></i>${item.batchName}</span>`
+                    : `<span class="badge bg-secondary-subtle text-secondary">Unassigned</span>`;
+
+                return `
+                    <tr>
+                        <td><input type="checkbox" class="app-row-checkbox" value="${item.id}"></td>
+                        <td class="fw-bold text-primary">${item.id}</td>
+                        <td class="fw-semibold">${item.beneficiaryName}</td>
+                        <td><span class="badge bg-light text-dark border">${item.program}</span></td>
+                        <td>${item.projectType || 'N/A'}</td>
+                        <td>${item.dateSubmitted}</td>
+                        <td><span class="badge ${badgeClass}">${item.status}</span></td>
+                        <td>${batchBadge}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="openApplicationDetail('${item.id}')"><i class="bi bi-eye"></i> Details</button>
+                            ${item.status === 'Approved' ? `<button class="btn btn-sm btn-outline-primary" onclick="openBatchAssignModal('${item.id}')"><i class="bi bi-box-seam"></i> Assign Batch</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterLivelihoodMasterTable() {
+            const search = document.getElementById('livelihoodSearchInput') ? document.getElementById('livelihoodSearchInput').value.toLowerCase() : '';
+            const program = document.getElementById('livelihoodProgramFilter') ? document.getElementById('livelihoodProgramFilter').value : '';
+            const project = document.getElementById('livelihoodProjectFilter') ? document.getElementById('livelihoodProjectFilter').value : '';
+            const status = document.getElementById('livelihoodStatusFilter') ? document.getElementById('livelihoodStatusFilter').value : '';
+
+            const filtered = evaluationList.filter(item => {
+                const matchSearch = !search || item.beneficiaryName.toLowerCase().includes(search) || item.id.toLowerCase().includes(search) || (item.qrCodeId && item.qrCodeId.toLowerCase().includes(search));
+                const matchProg = !program || (item.program && item.program.includes(program));
+                const matchProj = !project || (item.projectType && item.projectType.toLowerCase().includes(project.toLowerCase()));
+                const matchStat = !status || item.status === status;
+                return matchSearch && matchProg && matchProj && matchStat;
+            });
+
+            renderLivelihoodMasterTable(filtered);
+        }
+
+        function resetLivelihoodFilters() {
+            if (document.getElementById('livelihoodSearchInput')) document.getElementById('livelihoodSearchInput').value = '';
+            if (document.getElementById('livelihoodProgramFilter')) document.getElementById('livelihoodProgramFilter').value = '';
+            if (document.getElementById('livelihoodProjectFilter')) document.getElementById('livelihoodProjectFilter').value = '';
+            if (document.getElementById('livelihoodStatusFilter')) document.getElementById('livelihoodStatusFilter').value = '';
+            renderLivelihoodMasterTable();
+        }
+
+        function toggleSelectAllApps(mainCheckbox) {
+            document.querySelectorAll('.app-row-checkbox').forEach(cb => cb.checked = mainCheckbox.checked);
+        }
+
+        // Intake Form File Validation (MIME & Size <= 5MB)
+        function validateIntakeFileInput(input, maxMb) {
+            const alertBox = document.getElementById('intakeValidationAlert');
+            const alertText = document.getElementById('intakeValidationText');
+
+            if (!input.files || input.files.length === 0) return true;
+            const file = input.files[0];
+            const maxBytes = maxMb * 1024 * 1024;
+            const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+
+            if (!allowedMimeTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|pdf)$/i)) {
+                alertText.textContent = `Invalid file type for ${file.name}. Only JPG, PNG, and PDF formats are permitted.`;
+                alertBox.classList.remove('d-none');
+                input.value = '';
+                return false;
+            }
+
+            if (file.size > maxBytes) {
+                alertText.textContent = `File size for ${file.name} (${(file.size / (1024*1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB.`;
+                alertBox.classList.remove('d-none');
+                input.value = '';
+                return false;
+            }
+
+            alertBox.classList.add('d-none');
+            return true;
+        }
+
         function openIntakeModal() {
+            document.getElementById('intakeForm').reset();
+            document.getElementById('intakeValidationAlert').classList.add('d-none');
             new bootstrap.Modal(document.getElementById('intakeApplicationModal')).show();
         }
 
         function submitIntakeApplication(event) {
             event.preventDefault();
-            const name = document.getElementById('intakeBenName').value.trim();
-            const program = document.getElementById('intakeProgram').value;
-            const certFile = document.getElementById('intakeBarangayCertFile');
+            const alertBox = document.getElementById('intakeValidationAlert');
+            const alertText = document.getElementById('intakeValidationText');
+            alertBox.classList.add('d-none');
 
-            if (!certFile.files || certFile.files.length === 0) {
-                alert('ERROR: Intake submission BLOCKED. Mandatory Barangay Certification document is missing.');
+            const name = document.getElementById('intakeBenName').value.trim();
+            const address = document.getElementById('intakeBenAddress').value.trim();
+            const program = document.getElementById('intakeProgram').value;
+            const projectType = document.getElementById('intakeProjectType').value.trim();
+
+            const certFile = document.getElementById('intakeBarangayCertFile');
+            const validIdFile = document.getElementById('intakeValidIdFile');
+            const programReqFile = document.getElementById('intakeProgramReqFile');
+
+            // INTAKE RESTRICTION 1: Mandatory fields check
+            if (!name || !address || !program || !projectType) {
+                alertText.textContent = 'Submission Blocked: All mandatory fields (Beneficiary Name, Address, Program, Project Type) must be completed.';
+                alertBox.classList.remove('d-none');
                 return;
             }
 
+            // INTAKE RESTRICTION 2: Barangay Certification is mandatory
+            if (!certFile.files || certFile.files.length === 0) {
+                alertText.textContent = 'Submission Blocked: Mandatory Barangay Certification document is missing.';
+                alertBox.classList.remove('d-none');
+                return;
+            }
+
+            // INTAKE RESTRICTION 3: Valid ID & Program Requirements mandatory file check
+            if (!validIdFile.files || validIdFile.files.length === 0) {
+                alertText.textContent = 'Submission Blocked: Valid Government ID document is missing.';
+                alertBox.classList.remove('d-none');
+                return;
+            }
+
+            if (!programReqFile.files || programReqFile.files.length === 0) {
+                alertText.textContent = 'Submission Blocked: Program Requirements Document / Business Proposal is missing.';
+                alertBox.classList.remove('d-none');
+                return;
+            }
+
+            const newAppId = `APP-2026-${String(evaluationList.length + 1).padStart(3, '0')}`;
+            const newQrId = `BEN-2026-${String(evaluationList.length + 1).padStart(3, '0')}`;
+
             const newApp = {
-                id: `APP-2026-${String(evaluationList.length + 1).padStart(3, '0')}`,
-                qrCodeId: `BEN-2026-${String(evaluationList.length + 1).padStart(3, '0')}`,
+                id: newAppId,
+                qrCodeId: newQrId,
                 beneficiaryName: name,
-                program,
-                projectType: document.getElementById('intakeProjectType').value || 'Micro-Enterprise',
+                program: program,
+                projectType: projectType,
                 dateSubmitted: new Date().toISOString().split('T')[0],
                 status: 'Pending',
-                remarks: 'Intake recorded.',
+                batchId: null,
+                batchName: null,
+                remarks: 'Intake application recorded by PESO Officer.',
                 missingNotes: '',
-                documents: [{ name: 'Barangay Certification', type: 'barangay_cert', status: 'Verified' }]
+                documents: [
+                    { name: 'Barangay Certification', type: 'barangay_cert', status: 'Verified' },
+                    { name: 'Valid Government ID', type: 'valid_id', status: 'Verified' },
+                    { name: 'Program Requirements', type: 'program_req', status: 'Verified' }
+                ]
             };
 
             evaluationList.unshift(newApp);
             renderEvaluationQueueTable();
             renderLivelihoodMasterTable();
-            logOfficerAction('INTAKE_APPLICATION', `Recorded new intake application ${newApp.id} for ${name}`);
+
+            // Traceability Audit Log
+            logOfficerAction('INTAKE_APPLICATION', `Recorded intake application ${newAppId} (${program} - ${projectType}) for beneficiary ${name}`);
 
             bootstrap.Modal.getInstance(document.getElementById('intakeApplicationModal')).hide();
-            alert(`Intake application ${newApp.id} recorded successfully for ${name}!`);
+            alert(`Intake application ${newAppId} recorded successfully for ${name}! Initial Status: Pending.`);
         }
 
         function openCreateBatchModal() {
+            document.getElementById('batchNameInput').value = '';
             new bootstrap.Modal(document.getElementById('createBatchModal')).show();
         }
 
@@ -1674,10 +1951,113 @@
 
             batchesList.unshift(newBatch);
             renderBatchesCards();
-            logOfficerAction('CREATE_BATCH', `Created new program batch ${name}`);
+            logOfficerAction('CREATE_BATCH', `Created program batch "${name}" for program ${program}`);
 
             bootstrap.Modal.getInstance(document.getElementById('createBatchModal')).hide();
-            alert(`Batch ${name} created successfully!`);
+            alert(`Batch "${name}" created successfully!`);
+        }
+
+        // BATCH ASSIGNMENT MODAL & RESTRICTION ENFORCEMENT
+        function openBatchAssignModal(singleAppId) {
+            selectedBatchAssignAppIds = [];
+
+            if (singleAppId) {
+                selectedBatchAssignAppIds = [singleAppId];
+            } else {
+                const checkboxes = document.querySelectorAll('.app-row-checkbox:checked');
+                checkboxes.forEach(cb => selectedBatchAssignAppIds.push(cb.value));
+            }
+
+            if (selectedBatchAssignAppIds.length === 0) {
+                alert('Please select at least one application from the table to assign to a batch.');
+                return;
+            }
+
+            // Populate Batches Dropdown
+            const batchSelect = document.getElementById('targetBatchSelect');
+            batchSelect.innerHTML = batchesList.map(b => `<option value="${b.id}">${b.name} (${b.program} — ${b.assignedCount}/${b.capacity} filled)</option>`).join('');
+
+            // Populate Selected Apps Table & Check Restrictions
+            const tbody = document.getElementById('batchAssignSelectedTableBody');
+            const alertBox = document.getElementById('batchAssignRestrictionAlert');
+            const alertText = document.getElementById('batchAssignRestrictionText');
+            const confirmBtn = document.getElementById('confirmBatchAssignBtn');
+
+            let nonApprovedList = [];
+
+            tbody.innerHTML = selectedBatchAssignAppIds.map(id => {
+                const app = evaluationList.find(e => e.id === id);
+                if (!app) return '';
+
+                const isApproved = app.status === 'Approved';
+                if (!isApproved) nonApprovedList.push(`${app.id} (${app.beneficiaryName}: ${app.status})`);
+
+                const eligBadge = isApproved
+                    ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Eligible (Approved)</span>`
+                    : `<span class="badge bg-danger"><i class="bi bi-shield-x me-1"></i>Ineligible (${app.status})</span>`;
+
+                return `
+                    <tr>
+                        <td class="fw-bold text-primary">${app.id}</td>
+                        <td>${app.beneficiaryName}</td>
+                        <td>${app.program}</td>
+                        <td><span class="badge ${app.status === 'Approved' ? 'bg-success' : app.status === 'Denied' ? 'bg-danger' : 'bg-warning'}">${app.status}</span></td>
+                        <td>${eligBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // RESTRICTION ENFORCEMENT: Block if non-approved applications are present
+            if (nonApprovedList.length > 0) {
+                alertText.innerHTML = `Only beneficiaries with <strong>Approved</strong> status can be assigned to batches. Applications cannot bypass evaluation.<br>The following selected application(s) are not Approved: <strong>${nonApprovedList.join(', ')}</strong>`;
+                alertBox.classList.remove('d-none');
+                confirmBtn.disabled = true;
+            } else {
+                alertBox.classList.add('d-none');
+                confirmBtn.disabled = false;
+            }
+
+            new bootstrap.Modal(document.getElementById('batchAssignModal')).show();
+        }
+
+        function submitBatchAssignment() {
+            const batchId = document.getElementById('targetBatchSelect').value;
+            const batch = batchesList.find(b => b.id === batchId);
+
+            if (!batch) { alert('Target batch not found.'); return; }
+
+            // Double Check Restriction Guard
+            const nonApprovedApps = selectedBatchAssignAppIds.filter(id => {
+                const app = evaluationList.find(e => e.id === id);
+                return !app || app.status !== 'Approved';
+            });
+
+            if (nonApprovedApps.length > 0) {
+                alert(`Batch Assignment Blocked: Applications ${nonApprovedApps.join(', ')} are not Approved. Only Approved applications can be assigned to batches.`);
+                return;
+            }
+
+            // Assign Batch to Selected Applications
+            selectedBatchAssignAppIds.forEach(id => {
+                const app = evaluationList.find(e => e.id === id);
+                if (app) {
+                    app.batchId = batch.id;
+                    app.batchName = batch.name;
+                }
+            });
+
+            batch.assignedCount += selectedBatchAssignAppIds.length;
+            renderBatchesCards();
+            renderLivelihoodMasterTable();
+
+            // Uncheck checkboxes
+            document.querySelectorAll('.app-row-checkbox').forEach(cb => cb.checked = false);
+            if (document.getElementById('selectAllAppsCheckbox')) document.getElementById('selectAllAppsCheckbox').checked = false;
+
+            logOfficerAction('BATCH_ASSIGNMENT', `Assigned ${selectedBatchAssignAppIds.length} approved beneficiary(ies) to batch "${batch.name}" (${batch.id})`);
+
+            bootstrap.Modal.getInstance(document.getElementById('batchAssignModal')).hide();
+            alert(`${selectedBatchAssignAppIds.length} approved beneficiary(ies) assigned to "${batch.name}" successfully!`);
         }
 
         // ---------------------------------------------------------------------
