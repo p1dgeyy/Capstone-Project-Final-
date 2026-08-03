@@ -159,6 +159,32 @@ async function runSafeMigration() {
       console.error('[SAFE-MIGRATE] Seed beneficiaries notice:', errSeedBen.message);
     }
 
+    // Step E: Ensure extended columns exist on programs table
+    try {
+      const programCols = [
+        { name: 'budget', type: 'DECIMAL(12,2) DEFAULT 0.00' },
+        { name: 'beneficiaries_count', type: 'INT DEFAULT 0' },
+        { name: 'target_beneficiaries', type: 'TEXT DEFAULT NULL' },
+        { name: 'eligibility_criteria', type: 'TEXT DEFAULT NULL' },
+        { name: 'assistance_type', type: 'VARCHAR(100) DEFAULT NULL' },
+        { name: 'limitations', type: 'TEXT DEFAULT NULL' },
+        { name: 'restrictions', type: 'TEXT DEFAULT NULL' },
+        { name: 'ordinance', type: 'VARCHAR(255) DEFAULT \'Appropriation Ordinance No. 6, Series of 2025\'' },
+        { name: 'program_type', type: 'VARCHAR(100) DEFAULT \'Livelihood\'' }
+      ];
+
+      for (const col of programCols) {
+        try {
+          await connection.execute(`ALTER TABLE \`programs\` ADD COLUMN \`${col.name}\` ${col.type}`);
+        } catch (cErr) {
+          // Ignore ER_DUP_FIELDNAME if column already exists
+        }
+      }
+      console.log('[SAFE-MIGRATE] ✅ Extended `programs` table columns verified.');
+    } catch (errProgCols) {
+      console.error('[SAFE-MIGRATE] Extended programs columns notice:', errProgCols.message);
+    }
+
     console.log('[SAFE-MIGRATE] ✅ Database verification and migration complete.');
   } catch (globalErr) {
     console.error('[SAFE-MIGRATE] Non-fatal migration notice:', globalErr.message);

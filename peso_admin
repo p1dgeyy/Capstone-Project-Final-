@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PESO Administrator Portal - Program Management | City of Koronadal</title>
+    <!-- Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- API Configuration -->
+    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
+    <script src="assets/js/api-config.js"></script>
+    <script src="assets/js/peso-safeguards.js"></script>
+
+    <style>
+        :root {
+            --primary-blue: #0284C7;
+            --primary-dark: #0369A1;
+            --primary-light: #E0F2FE;
+            --navy-dark: #0F172A;
+            --sidebar-width: 270px;
+            --header-height: 70px;
+            --bg-body: #F8FAFC;
+            --card-border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+            --purple: #8B5CF6;
+            --teal: #0D9488;
+        }
+
+        body.dark-mode {
+            --bg-body: #0F172A;
+            --card-border: #334155;
+            color: #F8FAFC;
+        }
+
+        body.dark-mode .card,
+        body.dark-mode .modal-content,
+        body.dark-mode .table,
+        body.dark-mode .sidebar,
+        body.dark-mode .top-navbar {
+            background-color: #1E293B !important;
+            color: #F8FAFC !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .table td,
+        body.dark-mode .table th {
+            color: #F8FAFC !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .form-control,
+        body.dark-mode .form-select {
+            background-color: #0F172A !important;
+            color: #F8FAFC !important;
+            border-color: #334155 !important;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: #1E293B;
+            overflow-x: hidden;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            height: var(--header-height);
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--card-border);
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 1030;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--navy-dark);
+        }
+
+        .brand-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            line-height: 1.2;
+            color: var(--navy-dark);
+        }
+
+        .brand-subtitle {
+            font-size: 0.75rem;
+            color: #64748B;
+            font-weight: 500;
+        }
+
+        /* Layout Container */
+        .app-container {
+            margin-top: var(--header-height);
+            padding: 2rem;
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* Stats Cards */
+        .stat-card {
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+        }
+
+        .stat-card .icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-card.blue .icon-wrapper { background: #E0F2FE; color: #0284C7; }
+        .stat-card.green .icon-wrapper { background: #D1FAE5; color: #10B981; }
+        .stat-card.orange .icon-wrapper { background: #FEF3C7; color: #D97706; }
+        .stat-card.teal .icon-wrapper { background: #CCFBF1; color: #0D9488; }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: #64748B;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        /* Custom Cards & Tables */
+        .content-card {
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header-custom {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .table-custom th {
+            background-color: #F8FAFC;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.9rem 1rem;
+            border-bottom: 2px solid var(--card-border);
+        }
+
+        .table-custom td {
+            padding: 1rem;
+            vertical-align: middle;
+            font-size: 0.9rem;
+        }
+
+        .table-custom tbody tr {
+            transition: background 0.15s ease;
+            cursor: pointer;
+        }
+
+        .table-custom tbody tr:hover {
+            background-color: #F1F5F9;
+        }
+
+        /* Status Toggles */
+        .form-check-input:checked {
+            background-color: var(--success);
+            border-color: var(--success);
+        }
+
+        /* Badges */
+        .badge-category {
+            padding: 0.35em 0.7em;
+            font-weight: 600;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+        .badge-emp { background: #E0F2FE; color: #0284C7; }
+        .badge-livelihood { background: #D1FAE5; color: #059669; }
+        .badge-other { background: #F3E8FF; color: #7C3AED; }
+
+        /* Modals */
+        .modal-header-custom {
+            background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+            color: white;
+            border-radius: 16px 16px 0 0;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .modal-header-custom .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .ordinance-banner {
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+            color: white;
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <header class="top-navbar">
+        <a href="#" class="brand-logo">
+            <div class="bg-primary text-white rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <i class="bi bi-briefcase-fill fs-5"></i>
+            </div>
+            <div>
+                <div class="brand-title">PESO Program Management</div>
+                <div class="brand-subtitle">City Government of Koronadal • Public Employment Service Office</div>
+            </div>
+        </a>
+
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="toggleDarkMode()">
+                <i class="bi bi-moon-stars me-1"></i> Dark Mode
+            </button>
+            <button class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="showAuditLogsModal()">
+                <i class="bi bi-journal-text me-1"></i> Audit Trail
+            </button>
+            <div class="vr mx-1"></div>
+            <div class="dropdown">
+                <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2 rounded-pill px-3 py-1 border" type="button" data-bs-toggle="dropdown">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.85rem;">
+                        PA
+                    </div>
+                    <div class="text-start me-1">
+                        <div class="fw-semibold text-dark leading-tight" style="font-size: 0.85rem;" id="adminUserName">PESO Administrator</div>
+                        <div class="text-muted" style="font-size: 0.7rem;" id="adminUserRole">PESO Admin</div>
+                    </div>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                    <li><a class="dropdown-item py-2" href="#" onclick="showOrdinanceReferenceModal()"><i class="bi bi-file-earmark-pdf me-2 text-primary"></i>LGU Ordinance Ref</a></li>
+                    <li><a class="dropdown-item py-2" href="#" onclick="showAuditLogsModal()"><i class="bi bi-shield-check me-2 text-info"></i>System Audit Logs</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item py-2 text-danger fw-semibold" href="#" onclick="logoutAdmin()"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="app-container">
+        <!-- Ordinance Header Banner -->
+        <div class="ordinance-banner">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-warning text-dark px-2.5 py-1 font-monospace fw-bold">APPROPRIATION ORDINANCE NO. 6, SERIES OF 2025</span>
+                    <span class="badge bg-info text-white px-2 py-1">Budget Year 2026</span>
+                </div>
+                <h4 class="fw-bold mb-1">City of Koronadal Livelihood & Employment Assistance Programs</h4>
+                <p class="text-white-50 mb-0 small"><i class="bi bi-cash-stack me-1"></i> Total LGU Appropriation: <strong class="text-warning fs-6">₱13,707,882.00</strong> allocated across Employment Facilitation, Livelihood, and Community Programs.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openUploadOrdinanceModal()">
+                    <i class="bi bi-cloud-arrow-up-fill me-1 text-primary"></i> Upload Ordinance
+                </button>
+                <button class="btn btn-outline-light fw-semibold px-3" onclick="showOrdinanceReferenceModal()">
+                    <i class="bi bi-eye me-1"></i> Budget Overview
+                </button>
+            </div>
+        </div>
+
+        <!-- Key Metrics Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card blue">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stat-value" id="statTotalPrograms">13</div>
+                            <div class="stat-label">Total Pre-loaded Programs</div>
+                        </div>
+                        <div class="icon-wrapper"><i class="bi bi-grid-fill"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card green">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stat-value text-success" id="statActivePrograms">13</div>
+                            <div class="stat-label">Active Livelihood Programs</div>
+                        </div>
+                        <div class="icon-wrapper"><i class="bi bi-check2-square"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card orange">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stat-value text-warning" id="statArchivedPrograms">0</div>
+                            <div class="stat-label">Archived / Deactivated</div>
+                        </div>
+                        <div class="icon-wrapper"><i class="bi bi-archive-fill"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card teal">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stat-value text-teal" id="statTotalBudget">₱13,707,882</div>
+                            <div class="stat-label">Total Allocated Budget</div>
+                        </div>
+                        <div class="icon-wrapper"><i class="bi bi-currency-dollar"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Actions Bar -->
+        <div class="content-card">
+            <div class="card-header-custom">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 600px;">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0 bg-light" id="searchInput" placeholder="Search by program name, code, description..." oninput="filterPrograms()">
+                    </div>
+                    <select class="form-select bg-light" id="categoryFilter" style="max-width: 200px;" onchange="filterPrograms()">
+                        <option value="ALL">All Categories</option>
+                        <option value="Employment Facilitation">Employment Facilitation</option>
+                        <option value="Livelihood Programs">Livelihood Programs</option>
+                        <option value="Other Programs">Other Programs</option>
+                    </select>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                    <button class="btn btn-primary fw-semibold px-3 shadow-sm" onclick="openCreateProgramModal()">
+                        <i class="bi bi-plus-lg me-1"></i> New Program
+                    </button>
+                    <button class="btn btn-outline-secondary fw-semibold px-3" onclick="scrollToArchive()">
+                        <i class="bi bi-archive me-1"></i> Archive Section (<span id="archiveBadgeCount">0</span>)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Programs Table -->
+            <div class="table-responsive">
+                <table class="table table-custom align-middle mb-0" id="activeProgramsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 220px;">Program Name & Code</th>
+                            <th style="width: 160px;">Category & Type</th>
+                            <th style="width: 200px;">Budget (PHP)</th>
+                            <th style="width: 140px;">Beneficiaries</th>
+                            <th style="width: 220px;">Limitations & Restrictions</th>
+                            <th>LGU Ordinance</th>
+                            <th class="text-center" style="width: 100px;">Status</th>
+                            <th class="text-end" style="width: 140px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="programsTableBody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Archive Section -->
+        <div class="content-card border-warning mt-5" id="archiveSection">
+            <div class="card-header-custom bg-warning-subtle border-warning">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-archive-fill text-warning fs-4"></i>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark">Program Archive Section</h5>
+                        <small class="text-muted">Deactivated programs are stored here to keep the main list clean.</small>
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill" id="archiveSectionCountBadge">0 Deactivated Programs</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-custom align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Program Code & Name</th>
+                            <th>Category</th>
+                            <th>Budget</th>
+                            <th>Target Beneficiaries</th>
+                            <th>Date Deactivated</th>
+                            <th class="text-end">Archive Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="archiveTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-2 d-block mb-1 text-secondary"></i>
+                                Archive is clean. No deactivated programs currently.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal 1: Create New Program -->
+    <div class="modal fade" id="createProgramModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-header-title fw-bold mb-0"><i class="bi bi-folder-plus me-2"></i>Create New Livelihood Program</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="createProgramForm" onsubmit="handleCreateProgramSubmit(event)">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">Program Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgName" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Program Code <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="newProgCode" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Program Category <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newProgCategory" required>
+                                    <option value="Employment Facilitation">Employment Facilitation</option>
+                                    <option value="Livelihood Programs" selected>Livelihood Programs</option>
+                                    <option value="Other Programs">Other Programs</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Budget (PHP ₱) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control fw-bold" id="newProgBudget" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Date and Time <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="newProgDateTime" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="newProgDesc" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Target Beneficiaries <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgTarget" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Type of Assistance <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newProgAssistance" required>
+                                    <option value="Cash Grant">Cash Grant</option>
+                                    <option value="Equipment & Tools">Equipment & Tools</option>
+                                    <option value="Skills Training">Skills Training</option>
+                                    <option value="Starter Kits">Starter Kits</option>
+                                    <option value="Paid Stipend / Salary">Paid Stipend / Salary</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Eligibility Criteria <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="newProgEligibility" rows="2" required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Limitations & Restrictions <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="newProgLimitations" rows="2" required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Current LGU Appropriation Ordinance <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgOrdinance" value="Appropriation Ordinance No. 6, Series of 2025" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-check-lg me-1"></i> Save & Record Program</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Program Details & Edit Modal -->
+    <div class="modal fade" id="programDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom">
+                    <div>
+                        <span class="badge bg-warning text-dark font-monospace mb-1" id="detailModalCodeBadge">CODE</span>
+                        <h5 class="modal-header-title fw-bold mb-0" id="detailModalTitle">Program Details</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="editProgramForm">
+                        <input type="hidden" id="detailProgId">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label text-muted small uppercase fw-semibold">Program Name</label>
+                                <input type="text" class="form-control fw-bold fs-5" id="detailProgName" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small uppercase fw-semibold">Program Code</label>
+                                <input type="text" class="form-control font-monospace fw-semibold" id="detailProgCode" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small uppercase fw-semibold">Category</label>
+                                <select class="form-select fw-semibold" id="detailProgCategory">
+                                    <option value="Employment Facilitation">Employment Facilitation</option>
+                                    <option value="Livelihood Programs">Livelihood Programs</option>
+                                    <option value="Other Programs">Other Programs</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small uppercase fw-semibold">Allocated Budget (PHP)</label>
+                                <input type="number" step="0.01" class="form-control fw-bold text-success" id="detailProgBudget" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small uppercase fw-semibold">Enrolled Beneficiaries</label>
+                                <input type="number" class="form-control fw-semibold" id="detailProgBeneficiaries">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted small uppercase fw-semibold">Description</label>
+                                <textarea class="form-control" id="detailProgDesc" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small uppercase fw-semibold">Target Beneficiaries</label>
+                                <input type="text" class="form-control" id="detailProgTarget" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small uppercase fw-semibold">Type of Assistance</label>
+                                <input type="text" class="form-control" id="detailProgAssistance" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted small uppercase fw-semibold">Eligibility Criteria</label>
+                                <textarea class="form-control" id="detailProgEligibility" rows="2" required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted small uppercase fw-semibold">Limitations & Restrictions</label>
+                                <textarea class="form-control" id="detailProgLimitations" rows="2" required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted small uppercase fw-semibold">Current LGU Appropriation Ordinance</label>
+                                <input type="text" class="form-control" id="detailProgOrdinance" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 justify-content-between">
+                    <div class="text-muted small">
+                        Status: <span id="detailStatusBadge" class="badge bg-success">Active</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary fw-semibold px-4" onclick="saveProgramUpdates()"><i class="bi bi-floppy-fill me-1"></i> Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Restriction Warning Modal -->
+    <div class="modal fade" id="restrictionWarningModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-danger text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-slash-fill me-2"></i>Restriction Warning</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="text-danger mb-3"><i class="bi bi-exclamation-triangle-fill" style="font-size: 3.5rem;"></i></div>
+                    <h5 class="fw-bold mb-2">Program Deactivation Restricted</h5>
+                    <p class="text-muted" id="restrictionWarningText">Cannot deactivate program. This program currently has active enrolled beneficiaries processing financial aid.</p>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 justify-content-center">
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Acknowledge</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 4: Upload Ordinance Modal -->
+    <div class="modal fade" id="uploadOrdinanceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-arrow-up-fill me-2 text-warning"></i>Upload LGU Appropriation Ordinance</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="uploadOrdinanceForm" onsubmit="handleUploadOrdinance(event)">
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Ordinance Title / Reference Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="ordTitle" value="Appropriation Ordinance No. 6, Series of 2025" required>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Budget Year <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="ordYear" value="2026" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Total Appropriation <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control" id="ordTotal" value="13707882.00" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Upload Document File <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="ordFile" accept=".pdf,.doc,.docx,.png,.jpg" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-upload me-1"></i> Upload Ordinance Document</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 5: Ordinance Reference Modal -->
+    <div class="modal fade" id="ordinanceReferenceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-book-fill me-2 text-warning"></i>LGU Appropriation Ordinance Reference</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="card border-warning mb-4 bg-warning-subtle">
+                        <div class="card-body">
+                            <h6 class="fw-bold text-dark mb-1">Appropriation Ordinance No. 6, Series of 2025</h6>
+                            <p class="small text-muted mb-0">City of Koronadal Official Legislative Ordinance for Livelihood and Employment Assistance Programs (Budget Year 2026).</p>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold text-dark">Total Approved Appropriation:</span>
+                                <span class="fs-5 fw-bold text-success">₱13,707,882.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm align-middle" style="font-size: 0.85rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Program Title</th>
+                                    <th>Code</th>
+                                    <th class="text-end">Budget (PHP)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordinanceBreakdownTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 6: Audit Logs Modal -->
+    <div class="modal fade" id="auditLogsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-info text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-check me-2"></i>PESO Operational Audit Trail</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped align-middle" style="font-size: 0.85rem;">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User Role</th>
+                                    <th>Action Type</th>
+                                    <th>Target Entity</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditLogsModalTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Audit Trail</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const INITIAL_PROGRAMS = [
+            { id: 101, code: 'CKGIP', name: 'City of Koronadal Government Internship Program (CKGIP)', category: 'Employment Facilitation', budget: 500000.00, beneficiaries_count: 25, target_beneficiaries: 'Youth, Fresh Graduates & Students', assistance_type: 'Paid Stipend', description: 'Hands-on government internship opportunities for Koronadal youth.', eligibility_criteria: 'Ages 18-25, resident of Koronadal City.', limitations: 'Maximum 3 months internship duration per beneficiary.', restrictions: 'One per household.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 102, code: 'KEEP', name: 'Koronadal Emergency Employment Program (KEEP)', category: 'Employment Facilitation', budget: 1500000.00, beneficiaries_count: 60, target_beneficiaries: 'Displaced Workers', assistance_type: 'Cash / Short-term Salary', description: 'Cash-for-work emergency employment assistance.', eligibility_criteria: 'Displaced worker or informal wage earner.', limitations: 'Maximum 15 to 30 work days per worker.', restrictions: 'No simultaneous TUPAD enrollment.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 103, code: 'TUPAD', name: 'Support to TUPAD', category: 'Employment Facilitation', budget: 40000.00, beneficiaries_count: 15, target_beneficiaries: 'Disadvantaged Workers', assistance_type: 'Cash & PPE', description: 'LGU counterpart support for DOLE TUPAD.', eligibility_criteria: 'Underemployed informal worker.', limitations: 'Subject to DOLE guidelines.', restrictions: 'Max twice a year.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 104, code: 'PFAS', name: 'Pangkabuhayan Financial Assistance (PFAS)', category: 'Livelihood Programs', budget: 7000000.00, beneficiaries_count: 140, target_beneficiaries: 'Individual Entrepreneurs & Micro-businesses', assistance_type: 'Cash Grant & Starter Kits', description: 'Financial grants to establish or expand micro-enterprises.', eligibility_criteria: 'Registered micro-entrepreneur or low-income head.', limitations: 'Max ₱50,000 grant per enterprise.', restrictions: 'Single grant per household per year.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 105, code: 'DILP', name: 'Support to DOLE Integrated Livelihood Program (DILP)', category: 'Livelihood Programs', budget: 500000.00, beneficiaries_count: 30, target_beneficiaries: 'Workers Associations', assistance_type: 'Equipment & Starter Kits', description: 'Counterpart fund for DOLE Integrated Livelihood Program.', eligibility_criteria: 'DOLE-accredited workers association.', limitations: 'Asset grant in-kind.', restrictions: 'Non-transferable for 3 years.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 106, code: 'ASSOC_FAC', name: 'Association Facilitation', category: 'Other Programs', budget: 50000.00, beneficiaries_count: 12, target_beneficiaries: 'Workers Associations', assistance_type: 'Skills Training', description: 'Registration and capacity building assistance.', eligibility_criteria: 'Community worker groups seeking accreditation.', limitations: 'Administrative fee sponsorship only.', restrictions: 'Must maintain 15 members.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 107, code: 'JOB_FAIRS', name: 'Conduct of Job Fairs', category: 'Other Programs', budget: 100000.00, beneficiaries_count: 500, target_beneficiaries: 'Job Applicants & Employers', assistance_type: 'Recruitment Platform', description: 'Quarterly mega job fairs.', eligibility_criteria: 'Open to all jobseekers.', limitations: 'Quarterly event.', restrictions: 'Valid DOLE/POEA license.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 108, code: 'JOB_PORTAL', name: 'Development of Localized Job Portal', category: 'Other Programs', budget: 150000.00, beneficiaries_count: 1200, target_beneficiaries: 'Job Applicants & Employers', assistance_type: 'Digital Platform', description: 'Digital job matching portal.', eligibility_criteria: 'Registered jobseekers and employers.', limitations: 'Free of charge.', restrictions: 'Data privacy consent mandatory.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 109, code: 'SKILLS_TRAIN', name: 'Livelihood/Skills Training Program', category: 'Other Programs', budget: 150000.00, beneficiaries_count: 85, target_beneficiaries: 'Unemployed Adults & Youth', assistance_type: 'Skills Training & Kits', description: 'Tech-voc skills training with TESDA.', eligibility_criteria: 'Resident age 18+.', limitations: '80% attendance required.', restrictions: 'One skill track per year.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 110, code: 'OFW_DAY', name: 'OFW Family Circle Day', category: 'Other Programs', budget: 200000.00, beneficiaries_count: 150, target_beneficiaries: 'OFW Families', assistance_type: 'Welfare Support', description: 'Annual summit for OFW families.', eligibility_criteria: 'Accredited OFW Circle member.', limitations: 'Annual event.', restrictions: 'Pre-registration required.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 111, code: 'SPES', name: 'Special Program for Employment of Students (SPES)', category: 'Other Programs', budget: 2000000.00, beneficiaries_count: 180, target_beneficiaries: 'Students & OSY', assistance_type: 'Educational Stipend', description: 'Summer break employment for poor students.', eligibility_criteria: 'Students aged 15-30 below poverty line.', limitations: '20 to 30 work days.', restrictions: 'Passing grades required.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 112, code: 'PAROKYA_OWWA', name: 'Support to Parokya ni OWWA Program', category: 'Other Programs', budget: 40000.00, beneficiaries_count: 20, target_beneficiaries: 'OWWA Members', assistance_type: 'Cash & Welfare Guidance', description: 'Emergency desk for migrant workers.', eligibility_criteria: 'OWWA member in distress.', limitations: 'Reintegration assistance.', restrictions: 'OWWA coordination required.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
+            { id: 113, code: 'ROFW', name: 'Support to Returning OFWs Program (ROFW’s)', category: 'Other Programs', budget: 100000.00, beneficiaries_count: 35, target_beneficiaries: 'Returning OFWs', assistance_type: 'Starter Kits & Training', description: 'Reintegration package for returned OFWs.', eligibility_criteria: 'Returned OFW permanently residing in Koronadal.', limitations: 'One-time package.', restrictions: 'Must present passport.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' }
+        ];
+
+        let programsList = [];
+        let uploadedOrdinances = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const localData = localStorage.getItem('peso_livelihood_programs_v1');
+            if (localData) {
+                try { programsList = JSON.parse(localData); } catch (e) { programsList = [...INITIAL_PROGRAMS]; }
+            } else {
+                programsList = [...INITIAL_PROGRAMS];
+                localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+            }
+            renderDashboardTables();
+        });
+
+        function renderDashboardTables() {
+            const activeList = programsList.filter(p => p.status === 'Active');
+            const archiveList = programsList.filter(p => p.status !== 'Active');
+            const totalBudget = programsList.reduce((sum, p) => sum + (Number(p.budget) || 0), 0);
+
+            document.getElementById('statTotalPrograms').textContent = programsList.length;
+            document.getElementById('statActivePrograms').textContent = activeList.length;
+            document.getElementById('statArchivedPrograms').textContent = archiveList.length;
+            document.getElementById('archiveBadgeCount').textContent = archiveList.length;
+            document.getElementById('archiveSectionCountBadge').textContent = `${archiveList.length} Deactivated Programs`;
+            document.getElementById('statTotalBudget').textContent = '₱' + totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+            filterPrograms();
+            renderArchiveTable(archiveList);
+            renderOrdinanceBreakdownTable();
+        }
+
+        function filterPrograms() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const cat = document.getElementById('categoryFilter').value;
+            const tbody = document.getElementById('programsTableBody');
+            tbody.innerHTML = '';
+
+            const filtered = programsList.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(search) || p.code.toLowerCase().includes(search) || p.description.toLowerCase().includes(search);
+                const matchesCat = (cat === 'ALL') || (p.category === cat);
+                return matchesSearch && matchesCat;
+            });
+
+            filtered.forEach(prog => {
+                const tr = document.createElement('tr');
+                const isDeactivated = prog.status !== 'Active';
+                tr.innerHTML = `
+                    <td><div class="fw-bold text-dark">${escapeHtml(prog.name)}</div><span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(prog.code)}</span></td>
+                    <td><span class="badge badge-category badge-emp">${escapeHtml(prog.category)}</span><div class="small text-muted mt-1">${escapeHtml(prog.assistance_type || '')}</div></td>
+                    <td><div class="fw-bold text-success">₱${Number(prog.budget).toLocaleString('en-US', {minimumFractionDigits: 2})}</div></td>
+                    <td><span class="badge bg-light text-dark border"><i class="bi bi-people-fill text-primary me-1"></i>${prog.beneficiaries_count || 0} enrolled</span></td>
+                    <td><div class="text-truncate" style="max-width: 200px;">${escapeHtml(prog.limitations || 'None')}</div></td>
+                    <td><small class="fw-semibold text-secondary">${escapeHtml(prog.ordinance || 'Ordinance No. 6')}</small></td>
+                    <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                            <input class="form-check-input" type="checkbox" role="switch" ${!isDeactivated ? 'checked' : ''} onchange="handleProgramToggle(event, ${prog.id})">
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="openProgramDetailsModal(${prog.id})">Details</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderArchiveTable(archiveList) {
+            const tbody = document.getElementById('archiveTableBody');
+            tbody.innerHTML = '';
+            if (archiveList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Archive is clean. No deactivated programs currently.</td></tr>`;
+                return;
+            }
+            archiveList.forEach(prog => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><div class="fw-bold text-dark">${escapeHtml(prog.name)}</div><span class="badge bg-secondary font-monospace">${escapeHtml(prog.code)}</span></td>
+                    <td>${escapeHtml(prog.category)}</td>
+                    <td>₱${Number(prog.budget).toLocaleString()}</td>
+                    <td>${escapeHtml(prog.target_beneficiaries || '')}</td>
+                    <td>${new Date().toLocaleDateString()}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-success me-1" onclick="restoreProgram(${prog.id})">Restore</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="permanentlyDeleteProgram(${prog.id})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleProgramToggle(event, progId) {
+            const prog = programsList.find(p => p.id === progId);
+            if (!prog) return;
+            if (!event.target.checked) {
+                if ((prog.beneficiaries_count || 0) > 0) {
+                    event.target.checked = true;
+                    document.getElementById('restrictionWarningText').innerHTML = `Cannot deactivate program <strong>"${escapeHtml(prog.name)}"</strong>. It currently has active enrolled beneficiaries.`;
+                    new bootstrap.Modal(document.getElementById('restrictionWarningModal')).show();
+                    return;
+                }
+                if (confirm(`Deactivate "${prog.name}"?`)) {
+                    prog.status = 'Deactivated';
+                    localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+                    renderDashboardTables();
+                } else { event.target.checked = true; }
+            } else {
+                prog.status = 'Active';
+                localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+                renderDashboardTables();
+            }
+        }
+
+        function restoreProgram(progId) {
+            const prog = programsList.find(p => p.id === progId);
+            if (prog) { prog.status = 'Active'; localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList)); renderDashboardTables(); }
+        }
+
+        function permanentlyDeleteProgram(progId) {
+            if (confirm('Permanently delete program?')) {
+                programsList = programsList.filter(p => p.id !== progId);
+                localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+                renderDashboardTables();
+            }
+        }
+
+        function openProgramDetailsModal(progId) {
+            const prog = programsList.find(p => p.id === progId);
+            if (!prog) return;
+            document.getElementById('detailProgId').value = prog.id;
+            document.getElementById('detailModalTitle').textContent = prog.name;
+            document.getElementById('detailModalCodeBadge').textContent = prog.code;
+            document.getElementById('detailProgName').value = prog.name;
+            document.getElementById('detailProgCode').value = prog.code;
+            document.getElementById('detailProgCategory').value = prog.category;
+            document.getElementById('detailProgBudget').value = prog.budget;
+            document.getElementById('detailProgBeneficiaries').value = prog.beneficiaries_count || 0;
+            document.getElementById('detailProgDesc').value = prog.description || '';
+            document.getElementById('detailProgTarget').value = prog.target_beneficiaries || '';
+            document.getElementById('detailProgAssistance').value = prog.assistance_type || '';
+            document.getElementById('detailProgEligibility').value = prog.eligibility_criteria || '';
+            document.getElementById('detailProgLimitations').value = prog.limitations || '';
+            document.getElementById('detailProgOrdinance').value = prog.ordinance || '';
+            new bootstrap.Modal(document.getElementById('programDetailsModal')).show();
+        }
+
+        function saveProgramUpdates() {
+            const progId = Number(document.getElementById('detailProgId').value);
+            const prog = programsList.find(p => p.id === progId);
+            if (prog) {
+                prog.name = document.getElementById('detailProgName').value.trim();
+                prog.code = document.getElementById('detailProgCode').value.trim();
+                prog.category = document.getElementById('detailProgCategory').value;
+                prog.budget = Number(document.getElementById('detailProgBudget').value) || 0;
+                prog.description = document.getElementById('detailProgDesc').value.trim();
+                prog.target_beneficiaries = document.getElementById('detailProgTarget').value.trim();
+                prog.assistance_type = document.getElementById('detailProgAssistance').value.trim();
+                prog.eligibility_criteria = document.getElementById('detailProgEligibility').value.trim();
+                prog.limitations = document.getElementById('detailProgLimitations').value.trim();
+                prog.ordinance = document.getElementById('detailProgOrdinance').value.trim();
+                localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+                bootstrap.Modal.getInstance(document.getElementById('programDetailsModal')).hide();
+                renderDashboardTables();
+            }
+        }
+
+        function openCreateProgramModal() {
+            document.getElementById('createProgramForm').reset();
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('newProgDateTime').value = now.toISOString().slice(0, 16);
+            new bootstrap.Modal(document.getElementById('createProgramModal')).show();
+        }
+
+        function handleCreateProgramSubmit(e) {
+            e.preventDefault();
+            const newProg = {
+                id: Date.now(),
+                name: document.getElementById('newProgName').value.trim(),
+                code: document.getElementById('newProgCode').value.trim().toUpperCase(),
+                category: document.getElementById('newProgCategory').value,
+                budget: Number(document.getElementById('newProgBudget').value) || 0,
+                description: document.getElementById('newProgDesc').value.trim(),
+                target_beneficiaries: document.getElementById('newProgTarget').value.trim(),
+                assistance_type: document.getElementById('newProgAssistance').value,
+                eligibility_criteria: document.getElementById('newProgEligibility').value.trim(),
+                limitations: document.getElementById('newProgLimitations').value.trim(),
+                ordinance: document.getElementById('newProgOrdinance').value.trim(),
+                beneficiaries_count: 0,
+                status: 'Active'
+            };
+            programsList.unshift(newProg);
+            localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+            bootstrap.Modal.getInstance(document.getElementById('createProgramModal')).hide();
+            renderDashboardTables();
+        }
+
+        function openUploadOrdinanceModal() {
+            new bootstrap.Modal(document.getElementById('uploadOrdinanceModal')).show();
+        }
+
+        function handleUploadOrdinance(e) {
+            e.preventDefault();
+            bootstrap.Modal.getInstance(document.getElementById('uploadOrdinanceModal')).hide();
+            alert('Ordinance uploaded successfully.');
+        }
+
+        function showOrdinanceReferenceModal() {
+            const tbody = document.getElementById('ordinanceBreakdownTableBody');
+            tbody.innerHTML = '';
+            programsList.forEach(prog => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHtml(prog.category)}</td>
+                    <td class="fw-semibold">${escapeHtml(prog.name)}</td>
+                    <td class="font-monospace">${escapeHtml(prog.code)}</td>
+                    <td class="text-end fw-bold text-success">₱${Number(prog.budget).toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            new bootstrap.Modal(document.getElementById('ordinanceReferenceModal')).show();
+        }
+
+        function showAuditLogsModal() {
+            const tbody = document.getElementById('auditLogsModalTableBody');
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">System operational log clean.</td></tr>`;
+            new bootstrap.Modal(document.getElementById('auditLogsModal')).show();
+        }
+
+        function scrollToArchive() { document.getElementById('archiveSection').scrollIntoView({ behavior: 'smooth' }); }
+        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+        function logoutAdmin() { window.location.href = 'official_login.html'; }
+        function escapeHtml(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; }
+    </script>
+</body>
+</html>
