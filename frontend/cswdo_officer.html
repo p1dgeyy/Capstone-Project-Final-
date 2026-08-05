@@ -11,8 +11,10 @@
     <!-- Chart.js Dependency -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
-    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
-    <script src="assets/js/api-config.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/system-notifications.js"></script>
     <style>
         :root {
@@ -1987,76 +1989,69 @@
         // Initialize DB
         initCSWDODatabase();
 
-        // --- REST API BACKEND SYNC FOR CSWDO OFFICER ---
+        // --- SUPABASE DATA SYNC FOR CSWDO OFFICER ---
         async function fetchCSWDOOfficerApiData() {
-            const baseUrl = (typeof API_CONFIG !== 'undefined' ? API_CONFIG.BASE_URL : '') || '';
+            if (!supabaseClient) return;
             try {
-                const headers = {
-                    'X-User-Id': sessionStorage.getItem('userId') || '4',
-                    'X-Session-Token': sessionStorage.getItem('sessionToken') || ''
-                };
-
-                const [resApps, resProgs, resInt, resAudit] = await Promise.allSettled([
-                    fetch(`${baseUrl}/api/applications?agency=CSWDO`, { headers }),
-                    fetch(`${baseUrl}/api/programs?agency=CSWDO`, { headers }),
-                    fetch(`${baseUrl}/api/interviews?agency=CSWDO`, { headers }),
-                    fetch(`${baseUrl}/api/audit-logs`, { headers })
-                ]);
-
-                if (resApps.status === 'fulfilled' && resApps.value.ok) {
-                    const dataApps = await resApps.value.json();
-                    if (dataApps.success && Array.isArray(dataApps.data) && dataApps.data.length > 0) {
-                        const mappedApps = dataApps.data.map(app => ({
-                            id: app.application_number || `CSWDO-${app.id}`,
-                            dbId: app.id,
-                            beneficiaryName: `${app.first_name || ''} ${app.last_name || ''}`.trim() || 'Beneficiary',
-                            beneficiaryId: String(app.beneficiary_id),
-                            type: app.program_name || 'Medical Assistance',
-                            dateSubmitted: app.date_applied ? app.date_applied.split('T')[0] : new Date().toISOString().split('T')[0],
-                            status: app.status === 'Officer Approved' ? 'Approved' : (app.status === 'Officer Denied' ? 'Denied' : app.status),
-                            rawStatus: app.status,
-                            officerDecision: app.officer_decision,
-                            officerNotes: app.officer_notes,
-                            verified: app.officer_decision === 'Approved' || app.status === 'Officer Approved' || app.status === 'Approved',
-                            approvedAmount: app.approved_amount || 0,
-                            remarks: app.officer_notes || app.remarks || ''
-                        }));
-                        localStorage.setItem('cswdo_applications', JSON.stringify(mappedApps));
-                    }
+                // Fetch CSWDO applications
+                const { data: appsData } = await supabaseClient
+                    .from('applications')
+                    .select('*, beneficiary:users_profile!beneficiary_id(first_name, last_name), program:programs!program_id(name, agency)')
+                    .eq('program.agency', 'CSWDO');
+                if (appsData && appsData.length > 0) {
+                    const mappedApps = appsData.map(app => ({
+                        id: app.application_number || `CSWDO-${app.id}`,
+                        dbId: app.id,
+                        beneficiaryName: `${app.beneficiary?.first_name || ''} ${app.beneficiary?.last_name || ''}`.trim() || 'Beneficiary',
+                        beneficiaryId: String(app.beneficiary_id),
+                        type: app.program?.name || 'Medical Assistance',
+                        dateSubmitted: app.date_applied || new Date().toISOString().split('T')[0],
+                        status: app.status === 'Officer Approved' ? 'Approved' : (app.status === 'Officer Denied' ? 'Denied' : app.status),
+                        rawStatus: app.status,
+                        officerDecision: app.officer_decision,
+                        officerNotes: app.officer_notes,
+                        verified: app.officer_decision === 'Approved' || app.status === 'Officer Approved' || app.status === 'Approved',
+                        approvedAmount: 0,
+                        remarks: app.officer_notes || app.remarks || ''
+                    }));
+                    localStorage.setItem('cswdo_applications', JSON.stringify(mappedApps));
                 }
 
-                if (resProgs.status === 'fulfilled' && resProgs.value.ok) {
-                    const dataProgs = await resProgs.value.json();
-                    if (dataProgs.success && Array.isArray(dataProgs.data) && dataProgs.data.length > 0) {
-                        const mappedProgs = dataProgs.data.map(p => ({
-                            id: String(p.id),
-                            code: p.code || 'CSWDO',
-                            name: p.name,
-                            budget: p.budget_allocated || 1000000,
-                            allocated: p.budget_used || 0,
-                            status: p.status || 'Active'
-                        }));
-                        localStorage.setItem('cswdo_programs', JSON.stringify(mappedProgs));
-                    }
+                // Fetch CSWDO programs
+                const { data: progsData } = await supabaseClient
+                    .from('programs')
+                    .select('*')
+                    .eq('agency', 'CSWDO');
+                if (progsData && progsData.length > 0) {
+                    const mappedProgs = progsData.map(p => ({
+                        id: String(p.id),
+                        code: p.code || 'CSWDO',
+                        name: p.name,
+                        budget: 1000000,
+                        allocated: 0,
+                        status: p.status || 'Active'
+                    }));
+                    localStorage.setItem('cswdo_programs', JSON.stringify(mappedProgs));
                 }
 
-                if (resInt.status === 'fulfilled' && resInt.value.ok) {
-                    const dataInt = await resInt.value.json();
-                    if (dataInt.success && Array.isArray(dataInt.data) && dataInt.data.length > 0) {
-                        const mappedSchedules = dataInt.data.map(i => ({
-                            id: `SCH-${i.id}`,
-                            dbId: i.id,
-                            title: `${i.program_name || 'CSWDO'} Interview - ${i.beneficiary_first_name || ''} ${i.beneficiary_last_name || ''}`.trim(),
-                            type: 'Interview',
-                            dateTime: `${i.interview_date}T${i.interview_time || '09:00'}`,
-                            location: i.venue_location || 'CSWDO Office',
-                            status: i.status || 'Scheduled'
-                        }));
-                        localStorage.setItem('cswdo_schedules', JSON.stringify(mappedSchedules));
-                    }
+                // Fetch interview schedules for CSWDO
+                const { data: intData } = await supabaseClient
+                    .from('interview_schedules')
+                    .select('*, beneficiary:users_profile!beneficiary_id(first_name, last_name), program:programs!program_id(name)');
+                if (intData && intData.length > 0) {
+                    const mappedSchedules = intData.map(i => ({
+                        id: `SCH-${i.id}`,
+                        dbId: i.id,
+                        title: `${i.program?.name || 'CSWDO'} Interview - ${i.beneficiary?.first_name || ''} ${i.beneficiary?.last_name || ''}`.trim(),
+                        type: 'Interview',
+                        dateTime: `${i.interview_date}T${i.interview_time || '09:00'}`,
+                        location: i.venue_location || 'CSWDO Office',
+                        status: i.status || 'Scheduled'
+                    }));
+                    localStorage.setItem('cswdo_schedules', JSON.stringify(mappedSchedules));
                 }
             } catch (e) {
-                console.warn('[CSWDO OFFICER API SYNC] Network offline or fallback:', e.message);
+                console.warn('[CSWDO OFFICER SUPABASE SYNC] Data sync error or fallback:', e.message);
             }
         }
 
@@ -2849,26 +2844,22 @@
                 pushActivity('Application Evaluated', `Officer set case ${id} to ${status}`);
                 pushNotification('Application Evaluated', `Assistance application ${id} for ${app.beneficiaryName} has been ${status} by Officer.`, 'approval');
                 
-                // --- Send Officer Evaluation to REST API ---
-                const baseUrl = (typeof API_CONFIG !== 'undefined' ? API_CONFIG.BASE_URL : '') || '';
+                // --- Send Officer Evaluation to Supabase ---
                 const targetDbId = app.dbId || parseInt(id.replace(/[^0-9]/g, '')) || 1;
-                const officerAction = status === 'Approved' ? 'approve' : (status === 'Denied' ? 'deny' : 'pending');
                 const officerUserId = sessionStorage.getItem('userId') || '4';
 
-                fetch(`${baseUrl}/api/applications/${targetDbId}/officer-evaluate`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-User-Id': officerUserId
-                    },
-                    body: JSON.stringify({
-                        action: officerAction,
-                        notes: remarks,
-                        officer_id: officerUserId
-                    })
-                }).then(r => r.json()).then(data => {
-                    console.log('[CSWDO OFFICER] Evaluated application on API:', data);
-                }).catch(err => console.warn('API evaluation error:', err.message));
+                if (supabaseClient) {
+                    supabaseClient.from('applications').update({
+                        status: status === 'Approved' ? 'Officer Approved' : (status === 'Denied' ? 'Officer Denied' : 'Pending'),
+                        officer_decision: status === 'Approved' ? 'Approved' : (status === 'Denied' ? 'Denied' : 'Pending Requirements'),
+                        officer_id: parseInt(officerUserId),
+                        officer_notes: remarks,
+                        officer_action_at: new Date().toISOString()
+                    }).eq('id', targetDbId).then(({ error }) => {
+                        if (error) console.warn('Supabase evaluate error:', error.message);
+                        else console.log('[CSWDO OFFICER] Evaluated application on Supabase.');
+                    });
+                }
 
                 // Trigger Simulated Notification to Beneficiary
                 triggerAssistanceNotification(app, status, amount, remarks);

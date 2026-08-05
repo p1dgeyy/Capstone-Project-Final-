@@ -1,24 +1,27 @@
-# Capstone Project - Portal & Dashboard System
+# Capstone Project - PESO/CSWDO Portal & Dashboard System
 
-A clean, modern portal and administrative dashboard system built for the City of Koronadal. This project features secure portal logins for beneficiaries, PESO administrators/officers, CSWDO administrators/officers, and evaluators.
+A modern portal and administrative dashboard system built for the City of Koronadal. This project features secure portal logins for beneficiaries, PESO administrators/officers, CSWDO administrators/officers, and evaluators.
+
+**Backend:** [Supabase](https://supabase.com) (PostgreSQL + Auth + RLS)
+**Frontend:** Vanilla HTML/CSS/JS deployed on Vercel
+**Auth:** Supabase Auth (email + password)
 
 ---
 
 ## 📂 Project Structure
 
-The project has been restructured to separate front-end code and back-end/developer utilities cleanly:
-
 ```
 Capstone-Project-Final-/
 ├── frontend/                     # Front-end user-facing files & dashboards
 │   ├── assets/                   # Static assets & scripts
-│   │   ├── js/                   # Consolidated client JavaScript modules
-│   │   │   ├── api-config.js
+│   │   ├── js/                   # Client JavaScript modules
+│   │   │   ├── supabase-config.js  # Supabase client initialization
+│   │   │   ├── auth-guard.js       # Route protection hook
+│   │   │   ├── session-manager.js  # Session management (Supabase Auth)
 │   │   │   ├── audit_nav.js
 │   │   │   ├── beneficiary.js
 │   │   │   ├── peso-safeguards.js
 │   │   │   ├── peso_officer.js
-│   │   │   ├── session-manager.js
 │   │   │   └── system-notifications.js
 │   │   ├── city_of_koronadal.jpeg
 │   │   └── koronadalseal.png
@@ -33,54 +36,65 @@ Capstone-Project-Final-/
 │   ├── cswdo_admin.html          # CSWDO Admin Dashboard
 │   ├── evaluator.html            # Evaluator Dashboard
 │   └── vercel.json               # Vercel deployment routing configuration
-├── backend/                      # Node.js/Express REST API server & routes
-│   ├── lib/                      # Backend middleware & integrations
-│   ├── middleware/               # Express safeguards & rate limiters
-│   ├── routes/                   # API routes (programs, users, officers, etc.)
-│   ├── scripts/                  # Backend test & verification scripts
-│   ├── utils/                    # Utility functions (QR code generator, etc.)
-│   ├── db.js                     # MySQL connection pool configuration
-│   ├── migrate.js                # Database schema migration script
-│   └── server.js                 # Express server entry point
-├── database/                     # MySQL database schema & migration scripts
-│   ├── migrations/               # Versioned SQL migration files
-│   ├── schema.sql                # Complete database schema
-│   └── seed.sql                  # Initial seed data
-├── Dockerfile                    # Production Docker build container definition
-├── nginx.conf                    # Nginx reverse proxy configuration
-├── package.json                  # Node.js dependencies & scripts
-├── start.sh                      # Production entrypoint script
+├── database/
+│   └── supabase_schema.sql       # PostgreSQL schema + Row Level Security policies
+├── package.json                  # Project metadata & Supabase dependency
 └── README.md                     # Project documentation
 ```
 
 ---
 
-## 🌐 Vercel Deployment & Routing
+## 🔧 Setup & Environment Variables
 
-The project uses `vercel.json` at the root level to route URLs cleanly to the `frontend/` directory.
+### Supabase
+1. Create a Supabase project at [supabase.com](https://supabase.com).
+2. Run `database/supabase_schema.sql` in the Supabase SQL Editor to create all tables and RLS policies.
+3. Set these environment variables in **Vercel** (or your `.env` file):
 
-- **Clean URLs** are automatically enabled (e.g. accessing `/admin_login` serves `/frontend/admin_login.html`).
-- **Assets** are correctly mapped (e.g. `/assets/...` resolves to `/frontend/assets/...`).
-- **Fallbacks** are set up to handle relative path requests correctly without throwing 404 errors.
+| Variable | Description |
+| :--- | :--- |
+| `VITE_SUPABASE_URL` | Your Supabase project URL (`https://xxxx.supabase.co`) |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous/public API key |
+
+> **Note:** These keys are used client-side. Security is enforced via Supabase **Row Level Security (RLS)** policies, not by hiding the anon key.
+
+### Vercel
+- The `frontend/` directory is deployed to Vercel.
+- `vercel.json` handles SPA-style routing (all paths → `index.html`).
 
 ---
 
-## 🔑 Login Credentials (Mock Database)
+## 🌐 Authentication
 
-For testing purposes, the portal uses local mock accounts stored in `sessionStorage`:
+The system uses **Supabase Auth** for authentication:
 
-### 🧑‍💼 Administrative / Officer Portal (`/admin_login`)
-| Username | Password | Role | Redirect Page |
-| :--- | :--- | :--- | :--- |
-| `peso-admin` | `password123` | PESO Admin | `peso_admin.html` |
-| `peso-officer` | `password123` | PESO Officer | `peso_officer.html` |
-| `cswdo-admin` | `password123` | CSWDO Admin | `cswdo_admin.html` |
-| `cswdo-officer` | `password123` | CSWDO Officer | `cswdo_officer.html` |
-| `evaluator` | `password123` | Evaluator | `evaluator.html` |
+- **Login:** `supabaseClient.auth.signInWithPassword({ email, password })`
+- **Registration:** `supabaseClient.auth.signUp({ email, password, options: { data: { ... } } })`
+- **Session:** Managed by Supabase JS client; access tokens are stored automatically.
+- **Route Protection:** `auth-guard.js` checks for an active session and redirects unauthenticated users.
 
-### 👤 Beneficiary Portal (`/official_login`)
-| Username | Password | Full Name |
+### User Roles
+| Role | Portal | Dashboard |
 | :--- | :--- | :--- |
-| `juan_dela_cruz` | `Test1234` | Juan dela Cruz |
-| `maria_santos` | `Sample5678` | Maria Santos |
-| `pedro_reyes` | `DemoPass90` | Pedro Reyes |
+| PESO Admin | `/admin_login` | `peso_admin.html` |
+| PESO Officer | `/admin_login` | `peso_officer.html` |
+| CSWDO Admin | `/admin_login` | `cswdo_admin.html` |
+| CSWDO Officer | `/admin_login` | `cswdo_officer.html` |
+| Evaluator | `/admin_login` | `evaluator.html` |
+| Beneficiary | `/official_login` | `beneficiary.html` |
+
+---
+
+## 🗄️ Database Schema
+
+The database uses **PostgreSQL** via Supabase with the following core tables:
+
+- `users_profile` — User accounts (linked to Supabase Auth via `auth_id`)
+- `programs` — PESO/CSWDO assistance programs
+- `applications` — Beneficiary applications with officer/admin evaluation workflow
+- `interview_schedules` — Interview scheduling with attendance tracking
+- `audit_logs` — System-wide audit trail
+- `approved_assistance` — Approved assistance records
+- `notifications` — SMS/notification dispatch logs
+
+All tables have **Row Level Security (RLS)** enabled.

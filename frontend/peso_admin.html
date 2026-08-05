@@ -11,11 +11,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- API Configuration -->
-    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
-    <script src="assets/js/api-config.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/peso-safeguards.js"></script>
     <script src="assets/js/system-notifications.js"></script>
-    <script src="assets/js/peso_admin.js"></script>
 
     <style>
         :root {
@@ -407,7 +408,7 @@
                     <p class="text-white-50 mb-0 small"><i class="bi bi-cash-stack me-1"></i> Total LGU Appropriation: <strong class="text-warning fs-6">₱13,707,882.00</strong> allocated across Employment Facilitation, Livelihood, and Community Programs.</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button id="uploadOrdinanceBtn" class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openUploadOrdinanceModal()">
+                    <button class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openUploadOrdinanceModal()">
                         <i class="bi bi-cloud-arrow-up-fill me-1 text-primary"></i> Upload Ordinance
                     </button>
                     <button class="btn btn-outline-light fw-semibold px-3" onclick="showOrdinanceReferenceModal()">
@@ -915,7 +916,7 @@
                         <p class="text-white-50 mb-0 small">Monitor officer accounts, manage roles & departments, create accounts, and control activation access.</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <button id="createNewOfficerBtn" class="btn btn-light fw-bold text-primary shadow-sm">
+                        <button class="btn btn-light fw-bold text-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#newOfficerModal" onclick="openNewOfficerModal()">
                             <i class="bi bi-person-plus-fill me-1"></i> + Create New Officer Account
                         </button>
                     </div>
@@ -2230,40 +2231,11 @@
             });
         }
 
-        function openUploadOrdinanceModal() {
-            const form = document.getElementById('uploadOrdinanceForm');
-            if (form) form.reset();
-
-            if (typeof logAuditEvent === 'function') {
-                logAuditEvent('OPEN_UPLOAD_ORDINANCE_FORM', 'Opened Upload Ordinance form modal');
-            }
-
-            const modalEl = document.getElementById('uploadOrdinanceModal');
-            if (modalEl) {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modalInstance.show();
-                } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
-                    $('#uploadOrdinanceModal').modal('show');
-                } else {
-                    modalEl.classList.add('show');
-                    modalEl.style.display = 'block';
-                }
-            }
-        }
-
+        function openUploadOrdinanceModal() { new bootstrap.Modal(document.getElementById('uploadOrdinanceModal')).show(); }
         function handleUploadOrdinance(e) {
             e.preventDefault();
             logAuditEvent('UPLOAD_ORDINANCE', 'Uploaded Appropriation Ordinance document');
-            const modalEl = document.getElementById('uploadOrdinanceModal');
-            if (modalEl) {
-                const instance = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
-                    ? (bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl))
-                    : null;
-                if (instance) instance.hide();
-                else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) $('#uploadOrdinanceModal').modal('hide');
-                else { modalEl.classList.remove('show'); modalEl.style.display = 'none'; }
-            }
+            bootstrap.Modal.getInstance(document.getElementById('uploadOrdinanceModal')).hide();
             window.showSystemNotification({
                 title: 'Ordinance Uploaded',
                 message: 'Appropriation Ordinance document uploaded and attached successfully.',
@@ -2293,32 +2265,32 @@
         // =========================================================================
 
         async function fetchOfficersFromApi() {
+            if (!supabaseClient) return;
             try {
-                const apiBase = window.API_BASE_URL || '';
-                const response = await fetch(`${apiBase}/api/officers`);
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-                        officersList = result.data.map(off => ({
-                            id: off.id,
-                            first_name: off.first_name || '',
-                            middle_name: off.middle_name || '',
-                            last_name: off.last_name || '',
-                            suffix: off.suffix || 'N/A',
-                            username: off.username || '',
-                            email: off.email || '',
-                            role: off.role || 'PESO Officer',
-                            department: off.department || 'PESO',
-                            phone: off.phone || 'N/A',
-                            sex: off.sex || 'Male',
-                            address: off.address || 'City of Koronadal',
-                            status: (off.status === 'Deactivated' || off.status === 'Inactive') ? 'Deactivated' : 'Active'
-                        }));
-                        localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
-                    }
+                const { data, error } = await supabaseClient
+                    .from('users_profile')
+                    .select('*')
+                    .in('role', ['PESO Admin', 'PESO Officer']);
+                if (!error && data && data.length > 0) {
+                    officersList = data.map(off => ({
+                        id: off.id,
+                        first_name: off.first_name || '',
+                        middle_name: off.middle_name || '',
+                        last_name: off.last_name || '',
+                        suffix: off.suffix || 'N/A',
+                        username: off.username || '',
+                        email: off.email || '',
+                        role: off.role || 'PESO Officer',
+                        department: 'PESO',
+                        phone: off.phone || 'N/A',
+                        sex: off.sex || 'Male',
+                        address: off.address || 'City of Koronadal',
+                        status: (off.status === 'Deactivated' || off.status === 'Inactive') ? 'Deactivated' : 'Active'
+                    }));
+                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
                 }
             } catch (err) {
-                console.warn('[OFFICERS] Fetch API notice — operating with cached roster:', err.message);
+                console.warn('[OFFICERS] Supabase fetch notice — operating with cached roster:', err.message);
             }
             if (document.getElementById('sectionOfficers') && !document.getElementById('sectionOfficers').classList.contains('d-none')) {
                 renderOfficersTables();
@@ -2421,21 +2393,10 @@
         function openNewOfficerModal() {
             const form = document.getElementById('newOfficerForm');
             if (form) form.reset();
-            
-            // Record audit log when form is opened
-            logAuditEvent('OPEN_CREATE_OFFICER_FORM', 'Opened Create New Officer Account form modal');
-
             const modalEl = document.getElementById('newOfficerModal');
             if (modalEl) {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modalInstance.show();
-                } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
-                    $('#newOfficerModal').modal('show');
-                } else {
-                    modalEl.classList.add('show');
-                    modalEl.style.display = 'block';
-                }
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modalInstance.show();
             }
         }
 
@@ -2490,36 +2451,38 @@
                 status: 'Active'
             };
 
-            // Call Backend API
+            // Create officer via Supabase Auth
             try {
-                const apiBase = window.API_BASE_URL || '';
-                const response = await fetch(`${apiBase}/api/officers`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        first_name: firstName,
-                        middle_name: middleName,
-                        last_name: lastName,
-                        suffix: suffix,
-                        username: username,
+                if (supabaseClient) {
+                    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                         email: email,
                         password: password,
-                        password_confirm: passwordConfirm,
-                        role: role,
-                        department: department,
-                        sex: sex,
-                        phone: phone,
-                        address: address
-                    })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.data) {
-                        newOff.id = data.data.id;
+                        options: {
+                            data: {
+                                username: username,
+                                first_name: firstName,
+                                last_name: lastName,
+                                role: role,
+                                age: 0
+                            }
+                        }
+                    });
+                    if (!authError && authData && authData.user) {
+                        newOff.id = authData.user.id;
+                        // Update profile with extra fields
+                        await supabaseClient.from('users_profile').update({
+                            middle_name: middleName || null,
+                            suffix: suffix || null,
+                            phone: phone || null,
+                            sex: sex || null,
+                            address: address || null
+                        }).eq('auth_id', authData.user.id);
+                    } else if (authError) {
+                        console.warn('[OFFICERS] Supabase auth error:', authError.message);
                     }
                 }
             } catch (err) {
-                console.warn('[OFFICERS] API submission notice — saved to local state:', err.message);
+                console.warn('[OFFICERS] Supabase submission notice — saved to local state:', err.message);
             }
 
             officersList.unshift(newOff);
@@ -2528,14 +2491,8 @@
             logAuditEvent('CREATE_OFFICER_ACCOUNT', `Created new officer account "${username}" (${firstName} ${lastName}), Role: ${role}, Dept: ${department}`);
 
             const modalEl = document.getElementById('newOfficerModal');
-            if (modalEl) {
-                const instance = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
-                    ? (bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl))
-                    : null;
-                if (instance) instance.hide();
-                else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) $('#newOfficerModal').modal('hide');
-                else { modalEl.classList.remove('show'); modalEl.style.display = 'none'; }
-            }
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
 
             renderOfficersTables();
             window.showSystemNotification({
@@ -2590,19 +2547,15 @@
                     off.address = updatedAddress;
 
                     try {
-                        const apiBase = window.API_BASE_URL || '';
-                        await fetch(`${apiBase}/api/officers/${offId}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
+                        if (supabaseClient) {
+                            await supabaseClient.from('users_profile').update({
                                 username: updatedUsername,
                                 email: updatedEmail,
                                 phone: updatedPhone,
                                 role: updatedRole,
-                                department: updatedDept,
                                 address: updatedAddress
-                            })
-                        });
+                            }).eq('id', offId);
+                        }
                     } catch (err) {}
 
                     localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
@@ -2645,12 +2598,9 @@
                     localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
                     try {
-                        const apiBase = window.API_BASE_URL || '';
-                        await fetch(`${apiBase}/api/officers/${officerId}/status`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: newStatus })
-                        });
+                        if (supabaseClient) {
+                            await supabaseClient.from('users_profile').update({ status: newStatus }).eq('id', officerId);
+                        }
                     } catch (err) {}
 
                     logAuditEvent(isDeactivating ? 'DEACTIVATE_OFFICER_ACCOUNT' : 'ACTIVATE_OFFICER_ACCOUNT', `Updated status of officer account "${off.username}" to ${newStatus}`);
@@ -2679,8 +2629,9 @@
                     localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
                     try {
-                        const apiBase = window.API_BASE_URL || '';
-                        await fetch(`${apiBase}/api/officers/${officerId}/restore`, { method: 'POST' });
+                        if (supabaseClient) {
+                            await supabaseClient.from('users_profile').update({ status: 'Active' }).eq('id', officerId);
+                        }
                     } catch (err) {}
 
                     logAuditEvent('ACTIVATE_OFFICER_ACCOUNT', `Restored officer account "${off.username}" to Active status.`);
@@ -2709,8 +2660,9 @@
                     localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
                     try {
-                        const apiBase = window.API_BASE_URL || '';
-                        await fetch(`${apiBase}/api/officers/${officerId}/permanent`, { method: 'DELETE' });
+                        if (supabaseClient) {
+                            await supabaseClient.from('users_profile').delete().eq('id', officerId);
+                        }
                     } catch (err) {}
 
                     logAuditEvent('PERMANENT_DELETE_OFFICER_ACCOUNT', `Permanently deleted officer account ID ${officerId}`);
@@ -3137,24 +3089,18 @@
                     // Update local storage
                     localStorage.setItem('peso_eval_applications_v1', JSON.stringify(evalApplicationsList));
 
-                    // Backend API Sync
+                    // Supabase Sync
                     try {
-                        const apiBase = window.API_BASE_URL || '';
-                        let actionParam = 'approve';
-                        if (decision === 'Denied') actionParam = 'deny';
-                        else if (decision === 'Pending Evaluation') actionParam = 'pending';
-
-                        await fetch(`${apiBase}/api/applications/${app.id}/admin-finalize`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                action: actionParam,
-                                notes: notes,
-                                admin_id: 1
-                            })
-                        });
+                        if (supabaseClient) {
+                            const statusMap = { 'Approved': 'Approved', 'Denied': 'Rejected', 'Pending Evaluation': 'Under Review' };
+                            await supabaseClient.from('applications').update({
+                                status: statusMap[decision] || decision,
+                                admin_id: parseInt(sessionStorage.getItem('userId')) || 1,
+                                admin_notes: notes
+                            }).eq('id', app.id);
+                        }
                     } catch (err) {
-                        console.warn('[EVALUATION] Backend sync notice — saved to local state:', err.message);
+                        console.warn('[EVALUATION] Supabase sync notice — saved to local state:', err.message);
                     }
 
                     // Log Audit Event

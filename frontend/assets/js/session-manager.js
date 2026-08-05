@@ -1,12 +1,14 @@
 /**
- * Session Management Helper
- * 
- * Handles storage and verification of session tokens for single-session enforcement.
- * When a user logs in on another device, their session token in the database changes,
- * and this script detects the mismatch and forces a logout on the stale session.
+ * Session Management Helper — Supabase Edition
+ *
+ * Replaces the old Railway/Express session-token system with Supabase Auth.
+ * Supabase handles JWT tokens, refresh, and session persistence automatically.
+ *
+ * This module provides a backward-compatible API so existing code that calls
+ * SessionManager.getRole(), SessionManager.getUserId(), etc. continues to work.
  *
  * Usage:
- *   1. After login, call: SessionManager.save(userId, sessionToken, role)
+ *   1. After login, session is auto-managed by Supabase (no manual save needed)
  *   2. On any protected page, call: SessionManager.verify() — redirects to login if invalid
  *   3. On logout, call: SessionManager.logout()
  */
@@ -14,66 +16,75 @@
 const SessionManager = (() => {
   'use strict';
 
-  const STORAGE_KEYS = {
-    USER_ID: 'userId',
-    SESSION_TOKEN: 'sessionToken',
-    USER_ROLE: 'userRole'
-  };
-
-  // How often to verify the session against the database (in milliseconds)
-  const VERIFY_INTERVAL_MS = 60 * 1000; // every 60 seconds
-
+  // Cache for the user's profile data
+  let _cachedProfile = null;
   let _verifyTimer = null;
+  const VERIFY_INTERVAL_MS = 60 * 1000; // 60 seconds
 
   /**
-   * Save session data after a successful login
+   * Save session data after a successful login.
+   * With Supabase, the session is auto-persisted. This method caches
+   * profile data locally for quick access by dashboard scripts.
    */
   function save(userId, sessionToken, role) {
-    sessionStorage.setItem(STORAGE_KEYS.USER_ID, userId);
-    sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, sessionToken);
-    sessionStorage.setItem(STORAGE_KEYS.USER_ROLE, role);
+    sessionStorage.setItem('userId', userId);
+    sessionStorage.setItem('userRole', role);
+    // sessionToken is managed by Supabase internally — we store it for backward compat
+    sessionStorage.setItem('sessionToken', sessionToken || 'supabase-managed');
   }
 
   /**
-   * Get the current session token
+   * Get the current Supabase access token (JWT)
+   */
+  async function getTokenAsync() {
+    if (!supabaseClient) return null;
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      return session?.access_token || null;
+    } catch (e) {
+      console.warn('[SessionManager] Failed to get token:', e.message);
+      return null;
+    }
+  }
+
+  /**
+   * Get the session token (synchronous — from cache/sessionStorage)
    */
   function getToken() {
-    return sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+    return sessionStorage.getItem('sessionToken') || null;
   }
 
   /**
-   * Get the current user ID
+   * Get the current user ID (profile ID from users_profile table)
    */
   function getUserId() {
-    return sessionStorage.getItem(STORAGE_KEYS.USER_ID);
+    return sessionStorage.getItem('userId') || null;
   }
 
   /**
    * Get the current user role
    */
   function getRole() {
-    return sessionStorage.getItem(STORAGE_KEYS.USER_ROLE);
+    return sessionStorage.getItem('userRole') || null;
   }
 
   /**
-   * Build headers for authenticated API requests
+   * Build headers for authenticated API requests.
+   * With Supabase, the client handles auth headers automatically.
+   * This is kept for backward compatibility with any custom fetch calls.
    */
   function authHeaders() {
-    const headers = { 'Content-Type': 'application/json' };
-    const userId = getUserId();
-    const token = getToken();
-    if (userId) headers['X-User-Id'] = userId;
-    if (token) headers['X-Session-Token'] = token;
-    return headers;
+    return { 'Content-Type': 'application/json' };
   }
 
   /**
    * Clear all session data
    */
   function clear() {
-    sessionStorage.removeItem(STORAGE_KEYS.USER_ID);
-    sessionStorage.removeItem(STORAGE_KEYS.SESSION_TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('sessionToken');
+    sessionStorage.removeItem('userRole');
+    _cachedProfile = null;
     if (_verifyTimer) {
       clearInterval(_verifyTimer);
       _verifyTimer = null;
@@ -81,24 +92,16 @@ const SessionManager = (() => {
   }
 
   /**
-   * Logout: clear session client-side and notify the server
+   * Logout: sign out via Supabase Auth and clear local session data
    */
   async function logout(redirectUrl) {
-    const userId = getUserId();
-    const token = getToken();
-
-    // Notify server to clear the session token
-    if (userId) {
-      try {
-        await fetch(API_CONFIG.BASE_URL + '/api/auth/logout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, sessionToken: token })
-        });
-      } catch (e) {
-        // Best-effort — don't block logout if server is unreachable
-        console.warn('[SessionManager] Logout API call failed:', e.message);
+    try {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+        console.log('[SessionManager] Supabase sign-out successful.');
       }
+    } catch (e) {
+      console.warn('[SessionManager] Sign-out error (best-effort):', e.message);
     }
 
     // Clear everything client-side
@@ -110,61 +113,63 @@ const SessionManager = (() => {
   }
 
   /**
-   * Force logout with a user-visible message (for session-kicked scenarios)
+   * Force logout with a user-visible message
    */
   function forceLogout(message) {
     clear();
     sessionStorage.clear();
-    // Store the kick message so the login page can display it
-    sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired because your account was logged in from another device.');
+    sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
     window.location.href = 'official_login.html';
   }
 
   /**
-   * Verify the current session against the database
-   * Redirects to login if the session has been invalidated
+   * Verify the current session is still valid via Supabase
    */
   async function verify() {
-    let userId = getUserId();
-    let token = getToken();
-    const role = getRole();
-
-    // Auto-heal session if role exists (e.g. local fallback or role login)
-    if (!userId || !token) {
-      if (role) {
-        userId = userId || (role.includes('CSWDO') ? '4' : '2');
-        token = 'mock_session_token_' + Date.now();
-        save(userId, token, role);
-        return true;
-      }
-      forceLogout('Please log in to continue.');
-      return false;
-    }
-
-    // Skip remote verification for mock/local fallback tokens
-    if (token.startsWith('mock_session_token_') || token.startsWith('fallback_')) {
+    if (!supabaseClient) {
+      console.warn('[SessionManager] Supabase client not available, skipping verification.');
       return true;
     }
 
     try {
-      const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/verify-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, sessionToken: token })
-      });
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
 
-      const data = await response.json();
-
-      if (response.status === 401 && data.kicked) {
-        forceLogout(data.message);
+      if (error || !session) {
+        console.warn('[SessionManager] No valid session found.');
+        forceLogout('Your session has expired. Please log in again.');
         return false;
+      }
+
+      // Session is valid — update cached data
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        // Fetch latest profile
+        const { data: profile } = await supabaseClient
+          .from('users_profile')
+          .select('id, role, status, first_name, last_name')
+          .eq('auth_id', user.id)
+          .single();
+
+        if (profile) {
+          _cachedProfile = profile;
+          // Update sessionStorage for backward compat
+          sessionStorage.setItem('userId', profile.id);
+          sessionStorage.setItem('userRole', profile.role);
+
+          // Check if account was deactivated
+          if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
+            await supabaseClient.auth.signOut();
+            forceLogout('Your account has been deactivated.');
+            return false;
+          }
+        }
       }
 
       return true;
     } catch (e) {
-      // Network error or server unreachable — keep local session active
-      console.warn('[SessionManager] Session verification failed (network/offline):', e.message);
-      return true; // Assume valid if server is unreachable
+      console.warn('[SessionManager] Session verification failed:', e.message);
+      // Network error — keep session active (offline tolerance)
+      return true;
     }
   }
 
@@ -182,9 +187,17 @@ const SessionManager = (() => {
     }, VERIFY_INTERVAL_MS);
   }
 
+  /**
+   * Get cached profile data
+   */
+  function getCachedProfile() {
+    return _cachedProfile;
+  }
+
   return Object.freeze({
     save,
     getToken,
+    getTokenAsync,
     getUserId,
     getRole,
     authHeaders,
@@ -192,6 +205,7 @@ const SessionManager = (() => {
     logout,
     forceLogout,
     verify,
-    startPeriodicVerification
+    startPeriodicVerification,
+    getCachedProfile
   });
 })();

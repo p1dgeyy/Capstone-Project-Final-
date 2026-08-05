@@ -129,12 +129,12 @@
     saveState();
     renderBeneficiariesTable();
 
-    // Async sync to backend
-    fetch((window.API_BASE_URL || '') + '/api/beneficiaries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newBen)
-    }).catch(e => console.warn('[PESO_OFFICER] Sync offline fallback:', e.message));
+    // Async sync to Supabase
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      supabaseClient.from('beneficiaries').insert(newBen)
+        .then(({ error }) => { if (error) console.warn('[PESO_OFFICER] Supabase sync error:', error.message); })
+        .catch(e => console.warn('[PESO_OFFICER] Supabase sync offline fallback:', e.message));
+    }
 
     alert(`Beneficiary intake completed successfully! Generated QR Code: ${qrVal}`);
     window.closeModal('beneficiaryIntakeModal');
@@ -276,12 +276,18 @@
       saveState();
       renderApplicationsTable();
 
-      // Async backend call
-      fetch((window.API_BASE_URL || '') + '/api/applications/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicationId: appId, status: decision, remarks })
-      }).catch(e => console.warn('[PESO_OFFICER] Evaluate API call offline:', e.message));
+      // Async Supabase sync
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        supabaseClient.from('applications').update({
+          status: decision === 'Approved' ? 'Officer Approved' : (decision === 'Denied' ? 'Officer Denied' : 'Pending'),
+          officer_notes: remarks,
+          officer_decision: decision,
+          officer_id: parseInt(sessionStorage.getItem('userId')) || null,
+          officer_action_at: new Date().toISOString()
+        }).eq('id', appId)
+          .then(({ error }) => { if (error) console.warn('[PESO_OFFICER] Evaluate Supabase error:', error.message); })
+          .catch(e => console.warn('[PESO_OFFICER] Evaluate API call offline:', e.message));
+      }
 
       alert(`Application #${appId} updated as ${decision}.`);
     }
@@ -315,11 +321,14 @@
       saveState();
       renderInterviewsTable();
 
-      fetch((window.API_BASE_URL || '') + '/api/interviews/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduleId, attendance: status, outcome: interview.outcome })
-      }).catch(e => console.warn('[PESO_OFFICER] Attendance API call offline:', e.message));
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        supabaseClient.from('interview_schedules').update({
+          attendance_status: status,
+          status: status === 'Present' ? 'Completed' : 'Missed'
+        }).eq('id', scheduleId)
+          .then(({ error }) => { if (error) console.warn('[PESO_OFFICER] Attendance Supabase error:', error.message); })
+          .catch(e => console.warn('[PESO_OFFICER] Attendance API call offline:', e.message));
+      }
 
       alert(`Interview #${scheduleId} attendance marked as ${status}.`);
     }
@@ -337,11 +346,16 @@
       return;
     }
 
-    fetch((window.API_BASE_URL || '') + '/api/notifications/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipientPhone: recipient, message, channel: 'SMS' })
-    }).catch(e => console.warn('[PESO_OFFICER] SMS Dispatch call offline:', e.message));
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      supabaseClient.from('notifications').insert({
+        recipient_phone: recipient,
+        message: message,
+        channel: 'SMS',
+        sent_by: parseInt(sessionStorage.getItem('userId')) || null,
+        sent_at: new Date().toISOString()
+      }).then(({ error }) => { if (error) console.warn('[PESO_OFFICER] SMS Dispatch Supabase error:', error.message); })
+        .catch(e => console.warn('[PESO_OFFICER] SMS Dispatch call offline:', e.message));
+    }
 
     alert(`SMS Notification dispatched successfully to ${recipient || 'all registered beneficiaries'}!`);
     window.closeModal('smsDispatchModal');

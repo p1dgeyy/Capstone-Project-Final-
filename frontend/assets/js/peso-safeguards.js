@@ -376,20 +376,16 @@ if (typeof window.PESOSafeguards === 'undefined') {
       console.warn('[PESOSafeguards] Local audit logging notice:', e.message);
     }
 
-    // 2. Transmit to Backend API asynchronously
-    if (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL !== undefined) {
-      fetch(API_CONFIG.BASE_URL + '/api/audit-logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          action: `${auditRecord.status}:${auditRecord.actionType}`,
-          entity_type: auditRecord.targetEntity,
-          entity_id: auditRecord.id,
-          details: `[Role: ${userRole}] ${auditRecord.intent} - ${auditRecord.details}`
-        })
-      }).catch(err => {
-        console.warn('[PESOSafeguards] Backend audit dispatch fallback:', err.message);
+    // 2. Transmit to Supabase audit_logs table asynchronously
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      supabaseClient.from('audit_logs').insert({
+        user_id: userId,
+        action: `${auditRecord.status}:${auditRecord.actionType}`,
+        entity_type: auditRecord.targetEntity,
+        entity_id: auditRecord.id,
+        details: `[Role: ${userRole}] ${auditRecord.intent} - ${auditRecord.details}`
+      }).then(({ error }) => {
+        if (error) console.warn('[PESOSafeguards] Supabase audit insert fallback:', error.message);
       });
     }
 

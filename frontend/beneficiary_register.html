@@ -10,8 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- API Base Configuration -->
-    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
-    <script src="assets/js/api-config.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/session-manager.js"></script>
     <script src="assets/js/system-notifications.js"></script>
 
@@ -465,15 +467,10 @@
             }
 
             try {
-                const res = await fetch('/api/auth/send-sms-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone })
-                });
-                const data = await res.json();
-                activeOtp = data.demoCode || '123456';
-            } catch (e) {
+                // Demo SMS OTP — in production, use Supabase phone auth or a third-party SMS provider
                 activeOtp = String(Math.floor(100000 + Math.random() * 900000));
+            } catch (e) {
+                activeOtp = '123456';
             }
             document.getElementById('otpPhoneDisplay').textContent = phone;
             document.getElementById('demoOtpCode').textContent = activeOtp;
@@ -512,15 +509,10 @@
             }
 
             try {
-                const res = await fetch('/api/auth/send-email-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const data = await res.json();
-                activeEmailCode = data.demoCode || '1234';
-            } catch (e) {
+                // Demo email code — Supabase handles real email verification during signUp
                 activeEmailCode = String(Math.floor(1000 + Math.random() * 9000));
+            } catch (e) {
+                activeEmailCode = '1234';
             }
             document.getElementById('otpEmailDisplay').textContent = email;
             document.getElementById('demoEmailCode').textContent = activeEmailCode;
@@ -616,70 +608,80 @@
 
             const sendRegistration = async () => {
                 try {
-                    const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username,
-                            password,
-                            passwordConfirm,
-                            firstName: fn,
-                            middleName: document.getElementById('regMiddleName').value.trim(),
-                            lastName: ln,
-                            suffix: document.getElementById('regSuffix').value.trim(),
-                            age: document.getElementById('regAge').value || 25,
-                            dateOfBirth: bdate,
-                            sex,
-                            maritalStatus: document.getElementById('regCivilStatus').value,
-                            spouseName: document.getElementById('regSpouseName').value.trim(),
-                            childrenInfo: document.getElementById('regNoChildren').value,
-                            email,
-                            phone,
-                            purok,
-                            barangay,
-                            address: `Purok ${purok}, Barangay ${barangay}, City of Koronadal`,
-                            idType: 'PhilID',
-                            programType,
-                            validIdFilePath: fileValidId ? fileValidId.name : 'valid_id.pdf',
-                            brgyClearanceFilePath: fileBrgyClearance ? fileBrgyClearance.name : 'brgy_clearance.pdf',
-                            programReqFilePath: fileProgramReq ? fileProgramReq.name : null,
-                            medicalCertFilePath: fileMedicalCert ? fileMedicalCert.name : null,
-                            smsVerified: true,
-                            emailVerified: true,
-                            termsAgreed: true,
-                            dataConsent: true
-                        })
+                    if (!supabaseClient) {
+                        throw new Error('Supabase client not initialized.');
+                    }
+
+                    // Step 1: Create auth user via Supabase Auth
+                    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                username: username,
+                                first_name: fn,
+                                last_name: ln,
+                                role: 'Beneficiary',
+                                age: parseInt(document.getElementById('regAge').value) || 25
+                            }
+                        }
                     });
 
-                    const data = await response.json();
-                    if (response.ok && data.success) {
-                        SessionManager.save(data.userId || '6', 'mock_session_token_' + Date.now(), 'Beneficiary');
-                        sessionStorage.setItem('beneficiaryLoggedIn', 'true');
-                        sessionStorage.setItem('beneficiaryUsername', username);
-                        sessionStorage.setItem('beneficiaryName', `${fn} ${ln}`);
-
-                        window.showSystemNotification({
-                            title: 'Registration Successful!',
-                            message: `Welcome ${fn} ${ln}! Your ${programType} account and initial application have been registered successfully.`,
-                            type: 'success',
-                            confirmText: 'Go to Dashboard',
-                            onConfirm: () => { window.location.href = 'beneficiary.html'; }
-                        });
-                        return;
-                    } else {
-                        window.showSystemNotification({
-                            title: 'Registration Failed',
-                            message: data.message || 'Server error encountered during account registration.',
-                            type: 'error',
-                            confirmText: 'Retry',
-                            onRetry: sendRegistration
-                        });
-                        return;
+                    if (authError) {
+                        throw new Error(authError.message);
                     }
-                } catch (err) {
+
+                    if (!authData.user) {
+                        throw new Error('Registration failed — no user created.');
+                    }
+
+                    // Step 2: Update the auto-created profile with additional details
+                    // (The trigger creates a basic profile; we update it with full data)
+                    const { error: updateError } = await supabaseClient
+                        .from('users_profile')
+                        .update({
+                            middle_name: document.getElementById('regMiddleName').value.trim() || null,
+                            suffix: document.getElementById('regSuffix').value.trim() || null,
+                            date_of_birth: bdate || null,
+                            sex: sex || null,
+                            marital_status: document.getElementById('regCivilStatus').value || null,
+                            phone: phone || null,
+                            address: `Purok ${purok}, Barangay ${barangay}, City of Koronadal`,
+                            id_type: 'PhilID',
+                            terms_agreed: true,
+                            data_consent: true
+                        })
+                        .eq('auth_id', authData.user.id);
+
+                    if (updateError) {
+                        console.warn('[REGISTER] Profile update warning:', updateError.message);
+                    }
+
+                    // Save session data
+                    if (authData.session) {
+                        SessionManager.save(authData.user.id, authData.session.access_token, 'Beneficiary');
+                    }
+                    sessionStorage.setItem('beneficiaryLoggedIn', 'true');
+                    sessionStorage.setItem('beneficiaryUsername', username);
+                    sessionStorage.setItem('beneficiaryName', `${fn} ${ln}`);
+
                     window.showSystemNotification({
-                        title: 'Server Connection Failure',
-                        message: 'Could not connect to registration server. Please check connection and try again.',
+                        title: 'Registration Successful!',
+                        message: `Welcome ${fn} ${ln}! Your ${programType} account has been registered successfully.`,
+                        type: 'success',
+                        confirmText: 'Go to Dashboard',
+                        onConfirm: () => { window.location.href = 'beneficiary.html'; }
+                    });
+                    return;
+
+                } catch (err) {
+                    console.error('[REGISTER] Error:', err.message);
+                    const friendlyMsg = err.message.includes('already registered')
+                        ? 'This email is already registered. Please use a different email or log in.'
+                        : err.message;
+                    window.showSystemNotification({
+                        title: 'Registration Failed',
+                        message: friendlyMsg,
                         type: 'error',
                         confirmText: 'Retry',
                         onRetry: sendRegistration

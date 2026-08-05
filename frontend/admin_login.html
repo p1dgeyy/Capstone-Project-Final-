@@ -867,9 +867,9 @@
             color: #e5e5e5;
         }
     </style>
-    <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
-    <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
-    <script src="assets/js/api-config.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
     <script src="assets/js/session-manager.js"></script>
 </head>
 <body>
@@ -1601,10 +1601,10 @@
             icon.classList.toggle('bi-eye-slash');
         });
 
-        // Form submission (Staff Only — authenticates against MySQL database)
+        // Form submission — Authenticates via Supabase Auth (Staff/Admin Portal)
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const username = document.getElementById('username').value;
+            const email = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorAlert = document.getElementById('errorAlert');
             const successAlert = document.getElementById('successAlert');
@@ -1634,71 +1634,86 @@
             loginBtn.disabled = true;
 
             try {
-                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username.trim(), password })
+                if (!supabaseClient) {
+                    throw new Error('Supabase client not initialized.');
+                }
+
+                // Sign in with Supabase Auth (email + password)
+                const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
                 });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        SessionManager.save(data.user.id, data.sessionToken, data.user.role);
-
-                        sessionStorage.setItem('userRole', data.user.role);
-                        sessionStorage.setItem('username', data.user.username);
-                        sessionStorage.setItem('userId', data.user.id);
-                        sessionStorage.setItem('userFullName', data.user.fullName);
-
-                        successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
-                        successAlert.style.display = 'block';
-
-                        setTimeout(() => {
-                            window.location.href = data.redirect || (data.user.role.includes('CSWDO') ? 'cswdo_officer.html' : 'peso_officer.html');
-                        }, 1000);
-                        return;
-                    }
+                if (authError) {
+                    throw new Error(authError.message);
                 }
-            } catch (networkError) {
-                console.warn('Backend API connection offline/error, checking local account fallback:', networkError);
-            }
 
-            // Local fallback authentication when backend service is offline/restarting
-            const lowerUser = username.trim().toLowerCase();
-            const defaultAccounts = {
-                'peso-admin': { role: 'PESO Admin', fullName: 'PESO Administrator', redirect: 'peso_admin.html', id: '1' },
-                'cswdo-admin': { role: 'CSWDO Admin', fullName: 'CSWDO Administrator', redirect: 'cswdo_admin.html', id: '3' },
-                'peso-officer': { role: 'PESO Officer', fullName: 'PESO Officer', redirect: 'peso_officer.html', id: '2' },
-                'peso_officer': { role: 'PESO Officer', fullName: 'PESO Officer', redirect: 'peso_officer.html', id: '2' },
-                'cswdo-officer': { role: 'CSWDO Officer', fullName: 'CSWDO Officer', redirect: 'cswdo_officer.html', id: '4' },
-                'cswdo_officer': { role: 'CSWDO Officer', fullName: 'CSWDO Officer', redirect: 'cswdo_officer.html', id: '4' },
-                'admin': { role: 'PESO Admin', fullName: 'PESO Administrator', redirect: 'peso_admin.html', id: '1' },
-                'officer': { role: 'PESO Officer', fullName: 'PESO Officer', redirect: 'peso_officer.html', id: '2' }
-            };
+                if (!authData.user) {
+                    throw new Error('Authentication failed.');
+                }
 
-            if (defaultAccounts[lowerUser]) {
-                const userAcc = defaultAccounts[lowerUser];
-                const mockToken = 'mock_session_token_' + Date.now();
-                SessionManager.save(userAcc.id, mockToken, userAcc.role);
+                // Fetch user profile from users_profile table
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('users_profile')
+                    .select('id, username, role, first_name, last_name, email, status')
+                    .eq('auth_id', authData.user.id)
+                    .single();
 
-                sessionStorage.setItem('userRole', userAcc.role);
-                sessionStorage.setItem('username', lowerUser);
-                sessionStorage.setItem('userId', userAcc.id);
-                sessionStorage.setItem('userFullName', userAcc.fullName);
+                if (profileError || !profile) {
+                    throw new Error('User profile not found. Please contact support.');
+                }
+
+                // Check account status
+                if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
+                    await supabaseClient.auth.signOut();
+                    throw new Error('Account is deactivated. Please contact your administrator.');
+                }
+
+                // Verify this is a staff/admin account (not beneficiary)
+                const staffRoles = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
+                if (!staffRoles.includes(profile.role)) {
+                    await supabaseClient.auth.signOut();
+                    throw new Error(lang === 'tg'
+                        ? 'Ang portal na ito ay para sa Staff at Admin lamang.'
+                        : 'This portal is for Staff and Admin accounts only. Please use the Beneficiary portal.');
+                }
+
+                // Save session data for backward compatibility
+                const fullName = `${profile.first_name} ${profile.last_name}`.trim();
+                SessionManager.save(profile.id, authData.session.access_token, profile.role);
+
+                sessionStorage.setItem('userRole', profile.role);
+                sessionStorage.setItem('username', profile.username);
+                sessionStorage.setItem('userId', profile.id);
+                sessionStorage.setItem('userFullName', fullName);
 
                 successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
                 successAlert.style.display = 'block';
 
+                // Role-based redirect
+                const roleRedirects = {
+                    'PESO Admin': 'peso_admin.html',
+                    'PESO Officer': 'peso_officer.html',
+                    'CSWDO Admin': 'cswdo_admin.html',
+                    'CSWDO Officer': 'cswdo_officer.html',
+                    'Evaluator': 'evaluator.html'
+                };
+                const redirectPage = roleRedirects[profile.role] || 'peso_officer.html';
+
                 setTimeout(() => {
-                    window.location.href = userAcc.redirect;
-                }, 800);
+                    window.location.href = redirectPage;
+                }, 1000);
                 return;
+
+            } catch (error) {
+                console.error('[LOGIN] Error:', error.message);
+                const friendlyMsg = error.message.includes('Invalid login')
+                    ? (lang === 'tg' ? 'Hindi tamang email o password.' : 'Invalid email or password.')
+                    : error.message;
+                document.getElementById('errorMessage').textContent = friendlyMsg;
+                errorAlert.style.display = 'block';
             }
 
-            document.getElementById('errorMessage').textContent = lang === 'tg'
-                ? 'Hindi makakonekta sa server. Subukan muli mamaya.'
-                : 'Unable to connect to the server. Please try again later.';
-            errorAlert.style.display = 'block';
             btnText.style.display = 'inline';
             btnIcon.style.display = 'inline-block';
             spinner.style.display = 'none';

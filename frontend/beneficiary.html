@@ -7,7 +7,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="assets/js/api-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/session-manager.js"></script>
     <script src="assets/js/beneficiary.js"></script>
     <style>
@@ -3056,17 +3058,21 @@
             ];
 
             try {
-                const apiBase = window.API_BASE_URL || 'https://capstone-project-final-production.up.railway.app';
-                const beneId = sessionStorage.getItem('beneficiaryUserId') || '6';
-                const res = await fetch(`${apiBase}/api/interviews?beneficiary_id=${beneId}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-                        interviews = data.data;
+                if (supabaseClient) {
+                    const beneId = sessionStorage.getItem('userId');
+                    if (beneId) {
+                        const { data, error } = await supabaseClient
+                            .from('interview_schedules')
+                            .select('*')
+                            .eq('beneficiary_id', beneId)
+                            .order('interview_date', { ascending: false });
+                        if (!error && data && data.length > 0) {
+                            interviews = data;
+                        }
                     }
                 }
             } catch (e) {
-                console.warn('API interviews fetch offline:', e.message);
+                console.warn('Supabase interviews fetch error:', e.message);
             }
 
             if (interviews.length === 0) {
