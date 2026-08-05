@@ -9,6 +9,17 @@ const { authenticateCaller, requireRole, STAFF_ROLES, ADMIN_ROLES } = require('.
 const router = express.Router();
 router.use(authenticateCaller);
 
+// GET all officers
+router.get('/api/officers', async (req, res) => {
+    try {
+        const [rows] = await pool.execute('SELECT * FROM officers'); 
+        res.json(rows);
+    } catch (err) {
+        console.error('Error fetching officers:', err);
+        res.status(500).json({ error: 'Failed to fetch officers' });
+    }
+});
+
 // Helper to record DB audit log
 async function createAuditLog(connection, userId, action, entityId, details) {
   try {
