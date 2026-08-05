@@ -10,9 +10,9 @@ const router = express.Router();
 router.use(authenticateCaller);
 
 // GET all officers
-router.get('/api/officers', async (req, res) => {
+router.get('/officers', async (req, res) => {
     try {
-        const [rows] = await pool.execute('SELECT * FROM officers'); 
+        const [rows] = await pool.execute('SELECT * FROM officers');
         res.json(rows);
     } catch (err) {
         console.error('Error fetching officers:', err);
