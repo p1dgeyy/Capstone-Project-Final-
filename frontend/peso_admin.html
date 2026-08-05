@@ -1742,21 +1742,57 @@
             if (!event.target.checked) {
                 if ((prog.beneficiaries_count || 0) > 0) {
                     event.target.checked = true;
-                    document.getElementById('restrictionWarningText').innerHTML = `Cannot deactivate program <strong>"${escapeHtml(prog.name)}"</strong>. It currently has active enrolled beneficiaries.`;
-                    new bootstrap.Modal(document.getElementById('restrictionWarningModal')).show();
+                    window.showSystemNotification({
+                        title: 'Deactivation Blocked',
+                        message: `Cannot deactivate program "${prog.name}". It currently has active enrolled beneficiaries processing financial aid.`,
+                        type: 'warning'
+                    });
                     return;
                 }
-                if (confirm(`Deactivate "${prog.name}"?`)) {
-                    prog.status = 'Deactivated';
-                    localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
-                    logAuditEvent('DEACTIVATE_PROGRAM', `Deactivated program ${prog.code}`);
-                    renderDashboardTables();
-                } else { event.target.checked = true; }
+
+                window.showSystemNotification({
+                    title: 'Confirm Program Deactivation',
+                    message: `Are you sure you want to deactivate program "${prog.name}"? It will be moved to the Deactivated Archive.`,
+                    type: 'warning',
+                    showCancel: true,
+                    confirmText: 'Deactivate Program',
+                    onCancel: () => {
+                        event.target.checked = true;
+                    },
+                    onConfirm: () => {
+                        prog.status = 'Deactivated';
+                        localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+                        logAuditEvent('DEACTIVATE_PROGRAM', `Deactivated program ${prog.code}`);
+                        renderDashboardTables();
+                        window.showSystemNotification({
+                            title: 'Program Deactivated',
+                            message: `Program "${prog.name}" (${prog.code}) has been deactivated and moved to Archive.`,
+                            type: 'warning'
+                        });
+                    }
+                });
             } else {
-                prog.status = 'Active';
-                localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
-                logAuditEvent('ACTIVATE_PROGRAM', `Reactivated program ${prog.code}`);
-                renderDashboardTables();
+                window.showSystemNotification({
+                    title: 'Confirm Program Activation',
+                    message: `Re-activate program "${prog.name}" for public beneficiary applications?`,
+                    type: 'info',
+                    showCancel: true,
+                    confirmText: 'Activate Program',
+                    onCancel: () => {
+                        event.target.checked = false;
+                    },
+                    onConfirm: () => {
+                        prog.status = 'Active';
+                        localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+                        logAuditEvent('ACTIVATE_PROGRAM', `Reactivated program ${prog.code}`);
+                        renderDashboardTables();
+                        window.showSystemNotification({
+                            title: 'Program Activated',
+                            message: `Program "${prog.name}" (${prog.code}) is now active for application intake.`,
+                            type: 'success'
+                        });
+                    }
+                });
             }
         }
 
@@ -1773,20 +1809,47 @@
         function restoreProgram(progId) {
             const prog = programsList.find(p => p.id === progId);
             if (prog) {
-                prog.status = 'Active';
-                localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
-                logAuditEvent('RESTORE_PROGRAM', `Restored program ${prog.code}`);
-                renderDashboardTables();
+                window.showSystemNotification({
+                    title: 'Restore Program',
+                    message: `Restore program "${prog.name}" back to the active programs overview?`,
+                    type: 'info',
+                    showCancel: true,
+                    confirmText: 'Restore Program',
+                    onConfirm: () => {
+                        prog.status = 'Active';
+                        localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+                        logAuditEvent('RESTORE_PROGRAM', `Restored program ${prog.code}`);
+                        renderDashboardTables();
+                        window.showSystemNotification({
+                            title: 'Program Restored',
+                            message: `Program "${prog.name}" restored to Active status successfully.`,
+                            type: 'success'
+                        });
+                    }
+                });
             }
         }
 
         function permanentlyDeleteProgram(progId) {
-            if (confirm('Delete permanently?')) {
-                programsList = programsList.filter(p => p.id !== progId);
-                localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
-                logAuditEvent('PERMANENT_DELETE_PROGRAM', `Permanently deleted program ID ${progId}`);
-                renderDashboardTables();
-            }
+            const prog = programsList.find(p => p.id === progId);
+            window.showSystemNotification({
+                title: 'PERMANENT DELETE WARNING',
+                message: `Are you sure you want to permanently delete program "${prog ? prog.name : progId}"? This action cannot be undone.`,
+                type: 'error',
+                showCancel: true,
+                confirmText: 'Delete Permanently',
+                onConfirm: () => {
+                    programsList = programsList.filter(p => p.id !== progId);
+                    localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+                    logAuditEvent('PERMANENT_DELETE_PROGRAM', `Permanently deleted program ID ${progId}`);
+                    renderDashboardTables();
+                    window.showSystemNotification({
+                        title: 'Program Deleted',
+                        message: `Program record permanently removed.`,
+                        type: 'success'
+                    });
+                }
+            });
         }
 
         function openCreateProgramModal() { new bootstrap.Modal(document.getElementById('createProgramModal')).show(); }
@@ -1813,6 +1876,11 @@
             logAuditEvent('CREATE_PROGRAM', `Created new program ${newProg.code}`);
             bootstrap.Modal.getInstance(document.getElementById('createProgramModal')).hide();
             renderDashboardTables();
+            window.showSystemNotification({
+                title: 'Program Created',
+                message: `New program "${newProg.name}" (${newProg.code}) created successfully.`,
+                type: 'success'
+            });
         }
 
         function openUploadOrdinanceModal() { new bootstrap.Modal(document.getElementById('uploadOrdinanceModal')).show(); }
@@ -1820,7 +1888,11 @@
             e.preventDefault();
             logAuditEvent('UPLOAD_ORDINANCE', 'Uploaded Appropriation Ordinance document');
             bootstrap.Modal.getInstance(document.getElementById('uploadOrdinanceModal')).hide();
-            alert('Ordinance uploaded successfully.');
+            window.showSystemNotification({
+                title: 'Ordinance Uploaded',
+                message: 'Appropriation Ordinance document uploaded and attached successfully.',
+                type: 'success'
+            });
         }
 
         function showOrdinanceReferenceModal() { new bootstrap.Modal(document.getElementById('ordinanceReferenceModal')).show(); }

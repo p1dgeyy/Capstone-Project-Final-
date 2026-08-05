@@ -665,12 +665,9 @@ if (typeof window.PESOSafeguards === 'undefined') {
   // Auto-attach DOM event listeners for automatic form & command safeguards
   if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
-      validateDesignSystemIntegrity();
-
-      // Intercept form submissions across all pages
-      document.addEventListener('submit', (evt) => {
+      document.body.addEventListener('submit', (evt) => {
         const form = evt.target;
-        if (!form || typeof form.querySelectorAll !== 'function') return;
+        if (!form || form.tagName !== 'FORM') return;
 
         // 1. Inspect text inputs for destructive commands
         const inputs = Array.from(form.querySelectorAll('input[type="text"], textarea'));
@@ -682,8 +679,15 @@ if (typeof window.PESOSafeguards === 'undefined') {
             evt.stopPropagation();
             const reason = `Blocked destructive SQL/System command (${match.name}) in form input.`;
             logAudit({ intent: 'Form Submit Security Interception', actionType: 'DESTRUCTIVE_COMMAND', status: 'BLOCKED', details: reason });
-            if (typeof showToast === 'function') showToast(reason, 'error');
-            else alert(reason);
+            if (typeof window.showSystemNotification === 'function') {
+              window.showSystemNotification({
+                title: 'Security Safeguard Blocked Action',
+                message: reason,
+                type: 'error'
+              });
+            } else {
+              alert(reason);
+            }
             return false;
           }
         }
@@ -696,8 +700,15 @@ if (typeof window.PESOSafeguards === 'undefined') {
             evt.preventDefault();
             evt.stopPropagation();
             logAudit({ intent: 'Schedule Date Interception', actionType: 'PAST_DATE_BLOCK', status: 'BLOCKED', details: dateCheck.reason });
-            if (typeof showToast === 'function') showToast(dateCheck.reason, 'error');
-            else alert(dateCheck.reason);
+            if (typeof window.showSystemNotification === 'function') {
+              window.showSystemNotification({
+                title: 'Invalid Schedule Date',
+                message: dateCheck.reason,
+                type: 'warning'
+              });
+            } else {
+              alert(dateCheck.reason);
+            }
             return false;
           }
         }
