@@ -1814,6 +1814,7 @@
             else { officersList = [...INITIAL_OFFICERS]; localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList)); }
 
             renderDashboardTables();
+            initEvalModuleData();
             fetchOfficersFromApi();
         });
 
@@ -1836,18 +1837,40 @@
 
         function switchTab(tabName) {
             document.getElementById('tabNavOverview').classList.remove('active');
+            if (document.getElementById('tabNavEvaluation')) document.getElementById('tabNavEvaluation').classList.remove('active');
             document.getElementById('tabNavAssignment').classList.remove('active');
             document.getElementById('tabNavOfficers').classList.remove('active');
             document.getElementById('tabNavArchive').classList.remove('active');
+
             document.getElementById('sectionOverview').classList.add('d-none');
+            if (document.getElementById('sectionEvaluation')) document.getElementById('sectionEvaluation').classList.add('d-none');
             document.getElementById('sectionAssignment').classList.add('d-none');
             document.getElementById('sectionOfficers').classList.add('d-none');
             document.getElementById('sectionArchive').classList.add('d-none');
 
-            if (tabName === 'overview') { document.getElementById('tabNavOverview').classList.add('active'); document.getElementById('sectionOverview').classList.remove('d-none'); }
-            else if (tabName === 'assignment') { document.getElementById('tabNavAssignment').classList.add('active'); document.getElementById('sectionAssignment').classList.remove('d-none'); showLevel1Programs(); }
-            else if (tabName === 'officers') { document.getElementById('tabNavOfficers').classList.add('active'); document.getElementById('sectionOfficers').classList.remove('d-none'); renderOfficersTables(); }
-            else if (tabName === 'archive') { document.getElementById('tabNavArchive').classList.add('active'); document.getElementById('sectionArchive').classList.remove('d-none'); }
+            if (tabName === 'overview') { 
+                document.getElementById('tabNavOverview').classList.add('active'); 
+                document.getElementById('sectionOverview').classList.remove('d-none'); 
+            }
+            else if (tabName === 'evaluation') { 
+                if (document.getElementById('tabNavEvaluation')) document.getElementById('tabNavEvaluation').classList.add('active'); 
+                if (document.getElementById('sectionEvaluation')) document.getElementById('sectionEvaluation').classList.remove('d-none'); 
+                renderEvalLevel1Programs(); 
+            }
+            else if (tabName === 'assignment') { 
+                document.getElementById('tabNavAssignment').classList.add('active'); 
+                document.getElementById('sectionAssignment').classList.remove('d-none'); 
+                showLevel1Programs(); 
+            }
+            else if (tabName === 'officers') { 
+                document.getElementById('tabNavOfficers').classList.add('active'); 
+                document.getElementById('sectionOfficers').classList.remove('d-none'); 
+                renderOfficersTables(); 
+            }
+            else if (tabName === 'archive') { 
+                document.getElementById('tabNavArchive').classList.add('active'); 
+                document.getElementById('sectionArchive').classList.remove('d-none'); 
+            }
         }
 
         function filterPrograms() {
