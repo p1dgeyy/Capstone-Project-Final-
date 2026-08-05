@@ -18,8 +18,8 @@ const SUPABASE_CONFIG = (() => {
   // ========================================================================
   // REPLACE THESE WITH YOUR ACTUAL SUPABASE CREDENTIALS
   // ========================================================================
-  const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const SUPABASE_URL = 'https://oqnbckqfwmpcmouyptvj.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbmJja3Fmd21wY21vdXlwdHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzMwOTgsImV4cCI6MjEwMTI0OTA5OH0._SzwQalNutaIIyZiERwa9tSYdcJeMS85Chk_iQw1CCI';
   // ========================================================================
 
   // Validate that credentials have been set
