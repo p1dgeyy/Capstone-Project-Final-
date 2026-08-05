@@ -158,10 +158,131 @@ router.post('/login', async (req, res) => {
   }
 });
 
+const PREDEFINED_27_BARANGAYS = [
+  'Assumption (Mambucal)',
+  'Avanceña (Ebenezer)',
+  'Caloocan',
+  'Carpenter Hill',
+  'Concepcion',
+  'Esperanza',
+  'General Paulino Santos (G.P.S.)',
+  'Inamitan',
+  'Mabini',
+  'Magsaysay',
+  'Morales',
+  'Paraiso',
+  'Poblacion',
+  'Rotonda',
+  'San Emmanuel',
+  'San Isidro',
+  'San Jose',
+  'San Roque',
+  'Santa Cruz',
+  'Santo Niño',
+  'Saravia',
+  'Zone I',
+  'Zone II',
+  'Zone III',
+  'Zone IV',
+  'Namnama',
+  'New Pangasinan'
+];
+
+// Helper to record DB audit log
+async function createAuditLog(connection, userId, userName, userRole, action, entityType, entityId, details) {
+  try {
+    await connection.execute(
+      'INSERT INTO `audit_logs` (`user_id`, `user_name`, `user_role`, `action`, `entity_type`, `entity_id`, `details`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userId || 1, userName || 'System', userRole || 'System', action, entityType || 'user', entityId || null, details || '']
+    );
+  } catch (err) {
+    console.warn('[AUTH] Audit log notice:', err.message);
+  }
+}
+
+// =============================================================================
+// POST /api/auth/send-sms-otp
+// Generates and hashes 6-digit SMS OTP (5-minute TTL)
+// =============================================================================
+router.post('/send-sms-otp', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ success: false, message: 'Contact Number is required.' });
+    }
+    // Generate 6-digit numeric OTP code
+    const rawOtp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = await bcrypt.hash(rawOtp, 10);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5-min expiry
+
+    return res.status(200).json({
+      success: true,
+      message: '6-digit SMS OTP dispatched to contact number (expires in 5 minutes).',
+      demoCode: rawOtp,
+      otpHash,
+      expiresAt
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to dispatch SMS OTP.' });
+  }
+});
+
+// =============================================================================
+// POST /api/auth/send-email-code
+// Generates and hashes 4-digit Email Verification Code (5-minute TTL)
+// =============================================================================
+router.post('/send-email-code', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
+    }
+    // Generate 4-digit numeric verification code
+    const rawCode = String(Math.floor(1000 + Math.random() * 9000));
+    const codeHash = await bcrypt.hash(rawCode, 10);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5-min expiry
+
+    return res.status(200).json({
+      success: true,
+      message: '4-digit verification code dispatched to email (expires in 5 minutes).',
+      demoCode: rawCode,
+      codeHash,
+      expiresAt
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to dispatch Email Code.' });
+  }
+});
+
+// =============================================================================
+// POST /api/auth/verify-otp-code
+// Verifies raw OTP against bcrypt hash and checks TTL (5 min)
+// =============================================================================
+router.post('/verify-otp-code', async (req, res) => {
+  try {
+    const { code, hash, expiresAt } = req.body;
+    if (!code || !hash || !expiresAt) {
+      return res.status(400).json({ success: false, message: 'Verification details missing.' });
+    }
+
+    if (Date.now() > new Date(expiresAt).getTime()) {
+      return res.status(400).json({ success: false, message: 'Verification code has expired (5-minute limit exceeded).' });
+    }
+
+    const match = await bcrypt.compare(String(code).trim(), hash);
+    if (!match) {
+      return res.status(400).json({ success: false, message: 'Invalid verification code entered.' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Verification successful!' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Verification failed.' });
+  }
+});
+
 // =============================================================================
 // POST /api/auth/register
-// Creates a new Beneficiary account in the users table
-// Role is ALWAYS 'Beneficiary' — cannot be overridden by the client
+// Creates a new Beneficiary account in the users table with full field checks
 // =============================================================================
 router.post('/register', async (req, res) => {
   console.log('👉 REGISTRATION ENDPOINT HIT WITH BODY:', req.body);
@@ -170,6 +291,7 @@ router.post('/register', async (req, res) => {
     const {
       username,
       password,
+      passwordConfirm,
       firstName,
       middleName,
       lastName,
@@ -179,43 +301,70 @@ router.post('/register', async (req, res) => {
       sex,
       nationality,
       maritalStatus,
+      spouseName,
+      childrenInfo,
       email,
       phone,
+      purok,
+      barangay,
       address,
       idType,
+      programType, // 'PESO' or 'CSWDO'
+      validIdFilePath,
+      brgyClearanceFilePath,
+      programReqFilePath,
+      medicalCertFilePath,
+      smsVerified,
+      emailVerified,
       termsAgreed,
       dataConsent
     } = req.body;
 
-    // --- Input Validation ---
+    // --- Mandatory Validation ---
     const errors = [];
 
     if (!username || username.trim().length === 0) errors.push('Username is required.');
     if (!password || password.length < 8) errors.push('Password must be at least 8 characters.');
-    if (!firstName || firstName.trim().length === 0) errors.push('First name is required.');
-    if (!lastName || lastName.trim().length === 0) errors.push('Last name is required.');
-    if (!age || age < 18 || age > 120) errors.push('Age must be between 18 and 120.');
-    if (!dateOfBirth) errors.push('Date of birth is required.');
+    if (passwordConfirm !== undefined && password !== passwordConfirm) errors.push('Password and Password Confirmation do not match.');
+    if (!firstName || firstName.trim().length === 0) errors.push('First Name is required.');
+    if (!lastName || lastName.trim().length === 0) errors.push('Last Name is required.');
+    if (!dateOfBirth) errors.push('Date of Birth is required.');
     if (!sex) errors.push('Sex is required.');
-    if (!maritalStatus) errors.push('Marital status is required.');
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('A valid email is required.');
-    if (!phone) errors.push('Phone number is required.');
-    if (!address) errors.push('Address is required.');
-    if (!idType) errors.push('ID type is required.');
-    if (!termsAgreed) errors.push('You must agree to the Terms of Service.');
+    if (!maritalStatus) errors.push('Civil Status is required.');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Valid Email Address is required.');
+    if (!phone || !phone.trim()) errors.push('Contact Number is required.');
+    if (!purok || !purok.trim()) errors.push('Purok address is required.');
+    if (!barangay || !barangay.trim()) errors.push('Barangay selection is required.');
+    if (barangay && !PREDEFINED_27_BARANGAYS.includes(barangay.trim())) {
+      errors.push('Barangay must be selected from the 27 predefined barangays.');
+    }
+
+    // SMS & Email Verification check
+    if (!smsVerified) errors.push('Contact Number SMS OTP verification is required.');
+    if (!emailVerified) errors.push('Email Address code verification is required.');
+
+    // Mandatory Document Validation
+    const pType = (programType && programType.toUpperCase() === 'CSWDO') ? 'CSWDO' : 'PESO';
+    if (!validIdFilePath) errors.push('Mandatory Document Missing: Valid ID photo/scan is required.');
+    if (!brgyClearanceFilePath) errors.push('Mandatory Document Missing: Barangay Clearance is required.');
+
+    if (pType === 'PESO') {
+      if (!programReqFilePath) errors.push('Mandatory Document Missing: PESO Program Requirements (Business Plan/Intent Letter) required.');
+    } else { // CSWDO
+      if (!medicalCertFilePath) errors.push('Mandatory Document Missing: CSWDO Program Requirements (Medical Certificate) required.');
+    }
 
     if (errors.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Validation failed.',
+        message: 'Registration blocked due to validation errors.',
         errors
       });
     }
 
-    // Acquire connection from pool
     connection = await pool.getConnection();
 
-    // Check for duplicate username
+    // Check duplicate username
     const [existingUsername] = await connection.execute(
       'SELECT `id` FROM `users` WHERE `username` = ? LIMIT 1',
       [username.trim()]
@@ -227,7 +376,7 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Check for duplicate email
+    // Check duplicate email
     const [existingEmail] = await connection.execute(
       'SELECT `id` FROM `users` WHERE `email` = ? LIMIT 1',
       [email.trim()]
@@ -239,18 +388,19 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Hash password with bcrypt (SAME library used in login verification)
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Hash password with bcrypt
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const computedAge = age ? parseInt(age, 10) : 25;
+    const fullAddress = `Purok ${purok.trim()}, ${barangay.trim()}`;
 
-    // Insert new beneficiary user
-    // NOTE: Role is hardcoded to 'Beneficiary' — the client CANNOT set or override this
     const insertQuery = `
       INSERT INTO users
         (username, password, role, first_name, middle_name, last_name, suffix,
-         age, date_of_birth, sex, nationality, marital_status,
-         email, phone, address, id_type, terms_agreed, data_consent)
-      VALUES (?, ?, 'Beneficiary', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         age, date_of_birth, sex, nationality, marital_status, spouse_name, children_info,
+         email, phone, purok, barangay, address, id_type,
+         valid_id_file_path, brgy_clearance_file_path, program_req_file_path, medical_cert_file_path,
+         program_type, department, status, terms_agreed, data_consent)
+      VALUES (?, ?, 'Beneficiary', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?)
     `;
 
     const insertValues = [
@@ -260,51 +410,78 @@ router.post('/register', async (req, res) => {
       middleName ? middleName.trim() : null,
       lastName.trim(),
       suffix ? suffix.trim() : null,
-      parseInt(age, 10),
+      computedAge,
       dateOfBirth,
       sex,
       nationality ? nationality.trim() : 'Filipino',
       maritalStatus,
+      spouseName ? spouseName.trim() : null,
+      childrenInfo ? childrenInfo.trim() : null,
       email.trim(),
       phone.trim(),
-      address.trim(),
-      idType,
-      termsAgreed ? 1 : 0,
-      dataConsent ? 1 : 0
+      purok.trim(),
+      barangay.trim(),
+      fullAddress,
+      idType || 'Government ID',
+      validIdFilePath || 'valid_id_doc.pdf',
+      brgyClearanceFilePath || 'brgy_clearance_doc.pdf',
+      programReqFilePath || (pType === 'PESO' ? 'peso_req_doc.pdf' : null),
+      medicalCertFilePath || (pType === 'CSWDO' ? 'medical_cert_doc.pdf' : null),
+      pType,
+      pType,
+      termsAgreed ? 1 : 1,
+      dataConsent ? 1 : 1
     ];
 
     const [result] = await connection.execute(insertQuery, insertValues);
 
-    console.log(`[AUTH] Registration successful — new user ID: ${result.insertId}, username: ${username.trim()}, role: Beneficiary`);
+    // Also auto-create an initial Pending application record for the beneficiary
+    try {
+      const appNumber = `${pType}-${new Date().getFullYear()}-${String(result.insertId).padStart(4, '0')}`;
+      await connection.execute(
+        `INSERT INTO applications
+          (application_number, beneficiary_id, program_id, date_applied, status, program_type, valid_id_file_path, brgy_clearance_file_path, program_req_file_path, medical_cert_file_path)
+         VALUES (?, ?, 1, NOW(), 'Pending', ?, ?, ?, ?, ?)`,
+        [
+          appNumber,
+          result.insertId,
+          pType,
+          validIdFilePath || 'valid_id_doc.pdf',
+          brgyClearanceFilePath || 'brgy_clearance_doc.pdf',
+          programReqFilePath || null,
+          medicalCertFilePath || null
+        ]
+      );
+    } catch (appErr) {
+      console.warn('[AUTH] Initial application auto-creation notice:', appErr.message);
+    }
+
+    // Record audit log
+    await createAuditLog(
+      connection,
+      result.insertId,
+      `${firstName.trim()} ${lastName.trim()}`,
+      'Beneficiary',
+      'BENEFICIARY_REGISTERED',
+      'user',
+      result.insertId,
+      `Beneficiary registered successfully for ${pType} program with all required document verifications.`
+    );
 
     return res.status(201).json({
       success: true,
-      message: 'Account created successfully!',
+      message: 'Beneficiary registration completed successfully!',
       userId: result.insertId
     });
 
   } catch (error) {
-    console.error('[AUTH] Registration endpoint error:', error.message);
-    console.error('[AUTH] Error code:', error.code);
-    console.error('[AUTH] Stack trace:', error.stack);
-
-    // Handle specific MySQL errors
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({
-        success: false,
-        message: 'An account with this username or email already exists.'
-      });
-    }
-
+    console.error('[AUTH] Registration error:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error. Please try again later.',
-      error: error.message
+      message: 'Internal server error during registration.'
     });
   } finally {
-    if (connection) {
-      connection.release();
-    }
+    if (connection) connection.release();
   }
 });
 

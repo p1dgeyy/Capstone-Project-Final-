@@ -14,6 +14,7 @@
     <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/peso-safeguards.js"></script>
+    <script src="js/system-notifications.js"></script>
 
     <style>
         :root {
@@ -1992,12 +1993,20 @@
             const address = document.getElementById('newOffAddress').value.trim();
 
             if (!firstName || !middleName || !lastName || !username || !email || !password || !passwordConfirm || !phone || !address) {
-                alert('Validation Error: All required fields must be completed.');
+                window.showSystemNotification({
+                    title: 'Validation Error',
+                    message: 'All required fields must be completed (names, username, password confirmation, email, role, gender, address, contact number, department).',
+                    type: 'warning'
+                });
                 return;
             }
 
             if (password !== passwordConfirm) {
-                alert('Validation Error: Password and Password Confirmation do not match.');
+                window.showSystemNotification({
+                    title: 'Password Mismatch',
+                    message: 'Password and Password Confirmation do not match.',
+                    type: 'error'
+                });
                 return;
             }
 
@@ -2059,7 +2068,11 @@
             if (modalInstance) modalInstance.hide();
 
             renderOfficersTables();
-            alert(`Officer account for ${firstName} ${lastName} created successfully.`);
+            window.showSystemNotification({
+                title: 'Officer Account Created',
+                message: `Officer account for ${firstName} ${lastName} (${username}) created successfully. Initial Status: Active.`,
+                type: 'success'
+            });
         }
 
         function openEditOfficerModal(officerId) {
@@ -2092,39 +2105,51 @@
             const updatedDept = document.getElementById('editOffDepartment').value;
             const updatedAddress = document.getElementById('editOffAddress').value.trim();
 
-            if (confirm(`Confirm Update: Save changes for officer "${off.username}"?`)) {
-                off.username = updatedUsername;
-                off.email = updatedEmail;
-                off.phone = updatedPhone;
-                off.role = updatedRole;
-                off.department = updatedDept;
-                off.address = updatedAddress;
+            window.showSystemNotification({
+                title: 'Confirm Profile Update',
+                message: `Save profile updates for officer account "${off.username}"?`,
+                type: 'info',
+                showCancel: true,
+                confirmText: 'Save Changes',
+                onConfirm: async () => {
+                    off.username = updatedUsername;
+                    off.email = updatedEmail;
+                    off.phone = updatedPhone;
+                    off.role = updatedRole;
+                    off.department = updatedDept;
+                    off.address = updatedAddress;
 
-                try {
-                    const apiBase = window.API_BASE_URL || '';
-                    await fetch(`${apiBase}/api/officers/${offId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: updatedUsername,
-                            email: updatedEmail,
-                            phone: updatedPhone,
-                            role: updatedRole,
-                            department: updatedDept,
-                            address: updatedAddress
-                        })
+                    try {
+                        const apiBase = window.API_BASE_URL || '';
+                        await fetch(`${apiBase}/api/officers/${offId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: updatedUsername,
+                                email: updatedEmail,
+                                phone: updatedPhone,
+                                role: updatedRole,
+                                department: updatedDept,
+                                address: updatedAddress
+                            })
+                        });
+                    } catch (err) {}
+
+                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+                    logAuditEvent('UPDATE_OFFICER_ACCOUNT', `Updated details for officer account ID ${offId} (${updatedUsername}), Role: ${updatedRole}, Dept: ${updatedDept}`);
+
+                    const modalEl = document.getElementById('editOfficerModal');
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+
+                    renderOfficersTables();
+                    window.showSystemNotification({
+                        title: 'Account Updated',
+                        message: `Officer account details for "${updatedUsername}" updated successfully.`,
+                        type: 'success'
                     });
-                } catch (err) {}
-
-                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
-                logAuditEvent('UPDATE_OFFICER_ACCOUNT', `Updated details for officer account ID ${offId} (${updatedUsername}), Role: ${updatedRole}, Dept: ${updatedDept}`);
-
-                const modalEl = document.getElementById('editOfficerModal');
-                const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                if (modalInstance) modalInstance.hide();
-
-                renderOfficersTables();
-            }
+                }
+            });
         }
 
         async function handleOfficerStatusToggle(event, officerId) {
@@ -2133,62 +2158,100 @@
 
             const isDeactivating = !event.target.checked;
             const newStatus = isDeactivating ? 'Deactivated' : 'Active';
-            const actionText = isDeactivating ? 'deactivate' : 'activate';
 
-            if (confirm(`Are you sure you want to ${actionText} officer account "${off.username}"? ${isDeactivating ? 'Deactivated officers lose system access but all records are retained.' : ''}`)) {
-                off.status = newStatus;
-                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+            window.showSystemNotification({
+                title: isDeactivating ? 'Confirm Account Deactivation' : 'Confirm Account Activation',
+                message: isDeactivating
+                    ? `Are you sure you want to deactivate officer account "${off.username}"? Deactivated officers lose login access but historical records are retained in Archive.`
+                    : `Re-activate officer account "${off.username}" to grant active system access?`,
+                type: isDeactivating ? 'warning' : 'info',
+                showCancel: true,
+                confirmText: isDeactivating ? 'Deactivate' : 'Activate',
+                onCancel: () => {
+                    event.target.checked = !isDeactivating;
+                },
+                onConfirm: async () => {
+                    off.status = newStatus;
+                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
-                try {
-                    const apiBase = window.API_BASE_URL || '';
-                    await fetch(`${apiBase}/api/officers/${officerId}/status`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: newStatus })
+                    try {
+                        const apiBase = window.API_BASE_URL || '';
+                        await fetch(`${apiBase}/api/officers/${officerId}/status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                    } catch (err) {}
+
+                    logAuditEvent(isDeactivating ? 'DEACTIVATE_OFFICER_ACCOUNT' : 'ACTIVATE_OFFICER_ACCOUNT', `Updated status of officer account "${off.username}" to ${newStatus}`);
+                    renderOfficersTables();
+                    window.showSystemNotification({
+                        title: 'Officer Status Updated',
+                        message: `Officer account "${off.username}" set to ${newStatus}.`,
+                        type: isDeactivating ? 'warning' : 'success'
                     });
-                } catch (err) {}
-
-                logAuditEvent(isDeactivating ? 'DEACTIVATE_OFFICER_ACCOUNT' : 'ACTIVATE_OFFICER_ACCOUNT', `Updated status of officer account "${off.username}" to ${newStatus}`);
-                renderOfficersTables();
-            } else {
-                event.target.checked = !isDeactivating;
-            }
+                }
+            });
         }
 
         async function activateOfficerAccount(officerId) {
             const off = officersList.find(o => o.id === officerId);
             if (!off) return;
 
-            if (confirm(`Restore and activate officer account "${off.username}"?`)) {
-                off.status = 'Active';
-                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+            window.showSystemNotification({
+                title: 'Restore Officer Account',
+                message: `Restore and activate officer account "${off.username}"? This will move the account back to the Active Officer roster.`,
+                type: 'info',
+                showCancel: true,
+                confirmText: 'Restore Account',
+                onConfirm: async () => {
+                    off.status = 'Active';
+                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
-                try {
-                    const apiBase = window.API_BASE_URL || '';
-                    await fetch(`${apiBase}/api/officers/${officerId}/restore`, { method: 'POST' });
-                } catch (err) {}
+                    try {
+                        const apiBase = window.API_BASE_URL || '';
+                        await fetch(`${apiBase}/api/officers/${officerId}/restore`, { method: 'POST' });
+                    } catch (err) {}
 
-                logAuditEvent('ACTIVATE_OFFICER_ACCOUNT', `Restored officer account "${off.username}" to Active status.`);
-                renderOfficersTables();
-            }
+                    logAuditEvent('ACTIVATE_OFFICER_ACCOUNT', `Restored officer account "${off.username}" to Active status.`);
+                    renderOfficersTables();
+                    window.showSystemNotification({
+                        title: 'Account Restored',
+                        message: `Officer account "${off.username}" restored to Active status successfully.`,
+                        type: 'success'
+                    });
+                }
+            });
         }
 
         async function permanentlyDeleteOfficer(officerId) {
             const off = officersList.find(o => o.id === officerId);
             if (!off) return;
 
-            if (confirm(`PERMANENT DELETE WARNING: Are you sure you want to permanently delete officer account "${off.username}"? This action cannot be undone.`)) {
-                officersList = officersList.filter(o => o.id !== officerId);
-                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+            window.showSystemNotification({
+                title: 'PERMANENT DELETE WARNING',
+                message: `Are you sure you want to permanently delete officer account "${off.username}"? This action CANNOT be undone and will erase the account.`,
+                type: 'error',
+                showCancel: true,
+                confirmText: 'Permanently Delete',
+                onConfirm: async () => {
+                    officersList = officersList.filter(o => o.id !== officerId);
+                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
-                try {
-                    const apiBase = window.API_BASE_URL || '';
-                    await fetch(`${apiBase}/api/officers/${officerId}/permanent`, { method: 'DELETE' });
-                } catch (err) {}
+                    try {
+                        const apiBase = window.API_BASE_URL || '';
+                        await fetch(`${apiBase}/api/officers/${officerId}/permanent`, { method: 'DELETE' });
+                    } catch (err) {}
 
-                logAuditEvent('PERMANENT_DELETE_OFFICER_ACCOUNT', `Permanently deleted officer account ID ${officerId}`);
-                renderOfficersTables();
-            }
+                    logAuditEvent('PERMANENT_DELETE_OFFICER_ACCOUNT', `Permanently deleted officer account ID ${officerId}`);
+                    renderOfficersTables();
+                    window.showSystemNotification({
+                        title: 'Account Permanently Deleted',
+                        message: `Officer account ID ${officerId} has been permanently deleted.`,
+                        type: 'success'
+                    });
+                }
+            });
         }
 
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }

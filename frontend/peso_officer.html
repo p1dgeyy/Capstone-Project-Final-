@@ -13,6 +13,7 @@
     <!-- API Configuration -->
     <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
     <script src="assets/js/api-config.js"></script>
+    <script src="js/system-notifications.js"></script>
 
     <style>
         :root {
@@ -1649,13 +1650,17 @@
             if (!item) return;
 
             item.status = 'Approved';
-            item.remarks = 'Application complete. Forwarded to Admin for final review.';
+            item.remarks = 'Application evaluation complete. Approved by PESO Officer.';
             item.missingNotes = '';
             renderEvaluationQueueTable();
-            logOfficerAction('APPROVE_APP', `Approved application ${id} for ${item.beneficiaryName} (Forwarded to Admin).`);
-            
+            logOfficerAction('APPROVE_APP', `Approved application ${id} for beneficiary ${item.beneficiaryName}.`);
+
             bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
-            alert(`Application ${id} approved and forwarded to Admin for final review!`);
+            window.showSystemNotification({
+                title: 'Application Approved',
+                message: `Application ${id} for ${item.beneficiaryName} has been APPROVED successfully. System status updated to Approved.`,
+                type: 'success'
+            });
         }
 
         function promptDenyRemarks(id) {
@@ -1665,7 +1670,14 @@
 
         function confirmDenyApplication() {
             const remarks = document.getElementById('denyRemarksInput').value.trim();
-            if (!remarks) { alert('Rejection remarks are mandatory.'); return; }
+            if (!remarks) {
+                window.showSystemNotification({
+                    title: 'Mandatory Remarks Required',
+                    message: 'Rejection remarks are MANDATORY when denying an application. Please enter specific reasons.',
+                    type: 'warning'
+                });
+                return;
+            }
 
             const item = evaluationList.find(e => e.id === selectedEvalAppId);
             if (!item) return;
@@ -1676,10 +1688,19 @@
 
             renderEvaluationQueueTable();
             logOfficerAction('DENY_APP', `Denied application ${selectedEvalAppId} for ${item.beneficiaryName}. Reason: ${remarks}`);
-            
-            bootstrap.Modal.getInstance(document.getElementById('denyRemarksModal')).hide();
-            bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
-            alert(`Application ${selectedEvalAppId} denied.`);
+
+            if (bootstrap.Modal.getInstance(document.getElementById('denyRemarksModal'))) {
+                bootstrap.Modal.getInstance(document.getElementById('denyRemarksModal')).hide();
+            }
+            if (bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'))) {
+                bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
+            }
+
+            window.showSystemNotification({
+                title: 'Application Denied',
+                message: `Application ${selectedEvalAppId} for ${item.beneficiaryName} has been DENIED. Rejection remarks recorded.`,
+                type: 'error'
+            });
         }
 
         function promptPendingNotes(id) {
@@ -1689,7 +1710,14 @@
 
         function confirmPendingApplication() {
             const notes = document.getElementById('pendingNotesInput').value.trim();
-            if (!notes) { alert('Notes on missing documents are mandatory.'); return; }
+            if (!notes) {
+                window.showSystemNotification({
+                    title: 'Mandatory Notes Required',
+                    message: 'Notes regarding missing documents or requirements are MANDATORY when setting status to Pending.',
+                    type: 'warning'
+                });
+                return;
+            }
 
             const item = evaluationList.find(e => e.id === selectedEvalAppId);
             if (!item) return;
@@ -1700,9 +1728,18 @@
             renderEvaluationQueueTable();
             logOfficerAction('PENDING_APP', `Set application ${selectedEvalAppId} for ${item.beneficiaryName} to Pending. Missing Notes: ${notes}`);
 
-            bootstrap.Modal.getInstance(document.getElementById('pendingNotesModal')).hide();
-            bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
-            alert(`Application ${selectedEvalAppId} set to Pending.`);
+            if (bootstrap.Modal.getInstance(document.getElementById('pendingNotesModal'))) {
+                bootstrap.Modal.getInstance(document.getElementById('pendingNotesModal')).hide();
+            }
+            if (bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'))) {
+                bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
+            }
+
+            window.showSystemNotification({
+                title: 'Status Updated to Pending',
+                message: `Application ${selectedEvalAppId} for ${item.beneficiaryName} set to PENDING. Notes logged.`,
+                type: 'warning'
+            });
         }
 
         // ---------------------------------------------------------------------
@@ -1938,7 +1975,14 @@
             const program = document.getElementById('batchProgramInput').value;
             const cap = document.getElementById('batchCapacityInput').value;
 
-            if (!name) { alert('Batch name is required.'); return; }
+            if (!name) {
+                window.showSystemNotification({
+                    title: 'Validation Error',
+                    message: 'Batch name is required.',
+                    type: 'warning'
+                });
+                return;
+            }
 
             const newBatch = {
                 id: `BAT-2026-${String(batchesList.length + 1).padStart(2, '0')}`,
@@ -1954,7 +1998,11 @@
             logOfficerAction('CREATE_BATCH', `Created program batch "${name}" for program ${program}`);
 
             bootstrap.Modal.getInstance(document.getElementById('createBatchModal')).hide();
-            alert(`Batch "${name}" created successfully!`);
+            window.showSystemNotification({
+                title: 'Program Batch Created',
+                message: `Program Batch "${name}" (${newBatch.id}) created successfully with capacity of ${newBatch.capacity}.`,
+                type: 'success'
+            });
         }
 
         // BATCH ASSIGNMENT MODAL & RESTRICTION ENFORCEMENT
@@ -1969,7 +2017,11 @@
             }
 
             if (selectedBatchAssignAppIds.length === 0) {
-                alert('Please select at least one application from the table to assign to a batch.');
+                window.showSystemNotification({
+                    title: 'Selection Required',
+                    message: 'Please select at least one application from the table to assign to a batch.',
+                    type: 'warning'
+                });
                 return;
             }
 
@@ -1993,8 +2045,8 @@
                 if (!isApproved) nonApprovedList.push(`${app.id} (${app.beneficiaryName}: ${app.status})`);
 
                 const eligBadge = isApproved
-                    ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Eligible (Approved)</span>`
-                    : `<span class="badge bg-danger"><i class="bi bi-shield-x me-1"></i>Ineligible (${app.status})</span>`;
+                    ? `<span class="badge bg-success" style="background-color: #198754 !important;"><i class="bi bi-check-circle me-1"></i>Eligible (Approved)</span>`
+                    : `<span class="badge bg-danger" style="background-color: #dc3545 !important;"><i class="bi bi-shield-x me-1"></i>Ineligible (${app.status})</span>`;
 
                 return `
                     <tr>
@@ -2024,7 +2076,14 @@
             const batchId = document.getElementById('targetBatchSelect').value;
             const batch = batchesList.find(b => b.id === batchId);
 
-            if (!batch) { alert('Target batch not found.'); return; }
+            if (!batch) {
+                window.showSystemNotification({
+                    title: 'Target Batch Missing',
+                    message: 'Target batch not found. Please select a valid program batch.',
+                    type: 'error'
+                });
+                return;
+            }
 
             // Double Check Restriction Guard
             const nonApprovedApps = selectedBatchAssignAppIds.filter(id => {
@@ -2033,7 +2092,11 @@
             });
 
             if (nonApprovedApps.length > 0) {
-                alert(`Batch Assignment Blocked: Applications ${nonApprovedApps.join(', ')} are not Approved. Only Approved applications can be assigned to batches.`);
+                window.showSystemNotification({
+                    title: 'Batch Assignment Blocked',
+                    message: `Restriction Enforcement: Applications ${nonApprovedApps.join(', ')} are not Approved. ONLY beneficiaries with Approved status can be assigned to program batches.`,
+                    type: 'error'
+                });
                 return;
             }
 
@@ -2057,7 +2120,13 @@
             logOfficerAction('BATCH_ASSIGNMENT', `Assigned ${selectedBatchAssignAppIds.length} approved beneficiary(ies) to batch "${batch.name}" (${batch.id})`);
 
             bootstrap.Modal.getInstance(document.getElementById('batchAssignModal')).hide();
-            alert(`${selectedBatchAssignAppIds.length} approved beneficiary(ies) assigned to "${batch.name}" successfully!`);
+
+            // EXPLICIT MODAL CONFIRMATION ON SUCCESSFUL BATCH ASSIGNMENT
+            window.showSystemNotification({
+                title: 'Batch Assignment Confirmed',
+                message: `Successfully assigned ${selectedBatchAssignAppIds.length} approved beneficiary(ies) to Program Batch "${batch.name}" (${batch.id}). Records updated.`,
+                type: 'success'
+            });
         }
 
         // ---------------------------------------------------------------------
@@ -2089,7 +2158,14 @@
             const qty = document.getElementById('astQuantity').value.trim();
             const conditions = document.getElementById('astConditions').value.trim();
 
-            if (!name || !qty) { alert('Beneficiary name and quantity/amount are required.'); return; }
+            if (!name || !qty) {
+                window.showSystemNotification({
+                    title: 'Validation Error',
+                    message: 'Beneficiary name and quantity/amount are required.',
+                    type: 'warning'
+                });
+                return;
+            }
 
             const newRecord = {
                 id: `AST-2026-${String(assistanceRecordsList.length + 1).padStart(3, '0')}`,
@@ -2108,17 +2184,35 @@
             logOfficerAction('RECORD_ASSISTANCE', `Recorded approved assistance ${newRecord.id} (${type}: ${qty}) for ${name}`);
 
             bootstrap.Modal.getInstance(document.getElementById('recordAssistanceModal')).hide();
-            alert(`Approved assistance record created for ${name}!`);
+            window.showSystemNotification({
+                title: 'Assistance Record Created',
+                message: `Approved assistance record ${newRecord.id} (${type}: ${qty}) successfully created for ${name}.`,
+                type: 'success'
+            });
         }
 
         function exportAssistanceCSV() {
             logOfficerAction('EXPORT_REPORT', `Generated and exported Approved Assistance CSV Report.`);
-            window.location.href = '/api/peso-officer/export-assistance?officer=' + encodeURIComponent(currentOfficerUser.fullName);
+            window.showSystemNotification({
+                title: 'Export Confirmed',
+                message: 'Approved assistance monitoring record export triggered. CSV file generated.',
+                type: 'success',
+                confirmText: 'Download CSV',
+                onConfirm: () => {
+                    window.location.href = '/api/peso-officer/export-assistance?officer=' + encodeURIComponent(currentOfficerUser.fullName);
+                }
+            });
         }
 
         function printAssistanceReport() {
             logOfficerAction('EXPORT_REPORT', `Generated and printed Approved Assistance PDF Report.`);
-            window.print();
+            window.showSystemNotification({
+                title: 'PDF Report Ready',
+                message: 'Formatted PDF report generated. Click Print to open standard print preview.',
+                type: 'info',
+                confirmText: 'Print PDF',
+                onConfirm: () => { window.print(); }
+            });
         }
 
         // ---------------------------------------------------------------------

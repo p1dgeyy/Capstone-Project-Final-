@@ -13,6 +13,7 @@
     <meta name="api-base-url" content="https://capstone-project-final-production.up.railway.app">
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/session-manager.js"></script>
+    <script src="js/system-notifications.js"></script>
 
     <style>
         :root {
@@ -195,36 +196,36 @@
 
                     <!-- 27 EXACT PREDEFINED BARANGAYS -->
                     <div class="col-md-4">
-                        <label class="form-label">Barangay (27 Official Barangays) <span class="text-danger">*</span></label>
+                        <label class="form-label">Barangay (27 Predefined Barangays) <span class="text-danger">*</span></label>
                         <select class="form-select" id="regBarangay" required>
                             <option value="">-- Select Barangay --</option>
-                            <option value="Assumption">Assumption</option>
-                            <option value="Avanceña">Avanceña</option>
-                            <option value="Cacub">Cacub</option>
+                            <option value="Assumption (Mambucal)">Assumption (Mambucal)</option>
+                            <option value="Avanceña (Ebenezer)">Avanceña (Ebenezer)</option>
                             <option value="Caloocan">Caloocan</option>
                             <option value="Carpenter Hill">Carpenter Hill</option>
                             <option value="Concepcion">Concepcion</option>
                             <option value="Esperanza">Esperanza</option>
-                            <option value="General Paulino Santos">General Paulino Santos</option>
+                            <option value="General Paulino Santos (G.P.S.)">General Paulino Santos (G.P.S.)</option>
+                            <option value="Inamitan">Inamitan</option>
                             <option value="Mabini">Mabini</option>
                             <option value="Magsaysay">Magsaysay</option>
-                            <option value="Mambucal">Mambucal</option>
                             <option value="Morales">Morales</option>
+                            <option value="Paraiso">Paraiso</option>
+                            <option value="Poblacion">Poblacion</option>
+                            <option value="Rotonda">Rotonda</option>
+                            <option value="San Emmanuel">San Emmanuel</option>
+                            <option value="San Isidro">San Isidro</option>
+                            <option value="San Jose">San Jose</option>
+                            <option value="San Roque">San Roque</option>
+                            <option value="Santa Cruz">Santa Cruz</option>
+                            <option value="Santo Niño">Santo Niño</option>
+                            <option value="Saravia">Saravia</option>
+                            <option value="Zone I">Zone I</option>
+                            <option value="Zone II">Zone II</option>
+                            <option value="Zone III">Zone III</option>
+                            <option value="Zone IV">Zone IV</option>
                             <option value="Namnama">Namnama</option>
                             <option value="New Pangasinan">New Pangasinan</option>
-                            <option value="Paraiso">Paraiso</option>
-                            <option value="Rotonda">Rotonda</option>
-                            <option value="San Isidro">San Isidro</option>
-                            <option value="San Roque">San Roque</option>
-                            <option value="San Jose">San Jose</option>
-                            <option value="Sta. Cruz">Sta. Cruz</option>
-                            <option value="Sto. Niño">Sto. Niño</option>
-                            <option value="Saravia">Saravia</option>
-                            <option value="Topland">Topland</option>
-                            <option value="Zone 1">Zone 1</option>
-                            <option value="Zone 2">Zone 2</option>
-                            <option value="Zone 3">Zone 3</option>
-                            <option value="Zone 4">Zone 4</option>
                         </select>
                     </div>
 
@@ -285,6 +286,42 @@
                                 <div class="col-md-3 pw-rule" id="ruleNumber"><i class="bi bi-circle"></i> 1 number (0-9) & symbol</div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 5. PROGRAM SELECTION & MANDATORY DOCUMENT UPLOADS -->
+                <h3 class="section-title"><i class="bi bi-file-earmark-arrow-up-fill me-2"></i>5. Program Selection & Mandatory Uploads</h3>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Target Program Sector <span class="text-danger">*</span></label>
+                        <select class="form-select" id="regProgramType" onchange="toggleProgramDocs()" required>
+                            <option value="PESO">PESO — Public Employment & Livelihood Assistance</option>
+                            <option value="CSWDO">CSWDO — City Social Welfare Medical Assistance</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Mandatory Valid ID <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="fileValidId" required accept="image/*,.pdf">
+                        <div class="form-text">Gov't issued ID (PhilID, UMID, Driver's License)</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Mandatory Barangay Clearance <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="fileBrgyClearance" required accept="image/*,.pdf">
+                        <div class="form-text">Issued within the last 6 months</div>
+                    </div>
+
+                    <div class="col-md-4" id="divPesoDocs">
+                        <label class="form-label">PESO Program Requirements <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="fileProgramReq" accept="image/*,.pdf">
+                        <div class="form-text">Letter of Intent / Business Plan proposal</div>
+                    </div>
+
+                    <div class="col-md-4 d-none" id="divCswdoDocs">
+                        <label class="form-label">CSWDO Program Requirements <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="fileMedicalCert" accept="image/*,.pdf">
+                        <div class="form-text">Official Medical Certificate / Abstract</div>
                     </div>
                 </div>
 
@@ -399,12 +436,36 @@
             }
         }
 
+        function toggleProgramDocs() {
+            const pType = document.getElementById('regProgramType').value;
+            const divPeso = document.getElementById('divPesoDocs');
+            const divCswdo = document.getElementById('divCswdoDocs');
+            if (pType === 'CSWDO') {
+                divPeso.classList.add('d-none');
+                divCswdo.classList.remove('d-none');
+                document.getElementById('fileProgramReq').removeAttribute('required');
+                document.getElementById('fileMedicalCert').setAttribute('required', 'required');
+            } else {
+                divPeso.classList.remove('d-none');
+                divCswdo.classList.add('d-none');
+                document.getElementById('fileProgramReq').setAttribute('required', 'required');
+                document.getElementById('fileMedicalCert').removeAttribute('required');
+            }
+        }
+
         async function sendSmsOtpCode() {
             const phone = document.getElementById('regPhone').value.trim();
-            if (!phone) { alert('Please enter your contact number first.'); return; }
+            if (!phone) {
+                window.showSystemNotification({
+                    title: 'Contact Number Required',
+                    message: 'Please enter your contact number before requesting an SMS OTP verification code.',
+                    type: 'warning'
+                });
+                return;
+            }
 
             try {
-                const res = await fetch('/api/peso-officer/otp/send-phone', {
+                const res = await fetch('/api/auth/send-sms-otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone })
@@ -425,18 +486,33 @@
                 isPhoneVerified = true;
                 document.getElementById('phoneVerificationBadge').innerHTML = 'Status: <span class="badge bg-success">Verified</span>';
                 bootstrap.Modal.getInstance(document.getElementById('smsOtpModal')).hide();
-                alert('Phone number verified successfully!');
+                window.showSystemNotification({
+                    title: 'SMS OTP Verified',
+                    message: 'Contact Number verified successfully via 6-digit SMS OTP code.',
+                    type: 'success'
+                });
             } else {
-                alert('Invalid 6-digit OTP code.');
+                window.showSystemNotification({
+                    title: 'Verification Failed',
+                    message: 'Invalid 6-digit SMS OTP code. Please check your phone or request a new code.',
+                    type: 'error'
+                });
             }
         }
 
         async function sendEmailVerificationCode() {
             const email = document.getElementById('regEmail').value.trim();
-            if (!email) { alert('Please enter your email address first.'); return; }
+            if (!email) {
+                window.showSystemNotification({
+                    title: 'Email Address Required',
+                    message: 'Please enter your email address before requesting a verification code.',
+                    type: 'warning'
+                });
+                return;
+            }
 
             try {
-                const res = await fetch('/api/peso-officer/otp/send-email', {
+                const res = await fetch('/api/auth/send-email-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email })
@@ -457,9 +533,17 @@
                 isEmailVerified = true;
                 document.getElementById('emailVerificationBadge').innerHTML = 'Status: <span class="badge bg-success">Verified</span>';
                 bootstrap.Modal.getInstance(document.getElementById('emailCodeModal')).hide();
-                alert('Email address verified successfully!');
+                window.showSystemNotification({
+                    title: 'Email Verified',
+                    message: 'Email address verified successfully via 4-digit code.',
+                    type: 'success'
+                });
             } else {
-                alert('Invalid 4-digit verification code.');
+                window.showSystemNotification({
+                    title: 'Verification Failed',
+                    message: 'Invalid 4-digit verification code. Please try again.',
+                    type: 'error'
+                });
             }
         }
 
@@ -470,75 +554,140 @@
             const ln = document.getElementById('regLastName').value.trim();
             const bdate = document.getElementById('regBirthday').value;
             const sex = document.getElementById('regSex').value;
+            const purok = document.getElementById('regPurok').value.trim();
             const barangay = document.getElementById('regBarangay').value;
             const phone = document.getElementById('regPhone').value.trim();
             const email = document.getElementById('regEmail').value.trim();
             const username = document.getElementById('regUsername').value.trim();
             const password = document.getElementById('regPassword').value;
             const confirmPassword = document.getElementById('regConfirmPassword').value;
+            const programType = document.getElementById('regProgramType').value;
 
-            if (!fn || !ln || !bdate || !sex || !barangay || !phone || !email || !username || !password) {
-                alert('Please complete all required fields.');
+            const fileValidId = document.getElementById('fileValidId').files[0];
+            const fileBrgyClearance = document.getElementById('fileBrgyClearance').files[0];
+            const fileProgramReq = document.getElementById('fileProgramReq').files[0];
+            const fileMedicalCert = document.getElementById('fileMedicalCert').files[0];
+
+            // Mandatory Document Validation — Submission blocked if missing
+            if (!fileValidId || !fileBrgyClearance || (programType === 'PESO' && !fileProgramReq) || (programType === 'CSWDO' && !fileMedicalCert)) {
+                window.showSystemNotification({
+                    title: 'Registration Blocked: Missing Required Documents',
+                    message: 'Mandatory documents are missing! You must attach a Valid ID, Barangay Clearance, and Program Requirements before submission.',
+                    type: 'error'
+                });
+                return;
+            }
+
+            if (!fn || !ln || !bdate || !sex || !purok || !barangay || !phone || !email || !username || !password) {
+                window.showSystemNotification({
+                    title: 'Validation Error',
+                    message: 'Please complete all required fields in the registration form.',
+                    type: 'warning'
+                });
+                return;
+            }
+
+            if (!isPhoneVerified || !isEmailVerified) {
+                window.showSystemNotification({
+                    title: 'Verification Required',
+                    message: 'Please complete both SMS OTP (6-digit) and Email Code (4-digit) verifications before registering.',
+                    type: 'warning'
+                });
                 return;
             }
 
             if (password !== confirmPassword) {
-                alert('Password and Confirm Password do not match.');
+                window.showSystemNotification({
+                    title: 'Password Mismatch',
+                    message: 'Password and Password Confirmation do not match.',
+                    type: 'error'
+                });
                 return;
             }
 
             if (!checkPasswordRules()) {
-                alert('Password does not meet complexity requirements (must be >=8 characters with uppercase, lowercase, number, and special character).');
+                window.showSystemNotification({
+                    title: 'Password Complexity Error',
+                    message: 'Password does not meet complexity requirements (must be >=8 characters with uppercase, lowercase, number, and symbol).',
+                    type: 'error'
+                });
                 return;
             }
 
-            try {
-                const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username,
-                        password,
-                        firstName: fn,
-                        middleName: document.getElementById('regMiddleName').value.trim(),
-                        lastName: ln,
-                        suffix: document.getElementById('regSuffix').value.trim(),
-                        age: document.getElementById('regAge').value || 25,
-                        dateOfBirth: bdate,
-                        sex,
-                        maritalStatus: document.getElementById('regCivilStatus').value,
-                        email,
-                        phone,
-                        address: `Purok ${document.getElementById('regPurok').value.trim()}, Barangay ${barangay}, Koronadal City`,
-                        idType: 'PhilID',
-                        termsAgreed: true,
-                        dataConsent: true
-                    })
-                });
+            const sendRegistration = async () => {
+                try {
+                    const response = await fetch(API_CONFIG.BASE_URL + '/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username,
+                            password,
+                            passwordConfirm,
+                            firstName: fn,
+                            middleName: document.getElementById('regMiddleName').value.trim(),
+                            lastName: ln,
+                            suffix: document.getElementById('regSuffix').value.trim(),
+                            age: document.getElementById('regAge').value || 25,
+                            dateOfBirth: bdate,
+                            sex,
+                            maritalStatus: document.getElementById('regCivilStatus').value,
+                            spouseName: document.getElementById('regSpouseName').value.trim(),
+                            childrenInfo: document.getElementById('regNoChildren').value,
+                            email,
+                            phone,
+                            purok,
+                            barangay,
+                            address: `Purok ${purok}, Barangay ${barangay}, City of Koronadal`,
+                            idType: 'PhilID',
+                            programType,
+                            validIdFilePath: fileValidId ? fileValidId.name : 'valid_id.pdf',
+                            brgyClearanceFilePath: fileBrgyClearance ? fileBrgyClearance.name : 'brgy_clearance.pdf',
+                            programReqFilePath: fileProgramReq ? fileProgramReq.name : null,
+                            medicalCertFilePath: fileMedicalCert ? fileMedicalCert.name : null,
+                            smsVerified: true,
+                            emailVerified: true,
+                            termsAgreed: true,
+                            dataConsent: true
+                        })
+                    });
 
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    SessionManager.save(data.userId || '6', 'mock_session_token_' + Date.now(), 'Beneficiary');
-                    sessionStorage.setItem('beneficiaryLoggedIn', 'true');
-                    sessionStorage.setItem('beneficiaryUsername', username);
-                    sessionStorage.setItem('beneficiaryName', `${fn} ${ln}`);
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        SessionManager.save(data.userId || '6', 'mock_session_token_' + Date.now(), 'Beneficiary');
+                        sessionStorage.setItem('beneficiaryLoggedIn', 'true');
+                        sessionStorage.setItem('beneficiaryUsername', username);
+                        sessionStorage.setItem('beneficiaryName', `${fn} ${ln}`);
 
-                    alert(`Registration Successful! Welcome ${fn} ${ln}.\nRedirecting you to choose your preferred PESO Livelihood or CSWDO Assistance programs...`);
-                    window.location.href = 'beneficiary.html';
-                    return;
+                        window.showSystemNotification({
+                            title: 'Registration Successful!',
+                            message: `Welcome ${fn} ${ln}! Your ${programType} account and initial application have been registered successfully.`,
+                            type: 'success',
+                            confirmText: 'Go to Dashboard',
+                            onConfirm: () => { window.location.href = 'beneficiary.html'; }
+                        });
+                        return;
+                    } else {
+                        window.showSystemNotification({
+                            title: 'Registration Failed',
+                            message: data.message || 'Server error encountered during account registration.',
+                            type: 'error',
+                            confirmText: 'Retry',
+                            onRetry: sendRegistration
+                        });
+                        return;
+                    }
+                } catch (err) {
+                    window.showSystemNotification({
+                        title: 'Server Connection Failure',
+                        message: 'Could not connect to registration server. Please check connection and try again.',
+                        type: 'error',
+                        confirmText: 'Retry',
+                        onRetry: sendRegistration
+                    });
                 }
-            } catch (err) {
-                console.warn('[REGISTRATION] API call fallback to client session:', err.message);
-            }
+            };
 
-            // Fallback client session creation
-            SessionManager.save('6', 'mock_session_token_' + Date.now(), 'Beneficiary');
-            sessionStorage.setItem('beneficiaryLoggedIn', 'true');
-            sessionStorage.setItem('beneficiaryUsername', username);
-            sessionStorage.setItem('beneficiaryName', `${fn} ${ln}`);
-
-            alert(`Registration Successful! Welcome ${fn} ${ln}.\nYou can now choose your preferred PESO Livelihood or CSWDO Assistance programs and track your submissions.`);
-            window.location.href = 'beneficiary.html';
+            sendRegistration();
         }
     </script>
 </body>

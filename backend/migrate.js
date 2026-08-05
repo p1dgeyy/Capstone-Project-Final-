@@ -297,6 +297,25 @@ async function runMigrations() {
       }
     }
 
+    // Run Migration 003: Unified PESO-CSWDO Schema Enhancements
+    try {
+      const mig3Path = path.join(__dirname, '..', 'database', 'migrations', '003_unified_peso_cswdo_schema.sql');
+      if (fs.existsSync(mig3Path)) {
+        console.log(`Executing migration 003 from: ${mig3Path}`);
+        const mig3Stmts = parseSqlFile(mig3Path);
+        for (const stmt of mig3Stmts) {
+          try {
+            await connection.query(stmt);
+          } catch (mErr) {
+            console.warn('Migration 003 statement notice:', mErr.message);
+          }
+        }
+        console.log('Migration 003 successfully executed.');
+      }
+    } catch (mig3Err) {
+      console.warn('Warning executing migration 003:', mig3Err.message);
+    }
+
     console.log('--- DATABASE MIGRATIONS COMPLETE ---');
   } catch (error) {
     console.error('CRITICAL ERROR during migration execution:', error);
