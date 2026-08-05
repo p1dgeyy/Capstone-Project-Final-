@@ -373,8 +373,13 @@ router.put('/:id/admin-finalize', async (req, res) => {
     const { action, notes, admin_id } = req.body;
     const callerId = req.headers['x-user-id'] || admin_id || 1; // Default to PESO Admin (id 1) if not specified
 
-    if (!['approve', 'reject'].includes(action)) {
-      return res.status(400).json({ success: false, message: 'Invalid action. Must be approve or reject.' });
+    const normalizedAction = (action || '').toLowerCase();
+    if (!['approve', 'deny', 'reject', 'pending', 'pending evaluation'].includes(normalizedAction)) {
+      return res.status(400).json({ success: false, message: 'Invalid action. Must be approve, deny, or pending.' });
+    }
+
+    if ((normalizedAction === 'deny' || normalizedAction === 'reject' || normalizedAction.includes('pending')) && (!notes || !notes.trim())) {
+      return res.status(400).json({ success: false, message: 'Mandatory evaluation notes are required when denying or setting application to pending.' });
     }
 
     connection = await pool.getConnection();
@@ -392,8 +397,11 @@ router.put('/:id/admin-finalize', async (req, res) => {
     }
 
     const app = existing[0];
-    const newStatus = action === 'approve' ? 'Approved' : 'Rejected';
-    const progressPercent = action === 'approve' ? 100 : app.progress_percent;
+    let newStatus = 'Pending Evaluation';
+    if (normalizedAction === 'approve') newStatus = 'Approved';
+    else if (normalizedAction === 'deny' || normalizedAction === 'reject') newStatus = 'Denied';
+
+    const progressPercent = newStatus === 'Approved' ? 100 : (newStatus === 'Denied' ? 0 : 50);
 
     await connection.execute(
       `UPDATE \`applications\` 
@@ -403,8 +411,8 @@ router.put('/:id/admin-finalize', async (req, res) => {
     );
 
     // Notify Beneficiary
-    const notifTitle = action === 'approve' ? 'Application Final Approval' : 'Application Final Decision';
-    const notifMsg = `Your application ${app.application_number} for ${app.program_name} has been officially ${newStatus} by PESO Admin. ${notes ? 'Remarks: ' + notes : ''}`;
+    const notifTitle = newStatus === 'Approved' ? 'Application Final Approval' : `Application ${newStatus}`;
+    const notifMsg = `Your application ${app.application_number} for ${app.program_name} has been officially evaluated as ${newStatus} by PESO Admin. ${notes ? 'Assessment Notes: ' + notes : ''}`;
 
     await connection.execute(
       `INSERT INTO \`notifications\` (\`user_id\`, \`title\`, \`message\`, \`is_read\`) VALUES (?, ?, ?, FALSE)`,
@@ -412,14 +420,14 @@ router.put('/:id/admin-finalize', async (req, res) => {
     );
 
     // Write to Audit Log
-    const auditAction = `ADMIN_FINALIZE_${action.toUpperCase()}`;
-    const auditDetails = `PESO Admin (ID: ${callerId}) finalized application ${app.application_number} -> ${newStatus}. Remarks: ${notes || 'None'}`;
+    const auditAction = `ADMIN_EVALUATE_${newStatus.replace(/\s+/g, '_').toUpperCase()}`;
+    const auditDetails = `PESO Admin (ID: ${callerId}) evaluated application ${app.application_number} -> ${newStatus}. Remarks: ${notes || 'None'}`;
     await connection.execute(
       `INSERT INTO \`audit_logs\` (\`user_id\`, \`action\`, \`entity_type\`, \`entity_id\`, \`details\`) VALUES (?, ?, 'application', ?, ?)`,
       [callerId, auditAction, req.params.id, auditDetails]
     );
 
-    console.log(`[APPLICATIONS] Admin finalized App #${req.params.id} -> ${newStatus}`);
+    console.log(`[APPLICATIONS] Admin evaluated App #${req.params.id} -> ${newStatus}`);
 
     return res.status(200).json({
       success: true,

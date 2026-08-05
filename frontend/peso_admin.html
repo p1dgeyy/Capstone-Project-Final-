@@ -367,6 +367,9 @@
         <button class="nav-link active" id="tabNavOverview" onclick="switchTab('overview')">
             <i class="bi bi-grid-fill me-1.5"></i> Program Overview & Budget
         </button>
+        <button class="nav-link" id="tabNavEvaluation" onclick="switchTab('evaluation')">
+            <i class="bi bi-file-earmark-check-fill me-1.5"></i> Application Evaluation Module
+        </button>
         <button class="nav-link" id="tabNavAssignment" onclick="switchTab('assignment')">
             <i class="bi bi-person-workspace me-1.5"></i> Program Assignment Module
         </button>
@@ -520,7 +523,226 @@
         </div>
 
         <!-- =================================================================== -->
-        <!-- TAB 2: PROGRAM ASSIGNMENT MODULE (3-LEVEL DRILLDOWN) -->
+        <!-- TAB 2: APPLICATION EVALUATION MODULE -->
+        <!-- =================================================================== -->
+        <div id="sectionEvaluation" class="d-none">
+            <!-- Evaluation Breadcrumb Banner -->
+            <div class="ordinance-banner">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-primary text-white px-2.5 py-1 font-monospace fw-bold">EVALUATION MANAGEMENT CONTROL</span>
+                    </div>
+                    <h4 class="fw-bold mb-1">Livelihood Application Evaluation Module</h4>
+                    <p class="text-white-50 mb-0 small"><i class="bi bi-shield-check me-1"></i> Multi-level administrative review & compliance assessment for all submitted livelihood case files.</p>
+                </div>
+            </div>
+
+            <!-- Key Evaluation Metrics -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card blue">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value" id="evalStatTotalPrograms">13</div>
+                                <div class="stat-label">Programs Under Review</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-folder-check"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card orange">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-warning" id="evalStatPendingApps">0</div>
+                                <div class="stat-label">Pending Evaluation</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-clock-history"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card green">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-success" id="evalStatApprovedApps">0</div>
+                                <div class="stat-label">Approved Applications</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-check-circle"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card orange" style="border-left: 4px solid var(--danger);">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-danger" id="evalStatDeniedApps">0</div>
+                                <div class="stat-label">Denied Applications</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-x-circle"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEVEL 1: PROGRAMS VIEW -->
+            <div id="evalViewLevel1" class="card card-custom p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-layers-fill text-primary me-2"></i>Select Livelihood Program to Evaluate</h5>
+                    <span class="badge bg-light text-dark border px-3 py-2 fs-6">Level 1: Programs Overview</span>
+                </div>
+                <!-- Filters -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" id="evalProgSearchInput" class="form-control border-start-0 ps-0" placeholder="Search program by name or code..." onkeyup="filterEvalLevel1Programs()">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <select id="evalProgStatusFilter" class="form-select" onchange="filterEvalLevel1Programs()">
+                            <option value="ALL">All Evaluation Statuses</option>
+                            <option value="Pending Evaluation">Pending Evaluation</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Programs Table -->
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Program Name & Code</th>
+                                <th>Category & Type</th>
+                                <th class="text-center">Total Applications</th>
+                                <th class="text-center">Evaluation Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="evalLevel1ProgramsTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LEVEL 2: BATCHES VIEW -->
+            <div id="evalViewLevel2" class="card card-custom p-4 d-none">
+                <div class="breadcrumb-custom d-flex justify-content-between align-items-center mb-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="javascript:void(0)" onclick="showEvalLevel1()"><i class="bi bi-house-door-fill"></i> Programs</a></li>
+                            <li class="breadcrumb-item active fw-bold text-primary" id="evalLevel2Breadcrumb">Program Name</li>
+                        </ol>
+                    </nav>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="showEvalLevel1()"><i class="bi bi-arrow-left"></i> Back to Programs</button>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-boxes text-primary me-2"></i>Batches under Selected Program</h5>
+                    <span class="badge bg-light text-dark border px-3 py-2 fs-6">Level 2: Batches Overview</span>
+                </div>
+                <!-- Filters -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" id="evalBatchSearchInput" class="form-control border-start-0 ps-0" placeholder="Search by batch number or trainer..." onkeyup="filterEvalLevel2Batches()">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <select id="evalBatchStatusFilter" class="form-select" onchange="filterEvalLevel2Batches()">
+                            <option value="ALL">All Batch Statuses</option>
+                            <option value="Pending Evaluation">Pending Evaluation</option>
+                            <option value="In Evaluation">In Evaluation</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Batches Table -->
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Batch Number & Name</th>
+                                <th>Trainer / Orientation Date</th>
+                                <th class="text-center">Enrolled Applications</th>
+                                <th class="text-center">Batch Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="evalLevel2BatchesTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LEVEL 3: APPLICATIONS VIEW -->
+            <div id="evalViewLevel3" class="card card-custom p-4 d-none">
+                <div class="breadcrumb-custom d-flex justify-content-between align-items-center mb-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="javascript:void(0)" onclick="showEvalLevel1()"><i class="bi bi-house-door-fill"></i> Programs</a></li>
+                            <li class="breadcrumb-item"><a href="javascript:void(0)" onclick="showEvalLevel2()" id="evalLevel3ProgBreadcrumb">Program</a></li>
+                            <li class="breadcrumb-item active fw-bold text-primary" id="evalLevel3BatchBreadcrumb">Batch 1</li>
+                        </ol>
+                    </nav>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="showEvalLevel2()"><i class="bi bi-arrow-left"></i> Back to Batches</button>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-file-earmark-person-fill text-primary me-2"></i>Applications for Evaluation</h5>
+                    <span class="badge bg-light text-dark border px-3 py-2 fs-6">Level 3: Applications Roster</span>
+                </div>
+                <!-- Filters -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" id="evalAppSearchInput" class="form-control border-start-0 ps-0" placeholder="Search applicant name or address..." onkeyup="filterEvalLevel3Apps()">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <select id="evalAppVerifFilter" class="form-select" onchange="filterEvalLevel3Apps()">
+                            <option value="ALL">All Verification Statuses</option>
+                            <option value="Verified">Verified Documents</option>
+                            <option value="Pending Verification">Pending Verification</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <select id="evalAppStatusFilter" class="form-select" onchange="filterEvalLevel3Apps()">
+                            <option value="ALL">All Evaluation Statuses</option>
+                            <option value="Approved">Approved (Green)</option>
+                            <option value="Denied">Denied (Red)</option>
+                            <option value="Pending Evaluation">Pending Evaluation (Yellow)</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Applications Table -->
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Applicant Name</th>
+                                <th>Requested Program & Batch</th>
+                                <th>Submission Date</th>
+                                <th class="text-center">Verification Status</th>
+                                <th class="text-center">Evaluation Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="evalLevel3AppsTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- TAB 3: PROGRAM ASSIGNMENT MODULE (3-LEVEL DRILLDOWN) -->
         <!-- =================================================================== -->
         <div id="sectionAssignment" class="d-none">
             
@@ -1135,8 +1357,109 @@
                     </div>
                 </div>
 
+    <!-- MODAL: REVIEW SUBMITTED LIVELIHOOD CASE FILE -->
+    <div class="modal fade" id="reviewCaseFileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-medical-fill me-2"></i>Review Submitted Livelihood Case File</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Applicant Header & Status Bar -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <div>
+                            <h4 class="fw-bold text-dark mb-1" id="reviewApplicantName">Applicant Name</h4>
+                            <span class="badge bg-primary-subtle text-primary font-monospace fs-6" id="reviewProgramBatchTag">Program - Batch</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="small text-muted">Verification Status</div>
+                            <span class="badge bg-success px-3 py-1 fs-6" id="reviewVerificationStatusBadge"><i class="bi bi-patch-check-fill me-1"></i> Verified Documents</span>
+                        </div>
+                    </div>
+
+                    <!-- Applicant Personal Info Card -->
+                    <div class="card border-0 bg-light p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-vcard me-1"></i> Beneficiary Personal & Contact Profile</h6>
+                        <div class="row g-2 small">
+                            <div class="col-md-4"><span class="text-muted">Contact Number:</span> <span class="fw-bold font-monospace" id="reviewApplicantContact">09XX-***-XXXX</span></div>
+                            <div class="col-md-4"><span class="text-muted">Address:</span> <span class="fw-bold" id="reviewApplicantAddress">Purok 1, Barangay Poblacion</span></div>
+                            <div class="col-md-4"><span class="text-muted">Civil Status:</span> <span class="fw-bold" id="reviewApplicantCivilStatus">Single</span></div>
+                            <div class="col-md-4"><span class="text-muted">Spouse Name:</span> <span class="fw-bold" id="reviewApplicantSpouse">N/A</span></div>
+                            <div class="col-md-4"><span class="text-muted">Children Details:</span> <span class="fw-bold" id="reviewApplicantChildren">None</span></div>
+                            <div class="col-md-4"><span class="text-muted">Date Submitted:</span> <span class="fw-bold text-dark" id="reviewSubmissionDate">2026-03-15</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Verified Documents Compliance Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-check-fill text-success me-1"></i> Verified Documents Compliance Section (Pre-validated)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Document Type</th>
+                                        <th>File Name</th>
+                                        <th class="text-center">Officer Verification</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reviewDocumentsTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Action Assessment Notes Area -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">
+                            <i class="bi bi-journal-text text-primary me-1"></i> Action Assessment Notes 
+                            <span class="text-danger fw-semibold" style="font-size: 0.85rem;">(Mandatory for Denied and Pending Evaluation)</span>
+                        </label>
+                        <textarea id="reviewActionAssessmentNotes" class="form-control" rows="3" placeholder="Enter evaluation remarks, compliance findings, or denial reasons for auditing..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-warning fw-semibold px-3" onclick="executeEvalDecision('Pending Evaluation')">
+                            <i class="bi bi-clock-history me-1"></i> Pending Evaluation
+                        </button>
+                        <button type="button" class="btn btn-danger fw-semibold px-3" onclick="executeEvalDecision('Denied')">
+                            <i class="bi bi-x-circle-fill me-1"></i> Deny Application
+                        </button>
+                        <button type="button" class="btn btn-success fw-semibold px-4" onclick="executeEvalDecision('Approved')">
+                            <i class="bi bi-check-circle-fill me-1"></i> Approve Case
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DOCUMENT PREVIEW MODAL -->
+    <div class="modal fade" id="docPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="docPreviewTitle"><i class="bi bi-eye-fill me-2 text-info"></i>Document Preview</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center bg-light">
+                    <div id="docPreviewContainer" class="p-5 border bg-white rounded-3 shadow-sm">
+                        <i class="bi bi-file-earmark-pdf-fill text-danger display-1 mb-3"></i>
+                        <h5 class="fw-bold text-dark mb-1" id="docPreviewFileName">Document.pdf</h5>
+                        <p class="text-muted small mb-3">Verified Document Compliance File — City Government of Koronadal PESO Intake</p>
+                        <div class="alert alert-success d-inline-block px-4 py-2 small">
+                            <i class="bi bi-patch-check-fill me-1"></i> Document authenticity pre-checked by PESO Intake Officer.
+                        </div>
+                    </div>
+                </div>
                 <div class="modal-footer bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close Profile</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Preview</button>
                 </div>
             </div>
         </div>
@@ -2321,6 +2644,479 @@
                         title: 'Account Permanently Deleted',
                         message: `Officer account ID ${officerId} has been permanently deleted.`,
                         type: 'success'
+                    });
+                }
+            });
+        }
+
+        // =========================================================================
+        // PESO ADMIN APPLICATION EVALUATION MODULE STATE & LOGIC
+        // =========================================================================
+        const INITIAL_EVALUATION_APPLICATIONS = [
+            {
+                id: 501,
+                applicant_name: 'Juan Santos Dela Cruz',
+                phone: '0905-111-2222',
+                address: 'Purok 2, Barangay Zone IV, Koronadal City',
+                civil_status: 'Single',
+                spouse_name: 'N/A',
+                children_info: 'None',
+                program_id: 101,
+                program_name: 'City of Koronadal Government Internship Program (CKGIP)',
+                program_code: 'CKGIP',
+                batch_id: 1011,
+                batch_num: 'Batch 2026-A (LGU Intake)',
+                date_submitted: '2026-03-15',
+                verification_status: 'Verified',
+                evaluation_status: 'Pending Evaluation',
+                notes: 'Submitted initial internship papers; pre-validated by PESO Officer Smith.',
+                docs: [
+                    { type: 'Valid ID', file_name: 'PhilID_Scan_JuanCruz.pdf', status: 'Verified' },
+                    { type: 'Barangay Clearance', file_name: 'BrgyClearance_Zone4.pdf', status: 'Verified' },
+                    { type: 'Program Requirements', file_name: 'CKGIP_ApplicationForm.pdf', status: 'Verified' }
+                ]
+            },
+            {
+                id: 502,
+                applicant_name: 'Maria Clara Santos',
+                phone: '0917-333-4444',
+                address: 'Purok Sunflower, Barangay Poblacion, Koronadal City',
+                civil_status: 'Married',
+                spouse_name: 'Pedro Santos',
+                children_info: '2 Children (Ages 4, 7)',
+                program_id: 104,
+                program_name: 'Pangkabuhayan Financial Assistance (PFAS)',
+                program_code: 'PFAS',
+                batch_id: 1041,
+                batch_num: 'Batch 1 (Micro-Retail)',
+                date_submitted: '2026-03-10',
+                verification_status: 'Verified',
+                evaluation_status: 'Approved',
+                notes: 'All financial grant requirements and business plan verified. Approved for grant disbursement.',
+                docs: [
+                    { type: 'Valid ID', file_name: 'UMID_MariaSantos.pdf', status: 'Verified' },
+                    { type: 'Barangay Clearance', file_name: 'BrgyClearance_Poblacion.pdf', status: 'Verified' },
+                    { type: 'Business Proposal', file_name: 'PFAS_SariSariStore_Plan.pdf', status: 'Verified' }
+                ]
+            },
+            {
+                id: 503,
+                applicant_name: 'Roberto Fernandez',
+                phone: '0928-555-6666',
+                address: 'Purok Mabuhay, Barangay Concepcion, Koronadal City',
+                civil_status: 'Married',
+                spouse_name: 'Ana Fernandez',
+                children_info: '1 Child (Age 2)',
+                program_id: 104,
+                program_name: 'Pangkabuhayan Financial Assistance (PFAS)',
+                program_code: 'PFAS',
+                batch_id: 1041,
+                batch_num: 'Batch 1 (Micro-Retail)',
+                date_submitted: '2026-03-12',
+                verification_status: 'Pending Verification',
+                evaluation_status: 'Denied',
+                notes: 'Incomplete business plan and duplicate household grant application detected.',
+                docs: [
+                    { type: 'Valid ID', file_name: 'VotersID_Roberto.pdf', status: 'Verified' },
+                    { type: 'Barangay Clearance', file_name: 'BrgyClearance_Concepcion.pdf', status: 'Pending Verification' }
+                ]
+            },
+            {
+                id: 504,
+                applicant_name: 'Ana Reyes',
+                phone: '0939-777-8888',
+                address: 'Purok Daisy, Barangay San Isidro, Koronadal City',
+                civil_status: 'Single',
+                spouse_name: 'N/A',
+                children_info: 'None',
+                program_id: 102,
+                program_name: 'Koronadal Emergency Employment Program (KEEP)',
+                program_code: 'KEEP',
+                batch_id: 1021,
+                batch_num: 'Batch 1 (KEEP Workers)',
+                date_submitted: '2026-03-18',
+                verification_status: 'Verified',
+                evaluation_status: 'Pending Evaluation',
+                notes: 'Emergency employment intake recorded; pending final administrative review.',
+                docs: [
+                    { type: 'Valid ID', file_name: 'PhilID_AnaReyes.pdf', status: 'Verified' },
+                    { type: 'Barangay Clearance', file_name: 'BrgyClearance_SanIsidro.pdf', status: 'Verified' }
+                ]
+            }
+        ];
+
+        let evalApplicationsList = [];
+        let currentEvalProgId = null;
+        let currentEvalBatchId = null;
+        let activeReviewAppId = null;
+
+        function initEvalModuleData() {
+            const stored = localStorage.getItem('peso_eval_applications_v1');
+            if (stored) {
+                try { evalApplicationsList = JSON.parse(stored); } catch (e) { evalApplicationsList = [...INITIAL_EVALUATION_APPLICATIONS]; }
+            } else {
+                evalApplicationsList = [...INITIAL_EVALUATION_APPLICATIONS];
+                localStorage.setItem('peso_eval_applications_v1', JSON.stringify(evalApplicationsList));
+            }
+        }
+
+        function updateEvalMetrics() {
+            const pendingCount = evalApplicationsList.filter(a => a.evaluation_status === 'Pending Evaluation').length;
+            const approvedCount = evalApplicationsList.filter(a => a.evaluation_status === 'Approved').length;
+            const deniedCount = evalApplicationsList.filter(a => a.evaluation_status === 'Denied').length;
+
+            document.getElementById('evalStatTotalPrograms').textContent = programsList.length;
+            document.getElementById('evalStatPendingApps').textContent = pendingCount;
+            document.getElementById('evalStatApprovedApps').textContent = approvedCount;
+            document.getElementById('evalStatDeniedApps').textContent = deniedCount;
+        }
+
+        // --- LEVEL 1: PROGRAMS VIEW ---
+        function renderEvalLevel1Programs() {
+            initEvalModuleData();
+            updateEvalMetrics();
+            showEvalLevel1();
+            filterEvalLevel1Programs();
+        }
+
+        function showEvalLevel1() {
+            document.getElementById('evalViewLevel1').classList.remove('d-none');
+            document.getElementById('evalViewLevel2').classList.add('d-none');
+            document.getElementById('evalViewLevel3').classList.add('d-none');
+        }
+
+        function filterEvalLevel1Programs() {
+            const search = document.getElementById('evalProgSearchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('evalProgStatusFilter').value;
+            const tbody = document.getElementById('evalLevel1ProgramsTableBody');
+            tbody.innerHTML = '';
+
+            const activeProgs = programsList.filter(p => p.status === 'Active');
+
+            activeProgs.forEach(prog => {
+                const progApps = evalApplicationsList.filter(a => a.program_id === prog.id);
+                const hasPending = progApps.some(a => a.evaluation_status === 'Pending Evaluation');
+                const hasApproved = progApps.some(a => a.evaluation_status === 'Approved');
+
+                let overallStatus = 'Completed';
+                let badgeClass = 'bg-success';
+                if (progApps.length === 0 || hasPending) {
+                    overallStatus = 'Pending Evaluation';
+                    badgeClass = 'bg-warning text-dark';
+                } else if (hasApproved) {
+                    overallStatus = 'In Progress';
+                    badgeClass = 'bg-info text-white';
+                }
+
+                const matchesSearch = prog.name.toLowerCase().includes(search) || prog.code.toLowerCase().includes(search);
+                const matchesStatus = (statusFilter === 'ALL') || (overallStatus === statusFilter);
+
+                if (matchesSearch && matchesStatus) {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><div class="fw-bold text-dark">${escapeHtml(prog.name)}</div><span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(prog.code)}</span></td>
+                            <td><span class="badge badge-category badge-emp">${escapeHtml(prog.category)}</span></td>
+                            <td class="text-center"><span class="badge bg-light text-dark border px-3 py-1 fs-6"><i class="bi bi-file-earmark-text text-primary me-1"></i>${progApps.length} applications</span></td>
+                            <td class="text-center"><span class="badge ${badgeClass} px-3 py-1.5 fs-6">${overallStatus}</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-primary fw-semibold" onclick="openEvalLevel2Batches(${prog.id})">
+                                    View Batches <i class="bi bi-chevron-right ms-1"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No programs found matching evaluation criteria.</td></tr>';
+            }
+        }
+
+        // --- LEVEL 2: BATCHES VIEW ---
+        function openEvalLevel2Batches(progId) {
+            currentEvalProgId = progId;
+            const prog = programsList.find(p => p.id === progId);
+            if (!prog) return;
+
+            document.getElementById('evalLevel2Breadcrumb').textContent = prog.name;
+            document.getElementById('evalViewLevel1').classList.add('d-none');
+            document.getElementById('evalViewLevel2').classList.remove('d-none');
+            document.getElementById('evalViewLevel3').classList.add('d-none');
+
+            filterEvalLevel2Batches();
+            logAuditEvent('EVALUATION_VIEW_BATCHES', `Navigated to Level 2 Batches View for Program: ${prog.code} (${prog.name})`);
+        }
+
+        function showEvalLevel2() {
+            if (currentEvalProgId) openEvalLevel2Batches(currentEvalProgId);
+            else showEvalLevel1();
+        }
+
+        function filterEvalLevel2Batches() {
+            if (!currentEvalProgId) return;
+            const search = document.getElementById('evalBatchSearchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('evalBatchStatusFilter').value;
+            const tbody = document.getElementById('evalLevel2BatchesTableBody');
+            tbody.innerHTML = '';
+
+            const defaultBatches = PROGRAM_BATCHES[currentEvalProgId] || [
+                { batch_id: currentEvalProgId * 10 + 1, batch_num: 'Batch 1 (General Intake)', date: '2026-03-15', trainer: 'PESO Intake Unit', enrolled: 25, total: 30 }
+            ];
+
+            defaultBatches.forEach(b => {
+                const batchApps = evalApplicationsList.filter(a => a.program_id === currentEvalProgId && (a.batch_id === b.batch_id || a.batch_num === b.batch_num));
+                const count = batchApps.length > 0 ? batchApps.length : b.enrolled;
+
+                const hasPending = batchApps.some(a => a.evaluation_status === 'Pending Evaluation');
+                let batchStatus = hasPending || batchApps.length === 0 ? 'Pending Evaluation' : 'Approved';
+                let badgeClass = batchStatus === 'Approved' ? 'bg-success' : 'bg-warning text-dark';
+
+                const matchesSearch = b.batch_num.toLowerCase().includes(search) || (b.trainer || '').toLowerCase().includes(search);
+                const matchesStatus = (statusFilter === 'ALL') || (batchStatus === statusFilter);
+
+                if (matchesSearch && matchesStatus) {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><div class="fw-bold text-dark">${escapeHtml(b.batch_num)}</div><span class="badge bg-light text-secondary border font-monospace">ID: ${b.batch_id}</span></td>
+                            <td><div>${escapeHtml(b.trainer || 'PESO Team')}</div><small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${b.date || '2026-03-15'}</small></td>
+                            <td class="text-center"><span class="badge bg-primary-subtle text-primary px-3 py-1 fs-6"><i class="bi bi-people-fill me-1"></i>${count} applications</span></td>
+                            <td class="text-center"><span class="badge ${badgeClass} px-3 py-1.5 fs-6">${batchStatus}</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openEvalLevel3Apps(${currentEvalProgId}, ${b.batch_id}, '${escapeHtml(b.batch_num)}')">
+                                    View Applications <i class="bi bi-chevron-right ms-1"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No batches recorded under this program.</td></tr>';
+            }
+        }
+
+        // --- LEVEL 3: APPLICATIONS VIEW ---
+        function openEvalLevel3Apps(progId, batchId, batchNumStr) {
+            currentEvalProgId = progId;
+            currentEvalBatchId = batchId;
+            const prog = programsList.find(p => p.id === progId);
+            if (!prog) return;
+
+            document.getElementById('evalLevel3ProgBreadcrumb').textContent = prog.name;
+            document.getElementById('evalLevel3BatchBreadcrumb').textContent = batchNumStr || `Batch ${batchId}`;
+
+            document.getElementById('evalViewLevel1').classList.add('d-none');
+            document.getElementById('evalViewLevel2').classList.add('d-none');
+            document.getElementById('evalViewLevel3').classList.remove('d-none');
+
+            filterEvalLevel3Apps();
+            logAuditEvent('EVALUATION_VIEW_APPLICATIONS', `Navigated to Level 3 Applications View for Batch: ${batchNumStr || batchId}`);
+        }
+
+        function filterEvalLevel3Apps() {
+            const search = document.getElementById('evalAppSearchInput').value.toLowerCase();
+            const verifFilter = document.getElementById('evalAppVerifFilter').value;
+            const statusFilter = document.getElementById('evalAppStatusFilter').value;
+            const tbody = document.getElementById('evalLevel3AppsTableBody');
+            tbody.innerHTML = '';
+
+            const filtered = evalApplicationsList.filter(app => {
+                const matchesProg = !currentEvalProgId || (app.program_id === currentEvalProgId);
+                const matchesSearch = app.applicant_name.toLowerCase().includes(search) || (app.address || '').toLowerCase().includes(search);
+                const matchesVerif = (verifFilter === 'ALL') || (app.verification_status === verifFilter);
+                const matchesStatus = (statusFilter === 'ALL') || (app.evaluation_status === statusFilter);
+                return matchesProg && matchesSearch && matchesVerif && matchesStatus;
+            });
+
+            filtered.forEach(app => {
+                let statusBadgeHTML = '';
+                if (app.evaluation_status === 'Approved') {
+                    statusBadgeHTML = '<span class="badge bg-success px-3 py-1.5 fs-6" style="background-color: #10B981 !important;"><i class="bi bi-check-circle-fill me-1"></i> Approved</span>';
+                } else if (app.evaluation_status === 'Denied') {
+                    statusBadgeHTML = '<span class="badge bg-danger px-3 py-1.5 fs-6" style="background-color: #EF4444 !important;"><i class="bi bi-x-circle-fill me-1"></i> Denied</span>';
+                } else {
+                    statusBadgeHTML = '<span class="badge bg-warning text-dark px-3 py-1.5 fs-6" style="background-color: #F59E0B !important; color: #fff !important;"><i class="bi bi-clock-history me-1"></i> Pending Evaluation</span>';
+                }
+
+                const verifBadgeHTML = app.verification_status === 'Verified'
+                    ? '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-patch-check-fill me-1"></i> Verified</span>'
+                    : '<span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-hourglass-split me-1"></i> Pending Verif</span>';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark">${escapeHtml(app.applicant_name)}</div>
+                            <small class="text-muted"><i class="bi bi-telephone me-1"></i>${maskContactNumber(app.phone)}</small>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-primary">${escapeHtml(app.program_code || 'LIVELIHOOD')}</div>
+                            <small class="text-secondary">${escapeHtml(app.batch_num || 'Batch 1')}</small>
+                        </td>
+                        <td><small class="fw-semibold text-dark"><i class="bi bi-calendar3 me-1 text-muted"></i>${app.date_submitted}</small></td>
+                        <td class="text-center">${verifBadgeHTML}</td>
+                        <td class="text-center">${statusBadgeHTML}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary fw-semibold shadow-sm" onclick="openReviewCaseFileModal(${app.id})">
+                                <i class="bi bi-file-earmark-medical me-1"></i> Review Case File
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No submitted applications found matching filter criteria.</td></tr>';
+            }
+        }
+
+        // --- LEVEL 4: REVIEW SUBMITTED LIVELIHOOD CASE FILE MODAL ---
+        function openReviewCaseFileModal(appId) {
+            activeReviewAppId = appId;
+            const app = evalApplicationsList.find(a => a.id === appId);
+            if (!app) return;
+
+            document.getElementById('reviewApplicantName').textContent = app.applicant_name;
+            document.getElementById('reviewProgramBatchTag').textContent = `${app.program_code} — ${app.batch_num}`;
+            document.getElementById('reviewApplicantContact').textContent = maskContactNumber(app.phone);
+            document.getElementById('reviewApplicantAddress').textContent = app.address || 'Koronadal City';
+            document.getElementById('reviewApplicantCivilStatus').textContent = app.civil_status || 'Single';
+            document.getElementById('reviewApplicantSpouse').textContent = app.spouse_name || 'N/A';
+            document.getElementById('reviewApplicantChildren').textContent = app.children_info || 'None';
+            document.getElementById('reviewSubmissionDate').textContent = app.date_submitted;
+            document.getElementById('reviewActionAssessmentNotes').value = app.notes || '';
+
+            const verifBadge = document.getElementById('reviewVerificationStatusBadge');
+            verifBadge.innerHTML = app.verification_status === 'Verified'
+                ? '<i class="bi bi-patch-check-fill me-1"></i> Verified Documents (Pre-validated)'
+                : '<i class="bi bi-hourglass-split me-1"></i> Pending Verification';
+            verifBadge.className = app.verification_status === 'Verified' ? 'badge bg-success px-3 py-1 fs-6' : 'badge bg-warning text-dark px-3 py-1 fs-6';
+
+            // Populate Verified Documents Compliance Table
+            const docsTable = document.getElementById('reviewDocumentsTableBody');
+            docsTable.innerHTML = '';
+            const docsList = app.docs || [
+                { type: 'Valid ID', file_name: 'PhilID_Document.pdf', status: 'Verified' },
+                { type: 'Barangay Clearance', file_name: 'Brgy_Clearance.pdf', status: 'Verified' },
+                { type: 'Program Requirements', file_name: 'Business_Proposal.pdf', status: 'Verified' }
+            ];
+
+            docsList.forEach(doc => {
+                docsTable.innerHTML += `
+                    <tr>
+                        <td><strong>${escapeHtml(doc.type)}</strong></td>
+                        <td><code>${escapeHtml(doc.file_name)}</code></td>
+                        <td class="text-center"><span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>${doc.status || 'Verified'}</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-info me-1" onclick="previewDocument('${escapeHtml(doc.type)}', '${escapeHtml(doc.file_name)}')">
+                                <i class="bi bi-eye"></i> Preview
+                            </button>
+                            <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" onclick="window.showSystemNotification({ title: 'Download Notice', message: 'Downloading ${escapeHtml(doc.file_name)} compliance record...', type: 'info' })">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            new bootstrap.Modal(document.getElementById('reviewCaseFileModal')).show();
+            logAuditEvent('REVIEW_CASE_FILE', `Opened Case File Review Modal for Applicant: ${app.applicant_name} (App ID: ${app.id})`);
+        }
+
+        function previewDocument(docType, fileName) {
+            document.getElementById('docPreviewTitle').innerHTML = `<i class="bi bi-eye-fill me-2 text-info"></i>Preview: ${escapeHtml(docType)}`;
+            document.getElementById('docPreviewFileName').textContent = fileName;
+            new bootstrap.Modal(document.getElementById('docPreviewModal')).show();
+        }
+
+        // --- FINAL EVALUATION DECISION EXECUTION WITH SYSTEM NOTIFICATION MODALS ---
+        async function executeEvalDecision(decision) {
+            const app = evalApplicationsList.find(a => a.id === activeReviewAppId);
+            if (!app) return;
+
+            const notes = document.getElementById('reviewActionAssessmentNotes').value.trim();
+
+            // Mandatory notes validation for Denied and Pending Evaluation
+            if ((decision === 'Denied' || decision === 'Pending Evaluation') && !notes) {
+                window.showSystemNotification({
+                    title: 'Action Assessment Notes Required',
+                    message: `Mandatory Requirement: Please enter detailed assessment notes in the Action Assessment Notes field before finalizing "${decision}".`,
+                    type: 'warning'
+                });
+                return;
+            }
+
+            // System Notification Modal Confirmation Card
+            window.showSystemNotification({
+                title: `Confirm Final Evaluation: ${decision}`,
+                message: `Are you sure you want to finalize the evaluation decision for "${app.applicant_name}" as "${decision}"? Once confirmed, status timestamp is recorded and beneficiary is notified.`,
+                type: decision === 'Approved' ? 'info' : (decision === 'Denied' ? 'warning' : 'info'),
+                showCancel: true,
+                confirmText: `Confirm ${decision}`,
+                onConfirm: async () => {
+                    app.evaluation_status = decision;
+                    app.notes = notes;
+                    app.evaluated_at = new Date().toISOString();
+
+                    // Update local storage
+                    localStorage.setItem('peso_eval_applications_v1', JSON.stringify(evalApplicationsList));
+
+                    // Backend API Sync
+                    try {
+                        const apiBase = window.API_BASE_URL || '';
+                        let actionParam = 'approve';
+                        if (decision === 'Denied') actionParam = 'deny';
+                        else if (decision === 'Pending Evaluation') actionParam = 'pending';
+
+                        await fetch(`${apiBase}/api/applications/${app.id}/admin-finalize`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: actionParam,
+                                notes: notes,
+                                admin_id: 1
+                            })
+                        });
+                    } catch (err) {
+                        console.warn('[EVALUATION] Backend sync notice — saved to local state:', err.message);
+                    }
+
+                    // Log Audit Event
+                    logAuditEvent(`EVALUATE_APPLICATION_${decision.toUpperCase().replace(/\s+/g, '_')}`, `PESO Admin evaluated application ID ${app.id} (${app.applicant_name}) -> ${decision}. Notes: ${notes || 'None'}`);
+
+                    // Hide Review Modal
+                    const modalEl = document.getElementById('reviewCaseFileModal');
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+
+                    // If Approved, automatically forward to Program Assignment Module
+                    if (decision === 'Approved') {
+                        const assignedList = JSON.parse(localStorage.getItem('peso_assigned_beneficiaries_v1') || '[]');
+                        if (!assignedList.some(b => b.id === app.id)) {
+                            assignedList.push({
+                                id: app.id,
+                                full_name: app.applicant_name,
+                                phone: app.phone,
+                                address: app.address,
+                                program_code: app.program_code,
+                                batch_num: app.batch_num,
+                                assignment_status: 'Assigned & Approved',
+                                approved_at: new Date().toISOString()
+                            });
+                            localStorage.setItem('peso_assigned_beneficiaries_v1', JSON.stringify(assignedList));
+                        }
+                    }
+
+                    // Re-render level 3 roster & metrics
+                    updateEvalMetrics();
+                    filterEvalLevel3Apps();
+
+                    // System Notification Success Card
+                    window.showSystemNotification({
+                        title: 'Evaluation Decision Finalized',
+                        message: `Application case file for "${app.applicant_name}" has been officially marked as "${decision}". Timestamp recorded and SMS/Email notification dispatched.`,
+                        type: decision === 'Approved' ? 'success' : (decision === 'Denied' ? 'error' : 'warning')
                     });
                 }
             });

@@ -1,7 +1,7 @@
 /**
  * Automated Test Suite — Unified PESO-CSWDO Information Management System
  * Validates backend rules, database schemas, status restrictions, OTP hashing,
- * deactivated account login blocking, and audit trail logging.
+ * deactivated account login blocking, Application Evaluation Module, and audit trail logging.
  */
 
 const http = require('http');
@@ -15,14 +15,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Mount auth and officers routes
+// Mount auth, officers, audit, and applications routes
 const authRoutes = require('../routes/auth');
 const officerRoutes = require('../routes/officers');
 const auditLogRoutes = require('../routes/audit_logs');
+const applicationRoutes = require('../routes/applications');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/officers', officerRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/applications', applicationRoutes);
 
 const TEST_PORT = 5099;
 const API_BASE = `http://localhost:${TEST_PORT}`;
@@ -178,6 +180,18 @@ async function runTests() {
         invalidBrgyRegRes.status === 400 && invalidBrgyRegRes.data.success === false,
         'Registration blocked if Barangay is not in the predefined 27 list',
         JSON.stringify(invalidBrgyRegRes.data)
+      );
+
+      // 5. Test PESO Admin Application Evaluation (Mandatory Notes Enforcement & Status Transitions)
+      console.log('\n--- TEST 5: PESO Admin Application Evaluation & Mandatory Notes Rule ---');
+      const evalMissingNotesRes = await makeRequest('PUT', '/api/applications/1/admin-finalize', {
+        action: 'deny',
+        notes: '' // Empty notes!
+      });
+      assert(
+        evalMissingNotesRes.status === 400 && evalMissingNotesRes.data.success === false,
+        'Evaluation Deny/Pending blocked when mandatory assessment notes are empty',
+        JSON.stringify(evalMissingNotesRes.data)
       );
 
       console.log('\n====================================================');
