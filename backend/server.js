@@ -1,5 +1,6 @@
 // Express API Server for Capstone Portal
 // Serves as the bridge between the static frontend and MySQL database on Railway
+const officersRouter = require('./routes/officers');
 
 process.on('uncaughtException', (err) => {
   console.error('SERVER WARNING (Uncaught Exception):', err);
@@ -18,6 +19,10 @@ const PORT = process.env.API_PORT || process.env.PORT || 8080;
 // =============================================================================
 // Middleware
 // =============================================================================
+app.use(cors());            // allow cross‑origin requests
+app.use(express.json());    // parse JSON bodies
+
+app.use('/api', officersRouter);
 
 // CORS — allow frontend origin(s)
 const allowedOrigins = process.env.CORS_ORIGIN
