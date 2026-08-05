@@ -32,14 +32,14 @@ router.post('/login', async (req, res) => {
 
     // Query user by username OR email (supports both users and officers tables)
     let [rows] = await connection.execute(
-      'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
+      'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `status`, `current_session_token` FROM `users` WHERE `username` = ? OR `email` = ? LIMIT 1',
       [username.trim(), username.trim()]
     );
 
     if (rows.length === 0) {
       try {
         const [offRows] = await connection.execute(
-          'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `officers` WHERE `username` = ? OR `email` = ? LIMIT 1',
+          'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `status`, `current_session_token` FROM `officers` WHERE `username` = ? OR `email` = ? LIMIT 1',
           [username.trim(), username.trim()]
         );
         if (offRows.length > 0) rows = offRows;
@@ -49,7 +49,7 @@ router.post('/login', async (req, res) => {
     if (rows.length === 0) {
       try {
         const [benRows] = await connection.execute(
-          'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `current_session_token` FROM `beneficiaries` WHERE `username` = ? OR `email` = ? LIMIT 1',
+          'SELECT `id`, `username`, `password`, `role`, `first_name`, `last_name`, `email`, `status`, `current_session_token` FROM `beneficiaries` WHERE `username` = ? OR `email` = ? LIMIT 1',
           [username.trim(), username.trim()]
         );
         if (benRows.length > 0) rows = benRows;
@@ -65,6 +65,15 @@ router.post('/login', async (req, res) => {
     }
 
     const user = rows[0];
+
+    // Check account status
+    if (user.status && (user.status.toLowerCase() === 'deactivated' || user.status.toLowerCase() === 'inactive')) {
+      console.warn(`[AUTH] Login blocked — account deactivated for user: ${username}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Account is deactivated. Deactivated officers lose system access.'
+      });
+    }
 
     // Compare password — ALWAYS use bcrypt.compare()
     // All passwords in the database should be bcrypt-hashed (seed migration hashes them on first run)

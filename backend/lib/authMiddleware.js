@@ -9,7 +9,10 @@
 
 const pool = require('../db');
 const { isClerkEnabled, clerkClient } = require('./clerk');
-const { verifyToken } = require('@clerk/backend');
+let verifyToken;
+try {
+  verifyToken = require('@clerk/backend').verifyToken;
+} catch (e) {}
 
 const VALID_ROLES = ['Beneficiary', 'PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
 const STAFF_ROLES = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];

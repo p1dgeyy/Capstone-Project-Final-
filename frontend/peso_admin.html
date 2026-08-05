@@ -369,6 +369,9 @@
         <button class="nav-link" id="tabNavAssignment" onclick="switchTab('assignment')">
             <i class="bi bi-person-workspace me-1.5"></i> Program Assignment Module
         </button>
+        <button class="nav-link" id="tabNavOfficers" onclick="switchTab('officers')">
+            <i class="bi bi-shield-person-fill me-1.5"></i> PESO Officers Management
+        </button>
         <button class="nav-link" id="tabNavArchive" onclick="switchTab('archive')">
             <i class="bi bi-archive-fill me-1.5"></i> Archive Section (<span id="archiveTabBadge">0</span>)
         </button>
@@ -669,6 +672,125 @@
                             </tr>
                         </thead>
                         <tbody id="archiveTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+        <!-- =================================================================== -->
+        <!-- TAB 4: PESO OFFICERS MANAGEMENT MODULE -->
+        <!-- =================================================================== -->
+        <div id="sectionOfficers" class="d-none">
+            <!-- Header Banner & Action Bar -->
+            <div class="card border-0 bg-primary text-white p-4 rounded-4 shadow-sm mb-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <h4 class="fw-bold mb-1"><i class="bi bi-shield-person me-2"></i>PESO Officers Management Roster</h4>
+                        <p class="text-white-50 mb-0 small">Monitor officer accounts, manage roles & departments, create accounts, and control activation access.</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-light fw-bold text-primary shadow-sm" onclick="openNewOfficerModal()">
+                            <i class="bi bi-person-plus-fill me-1"></i> + Create New Officer Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filter Controls Card -->
+            <div class="content-card mb-4">
+                <div class="card-header-custom bg-light">
+                    <div class="d-flex align-items-center gap-2 flex-grow-1 flex-wrap">
+                        <div class="input-group" style="max-width: 320px;">
+                            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control" id="officerSearchInput" placeholder="Search Name, Username, Email..." oninput="filterOfficers()">
+                        </div>
+
+                        <select class="form-select" id="officerRoleFilter" style="max-width: 190px;" onchange="filterOfficers()">
+                            <option value="ALL">All Assigned Roles</option>
+                            <option value="PESO Officer">PESO Officer</option>
+                            <option value="PESO Admin">PESO Admin</option>
+                            <option value="CSWDO Officer">CSWDO Officer</option>
+                            <option value="CSWDO Admin">CSWDO Admin</option>
+                            <option value="Evaluator">Evaluator</option>
+                        </select>
+
+                        <select class="form-select" id="officerDeptFilter" style="max-width: 170px;" onchange="filterOfficers()">
+                            <option value="ALL">All Departments</option>
+                            <option value="PESO">PESO</option>
+                            <option value="CSWDO">CSWDO</option>
+                            <option value="IT/MIS">IT/MIS</option>
+                        </select>
+
+                        <select class="form-select" id="officerStatusFilter" style="max-width: 160px;" onchange="filterOfficers()">
+                            <option value="ALL">All Status</option>
+                            <option value="Active">Active Only</option>
+                            <option value="Deactivated">Deactivated Only</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Officers Section Table -->
+            <div class="content-card mb-4">
+                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-person-check-fill text-success fs-4"></i>
+                        <div>
+                            <h5 class="fw-bold mb-0">Active Officers Section</h5>
+                            <small class="text-muted">Displays all currently active officer accounts with fast activation/deactivation controls.</small>
+                        </div>
+                    </div>
+                    <span class="badge bg-success px-3 py-2 fs-6 rounded-pill" id="activeOfficersBadge">0 Active Officers</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0" id="activeOfficersTable">
+                        <thead>
+                            <tr>
+                                <th>Officer Name</th>
+                                <th>Username</th>
+                                <th>Email Address</th>
+                                <th>Assigned Role</th>
+                                <th>Department</th>
+                                <th>Contact Number</th>
+                                <th>Account Status</th>
+                                <th class="text-end">Actions / Quick Toggle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeOfficersTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Archive Section Box Below Active Officers -->
+            <div class="content-card border-warning">
+                <div class="card-header-custom bg-warning-subtle border-warning d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-archive-fill text-warning fs-3"></i>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">Archive Section (Deactivated Officer Accounts)</h5>
+                            <small class="text-muted">Holds all deactivated officer accounts. Deactivated officers lose system access but all records and information are retained.</small>
+                        </div>
+                    </div>
+                    <span class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill" id="archiveOfficersBadge">0 Archived Officers</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0" id="archivedOfficersTable">
+                        <thead>
+                            <tr>
+                                <th>Officer Name</th>
+                                <th>Username</th>
+                                <th>Email Address</th>
+                                <th>Assigned Role</th>
+                                <th>Department</th>
+                                <th>Contact Number</th>
+                                <th>Account Status</th>
+                                <th class="text-end">Archive Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archivedOfficersTableBody">
                             <!-- Populated dynamically -->
                         </tbody>
                     </table>
@@ -1140,6 +1262,171 @@
         </div>
     </div>
 
+    <!-- MODAL H: NEW OFFICER ACCOUNT CREATION MODAL -->
+    <div class="modal fade" id="newOfficerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-header-title fw-bold mb-0"><i class="bi bi-person-plus-fill me-2"></i>Create New Officer Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="newOfficerForm" onsubmit="handleCreateOfficerSubmit(event)">
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info py-2 mb-3 small">
+                            <i class="bi bi-info-circle-fill me-1"></i> All required fields must be completed. Passwords will be securely hashed using bcrypt upon saving.
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newOffFirstName" required placeholder="First Name">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Middle Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newOffMiddleName" required placeholder="Middle Name">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newOffLastName" required placeholder="Last Name">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-semibold">Suffix <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newOffSuffix" required>
+                                    <option value="N/A" selected>N/A</option>
+                                    <option value="Jr.">Jr.</option>
+                                    <option value="Sr.">Sr.</option>
+                                    <option value="II">II</option>
+                                    <option value="III">III</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newOffUsername" required placeholder="e.g. jsmith_peso">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="newOffEmail" required placeholder="e.g. officer@koronadal.gov.ph">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="newOffPassword" required placeholder="Minimum 6 characters">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Password Confirmation <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="newOffPasswordConfirm" required placeholder="Re-type password">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Assigned Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newOffRole" required>
+                                    <option value="PESO Officer" selected>PESO Officer</option>
+                                    <option value="PESO Admin">PESO Admin</option>
+                                    <option value="CSWDO Officer">CSWDO Officer</option>
+                                    <option value="CSWDO Admin">CSWDO Admin</option>
+                                    <option value="Evaluator">Evaluator</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newOffDepartment" required>
+                                    <option value="PESO" selected>PESO</option>
+                                    <option value="CSWDO">CSWDO</option>
+                                    <option value="IT/MIS">IT/MIS</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Gender / Sex <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newOffSex" required>
+                                    <option value="Male" selected>Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newOffPhone" required placeholder="e.g. 0917-123-4567">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Office / Residential Address <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newOffAddress" required placeholder="City of Koronadal">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-shield-lock-fill me-1"></i> Save & Record Officer Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL I: EDIT OFFICER ACCOUNT PROFILE MODAL -->
+    <div class="modal fade" id="editOfficerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-header-title fw-bold mb-0"><i class="bi bi-pencil-square me-2"></i>Officer Account Profile & Edit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editOfficerForm" onsubmit="handleSaveOfficerUpdates(event)">
+                    <div class="modal-body p-4">
+                        <input type="hidden" id="editOffId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Officer Name</label>
+                                <input type="text" class="form-control bg-light fw-bold" id="editOffFullName" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="editOffUsername" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="editOffEmail" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editOffPhone" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Assigned Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editOffRole" required>
+                                    <option value="PESO Officer">PESO Officer</option>
+                                    <option value="PESO Admin">PESO Admin</option>
+                                    <option value="CSWDO Officer">CSWDO Officer</option>
+                                    <option value="CSWDO Admin">CSWDO Admin</option>
+                                    <option value="Evaluator">Evaluator</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editOffDepartment" required>
+                                    <option value="PESO">PESO</option>
+                                    <option value="CSWDO">CSWDO</option>
+                                    <option value="IT/MIS">IT/MIS</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Office / Residential Address <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editOffAddress" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Account Status</label>
+                                <input type="text" class="form-control bg-light fw-bold" id="editOffStatus" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Changes & Audit Log</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -1170,7 +1457,16 @@
             1011: [{ id: 6, full_name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', address: 'Barangay Zone IV, Koronadal', age: 29, sex: 'Male', civil_status: 'Single', birthday: '1997-04-12', children: 0, spouse: 'N/A', valid_id: 'PhilID', business_type: 'Micro-Enterprise', program_component: 'CKGIP', business_status: 'Operational', proposed_business: 'Sari-Sari Store', amount_needed: '₱35,000.00', employment_status: 'Underemployed', seminars: 'Entrepreneurship 101', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved', docs: ['PhilID.pdf'] }]
         };
 
+        const INITIAL_OFFICERS = [
+            { id: 1, first_name: 'John', middle_name: 'A.', last_name: 'Doe', suffix: 'N/A', username: 'peso-admin', email: 'peso.admin@koronadal.gov.ph', role: 'PESO Admin', department: 'PESO', phone: '0917-111-2222', sex: 'Male', address: 'City Hall Complex, Koronadal City', status: 'Active' },
+            { id: 2, first_name: 'Jane', middle_name: 'B.', last_name: 'Smith', suffix: 'N/A', username: 'peso-officer', email: 'peso.officer@koronadal.gov.ph', role: 'PESO Officer', department: 'PESO', phone: '0918-222-3333', sex: 'Female', address: 'PESO Office, Koronadal City', status: 'Active' },
+            { id: 3, first_name: 'Robert', middle_name: 'C.', last_name: 'Johnson', suffix: 'Sr.', username: 'cswdo-admin', email: 'cswdo.admin@koronadal.gov.ph', role: 'CSWDO Admin', department: 'CSWDO', phone: '0919-333-4444', sex: 'Male', address: 'CSWDO Main Building, Koronadal City', status: 'Active' },
+            { id: 4, first_name: 'Mary', middle_name: 'D.', last_name: 'Williams', suffix: 'N/A', username: 'cswdo-officer', email: 'cswdo.officer@koronadal.gov.ph', role: 'CSWDO Officer', department: 'CSWDO', phone: '0920-444-5555', sex: 'Female', address: 'CSWDO Annex, Koronadal City', status: 'Active' },
+            { id: 5, first_name: 'Edward', middle_name: 'E.', last_name: 'Davis', suffix: 'Jr.', username: 'evaluator', email: 'evaluator@koronadal.gov.ph', role: 'Evaluator', department: 'PESO', phone: '0921-555-6666', sex: 'Male', address: 'City Hall Annex, Koronadal City', status: 'Active' }
+        ];
+
         let programsList = [];
+        let officersList = [];
         let selectedProgramId = null;
         let selectedBatchId = null;
 
@@ -1185,7 +1481,13 @@
             const localData = localStorage.getItem('peso_livelihood_programs_v1');
             if (localData) { try { programsList = JSON.parse(localData); } catch (e) { programsList = [...INITIAL_PROGRAMS]; } }
             else { programsList = [...INITIAL_PROGRAMS]; localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList)); }
+            
+            const localOff = localStorage.getItem('peso_officers_list_v1');
+            if (localOff) { try { officersList = JSON.parse(localOff); } catch (e) { officersList = [...INITIAL_OFFICERS]; } }
+            else { officersList = [...INITIAL_OFFICERS]; localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList)); }
+
             renderDashboardTables();
+            fetchOfficersFromApi();
         });
 
         function renderDashboardTables() {
@@ -1208,13 +1510,16 @@
         function switchTab(tabName) {
             document.getElementById('tabNavOverview').classList.remove('active');
             document.getElementById('tabNavAssignment').classList.remove('active');
+            document.getElementById('tabNavOfficers').classList.remove('active');
             document.getElementById('tabNavArchive').classList.remove('active');
             document.getElementById('sectionOverview').classList.add('d-none');
             document.getElementById('sectionAssignment').classList.add('d-none');
+            document.getElementById('sectionOfficers').classList.add('d-none');
             document.getElementById('sectionArchive').classList.add('d-none');
 
             if (tabName === 'overview') { document.getElementById('tabNavOverview').classList.add('active'); document.getElementById('sectionOverview').classList.remove('d-none'); }
             else if (tabName === 'assignment') { document.getElementById('tabNavAssignment').classList.add('active'); document.getElementById('sectionAssignment').classList.remove('d-none'); showLevel1Programs(); }
+            else if (tabName === 'officers') { document.getElementById('tabNavOfficers').classList.add('active'); document.getElementById('sectionOfficers').classList.remove('d-none'); renderOfficersTables(); }
             else if (tabName === 'archive') { document.getElementById('tabNavArchive').classList.add('active'); document.getElementById('sectionArchive').classList.remove('d-none'); }
         }
 
@@ -1529,6 +1834,358 @@
                 });
                 localStorage.setItem('peso_immutable_audit_logs', JSON.stringify(logs));
             } catch (e) {}
+        }
+
+        // =========================================================================
+        // PESO OFFICERS MANAGEMENT MODULE FUNCTIONS
+        // =========================================================================
+
+        async function fetchOfficersFromApi() {
+            try {
+                const apiBase = window.API_BASE_URL || '';
+                const response = await fetch(`${apiBase}/api/officers`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                        officersList = result.data.map(off => ({
+                            id: off.id,
+                            first_name: off.first_name || '',
+                            middle_name: off.middle_name || '',
+                            last_name: off.last_name || '',
+                            suffix: off.suffix || 'N/A',
+                            username: off.username || '',
+                            email: off.email || '',
+                            role: off.role || 'PESO Officer',
+                            department: off.department || 'PESO',
+                            phone: off.phone || 'N/A',
+                            sex: off.sex || 'Male',
+                            address: off.address || 'City of Koronadal',
+                            status: (off.status === 'Deactivated' || off.status === 'Inactive') ? 'Deactivated' : 'Active'
+                        }));
+                        localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+                    }
+                }
+            } catch (err) {
+                console.warn('[OFFICERS] Fetch API notice — operating with cached roster:', err.message);
+            }
+            if (document.getElementById('sectionOfficers') && !document.getElementById('sectionOfficers').classList.contains('d-none')) {
+                renderOfficersTables();
+            }
+        }
+
+        function filterOfficers() {
+            renderOfficersTables();
+        }
+
+        function renderOfficersTables() {
+            const search = (document.getElementById('officerSearchInput') ? document.getElementById('officerSearchInput').value : '').toLowerCase().trim();
+            const roleFilter = document.getElementById('officerRoleFilter') ? document.getElementById('officerRoleFilter').value : 'ALL';
+            const deptFilter = document.getElementById('officerDeptFilter') ? document.getElementById('officerDeptFilter').value : 'ALL';
+            const statusFilter = document.getElementById('officerStatusFilter') ? document.getElementById('officerStatusFilter').value : 'ALL';
+
+            const filtered = officersList.filter(off => {
+                const fullName = `${off.first_name} ${off.middle_name || ''} ${off.last_name} ${off.suffix !== 'N/A' ? off.suffix : ''}`.toLowerCase();
+                const matchesSearch = !search || fullName.includes(search) || off.username.toLowerCase().includes(search) || off.email.toLowerCase().includes(search);
+                const matchesRole = roleFilter === 'ALL' || off.role === roleFilter;
+                const matchesDept = deptFilter === 'ALL' || off.department === deptFilter;
+                const matchesStatus = statusFilter === 'ALL' || off.status === statusFilter;
+                return matchesSearch && matchesRole && matchesDept && matchesStatus;
+            });
+
+            const activeOfficers = filtered.filter(o => o.status === 'Active');
+            const archivedOfficers = filtered.filter(o => o.status === 'Deactivated');
+
+            // Render Active Officers Table
+            const activeTbody = document.getElementById('activeOfficersTableBody');
+            if (activeTbody) {
+                activeTbody.innerHTML = activeOfficers.length === 0 ? `<tr><td colspan="8" class="text-center py-4 text-muted">No active officer accounts found matching criteria.</td></tr>` : '';
+                activeOfficers.forEach(off => {
+                    const tr = document.createElement('tr');
+                    const fullName = `${escapeHtml(off.first_name)} ${escapeHtml(off.middle_name || '')} ${escapeHtml(off.last_name)} ${off.suffix && off.suffix !== 'N/A' ? escapeHtml(off.suffix) : ''}`.trim();
+                    tr.innerHTML = `
+                        <td>
+                            <div class="fw-bold text-dark">${fullName}</div>
+                            <small class="text-muted"><i class="bi bi-gender-ambiguous me-1"></i>${escapeHtml(off.sex || 'N/A')}</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark font-monospace border">${escapeHtml(off.username)}</span></td>
+                        <td>${escapeHtml(off.email)}</td>
+                        <td><span class="badge bg-primary-subtle text-primary fw-semibold">${escapeHtml(off.role)}</span></td>
+                        <td><span class="badge bg-secondary-subtle text-dark">${escapeHtml(off.department)}</span></td>
+                        <td><span class="masked-phone">${escapeHtml(off.phone)}</span></td>
+                        <td><span class="badge bg-success px-2.5 py-1">Active</span></td>
+                        <td class="text-end">
+                            <div class="d-inline-flex align-items-center gap-2">
+                                <div class="form-check form-switch mb-0" title="Toggle account status (Active / Deactivated)">
+                                    <input class="form-check-input" type="checkbox" role="switch" checked onchange="handleOfficerStatusToggle(event, ${off.id})">
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary" onclick="openEditOfficerModal(${off.id})">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    activeTbody.appendChild(tr);
+                });
+            }
+
+            // Render Archive Box Table (Deactivated Officers)
+            const archiveTbody = document.getElementById('archivedOfficersTableBody');
+            if (archiveTbody) {
+                archiveTbody.innerHTML = archivedOfficers.length === 0 ? `<tr><td colspan="8" class="text-center py-4 text-muted">Archive box clean — no deactivated officer accounts.</td></tr>` : '';
+                archivedOfficers.forEach(off => {
+                    const tr = document.createElement('tr');
+                    const fullName = `${escapeHtml(off.first_name)} ${escapeHtml(off.middle_name || '')} ${escapeHtml(off.last_name)} ${off.suffix && off.suffix !== 'N/A' ? escapeHtml(off.suffix) : ''}`.trim();
+                    tr.innerHTML = `
+                        <td>
+                            <div class="fw-bold text-secondary text-decoration-line-through">${fullName}</div>
+                            <small class="text-muted"><i class="bi bi-lock-fill text-warning me-1"></i>Access Revoked</small>
+                        </td>
+                        <td><span class="badge bg-light text-muted font-monospace border">${escapeHtml(off.username)}</span></td>
+                        <td>${escapeHtml(off.email)}</td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">${escapeHtml(off.role)}</span></td>
+                        <td><span class="badge bg-light text-dark">${escapeHtml(off.department)}</span></td>
+                        <td><span class="masked-phone">${escapeHtml(off.phone)}</span></td>
+                        <td><span class="badge bg-danger px-2.5 py-1">Deactivated</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-success me-1" onclick="activateOfficerAccount(${off.id})">
+                                <i class="bi bi-shield-check"></i> Activate
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="permanentlyDeleteOfficer(${off.id})">
+                                <i class="bi bi-trash-fill"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    archiveTbody.appendChild(tr);
+                });
+            }
+
+            // Update Badge Counts
+            const totalActive = officersList.filter(o => o.status === 'Active').length;
+            const totalDeactivated = officersList.filter(o => o.status === 'Deactivated').length;
+            if (document.getElementById('activeOfficersBadge')) document.getElementById('activeOfficersBadge').textContent = `${totalActive} Active Officers`;
+            if (document.getElementById('archiveOfficersBadge')) document.getElementById('archiveOfficersBadge').textContent = `${totalDeactivated} Archived Officers`;
+        }
+
+        function openNewOfficerModal() {
+            document.getElementById('newOfficerForm').reset();
+            new bootstrap.Modal(document.getElementById('newOfficerModal')).show();
+        }
+
+        async function handleCreateOfficerSubmit(e) {
+            e.preventDefault();
+
+            const firstName = document.getElementById('newOffFirstName').value.trim();
+            const middleName = document.getElementById('newOffMiddleName').value.trim();
+            const lastName = document.getElementById('newOffLastName').value.trim();
+            const suffix = document.getElementById('newOffSuffix').value;
+            const username = document.getElementById('newOffUsername').value.trim();
+            const email = document.getElementById('newOffEmail').value.trim();
+            const password = document.getElementById('newOffPassword').value;
+            const passwordConfirm = document.getElementById('newOffPasswordConfirm').value;
+            const role = document.getElementById('newOffRole').value;
+            const department = document.getElementById('newOffDepartment').value;
+            const sex = document.getElementById('newOffSex').value;
+            const phone = document.getElementById('newOffPhone').value.trim();
+            const address = document.getElementById('newOffAddress').value.trim();
+
+            if (!firstName || !middleName || !lastName || !username || !email || !password || !passwordConfirm || !phone || !address) {
+                alert('Validation Error: All required fields must be completed.');
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                alert('Validation Error: Password and Password Confirmation do not match.');
+                return;
+            }
+
+            const newOff = {
+                id: Date.now(),
+                first_name: firstName,
+                middle_name: middleName,
+                last_name: lastName,
+                suffix: suffix,
+                username: username,
+                email: email,
+                role: role,
+                department: department,
+                sex: sex,
+                phone: phone,
+                address: address,
+                status: 'Active'
+            };
+
+            // Call Backend API
+            try {
+                const apiBase = window.API_BASE_URL || '';
+                const response = await fetch(`${apiBase}/api/officers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        middle_name: middleName,
+                        last_name: lastName,
+                        suffix: suffix,
+                        username: username,
+                        email: email,
+                        password: password,
+                        password_confirm: passwordConfirm,
+                        role: role,
+                        department: department,
+                        sex: sex,
+                        phone: phone,
+                        address: address
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        newOff.id = data.data.id;
+                    }
+                }
+            } catch (err) {
+                console.warn('[OFFICERS] API submission notice — saved to local state:', err.message);
+            }
+
+            officersList.unshift(newOff);
+            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+
+            logAuditEvent('CREATE_OFFICER_ACCOUNT', `Created new officer account "${username}" (${firstName} ${lastName}), Role: ${role}, Dept: ${department}`);
+
+            const modalEl = document.getElementById('newOfficerModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+
+            renderOfficersTables();
+            alert(`Officer account for ${firstName} ${lastName} created successfully.`);
+        }
+
+        function openEditOfficerModal(officerId) {
+            const off = officersList.find(o => o.id === officerId);
+            if (!off) return;
+
+            document.getElementById('editOffId').value = off.id;
+            document.getElementById('editOffFullName').value = `${off.first_name} ${off.middle_name || ''} ${off.last_name} ${off.suffix !== 'N/A' ? off.suffix : ''}`.trim();
+            document.getElementById('editOffUsername').value = off.username;
+            document.getElementById('editOffEmail').value = off.email;
+            document.getElementById('editOffPhone').value = off.phone;
+            document.getElementById('editOffRole').value = off.role;
+            document.getElementById('editOffDepartment').value = off.department || 'PESO';
+            document.getElementById('editOffAddress').value = off.address || 'City of Koronadal';
+            document.getElementById('editOffStatus').value = off.status;
+
+            new bootstrap.Modal(document.getElementById('editOfficerModal')).show();
+        }
+
+        async function handleSaveOfficerUpdates(e) {
+            e.preventDefault();
+            const offId = Number(document.getElementById('editOffId').value);
+            const off = officersList.find(o => o.id === offId);
+            if (!off) return;
+
+            const updatedUsername = document.getElementById('editOffUsername').value.trim();
+            const updatedEmail = document.getElementById('editOffEmail').value.trim();
+            const updatedPhone = document.getElementById('editOffPhone').value.trim();
+            const updatedRole = document.getElementById('editOffRole').value;
+            const updatedDept = document.getElementById('editOffDepartment').value;
+            const updatedAddress = document.getElementById('editOffAddress').value.trim();
+
+            if (confirm(`Confirm Update: Save changes for officer "${off.username}"?`)) {
+                off.username = updatedUsername;
+                off.email = updatedEmail;
+                off.phone = updatedPhone;
+                off.role = updatedRole;
+                off.department = updatedDept;
+                off.address = updatedAddress;
+
+                try {
+                    const apiBase = window.API_BASE_URL || '';
+                    await fetch(`${apiBase}/api/officers/${offId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: updatedUsername,
+                            email: updatedEmail,
+                            phone: updatedPhone,
+                            role: updatedRole,
+                            department: updatedDept,
+                            address: updatedAddress
+                        })
+                    });
+                } catch (err) {}
+
+                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+                logAuditEvent('UPDATE_OFFICER_ACCOUNT', `Updated details for officer account ID ${offId} (${updatedUsername}), Role: ${updatedRole}, Dept: ${updatedDept}`);
+
+                const modalEl = document.getElementById('editOfficerModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+
+                renderOfficersTables();
+            }
+        }
+
+        async function handleOfficerStatusToggle(event, officerId) {
+            const off = officersList.find(o => o.id === officerId);
+            if (!off) return;
+
+            const isDeactivating = !event.target.checked;
+            const newStatus = isDeactivating ? 'Deactivated' : 'Active';
+            const actionText = isDeactivating ? 'deactivate' : 'activate';
+
+            if (confirm(`Are you sure you want to ${actionText} officer account "${off.username}"? ${isDeactivating ? 'Deactivated officers lose system access but all records are retained.' : ''}`)) {
+                off.status = newStatus;
+                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+
+                try {
+                    const apiBase = window.API_BASE_URL || '';
+                    await fetch(`${apiBase}/api/officers/${officerId}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                } catch (err) {}
+
+                logAuditEvent(isDeactivating ? 'DEACTIVATE_OFFICER_ACCOUNT' : 'ACTIVATE_OFFICER_ACCOUNT', `Updated status of officer account "${off.username}" to ${newStatus}`);
+                renderOfficersTables();
+            } else {
+                event.target.checked = !isDeactivating;
+            }
+        }
+
+        async function activateOfficerAccount(officerId) {
+            const off = officersList.find(o => o.id === officerId);
+            if (!off) return;
+
+            if (confirm(`Restore and activate officer account "${off.username}"?`)) {
+                off.status = 'Active';
+                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+
+                try {
+                    const apiBase = window.API_BASE_URL || '';
+                    await fetch(`${apiBase}/api/officers/${officerId}/restore`, { method: 'POST' });
+                } catch (err) {}
+
+                logAuditEvent('ACTIVATE_OFFICER_ACCOUNT', `Restored officer account "${off.username}" to Active status.`);
+                renderOfficersTables();
+            }
+        }
+
+        async function permanentlyDeleteOfficer(officerId) {
+            const off = officersList.find(o => o.id === officerId);
+            if (!off) return;
+
+            if (confirm(`PERMANENT DELETE WARNING: Are you sure you want to permanently delete officer account "${off.username}"? This action cannot be undone.`)) {
+                officersList = officersList.filter(o => o.id !== officerId);
+                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+
+                try {
+                    const apiBase = window.API_BASE_URL || '';
+                    await fetch(`${apiBase}/api/officers/${officerId}/permanent`, { method: 'DELETE' });
+                } catch (err) {}
+
+                logAuditEvent('PERMANENT_DELETE_OFFICER_ACCOUNT', `Permanently deleted officer account ID ${officerId}`);
+                renderOfficersTables();
+            }
         }
 
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }

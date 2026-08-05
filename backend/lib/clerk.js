@@ -8,7 +8,14 @@
 // branded* emails Clerk doesn't send out of the box: our own OTP fallback,
 // the welcome email, and the QR code delivery.
 
-const { createClerkClient, verifyToken } = require('@clerk/backend');
+let createClerkClient, verifyToken;
+try {
+  const clerkSdk = require('@clerk/backend');
+  createClerkClient = clerkSdk.createClerkClient;
+  verifyToken = clerkSdk.verifyToken;
+} catch (e) {
+  // Optional dependency notice
+}
 
 const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
 const CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY;
