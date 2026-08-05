@@ -407,7 +407,7 @@
                     <p class="text-white-50 mb-0 small"><i class="bi bi-cash-stack me-1"></i> Total LGU Appropriation: <strong class="text-warning fs-6">₱13,707,882.00</strong> allocated across Employment Facilitation, Livelihood, and Community Programs.</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openUploadOrdinanceModal()">
+                    <button id="uploadOrdinanceBtn" class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openUploadOrdinanceModal()">
                         <i class="bi bi-cloud-arrow-up-fill me-1 text-primary"></i> Upload Ordinance
                     </button>
                     <button class="btn btn-outline-light fw-semibold px-3" onclick="showOrdinanceReferenceModal()">
@@ -2230,11 +2230,40 @@
             });
         }
 
-        function openUploadOrdinanceModal() { new bootstrap.Modal(document.getElementById('uploadOrdinanceModal')).show(); }
+        function openUploadOrdinanceModal() {
+            const form = document.getElementById('uploadOrdinanceForm');
+            if (form) form.reset();
+
+            if (typeof logAuditEvent === 'function') {
+                logAuditEvent('OPEN_UPLOAD_ORDINANCE_FORM', 'Opened Upload Ordinance form modal');
+            }
+
+            const modalEl = document.getElementById('uploadOrdinanceModal');
+            if (modalEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modalInstance.show();
+                } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
+                    $('#uploadOrdinanceModal').modal('show');
+                } else {
+                    modalEl.classList.add('show');
+                    modalEl.style.display = 'block';
+                }
+            }
+        }
+
         function handleUploadOrdinance(e) {
             e.preventDefault();
             logAuditEvent('UPLOAD_ORDINANCE', 'Uploaded Appropriation Ordinance document');
-            bootstrap.Modal.getInstance(document.getElementById('uploadOrdinanceModal')).hide();
+            const modalEl = document.getElementById('uploadOrdinanceModal');
+            if (modalEl) {
+                const instance = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+                    ? (bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl))
+                    : null;
+                if (instance) instance.hide();
+                else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) $('#uploadOrdinanceModal').modal('hide');
+                else { modalEl.classList.remove('show'); modalEl.style.display = 'none'; }
+            }
             window.showSystemNotification({
                 title: 'Ordinance Uploaded',
                 message: 'Appropriation Ordinance document uploaded and attached successfully.',
@@ -2398,20 +2427,17 @@
 
             const modalEl = document.getElementById('newOfficerModal');
             if (modalEl) {
-                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-                modalInstance.show();
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modalInstance.show();
+                } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
+                    $('#newOfficerModal').modal('show');
+                } else {
+                    modalEl.classList.add('show');
+                    modalEl.style.display = 'block';
+                }
             }
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const createBtn = document.getElementById('createNewOfficerBtn');
-            if (createBtn) {
-                createBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    openNewOfficerModal();
-                });
-            }
-        });
 
         async function handleCreateOfficerSubmit(e) {
             e.preventDefault();
@@ -2502,8 +2528,14 @@
             logAuditEvent('CREATE_OFFICER_ACCOUNT', `Created new officer account "${username}" (${firstName} ${lastName}), Role: ${role}, Dept: ${department}`);
 
             const modalEl = document.getElementById('newOfficerModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            if (modalInstance) modalInstance.hide();
+            if (modalEl) {
+                const instance = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+                    ? (bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl))
+                    : null;
+                if (instance) instance.hide();
+                else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) $('#newOfficerModal').modal('hide');
+                else { modalEl.classList.remove('show'); modalEl.style.display = 'none'; }
+            }
 
             renderOfficersTables();
             window.showSystemNotification({
