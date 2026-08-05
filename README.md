@@ -10,8 +10,16 @@ The project has been restructured to separate front-end code and back-end/develo
 
 ```
 Capstone-Project-Final-/
-├── frontend/                     # All front-end user-facing files
-│   ├── assets/                   # Image assets (seals, backgrounds)
+├── frontend/                     # Front-end user-facing files & dashboards
+│   ├── assets/                   # Static assets & scripts
+│   │   ├── js/                   # Consolidated client JavaScript modules
+│   │   │   ├── api-config.js
+│   │   │   ├── audit_nav.js
+│   │   │   ├── beneficiary.js
+│   │   │   ├── peso-safeguards.js
+│   │   │   ├── peso_officer.js
+│   │   │   ├── session-manager.js
+│   │   │   └── system-notifications.js
 │   │   ├── city_of_koronadal.jpeg
 │   │   └── koronadalseal.png
 │   ├── index.html                # Main entry point (redirects to official_login)
@@ -23,13 +31,25 @@ Capstone-Project-Final-/
 │   ├── peso_admin.html           # PESO Admin Dashboard
 │   ├── cswdo_officer.html        # CSWDO Officer Dashboard
 │   ├── cswdo_admin.html          # CSWDO Admin Dashboard
-│   └── evaluator.html            # Evaluator Dashboard
-├── backend/                      # Non-frontend scripts and developer tools
-│   └── scripts/
-│       ├── clean.ps1
-│       ├── replace.ps1
-│       └── replace2.ps1
-├── vercel.json                   # Vercel deployment routing configuration
+│   ├── evaluator.html            # Evaluator Dashboard
+│   └── vercel.json               # Vercel deployment routing configuration
+├── backend/                      # Node.js/Express REST API server & routes
+│   ├── lib/                      # Backend middleware & integrations
+│   ├── middleware/               # Express safeguards & rate limiters
+│   ├── routes/                   # API routes (programs, users, officers, etc.)
+│   ├── scripts/                  # Backend test & verification scripts
+│   ├── utils/                    # Utility functions (QR code generator, etc.)
+│   ├── db.js                     # MySQL connection pool configuration
+│   ├── migrate.js                # Database schema migration script
+│   └── server.js                 # Express server entry point
+├── database/                     # MySQL database schema & migration scripts
+│   ├── migrations/               # Versioned SQL migration files
+│   ├── schema.sql                # Complete database schema
+│   └── seed.sql                  # Initial seed data
+├── Dockerfile                    # Production Docker build container definition
+├── nginx.conf                    # Nginx reverse proxy configuration
+├── package.json                  # Node.js dependencies & scripts
+├── start.sh                      # Production entrypoint script
 └── README.md                     # Project documentation
 ```
 
