@@ -55,7 +55,7 @@ const SessionManager = (() => {
   }
 
   /**
-   * Get the current user ID (profile ID from users_profile table)
+   * Get the current user ID (profile ID from staff_profiles or qr_code from beneficiaries)
    */
   function getUserId() {
     return sessionStorage.getItem('userId') || null;
@@ -143,12 +143,28 @@ const SessionManager = (() => {
       // Session is valid — update cached data
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (user) {
-        // Fetch latest profile
-        const { data: profile } = await supabaseClient
-          .from('users_profile')
+        // Try staff_profiles first
+        let profile = null;
+        const { data: staffProfile } = await supabaseClient
+          .from('staff_profiles')
           .select('id, role, status, first_name, last_name')
           .eq('auth_id', user.id)
           .single();
+
+        if (staffProfile) {
+          profile = staffProfile;
+        } else {
+          // Try beneficiaries table
+          const { data: benProfile } = await supabaseClient
+            .from('beneficiaries')
+            .select('qr_code, status, first_name, last_name')
+            .eq('auth_id', user.id)
+            .single();
+
+          if (benProfile) {
+            profile = { id: benProfile.qr_code, role: 'Beneficiary', status: benProfile.status, first_name: benProfile.first_name, last_name: benProfile.last_name };
+          }
+        }
 
         if (profile) {
           _cachedProfile = profile;

@@ -1996,14 +1996,14 @@
                 // Fetch CSWDO applications
                 const { data: appsData } = await supabaseClient
                     .from('applications')
-                    .select('*, beneficiary:users_profile!beneficiary_id(first_name, last_name), program:programs!program_id(name, agency)')
+                    .select('*, beneficiary:beneficiaries!beneficiary_qr(first_name, last_name, qr_code), program:programs!program_id(name, agency)')
                     .eq('program.agency', 'CSWDO');
                 if (appsData && appsData.length > 0) {
                     const mappedApps = appsData.map(app => ({
                         id: app.application_number || `CSWDO-${app.id}`,
                         dbId: app.id,
                         beneficiaryName: `${app.beneficiary?.first_name || ''} ${app.beneficiary?.last_name || ''}`.trim() || 'Beneficiary',
-                        beneficiaryId: String(app.beneficiary_id),
+                        beneficiaryId: String(app.beneficiary_qr),
                         type: app.program?.name || 'Medical Assistance',
                         dateSubmitted: app.date_applied || new Date().toISOString().split('T')[0],
                         status: app.status === 'Officer Approved' ? 'Approved' : (app.status === 'Officer Denied' ? 'Denied' : app.status),
@@ -2037,7 +2037,7 @@
                 // Fetch interview schedules for CSWDO
                 const { data: intData } = await supabaseClient
                     .from('interview_schedules')
-                    .select('*, beneficiary:users_profile!beneficiary_id(first_name, last_name), program:programs!program_id(name)');
+                    .select('*, beneficiary:beneficiaries!beneficiary_qr(first_name, last_name), program:programs!program_id(name)');
                 if (intData && intData.length > 0) {
                     const mappedSchedules = intData.map(i => ({
                         id: `SCH-${i.id}`,

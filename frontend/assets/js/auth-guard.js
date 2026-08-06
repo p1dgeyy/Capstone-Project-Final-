@@ -90,13 +90,32 @@ const AuthGuard = (() => {
         return null;
       }
 
-      const { data: profile, error: profileError } = await supabaseClient
-        .from('users_profile')
+      // Try staff_profiles first, then beneficiaries
+      let profile = null;
+
+      const { data: staffProfile, error: staffError } = await supabaseClient
+        .from('staff_profiles')
         .select('*')
         .eq('auth_id', user.id)
         .single();
 
-      if (profileError || !profile) {
+      if (!staffError && staffProfile) {
+        profile = staffProfile;
+      } else {
+        // Not a staff member — check beneficiaries table
+        const { data: benProfile, error: benError } = await supabaseClient
+          .from('beneficiaries')
+          .select('*')
+          .eq('auth_id', user.id)
+          .single();
+
+        if (!benError && benProfile) {
+          // Normalize: add 'role' field and use qr_code as the id reference
+          profile = { ...benProfile, role: 'Beneficiary', id: benProfile.qr_code };
+        }
+      }
+
+      if (!profile) {
         console.warn('[AUTH_GUARD] Profile not found for auth user:', user.id);
         return null;
       }

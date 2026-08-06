@@ -2034,14 +2034,14 @@
                 // Fetch CSWDO applications with beneficiary profile join
                 const { data: appsData } = await supabaseClient
                     .from('applications')
-                    .select('*, beneficiary:users_profile!beneficiary_id(first_name, last_name), program:programs!program_id(name, agency)')
+                    .select('*, beneficiary:beneficiaries!beneficiary_qr(first_name, last_name, qr_code), program:programs!program_id(name, agency)')
                     .eq('program.agency', 'CSWDO');
                 if (appsData && appsData.length > 0) {
                     const mappedApps = appsData.map(app => ({
                         id: app.application_number || `CSWDO-${app.id}`,
                         dbId: app.id,
                         beneficiaryName: `${app.beneficiary?.first_name || ''} ${app.beneficiary?.last_name || ''}`.trim() || 'Beneficiary',
-                        beneficiaryId: String(app.beneficiary_id),
+                        beneficiaryId: String(app.beneficiary_qr),
                         type: app.program?.name || 'Medical Assistance',
                         dateSubmitted: app.date_applied || new Date().toISOString().split('T')[0],
                         status: app.status === 'Officer Approved' ? 'Pending' : (app.status === 'Officer Denied' ? 'Denied' : (app.status === 'Approved' ? 'Approved' : (app.status === 'Rejected' ? 'Denied' : app.status))),
@@ -2075,7 +2075,7 @@
 
                 // Fetch CSWDO officers
                 const { data: offData } = await supabaseClient
-                    .from('users_profile')
+                    .from('staff_profiles')
                     .select('*')
                     .in('role', ['CSWDO Admin', 'CSWDO Officer']);
                 if (offData && offData.length > 0) {
@@ -2094,13 +2094,13 @@
                 // Fetch audit logs
                 const { data: auditData } = await supabaseClient
                     .from('audit_logs')
-                    .select('*, user:users_profile!user_id(first_name, last_name, role)')
+                    .select('*, staff:staff_profiles!staff_user_id(first_name, last_name, role)')
                     .order('created_at', { ascending: false })
                     .limit(100);
                 if (auditData && auditData.length > 0) {
                     const mappedActivities = auditData.map(l => ({
                         type: l.action,
-                        triggeredBy: `${l.user?.first_name || 'User'} ${l.user?.last_name || ''} (${l.user?.role || 'Staff'})`,
+                        triggeredBy: `${l.staff?.first_name || 'User'} ${l.staff?.last_name || ''} (${l.staff?.role || 'Staff'})`,
                         dateTime: l.created_at ? new Date(l.created_at).toLocaleString() : new Date().toLocaleString(),
                         status: 'Success'
                     }));

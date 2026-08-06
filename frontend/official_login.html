@@ -1663,16 +1663,20 @@
                     throw new Error('Authentication failed.');
                 }
 
-                // Fetch user profile from users_profile table
+                // Fetch user profile from beneficiaries table
                 const { data: profile, error: profileError } = await supabaseClient
-                    .from('users_profile')
-                    .select('id, username, role, first_name, last_name, email, status')
+                    .from('beneficiaries')
+                    .select('qr_code, username, first_name, last_name, email, status')
                     .eq('auth_id', authData.user.id)
                     .single();
 
                 if (profileError || !profile) {
                     throw new Error('User profile not found. Please contact support.');
                 }
+
+                // Normalize beneficiary profile for session compatibility
+                profile.id = profile.qr_code;
+                profile.role = 'Beneficiary';
 
                 // Check account status
                 if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
@@ -1691,6 +1695,7 @@
                 sessionStorage.setItem('beneficiaryLoggedIn', 'true');
                 sessionStorage.setItem('beneficiaryUsername', profile.username);
                 sessionStorage.setItem('beneficiaryName', fullName);
+                sessionStorage.setItem('beneficiaryQrCode', profile.qr_code);
 
                 successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
                 successAlert.style.display = 'block';
