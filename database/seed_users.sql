@@ -7,11 +7,19 @@
 --   • staff_profiles rows for admin/officer/evaluator roles
 --   • beneficiaries rows (with auto-generated qr_code) for beneficiary role
 --
--- IMPORTANT: 
+-- IMPORTANT:
 --   1. Run this AFTER you have executed supabase_schema.sql
 --   2. All users are created with the password: Capstone2026!
 --      (Change these passwords after first login!)
 --   3. Users are auto-confirmed (email_confirmed_at is set)
+--
+-- FIX (2026): auth.users does NOT have a plain unique constraint on email —
+-- it uses a partial unique index (unique only where is_sso_user = false).
+-- ON CONFLICT (email) can never match a partial index, which caused:
+--   "ERROR: 42P10: there is no unique or exclusion constraint matching
+--    the ON CONFLICT specification"
+-- Fixed by using INSERT ... SELECT ... WHERE NOT EXISTS instead of
+-- INSERT ... VALUES ... ON CONFLICT DO NOTHING. This is safe to re-run.
 -- =============================================================================
 
 -- Enable the pgcrypto extension (needed for gen_random_uuid and crypt)
@@ -37,7 +45,8 @@ BEGIN
     email_confirmed_at, created_at, updated_at,
     raw_app_meta_data, raw_user_meta_data,
     aud, role
-  ) VALUES (
+  )
+  SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
     'peso.admin@koronadal.gov.ph',
@@ -53,8 +62,9 @@ BEGIN
     ),
     'authenticated',
     'authenticated'
-  )
-  ON CONFLICT (email) DO NOTHING;
+  WHERE NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE email = 'peso.admin@koronadal.gov.ph'
+  );
 
   -- =========================================================================
   -- 2. PESO Officer
@@ -64,7 +74,8 @@ BEGIN
     email_confirmed_at, created_at, updated_at,
     raw_app_meta_data, raw_user_meta_data,
     aud, role
-  ) VALUES (
+  )
+  SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
     'peso.officer@koronadal.gov.ph',
@@ -80,8 +91,9 @@ BEGIN
     ),
     'authenticated',
     'authenticated'
-  )
-  ON CONFLICT (email) DO NOTHING;
+  WHERE NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE email = 'peso.officer@koronadal.gov.ph'
+  );
 
   -- =========================================================================
   -- 3. CSWDO Admin
@@ -91,7 +103,8 @@ BEGIN
     email_confirmed_at, created_at, updated_at,
     raw_app_meta_data, raw_user_meta_data,
     aud, role
-  ) VALUES (
+  )
+  SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
     'cswdo.admin@koronadal.gov.ph',
@@ -107,8 +120,9 @@ BEGIN
     ),
     'authenticated',
     'authenticated'
-  )
-  ON CONFLICT (email) DO NOTHING;
+  WHERE NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE email = 'cswdo.admin@koronadal.gov.ph'
+  );
 
   -- =========================================================================
   -- 4. CSWDO Officer
@@ -118,7 +132,8 @@ BEGIN
     email_confirmed_at, created_at, updated_at,
     raw_app_meta_data, raw_user_meta_data,
     aud, role
-  ) VALUES (
+  )
+  SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
     'cswdo.officer@koronadal.gov.ph',
@@ -134,8 +149,9 @@ BEGIN
     ),
     'authenticated',
     'authenticated'
-  )
-  ON CONFLICT (email) DO NOTHING;
+  WHERE NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE email = 'cswdo.officer@koronadal.gov.ph'
+  );
 
   -- =========================================================================
   -- 5. Evaluator
@@ -145,7 +161,8 @@ BEGIN
     email_confirmed_at, created_at, updated_at,
     raw_app_meta_data, raw_user_meta_data,
     aud, role
-  ) VALUES (
+  )
+  SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
     'evaluator@koronadal.gov.ph',
@@ -161,8 +178,9 @@ BEGIN
     ),
     'authenticated',
     'authenticated'
-  )
-  ON CONFLICT (email) DO NOTHING;
+  WHERE NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE email = 'evaluator@koronadal.gov.ph'
+  );
 
   -- =========================================================================
   -- 6. Test Beneficiary
@@ -173,7 +191,8 @@ BEGIN
     email_confirmed_at, created_at, updated_at,
     raw_app_meta_data, raw_user_meta_data,
     aud, role
-  ) VALUES (
+  )
+  SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
     'beneficiary@koronadal.gov.ph',
@@ -189,8 +208,9 @@ BEGIN
     ),
     'authenticated',
     'authenticated'
-  )
-  ON CONFLICT (email) DO NOTHING;
+  WHERE NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE email = 'beneficiary@koronadal.gov.ph'
+  );
 
   RAISE NOTICE '✅ All initial users created successfully!';
   RAISE NOTICE 'Default password for all accounts: Capstone2026!';
