@@ -1,27 +1,35 @@
 /**
- * Auth Guard — Route Protection Hook
+ * Auth Guard — Route Protection Hook + Initialization Safeguard
  *
- * Include this script on every protected dashboard page to enforce:
+ * Include this script on every protected dashboard page (or on the login
+ * pages, where it does nothing but is safe to include) to enforce:
  *   1. Valid Supabase session (redirects to login if none)
- *   2. Role-based access control (prevents unauthorized page access)
- *   3. Auto-redirect on sign-out events
+ *   2. Role-based access control (Admin/Officer/Beneficiary only — no
+ *      standalone "Evaluator" role; Officers perform that function)
+ *   3. Correct portal separation: Admins/Officers -> Staff Login only,
+ *      Beneficiaries -> Beneficiary Login only
+ *   4. Auto-redirect on sign-out events
+ *   5. Safe handling of missing session keys / DB errors — never throws
+ *      an unhandled exception into the page.
  *
  * Usage:
- *   Add to any protected page's <head>:
+ *   Add to any protected page's <head>, AFTER supabase-config.js:
  *     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  *     <script src="assets/js/supabase-config.js"></script>
  *     <script src="assets/js/auth-guard.js"></script>
  *
- *   Then in the page's <script>, call:
- *     AuthGuard.requireRole(['PESO Admin', 'PESO Officer']);
- *   or for any authenticated user:
- *     AuthGuard.requireAuth();
+ *   This file auto-runs a guard check on DOMContentLoaded for any page
+ *   listed in PAGE_ROLE_MAP below — no extra call needed. If you need a
+ *   guard on a page NOT in the map, call AuthGuard.requireRole([...])
+ *   manually from that page's own script.
  */
 
 const AuthGuard = (() => {
   'use strict';
 
-  // Map of pages to their allowed roles
+  // Map of pages to their allowed roles.
+  // NOTE: 'Evaluator' is no longer a standalone role — Officers (PESO/CSWDO)
+  // perform the evaluator function, so evaluator.html is allowed for Officers.
   const PAGE_ROLE_MAP = {
     'beneficiary.html': ['Beneficiary'],
     'beneficiary_dashboard.html': ['Beneficiary'],
@@ -29,143 +37,153 @@ const AuthGuard = (() => {
     'peso_admin.html': ['PESO Admin'],
     'cswdo_officer.html': ['CSWDO Officer', 'CSWDO Admin'],
     'cswdo_admin.html': ['CSWDO Admin'],
-    'evaluator.html': ['Evaluator', 'PESO Admin', 'CSWDO Admin']
+    'evaluator.html': ['PESO Officer', 'CSWDO Officer', 'PESO Admin', 'CSWDO Admin']
   };
 
-  // Role → login page mapping
+  // Role -> correct login portal. Used to bounce a user back to the RIGHT
+  // login page rather than a generic error if they land somewhere invalid.
   const ROLE_LOGIN_MAP = {
     'Beneficiary': 'official_login.html',
     'PESO Admin': 'admin_login.html',
     'PESO Officer': 'admin_login.html',
     'CSWDO Admin': 'admin_login.html',
-    'CSWDO Officer': 'admin_login.html',
-    'Evaluator': 'admin_login.html'
+    'CSWDO Officer': 'admin_login.html'
   };
+
+  // Roles allowed on the Staff Login portal (admin_login.html) vs the
+  // Beneficiary portal (official_login.html). Exported so the login pages
+  // themselves can enforce the same rule without duplicating the list.
+  const STAFF_ROLES = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer'];
+  const BENEFICIARY_ROLES = ['Beneficiary'];
 
   let _currentUserProfile = null;
   let _authStateListener = null;
 
-  /**
-   * Get the current page filename
-   */
   function getCurrentPage() {
-    const path = window.location.pathname;
-    return path.substring(path.lastIndexOf('/') + 1) || 'index.html';
+    try {
+      const path = window.location.pathname;
+      return path.substring(path.lastIndexOf('/') + 1) || 'index.html';
+    } catch (e) {
+      return 'index.html';
+    }
   }
 
-  /**
-   * Get the appropriate login page for the current page context
-   */
   function getLoginPage() {
     const page = getCurrentPage();
-    // If it's a beneficiary page, redirect to beneficiary login
-    if (page.includes('beneficiary')) {
-      return 'official_login.html';
-    }
+    if (page.includes('beneficiary')) return 'official_login.html';
     return 'admin_login.html';
   }
 
-  /**
-   * Redirect to login with an optional message
-   */
   function redirectToLogin(message) {
-    if (message) {
-      sessionStorage.setItem('authGuardMessage', message);
+    try {
+      if (message) sessionStorage.setItem('authGuardMessage', message);
+    } catch (e) {
+      // sessionStorage may be unavailable (private browsing, etc.) — non-fatal
+      console.warn('[AUTH_GUARD] Could not persist redirect message:', e.message);
     }
     window.location.href = getLoginPage();
   }
 
   /**
-   * Fetch the current user's profile from Supabase
+   * Fetch the current user's profile from Supabase.
+   * Never throws — returns null on any failure so callers can degrade
+   * gracefully instead of crashing.
    */
   async function fetchUserProfile() {
-    if (!supabaseClient) {
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
       console.error('[AUTH_GUARD] Supabase client not available.');
       return null;
     }
 
     try {
-      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      const user = userData?.user;
       if (userError || !user) {
         return null;
       }
 
-      // Try staff_profiles first, then beneficiaries
       let profile = null;
 
       const { data: staffProfile, error: staffError } = await supabaseClient
         .from('staff_profiles')
         .select('*')
         .eq('auth_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!staffError && staffProfile) {
         profile = staffProfile;
       } else {
-        // Not a staff member — check beneficiaries table
         const { data: benProfile, error: benError } = await supabaseClient
           .from('beneficiaries')
           .select('*')
           .eq('auth_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (!benError && benProfile) {
-          // Normalize: add 'role' field and use qr_code as the id reference
           profile = { ...benProfile, role: 'Beneficiary', id: benProfile.qr_code };
         }
       }
 
       if (!profile) {
-        console.warn('[AUTH_GUARD] Profile not found for auth user:', user.id);
+        console.warn('[AUTH_GUARD] No staff_profiles or beneficiaries row for auth user:', user.id);
         return null;
       }
 
       _currentUserProfile = profile;
       return profile;
     } catch (err) {
-      console.error('[AUTH_GUARD] Error fetching profile:', err.message);
+      // Covers network errors, RLS errors, malformed rows, etc.
+      console.error('[AUTH_GUARD] Error fetching profile (handled safely):', err?.message || err);
       return null;
     }
   }
 
   /**
-   * Check if user has a valid session — redirect to login if not
+   * Require a valid, active session. Redirects to login if missing/invalid.
+   * Wrapped so a database error never becomes an unhandled exception —
+   * worst case, it fails safe by sending the user to login.
    */
   async function requireAuth() {
-    if (!supabaseClient) {
-      redirectToLogin('System error: Supabase not configured.');
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      redirectToLogin('System error: authentication service unavailable.');
       return false;
     }
 
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    try {
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+      const session = sessionData?.session;
 
-    if (!session) {
-      redirectToLogin('Please log in to continue.');
+      if (sessionError || !session) {
+        redirectToLogin('Please log in to continue.');
+        return false;
+      }
+
+      const profile = await fetchUserProfile();
+      if (!profile) {
+        redirectToLogin('Account profile not found. Please contact support.');
+        return false;
+      }
+
+      if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
+        try { await supabaseClient.auth.signOut(); } catch (e) { /* best effort */ }
+        redirectToLogin('Your account has been deactivated. Please contact your administrator.');
+        return false;
+      }
+
+      setupAuthStateListener();
+      return true;
+
+    } catch (err) {
+      // Any unexpected DB/network failure — fail safe, don't crash the page
+      console.error('[AUTH_GUARD] requireAuth failed (handled safely):', err?.message || err);
+      redirectToLogin('A system error occurred. Please log in again.');
       return false;
     }
-
-    // Fetch profile and store it
-    const profile = await fetchUserProfile();
-    if (!profile) {
-      redirectToLogin('Account profile not found. Please contact support.');
-      return false;
-    }
-
-    // Check account status
-    if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
-      await supabaseClient.auth.signOut();
-      redirectToLogin('Your account has been deactivated. Please contact your administrator.');
-      return false;
-    }
-
-    // Set up auth state listener for auto-redirect on sign-out
-    setupAuthStateListener();
-
-    return true;
   }
 
   /**
-   * Check if user has one of the specified roles — redirect if not authorized
+   * Require the session's role to be one of allowedRoles. Redirects to the
+   * user's OWN correct dashboard (not an error page) if it isn't.
    */
   async function requireRole(allowedRoles) {
     const isAuthenticated = await requireAuth();
@@ -173,9 +191,8 @@ const AuthGuard = (() => {
 
     if (!_currentUserProfile || !allowedRoles.includes(_currentUserProfile.role)) {
       const userRole = _currentUserProfile?.role || 'Unknown';
-      console.warn(`[AUTH_GUARD] Access denied. User role "${userRole}" not in allowed roles:`, allowedRoles);
+      console.warn(`[AUTH_GUARD] Access denied. Role "${userRole}" not in allowed roles:`, allowedRoles);
 
-      // Redirect to the user's appropriate dashboard instead
       const redirectPage = getRoleDashboard(userRole);
       if (redirectPage && redirectPage !== getCurrentPage()) {
         window.location.href = redirectPage;
@@ -189,72 +206,56 @@ const AuthGuard = (() => {
   }
 
   /**
-   * Auto-detect allowed roles based on current page and enforce them
+   * Auto-detect allowed roles for the current page and enforce them.
+   * This is the initialization hook: call it once on page load.
    */
   async function autoGuard() {
-    const page = getCurrentPage();
-    const allowedRoles = PAGE_ROLE_MAP[page];
+    try {
+      const page = getCurrentPage();
+      const allowedRoles = PAGE_ROLE_MAP[page];
 
-    if (allowedRoles) {
-      return await requireRole(allowedRoles);
-    } else {
-      // Page not in the map — just require authentication
-      return await requireAuth();
+      if (allowedRoles) {
+        return await requireRole(allowedRoles);
+      }
+      // Page not in the map — not a recognized protected page, do nothing
+      // (avoids accidentally locking out public pages like index.html)
+      return true;
+    } catch (err) {
+      console.error('[AUTH_GUARD] autoGuard failed (handled safely):', err?.message || err);
+      return false;
     }
   }
 
-  /**
-   * Get the dashboard page for a given role
-   */
   function getRoleDashboard(role) {
     const map = {
       'PESO Admin': 'peso_admin.html',
       'PESO Officer': 'peso_officer.html',
       'CSWDO Admin': 'cswdo_admin.html',
       'CSWDO Officer': 'cswdo_officer.html',
-      'Evaluator': 'evaluator.html',
       'Beneficiary': 'beneficiary.html'
     };
-    return map[role] || 'official_login.html';
+    return map[role] || null;
   }
 
-  /**
-   * Set up auth state change listener
-   */
   function setupAuthStateListener() {
-    if (_authStateListener) return; // Already set up
-
-    _authStateListener = supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        console.log('[AUTH_GUARD] User signed out — redirecting to login.');
-        _currentUserProfile = null;
-        redirectToLogin('You have been signed out.');
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('[AUTH_GUARD] Session token refreshed.');
-      }
-    });
+    if (_authStateListener) return;
+    try {
+      _authStateListener = supabaseClient.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT') {
+          _currentUserProfile = null;
+          redirectToLogin('You have been signed out.');
+        }
+      });
+    } catch (e) {
+      console.warn('[AUTH_GUARD] Could not attach auth state listener:', e.message);
+    }
   }
 
-  /**
-   * Get the current cached user profile
-   */
-  function getProfile() {
-    return _currentUserProfile;
-  }
-
-  /**
-   * Get the current user's role
-   */
-  function getRole() {
-    return _currentUserProfile?.role || null;
-  }
-
-  /**
-   * Get the current user's display name
-   */
+  function getProfile() { return _currentUserProfile; }
+  function getRole() { return _currentUserProfile?.role || null; }
   function getDisplayName() {
     if (!_currentUserProfile) return '';
-    return `${_currentUserProfile.first_name} ${_currentUserProfile.last_name}`.trim();
+    return `${_currentUserProfile.first_name || ''} ${_currentUserProfile.last_name || ''}`.trim();
   }
 
   return Object.freeze({
@@ -266,6 +267,22 @@ const AuthGuard = (() => {
     getDisplayName,
     getRoleDashboard,
     fetchUserProfile,
-    redirectToLogin
+    redirectToLogin,
+    STAFF_ROLES,
+    BENEFICIARY_ROLES
   });
 })();
+
+// -----------------------------------------------------------------------------
+// INITIALIZATION SAFEGUARD: automatically runs the guard on every protected
+// page as soon as the DOM is ready — no need to remember to call it manually
+// on each dashboard page. Wrapped in try/catch so a failure here can never
+// break page rendering.
+// -----------------------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    AuthGuard.autoGuard();
+  } catch (err) {
+    console.error('[AUTH_GUARD] Init hook failed (handled safely):', err?.message || err);
+  }
+});

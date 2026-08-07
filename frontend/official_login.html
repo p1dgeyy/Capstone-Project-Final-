@@ -1649,9 +1649,23 @@
                     throw new Error('Supabase client not initialized.');
                 }
 
-                // Sign in with Supabase Auth (email + password)
+                // STEP 1: Resolve the entered username (or email) to a real
+                // email address, scoped to the BENEFICIARY portal only. This
+                // RPC (SECURITY DEFINER) enforces "Beneficiaries can only log
+                // in here" at the database level — it returns NULL for a
+                // staff username even if the password would otherwise match.
+                const { data: resolvedEmail, error: resolveError } = await supabaseClient
+                    .rpc('resolve_login_email', { p_identifier: email, p_portal: 'beneficiary' });
+
+                if (resolveError || !resolvedEmail) {
+                    throw new Error(lang === 'tg'
+                        ? 'Hindi tamang username/email o password.'
+                        : 'Invalid username/email or password.');
+                }
+
+                // STEP 2: Sign in with Supabase Auth using the resolved email
                 const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
+                    email: resolvedEmail,
                     password: password
                 });
 
@@ -1671,6 +1685,7 @@
                     .single();
 
                 if (profileError || !profile) {
+                    await supabaseClient.auth.signOut();
                     throw new Error('User profile not found. Please contact support.');
                 }
 
@@ -1700,16 +1715,10 @@
                 successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
                 successAlert.style.display = 'block';
 
-                // Role-based redirect
-                const roleRedirects = {
-                    'PESO Admin': 'peso_admin.html',
-                    'PESO Officer': 'peso_officer.html',
-                    'CSWDO Admin': 'cswdo_admin.html',
-                    'CSWDO Officer': 'cswdo_officer.html',
-                    'Evaluator': 'evaluator.html',
-                    'Beneficiary': 'beneficiary.html'
-                };
-                const redirectPage = roleRedirects[profile.role] || 'beneficiary.html';
+                // This portal only ever authenticates Beneficiary accounts
+                // (the resolve_login_email RPC already scoped the lookup to
+                // the beneficiaries table), so the redirect is always fixed.
+                const redirectPage = 'beneficiary.html';
 
                 setTimeout(() => {
                     window.location.href = redirectPage;

@@ -1638,9 +1638,24 @@
                     throw new Error('Supabase client not initialized.');
                 }
 
-                // Sign in with Supabase Auth (email + password)
+                // STEP 1: Resolve the entered username (or email) to a real
+                // email address, scoped to the STAFF portal only. This RPC
+                // (SECURITY DEFINER) is what enforces "Admins/Officers can
+                // only log in here" at the database level — it will return
+                // NULL for a beneficiary username even if the password is
+                // otherwise correct.
+                const { data: resolvedEmail, error: resolveError } = await supabaseClient
+                    .rpc('resolve_login_email', { p_identifier: email, p_portal: 'staff' });
+
+                if (resolveError || !resolvedEmail) {
+                    throw new Error(lang === 'tg'
+                        ? 'Hindi tamang username/email o password.'
+                        : 'Invalid username/email or password.');
+                }
+
+                // STEP 2: Sign in with Supabase Auth using the resolved email
                 const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
+                    email: resolvedEmail,
                     password: password
                 });
 
@@ -1660,6 +1675,7 @@
                     .single();
 
                 if (profileError || !profile) {
+                    await supabaseClient.auth.signOut();
                     throw new Error('User profile not found. Please contact support.');
                 }
 
@@ -1669,8 +1685,9 @@
                     throw new Error('Account is deactivated. Please contact your administrator.');
                 }
 
-                // Verify this is a staff/admin account (not beneficiary)
-                const staffRoles = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
+                // Verify this is a staff/admin account (Officers now cover the
+                // evaluator function — there is no standalone Evaluator role)
+                const staffRoles = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer'];
                 if (!staffRoles.includes(profile.role)) {
                     await supabaseClient.auth.signOut();
                     throw new Error(lang === 'tg'
@@ -1695,8 +1712,7 @@
                     'PESO Admin': 'peso_admin.html',
                     'PESO Officer': 'peso_officer.html',
                     'CSWDO Admin': 'cswdo_admin.html',
-                    'CSWDO Officer': 'cswdo_officer.html',
-                    'Evaluator': 'evaluator.html'
+                    'CSWDO Officer': 'cswdo_officer.html'
                 };
                 const redirectPage = roleRedirects[profile.role] || 'peso_officer.html';
 
