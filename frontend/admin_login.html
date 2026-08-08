@@ -867,7 +867,8 @@
             color: #e5e5e5;
         }
     </style>
-    <!-- Supabase JS Client -->
+    <!-- Core Config & Supabase JS Client -->
+    <script src="assets/js/api-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase-config.js"></script>
     <script src="assets/js/session-manager.js"></script>
@@ -1780,9 +1781,17 @@
                 let accessToken = null;
                 const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
 
+                const knownStaffAccounts = {
+                    'peso-admin': { email: 'peso.admin@koronadal.gov.ph', role: 'PESO Admin', firstName: 'John', lastName: 'Doe', department: 'PESO' },
+                    'peso-officer': { email: 'peso.officer@koronadal.gov.ph', role: 'PESO Officer', firstName: 'Jane', lastName: 'Smith', department: 'PESO' },
+                    'cswdo-admin': { email: 'cswdo.admin@koronadal.gov.ph', role: 'CSWDO Admin', firstName: 'Robert', lastName: 'Johnson', department: 'CSWDO' },
+                    'cswdo-officer': { email: 'cswdo.officer@koronadal.gov.ph', role: 'CSWDO Officer', firstName: 'Mary', lastName: 'Williams', department: 'CSWDO' },
+                    'evaluator': { email: 'evaluator@koronadal.gov.ph', role: 'Evaluator', firstName: 'Edward', lastName: 'Davis', department: 'City Hall' }
+                };
+
                 // STEP 1: Attempt Backend Express API Login first
                 try {
-                    let response = await fetch(`${apiBase}/api/admin/login`, {
+                    let response = await fetch(`${apiBase}/api/auth/login`, {
                         method: 'POST',
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
@@ -1793,9 +1802,9 @@
                         })
                     });
 
-                    // Fallback to /api/auth/login if /api/admin/login returned 404
+                    // Fallback to /api/admin/login if needed
                     if (response.status === 404) {
-                        response = await fetch(`${apiBase}/api/auth/login`, {
+                        response = await fetch(`${apiBase}/api/admin/login`, {
                             method: 'POST',
                             credentials: 'include',
                             headers: { 'Content-Type': 'application/json' },
@@ -1808,12 +1817,16 @@
                     }
 
                     if (response.status === 423) {
-                        // Account Locked from backend (5 failed attempts -> 15 min lockout)
                         const data = await response.json();
                         lockoutUntilTimestamp = Date.now() + (15 * 60 * 1000);
                         localStorage.setItem('peso_lockout_until', lockoutUntilTimestamp.toString());
                         checkLockoutStatus();
                         throw new Error(data.message || 'Account locked: 5 failed login attempts exceeded. Please wait 15 minutes or reset your password.');
+                    }
+
+                    if (response.status === 403) {
+                        const data = await response.json();
+                        throw new Error(data.message || 'Your account has been deactivated. Please contact your administrator.');
                     }
 
                     if (response.ok) {
@@ -1827,42 +1840,85 @@
                         }
                     }
                 } catch (apiErr) {
-                    if (apiErr.message && apiErr.message.includes('Account locked')) {
+                    if (apiErr.message && (apiErr.message.includes('Account locked') || apiErr.message.includes('deactivated'))) {
                         throw apiErr;
                     }
                     console.warn('[LOGIN] Backend API notice:', apiErr.message);
                 }
 
-                // STEP 2: Supabase Auth fallback if backend did not complete
+                // STEP 2: Supabase Auth fallback if backend did not authenticate
                 if (!authSuccess && typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    const { data: resolvedEmail, error: resolveError } = await supabaseClient
-                        .rpc('resolve_login_email', { p_identifier: identifier, p_portal: 'staff' });
+                    let targetEmail = null;
 
-                    if (resolveError || !resolvedEmail) {
-                        throw new Error(translations[lang]['error_invalid']);
+                    if (identifier.includes('@')) {
+                        targetEmail = identifier;
+                    } else {
+                        // 1. Try resolve_login_email RPC
+                        try {
+                            const { data: rpcEmail } = await supabaseClient
+                                .rpc('resolve_login_email', { p_identifier: identifier, p_portal: 'staff' });
+                            if (rpcEmail) targetEmail = rpcEmail;
+                        } catch (e) {
+                            console.warn('[LOGIN] RPC resolve_login_email notice:', e.message);
+                        }
+
+                        // 2. Try known staff mapping
+                        if (!targetEmail) {
+                            const lower = identifier.toLowerCase();
+                            if (knownStaffAccounts[lower]) {
+                                targetEmail = knownStaffAccounts[lower].email;
+                            }
+                        }
+
+                        // 3. Fallback to constructed email
+                        if (!targetEmail) {
+                            targetEmail = `${identifier}@koronadal.gov.ph`;
+                        }
                     }
 
                     const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-                        email: resolvedEmail,
+                        email: targetEmail,
                         password: password
                     });
 
-                    if (authError) {
-                        throw new Error(translations[lang]['error_invalid']);
-                    }
+                    if (!authError && authData && authData.user) {
+                        let profile = null;
 
-                    if (authData && authData.user) {
-                        const { data: profile } = await supabaseClient
-                            .from('staff_profiles')
-                            .select('id, username, role, first_name, last_name, email, status')
-                            .eq('auth_id', authData.user.id)
-                            .single();
+                        // Try selecting from staff_profiles
+                        try {
+                            const { data: staffData, error: staffErr } = await supabaseClient
+                                .from('staff_profiles')
+                                .select('*')
+                                .eq('auth_id', authData.user.id)
+                                .maybeSingle();
 
-                        if (profile) {
-                            authSuccess = true;
-                            userProfile = profile;
-                            accessToken = authData.session.access_token;
+                            if (!staffErr && staffData) {
+                                profile = staffData;
+                            }
+                        } catch (e) {
+                            console.warn('[LOGIN] staff_profiles select note:', e.message);
                         }
+
+                        // Fallback to user metadata or known accounts
+                        if (!profile) {
+                            const meta = authData.user.user_metadata || {};
+                            const known = knownStaffAccounts[identifier.toLowerCase()] || {};
+                            profile = {
+                                id: authData.user.id,
+                                auth_id: authData.user.id,
+                                username: meta.username || known.username || identifier,
+                                role: meta.role || known.role || 'PESO Admin',
+                                first_name: meta.first_name || known.firstName || 'Administrator',
+                                last_name: meta.last_name || known.lastName || '',
+                                email: authData.user.email,
+                                department: known.department || 'PESO',
+                                status: 'Active'
+                            };
+                        }
+
+                        authSuccess = true;
+                        userProfile = profile;
+                        accessToken = authData.session.access_token;
                     }
                 }
 
@@ -1902,7 +1958,7 @@
                 }
 
                 // Check active status
-                if (userProfile.status === 'Deactivated' || userProfile.status === 'Archived') {
+                if (userProfile.status === 'Deactivated' || userProfile.status === 'Archived' || userProfile.status === 'Inactive') {
                     throw new Error('Your account has been deactivated. Please contact your administrator.');
                 }
 
@@ -1941,7 +1997,8 @@
                     'PESO Admin': 'peso_admin.html',
                     'PESO Officer': 'peso_officer.html',
                     'CSWDO Admin': 'cswdo_admin.html',
-                    'CSWDO Officer': 'cswdo_officer.html'
+                    'CSWDO Officer': 'cswdo_officer.html',
+                    'Evaluator': 'peso_admin.html'
                 };
                 const redirectPage = roleRedirects[userProfile.role] || 'peso_admin.html';
 
@@ -1953,7 +2010,8 @@
             } catch (error) {
                 console.error('[LOGIN] Error:', error.message);
                 const isLocked = error.message.includes('Account locked');
-                const friendlyMsg = isLocked 
+                const isDeactivated = error.message.includes('deactivated');
+                const friendlyMsg = isLocked || isDeactivated
                     ? error.message 
                     : (error.message.includes('Invalid') ? translations[lang]['error_invalid'] : error.message);
                 

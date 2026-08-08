@@ -393,6 +393,42 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- =============================================================================
+-- RPC: Resolve Login Email (Username or Email -> User Email)
+-- Scoped to portal: 'staff' (staff_profiles) or 'beneficiary' (beneficiaries)
+-- =============================================================================
+CREATE OR REPLACE FUNCTION public.resolve_login_email(
+  p_identifier TEXT,
+  p_portal TEXT DEFAULT 'staff'
+)
+RETURNS TEXT AS $$
+DECLARE
+  v_email TEXT;
+BEGIN
+  IF p_identifier IS NULL OR TRIM(p_identifier) = '' THEN
+    RETURN NULL;
+  END IF;
+
+  p_identifier := TRIM(p_identifier);
+
+  IF p_portal = 'staff' THEN
+    SELECT email INTO v_email
+    FROM public.staff_profiles
+    WHERE (LOWER(username) = LOWER(p_identifier) OR LOWER(email) = LOWER(p_identifier))
+      AND status != 'Archived'
+    LIMIT 1;
+  ELSE
+    SELECT email INTO v_email
+    FROM public.beneficiaries
+    WHERE (LOWER(username) = LOWER(p_identifier) OR LOWER(email) = LOWER(p_identifier) OR qr_code = p_identifier)
+      AND status != 'Archived'
+    LIMIT 1;
+  END IF;
+
+  RETURN v_email;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =============================================================================
 -- TRIGGER: Auto-update updated_at timestamp
 -- =============================================================================
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
