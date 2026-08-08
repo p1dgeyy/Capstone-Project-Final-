@@ -124,22 +124,22 @@ router.post('/', requireAdmin, async (req, res) => {
         });
     }
 
-    // Role validation
-    const validRoles = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Staff', 'Admin', 'Officer'];
-    if (!validRoles.includes(role)) {
-        return res.status(400).json({
-            success: false,
-            error: 'Invalid Role',
-            message: `Role must be one of: ${validRoles.join(', ')}`
-        });
-    }
-
     // Beneficiary Account Restriction check
     if (role.toLowerCase().includes('beneficiary')) {
         return res.status(400).json({
             success: false,
             error: 'Beneficiary Edit Restriction',
             message: 'Beneficiary accounts cannot be created from the user management module; they remain strictly Officer-managed.'
+        });
+    }
+
+    // Role validation
+    const validRoles = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Staff', 'Admin', 'Officer', 'Evaluator'];
+    if (!validRoles.includes(role)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid Role',
+            message: `Role must be one of: ${validRoles.join(', ')}`
         });
     }
 

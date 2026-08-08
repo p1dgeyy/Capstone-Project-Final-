@@ -14,12 +14,16 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 async function request(method, path, body = null, token = null) {
     return new Promise((resolve, reject) => {
         const url = new URL(path, BASE_URL);
+        const payload = body ? JSON.stringify(body) : null;
         const options = {
             method,
             headers: {
                 'Content-Type': 'application/json'
             }
         };
+        if (payload) {
+            options.headers['Content-Length'] = Buffer.byteLength(payload);
+        }
         if (token) {
             options.headers['Authorization'] = `Bearer ${token}`;
         }
@@ -38,8 +42,8 @@ async function request(method, path, body = null, token = null) {
         });
 
         req.on('error', reject);
-        if (body) {
-            req.write(JSON.stringify(body));
+        if (payload) {
+            req.write(payload);
         }
         req.end();
     });

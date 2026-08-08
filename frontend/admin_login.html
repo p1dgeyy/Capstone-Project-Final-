@@ -1344,11 +1344,10 @@
             const loginBtn = document.getElementById('loginBtn');
 
             if (lockoutUntilTimestamp && now < lockoutUntilTimestamp) {
-                const remainingSecs = Math.ceil((lockoutUntilTimestamp - now) / 1000);
-                const mins = Math.floor(remainingSecs / 60);
-                const secs = remainingSecs % 60;
+                const mins = Math.floor((lockoutUntilTimestamp - now) / 60000);
+                const secs = Math.floor(((lockoutUntilTimestamp - now) % 60000) / 1000);
                 
-                errorMessage.innerHTML = `<i class="bi bi-lock-fill me-1"></i><strong>Account locked:</strong> 5 failed login attempts exceeded. Please wait <strong>${mins}m ${secs}s</strong> or use <a href="#" onclick="showModal('resetModal'); return false;" class="text-danger fw-bold text-decoration-underline">Forgot Password</a> to reset.`;
+                errorMessage.innerHTML = `<i class="bi bi-lock-fill me-1"></i><strong>Account locked:</strong> 5 failed login attempts exceeded. Please wait <strong>${mins}m ${secs}s</strong> or <a href="#" onclick="showModal('resetModal'); return false;" class="text-danger fw-bold text-decoration-underline">reset your password</a>.`;
                 errorAlert.style.display = 'block';
                 errorAlert.className = 'alert alert-danger shadow-sm border-danger';
                 loginBtn.disabled = true;
@@ -1870,7 +1869,7 @@
                                 details: `Account "${identifier}" locked for 15 minutes after 5 consecutive failures.`
                             });
                         }
-                        throw new Error('Account locked: 5 failed login attempts exceeded. Please wait 15 minutes or use Forgot Password.');
+                        throw new Error('Account locked: 5 failed login attempts exceeded. Please wait 15 minutes or reset your password.');
                     }
 
                     if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.logAudit) {
