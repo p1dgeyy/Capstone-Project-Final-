@@ -13,11 +13,13 @@ const filesToValidate = [
     'backend/auth.js',
     'backend/users.js',
     'backend/routes/audit.js',
+    'backend/routes/officers.js',
     'backend/middleware/auth.js',
     'backend/utils/auditLogger.js',
     'backend/data/seedData.js',
     'backend/scripts/test-api.js',
     'frontend/assets/js/peso_admin.js',
+    'frontend/assets/js/peso_officer.js',
     'frontend/assets/js/peso-safeguards.js',
     'frontend/assets/js/session-manager.js',
     'frontend/assets/js/system-notifications.js'
@@ -48,6 +50,7 @@ filesToValidate.forEach(relPath => {
 // HTML Structure & Attribute Checks
 const htmlFiles = [
     'frontend/peso_admin.html',
+    'frontend/peso_officer.html',
     'frontend/admin_login.html'
 ];
 

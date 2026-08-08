@@ -265,6 +265,23 @@ CREATE INDEX IF NOT EXISTS idx_int_date ON interview_schedules(interview_date);
 CREATE INDEX IF NOT EXISTS idx_int_status ON interview_schedules(status);
 
 -- =============================================================================
+-- 10. ATTENDANCE TABLE (Daily Interview Attendance & Monitoring)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS attendance (
+  id BIGSERIAL PRIMARY KEY,
+  interview_id BIGINT NOT NULL REFERENCES interview_schedules(id) ON DELETE CASCADE,
+  officer_id BIGINT NOT NULL REFERENCES staff_profiles(id) ON DELETE CASCADE,
+  presence_flag VARCHAR(20) NOT NULL CHECK (presence_flag IN ('Present', 'Absent', 'Unmarked')),
+  remarks TEXT DEFAULT NULL,
+  justification TEXT DEFAULT NULL,
+  recorded_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_att_interview ON attendance(interview_id);
+CREATE INDEX IF NOT EXISTS idx_att_officer ON attendance(officer_id);
+CREATE INDEX IF NOT EXISTS idx_att_flag ON attendance(presence_flag);
+
+-- =============================================================================
 -- TRIGGER: Auto-create staff_profiles OR beneficiaries on Supabase auth signup
 -- Branches based on the 'role' field in raw_user_meta_data
 -- =============================================================================

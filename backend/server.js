@@ -18,6 +18,7 @@ const path = require('path');
 const authRouter = require('./auth');
 const usersRouter = require('./users');
 const auditRouter = require('./routes/audit');
+const officersRouter = require('./routes/officers');
 const { rateLimiter, enforceHttps, getIpSuspiciousReport } = require('./middleware/auth');
 const { logAudit } = require('./utils/auditLogger');
 
@@ -53,6 +54,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/audit-logs', auditRouter);
+app.use('/api', officersRouter);
 
 // Health Check & Security Diagnostics Endpoint
 app.get('/api/health', (req, res) => {

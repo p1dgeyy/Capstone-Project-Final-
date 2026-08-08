@@ -261,6 +261,116 @@ async function runTests() {
         assert.ok(res.body.checkedLogsCount > 0);
     });
 
+    // 13. Officer Daily Schedule Management: GET /api/officer/:id/schedule
+    await test('GET /api/officer/:id/schedule returns assigned interviews with masked contact privacy', async () => {
+        const res = await request('GET', '/api/officer/2/schedule');
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.ok(Array.isArray(res.body.data));
+        assert.ok(res.body.data.length >= 3);
+        
+        // Data Privacy Masking validation
+        const sample = res.body.data[0];
+        assert.ok(sample.beneficiary_phone.includes('***'), `Phone number ${sample.beneficiary_phone} must be masked`);
+    });
+
+    // 14. Daily Schedule Attendance: PUT /api/interview/:id/attendance (Present)
+    await test('PUT /api/interview/:id/attendance marks attendance with presence flag & audit log', async () => {
+        const res = await request('PUT', '/api/interview/1/attendance', {
+            presence_flag: 'Present',
+            remarks: 'Beneficiary arrived on time and completed orientation.'
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.data.presence_flag, 'Present');
+        assert.strictEqual(res.body.data.attendance_status, 'Present');
+    });
+
+    // 15. Past Date Restriction: PUT /api/interview/:id/attendance on past date without justification blocks update
+    await test('Past Date Restriction: Updating past interview attendance without justification is blocked (400)', async () => {
+        // Interview ID 5 is on past date '2026-08-05'
+        const res = await request('PUT', '/api/interview/5/attendance', {
+            presence_flag: 'Present',
+            remarks: 'Attempting to mark past interview without justification'
+        });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.body.success, false);
+        assert.ok(res.body.message.includes('Past Date Restriction'));
+    });
+
+    // 16. Past Date Restriction: PUT /api/interview/:id/attendance with justification succeeds
+    await test('Past Date Restriction: Updating past interview attendance with mandatory justification succeeds', async () => {
+        const res = await request('PUT', '/api/interview/5/attendance', {
+            presence_flag: 'Absent',
+            remarks: 'Updated after medical certificate submission.',
+            justification: 'Medical waiver verified and certified by city health officer.'
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.data.justification, 'Medical waiver verified and certified by city health officer.');
+    });
+
+    // 17. Update Interview Status: PUT /api/interview/:id/status
+    await test('PUT /api/interview/:id/status updates status (Completed/Pending/Missed) with audit trail', async () => {
+        const res = await request('PUT', '/api/interview/1/status', {
+            status: 'Completed',
+            remarks: 'Interview completed successfully. Endorsed to Livelihood committee.'
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.data.status, 'Completed');
+    });
+
+    // 18. Conflict Validation: GET /api/interview/check-conflicts
+    await test('Conflict Validation: GET /api/interview/check-conflicts detects schedule overlaps', async () => {
+        // Overlapping with 09:00 AM slot on 2026-08-08 for officer 2
+        const res = await request('GET', '/api/interview/check-conflicts?officer_id=2&date=2026-08-08&time=09:00%20AM');
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.conflict, true);
+        assert.ok(res.body.existingSchedule);
+    });
+
+    // 19. Schedule Conflict Restriction: POST /api/interview/schedule rejects conflicting schedule (409)
+    await test('Schedule Conflict Restriction: POST /api/interview/schedule rejects overlapping slot (409)', async () => {
+        const res = await request('POST', '/api/interview/schedule', {
+            officer_id: 2,
+            beneficiary_name: 'Conflict Test User',
+            beneficiary_phone: '0917-999-8888',
+            beneficiary_address: 'Poblacion, Koronadal City',
+            barangay: 'Poblacion',
+            program_code: 'TUPAD',
+            interview_date: '2026-08-08',
+            schedule_time: '09:00 AM - 10:00 AM',
+            venue_location: 'PESO Main Office'
+        });
+        assert.strictEqual(res.status, 409);
+        assert.strictEqual(res.body.success, false);
+        assert.ok(res.body.error === 'Conflict Restriction' || res.body.message.includes('Conflict'));
+    });
+
+    // 20. Schedule New Interview: POST /api/interview/schedule creates new valid schedule
+    await test('POST /api/interview/schedule creates new interview for open slot with audit log', async () => {
+        const res = await request('POST', '/api/interview/schedule', {
+            officer_id: 2,
+            beneficiary_name: 'Generoso Alcantara',
+            beneficiary_phone: '0928-111-2222',
+            beneficiary_email: 'generoso@koronadal.ph',
+            beneficiary_address: 'Purok 5, Barangay Morales, Koronadal City',
+            barangay: 'Morales',
+            program_code: 'PFAS',
+            program_name: 'PFAS (Pangkabuhayan Assistance Special Project)',
+            projectType: 'Bakery Equipment Livelihood Project',
+            interview_date: '2026-08-11',
+            schedule_time: '02:00 PM - 03:00 PM',
+            venue_location: 'PESO Main Office - Room B',
+            remarks: 'Pre-qualification interview.'
+        });
+        assert.strictEqual(res.status, 201);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.data.beneficiary_name, 'Generoso Alcantara');
+        assert.strictEqual(res.body.data.beneficiary_phone.includes('***'), true);
+    });
+
     console.log('\n===============================================================');
     console.log(`📊 Test Summary: ${passed} passed, ${failed} failed.`);
     console.log('===============================================================\n');

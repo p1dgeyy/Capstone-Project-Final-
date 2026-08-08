@@ -309,11 +309,12 @@
         </div>
         <ul class="sidebar-menu">
             <li class="nav-header">Main Menu</li>
-            <li class="nav-item"><a href="#" class="nav-link active" onclick="switchTab('dashboard')"><i class="bi bi-grid-1x2"></i> Overview Dashboard</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('beneficiaries')"><i class="bi bi-people-fill"></i> Beneficiaries Management</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('evaluation')"><i class="bi bi-clipboard-check"></i> Application Evaluation</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('livelihood-mgmt')"><i class="bi bi-diagram-3"></i> Livelihood Applications & Batches</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('approved-assistance')"><i class="bi bi-box-seam"></i> Approved Assistance & Reports</a></li>
+            <li class="nav-item"><a href="#" class="nav-link active" id="navDashboard" onclick="switchTab('dashboard')"><i class="bi bi-grid-1x2"></i> Overview Dashboard</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" id="navDailySchedules" onclick="switchTab('daily-schedules')"><i class="bi bi-calendar-check"></i> Daily Interview Schedules</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" id="navBeneficiaries" onclick="switchTab('beneficiaries')"><i class="bi bi-people-fill"></i> Beneficiaries Management</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" id="navEvaluation" onclick="switchTab('evaluation')"><i class="bi bi-clipboard-check"></i> Application Evaluation</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" id="navLivelihood" onclick="switchTab('livelihood-mgmt')"><i class="bi bi-diagram-3"></i> Livelihood Applications & Batches</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" id="navAssistance" onclick="switchTab('approved-assistance')"><i class="bi bi-box-seam"></i> Approved Assistance & Reports</a></li>
             <li class="nav-header">Tools & Traceability</li>
             <li class="nav-item"><a href="#" class="nav-link" onclick="openQrScannerModal()"><i class="bi bi-qr-code-scan"></i> QR Scanner Lookup</a></li>
             <li class="nav-item"><a href="#" class="nav-link" onclick="openAuditModal()"><i class="bi bi-journal-text"></i> Audit Logs & History</a></li>
@@ -713,6 +714,176 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. DAILY INTERVIEW SCHEDULE MANAGEMENT TAB -->
+        <section id="tab-daily-schedules" class="tab-section d-none">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title"><i class="bi bi-calendar-check-fill text-primary me-2"></i>Daily Interview Schedule Management</h1>
+                    <p class="text-muted">Manage assigned interviews, monitor beneficiary attendance (Present/Absent), update statuses, and inspect applied livelihood programs</p>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button class="btn btn-outline-secondary" onclick="exportDailyScheduleCSV()"><i class="bi bi-download me-1"></i> Export Schedule</button>
+                    <button class="btn btn-primary" onclick="openScheduleNewInterviewModal()"><i class="bi bi-calendar-plus me-1"></i> Schedule Interview</button>
+                </div>
+            </div>
+
+            <!-- Date Navigation Toolbar & Metric Badges -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center g-3">
+                        <div class="col-lg-5">
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-outline-primary" onclick="navigateScheduleDate(-1)" title="Previous Day (Left Arrow Key)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                                <button class="btn btn-primary fw-bold px-3" onclick="navigateScheduleDate(0)" title="Jump to Today (T Key)">
+                                    Today
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="navigateScheduleDate(1)" title="Next Day (Right Arrow Key)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                                <div class="ms-2">
+                                    <h5 class="fw-bold text-dark mb-0" id="currentScheduleDateDisplay">Saturday, August 8, 2026</h5>
+                                    <small class="text-muted" id="scheduleDateSubtitle">Assigned Interviews for PESO Officer</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
+                                <input type="date" class="form-control" id="scheduleDatePickerInput" onchange="onScheduleDatePickerChange(this.value)">
+                            </div>
+                        </div>
+                        <div class="col-lg-4 text-lg-end">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-secondary active" id="btnViewModeList" onclick="setScheduleViewMode('list')"><i class="bi bi-list-ul me-1"></i> List View</button>
+                                <button type="button" class="btn btn-outline-secondary" id="btnViewModeCalendar" onclick="setScheduleViewMode('calendar')"><i class="bi bi-grid-3x3-gap me-1"></i> Calendar Grid</button>
+                            </div>
+                            <span class="badge bg-light text-muted border ms-2 small d-none d-xl-inline"><i class="bi bi-keyboard me-1"></i> Left/Right = Date | T = Today</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conflict Warning Alert Banner -->
+            <div id="scheduleConflictAlertBanner" class="alert alert-danger d-none align-items-center gap-3 p-3 shadow-sm border-danger mb-4" role="alert">
+                <i class="bi bi-exclamation-octagon-fill fs-3 text-danger"></i>
+                <div class="flex-grow-1">
+                    <h6 class="fw-bold text-danger mb-1"><i class="bi bi-shield-slash-fill me-1"></i>Schedule Conflict Warning Detected!</h6>
+                    <div id="scheduleConflictAlertText" class="small">Overlapping interview time slots were detected for this officer on the selected date. Please adjust interview times to resolve conflicts.</div>
+                </div>
+            </div>
+
+            <!-- Quick Status Filter Bar -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="dailyScheduleSearchInput" placeholder="Search beneficiary name, ID, QR, or program..." onkeyup="filterDailySchedules()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="dailyScheduleStatusFilter" onchange="filterDailySchedules()">
+                                <option value="">All Statuses (Pending, Completed, Missed)</option>
+                                <option value="Pending">🟢 Pending</option>
+                                <option value="Completed">🔵 Completed</option>
+                                <option value="Missed">🔴 Missed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="dailyScheduleAttendanceFilter" onchange="filterDailySchedules()">
+                                <option value="">All Attendance (Present, Absent, Unmarked)</option>
+                                <option value="Present">Present (Checked-in)</option>
+                                <option value="Absent">Absent (No-show)</option>
+                                <option value="Unmarked">Unmarked</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-secondary w-100" onclick="resetDailyScheduleFilters()"><i class="bi bi-arrow-counterclockwise me-1"></i> Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Summary Metrics Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold">Total Scheduled</span>
+                            <h4 class="fw-bold mb-0 text-dark" id="statDailyTotal">0</h4>
+                        </div>
+                        <div class="stat-icon bg-light text-primary fs-4"><i class="bi bi-calendar-event"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold">🟢 Pending</span>
+                            <h4 class="fw-bold mb-0 text-warning" id="statDailyPending">0</h4>
+                        </div>
+                        <div class="stat-icon bg-warning-subtle text-warning fs-4"><i class="bi bi-hourglass-split"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold">🔵 Completed</span>
+                            <h4 class="fw-bold mb-0 text-primary" id="statDailyCompleted">0</h4>
+                        </div>
+                        <div class="stat-icon bg-primary-subtle text-primary fs-4"><i class="bi bi-check2-all"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold">🔴 Missed / Absent</span>
+                            <h4 class="fw-bold mb-0 text-danger" id="statDailyMissed">0</h4>
+                        </div>
+                        <div class="stat-icon bg-danger-subtle text-danger fs-4"><i class="bi bi-x-circle"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List View Container -->
+            <div id="dailyScheduleListViewContainer" class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist text-primary me-2"></i>Scheduled Interviews List</h5>
+                    <span class="badge bg-primary-subtle text-primary" id="dailyScheduleCountBadge">0 Interviews</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Interview ID</th>
+                                    <th>Beneficiary Name</th>
+                                    <th>Time Slot & Venue</th>
+                                    <th>Applied Livelihood Program</th>
+                                    <th>Status Badge</th>
+                                    <th>Attendance</th>
+                                    <th>Remarks</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyScheduleTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Grid View Container -->
+            <div id="dailyScheduleCalendarGridContainer" class="d-none">
+                <div class="row g-3" id="dailyScheduleCalendarGridCards">
+                    <!-- Loaded dynamically -->
                 </div>
             </div>
         </section>
@@ -1215,6 +1386,127 @@
         </div>
     </div>
 
+    <!-- INTERVIEW SCHEDULE & BENEFICIARY DETAIL VIEW MODAL -->
+    <div class="modal fade" id="interviewScheduleDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="interviewDetailModalHeaderTitle">
+                        <i class="bi bi-person-lines-fill me-2"></i>Interview Schedule & Beneficiary Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="interviewScheduleDetailModalBody">
+                    <!-- Dynamically populated -->
+                </div>
+                <div class="modal-footer justify-content-between" id="interviewScheduleDetailModalFooter">
+                    <!-- Quick action controls -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHEDULE NEW INTERVIEW MODAL (With Conflict Validation) -->
+    <div class="modal fade" id="scheduleNewInterviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-calendar-plus me-2"></i>Schedule Beneficiary Interview
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="newInterviewScheduleForm" onsubmit="submitNewInterviewSchedule(event)">
+                        
+                        <div id="newInterviewConflictAlert" class="alert alert-danger d-none mb-3" role="alert">
+                            <i class="bi bi-exclamation-octagon-fill me-2"></i><span id="newInterviewConflictText"></span>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Beneficiary Information</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Beneficiary Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="schedBenName" required placeholder="e.g. Maria Santos Dela Cruz">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Contact Phone Number <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="schedBenPhone" required placeholder="09171234567">
+                                <div class="form-text text-muted">Masked in all public views pursuant to Data Privacy Act.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Barangay (Koronadal City) <span class="text-danger">*</span></label>
+                                <select class="form-select" id="schedBenBarangay" required>
+                                    <option value="Morales">Morales</option>
+                                    <option value="Poblacion">Poblacion</option>
+                                    <option value="Zone 1">Zone 1</option>
+                                    <option value="Zone 2">Zone 2</option>
+                                    <option value="Rotonda">Rotonda</option>
+                                    <option value="San Isidro">San Isidro</option>
+                                    <option value="Concepcion">Concepcion</option>
+                                    <option value="Mabini">Mabini</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Email Address</label>
+                                <input type="email" class="form-control" id="schedBenEmail" placeholder="beneficiary@koronadal.ph">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Applied Livelihood Program</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Livelihood Program <span class="text-danger">*</span></label>
+                                <select class="form-select" id="schedProgramCode" required>
+                                    <option value="TUPAD">TUPAD (Emergency Employment Assistance)</option>
+                                    <option value="PFAS">PFAS (Pangkabuhayan Assistance Special Project)</option>
+                                    <option value="CKGIP">CKGIP (City Government Internship Program)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Project / Business Category <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="schedProjectType" required placeholder="e.g. Micro-Enterprise Food Cart, Sanitation">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">3. Schedule Time & Venue</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Interview Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="schedInterviewDate" required onchange="checkNewInterviewConflict()">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Time Slot <span class="text-danger">*</span></label>
+                                <select class="form-select" id="schedTimeSlot" required onchange="checkNewInterviewConflict()">
+                                    <option value="09:00 AM - 10:00 AM">09:00 AM - 10:00 AM</option>
+                                    <option value="10:30 AM - 11:30 AM">10:30 AM - 11:30 AM</option>
+                                    <option value="01:30 PM - 02:30 PM">01:30 PM - 02:30 PM</option>
+                                    <option value="03:00 PM - 04:00 PM">03:00 PM - 04:00 PM</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Interview Venue / Room <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="schedVenue" required value="PESO Main Office - Interview Room A">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Initial Remarks / Notes</label>
+                            <textarea class="form-control" id="schedRemarks" rows="2" placeholder="e.g. Initial orientation and qualification interview"></textarea>
+                        </div>
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary px-4" id="btnSubmitNewSchedule">
+                                <i class="bi bi-calendar-check me-1"></i> Save Interview Schedule
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- QR SCANNER MODAL -->
     <div class="modal fade" id="qrScannerModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -1264,14 +1556,192 @@
     <!-- JS SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentOfficerUser = JSON.parse(localStorage.getItem('currentUser') || '{"fullName":"Jane Smith","username":"peso-officer"}');
+        let currentOfficerUser = JSON.parse(localStorage.getItem('currentUser') || '{"fullName":"Jane Smith","username":"peso-officer","id":2}');
         let selectedEvalAppId = null;
+        let selectedInterviewScheduleId = null;
+        let currentScheduleDate = '2026-08-08';
+        let currentScheduleViewMode = 'list';
+        let selectedBatchAssignAppIds = [];
 
         // In-memory data structures
         let beneficiariesList = [
-            { id: 'BEN-2026-001', name: 'Juan Dela Cruz', barangay: 'Morales', address: 'Purok 4, Morales', contact: '09171234567', email: 'juan@email.com', program: 'TUPAD (Emergency Employment)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified' },
-            { id: 'BEN-2026-002', name: 'Maria Santos', barangay: 'Poblacion', address: 'Purok 2, Poblacion', contact: '09189876543', email: 'maria@email.com', program: 'PFAS (Pangkabuhayan Assistance)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified' },
-            { id: 'BEN-2026-003', name: 'Pedro Reyes', barangay: 'Rotonda', address: 'Purok 1, Rotonda', contact: '09195554433', email: 'pedro@email.com', program: 'CKGIP (City Internship)', status: 'Inactive', idStatus: 'Pending Review', clearanceStatus: 'Pending Review' }
+            { id: 'BEN-2026-001', name: 'Maria Santos', barangay: 'Morales', address: 'Purok 4, Morales', contact: '0917-123-4567', email: 'maria.santos@gmail.com', program: 'TUPAD (Emergency Employment)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 32, sex: 'Female' },
+            { id: 'BEN-2026-002', name: 'Juan Dela Cruz', barangay: 'Zone 1', address: 'Purok Sunflower, Zone 1', contact: '0918-222-3344', email: 'juan.delacruz@yahoo.com', program: 'PFAS (Pangkabuhayan Assistance)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 41, sex: 'Male' },
+            { id: 'BEN-2026-003', name: 'Pedro Reyes', barangay: 'Rotonda', address: 'Purok 2, Rotonda', contact: '0919-333-5566', email: 'pedro.reyes@koronadal.ph', program: 'CKGIP (City Internship)', status: 'Inactive', idStatus: 'Pending Review', clearanceStatus: 'Pending Review', age: 23, sex: 'Male' },
+            { id: 'BEN-2026-004', name: 'Ana Lim', barangay: 'Poblacion', address: 'Purok Pag-asa, Poblacion', contact: '0920-444-7788', email: 'ana.lim@gmail.com', program: 'TUPAD (Emergency Employment)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 28, sex: 'Female' },
+            { id: 'BEN-2026-005', name: 'Carlos Garcia', barangay: 'San Isidro', address: 'Purok Centro, San Isidro', contact: '0921-555-8899', email: 'carlos.garcia@outlook.com', program: 'PFAS (Pangkabuhayan Assistance)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 36, sex: 'Male' }
+        ];
+
+        // Daily Assigned Interview Schedules Store
+        let dailySchedulesList = [
+            {
+                id: 'INT-2026-001',
+                numId: 1,
+                officerId: 2,
+                officerName: 'Jane Smith',
+                beneficiaryId: 'BEN-2026-001',
+                beneficiaryName: 'Maria Santos',
+                beneficiaryPhone: '0917-123-4567',
+                beneficiaryEmail: 'maria.santos@gmail.com',
+                beneficiaryAddress: 'Purok 4, Barangay Morales, Koronadal City',
+                barangay: 'Morales',
+                sex: 'Female',
+                age: 32,
+                programCode: 'TUPAD',
+                programName: 'TUPAD (Emergency Employment Assistance)',
+                projectType: 'Environmental Sanitation & Community Beautification',
+                applicationId: 'APP-2026-001',
+                dateApplied: '2026-07-28',
+                interviewDate: '2026-08-08',
+                scheduleTime: '09:00 AM - 10:00 AM',
+                timeSlot: '09:00 AM',
+                venue: 'PESO Main Office - Interview Room A',
+                status: 'Pending',
+                attendance: 'Unmarked',
+                remarks: 'Scheduled for initial qualification interview and livelihood assessment.',
+                justification: null,
+                documents: ['Barangay Certification', 'Valid Government ID', 'Application Form']
+            },
+            {
+                id: 'INT-2026-002',
+                numId: 2,
+                officerId: 2,
+                officerName: 'Jane Smith',
+                beneficiaryId: 'BEN-2026-002',
+                beneficiaryName: 'Juan Dela Cruz',
+                beneficiaryPhone: '0918-222-3344',
+                beneficiaryEmail: 'juan.delacruz@yahoo.com',
+                beneficiaryAddress: 'Purok Sunflower, Barangay Zone 1, Koronadal City',
+                barangay: 'Zone 1',
+                sex: 'Male',
+                age: 41,
+                programCode: 'PFAS',
+                programName: 'PFAS (Pangkabuhayan Assistance Special Project)',
+                projectType: 'Micro-Enterprise Food Cart & Rolling Store',
+                applicationId: 'APP-2026-002',
+                dateApplied: '2026-07-29',
+                interviewDate: '2026-08-08',
+                scheduleTime: '10:30 AM - 11:30 AM',
+                timeSlot: '10:30 AM',
+                venue: 'PESO Main Office - Interview Room B',
+                status: 'Completed',
+                attendance: 'Present',
+                remarks: 'Candidate successfully presented business proposal and passed interview assessment.',
+                justification: null,
+                documents: ['Barangay Certification', 'Valid Government ID', 'Business Proposal']
+            },
+            {
+                id: 'INT-2026-003',
+                numId: 3,
+                officerId: 2,
+                officerName: 'Jane Smith',
+                beneficiaryId: 'BEN-2026-003',
+                beneficiaryName: 'Pedro Reyes',
+                beneficiaryPhone: '0919-333-5566',
+                beneficiaryEmail: 'pedro.reyes@koronadal.ph',
+                beneficiaryAddress: 'Purok 2, Barangay Rotonda, Koronadal City',
+                barangay: 'Rotonda',
+                sex: 'Male',
+                age: 23,
+                programCode: 'CKGIP',
+                programName: 'CKGIP (City of Koronadal Government Internship Program)',
+                projectType: 'Administrative & Information Systems Internship',
+                applicationId: 'APP-2026-003',
+                dateApplied: '2026-07-30',
+                interviewDate: '2026-08-08',
+                scheduleTime: '01:30 PM - 02:30 PM',
+                timeSlot: '01:30 PM',
+                venue: 'PESO Main Office - Interview Room A',
+                status: 'Pending',
+                attendance: 'Unmarked',
+                remarks: 'Afternoon interview session for technical internship placement.',
+                justification: null,
+                documents: ['Barangay Certification', 'School Clearance', 'Transcript']
+            },
+            {
+                id: 'INT-2026-004',
+                numId: 4,
+                officerId: 2,
+                officerName: 'Jane Smith',
+                beneficiaryId: 'BEN-2026-004',
+                beneficiaryName: 'Ana Lim',
+                beneficiaryPhone: '0920-444-7788',
+                beneficiaryEmail: 'ana.lim@gmail.com',
+                beneficiaryAddress: 'Purok Pag-asa, Barangay Poblacion, Koronadal City',
+                barangay: 'Poblacion',
+                sex: 'Female',
+                age: 28,
+                programCode: 'TUPAD',
+                programName: 'TUPAD (Emergency Employment Assistance)',
+                projectType: 'Community Urban Greening & Tree Planting',
+                applicationId: 'APP-2026-004',
+                dateApplied: '2026-08-01',
+                interviewDate: '2026-08-09',
+                scheduleTime: '09:00 AM - 10:00 AM',
+                timeSlot: '09:00 AM',
+                venue: 'PESO Main Office - Interview Room A',
+                status: 'Pending',
+                attendance: 'Unmarked',
+                remarks: 'Tomorrow morning interview schedule.',
+                justification: null,
+                documents: ['Barangay Certification', 'Valid ID']
+            },
+            {
+                id: 'INT-2026-005',
+                numId: 5,
+                officerId: 2,
+                officerName: 'Jane Smith',
+                beneficiaryId: 'BEN-2026-005',
+                beneficiaryName: 'Carlos Garcia',
+                beneficiaryPhone: '0921-555-8899',
+                beneficiaryEmail: 'carlos.garcia@outlook.com',
+                beneficiaryAddress: 'Purok Centro, Barangay San Isidro, Koronadal City',
+                barangay: 'San Isidro',
+                sex: 'Male',
+                age: 36,
+                programCode: 'PFAS',
+                programName: 'PFAS (Pangkabuhayan Assistance Special Project)',
+                projectType: 'Welding, Metalcraft & Fabrication Starter Kit',
+                applicationId: 'APP-2026-005',
+                dateApplied: '2026-07-20',
+                interviewDate: '2026-08-05',
+                scheduleTime: '11:00 AM - 12:00 PM',
+                timeSlot: '11:00 AM',
+                venue: 'PESO Main Office - Interview Room B',
+                status: 'Missed',
+                attendance: 'Absent',
+                remarks: 'Applicant was unable to attend due to medical emergency.',
+                justification: 'Official doctor certificate submitted by family.',
+                documents: ['Barangay Certification', 'Valid ID', 'Medical Note']
+            },
+            {
+                id: 'INT-2026-006',
+                numId: 6,
+                officerId: 2,
+                officerName: 'Jane Smith',
+                beneficiaryId: 'BEN-2026-006',
+                beneficiaryName: 'Elena Ramos',
+                beneficiaryPhone: '0922-666-9900',
+                beneficiaryEmail: 'elena.ramos@gmail.com',
+                beneficiaryAddress: 'Purok 3, Barangay Concepcion, Koronadal City',
+                barangay: 'Concepcion',
+                sex: 'Female',
+                age: 45,
+                programCode: 'TUPAD',
+                programName: 'TUPAD (Emergency Employment Assistance)',
+                projectType: 'Public Park Maintenance & Tree Pruning',
+                applicationId: 'APP-2026-006',
+                dateApplied: '2026-08-02',
+                interviewDate: '2026-08-10',
+                scheduleTime: '10:00 AM - 11:00 AM',
+                timeSlot: '10:00 AM',
+                venue: 'PESO Main Office - Interview Room A',
+                status: 'Pending',
+                attendance: 'Unmarked',
+                remarks: 'Scheduled interview session.',
+                justification: null,
+                documents: ['Barangay Certification', 'Valid ID']
+            }
         ];
 
         let evaluationList = [
@@ -1324,31 +1794,800 @@
             { timestamp: new Date().toLocaleString(), officer: currentOfficerUser.fullName, action: 'LOGIN', details: 'PESO Officer logged in.' }
         ];
 
+        // ---------------------------------------------------------------------
+        // DATA PRIVACY HELPER
+        // ---------------------------------------------------------------------
+        function maskContact(phone) {
+            if (!phone) return '09XX-***-XXXX';
+            const clean = phone.replace(/[^0-9]/g, '');
+            if (clean.length >= 10) {
+                return `${clean.substring(0, 4)}-***-${clean.substring(clean.length - 4)}`;
+            }
+            return '09XX-***-XXXX';
+        }
+
+        // ---------------------------------------------------------------------
+        // INITIALIZATION & TAB SWITCHING
+        // ---------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('officerNameDisplay').textContent = currentOfficerUser.fullName || 'PESO Officer';
+            if (document.getElementById('officerNameDisplay')) {
+                document.getElementById('officerNameDisplay').textContent = currentOfficerUser.fullName || 'PESO Officer';
+            }
+            
+            const datePicker = document.getElementById('scheduleDatePickerInput');
+            if (datePicker) datePicker.value = currentScheduleDate;
+            updateScheduleDateHeaderDisplay();
+
             renderBeneficiaryTable();
             renderEvaluationQueueTable();
             renderBatchesCards();
             renderLivelihoodMasterTable();
             renderAssistanceRecordsTable();
+            renderDailySchedules();
             renderAuditLogs();
+
+            document.addEventListener('keydown', handleKeyboardNavigation);
         });
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-section').forEach(el => el.classList.add('d-none'));
             document.querySelectorAll('.sidebar-menu .nav-link').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${tabId}`).classList.remove('active');
             
-            document.getElementById(`tab-${tabId}`).classList.remove('d-none');
-            event.currentTarget.classList.add('active');
+            const targetSection = document.getElementById(`tab-${tabId}`);
+            if (targetSection) targetSection.classList.remove('d-none');
+
+            const links = document.querySelectorAll('.sidebar-menu .nav-link');
+            links.forEach(l => {
+                if (l.getAttribute('onclick') && l.getAttribute('onclick').includes(tabId)) {
+                    l.classList.add('active');
+                }
+            });
+
+            if (tabId === 'daily-schedules') {
+                renderDailySchedules();
+            }
         }
 
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
         }
 
+        function handleKeyboardNavigation(e) {
+            const tag = e.target.tagName.toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                navigateScheduleDate(-1);
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                navigateScheduleDate(1);
+            } else if (e.key === 't' || e.key === 'T') {
+                e.preventDefault();
+                navigateScheduleDate(0);
+            }
+        }
+
         // ---------------------------------------------------------------------
-        // BENEFICIARIES MANAGEMENT MODULE
+        // DAILY SCHEDULE MANAGEMENT MODULE
+        // ---------------------------------------------------------------------
+        function getTodayDateStr() {
+            return '2026-08-08';
+        }
+
+        function updateScheduleDateHeaderDisplay() {
+            const dtDisplay = document.getElementById('currentScheduleDateDisplay');
+            const subDisplay = document.getElementById('scheduleDateSubtitle');
+            const datePicker = document.getElementById('scheduleDatePickerInput');
+
+            if (datePicker) datePicker.value = currentScheduleDate;
+
+            const dateObj = new Date(currentScheduleDate + 'T00:00:00');
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedText = dateObj.toLocaleDateString('en-US', options);
+
+            const isToday = currentScheduleDate === getTodayDateStr();
+            const isPast = currentScheduleDate < getTodayDateStr();
+
+            if (dtDisplay) {
+                dtDisplay.innerHTML = `${formattedText} ${isToday ? '<span class="badge bg-success ms-2 fs-6">Today</span>' : isPast ? '<span class="badge bg-secondary ms-2 fs-6">Past Date</span>' : '<span class="badge bg-info ms-2 fs-6 text-dark">Upcoming</span>'}`;
+            }
+            if (subDisplay) {
+                subDisplay.textContent = `Assigned Interviews for PESO Officer (${currentOfficerUser.fullName || 'Jane Smith'})`;
+            }
+        }
+
+        function navigateScheduleDate(offset) {
+            if (offset === 0) {
+                currentScheduleDate = getTodayDateStr();
+            } else {
+                const current = new Date(currentScheduleDate + 'T00:00:00');
+                current.setDate(current.getDate() + offset);
+                const yyyy = current.getFullYear();
+                const mm = String(current.getMonth() + 1).padStart(2, '0');
+                const dd = String(current.getDate()).padStart(2, '0');
+                currentScheduleDate = `${yyyy}-${mm}-${dd}`;
+            }
+
+            updateScheduleDateHeaderDisplay();
+            renderDailySchedules();
+        }
+
+        function onScheduleDatePickerChange(val) {
+            if (!val) return;
+            currentScheduleDate = val;
+            updateScheduleDateHeaderDisplay();
+            renderDailySchedules();
+        }
+
+        function setScheduleViewMode(mode) {
+            currentScheduleViewMode = mode;
+            const btnList = document.getElementById('btnViewModeList');
+            const btnCal = document.getElementById('btnViewModeCalendar');
+            const listCont = document.getElementById('dailyScheduleListViewContainer');
+            const calCont = document.getElementById('dailyScheduleCalendarGridContainer');
+
+            if (mode === 'calendar') {
+                if (btnList) btnList.classList.remove('active');
+                if (btnCal) btnCal.classList.add('active');
+                if (listCont) listCont.classList.add('d-none');
+                if (calCont) calCont.classList.remove('d-none');
+            } else {
+                if (btnList) btnList.classList.add('active');
+                if (btnCal) btnCal.classList.remove('active');
+                if (listCont) listCont.classList.remove('d-none');
+                if (calCont) calCont.classList.add('d-none');
+            }
+            renderDailySchedules();
+        }
+
+        function getStatusBadgeHtml(status) {
+            switch (status) {
+                case 'Completed':
+                    return `<span class="badge bg-primary text-white"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>`;
+                case 'Missed':
+                    return `<span class="badge bg-danger text-white"><i class="bi bi-x-circle-fill me-1"></i>Missed</span>`;
+                case 'Pending':
+                default:
+                    return `<span class="badge bg-warning text-dark border border-warning-subtle"><i class="bi bi-hourglass-split me-1"></i>Pending</span>`;
+            }
+        }
+
+        function getAttendanceBadgeHtml(att) {
+            switch (att) {
+                case 'Present':
+                    return `<span class="badge bg-success text-white"><i class="bi bi-person-check-fill me-1"></i>Present</span>`;
+                case 'Absent':
+                    return `<span class="badge bg-danger text-white"><i class="bi bi-person-x-fill me-1"></i>Absent</span>`;
+                case 'Unmarked':
+                default:
+                    return `<span class="badge bg-secondary-subtle text-dark border"><i class="bi bi-dash-circle me-1"></i>Unmarked</span>`;
+            }
+        }
+
+        function checkDailyScheduleConflicts(dateSchedules) {
+            const banner = document.getElementById('scheduleConflictAlertBanner');
+            const alertText = document.getElementById('scheduleConflictAlertText');
+            if (!banner) return;
+
+            const timeMap = {};
+            let conflicts = [];
+
+            dateSchedules.forEach(item => {
+                if (item.status === 'Cancelled') return;
+                const slot = item.scheduleTime.trim().toLowerCase();
+                if (timeMap[slot]) {
+                    conflicts.push(`"${item.beneficiaryName}" and "${timeMap[slot].beneficiaryName}" at ${item.scheduleTime}`);
+                } else {
+                    timeMap[slot] = item;
+                }
+            });
+
+            if (conflicts.length > 0) {
+                banner.classList.remove('d-none');
+                banner.classList.add('d-flex');
+                if (alertText) {
+                    alertText.innerHTML = `Overlapping schedule detected for ${conflicts.join('; ')}. Please adjust time slots to prevent interview queue bottlenecks.`;
+                }
+            } else {
+                banner.classList.add('d-none');
+                banner.classList.remove('d-flex');
+            }
+        }
+
+        function renderDailySchedules() {
+            const search = document.getElementById('dailyScheduleSearchInput') ? document.getElementById('dailyScheduleSearchInput').value.toLowerCase().trim() : '';
+            const statusFilter = document.getElementById('dailyScheduleStatusFilter') ? document.getElementById('dailyScheduleStatusFilter').value : '';
+            const attFilter = document.getElementById('dailyScheduleAttendanceFilter') ? document.getElementById('dailyScheduleAttendanceFilter').value : '';
+
+            let dateSchedules = dailySchedulesList.filter(s => s.interviewDate === currentScheduleDate);
+            checkDailyScheduleConflicts(dateSchedules);
+
+            let filtered = dateSchedules.filter(item => {
+                const matchSearch = !search || 
+                    item.beneficiaryName.toLowerCase().includes(search) || 
+                    item.id.toLowerCase().includes(search) || 
+                    item.beneficiaryId.toLowerCase().includes(search) || 
+                    item.programCode.toLowerCase().includes(search) ||
+                    item.programName.toLowerCase().includes(search) ||
+                    item.barangay.toLowerCase().includes(search);
+                const matchStatus = !statusFilter || item.status === statusFilter;
+                const matchAtt = !attFilter || item.attendance === attFilter;
+                return matchSearch && matchStatus && matchAtt;
+            });
+
+            const totalScheduled = dateSchedules.length;
+            const pendingCount = dateSchedules.filter(s => s.status === 'Pending').length;
+            const completedCount = dateSchedules.filter(s => s.status === 'Completed').length;
+            const missedCount = dateSchedules.filter(s => s.status === 'Missed' || s.attendance === 'Absent').length;
+
+            if (document.getElementById('statDailyTotal')) document.getElementById('statDailyTotal').textContent = totalScheduled;
+            if (document.getElementById('statDailyPending')) document.getElementById('statDailyPending').textContent = pendingCount;
+            if (document.getElementById('statDailyCompleted')) document.getElementById('statDailyCompleted').textContent = completedCount;
+            if (document.getElementById('statDailyMissed')) document.getElementById('statDailyMissed').textContent = missedCount;
+            if (document.getElementById('dailyScheduleCountBadge')) document.getElementById('dailyScheduleCountBadge').textContent = `${filtered.length} of ${totalScheduled} Interviews`;
+
+            const tbody = document.getElementById('dailyScheduleTableBody');
+            if (tbody) {
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+                                <h6 class="fw-bold mb-1">No interviews scheduled for this date.</h6>
+                                <p class="small text-muted mb-3">Click "Schedule Interview" to assign a beneficiary or navigate dates above.</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="openScheduleNewInterviewModal()"><i class="bi bi-plus-circle me-1"></i>Schedule New Interview</button>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = filtered.map(item => `
+                        <tr style="cursor:pointer" onclick="openInterviewScheduleDetail('${item.id}')">
+                            <td><span class="fw-bold text-primary">${item.id}</span></td>
+                            <td>
+                                <span class="fw-semibold text-dark">${item.beneficiaryName}</span><br>
+                                <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${item.barangay} • ${maskContact(item.beneficiaryPhone)}</small>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-dark"><i class="bi bi-clock me-1 text-primary"></i>${item.scheduleTime}</span><br>
+                                <small class="text-muted"><i class="bi bi-building me-1"></i>${item.venue}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">${item.programCode}</span>
+                                <small class="d-block text-muted text-truncate" style="max-width: 180px;">${item.projectType}</small>
+                            </td>
+                            <td>${getStatusBadgeHtml(item.status)}</td>
+                            <td>${getAttendanceBadgeHtml(item.attendance)}</td>
+                            <td><small class="text-muted text-truncate d-inline-block" style="max-width: 150px;">${item.remarks || 'No remarks'}</small></td>
+                            <td class="text-end" onclick="event.stopPropagation()">
+                                <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="openInterviewScheduleDetail('${item.id}')">
+                                    <i class="bi bi-eye me-1"></i>Details & Actions
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            const gridCont = document.getElementById('dailyScheduleCalendarGridCards');
+            if (gridCont) {
+                if (filtered.length === 0) {
+                    gridCont.innerHTML = `<div class="col-12 text-center py-5 text-muted"><p>No interviews found for this date in calendar view.</p></div>`;
+                } else {
+                    gridCont.innerHTML = filtered.map(item => `
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 border-0 shadow-sm p-3" style="border-left: 4px solid ${item.status === 'Completed' ? '#0284C7' : item.status === 'Missed' ? '#EF4444' : '#F59E0B'} !important;">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="badge bg-light text-primary border fw-bold">${item.id}</span>
+                                        <h6 class="fw-bold text-dark mt-2 mb-0">${item.beneficiaryName}</h6>
+                                        <small class="text-muted"><i class="bi bi-telephone me-1"></i>${maskContact(item.beneficiaryPhone)}</small>
+                                    </div>
+                                    <div>${getStatusBadgeHtml(item.status)}</div>
+                                </div>
+                                <hr class="my-2 text-muted">
+                                <div class="small mb-2">
+                                    <div><strong><i class="bi bi-clock me-1 text-primary"></i>Time:</strong> ${item.scheduleTime}</div>
+                                    <div><strong><i class="bi bi-diagram-3 me-1 text-info"></i>Program:</strong> ${item.programCode} (${item.projectType})</div>
+                                    <div><strong><i class="bi bi-person-badge me-1"></i>Attendance:</strong> ${getAttendanceBadgeHtml(item.attendance)}</div>
+                                </div>
+                                <div class="mt-auto pt-2 d-flex justify-content-between align-items-center">
+                                    <small class="text-muted text-truncate" style="max-width: 140px;">${item.remarks || 'No notes'}</small>
+                                    <button class="btn btn-sm btn-primary py-0 px-2" onclick="openInterviewScheduleDetail('${item.id}')">
+                                        <i class="bi bi-pencil-square me-1"></i>Review
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        function filterDailySchedules() {
+            renderDailySchedules();
+        }
+
+        function resetDailyScheduleFilters() {
+            if (document.getElementById('dailyScheduleSearchInput')) document.getElementById('dailyScheduleSearchInput').value = '';
+            if (document.getElementById('dailyScheduleStatusFilter')) document.getElementById('dailyScheduleStatusFilter').value = '';
+            if (document.getElementById('dailyScheduleAttendanceFilter')) document.getElementById('dailyScheduleAttendanceFilter').value = '';
+            renderDailySchedules();
+        }
+
+        // ---------------------------------------------------------------------
+        // DETAIL VIEW & ATTENDANCE / STATUS UPDATE MODAL
+        // ---------------------------------------------------------------------
+        function openInterviewScheduleDetail(id) {
+            const item = dailySchedulesList.find(s => s.id === id || s.numId === Number(id));
+            if (!item) {
+                alert(`Interview schedule with identifier "${id}" not found.`);
+                return;
+            }
+
+            selectedInterviewScheduleId = item.id;
+            const isPast = item.interviewDate < getTodayDateStr();
+
+            const modalTitle = document.getElementById('interviewDetailModalHeaderTitle');
+            if (modalTitle) {
+                modalTitle.innerHTML = `<i class="bi bi-person-lines-fill me-2"></i>Interview Schedule Detail — ${item.id} (${item.beneficiaryName})`;
+            }
+
+            const modalBody = document.getElementById('interviewScheduleDetailModalBody');
+            if (modalBody) {
+                modalBody.innerHTML = `
+                    <div class="row g-4">
+                        <div class="col-lg-6 border-end">
+                            <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+                                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-person-badge-fill me-2"></i>Beneficiary Profile (View-Only)</h6>
+                                <span class="badge bg-secondary-subtle text-dark border"><i class="bi bi-lock-fill me-1"></i>Strictly View-Only</span>
+                            </div>
+
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th class="text-muted" style="width: 140px;">Beneficiary ID:</th>
+                                    <td><span class="fw-bold text-dark">${item.beneficiaryId}</span></td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Full Name:</th>
+                                    <td><strong class="text-dark fs-6">${item.beneficiaryName}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Contact Number:</th>
+                                    <td><span class="badge bg-light text-dark border fs-6"><i class="bi bi-shield-lock text-success me-1"></i>${maskContact(item.beneficiaryPhone)}</span></td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Email Address:</th>
+                                    <td>${item.beneficiaryEmail}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Barangay & Address:</th>
+                                    <td>${item.beneficiaryAddress}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Age / Sex:</th>
+                                    <td>${item.age} yrs old • ${item.sex}</td>
+                                </tr>
+                            </table>
+
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mt-4 mb-3"><i class="bi bi-diagram-3-fill me-2"></i>Applied Livelihood Program</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th class="text-muted" style="width: 140px;">Program Applied:</th>
+                                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">${item.programCode}</span> — ${item.programName}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Project / Business:</th>
+                                    <td><strong>${item.projectType}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Application ID:</th>
+                                    <td><code>${item.applicationId}</code> (Applied: ${item.dateApplied})</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Attached Documents:</th>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            ${(item.documents || ['Barangay Certification', 'Valid ID']).map(d => `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>${d}</span>`).join(' ')}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-clock-history me-2"></i>Interview Schedule Details</h6>
+                            
+                            <div class="p-3 bg-light rounded border mb-3">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Scheduled Date</small>
+                                        <strong class="text-dark">${item.interviewDate}</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Time Slot</small>
+                                        <strong class="text-primary">${item.scheduleTime}</strong>
+                                    </div>
+                                    <div class="col-12 mt-2">
+                                        <small class="text-muted d-block">Interview Venue</small>
+                                        <span class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${item.venue}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-person-check-fill me-1 text-success"></i>Monitor Attendance</h6>
+                            <div class="btn-group w-100 mb-3" role="group">
+                                <input type="radio" class="btn-check" name="attRadioGroup" id="attRadioPresent" value="Present" ${item.attendance === 'Present' ? 'checked' : ''} onchange="onModalAttendanceRadioChange('Present')">
+                                <label class="btn btn-outline-success fw-bold py-2" for="attRadioPresent"><i class="bi bi-check2-circle me-1"></i> Present (Attended)</label>
+
+                                <input type="radio" class="btn-check" name="attRadioGroup" id="attRadioAbsent" value="Absent" ${item.attendance === 'Absent' ? 'checked' : ''} onchange="onModalAttendanceRadioChange('Absent')">
+                                <label class="btn btn-outline-danger fw-bold py-2" for="attRadioAbsent"><i class="bi bi-x-circle me-1"></i> Absent (No-Show)</label>
+                            </div>
+
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-arrow-repeat me-1 text-primary"></i>Update Interview Status</h6>
+                            <div class="d-flex gap-2 mb-3" id="modalStatusBtnGroup">
+                                <button type="button" class="btn ${item.status === 'Completed' ? 'btn-primary' : 'btn-outline-primary'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Completed')">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Completed
+                                </button>
+                                <button type="button" class="btn ${item.status === 'Pending' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Pending')">
+                                    <i class="bi bi-hourglass-split me-1"></i> Pending
+                                </button>
+                                <button type="button" class="btn ${item.status === 'Missed' ? 'btn-danger' : 'btn-outline-danger'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Missed')">
+                                    <i class="bi bi-x-circle me-1"></i> Missed
+                                </button>
+                            </div>
+                            <input type="hidden" id="modalActiveStatusInput" value="${item.status}">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-dark">Remarks / Notes</label>
+                                <textarea class="form-control" id="modalInterviewRemarksInput" rows="2" placeholder="e.g. Rescheduled at beneficiary's request / orientation attended...">${item.remarks || ''}</textarea>
+                            </div>
+
+                            <div id="modalPastDateJustificationContainer" class="${isPast ? '' : 'd-none'} alert alert-warning border-warning p-3">
+                                <div class="d-flex align-items-center mb-1 text-dark fw-bold">
+                                    <i class="bi bi-shield-exclamation text-warning fs-5 me-2"></i>
+                                    Past Date Audit Justification (Mandatory)
+                                </div>
+                                <p class="small text-muted mb-2">Past Date Restriction: Modifying attendance/status for interviews scheduled in the past requires mandatory justification for audit compliance.</p>
+                                <input type="text" class="form-control" id="modalPastDateJustificationInput" value="${item.justification || ''}" placeholder="Enter mandatory reason for past date update...">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const modalFooter = document.getElementById('interviewScheduleDetailModalFooter');
+            if (modalFooter) {
+                modalFooter.innerHTML = `
+                    <div>
+                        <button type="button" class="btn btn-outline-success me-2" onclick="quickMarkAttendance('${item.id}', 'Present')">
+                            <i class="bi bi-person-check me-1"></i> Quick Present
+                        </button>
+                        <button type="button" class="btn btn-outline-danger me-2" onclick="quickMarkAttendance('${item.id}', 'Absent')">
+                            <i class="bi bi-person-x me-1"></i> Quick Absent
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary px-4 fw-bold" onclick="saveInterviewDetailUpdates('${item.id}')">
+                            <i class="bi bi-save me-1"></i> Save & Update Schedule
+                        </button>
+                    </div>
+                `;
+            }
+
+            new bootstrap.Modal(document.getElementById('interviewScheduleDetailModal')).show();
+        }
+
+        function onModalAttendanceRadioChange(val) {
+            const statusInput = document.getElementById('modalActiveStatusInput');
+            if (val === 'Present' && statusInput && statusInput.value === 'Missed') {
+                onModalStatusButtonClick('Completed');
+            } else if (val === 'Absent' && statusInput && statusInput.value === 'Completed') {
+                onModalStatusButtonClick('Missed');
+            }
+        }
+
+        function onModalStatusButtonClick(newStatus) {
+            const statusInput = document.getElementById('modalActiveStatusInput');
+            if (statusInput) statusInput.value = newStatus;
+
+            const parent = document.getElementById('modalStatusBtnGroup');
+            if (parent) {
+                parent.innerHTML = `
+                    <button type="button" class="btn ${newStatus === 'Completed' ? 'btn-primary' : 'btn-outline-primary'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Completed')">
+                        <i class="bi bi-check-circle-fill me-1"></i> Completed
+                    </button>
+                    <button type="button" class="btn ${newStatus === 'Pending' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Pending')">
+                        <i class="bi bi-hourglass-split me-1"></i> Pending
+                    </button>
+                    <button type="button" class="btn ${newStatus === 'Missed' ? 'btn-danger' : 'btn-outline-danger'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Missed')">
+                        <i class="bi bi-x-circle me-1"></i> Missed
+                    </button>
+                `;
+            }
+        }
+
+        function saveInterviewDetailUpdates(interviewId) {
+            const item = dailySchedulesList.find(s => s.id === interviewId);
+            if (!item) return;
+
+            const selectedAtt = document.querySelector('input[name="attRadioGroup"]:checked')?.value || item.attendance;
+            const newStatus = document.getElementById('modalActiveStatusInput')?.value || item.status;
+            const remarks = document.getElementById('modalInterviewRemarksInput')?.value.trim() || '';
+            const justificationInput = document.getElementById('modalPastDateJustificationInput');
+            const justification = justificationInput ? justificationInput.value.trim() : '';
+
+            const isPast = item.interviewDate < getTodayDateStr();
+
+            if (isPast && !justification && !remarks) {
+                alert('Past Date Restriction: Modifying attendance or status for past-dated interviews requires explicit audit justification.');
+                if (justificationInput) justificationInput.focus();
+                return;
+            }
+
+            item.attendance = selectedAtt;
+            item.status = newStatus;
+            item.remarks = remarks;
+            if (justification) item.justification = justification;
+
+            fetch(`/api/interview/${encodeURIComponent(item.id)}/attendance`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ presence_flag: selectedAtt, remarks, justification })
+            }).catch(e => console.warn('[OFFICER_SCHEDULE] API offline fallback:', e.message));
+
+            fetch(`/api/interview/${encodeURIComponent(item.id)}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus, remarks, justification })
+            }).catch(e => console.warn('[OFFICER_SCHEDULE] API offline fallback:', e.message));
+
+            logOfficerAction('UPDATE_INTERVIEW', `Updated interview ${item.id} (${item.beneficiaryName}) -> Attendance: ${selectedAtt}, Status: ${newStatus}. Remarks: "${remarks}". Justification: "${justification || 'N/A'}"`);
+
+            renderDailySchedules();
+
+            if (bootstrap.Modal.getInstance(document.getElementById('interviewScheduleDetailModal'))) {
+                bootstrap.Modal.getInstance(document.getElementById('interviewScheduleDetailModal')).hide();
+            }
+
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'Schedule Updated',
+                    message: `Interview ${item.id} for ${item.beneficiaryName} successfully updated (Status: ${newStatus}, Attendance: ${selectedAtt}). Audit log created.`,
+                    type: 'success'
+                });
+            } else {
+                alert(`Interview ${item.id} for ${item.beneficiaryName} updated successfully.`);
+            }
+        }
+
+        function quickMarkAttendance(interviewId, flag) {
+            const item = dailySchedulesList.find(s => s.id === interviewId);
+            if (!item) return;
+
+            const isPast = item.interviewDate < getTodayDateStr();
+            let justification = null;
+
+            if (isPast) {
+                justification = prompt(`Past Date Restriction: Enter mandatory audit justification for updating past interview ${item.id} to ${flag}:`);
+                if (!justification || !justification.trim()) {
+                    alert('Past Date Restriction: Action cancelled. Justification is mandatory for past dates.');
+                    return;
+                }
+            }
+
+            item.attendance = flag;
+            if (flag === 'Present' && item.status === 'Missed') item.status = 'Completed';
+            if (flag === 'Absent' && item.status === 'Completed') item.status = 'Missed';
+            if (justification) item.justification = justification;
+
+            fetch(`/api/interview/${encodeURIComponent(item.id)}/attendance`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ presence_flag: flag, remarks: item.remarks, justification })
+            }).catch(e => console.warn('[OFFICER_SCHEDULE] API sync fallback:', e.message));
+
+            logOfficerAction('MARK_ATTENDANCE', `Quick marked attendance for interview ${item.id} (${item.beneficiaryName}) as ${flag}. Justification: "${justification || 'N/A'}"`);
+
+            renderDailySchedules();
+
+            if (bootstrap.Modal.getInstance(document.getElementById('interviewScheduleDetailModal'))) {
+                bootstrap.Modal.getInstance(document.getElementById('interviewScheduleDetailModal')).hide();
+            }
+
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'Attendance Marked',
+                    message: `Attendance for ${item.beneficiaryName} marked as ${flag}. Record updated instantly.`,
+                    type: 'success'
+                });
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // SCHEDULE NEW INTERVIEW MODAL & CONFLICT VALIDATION
+        // ---------------------------------------------------------------------
+        function openScheduleNewInterviewModal() {
+            const form = document.getElementById('newInterviewScheduleForm');
+            if (form) form.reset();
+            
+            const dateInput = document.getElementById('schedInterviewDate');
+            if (dateInput) dateInput.value = currentScheduleDate;
+
+            const alertBox = document.getElementById('newInterviewConflictAlert');
+            if (alertBox) alertBox.classList.add('d-none');
+
+            new bootstrap.Modal(document.getElementById('scheduleNewInterviewModal')).show();
+        }
+
+        function checkNewInterviewConflict() {
+            const date = document.getElementById('schedInterviewDate')?.value;
+            const time = document.getElementById('schedTimeSlot')?.value;
+            const alertBox = document.getElementById('newInterviewConflictAlert');
+            const alertText = document.getElementById('newInterviewConflictText');
+            const submitBtn = document.getElementById('btnSubmitNewSchedule');
+
+            if (!date || !time) return false;
+
+            const cleanTime = time.trim().toLowerCase();
+            const conflict = dailySchedulesList.find(s => 
+                s.interviewDate === date && 
+                s.scheduleTime.toLowerCase().includes(cleanTime) &&
+                s.status !== 'Cancelled'
+            );
+
+            if (conflict) {
+                if (alertBox) alertBox.classList.remove('d-none');
+                if (alertText) alertText.innerHTML = `<strong>Conflict Detected!</strong> An interview is already scheduled with <strong>${conflict.beneficiaryName}</strong> on ${date} at ${conflict.scheduleTime}. Overlapping schedules are prevented.`;
+                if (submitBtn) submitBtn.disabled = true;
+                return true;
+            } else {
+                if (alertBox) alertBox.classList.add('d-none');
+                if (submitBtn) submitBtn.disabled = false;
+                return false;
+            }
+        }
+
+        function submitNewInterviewSchedule(event) {
+            event.preventDefault();
+
+            if (checkNewInterviewConflict()) {
+                alert('Conflict Restriction: An overlapping schedule exists for this time slot. Please choose another time.');
+                return;
+            }
+
+            const name = document.getElementById('schedBenName')?.value.trim();
+            const phone = document.getElementById('schedBenPhone')?.value.trim();
+            const barangay = document.getElementById('schedBenBarangay')?.value;
+            const email = document.getElementById('schedBenEmail')?.value.trim() || 'beneficiary@koronadal.ph';
+            const programCode = document.getElementById('schedProgramCode')?.value;
+            const projectType = document.getElementById('schedProjectType')?.value.trim();
+            const date = document.getElementById('schedInterviewDate')?.value;
+            const time = document.getElementById('schedTimeSlot')?.value;
+            const venue = document.getElementById('schedVenue')?.value.trim();
+            const remarks = document.getElementById('schedRemarks')?.value.trim();
+
+            if (!name || !phone || !date || !time) {
+                alert('Validation Error: Please fill in all required fields.');
+                return;
+            }
+
+            const newId = `INT-2026-${String(dailySchedulesList.length + 1).padStart(3, '0')}`;
+            const newNumId = dailySchedulesList.length + 1;
+            const newBenId = `BEN-2026-${String(dailySchedulesList.length + 1).padStart(3, '0')}`;
+
+            const newScheduleItem = {
+                id: newId,
+                numId: newNumId,
+                officerId: 2,
+                officerName: currentOfficerUser.fullName || 'Jane Smith',
+                beneficiaryId: newBenId,
+                beneficiaryName: name,
+                beneficiaryPhone: phone,
+                beneficiaryEmail: email,
+                beneficiaryAddress: `Purok 1, Barangay ${barangay}, Koronadal City`,
+                barangay,
+                sex: 'Male',
+                age: 30,
+                programCode,
+                programName: programCode === 'TUPAD' ? 'TUPAD (Emergency Employment Assistance)' : programCode === 'PFAS' ? 'PFAS (Pangkabuhayan Assistance Special Project)' : 'CKGIP (City Government Internship Program)',
+                projectType,
+                applicationId: `APP-2026-${String(newNumId).padStart(3, '0')}`,
+                dateApplied: new Date().toISOString().split('T')[0],
+                interviewDate: date,
+                scheduleTime: time,
+                timeSlot: time.split(' - ')[0],
+                venue,
+                status: 'Pending',
+                attendance: 'Unmarked',
+                remarks: remarks || 'Initial interview session.',
+                justification: null,
+                documents: ['Barangay Certification', 'Valid Government ID']
+            };
+
+            dailySchedulesList.unshift(newScheduleItem);
+
+            fetch('/api/interview/schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    officer_id: 2,
+                    beneficiary_name: name,
+                    beneficiary_phone: phone,
+                    beneficiary_email: email,
+                    beneficiary_address: newScheduleItem.beneficiaryAddress,
+                    barangay,
+                    program_code: programCode,
+                    program_name: newScheduleItem.programName,
+                    project_type: projectType,
+                    interview_date: date,
+                    schedule_time: time,
+                    venue_location: venue,
+                    remarks
+                })
+            }).catch(e => console.warn('[OFFICER_SCHEDULE] API create schedule offline fallback:', e.message));
+
+            logOfficerAction('SCHEDULE_INTERVIEW', `Scheduled interview ${newId} for beneficiary "${name}" on ${date} at ${time}`);
+
+            if (bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal'))) {
+                bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal')).hide();
+            }
+
+            currentScheduleDate = date;
+            updateScheduleDateHeaderDisplay();
+            renderDailySchedules();
+
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'Interview Scheduled',
+                    message: `Interview "${newId}" successfully scheduled for ${name} on ${date} (${time}).`,
+                    type: 'success'
+                });
+            }
+        }
+
+        function exportDailyScheduleCSV() {
+            const dateSchedules = dailySchedulesList.filter(s => s.interviewDate === currentScheduleDate);
+            if (dateSchedules.length === 0) {
+                alert(`No interview records found for date ${currentScheduleDate} to export.`);
+                return;
+            }
+
+            const headers = ['Interview ID', 'Beneficiary Name', 'Masked Contact', 'Barangay', 'Program', 'Project Type', 'Date', 'Time Slot', 'Venue', 'Status', 'Attendance', 'Remarks'];
+            const rows = dateSchedules.map(s => [
+                s.id,
+                `"${s.beneficiaryName}"`,
+                `"${maskContact(s.beneficiaryPhone)}"`,
+                `"${s.barangay}"`,
+                `"${s.programCode}"`,
+                `"${s.projectType}"`,
+                `"${s.interviewDate}"`,
+                `"${s.scheduleTime}"`,
+                `"${s.venue}"`,
+                `"${s.status}"`,
+                `"${s.attendance}"`,
+                `"${(s.remarks || '').replace(/"/g, '""')}"`
+            ]);
+
+            const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `PESO_Daily_Interview_Schedule_${currentScheduleDate}.csv`;
+            link.click();
+
+            logOfficerAction('EXPORT_SCHEDULE_CSV', `Exported CSV daily schedule report for date ${currentScheduleDate}`);
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'CSV Export Generated',
+                    message: `Daily schedule for ${currentScheduleDate} (${dateSchedules.length} records) exported to CSV successfully.`,
+                    type: 'success'
+                });
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // BENEFICIARIES TABLE CONTROLLER
         // ---------------------------------------------------------------------
         function renderBeneficiaryTable() {
             const tbody = document.getElementById('beneficiaryTableBody');
@@ -1359,7 +2598,7 @@
                     <td><span class="fw-bold text-primary">${b.id}</span></td>
                     <td class="fw-semibold">${b.name}</td>
                     <td>${b.address}</td>
-                    <td>${b.contact}<br><small class="text-muted">${b.email}</small></td>
+                    <td>${maskContact(b.contact)}<br><small class="text-muted">${b.email}</small></td>
                     <td><span class="badge bg-primary-subtle text-primary">${b.program}</span></td>
                     <td><span class="badge ${b.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${b.status}</span></td>
                     <td><span class="badge ${b.clearanceStatus === 'Verified' ? 'bg-success' : 'bg-warning'}">${b.clearanceStatus}</span></td>
@@ -1389,7 +2628,7 @@
                     <td><span class="fw-bold text-primary">${b.id}</span></td>
                     <td class="fw-semibold">${b.name}</td>
                     <td>${b.address}</td>
-                    <td>${b.contact}<br><small class="text-muted">${b.email}</small></td>
+                    <td>${maskContact(b.contact)}<br><small class="text-muted">${b.email}</small></td>
                     <td><span class="badge bg-primary-subtle text-primary">${b.program}</span></td>
                     <td><span class="badge ${b.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${b.status}</span></td>
                     <td><span class="badge ${b.clearanceStatus === 'Verified' ? 'bg-success' : 'bg-warning'}">${b.clearanceStatus}</span></td>
@@ -1417,18 +2656,6 @@
             if (!b) return;
             const diff = Date.now() - new Date(b).getTime();
             document.getElementById('benAge').value = Math.abs(new Date(diff).getUTCFullYear() - 1970);
-        }
-
-        function previewBenPhoto(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    document.getElementById('imgBen2x2Preview').src = e.target.result;
-                    document.getElementById('imgBen2x2Preview').classList.remove('d-none');
-                    document.getElementById('benPhotoPlaceholder').classList.add('d-none');
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
         }
 
         function sendOfficerSmsOtp() {
@@ -1500,7 +2727,7 @@
                         <table class="table table-sm">
                             <tr><th>Barangay:</th><td>${b.barangay}</td></tr>
                             <tr><th>Address:</th><td>${b.address}</td></tr>
-                            <tr><th>Contact Phone:</th><td>${b.contact}</td></tr>
+                            <tr><th>Contact Phone:</th><td>${maskContact(b.contact)}</td></tr>
                             <tr><th>Email:</th><td>${b.email}</td></tr>
                             <tr><th>Assigned Program:</th><td><span class="badge bg-primary-subtle text-primary">${b.program}</span></td></tr>
                             <tr><th>Valid ID Status:</th><td><span class="badge bg-success">${b.idStatus}</span></td></tr>
@@ -1564,6 +2791,7 @@
         // ---------------------------------------------------------------------
         function renderEvaluationQueueTable() {
             const tbody = document.getElementById('evaluationQueueTableBody');
+            if (!tbody) return;
             tbody.innerHTML = evaluationList.map(item => {
                 let badgeClass = item.status === 'Approved' ? 'badge-approved' : item.status === 'Denied' ? 'badge-denied' : 'badge-pending';
                 return `
@@ -1658,11 +2886,15 @@
             logOfficerAction('APPROVE_APP', `Approved application ${id} for beneficiary ${item.beneficiaryName}.`);
 
             bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
-            window.showSystemNotification({
-                title: 'Application Approved',
-                message: `Application ${id} for ${item.beneficiaryName} has been APPROVED successfully. System status updated to Approved.`,
-                type: 'success'
-            });
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'Application Approved',
+                    message: `Application ${id} for ${item.beneficiaryName} has been APPROVED successfully. System status updated to Approved.`,
+                    type: 'success'
+                });
+            } else {
+                alert(`Application ${id} for ${item.beneficiaryName} approved.`);
+            }
         }
 
         function promptDenyRemarks(id) {
@@ -1673,11 +2905,7 @@
         function confirmDenyApplication() {
             const remarks = document.getElementById('denyRemarksInput').value.trim();
             if (!remarks) {
-                window.showSystemNotification({
-                    title: 'Mandatory Remarks Required',
-                    message: 'Rejection remarks are MANDATORY when denying an application. Please enter specific reasons.',
-                    type: 'warning'
-                });
+                alert('Mandatory Remarks Required: Rejection remarks are mandatory when denying an application.');
                 return;
             }
 
@@ -1698,11 +2926,7 @@
                 bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
             }
 
-            window.showSystemNotification({
-                title: 'Application Denied',
-                message: `Application ${selectedEvalAppId} for ${item.beneficiaryName} has been DENIED. Rejection remarks recorded.`,
-                type: 'error'
-            });
+            alert(`Application ${selectedEvalAppId} denied.`);
         }
 
         function promptPendingNotes(id) {
@@ -1713,11 +2937,7 @@
         function confirmPendingApplication() {
             const notes = document.getElementById('pendingNotesInput').value.trim();
             if (!notes) {
-                window.showSystemNotification({
-                    title: 'Mandatory Notes Required',
-                    message: 'Notes regarding missing documents or requirements are MANDATORY when setting status to Pending.',
-                    type: 'warning'
-                });
+                alert('Mandatory Notes Required: Notes regarding missing documents are mandatory.');
                 return;
             }
 
@@ -1737,41 +2957,12 @@
                 bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
             }
 
-            window.showSystemNotification({
-                title: 'Status Updated to Pending',
-                message: `Application ${selectedEvalAppId} for ${item.beneficiaryName} set to PENDING. Notes logged.`,
-                type: 'warning'
-            });
+            alert(`Application ${selectedEvalAppId} set to Pending.`);
         }
 
         // ---------------------------------------------------------------------
         // LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT
         // ---------------------------------------------------------------------
-        function renderBatchesCards() {
-            const container = document.getElementById('batchesCardContainer');
-            container.innerHTML = batchesList.map(b => `
-                <div class="col-md-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="fw-bold mb-0">${b.name}</h5>
-                                <span class="badge bg-primary">${b.program}</span>
-                            </div>
-                            <p class="text-muted small mb-2">Created: ${b.dateCreated} | Assigned: ${b.assignedCount} / ${b.capacity} slots</p>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-success" style="width: ${(b.assignedCount / b.capacity) * 100}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // ---------------------------------------------------------------------
-        // LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT
-        // ---------------------------------------------------------------------
-        let selectedBatchAssignAppIds = [];
-
         function renderBatchesCards() {
             const container = document.getElementById('batchesCardContainer');
             if (!container) return;
@@ -1856,442 +3047,6 @@
 
         function toggleSelectAllApps(mainCheckbox) {
             document.querySelectorAll('.app-row-checkbox').forEach(cb => cb.checked = mainCheckbox.checked);
-        }
-
-        // Intake Form File Validation (MIME & Size <= 5MB)
-        function validateIntakeFileInput(input, maxMb) {
-            const alertBox = document.getElementById('intakeValidationAlert');
-            const alertText = document.getElementById('intakeValidationText');
-
-            if (!input.files || input.files.length === 0) return true;
-            const file = input.files[0];
-            const maxBytes = maxMb * 1024 * 1024;
-            const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-
-            if (!allowedMimeTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|pdf)$/i)) {
-                alertText.textContent = `Invalid file type for ${file.name}. Only JPG, PNG, and PDF formats are permitted.`;
-                alertBox.classList.remove('d-none');
-                input.value = '';
-                return false;
-            }
-
-            if (file.size > maxBytes) {
-                alertText.textContent = `File size for ${file.name} (${(file.size / (1024*1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB.`;
-                alertBox.classList.remove('d-none');
-                input.value = '';
-                return false;
-            }
-
-            alertBox.classList.add('d-none');
-            return true;
-        }
-
-        function openIntakeModal() {
-            document.getElementById('intakeForm').reset();
-            document.getElementById('intakeValidationAlert').classList.add('d-none');
-            new bootstrap.Modal(document.getElementById('intakeApplicationModal')).show();
-        }
-
-        function submitIntakeApplication(event) {
-            event.preventDefault();
-            const alertBox = document.getElementById('intakeValidationAlert');
-            const alertText = document.getElementById('intakeValidationText');
-            alertBox.classList.add('d-none');
-
-            const name = document.getElementById('intakeBenName').value.trim();
-            const address = document.getElementById('intakeBenAddress').value.trim();
-            const program = document.getElementById('intakeProgram').value;
-            const projectType = document.getElementById('intakeProjectType').value.trim();
-
-            const certFile = document.getElementById('intakeBarangayCertFile');
-            const validIdFile = document.getElementById('intakeValidIdFile');
-            const programReqFile = document.getElementById('intakeProgramReqFile');
-
-            // INTAKE RESTRICTION 1: Mandatory fields check
-            if (!name || !address || !program || !projectType) {
-                alertText.textContent = 'Submission Blocked: All mandatory fields (Beneficiary Name, Address, Program, Project Type) must be completed.';
-                alertBox.classList.remove('d-none');
-                return;
-            }
-
-            // INTAKE RESTRICTION 2: Barangay Certification is mandatory
-            if (!certFile.files || certFile.files.length === 0) {
-                alertText.textContent = 'Submission Blocked: Mandatory Barangay Certification document is missing.';
-                alertBox.classList.remove('d-none');
-                return;
-            }
-
-            // INTAKE RESTRICTION 3: Valid ID & Program Requirements mandatory file check
-            if (!validIdFile.files || validIdFile.files.length === 0) {
-                alertText.textContent = 'Submission Blocked: Valid Government ID document is missing.';
-                alertBox.classList.remove('d-none');
-                return;
-            }
-
-            if (!programReqFile.files || programReqFile.files.length === 0) {
-                alertText.textContent = 'Submission Blocked: Program Requirements Document / Business Proposal is missing.';
-                alertBox.classList.remove('d-none');
-                return;
-            }
-
-            const newAppId = `APP-2026-${String(evaluationList.length + 1).padStart(3, '0')}`;
-            const newQrId = `BEN-2026-${String(evaluationList.length + 1).padStart(3, '0')}`;
-
-            const newApp = {
-                id: newAppId,
-                qrCodeId: newQrId,
-                beneficiaryName: name,
-                program: program,
-                projectType: projectType,
-                dateSubmitted: new Date().toISOString().split('T')[0],
-                status: 'Pending',
-                batchId: null,
-                batchName: null,
-                remarks: 'Intake application recorded by PESO Officer.',
-                missingNotes: '',
-                documents: [
-                    { name: 'Barangay Certification', type: 'barangay_cert', status: 'Verified' },
-                    { name: 'Valid Government ID', type: 'valid_id', status: 'Verified' },
-                    { name: 'Program Requirements', type: 'program_req', status: 'Verified' }
-                ]
-            };
-
-            evaluationList.unshift(newApp);
-            renderEvaluationQueueTable();
-            renderLivelihoodMasterTable();
-
-            // Traceability Audit Log
-            logOfficerAction('INTAKE_APPLICATION', `Recorded intake application ${newAppId} (${program} - ${projectType}) for beneficiary ${name}`);
-
-            bootstrap.Modal.getInstance(document.getElementById('intakeApplicationModal')).hide();
-            alert(`Intake application ${newAppId} recorded successfully for ${name}! Initial Status: Pending.`);
-        }
-
-        function openCreateBatchModal() {
-            document.getElementById('batchNameInput').value = '';
-            new bootstrap.Modal(document.getElementById('createBatchModal')).show();
-        }
-
-        function submitCreateBatch() {
-            const name = document.getElementById('batchNameInput').value.trim();
-            const program = document.getElementById('batchProgramInput').value;
-            const cap = document.getElementById('batchCapacityInput').value;
-
-            if (!name) {
-                window.showSystemNotification({
-                    title: 'Validation Error',
-                    message: 'Batch name is required.',
-                    type: 'warning'
-                });
-                return;
-            }
-
-            const newBatch = {
-                id: `BAT-2026-${String(batchesList.length + 1).padStart(2, '0')}`,
-                name,
-                program,
-                capacity: parseInt(cap, 10) || 50,
-                assignedCount: 0,
-                dateCreated: new Date().toISOString().split('T')[0]
-            };
-
-            batchesList.unshift(newBatch);
-            renderBatchesCards();
-            logOfficerAction('CREATE_BATCH', `Created program batch "${name}" for program ${program}`);
-
-            bootstrap.Modal.getInstance(document.getElementById('createBatchModal')).hide();
-            window.showSystemNotification({
-                title: 'Program Batch Created',
-                message: `Program Batch "${name}" (${newBatch.id}) created successfully with capacity of ${newBatch.capacity}.`,
-                type: 'success'
-            });
-        }
-
-        // BATCH ASSIGNMENT MODAL & RESTRICTION ENFORCEMENT
-        function openBatchAssignModal(singleAppId) {
-            selectedBatchAssignAppIds = [];
-
-            if (singleAppId) {
-                selectedBatchAssignAppIds = [singleAppId];
-            } else {
-                const checkboxes = document.querySelectorAll('.app-row-checkbox:checked');
-                checkboxes.forEach(cb => selectedBatchAssignAppIds.push(cb.value));
-            }
-
-            if (selectedBatchAssignAppIds.length === 0) {
-                window.showSystemNotification({
-                    title: 'Selection Required',
-                    message: 'Please select at least one application from the table to assign to a batch.',
-                    type: 'warning'
-                });
-                return;
-            }
-
-            // Populate Batches Dropdown
-            const batchSelect = document.getElementById('targetBatchSelect');
-            batchSelect.innerHTML = batchesList.map(b => `<option value="${b.id}">${b.name} (${b.program} — ${b.assignedCount}/${b.capacity} filled)</option>`).join('');
-
-            // Populate Selected Apps Table & Check Restrictions
-            const tbody = document.getElementById('batchAssignSelectedTableBody');
-            const alertBox = document.getElementById('batchAssignRestrictionAlert');
-            const alertText = document.getElementById('batchAssignRestrictionText');
-            const confirmBtn = document.getElementById('confirmBatchAssignBtn');
-
-            let nonApprovedList = [];
-
-            tbody.innerHTML = selectedBatchAssignAppIds.map(id => {
-                const app = evaluationList.find(e => e.id === id);
-                if (!app) return '';
-
-                const isApproved = app.status === 'Approved';
-                if (!isApproved) nonApprovedList.push(`${app.id} (${app.beneficiaryName}: ${app.status})`);
-
-                const eligBadge = isApproved
-                    ? `<span class="badge bg-success" style="background-color: #198754 !important;"><i class="bi bi-check-circle me-1"></i>Eligible (Approved)</span>`
-                    : `<span class="badge bg-danger" style="background-color: #dc3545 !important;"><i class="bi bi-shield-x me-1"></i>Ineligible (${app.status})</span>`;
-
-                return `
-                    <tr>
-                        <td class="fw-bold text-primary">${app.id}</td>
-                        <td>${app.beneficiaryName}</td>
-                        <td>${app.program}</td>
-                        <td><span class="badge ${app.status === 'Approved' ? 'bg-success' : app.status === 'Denied' ? 'bg-danger' : 'bg-warning'}">${app.status}</span></td>
-                        <td>${eligBadge}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            // RESTRICTION ENFORCEMENT: Block if non-approved applications are present
-            if (nonApprovedList.length > 0) {
-                alertText.innerHTML = `Only beneficiaries with <strong>Approved</strong> status can be assigned to batches. Applications cannot bypass evaluation.<br>The following selected application(s) are not Approved: <strong>${nonApprovedList.join(', ')}</strong>`;
-                alertBox.classList.remove('d-none');
-                confirmBtn.disabled = true;
-            } else {
-                alertBox.classList.add('d-none');
-                confirmBtn.disabled = false;
-            }
-
-            new bootstrap.Modal(document.getElementById('batchAssignModal')).show();
-        }
-
-        function submitBatchAssignment() {
-            const batchId = document.getElementById('targetBatchSelect').value;
-            const batch = batchesList.find(b => b.id === batchId);
-
-            if (!batch) {
-                window.showSystemNotification({
-                    title: 'Target Batch Missing',
-                    message: 'Target batch not found. Please select a valid program batch.',
-                    type: 'error'
-                });
-                return;
-            }
-
-            // Double Check Restriction Guard
-            const nonApprovedApps = selectedBatchAssignAppIds.filter(id => {
-                const app = evaluationList.find(e => e.id === id);
-                return !app || app.status !== 'Approved';
-            });
-
-            if (nonApprovedApps.length > 0) {
-                window.showSystemNotification({
-                    title: 'Batch Assignment Blocked',
-                    message: `Restriction Enforcement: Applications ${nonApprovedApps.join(', ')} are not Approved. ONLY beneficiaries with Approved status can be assigned to program batches.`,
-                    type: 'error'
-                });
-                return;
-            }
-
-            // Assign Batch to Selected Applications
-            selectedBatchAssignAppIds.forEach(id => {
-                const app = evaluationList.find(e => e.id === id);
-                if (app) {
-                    app.batchId = batch.id;
-                    app.batchName = batch.name;
-                }
-            });
-
-            batch.assignedCount += selectedBatchAssignAppIds.length;
-            renderBatchesCards();
-            renderLivelihoodMasterTable();
-
-            // Uncheck checkboxes
-            document.querySelectorAll('.app-row-checkbox').forEach(cb => cb.checked = false);
-            if (document.getElementById('selectAllAppsCheckbox')) document.getElementById('selectAllAppsCheckbox').checked = false;
-
-            logOfficerAction('BATCH_ASSIGNMENT', `Assigned ${selectedBatchAssignAppIds.length} approved beneficiary(ies) to batch "${batch.name}" (${batch.id})`);
-
-            bootstrap.Modal.getInstance(document.getElementById('batchAssignModal')).hide();
-
-            // EXPLICIT MODAL CONFIRMATION ON SUCCESSFUL BATCH ASSIGNMENT
-            window.showSystemNotification({
-                title: 'Batch Assignment Confirmed',
-                message: `Successfully assigned ${selectedBatchAssignAppIds.length} approved beneficiary(ies) to Program Batch "${batch.name}" (${batch.id}). Records updated.`,
-                type: 'success'
-            });
-        }
-
-        // ---------------------------------------------------------------------
-        // APPROVED ASSISTANCE RECORDING & MONITORING
-        // ---------------------------------------------------------------------
-        function renderAssistanceRecordsTable() {
-            const tbody = document.getElementById('assistanceRecordsTableBody');
-            tbody.innerHTML = assistanceRecordsList.map(ast => `
-                <tr>
-                    <td class="fw-bold text-primary">${ast.id}</td>
-                    <td class="fw-semibold">${ast.beneficiaryName}</td>
-                    <td>${ast.program}</td>
-                    <td><span class="badge bg-info text-dark me-1">${ast.type}</span> <strong>${ast.quantity}</strong></td>
-                    <td>${ast.dateApproved}</td>
-                    <td class="small">${ast.conditions}</td>
-                    <td><small class="text-muted">${ast.officer}</small></td>
-                </tr>
-            `).join('');
-        }
-
-        function openRecordAssistanceModal() {
-            new bootstrap.Modal(document.getElementById('recordAssistanceModal')).show();
-        }
-
-        function submitAssistanceRecord(event) {
-            event.preventDefault();
-            const name = document.getElementById('astBenName').value.trim();
-            const type = document.getElementById('astType').value;
-            const qty = document.getElementById('astQuantity').value.trim();
-            const conditions = document.getElementById('astConditions').value.trim();
-
-            if (!name || !qty) {
-                window.showSystemNotification({
-                    title: 'Validation Error',
-                    message: 'Beneficiary name and quantity/amount are required.',
-                    type: 'warning'
-                });
-                return;
-            }
-
-            const newRecord = {
-                id: `AST-2026-${String(assistanceRecordsList.length + 1).padStart(3, '0')}`,
-                appId: 'APP-2026-REG',
-                beneficiaryName: name,
-                program: document.getElementById('astProgram').value,
-                type,
-                quantity: qty,
-                dateApproved: new Date().toISOString().split('T')[0],
-                conditions: conditions || 'Standard program compliance rules apply.',
-                officer: currentOfficerUser.fullName || 'Jane Smith'
-            };
-
-            assistanceRecordsList.unshift(newRecord);
-            renderAssistanceRecordsTable();
-            logOfficerAction('RECORD_ASSISTANCE', `Recorded approved assistance ${newRecord.id} (${type}: ${qty}) for ${name}`);
-
-            bootstrap.Modal.getInstance(document.getElementById('recordAssistanceModal')).hide();
-            window.showSystemNotification({
-                title: 'Assistance Record Created',
-                message: `Approved assistance record ${newRecord.id} (${type}: ${qty}) successfully created for ${name}.`,
-                type: 'success'
-            });
-        }
-
-        function exportAssistanceCSV() {
-            logOfficerAction('EXPORT_REPORT', `Generated and exported Approved Assistance CSV Report.`);
-            window.showSystemNotification({
-                title: 'Export Confirmed',
-                message: 'Approved assistance monitoring record export triggered. CSV file generated.',
-                type: 'success',
-                confirmText: 'Download CSV',
-                onConfirm: () => {
-                    window.location.href = '/api/peso-officer/export-assistance?officer=' + encodeURIComponent(currentOfficerUser.fullName);
-                }
-            });
-        }
-
-        function printAssistanceReport() {
-            logOfficerAction('EXPORT_REPORT', `Generated and printed Approved Assistance PDF Report.`);
-            window.showSystemNotification({
-                title: 'PDF Report Ready',
-                message: 'Formatted PDF report generated. Click Print to open standard print preview.',
-                type: 'info',
-                confirmText: 'Print PDF',
-                onConfirm: () => { window.print(); }
-            });
-        }
-
-        // ---------------------------------------------------------------------
-        // AUDIT TRAIL LOGGING
-        // ---------------------------------------------------------------------
-        function logOfficerAction(action, details) {
-            auditLogs.unshift({
-                timestamp: new Date().toLocaleString(),
-                officer: currentOfficerUser.fullName || 'PESO Officer',
-                action,
-                details
-            });
-            renderAuditLogs();
-        }
-
-        function renderAuditLogs() {
-            const tbody = document.getElementById('auditLogsTableBody');
-            if (!tbody) return;
-            tbody.innerHTML = auditLogs.map(l => `
-                <tr>
-                    <td class="small">${l.timestamp}</td>
-                    <td class="fw-semibold">${l.officer}</td>
-                    <td><span class="badge bg-secondary">${l.action}</span></td>
-                    <td class="small">${l.details}</td>
-                </tr>
-            `).join('');
-        }
-
-        function openAuditModal() {
-            new bootstrap.Modal(document.getElementById('auditLogsModal')).show();
-        }
-
-        function openQrScannerModal() {
-            new bootstrap.Modal(document.getElementById('qrScannerModal')).show();
-        }
-
-        function executeQrScanLookup() {
-            const val = document.getElementById('manualQrInput').value.trim();
-            if (!val) { alert('Enter QR string or ID.'); return; }
-            bootstrap.Modal.getInstance(document.getElementById('qrScannerModal')).hide();
-            openBeneficiaryInfoCardModal(val);
-        }
-
-        function filterEvaluationQueue() {
-            const search = document.getElementById('evalSearchInput').value.toLowerCase();
-            const status = document.getElementById('evalStatusFilter').value;
-
-            const filtered = evaluationList.filter(item => {
-                const matchSearch = !search || item.beneficiaryName.toLowerCase().includes(search) || item.id.toLowerCase().includes(search) || item.qrCodeId.toLowerCase().includes(search);
-                const matchStatus = !status || item.status === status;
-                return matchSearch && matchStatus;
-            });
-
-            const tbody = document.getElementById('evaluationQueueTableBody');
-            tbody.innerHTML = filtered.map(item => {
-                let badgeClass = item.status === 'Approved' ? 'badge-approved' : item.status === 'Denied' ? 'badge-denied' : 'badge-pending';
-                return `
-                    <tr style="cursor:pointer" onclick="openApplicationDetail('${item.id}')">
-                        <td><span class="fw-bold text-primary">${item.id}</span></td>
-                        <td class="fw-semibold">${item.beneficiaryName}</td>
-                        <td>${item.program}</td>
-                        <td>${item.dateSubmitted}</td>
-                        <td><span class="badge ${badgeClass}">${item.status}</span></td>
-                        <td class="text-end" onclick="event.stopPropagation()">
-                            <button class="btn btn-sm btn-outline-primary" onclick="openApplicationDetail('${item.id}')">View</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function resetEvalFilters() {
-            document.getElementById('evalSearchInput').value = '';
-            document.getElementById('evalStatusFilter').value = '';
-            renderEvaluationQueueTable();
-        }
-
         function logoutOfficer() {
             localStorage.removeItem('currentUser');
             window.location.href = 'official_login.html';
