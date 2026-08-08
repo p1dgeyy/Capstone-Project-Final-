@@ -1183,6 +1183,302 @@ function releaseCswdoApplicationFunds(id, adminUser, releaseAmount = null, notes
     return { app, fund };
 }
 
+// =============================================================================
+// CSWDO OFFICER ACCOUNTS & MANAGEMENT STORE
+// =============================================================================
+
+const _cswdoOfficers = [
+    {
+        id: 1,
+        first_name: 'Mary',
+        middle_name: 'D.',
+        last_name: 'Williams',
+        suffix: 'N/A',
+        username: 'cswdo-officer',
+        email: 'cswdo.officer@koronadal.gov.ph',
+        password_hash: DEFAULT_HASH,
+        role: 'CSWDO Officer',
+        gender: 'Female',
+        address: 'CSWDO Annex, Barangay Zone I, Koronadal City',
+        contact_number: '0920-444-5555',
+        department: 'Medical',
+        status: 'Active', // Strictly 'Active' or 'Deactivated'
+        created_at: '2026-01-15T08:00:00.000Z',
+        updated_at: '2026-08-08T08:00:00.000Z'
+    },
+    {
+        id: 2,
+        first_name: 'Carlos',
+        middle_name: 'E.',
+        last_name: 'Dela Peña',
+        suffix: 'Sr.',
+        username: 'cswdo-officer-fin',
+        email: 'carlos.delapena@koronadal.gov.ph',
+        password_hash: DEFAULT_HASH,
+        role: 'CSWDO Officer',
+        gender: 'Male',
+        address: 'Purok San Jose, Barangay GPS, Koronadal City',
+        contact_number: '0921-555-7766',
+        department: 'Financial',
+        status: 'Active',
+        created_at: '2026-02-01T09:00:00.000Z',
+        updated_at: '2026-08-08T08:00:00.000Z'
+    },
+    {
+        id: 3,
+        first_name: 'Elena',
+        middle_name: 'R.',
+        last_name: 'Cruz',
+        suffix: 'N/A',
+        username: 'cswdo-officer-bur',
+        email: 'elena.cruz@koronadal.gov.ph',
+        password_hash: DEFAULT_HASH,
+        role: 'CSWDO Officer',
+        gender: 'Female',
+        address: 'Purok Crossing, Barangay San Roque, Koronadal City',
+        contact_number: '0922-666-8899',
+        department: 'Burial',
+        status: 'Active',
+        created_at: '2026-02-15T10:30:00.000Z',
+        updated_at: '2026-08-08T08:00:00.000Z'
+    },
+    {
+        id: 4,
+        first_name: 'Vicente',
+        middle_name: 'M.',
+        last_name: 'Morales',
+        suffix: 'Jr.',
+        username: 'cswdo-officer-med2',
+        email: 'vicente.morales@koronadal.gov.ph',
+        password_hash: DEFAULT_HASH,
+        role: 'CSWDO Officer',
+        gender: 'Male',
+        address: 'Purok 5, Barangay Sta. Cruz, Koronadal City',
+        contact_number: '0923-777-9900',
+        department: 'Medical',
+        status: 'Active',
+        created_at: '2026-03-01T08:30:00.000Z',
+        updated_at: '2026-08-08T08:00:00.000Z'
+    },
+    {
+        id: 99,
+        first_name: 'Robert',
+        middle_name: 'L.',
+        last_name: 'Johnson',
+        suffix: 'N/A',
+        username: 'cswdo-admin',
+        email: 'cswdo.admin@koronadal.gov.ph',
+        password_hash: DEFAULT_HASH,
+        role: 'CSWDO Admin',
+        gender: 'Male',
+        address: 'CSWDO Central Headquarters, City of Koronadal',
+        contact_number: '0917-111-2222',
+        department: 'CSWDO',
+        status: 'Active',
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-08-08T08:00:00.000Z'
+    },
+    {
+        id: 5,
+        first_name: 'Aurora',
+        middle_name: 'S.',
+        last_name: 'Santos',
+        suffix: 'N/A',
+        username: 'cswdo-officer-archived',
+        email: 'aurora.santos@koronadal.gov.ph',
+        password_hash: DEFAULT_HASH,
+        role: 'CSWDO Officer',
+        gender: 'Female',
+        address: 'Purok Malipayon, Barangay Morales, Koronadal City',
+        contact_number: '0924-888-1122',
+        department: 'Financial',
+        status: 'Deactivated', // Placed in Archive Section
+        created_at: '2026-01-20T09:00:00.000Z',
+        updated_at: '2026-07-30T16:00:00.000Z'
+    }
+];
+
+function getCswdoOfficers(filters = {}) {
+    let list = [..._cswdoOfficers];
+    if (filters.status && filters.status !== 'ALL') {
+        const s = filters.status.toLowerCase();
+        list = list.filter(o => o.status.toLowerCase() === s);
+    }
+    if (filters.department && filters.department !== 'ALL') {
+        const d = filters.department.toLowerCase();
+        list = list.filter(o => o.department.toLowerCase() === d);
+    }
+    if (filters.role && filters.role !== 'ALL') {
+        const r = filters.role.toLowerCase();
+        list = list.filter(o => o.role.toLowerCase() === r);
+    }
+    if (filters.search) {
+        const q = filters.search.toLowerCase().trim();
+        list = list.filter(o => 
+            o.first_name.toLowerCase().includes(q) ||
+            o.last_name.toLowerCase().includes(q) ||
+            `${o.first_name} ${o.last_name}`.toLowerCase().includes(q) ||
+            o.username.toLowerCase().includes(q) ||
+            o.email.toLowerCase().includes(q) ||
+            o.department.toLowerCase().includes(q) ||
+            o.contact_number.includes(q)
+        );
+    }
+    return list;
+}
+
+function findCswdoOfficerById(id) {
+    if (!id) return null;
+    return _cswdoOfficers.find(o => String(o.id) === String(id));
+}
+
+function findCswdoOfficerByUsernameOrEmail(identifier) {
+    if (!identifier) return null;
+    const clean = identifier.trim().toLowerCase();
+    return _cswdoOfficers.find(o => 
+        o.username.toLowerCase() === clean || 
+        o.email.toLowerCase() === clean
+    );
+}
+
+function addCswdoOfficer(data, adminUser) {
+    const id = _cswdoOfficers.length > 0 ? Math.max(..._cswdoOfficers.map(o => o.id)) + 1 : 1;
+    
+    // Hash password with bcrypt
+    const rawPassword = data.password;
+    const password_hash = bcrypt.hashSync(rawPassword, 10);
+
+    const newOfficer = {
+        id,
+        first_name: (data.first_name || '').trim(),
+        middle_name: (data.middle_name || '').trim(),
+        last_name: (data.last_name || '').trim(),
+        suffix: (data.suffix || 'N/A').trim(),
+        username: (data.username || '').trim().toLowerCase(),
+        email: (data.email || '').trim().toLowerCase(),
+        password_hash,
+        role: data.role || 'CSWDO Officer',
+        gender: data.gender || 'Female',
+        address: (data.address || 'City of Koronadal').trim(),
+        contact_number: data.contact_number || '09XX-***-XXXX',
+        department: data.department || 'Medical',
+        status: 'Active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        email_notification_sent: true
+    };
+
+    _cswdoOfficers.push(newOfficer);
+
+    // Sync into general users table if needed
+    addUser({
+        first_name: newOfficer.first_name,
+        middle_name: newOfficer.middle_name,
+        last_name: newOfficer.last_name,
+        suffix: newOfficer.suffix,
+        username: newOfficer.username,
+        email: newOfficer.email,
+        password_hash: newOfficer.password_hash,
+        role: newOfficer.role,
+        department: 'CSWDO',
+        phone: newOfficer.contact_number,
+        sex: newOfficer.gender,
+        address: newOfficer.address,
+        status: 'Active'
+    });
+
+    addCswdoActivityLog({
+        action: 'CREATE_OFFICER',
+        action_title: 'New Officer Account Provisioned',
+        beneficiary_name: 'N/A',
+        program: `${newOfficer.department} Assistance Dept`,
+        admin_id: adminUser.username || adminUser || 'cswdo-admin',
+        admin_name: adminUser.fullName || `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() || 'CSWDO Administrator',
+        details: `Created officer account "${newOfficer.username}" (${newOfficer.first_name} ${newOfficer.last_name}) for ${newOfficer.department} Dept. Login credentials automatically dispatched via email.`
+    });
+
+    return newOfficer;
+}
+
+function updateCswdoOfficer(id, data, adminUser) {
+    const officer = findCswdoOfficerById(id);
+    if (!officer) return null;
+
+    if (data.first_name) officer.first_name = data.first_name.trim();
+    if (data.middle_name !== undefined) officer.middle_name = data.middle_name.trim();
+    if (data.last_name) officer.last_name = data.last_name.trim();
+    if (data.suffix !== undefined) officer.suffix = data.suffix.trim();
+    if (data.email) officer.email = data.email.trim().toLowerCase();
+    if (data.role) officer.role = data.role;
+    if (data.gender) officer.gender = data.gender;
+    if (data.address) officer.address = data.address.trim();
+    if (data.contact_number) officer.contact_number = data.contact_number.trim();
+    if (data.department) officer.department = data.department;
+    if (data.status && ['Active', 'Deactivated'].includes(data.status)) officer.status = data.status;
+
+    if (data.password && data.password.length >= 8) {
+        officer.password_hash = bcrypt.hashSync(data.password, 10);
+    }
+
+    officer.updated_at = new Date().toISOString();
+
+    addCswdoActivityLog({
+        action: 'UPDATE_OFFICER',
+        action_title: 'Officer Details Updated',
+        beneficiary_name: 'N/A',
+        program: `${officer.department} Assistance Dept`,
+        admin_id: adminUser.username || adminUser || 'cswdo-admin',
+        admin_name: adminUser.fullName || `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() || 'CSWDO Administrator',
+        details: `Administrator updated officer profile for "${officer.username}" (${officer.first_name} ${officer.last_name}), Dept: ${officer.department}, Status: ${officer.status}.`
+    });
+
+    return officer;
+}
+
+function toggleCswdoOfficerStatus(id, adminUser) {
+    const officer = findCswdoOfficerById(id);
+    if (!officer) return null;
+
+    const oldStatus = officer.status;
+    officer.status = oldStatus === 'Active' ? 'Deactivated' : 'Active';
+    officer.updated_at = new Date().toISOString();
+
+    const actionType = officer.status === 'Active' ? 'ACTIVATE_OFFICER' : 'DEACTIVATE_OFFICER';
+    const actionTitle = officer.status === 'Active' ? 'Officer Account Activated' : 'Officer Account Deactivated (Archived)';
+
+    addCswdoActivityLog({
+        action: actionType,
+        action_title: actionTitle,
+        beneficiary_name: 'N/A',
+        program: `${officer.department} Assistance Dept`,
+        admin_id: adminUser.username || adminUser || 'cswdo-admin',
+        admin_name: adminUser.fullName || `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() || 'CSWDO Administrator',
+        details: `Account "${officer.username}" status toggled from "${oldStatus}" to "${officer.status}". ${officer.status === 'Deactivated' ? 'Account moved to Archive Section.' : 'Account restored to Active list.'}`
+    });
+
+    return officer;
+}
+
+function deleteCswdoOfficerPermanently(id, adminUser, reason = 'Permanent administrative purging') {
+    const idx = _cswdoOfficers.findIndex(o => String(o.id) === String(id));
+    if (idx === -1) return null;
+
+    const deleted = _cswdoOfficers[idx];
+    _cswdoOfficers.splice(idx, 1);
+
+    addCswdoActivityLog({
+        action: 'DELETE_OFFICER_PERMANENT',
+        action_title: 'Officer Account Permanently Deleted',
+        beneficiary_name: 'N/A',
+        program: `${deleted.department} Assistance Dept`,
+        admin_id: adminUser.username || adminUser || 'cswdo-admin',
+        admin_name: adminUser.fullName || `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() || 'CSWDO Administrator',
+        details: `Permanently removed officer account "${deleted.username}" (ID: ${deleted.id}) from Archive Section. Justification: ${reason}`
+    });
+
+    return deleted;
+}
+
 module.exports = {
     getUsers,
     findUserById,
@@ -1197,7 +1493,7 @@ module.exports = {
     checkOfficerScheduleConflict,
     addInterview,
     getAttendanceRecords,
-    // CSWDO Exports
+    // CSWDO Applications & Funds Exports
     getCswdoApplications,
     findCswdoApplicationById,
     getCswdoFunds,
@@ -1208,6 +1504,15 @@ module.exports = {
     addCswdoActivityLog,
     approveCswdoApplication,
     denyCswdoApplication,
-    releaseCswdoApplicationFunds
+    releaseCswdoApplicationFunds,
+    // CSWDO Officer Management Exports
+    getCswdoOfficers,
+    findCswdoOfficerById,
+    findCswdoOfficerByUsernameOrEmail,
+    addCswdoOfficer,
+    updateCswdoOfficer,
+    toggleCswdoOfficerStatus,
+    deleteCswdoOfficerPermanently
 };
+
 

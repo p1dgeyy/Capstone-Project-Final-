@@ -846,6 +846,12 @@
                 </a>
             </li>
             <li class="sidebar-item">
+                <a href="#officers" class="sidebar-link" onclick="switchModule('officersModule', this)">
+                    <i class="bi bi-people-fill"></i>
+                    <span>Officers</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
                 <a href="#programs" class="sidebar-link" onclick="switchModule('programsModule', this)">
                     <i class="bi bi-folder-check"></i>
                     <span>Programs & Funds</span>
@@ -1239,6 +1245,123 @@
             </div>
         </section>
 
+        <!-- ========================================== -->
+        <!-- MODULE 6: CSWDO OFFICER MANAGEMENT         -->
+        <!-- ========================================== -->
+        <section id="officersModule" class="portal-module">
+            <div class="content-card">
+                <div class="card-header-flex flex-wrap gap-3">
+                    <div>
+                        <h5><i class="bi bi-people-fill text-primary"></i> CSWDO Officer Accounts Management</h5>
+                        <p class="text-muted small mb-0 mt-1">Create, view, update, activate, and deactivate officer accounts across Medical, Financial, and Burial assistance departments.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn-cswdo-primary btn-sm" onclick="openNewOfficerModal()">
+                            <i class="bi bi-person-plus-fill me-1"></i> + New Officer
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadOfficersData()" title="Reload Officers">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search & Filters Toolbar -->
+                <div class="row g-2 mb-4 align-items-center bg-light p-3 rounded">
+                    <div class="col-lg-4 col-md-6">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="officerSearchInput" placeholder="Search by name, username, email..." onkeyup="filterOfficers()">
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <select class="form-select form-select-sm" id="officerDeptFilter" onchange="filterOfficers()">
+                            <option value="ALL">All Assistance Departments</option>
+                            <option value="Medical">Medical Assistance Dept</option>
+                            <option value="Financial">Financial Assistance Dept</option>
+                            <option value="Burial">Burial Assistance Dept</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <select class="form-select form-select-sm" id="officerRoleFilter" onchange="filterOfficers()">
+                            <option value="ALL">All Roles</option>
+                            <option value="CSWDO Officer">CSWDO Officer</option>
+                            <option value="CSWDO Admin">CSWDO Admin</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <select class="form-select form-select-sm" id="officerStatusFilter" onchange="filterOfficers()">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Active">Active Only</option>
+                            <option value="Deactivated">Deactivated (Archived)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Active Officers Section -->
+                <div class="mb-2 d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold mb-0 text-success"><i class="bi bi-person-check-fill me-1"></i> Active Officer Accounts (<span id="activeOfficersCount">0</span>)</h6>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Authorized Personnel</span>
+                </div>
+                <div class="table-responsive mb-4">
+                    <table class="custom-table" id="activeOfficersTable">
+                        <thead>
+                            <tr>
+                                <th>Officer Name</th>
+                                <th>Username</th>
+                                <th>Email Address</th>
+                                <th>Assigned Role</th>
+                                <th>Department</th>
+                                <th>Contact (DPA Masked)</th>
+                                <th>Account Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeOfficersTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2"></div> Loading officer accounts...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Archive Section (Deactivated Accounts Box) -->
+                <div class="content-card mt-4 p-4" style="border: 1.5px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.02); border-radius: var(--radius-lg);">
+                    <div class="card-header-flex">
+                        <div>
+                            <h5 class="text-danger mb-1"><i class="bi bi-archive-fill me-2"></i> Archive Section &mdash; Deactivated Accounts (<span id="archivedOfficersCount">0</span>)</h5>
+                            <p class="text-muted small mb-0">Deactivated officers lose system access immediately while retaining historical case records for auditing. Accounts can be restored to Active status or permanently deleted.</p>
+                        </div>
+                        <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i> Deactivated & Restricted</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="custom-table" id="archivedOfficersTable">
+                            <thead>
+                                <tr>
+                                    <th>Officer Name</th>
+                                    <th>Username</th>
+                                    <th>Email Address</th>
+                                    <th>Assigned Role</th>
+                                    <th>Department</th>
+                                    <th>Contact (DPA Masked)</th>
+                                    <th>Status</th>
+                                    <th style="text-align: right;">Archive Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="archivedOfficersTableBody">
+                                <tr>
+                                    <td colspan="8" class="text-center py-3 text-muted">No deactivated officer accounts in archive.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
     </main>
 
     <!-- ======================================================= -->
@@ -1410,6 +1533,261 @@
         </div>
     </div>
 
+    <!-- ======================================================= -->
+    <!-- NEW OFFICER ACCOUNT FORM MODAL                          -->
+    <!-- ======================================================= -->
+    <div class="custom-modal-backdrop" id="newOfficerModal">
+        <div class="custom-modal-dialog" style="max-width: 720px;">
+            <div class="custom-modal-header bg-primary text-white">
+                <h5 class="custom-modal-title text-white"><i class="bi bi-person-plus-fill me-2"></i> Create New CSWDO Officer Account</h5>
+                <button class="btn-close btn-close-white" onclick="closeNewOfficerModal()" aria-label="Close"></button>
+            </div>
+            <div class="custom-modal-body">
+                <form id="newOfficerForm" onsubmit="submitNewOfficer(event)">
+                    <!-- Name Row -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">First Name <span class="text-danger">*</span></label>
+                            <input type="text" id="newOffFirstName" class="form-control form-control-sm" placeholder="e.g. Maria" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Middle Name</label>
+                            <input type="text" id="newOffMiddleName" class="form-control form-control-sm" placeholder="e.g. Santos">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" id="newOffLastName" class="form-control form-control-sm" placeholder="e.g. Dela Cruz" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small">Suffix</label>
+                            <select id="newOffSuffix" class="form-select form-select-sm">
+                                <option value="N/A">N/A</option>
+                                <option value="Jr.">Jr.</option>
+                                <option value="Sr.">Sr.</option>
+                                <option value="II">II</option>
+                                <option value="III">III</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Credentials Row -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Username (Unique) <span class="text-danger">*</span></label>
+                            <input type="text" id="newOffUsername" class="form-control form-control-sm" placeholder="e.g. cswdo-maria" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Password (Min 8 chars, letters+numbers) <span class="text-danger">*</span></label>
+                            <input type="password" id="newOffPassword" class="form-control form-control-sm" placeholder="••••••••" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Confirm Password <span class="text-danger">*</span></label>
+                            <input type="password" id="newOffConfirmPassword" class="form-control form-control-sm" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <!-- Email, Role, Department -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small">Official Email Address <span class="text-danger">*</span></label>
+                            <input type="email" id="newOffEmail" class="form-control form-control-sm" placeholder="officer@koronadal.gov.ph" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Assigned Role <span class="text-danger">*</span></label>
+                            <select id="newOffRole" class="form-select form-select-sm" required>
+                                <option value="CSWDO Officer">CSWDO Officer</option>
+                                <option value="CSWDO Admin">CSWDO Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Assistance Department <span class="text-danger">*</span></label>
+                            <select id="newOffDepartment" class="form-select form-select-sm" required>
+                                <option value="Medical">Medical Assistance</option>
+                                <option value="Financial">Financial Assistance</option>
+                                <option value="Burial">Burial Assistance</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Gender, Contact, Address -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Gender</label>
+                            <select id="newOffGender" class="form-select form-select-sm">
+                                <option value="Female">Female</option>
+                                <option value="Male">Male</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Contact Number</label>
+                            <input type="text" id="newOffContact" class="form-control form-control-sm" placeholder="0917-123-4567">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small">Assigned Office / Station Address</label>
+                            <input type="text" id="newOffAddress" class="form-control form-control-sm" placeholder="CSWDO Annex, Koronadal City">
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 small mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-envelope-check-fill text-primary" style="font-size: 1.2rem;"></i>
+                        <div><strong>Automated Email Notification:</strong> Upon saving, official login credentials and portal access guidelines will be automatically dispatched to the officer's email.</div>
+                    </div>
+
+                    <div class="custom-modal-footer px-0 pb-0 mt-3">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="closeNewOfficerModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-person-check-fill me-1"></i> Save Officer Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- OFFICER DETAILS & UPDATE MODAL                          -->
+    <!-- ======================================================= -->
+    <div class="custom-modal-backdrop" id="officerDetailsModal">
+        <div class="custom-modal-dialog" style="max-width: 720px;">
+            <div class="custom-modal-header bg-light">
+                <div>
+                    <h5 class="custom-modal-title text-dark"><i class="bi bi-person-vcard text-primary me-2"></i> Officer Account Details & Updates</h5>
+                    <span class="text-muted small">Update officer profile, department assignment, and security credentials</span>
+                </div>
+                <button class="btn-close" onclick="closeOfficerDetailsModal()" aria-label="Close"></button>
+            </div>
+            <div class="custom-modal-body">
+                <form id="editOfficerForm" onsubmit="saveOfficerDetails(event)">
+                    <input type="hidden" id="editOffId">
+
+                    <!-- Personal Information -->
+                    <h6 class="fw-bold text-primary mb-2 small text-uppercase"><i class="bi bi-person-lines-fill me-1"></i> Personal Information</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">First Name <span class="text-danger">*</span></label>
+                            <input type="text" id="editOffFirstName" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Middle Name</label>
+                            <input type="text" id="editOffMiddleName" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" id="editOffLastName" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small">Suffix</label>
+                            <select id="editOffSuffix" class="form-select form-select-sm">
+                                <option value="N/A">N/A</option>
+                                <option value="Jr.">Jr.</option>
+                                <option value="Sr.">Sr.</option>
+                                <option value="II">II</option>
+                                <option value="III">III</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Role & Department Assignment -->
+                    <h6 class="fw-bold text-primary mb-2 small text-uppercase"><i class="bi bi-briefcase-fill me-1"></i> Assigned Role & Department</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Username</label>
+                            <input type="text" id="editOffUsername" class="form-control form-control-sm bg-light" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Official Email Address <span class="text-danger">*</span></label>
+                            <input type="email" id="editOffEmail" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small">Role</label>
+                            <select id="editOffRole" class="form-select form-select-sm">
+                                <option value="CSWDO Officer">CSWDO Officer</option>
+                                <option value="CSWDO Admin">CSWDO Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Department</label>
+                            <select id="editOffDepartment" class="form-select form-select-sm">
+                                <option value="Medical">Medical Assistance</option>
+                                <option value="Financial">Financial Assistance</option>
+                                <option value="Burial">Burial Assistance</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Contact & Account Status -->
+                    <h6 class="fw-bold text-primary mb-2 small text-uppercase"><i class="bi bi-shield-lock-fill me-1"></i> Contact & Security Status</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Gender</label>
+                            <select id="editOffGender" class="form-select form-select-sm">
+                                <option value="Female">Female</option>
+                                <option value="Male">Male</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Contact Number</label>
+                            <input type="text" id="editOffContact" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Account Status</label>
+                            <select id="editOffStatus" class="form-select form-select-sm">
+                                <option value="Active">Active</option>
+                                <option value="Deactivated">Deactivated</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Reset Password</label>
+                            <input type="password" id="editOffPassword" class="form-control form-control-sm" placeholder="Leave blank to keep">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Office / Station Address</label>
+                        <input type="text" id="editOffAddress" class="form-control form-control-sm">
+                    </div>
+
+                    <div class="custom-modal-footer px-0 pb-0">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="closeOfficerDetailsModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success btn-sm font-weight-bold">
+                            <i class="bi bi-save-fill me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- PERMANENT DELETE CONFIRMATION MODAL                      -->
+    <!-- ======================================================= -->
+    <div class="custom-modal-backdrop" id="permanentDeleteModal">
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header bg-danger text-white">
+                <h5 class="custom-modal-title text-white"><i class="bi bi-trash3-fill me-2"></i> Permanent Account Deletion</h5>
+                <button class="btn-close btn-close-white" onclick="closePermanentDeleteModal()" aria-label="Close"></button>
+            </div>
+            <div class="custom-modal-body">
+                <p class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Warning: This action permanently removes the officer account from the archive. Historical case evaluations will be preserved for auditing, but the login account cannot be recovered.</p>
+                <div class="p-3 bg-light rounded mb-3">
+                    <div><strong>Username:</strong> <span id="delModalUsername" class="text-primary font-monospace">cswdo-officer-archived</span></div>
+                    <div><strong>Officer Name:</strong> <span id="delModalFullName">Aurora Santos</span></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Permanent Deletion Reason (Mandatory Audit Requirement) <span class="text-danger">*</span></label>
+                    <textarea id="deleteOfficerReason" class="form-control" rows="3" placeholder="Specify official reason (e.g. Personnel resignation, account consolidation, administrative purging)..." required></textarea>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="closePermanentDeleteModal()">Cancel</button>
+                <button class="btn btn-danger btn-sm" onclick="confirmPermanentDelete()">
+                    <i class="bi bi-trash-fill me-1"></i> Confirm Permanent Deletion
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Core JavaScript Logic -->
     <script>
         // Global Application State
@@ -1433,6 +1811,7 @@
             initAdminProfile();
             refreshDashboardData();
             loadApplications();
+            loadOfficersData();
         });
 
         // Initialize Admin session info
@@ -1466,11 +1845,16 @@
             const titles = {
                 'dashboardModule': 'Assistance Programs Overview',
                 'applicationsModule': 'Assistance Applications Registry',
+                'officersModule': 'CSWDO Officer Accounts Management',
                 'programsModule': 'Assistance Programs & Budget telemetry',
                 'reportsModule': 'Reports & Audit Compliance',
                 'settingsModule': 'Portal Settings & Security Policies'
             };
             document.getElementById('pageTitle').textContent = titles[moduleId] || 'CSWDO Administrator Portal';
+
+            if (moduleId === 'officersModule') {
+                loadOfficersData();
+            }
 
             // Close mobile sidebar if open
             document.getElementById('sidebar').classList.remove('mobile-open');
@@ -2116,6 +2500,412 @@
                 }
             } catch (e) {
                 alert('Server error during fund release');
+            }
+        }
+
+        // =======================================================
+        // CSWDO OFFICER MANAGEMENT LOGIC
+        // =======================================================
+        let allOfficers = [];
+        let selectedOfficerId = null;
+
+        async function loadOfficersData() {
+            try {
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/officers');
+                const json = await res.json();
+                if (json.success && Array.isArray(json.data)) {
+                    allOfficers = json.data;
+                    document.getElementById('activeOfficersCount').textContent = json.active_count || allOfficers.filter(o => o.status === 'Active').length;
+                    document.getElementById('archivedOfficersCount').textContent = json.archived_count || allOfficers.filter(o => o.status === 'Deactivated').length;
+                    renderActiveOfficersTable(allOfficers.filter(o => o.status === 'Active'));
+                    renderArchivedOfficersTable(allOfficers.filter(o => o.status === 'Deactivated'));
+                }
+            } catch (err) {
+                console.error('[CSWDO] Error loading officers:', err);
+                const activeTbody = document.getElementById('activeOfficersTableBody');
+                if (activeTbody) {
+                    activeTbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Failed to connect to officers API.</td></tr>`;
+                }
+            }
+        }
+
+        function renderActiveOfficersTable(officers) {
+            const tbody = document.getElementById('activeOfficersTableBody');
+            if (!tbody) return;
+
+            if (!officers || officers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No active officer accounts found matching criteria.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = officers.map(o => {
+                const deptBadges = {
+                    'Medical': 'bg-primary-subtle text-primary border border-primary-subtle',
+                    'Financial': 'bg-info-subtle text-info border border-info-subtle',
+                    'Burial': 'bg-secondary-subtle text-secondary border border-secondary-subtle'
+                };
+                const badgeClass = deptBadges[o.department] || 'bg-light text-dark';
+                const initials = (o.first_name[0] || '') + (o.last_name[0] || '');
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-circle-sm bg-primary text-white font-weight-bold" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
+                                    ${initials.toUpperCase()}
+                                </div>
+                                <div>
+                                    <div class="fw-bold">${o.full_name || (o.first_name + ' ' + o.last_name)}</div>
+                                    <small class="text-muted">${o.gender || 'Officer'}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="font-monospace text-muted small">${o.username}</span></td>
+                        <td><span class="small">${o.email}</span></td>
+                        <td><span class="badge bg-light text-dark border">${o.role}</span></td>
+                        <td><span class="badge ${badgeClass}">${o.department}</span></td>
+                        <td><span class="font-monospace text-primary small">${o.contact_number}</span></td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i> Active</span></td>
+                        <td style="text-align: right;">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary btn-sm" onclick="openOfficerDetailsModal(${o.id})" title="View complete details and edit">
+                                    <i class="bi bi-pencil-square me-1"></i> Edit / Details
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="toggleOfficerStatus(${o.id})" title="Deactivate and move to Archive Section">
+                                    <i class="bi bi-toggle2-on text-success me-1"></i> Deactivate
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderArchivedOfficersTable(officers) {
+            const tbody = document.getElementById('archivedOfficersTableBody');
+            if (!tbody) return;
+
+            if (!officers || officers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted">No deactivated officer accounts in archive.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = officers.map(o => {
+                return `
+                    <tr style="background: rgba(239, 68, 68, 0.03);">
+                        <td>
+                            <div class="fw-bold text-muted">${o.full_name || (o.first_name + ' ' + o.last_name)}</div>
+                            <small class="text-danger"><i class="bi bi-lock-fill me-1"></i> Access Blocked</small>
+                        </td>
+                        <td><span class="font-monospace text-muted small">${o.username}</span></td>
+                        <td><span class="small text-muted">${o.email}</span></td>
+                        <td><span class="badge bg-light text-muted border">${o.role}</span></td>
+                        <td><span class="badge bg-light text-dark border">${o.department}</span></td>
+                        <td><span class="font-monospace text-muted small">${o.contact_number}</span></td>
+                        <td><span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i> Deactivated</span></td>
+                        <td style="text-align: right;">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-success btn-sm" onclick="toggleOfficerStatus(${o.id})" title="Restore to Active list">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Restore / Activate
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="openPermanentDeleteModal(${o.id}, '${o.username}', '${o.first_name} ${o.last_name}')" title="Permanently delete from Archive Section">
+                                    <i class="bi bi-trash-fill me-1"></i> Permanent Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterOfficers() {
+            const query = (document.getElementById('officerSearchInput').value || '').toLowerCase().trim();
+            const dept = document.getElementById('officerDeptFilter').value;
+            const role = document.getElementById('officerRoleFilter').value;
+            const status = document.getElementById('officerStatusFilter').value;
+
+            let filtered = allOfficers.filter(o => {
+                const matchesQuery = !query || 
+                    o.first_name.toLowerCase().includes(query) ||
+                    o.last_name.toLowerCase().includes(query) ||
+                    (o.full_name && o.full_name.toLowerCase().includes(query)) ||
+                    o.username.toLowerCase().includes(query) ||
+                    o.email.toLowerCase().includes(query) ||
+                    o.department.toLowerCase().includes(query);
+
+                const matchesDept = dept === 'ALL' || o.department === dept;
+                const matchesRole = role === 'ALL' || o.role === role;
+                const matchesStatus = status === 'ALL' || o.status === status;
+
+                return matchesQuery && matchesDept && matchesRole && matchesStatus;
+            });
+
+            if (status === 'ALL') {
+                renderActiveOfficersTable(filtered.filter(o => o.status === 'Active'));
+                renderArchivedOfficersTable(filtered.filter(o => o.status === 'Deactivated'));
+            } else if (status === 'Active') {
+                renderActiveOfficersTable(filtered);
+                renderArchivedOfficersTable([]);
+            } else if (status === 'Deactivated') {
+                renderActiveOfficersTable([]);
+                renderArchivedOfficersTable(filtered);
+            }
+        }
+
+        // =======================================================
+        // CREATE NEW OFFICER MODAL & ACTION
+        // =======================================================
+        function openNewOfficerModal() {
+            const form = document.getElementById('newOfficerForm');
+            if (form) form.reset();
+            document.getElementById('newOfficerModal').classList.add('show');
+        }
+
+        function closeNewOfficerModal() {
+            document.getElementById('newOfficerModal').classList.remove('show');
+        }
+
+        async function submitNewOfficer(event) {
+            event.preventDefault();
+
+            const first_name = document.getElementById('newOffFirstName').value.trim();
+            const middle_name = document.getElementById('newOffMiddleName').value.trim();
+            const last_name = document.getElementById('newOffLastName').value.trim();
+            const suffix = document.getElementById('newOffSuffix').value;
+            const username = document.getElementById('newOffUsername').value.trim();
+            const password = document.getElementById('newOffPassword').value;
+            const confirm_password = document.getElementById('newOffConfirmPassword').value;
+            const email = document.getElementById('newOffEmail').value.trim();
+            const role = document.getElementById('newOffRole').value;
+            const gender = document.getElementById('newOffGender').value;
+            const department = document.getElementById('newOffDepartment').value;
+            const contact_number = document.getElementById('newOffContact').value.trim();
+            const address = document.getElementById('newOffAddress').value.trim();
+
+            if (password !== confirm_password) {
+                alert('Password and Confirm Password do not match.');
+                return;
+            }
+
+            // Strong password complexity check: min 8 chars, letters and numbers
+            const hasLetter = /[a-zA-Z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            if (password.length < 8 || !hasLetter || !hasNumber) {
+                alert('Strong Password Policy Violation: Password must be at least 8 characters long and contain both letters and numbers.');
+                return;
+            }
+
+            try {
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/officers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name,
+                        middle_name,
+                        last_name,
+                        suffix,
+                        username,
+                        password,
+                        confirm_password,
+                        email,
+                        role,
+                        gender,
+                        department,
+                        contact_number,
+                        address
+                    })
+                });
+
+                const json = await res.json();
+                if (json.success) {
+                    closeNewOfficerModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Officer Account Created', `Account "${username}" created. Login credentials automatically dispatched via email to ${email}.`, 'success');
+                    } else {
+                        alert(`Officer account "${username}" created successfully!\n\nAutomated Email Notification: Official credentials sent to ${email}.`);
+                    }
+                    loadOfficersData();
+                } else {
+                    alert(json.message || json.error || 'Failed to create officer account');
+                }
+            } catch (err) {
+                console.error('[CSWDO] Error creating officer:', err);
+                alert('Network or server error during officer creation.');
+            }
+        }
+
+        // =======================================================
+        // VIEW & EDIT OFFICER DETAILS MODAL
+        // =======================================================
+        async function openOfficerDetailsModal(id) {
+            try {
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${id}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const o = json.data;
+                    document.getElementById('editOffId').value = o.id;
+                    document.getElementById('editOffFirstName').value = o.first_name || '';
+                    document.getElementById('editOffMiddleName').value = o.middle_name || '';
+                    document.getElementById('editOffLastName').value = o.last_name || '';
+                    document.getElementById('editOffSuffix').value = o.suffix || 'N/A';
+                    document.getElementById('editOffUsername').value = o.username || '';
+                    document.getElementById('editOffEmail').value = o.email || '';
+                    document.getElementById('editOffRole').value = o.role || 'CSWDO Officer';
+                    document.getElementById('editOffDepartment').value = o.department || 'Medical';
+                    document.getElementById('editOffGender').value = o.gender || 'Female';
+                    document.getElementById('editOffContact').value = o.contact_number || '';
+                    document.getElementById('editOffAddress').value = o.address || '';
+                    document.getElementById('editOffStatus').value = o.status || 'Active';
+                    document.getElementById('editOffPassword').value = '';
+
+                    document.getElementById('officerDetailsModal').classList.add('show');
+                } else {
+                    alert(json.message || 'Officer not found');
+                }
+            } catch (err) {
+                console.error('[CSWDO] Error loading officer details:', err);
+                alert('Could not fetch officer details.');
+            }
+        }
+
+        function closeOfficerDetailsModal() {
+            document.getElementById('officerDetailsModal').classList.remove('show');
+        }
+
+        async function saveOfficerDetails(event) {
+            event.preventDefault();
+            const id = document.getElementById('editOffId').value;
+            const first_name = document.getElementById('editOffFirstName').value.trim();
+            const middle_name = document.getElementById('editOffMiddleName').value.trim();
+            const last_name = document.getElementById('editOffLastName').value.trim();
+            const suffix = document.getElementById('editOffSuffix').value;
+            const email = document.getElementById('editOffEmail').value.trim();
+            const role = document.getElementById('editOffRole').value;
+            const department = document.getElementById('editOffDepartment').value;
+            const gender = document.getElementById('editOffGender').value;
+            const contact_number = document.getElementById('editOffContact').value.trim();
+            const address = document.getElementById('editOffAddress').value.trim();
+            const status = document.getElementById('editOffStatus').value;
+            const password = document.getElementById('editOffPassword').value;
+
+            if (password) {
+                const hasLetter = /[a-zA-Z]/.test(password);
+                const hasNumber = /[0-9]/.test(password);
+                if (password.length < 8 || !hasLetter || !hasNumber) {
+                    alert('Password complexity error: New password must be at least 8 characters long and contain both letters and numbers.');
+                    return;
+                }
+            }
+
+            try {
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name,
+                        middle_name,
+                        last_name,
+                        suffix,
+                        email,
+                        role,
+                        department,
+                        gender,
+                        contact_number,
+                        address,
+                        status,
+                        password: password || undefined
+                    })
+                });
+
+                const json = await res.json();
+                if (json.success) {
+                    closeOfficerDetailsModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Officer Profile Updated', `Changes for officer "${json.data.username}" saved successfully.`, 'success');
+                    } else {
+                        alert(`Officer "${json.data.username}" details saved successfully!`);
+                    }
+                    loadOfficersData();
+                } else {
+                    alert(json.message || 'Failed to update officer profile');
+                }
+            } catch (err) {
+                console.error('[CSWDO] Error updating officer:', err);
+                alert('Server error during update.');
+            }
+        }
+
+        // =======================================================
+        // INSTANT STATUS TOGGLE ACTION
+        // =======================================================
+        async function toggleOfficerStatus(id) {
+            try {
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const json = await res.json();
+                if (json.success) {
+                    const statusText = json.data.status;
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Status Toggled', `Officer "${json.data.username}" is now ${statusText}. ${json.is_archived ? 'Moved to Archive Section.' : 'Restored to Active list.'}`, statusText === 'Active' ? 'success' : 'warning');
+                    }
+                    loadOfficersData();
+                } else {
+                    alert(json.message || 'Status toggle failed');
+                }
+            } catch (err) {
+                console.error('[CSWDO] Error toggling status:', err);
+                alert('Network error during status toggle.');
+            }
+        }
+
+        // =======================================================
+        // PERMANENT DELETE CONFIRMATION & ACTION
+        // =======================================================
+        function openPermanentDeleteModal(id, username, fullName) {
+            selectedOfficerId = id;
+            document.getElementById('delModalUsername').textContent = username;
+            document.getElementById('delModalFullName').textContent = fullName || username;
+            document.getElementById('deleteOfficerReason').value = '';
+            document.getElementById('permanentDeleteModal').classList.add('show');
+        }
+
+        function closePermanentDeleteModal() {
+            document.getElementById('permanentDeleteModal').classList.remove('show');
+            selectedOfficerId = null;
+        }
+
+        async function confirmPermanentDelete() {
+            if (!selectedOfficerId) return;
+            const reason = document.getElementById('deleteOfficerReason').value.trim();
+            if (!reason) {
+                alert('Please provide a mandatory audit justification reason for permanently deleting this officer account.');
+                return;
+            }
+
+            try {
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${selectedOfficerId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
+                });
+
+                const json = await res.json();
+                if (json.success) {
+                    closePermanentDeleteModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Account Purged', `Officer account permanently deleted from system archive.`, 'danger');
+                    } else {
+                        alert('Officer account permanently deleted from archive.');
+                    }
+                    loadOfficersData();
+                } else {
+                    alert(json.message || 'Permanent deletion failed');
+                }
+            } catch (err) {
+                console.error('[CSWDO] Error deleting officer permanently:', err);
+                alert('Server error during permanent delete.');
             }
         }
 

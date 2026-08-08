@@ -253,6 +253,33 @@ CREATE INDEX IF NOT EXISTS idx_activity_app ON activity_log(application_id);
 CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON activity_log(timestamp);
 
 -- =============================================================================
+-- 7d. CSWDO OFFICERS TABLE (Officer Accounts & Department Assignments)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS officers (
+  id BIGSERIAL PRIMARY KEY,
+  first_name VARCHAR(100) NOT NULL,
+  middle_name VARCHAR(100) DEFAULT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  suffix VARCHAR(20) DEFAULT 'N/A',
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  email VARCHAR(100) NOT NULL UNIQUE,
+  role VARCHAR(50) NOT NULL DEFAULT 'CSWDO Officer' CHECK (role IN ('CSWDO Officer', 'CSWDO Admin')),
+  gender VARCHAR(10) DEFAULT 'Female' CHECK (gender IN ('Male', 'Female')),
+  address TEXT DEFAULT NULL,
+  contact_number VARCHAR(30) DEFAULT NULL,
+  department VARCHAR(50) NOT NULL CHECK (department IN ('Medical', 'Financial', 'Burial', 'CSWDO')),
+  status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'Deactivated')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_officer_username ON officers(username);
+CREATE INDEX IF NOT EXISTS idx_officer_email ON officers(email);
+CREATE INDEX IF NOT EXISTS idx_officer_dept ON officers(department);
+CREATE INDEX IF NOT EXISTS idx_officer_status ON officers(status);
+
+-- =============================================================================
 -- 8. APPROVED ASSISTANCE TABLE
 -- beneficiary_qr → beneficiaries(qr_code)
 -- officer_id → staff_profiles(id)

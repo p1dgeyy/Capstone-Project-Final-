@@ -39,7 +39,14 @@ const {
     addCswdoActivityLog, 
     approveCswdoApplication, 
     denyCswdoApplication, 
-    releaseCswdoApplicationFunds 
+    releaseCswdoApplicationFunds,
+    getCswdoOfficers,
+    findCswdoOfficerById,
+    findCswdoOfficerByUsernameOrEmail,
+    addCswdoOfficer,
+    updateCswdoOfficer,
+    toggleCswdoOfficerStatus,
+    deleteCswdoOfficerPermanently
 } = require('../data/seedData');
 
 const { 
@@ -539,4 +546,383 @@ router.get('/activity-logs', (req, res) => {
     });
 });
 
+// =============================================================================
+// CSWDO OFFICER MANAGEMENT ENDPOINTS
+// =============================================================================
+
+/**
+ * GET /api/admin/officers
+ * Fetch all CSWDO Officer accounts with filters (Role, Department, Status, Search)
+ * Status is strictly 'Active' or 'Deactivated' (Pending/Inactive removed)
+ */
+router.get('/officers', (req, res) => {
+    const { status, department, role, search } = req.query;
+    const list = getCswdoOfficers({ status, department, role, search });
+
+    // Format output with Data Privacy compliance
+    const sanitized = list.map(o => ({
+        id: o.id,
+        first_name: o.first_name,
+        middle_name: o.middle_name || '',
+        last_name: o.last_name,
+        suffix: o.suffix || 'N/A',
+        full_name: `${o.first_name} ${o.middle_name ? o.middle_name + ' ' : ''}${o.last_name}${o.suffix && o.suffix !== 'N/A' ? ' ' + o.suffix : ''}`.trim(),
+        username: o.username,
+        email: o.email,
+        role: o.role,
+        gender: o.gender || 'Female',
+        address: o.address || 'City of Koronadal',
+        contact_number: maskContactNumber(o.contact_number),
+        raw_contact: o.contact_number, // for edit modal
+        department: o.department, // Medical, Financial, Burial
+        status: o.status, // Active, Deactivated
+        created_at: o.created_at,
+        updated_at: o.updated_at
+    }));
+
+    const activeCount = sanitized.filter(o => o.status === 'Active').length;
+    const archivedCount = sanitized.filter(o => o.status === 'Deactivated').length;
+
+    res.json({
+        success: true,
+        count: sanitized.length,
+        active_count: activeCount,
+        archived_count: archivedCount,
+        data: sanitized,
+        archive_data: sanitized.filter(o => o.status === 'Deactivated')
+    });
+});
+
+/**
+ * GET /api/admin/officers/:id
+ * Fetch single officer details for view and edit modal
+ */
+router.get('/officers/:id', (req, res) => {
+    const officer = findCswdoOfficerById(req.params.id);
+    if (!officer) {
+        return res.status(404).json({
+            success: false,
+            error: 'Officer Not Found',
+            message: `Officer with ID "${req.params.id}" does not exist.`
+        });
+    }
+
+    res.json({
+        success: true,
+        data: {
+            id: officer.id,
+            first_name: officer.first_name,
+            middle_name: officer.middle_name || '',
+            last_name: officer.last_name,
+            suffix: officer.suffix || 'N/A',
+            full_name: `${officer.first_name} ${officer.middle_name ? officer.middle_name + ' ' : ''}${officer.last_name}${officer.suffix && officer.suffix !== 'N/A' ? ' ' + officer.suffix : ''}`.trim(),
+            username: officer.username,
+            email: officer.email,
+            role: officer.role,
+            gender: officer.gender || 'Female',
+            address: officer.address || 'City of Koronadal',
+            contact_number: officer.contact_number,
+            department: officer.department,
+            status: officer.status,
+            created_at: officer.created_at,
+            updated_at: officer.updated_at
+        }
+    });
+});
+
+/**
+ * POST /api/admin/officers
+ * Create a new CSWDO Officer account with password validation & email notification
+ */
+router.post('/officers', (req, res) => {
+    const {
+        first_name,
+        middle_name,
+        last_name,
+        suffix,
+        username,
+        password,
+        confirm_password,
+        email,
+        role,
+        gender,
+        address,
+        contact_number,
+        department,
+        action_reason
+    } = req.body;
+
+    const adminUser = req.user || { username: 'cswdo-admin', role: 'CSWDO Admin', fullName: 'Robert Johnson (CSWDO Admin)' };
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    // Required fields check
+    if (!first_name || !last_name || !username || !email || !password || !role || !department) {
+        return res.status(400).json({
+            success: false,
+            error: 'Validation Error',
+            message: 'First Name, Last Name, Username, Email, Password, Role, and Department are required.'
+        });
+    }
+
+    // Password confirmation check
+    if (confirm_password && password !== confirm_password) {
+        return res.status(400).json({
+            success: false,
+            error: 'Password Mismatch',
+            message: 'Password and Confirm Password do not match.'
+        });
+    }
+
+    // Strong password complexity check: min 8 chars, letters + numbers
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    if (password.length < 8 || !hasLetter || !hasNumber) {
+        return res.status(400).json({
+            success: false,
+            error: 'Weak Password',
+            message: 'Strong Password Policy Violation: Password must be at least 8 characters long and contain both letters and numbers.'
+        });
+    }
+
+    // Unique username and email check
+    const existing = findCswdoOfficerByUsernameOrEmail(username) || findCswdoOfficerByUsernameOrEmail(email);
+    if (existing) {
+        return res.status(409).json({
+            success: false,
+            error: 'Duplicate Account',
+            message: 'An officer account with this username or email address already exists.'
+        });
+    }
+
+    // Department validation
+    const validDepartments = ['Medical', 'Financial', 'Burial', 'CSWDO'];
+    if (!validDepartments.includes(department)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid Department',
+            message: `Department must be one of: ${validDepartments.join(', ')}`
+        });
+    }
+
+    // Create officer
+    const newOfficer = addCswdoOfficer({
+        first_name,
+        middle_name: middle_name || '',
+        last_name,
+        suffix: suffix || 'N/A',
+        username,
+        password,
+        email,
+        role: role || 'CSWDO Officer',
+        gender: gender || 'Female',
+        address: address || 'City of Koronadal',
+        contact_number: contact_number || '09XX-***-XXXX',
+        department
+    }, adminUser);
+
+    logAudit({
+        userId: adminUser.username || 'cswdo-admin',
+        userRole: adminUser.role || 'CSWDO Admin',
+        actionType: 'CREATE_CSWDO_OFFICER',
+        targetEntity: 'Officer Account Management',
+        targetId: newOfficer.id,
+        status: 'SUCCESS',
+        actionReason: action_reason || 'Administrative provisioning of new CSWDO officer account',
+        details: `Created officer account "${newOfficer.username}" (${newOfficer.first_name} ${newOfficer.last_name}) for ${newOfficer.department} Dept. Email credentials dispatched to ${newOfficer.email}.`,
+        clientIp
+    });
+
+    res.status(201).json({
+        success: true,
+        message: `Officer account "${newOfficer.username}" created successfully. Login credentials automatically sent via email.`,
+        data: {
+            id: newOfficer.id,
+            full_name: `${newOfficer.first_name} ${newOfficer.last_name}`,
+            username: newOfficer.username,
+            email: newOfficer.email,
+            role: newOfficer.role,
+            department: newOfficer.department,
+            status: newOfficer.status,
+            email_notification: {
+                sent: true,
+                recipient: newOfficer.email,
+                subject: 'Your CSWDO Officer Portal Login Credentials',
+                delivered_at: new Date().toISOString()
+            }
+        }
+    });
+});
+
+/**
+ * PUT /api/admin/officers/:id
+ * Update officer details directly from modal
+ */
+router.put('/officers/:id', (req, res) => {
+    const officerId = req.params.id;
+    const adminUser = req.user || { username: 'cswdo-admin', role: 'CSWDO Admin', fullName: 'Robert Johnson (CSWDO Admin)' };
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    const {
+        first_name,
+        middle_name,
+        last_name,
+        suffix,
+        email,
+        role,
+        gender,
+        address,
+        contact_number,
+        department,
+        status,
+        password,
+        action_reason
+    } = req.body;
+
+    // If new password provided, enforce complexity check
+    if (password) {
+        const hasLetter = /[a-zA-Z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        if (password.length < 8 || !hasLetter || !hasNumber) {
+            return res.status(400).json({
+                success: false,
+                error: 'Weak Password',
+                message: 'Password must be at least 8 characters long and contain both letters and numbers.'
+            });
+        }
+    }
+
+    const updated = updateCswdoOfficer(officerId, {
+        first_name,
+        middle_name,
+        last_name,
+        suffix,
+        email,
+        role,
+        gender,
+        address,
+        contact_number,
+        department,
+        status,
+        password
+    }, adminUser);
+
+    if (!updated) {
+        return res.status(404).json({
+            success: false,
+            error: 'Not Found',
+            message: `Officer with ID "${officerId}" does not exist.`
+        });
+    }
+
+    logAudit({
+        userId: adminUser.username || 'cswdo-admin',
+        userRole: adminUser.role || 'CSWDO Admin',
+        actionType: 'UPDATE_CSWDO_OFFICER',
+        targetEntity: 'Officer Account Management',
+        targetId: updated.id,
+        status: 'SUCCESS',
+        actionReason: action_reason || 'Administrator updated officer details via modal',
+        details: `Updated details for officer "${updated.username}" (ID: ${updated.id}). Department: ${updated.department}, Status: ${updated.status}.`,
+        clientIp
+    });
+
+    res.json({
+        success: true,
+        message: `Officer "${updated.username}" updated successfully.`,
+        data: updated
+    });
+});
+
+/**
+ * PATCH /api/admin/officers/:id/status
+ * Quick toggle switch between Active and Deactivated (moves to/from Archive Section)
+ */
+router.patch('/officers/:id/status', (req, res) => {
+    const officerId = req.params.id;
+    const adminUser = req.user || { username: 'cswdo-admin', role: 'CSWDO Admin', fullName: 'Robert Johnson (CSWDO Admin)' };
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    const updated = toggleCswdoOfficerStatus(officerId, adminUser);
+    if (!updated) {
+        return res.status(404).json({
+            success: false,
+            error: 'Not Found',
+            message: `Officer with ID "${officerId}" does not exist.`
+        });
+    }
+
+    logAudit({
+        userId: adminUser.username || 'cswdo-admin',
+        userRole: adminUser.role || 'CSWDO Admin',
+        actionType: updated.status === 'Active' ? 'ACTIVATE_OFFICER' : 'DEACTIVATE_OFFICER',
+        targetEntity: 'Officer Account Security',
+        targetId: updated.id,
+        status: 'SUCCESS',
+        actionReason: `Quick status toggle to ${updated.status}`,
+        details: `Administrator toggled officer account "${updated.username}" to ${updated.status}. ${updated.status === 'Deactivated' ? 'Moved to Archive Section.' : 'Restored to Active list.'}`,
+        clientIp
+    });
+
+    res.json({
+        success: true,
+        message: `Officer "${updated.username}" is now ${updated.status}. ${updated.status === 'Deactivated' ? 'Account moved to Archive Section.' : 'Account restored to Active list.'}`,
+        data: updated,
+        is_archived: updated.status === 'Deactivated'
+    });
+});
+
+/**
+ * DELETE /api/admin/officers/:id
+ * Permanent deletion of a deactivated account from Archive Section
+ */
+router.delete('/officers/:id', (req, res) => {
+    const officerId = req.params.id;
+    const adminUser = req.user || { username: 'cswdo-admin', role: 'CSWDO Admin', fullName: 'Robert Johnson (CSWDO Admin)' };
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+    const reason = req.body.reason || req.query.reason || 'Permanent administrative purging from Archive Section';
+
+    const officer = findCswdoOfficerById(officerId);
+    if (!officer) {
+        return res.status(404).json({
+            success: false,
+            error: 'Not Found',
+            message: `Officer with ID "${officerId}" does not exist.`
+        });
+    }
+
+    // Protect primary admin accounts from deletion
+    if (officer.role === 'CSWDO Admin' || officer.role === 'PESO Admin' || officer.username.includes('admin')) {
+        return res.status(403).json({
+            success: false,
+            error: 'Protected Account',
+            message: 'Primary Administrator account cannot be deleted or purged.'
+        });
+    }
+
+    const deleted = deleteCswdoOfficerPermanently(officerId, adminUser, reason);
+
+    logAudit({
+        userId: adminUser.username || 'cswdo-admin',
+        userRole: adminUser.role || 'CSWDO Admin',
+        actionType: 'DELETE_OFFICER_PERMANENT',
+        targetEntity: 'Officer Archive Management',
+        targetId: officerId,
+        status: 'SUCCESS',
+        actionReason: reason,
+        details: `Admin "${adminUser.username || 'cswdo-admin'}" permanently deleted officer "${officer.username}" (${officer.first_name} ${officer.last_name}). Justification: ${reason}`,
+        clientIp
+    });
+
+    res.json({
+        success: true,
+        message: `Officer account "${officer.username}" permanently deleted from system archive.`,
+        deleted_account: {
+            id: officer.id,
+            username: officer.username,
+            full_name: `${officer.first_name} ${officer.last_name}`
+        }
+    });
+});
+
 module.exports = router;
+
