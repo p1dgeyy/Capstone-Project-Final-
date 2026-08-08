@@ -1778,26 +1778,40 @@
                 let authSuccess = false;
                 let userProfile = null;
                 let accessToken = null;
-                const apiBase = window.API_BASE_URL || '';
+                const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
 
                 // STEP 1: Attempt Backend Express API Login first
                 try {
-                    const response = await fetch(`${apiBase}/api/auth/login`, {
+                    let response = await fetch(`${apiBase}/api/admin/login`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             username: identifier,
+                            email: identifier,
                             password: password
                         })
                     });
 
+                    // Fallback to /api/auth/login if /api/admin/login returned 404
+                    if (response.status === 404) {
+                        response = await fetch(`${apiBase}/api/auth/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: identifier,
+                                email: identifier,
+                                password: password
+                            })
+                        });
+                    }
+
                     if (response.status === 423) {
-                        // Account Locked from backend
+                        // Account Locked from backend (5 failed attempts -> 15 min lockout)
                         const data = await response.json();
                         lockoutUntilTimestamp = Date.now() + (15 * 60 * 1000);
                         localStorage.setItem('peso_lockout_until', lockoutUntilTimestamp.toString());
                         checkLockoutStatus();
-                        throw new Error(data.message || 'Account locked: 5 failed login attempts exceeded.');
+                        throw new Error(data.message || 'Account locked: 5 failed login attempts exceeded. Please wait 15 minutes or reset your password.');
                     }
 
                     if (response.ok) {

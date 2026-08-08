@@ -19,6 +19,7 @@ const authRouter = require('./auth');
 const usersRouter = require('./users');
 const auditRouter = require('./routes/audit');
 const officersRouter = require('./routes/officers');
+const cswdoAdminRouter = require('./routes/cswdoAdmin');
 const { rateLimiter, enforceHttps, getIpSuspiciousReport } = require('./middleware/auth');
 const { logAudit } = require('./utils/auditLogger');
 
@@ -52,6 +53,8 @@ app.use((req, res, next) => {
 
 // Mount Backend API Routes
 app.use('/api/auth', authRouter);
+app.use('/api/admin', cswdoAdminRouter);
+app.use('/api/cswdo', cswdoAdminRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/audit-logs', auditRouter);
 app.use('/api', officersRouter);

@@ -542,6 +542,647 @@ function getAttendanceRecords(filters = {}) {
     return list;
 }
 
+// =============================================================================
+// CSWDO ASSISTANCE PROGRAMS, FUNDS & APPLICATIONS STORE
+// =============================================================================
+
+// CSWDO Programs & Budget Allocations (Aggregated Fund Data)
+const _cswdoFunds = [
+    {
+        id: 1,
+        program_id: 'PRG-MED-01',
+        program: 'Medical Assistance',
+        code: 'MED-AST',
+        category: 'Medical',
+        allocated_budget: 2500000.00,
+        released_amount: 1650000.00,
+        remaining_balance: 850000.00,
+        icon: 'bi-heart-pulse-fill',
+        color: '#E63946',
+        description: 'Hospitalization bills, specialized laboratory diagnostics, and vital prescription medication assistance.'
+    },
+    {
+        id: 2,
+        program_id: 'PRG-FIN-02',
+        program: 'Financial Assistance',
+        code: 'FIN-AST',
+        category: 'Financial',
+        allocated_budget: 3000000.00,
+        released_amount: 2100000.00,
+        remaining_balance: 900000.00,
+        icon: 'bi-cash-coin',
+        color: '#2EC4B6',
+        description: 'Emergency livelihood relief, crisis intervention subsidies, and educational emergency support.'
+    },
+    {
+        id: 3,
+        program_id: 'PRG-BUR-03',
+        program: 'Burial Assistance',
+        code: 'BUR-AST',
+        category: 'Burial',
+        allocated_budget: 1500000.00,
+        released_amount: 950000.00,
+        remaining_balance: 550000.00,
+        icon: 'bi-flower1',
+        color: '#6C5B7B',
+        description: 'Mortuary expenses, casket subsidies, and transport logistics support for indigent bereaved families.'
+    }
+];
+
+// Seed Applications for Medical, Financial, and Burial Assistance
+const _cswdoApplications = [
+    {
+        id: 'APP-CSWDO-2026-001',
+        beneficiary_id: 'BEN-2026-010',
+        beneficiary_name: 'Rosa Villanueva',
+        contact_number: '0917-888-1122',
+        barangay: 'Zone III',
+        address: 'Purok Malipayon, Zone III, Koronadal City',
+        type: 'Medical Assistance',
+        program_code: 'MED-AST',
+        status: 'Pending', // Pending, For Evaluation, Approved, Released, Completed, Denied
+        amount_requested: 15000.00,
+        amount_approved: 0.00,
+        submission_date: '2026-08-08',
+        submission_month: 8,
+        submission_year: 2026,
+        purpose: 'Chemotherapy and post-operative laboratory medication support.',
+        requirements_submitted: ['Barangay Certificate of Indigency', 'Medical Abstract & Diagnosis', 'Hospital Billing Statement', 'Valid Government ID'],
+        evaluator_notes: 'Initial documents received and queued for social worker case study verification.',
+        admin_notes: null,
+        created_at: '2026-08-08T08:30:00.000Z',
+        updated_at: '2026-08-08T08:30:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-002',
+        beneficiary_id: 'BEN-2026-011',
+        beneficiary_name: 'Danilo Alcantara',
+        contact_number: '0918-777-3344',
+        barangay: 'General Paulino Santos (GPS)',
+        address: 'Purok San Jose, Brgy. GPS, Koronadal City',
+        type: 'Financial Assistance',
+        program_code: 'FIN-AST',
+        status: 'For Evaluation',
+        amount_requested: 10000.00,
+        amount_approved: 0.00,
+        submission_date: '2026-08-07',
+        submission_month: 8,
+        submission_year: 2026,
+        purpose: 'House rehabilitation following severe monsoon flooding.',
+        requirements_submitted: ['Barangay Disaster Incident Report', 'Certificate of Indigency', 'Photographic Evidence of Damage', 'Valid ID'],
+        evaluator_notes: 'Social worker field assessment completed. Validated damaged structure.',
+        admin_notes: null,
+        created_at: '2026-08-07T09:15:00.000Z',
+        updated_at: '2026-08-08T09:00:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-003',
+        beneficiary_id: 'BEN-2026-012',
+        beneficiary_name: 'Luzviminda Ocampo',
+        contact_number: '0919-666-5566',
+        barangay: 'San Roque',
+        address: 'Purok Crossing, Brgy. San Roque, Koronadal City',
+        type: 'Burial Assistance',
+        program_code: 'BUR-AST',
+        status: 'Approved',
+        amount_requested: 8000.00,
+        amount_approved: 8000.00,
+        submission_date: '2026-08-06',
+        submission_month: 8,
+        submission_year: 2026,
+        purpose: 'Burial and funeral service assistance for late spouse.',
+        requirements_submitted: ['Certified True Copy of Death Certificate', 'Funeral Contract Receipt', 'Barangay Indigency', 'Proof of Relationship'],
+        evaluator_notes: 'Documents verified authentic. Case qualified under LGU Social Relief Program.',
+        admin_notes: 'Approved by CSWDO Administrator. Ready for fund voucher release.',
+        created_at: '2026-08-06T10:00:00.000Z',
+        updated_at: '2026-08-07T14:20:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-004',
+        beneficiary_id: 'BEN-2026-013',
+        beneficiary_name: 'Arnel Mendoza',
+        contact_number: '0920-555-7788',
+        barangay: 'Sta. Cruz',
+        address: 'Purok 5, Brgy. Sta. Cruz, Koronadal City',
+        type: 'Medical Assistance',
+        program_code: 'MED-AST',
+        status: 'Released',
+        amount_requested: 20000.00,
+        amount_approved: 15000.00,
+        submission_date: '2026-08-04',
+        submission_month: 8,
+        submission_year: 2026,
+        purpose: 'Emergency pediatric surgery and dialysis supplies.',
+        requirements_submitted: ['Clinical Summary', 'Doctor Prescription with License', 'Hospital Billing', 'Barangay Indigency'],
+        evaluator_notes: 'Urgent medical emergency verified with City District Hospital.',
+        admin_notes: 'Grant check issued and disbursed via City Treasurer Cashier.',
+        created_at: '2026-08-04T11:30:00.000Z',
+        updated_at: '2026-08-06T16:00:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-005',
+        beneficiary_id: 'BEN-2026-014',
+        beneficiary_name: 'Corazon Bautista',
+        contact_number: '0921-444-9900',
+        barangay: 'Morales',
+        address: 'Purok Riverside, Brgy. Morales, Koronadal City',
+        type: 'Financial Assistance',
+        program_code: 'FIN-AST',
+        status: 'Completed',
+        amount_requested: 5000.00,
+        amount_approved: 5000.00,
+        submission_date: '2026-07-25',
+        submission_month: 7,
+        submission_year: 2026,
+        purpose: 'Emergency nutritional and livelihood support for solo parent.',
+        requirements_submitted: ['Solo Parent ID Card', 'Certificate of Indigency', 'Barangay Clearance'],
+        evaluator_notes: 'Case study recorded. Beneficiary attended financial literacy counseling.',
+        admin_notes: 'Grant liquidation report received and verified. Process completed.',
+        created_at: '2026-07-25T09:00:00.000Z',
+        updated_at: '2026-08-02T10:30:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-006',
+        beneficiary_id: 'BEN-2026-015',
+        beneficiary_name: 'Felix Manalo',
+        contact_number: '0922-333-2211',
+        barangay: 'Zone I',
+        address: 'Purok Maharlika, Zone I, Koronadal City',
+        type: 'Medical Assistance',
+        program_code: 'MED-AST',
+        status: 'Denied',
+        amount_requested: 30000.00,
+        amount_approved: 0.00,
+        submission_date: '2026-07-18',
+        submission_month: 7,
+        submission_year: 2026,
+        purpose: 'Duplicate assistance request for non-resident relative.',
+        requirements_submitted: ['Medical Certificate'],
+        evaluator_notes: 'Failed residency verification criteria. Patient is registered under a different municipality.',
+        admin_notes: 'Disapproved: Non-compliance with Koronadal City Residency Ordinance criteria.',
+        created_at: '2026-07-18T13:45:00.000Z',
+        updated_at: '2026-07-20T11:00:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-007',
+        beneficiary_id: 'BEN-2026-016',
+        beneficiary_name: 'Teresa Magbanua',
+        contact_number: '0923-222-4455',
+        barangay: 'Carpenter Hill',
+        address: 'Purok Mabuhay, Carpenter Hill, Koronadal City',
+        type: 'Medical Assistance',
+        program_code: 'MED-AST',
+        status: 'Approved',
+        amount_requested: 12000.00,
+        amount_approved: 12000.00,
+        submission_date: '2026-06-15',
+        submission_month: 6,
+        submission_year: 2026,
+        purpose: 'Orthopedic rehabilitation and physical therapy equipment.',
+        requirements_submitted: ['Doctor Clinical Order', 'Indigency Certificate', 'Valid ID'],
+        evaluator_notes: 'Physical disability validated with PWD Office.',
+        admin_notes: 'Approved under Special Medical Aid Program.',
+        created_at: '2026-06-15T08:20:00.000Z',
+        updated_at: '2026-06-18T15:00:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-008',
+        beneficiary_id: 'BEN-2026-017',
+        beneficiary_name: 'Ignacio Palma',
+        contact_number: '0924-111-6677',
+        barangay: 'Esperanza',
+        address: 'Purok Silangan, Brgy. Esperanza, Koronadal City',
+        type: 'Financial Assistance',
+        program_code: 'FIN-AST',
+        status: 'Completed',
+        amount_requested: 6000.00,
+        amount_approved: 6000.00,
+        submission_date: '2026-05-20',
+        submission_month: 5,
+        submission_year: 2026,
+        purpose: 'Fire crisis temporary housing grant.',
+        requirements_submitted: ['BFP Fire Incident Certificate', 'Barangay Indigency', 'Valid ID'],
+        evaluator_notes: 'Confirmed total loss in Brgy Esperanza residential fire incident.',
+        admin_notes: 'Assistance delivered and acknowledged by recipient.',
+        created_at: '2026-05-20T10:10:00.000Z',
+        updated_at: '2026-05-28T09:00:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-009',
+        beneficiary_id: 'BEN-2026-018',
+        beneficiary_name: 'Gloria Valerio',
+        contact_number: '0925-999-8877',
+        barangay: 'Mabini',
+        address: 'Purok Centro, Brgy. Mabini, Koronadal City',
+        type: 'Burial Assistance',
+        program_code: 'BUR-AST',
+        status: 'Completed',
+        amount_requested: 8000.00,
+        amount_approved: 8000.00,
+        submission_date: '2026-04-12',
+        submission_month: 4,
+        submission_year: 2026,
+        purpose: 'Burial and funeral transportation subsidy.',
+        requirements_submitted: ['Death Certificate', 'Funeral Contract', 'Barangay Indigency'],
+        evaluator_notes: 'Family verified as indigent agricultural workers.',
+        admin_notes: 'Voucher released and liquidated.',
+        created_at: '2026-04-12T14:00:00.000Z',
+        updated_at: '2026-04-19T11:30:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-010',
+        beneficiary_id: 'BEN-2026-019',
+        beneficiary_name: 'Ramon Laurel',
+        contact_number: '0926-888-7766',
+        barangay: 'Assumption',
+        address: 'Purok Pag-asa, Brgy. Assumption, Koronadal City',
+        type: 'Medical Assistance',
+        program_code: 'MED-AST',
+        status: 'Completed',
+        amount_requested: 18000.00,
+        amount_approved: 15000.00,
+        submission_date: '2026-03-10',
+        submission_month: 3,
+        submission_year: 2026,
+        purpose: 'Cardiac maintenance medication and ECG telemetry testing.',
+        requirements_submitted: ['Medical Record', 'Doctor Prescription', 'Indigency Certificate'],
+        evaluator_notes: 'Senior citizen beneficiary verified.',
+        admin_notes: 'Approved and full medicine subsidy released.',
+        created_at: '2026-03-10T09:30:00.000Z',
+        updated_at: '2026-03-18T16:15:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-011',
+        beneficiary_id: 'BEN-2026-020',
+        beneficiary_name: 'Estela Soriano',
+        contact_number: '0927-777-6655',
+        barangay: 'Zone II',
+        address: 'Purok Ilang-ilang, Zone II, Koronadal City',
+        type: 'Financial Assistance',
+        program_code: 'FIN-AST',
+        status: 'Completed',
+        amount_requested: 10000.00,
+        amount_approved: 8000.00,
+        submission_date: '2026-02-14',
+        submission_month: 2,
+        submission_year: 2026,
+        purpose: 'Emergency transportation and family subsistence grant.',
+        requirements_submitted: ['Case Study Assessment', 'Indigency Certificate', 'Valid ID'],
+        evaluator_notes: 'Indigent family with multiple school-age dependents.',
+        admin_notes: 'Assistance completed.',
+        created_at: '2026-02-14T11:00:00.000Z',
+        updated_at: '2026-02-22T14:00:00.000Z'
+    },
+    {
+        id: 'APP-CSWDO-2026-012',
+        beneficiary_id: 'BEN-2026-021',
+        beneficiary_name: 'Bernardo Cruz',
+        contact_number: '0928-666-5544',
+        barangay: 'Avanceña',
+        address: 'Purok 1, Brgy. Avanceña, Koronadal City',
+        type: 'Medical Assistance',
+        program_code: 'MED-AST',
+        status: 'Completed',
+        amount_requested: 15000.00,
+        amount_approved: 12000.00,
+        submission_date: '2026-01-20',
+        submission_month: 1,
+        submission_year: 2026,
+        purpose: 'Dialysis fluid subsidy for kidney ailment.',
+        requirements_submitted: ['Dialysis Protocol Sheet', 'Medical Certificate', 'Indigency Certificate'],
+        evaluator_notes: 'Chronic kidney disease protocol verified.',
+        admin_notes: 'Released and completed.',
+        created_at: '2026-01-20T08:45:00.000Z',
+        updated_at: '2026-01-29T10:00:00.000Z'
+    }
+];
+
+// Activity Log Stream
+const _cswdoActivityLogs = [
+    {
+        id: 'LOG-CSWDO-2026-001',
+        action: 'APPLICATION_SUBMITTED',
+        action_title: 'New Application Submitted',
+        application_id: 'APP-CSWDO-2026-001',
+        beneficiary_name: 'Rosa Villanueva',
+        program: 'Medical Assistance',
+        admin_id: 'SYSTEM',
+        admin_name: 'CSWDO Citizen Intake',
+        details: 'New Medical Assistance application submitted for Chemotherapy medication support (Amount: ₱15,000.00).',
+        timestamp: '2026-08-08T08:30:00.000Z',
+        status: 'SUCCESS'
+    },
+    {
+        id: 'LOG-CSWDO-2026-002',
+        action: 'STATUS_EVALUATION',
+        action_title: 'Case Study Evaluated',
+        application_id: 'APP-CSWDO-2026-002',
+        beneficiary_name: 'Danilo Alcantara',
+        program: 'Financial Assistance',
+        admin_id: 'CSWDO_OFFICER_01',
+        admin_name: 'Mary Williams (CSWDO Officer)',
+        details: 'Field evaluation completed for Danilo Alcantara (Flood disaster damage validated). Status updated to For Evaluation.',
+        timestamp: '2026-08-08T09:00:00.000Z',
+        status: 'SUCCESS'
+    },
+    {
+        id: 'LOG-CSWDO-2026-003',
+        action: 'APPLICATION_APPROVED',
+        action_title: 'Application Approved by Admin',
+        application_id: 'APP-CSWDO-2026-003',
+        beneficiary_name: 'Luzviminda Ocampo',
+        program: 'Burial Assistance',
+        admin_id: 'CSWDO_ADMIN_01',
+        admin_name: 'Robert Johnson (CSWDO Admin)',
+        details: 'CSWDO Administrator approved Burial Assistance grant for ₱8,000.00 following authentic death certificate validation.',
+        timestamp: '2026-08-07T14:20:00.000Z',
+        status: 'SUCCESS'
+    },
+    {
+        id: 'LOG-CSWDO-2026-004',
+        action: 'FUNDS_RELEASED',
+        action_title: 'Assistance Funds Released',
+        application_id: 'APP-CSWDO-2026-004',
+        beneficiary_name: 'Arnel Mendoza',
+        program: 'Medical Assistance',
+        admin_id: 'CSWDO_ADMIN_01',
+        admin_name: 'Robert Johnson (CSWDO Admin)',
+        details: 'Check voucher released for Medical Assistance grant (₱15,000.00). Deducted from Medical Program Allocation.',
+        timestamp: '2026-08-06T16:00:00.000Z',
+        status: 'SUCCESS'
+    },
+    {
+        id: 'LOG-CSWDO-2026-005',
+        action: 'APPLICATION_COMPLETED',
+        action_title: 'Grant Liquidation Completed',
+        application_id: 'APP-CSWDO-2026-005',
+        beneficiary_name: 'Corazon Bautista',
+        program: 'Financial Assistance',
+        admin_id: 'CSWDO_ADMIN_01',
+        admin_name: 'Robert Johnson (CSWDO Admin)',
+        details: 'Liquidation receipt confirmed. Beneficiary case file successfully marked as Completed.',
+        timestamp: '2026-08-02T10:30:00.000Z',
+        status: 'SUCCESS'
+    },
+    {
+        id: 'LOG-CSWDO-2026-006',
+        action: 'APPLICATION_DENIED',
+        action_title: 'Application Disapproved',
+        application_id: 'APP-CSWDO-2026-006',
+        beneficiary_name: 'Felix Manalo',
+        program: 'Medical Assistance',
+        admin_id: 'CSWDO_ADMIN_01',
+        admin_name: 'Robert Johnson (CSWDO Admin)',
+        details: 'Application disapproved: Non-compliance with Koronadal City residency requirements.',
+        timestamp: '2026-07-20T11:00:00.000Z',
+        status: 'SUCCESS'
+    }
+];
+
+// Helper Functions for CSWDO Portal
+function getCswdoApplications(filters = {}) {
+    let list = [..._cswdoApplications];
+    if (filters.status && filters.status !== 'ALL') {
+        const s = filters.status.toLowerCase();
+        list = list.filter(a => a.status.toLowerCase() === s);
+    }
+    if (filters.type && filters.type !== 'ALL') {
+        const t = filters.type.toLowerCase();
+        list = list.filter(a => a.type.toLowerCase().includes(t) || a.program_code.toLowerCase().includes(t));
+    }
+    if (filters.search) {
+        const q = filters.search.toLowerCase().trim();
+        list = list.filter(a => 
+            a.id.toLowerCase().includes(q) ||
+            a.beneficiary_name.toLowerCase().includes(q) ||
+            a.beneficiary_id.toLowerCase().includes(q) ||
+            a.type.toLowerCase().includes(q) ||
+            a.barangay.toLowerCase().includes(q)
+        );
+    }
+    return list;
+}
+
+function findCswdoApplicationById(id) {
+    if (!id) return null;
+    const clean = String(id).trim().toLowerCase();
+    return _cswdoApplications.find(a => a.id.toLowerCase() === clean);
+}
+
+function getCswdoFunds() {
+    return _cswdoFunds.map(f => {
+        const pct = f.allocated_budget > 0 
+            ? ((f.released_amount / f.allocated_budget) * 100).toFixed(1) 
+            : '0.0';
+        return {
+            ...f,
+            percentage_utilized: parseFloat(pct)
+        };
+    });
+}
+
+function getCswdoDashboardSummary() {
+    const totalApplications = _cswdoApplications.length;
+    const pendingApplications = _cswdoApplications.filter(a => a.status === 'Pending' || a.status === 'For Evaluation').length;
+    const approvedApplications = _cswdoApplications.filter(a => a.status === 'Approved' || a.status === 'Released').length;
+    const completedApplications = _cswdoApplications.filter(a => a.status === 'Completed').length;
+    const deniedApplications = _cswdoApplications.filter(a => a.status === 'Denied').length;
+
+    // Aggregated Fund Metrics (Data Privacy compliant - aggregate numbers only)
+    const funds = getCswdoFunds();
+    const totalAllocatedBudget = funds.reduce((acc, f) => acc + f.allocated_budget, 0);
+    const totalAmountReleased = funds.reduce((acc, f) => acc + f.released_amount, 0);
+    const remainingBalance = totalAllocatedBudget - totalAmountReleased;
+    const overallPercentageUtilization = totalAllocatedBudget > 0 
+        ? ((totalAmountReleased / totalAllocatedBudget) * 100).toFixed(1) 
+        : '0.0';
+
+    return {
+        total_applications: totalApplications,
+        pending_applications: pendingApplications,
+        approved_applications: approvedApplications,
+        completed_applications: completedApplications,
+        denied_applications: deniedApplications,
+        fund_utilization: {
+            total_allocated_budget: totalAllocatedBudget,
+            total_amount_released: totalAmountReleased,
+            remaining_balance: remainingBalance,
+            overall_percentage_utilization: parseFloat(overallPercentageUtilization),
+            programs: funds
+        }
+    };
+}
+
+function getCswdoStatusBreakdown() {
+    const statuses = ['Pending', 'For Evaluation', 'Approved', 'Released', 'Completed', 'Denied'];
+    const distribution = {};
+    statuses.forEach(s => {
+        distribution[s] = _cswdoApplications.filter(a => a.status === s).length;
+    });
+
+    const colors = {
+        'Pending': '#F59E0B',        // Yellow
+        'For Evaluation': '#8B5CF6', // Purple
+        'Approved': '#10B981',       // Green
+        'Released': '#06B6D4',       // Cyan/Teal
+        'Completed': '#3B82F6',      // Blue
+        'Denied': '#EF4444'          // Red
+    };
+
+    return {
+        labels: statuses,
+        data: statuses.map(s => distribution[s]),
+        colors: statuses.map(s => colors[s]),
+        breakdown: distribution,
+        total: _cswdoApplications.length
+    };
+}
+
+function getCswdoMonthlyTrend(year = 2026) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyCounts = new Array(12).fill(0);
+    const medicalCounts = new Array(12).fill(0);
+    const financialCounts = new Array(12).fill(0);
+    const burialCounts = new Array(12).fill(0);
+
+    _cswdoApplications.forEach(app => {
+        const appYear = app.submission_year || (app.submission_date ? new Date(app.submission_date).getFullYear() : 2026);
+        const appMonth = app.submission_month ? app.submission_month - 1 : (app.submission_date ? new Date(app.submission_date).getMonth() : 0);
+        
+        if (appYear === Number(year) && appMonth >= 0 && appMonth < 12) {
+            monthlyCounts[appMonth]++;
+            if (app.type.includes('Medical')) medicalCounts[appMonth]++;
+            else if (app.type.includes('Financial')) financialCounts[appMonth]++;
+            else if (app.type.includes('Burial')) burialCounts[appMonth]++;
+        }
+    });
+
+    return {
+        year: Number(year),
+        months,
+        total_submissions: monthlyCounts,
+        by_program: {
+            medical: medicalCounts,
+            financial: financialCounts,
+            burial: burialCounts
+        },
+        insights: {
+            peak_month: months[monthlyCounts.indexOf(Math.max(...monthlyCounts))],
+            peak_count: Math.max(...monthlyCounts),
+            avg_per_month: (monthlyCounts.slice(0, 8).reduce((a, b) => a + b, 0) / 8).toFixed(1),
+            pattern: 'High demand in Q1 & Q3 for Medical Subsidies; sustained emergency requests during typhoon months.'
+        }
+    };
+}
+
+function getCswdoRecentActivity(limit = 10) {
+    return _cswdoActivityLogs.slice(0, limit);
+}
+
+function addCswdoActivityLog(logData) {
+    const id = 'LOG-CSWDO-' + Date.now();
+    const entry = {
+        id,
+        action: logData.action || 'GENERIC_ACTION',
+        action_title: logData.action_title || 'System Action',
+        application_id: logData.application_id || null,
+        beneficiary_name: logData.beneficiary_name || 'N/A',
+        program: logData.program || 'CSWDO Assistance',
+        admin_id: logData.admin_id || 'CSWDO_ADMIN_01',
+        admin_name: logData.admin_name || 'CSWDO Administrator',
+        details: logData.details || '',
+        timestamp: new Date().toISOString(),
+        status: logData.status || 'SUCCESS'
+    };
+    _cswdoActivityLogs.unshift(entry);
+    if (_cswdoActivityLogs.length > 500) _cswdoActivityLogs.pop();
+    return entry;
+}
+
+function approveCswdoApplication(id, adminUser, remarks = '', amount = null) {
+    const app = findCswdoApplicationById(id);
+    if (!app) return null;
+
+    const oldStatus = app.status;
+    app.status = 'Approved';
+    if (amount !== null && amount !== undefined) {
+        app.amount_approved = parseFloat(amount);
+    } else if (app.amount_approved === 0) {
+        app.amount_approved = app.amount_requested;
+    }
+    app.admin_notes = remarks || 'Approved for grant disbursement.';
+    app.updated_at = new Date().toISOString();
+
+    addCswdoActivityLog({
+        action: 'APPLICATION_APPROVED',
+        action_title: 'Application Approved',
+        application_id: app.id,
+        beneficiary_name: app.beneficiary_name,
+        program: app.type,
+        admin_id: adminUser.username || adminUser || 'cswdo-admin',
+        admin_name: adminUser.fullName || `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() || 'CSWDO Administrator',
+        details: `Application ${app.id} (${app.beneficiary_name}) approved for ₱${app.amount_approved.toLocaleString('en-US', { minimumFractionDigits: 2 })}. Remarks: ${remarks || 'None'}`
+    });
+
+    return app;
+}
+
+function denyCswdoApplication(id, adminUser, reason = '') {
+    const app = findCswdoApplicationById(id);
+    if (!app) return null;
+
+    app.status = 'Denied';
+    app.admin_notes = reason || 'Disapproved by CSWDO Administration.';
+    app.updated_at = new Date().toISOString();
+
+    addCswdoActivityLog({
+        action: 'APPLICATION_DENIED',
+        action_title: 'Application Denied',
+        application_id: app.id,
+        beneficiary_name: app.beneficiary_name,
+        program: app.type,
+        admin_id: adminUser.username || adminUser || 'cswdo-admin',
+        admin_name: adminUser.fullName || `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() || 'CSWDO Administrator',
+        details: `Application ${app.id} (${app.beneficiary_name}) disapproved. Justification: ${reason || 'Document non-compliance'}`
+    });
+
+    return app;
+}
+
+function releaseCswdoApplicationFunds(id, adminUser, releaseAmount = null, notes = '') {
+    const app = findCswdoApplicationById(id);
+    if (!app) return null;
+
+    const amt = releaseAmount !== null && releaseAmount !== undefined 
+        ? parseFloat(releaseAmount) 
+        : (app.amount_approved > 0 ? app.amount_approved : app.amount_requested);
+
+    app.status = 'Released';
+    app.amount_approved = amt;
+    app.admin_notes = (app.admin_notes ? app.admin_notes + ' | ' : '') + `Funds released: ₱${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })}. ${notes || ''}`;
+    app.updated_at = new Date().toISOString();
+
+    // Deduct from remaining balance of matching fund
+    const fund = _cswdoFunds.find(f => app.type.toLowerCase().includes(f.category.toLowerCase()) || f.program.toLowerCase() === app.type.toLowerCase());
+    if (fund) {
+        fund.released_amount += amt;
+        fund.remaining_balance = Math.max(0, fund.allocated_budget - fund.released_amount);
+    }
+
+    addCswdoActivityLog({
+        action: 'FUNDS_RELEASED',
+        action_title: 'Assistance Grant Released',
+        application_id: app.id,
+        beneficiary_name: app.beneficiary_name,
+        program: app.type,
+        admin_id: adminUser.username || adminUser || 'cswdo-admin',
+        admin_name: adminUser.fullName || `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() || 'CSWDO Administrator',
+        details: `Funds released for ${app.id} (${app.beneficiary_name}): ₱${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} from ${fund ? fund.program : app.type}.`
+    });
+
+    return { app, fund };
+}
+
 module.exports = {
     getUsers,
     findUserById,
@@ -555,5 +1196,18 @@ module.exports = {
     updateInterviewStatus,
     checkOfficerScheduleConflict,
     addInterview,
-    getAttendanceRecords
+    getAttendanceRecords,
+    // CSWDO Exports
+    getCswdoApplications,
+    findCswdoApplicationById,
+    getCswdoFunds,
+    getCswdoDashboardSummary,
+    getCswdoStatusBreakdown,
+    getCswdoMonthlyTrend,
+    getCswdoRecentActivity,
+    addCswdoActivityLog,
+    approveCswdoApplication,
+    denyCswdoApplication,
+    releaseCswdoApplicationFunds
 };
+

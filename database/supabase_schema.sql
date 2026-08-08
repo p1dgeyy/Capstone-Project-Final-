@@ -218,6 +218,41 @@ CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id);
 
 -- =============================================================================
+-- 7b. CSWDO FUNDS TABLE (Aggregated Program Allocations & Balances)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS funds (
+  id BIGSERIAL PRIMARY KEY,
+  program VARCHAR(100) NOT NULL UNIQUE,
+  program_code VARCHAR(20) NOT NULL,
+  allocated_budget DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  released_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  remaining_balance DECIMAL(12,2) GENERATED ALWAYS AS (allocated_budget - released_amount) STORED,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_funds_program ON funds(program);
+
+-- =============================================================================
+-- 7c. CSWDO ACTIVITY LOG TABLE (Action Audit Trail)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS activity_log (
+  id BIGSERIAL PRIMARY KEY,
+  action VARCHAR(100) NOT NULL,
+  action_title VARCHAR(255) DEFAULT NULL,
+  application_id VARCHAR(50) DEFAULT NULL,
+  beneficiary_name VARCHAR(255) DEFAULT NULL,
+  program VARCHAR(100) DEFAULT NULL,
+  admin_id VARCHAR(50) NOT NULL,
+  details TEXT DEFAULT NULL,
+  status VARCHAR(20) DEFAULT 'SUCCESS',
+  timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_action ON activity_log(action);
+CREATE INDEX IF NOT EXISTS idx_activity_app ON activity_log(application_id);
+CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON activity_log(timestamp);
+
+-- =============================================================================
 -- 8. APPROVED ASSISTANCE TABLE
 -- beneficiary_qr → beneficiaries(qr_code)
 -- officer_id → staff_profiles(id)
