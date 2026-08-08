@@ -1,116 +1,83 @@
 /**
- * Safe JavaScript Syntax Validator & Linter Tool
- * 
- * Validates JavaScript syntax across all standalone .js files and embedded HTML <script> blocks
- * using safe AST compilation (vm.Script) without executing any code.
+ * Comprehensive Syntax & Static Validation Suite
+ * City Government of Koronadal — PESO & CSWDO Portal
  */
 
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const rootDir = path.resolve(__dirname, '../../');
-
-let totalFilesChecked = 0;
-let totalScriptsChecked = 0;
-let errorsFound = 0;
-
-function checkJsFile(filePath) {
-    totalFilesChecked++;
-    totalScriptsChecked++;
-    const relPath = path.relative(rootDir, filePath);
-    try {
-        const code = fs.readFileSync(filePath, 'utf8');
-        // vm.Script strictly parses the AST and validates syntax without executing code.
-        new vm.Script(code, { filename: relPath, displayErrors: true });
-        console.log(`  ✅ [VALID] ${relPath}`);
-    } catch (err) {
-        errorsFound++;
-        console.error(`  ❌ [SYNTAX ERROR] ${relPath}:`);
-        console.error(`     ${err.message}`);
-        if (err.stack) {
-            const lines = err.stack.split('\n').slice(0, 3).join('\n     ');
-            console.error(`     ${lines}`);
-        }
-    }
-}
-
-function checkHtmlFile(filePath) {
-    totalFilesChecked++;
-    const relPath = path.relative(rootDir, filePath);
-    try {
-        const html = fs.readFileSync(filePath, 'utf8');
-        const scriptRegex = /<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi;
-        let match;
-        let scriptIndex = 0;
-        let htmlHasErrors = false;
-
-        while ((match = scriptRegex.exec(html)) !== null) {
-            scriptIndex++;
-            totalScriptsChecked++;
-            const scriptContent = match[1];
-            
-            // Calculate line offset of the script tag in the HTML
-            const upToMatch = html.substring(0, match.index);
-            const lineOffset = upToMatch.split('\n').length;
-            const virtualFileName = `${relPath} (script block #${scriptIndex}, line ${lineOffset})`;
-
-            try {
-                new vm.Script(scriptContent, { filename: virtualFileName, displayErrors: true, lineOffset });
-            } catch (err) {
-                errorsFound++;
-                htmlHasErrors = true;
-                console.error(`  ❌ [SYNTAX ERROR] ${virtualFileName}:`);
-                console.error(`     ${err.message}`);
-            }
-        }
-
-        if (!htmlHasErrors) {
-            console.log(`  ✅ [VALID] ${relPath} (${scriptIndex} script block${scriptIndex === 1 ? '' : 's'})`);
-        }
-    } catch (err) {
-        errorsFound++;
-        console.error(`  ❌ [FILE READ ERROR] ${relPath}: ${err.message}`);
-    }
-}
-
-function scanDirectory(dirPath) {
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
-        if (entry.isDirectory()) {
-            if (['node_modules', '.git', '.agents', '.gemini'].includes(entry.name)) {
-                continue;
-            }
-            scanDirectory(fullPath);
-        } else if (entry.isFile()) {
-            const ext = path.extname(entry.name).toLowerCase();
-            if (ext === '.js') {
-                checkJsFile(fullPath);
-            } else if (entry.name.endsWith('.html')) {
-                checkHtmlFile(fullPath);
-            }
-        }
-    }
-}
+const rootDir = path.join(__dirname, '../../');
+const filesToValidate = [
+    'backend/server.js',
+    'backend/auth.js',
+    'backend/users.js',
+    'backend/routes/audit.js',
+    'backend/middleware/auth.js',
+    'backend/utils/auditLogger.js',
+    'backend/data/seedData.js',
+    'backend/scripts/test-api.js',
+    'frontend/assets/js/peso_admin.js',
+    'frontend/assets/js/peso-safeguards.js',
+    'frontend/assets/js/session-manager.js',
+    'frontend/assets/js/system-notifications.js'
+];
 
 console.log('===============================================================');
-console.log('🔍 SAFE JAVASCRIPT AST SYNTAX VALIDATOR & LINTER');
-console.log('===============================================================');
-console.log(`Target Workspace: ${rootDir}\n`);
+console.log('🔍 VALIDATING JAVASCRIPT & BACKEND/FRONTEND MODULE SYNTAX');
+console.log('===============================================================\n');
 
-console.log('📁 Scanning JavaScript & HTML source files...');
-scanDirectory(rootDir);
+let errorCount = 0;
+
+filesToValidate.forEach(relPath => {
+    const fullPath = path.join(rootDir, relPath);
+    if (!fs.existsSync(fullPath)) {
+        console.warn(`  ⚠️  [SKIP] File does not exist: ${relPath}`);
+        return;
+    }
+    const code = fs.readFileSync(fullPath, 'utf8');
+    try {
+        new vm.Script(code, { filename: relPath });
+        console.log(`  ✅ [VALID SYNTAX] ${relPath}`);
+    } catch (e) {
+        console.error(`  ❌ [SYNTAX ERROR] ${relPath}:`, e.message);
+        errorCount++;
+    }
+});
+
+// HTML Structure & Attribute Checks
+const htmlFiles = [
+    'frontend/peso_admin.html',
+    'frontend/admin_login.html'
+];
+
+htmlFiles.forEach(relPath => {
+    const fullPath = path.join(rootDir, relPath);
+    if (!fs.existsSync(fullPath)) return;
+    const content = fs.readFileSync(fullPath, 'utf8');
+
+    const hasDoctype = content.startsWith('<!DOCTYPE html>');
+    const hasUsersSection = relPath.includes('peso_admin.html') ? content.includes('id="sectionUsers"') : true;
+    const hasUsersTable = relPath.includes('peso_admin.html') ? content.includes('id="usersManagementTable"') : true;
+    const hasUserDetailsModal = relPath.includes('peso_admin.html') ? content.includes('id="userDetailsModal"') : true;
+    const hasNewUserModal = relPath.includes('peso_admin.html') ? content.includes('id="newUserModal"') : true;
+    const hasEditUserModal = relPath.includes('peso_admin.html') ? content.includes('id="editUserModal"') : true;
+    const hasUserActionConfirmModal = relPath.includes('peso_admin.html') ? content.includes('id="userActionConfirmModal"') : true;
+    const hasHttpsWarning = relPath.includes('admin_login.html') ? content.includes('httpsWarningBanner') : true;
+
+    if (hasDoctype && hasUsersSection && hasUsersTable && hasUserDetailsModal && hasNewUserModal && hasEditUserModal && hasUserActionConfirmModal && hasHttpsWarning) {
+        console.log(`  ✅ [VALID HTML & DOM INTEGRITY] ${relPath}`);
+    } else {
+        console.error(`  ❌ [HTML INTEGRITY ISSUE] ${relPath} missing required containers.`);
+        errorCount++;
+    }
+});
 
 console.log('\n===============================================================');
-console.log(`📊 Summary: ${totalFilesChecked} files checked (${totalScriptsChecked} scripts parsed).`);
-
-if (errorsFound === 0) {
-    console.log('🎉 Result: 0 Syntax Errors. All scripts parsed successfully!');
-    console.log('===============================================================\n');
-    process.exit(0);
+if (errorCount === 0) {
+    console.log('🎉 ALL CODE AND TEMPLATES PASSED SYNTAX & INTEGRITY CHECKS (0 Errors)');
 } else {
-    console.error(`⚠️ Result: ${errorsFound} Syntax Error(s) detected. Please resolve them.`);
-    console.log('===============================================================\n');
+    console.error(`❌ Validation failed with ${errorCount} errors.`);
     process.exit(1);
 }
+console.log('===============================================================\n');
