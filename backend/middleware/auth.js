@@ -161,22 +161,85 @@ function enforceHttps(req, res, next) {
 }
 
 /**
+ * Helper to set secure httpOnly authentication cookies
+ */
+function setAuthCookies(res, accessToken, refreshToken = null) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProd,
+        maxAge: 3600000 // 1 hour
+    };
+
+    res.cookie('peso_token', accessToken, cookieOptions);
+    res.cookie('accessToken', accessToken, cookieOptions);
+
+    if (refreshToken) {
+        res.cookie('refreshToken', refreshToken, {
+            ...cookieOptions,
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+    }
+}
+
+/**
+ * Helper to clear authentication cookies on logout
+ */
+function clearAuthCookies(res) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const clearOptions = {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProd
+    };
+
+    res.clearCookie('peso_token', clearOptions);
+    res.clearCookie('accessToken', clearOptions);
+    res.clearCookie('refreshToken', clearOptions);
+    res.clearCookie('peso_session', clearOptions);
+}
+
+/**
  * Authentication & Session Verification Middleware
+ * Validates either:
+ * 1. Express Session (req.session.user)
+ * 2. HttpOnly Cookie (req.cookies.peso_token / req.cookies.accessToken)
+ * 3. Authorization Header (Bearer <token>)
  */
 function requireAuth(req, res, next) {
+    // 1. Check Express Session first
+    if (req.session && req.session.user) {
+        if (req.session.user.status === 'Archived' || req.session.user.status === 'Deactivated') {
+            req.session.destroy(() => {});
+            clearAuthCookies(res);
+            return res.status(403).json({
+                success: false,
+                error: 'Account Inactive',
+                message: 'Your account has been deactivated. Please contact your administrator.'
+            });
+        }
+        req.user = req.session.user;
+        return next();
+    }
+
+    // 2. Check HttpOnly Cookie & Authorization Header Token
+    const cookieToken = req.cookies?.peso_token || req.cookies?.accessToken || req.cookies?.jwtAccessToken;
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const headerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = headerToken || cookieToken;
 
     if (!token) {
         return res.status(401).json({
             success: false,
             error: 'Unauthorized',
-            message: 'Access token is required. Please log in.'
+            message: 'Access token or active session is required. Please log in.'
         });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
+        clearAuthCookies(res);
         return res.status(401).json({
             success: false,
             error: 'Token Expired',
@@ -185,6 +248,19 @@ function requireAuth(req, res, next) {
     }
 
     req.user = decoded;
+
+    // Synchronize session store if present
+    if (req.session) {
+        req.session.user = {
+            id: decoded.id || decoded.userId,
+            username: decoded.username,
+            email: decoded.email,
+            role: decoded.role,
+            department: decoded.department,
+            fullName: decoded.fullName
+        };
+    }
+
     next();
 }
 
@@ -250,5 +326,7 @@ module.exports = {
     requireAuth,
     requireAdmin,
     requireStaff,
-    maskContactNumber
+    maskContactNumber,
+    setAuthCookies,
+    clearAuthCookies
 };

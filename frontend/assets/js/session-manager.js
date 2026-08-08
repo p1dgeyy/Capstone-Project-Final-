@@ -1,16 +1,10 @@
 /**
- * Session Management Helper — Supabase Edition
+ * Session Management Helper — Dual Express Session & Supabase Support
  *
- * Replaces the old Railway/Express session-token system with Supabase Auth.
- * Supabase handles JWT tokens, refresh, and session persistence automatically.
- *
- * This module provides a backward-compatible API so existing code that calls
- * SessionManager.getRole(), SessionManager.getUserId(), etc. continues to work.
- *
- * Usage:
- *   1. After login, session is auto-managed by Supabase (no manual save needed)
- *   2. On any protected page, call: SessionManager.verify() — redirects to login if invalid
- *   3. On logout, call: SessionManager.logout()
+ * Provides robust authentication and session persistence for:
+ * 1. Express Session (HttpOnly cookies + JWT tokens)
+ * 2. Supabase Auth (for beneficiary/cloud workflows)
+ * 3. Backward-compatible API for getRole(), getUserId(), getToken(), verify(), logout()
  */
 
 const SessionManager = (() => {
@@ -21,60 +15,93 @@ const SessionManager = (() => {
   let _verifyTimer = null;
   const VERIFY_INTERVAL_MS = 60 * 1000; // 60 seconds
 
+  function getApiBase() {
+    return (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.__API_BASE_URL__ || window.API_BASE_URL || '';
+  }
+
   /**
    * Save session data after a successful login.
-   * With Supabase, the session is auto-persisted. This method caches
-   * profile data locally for quick access by dashboard scripts.
    */
-  function save(userId, sessionToken, role) {
-    sessionStorage.setItem('userId', userId);
-    sessionStorage.setItem('userRole', role);
-    // sessionToken is managed by Supabase internally — we store it for backward compat
-    sessionStorage.setItem('sessionToken', sessionToken || 'supabase-managed');
-  }
-
-  /**
-   * Get the current Supabase access token (JWT)
-   */
-  async function getTokenAsync() {
-    if (!supabaseClient) return null;
-    try {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      return session?.access_token || null;
-    } catch (e) {
-      console.warn('[SessionManager] Failed to get token:', e.message);
-      return null;
+  function save(userId, sessionToken, role, extraProfile = {}) {
+    if (userId) {
+      sessionStorage.setItem('userId', userId);
+      localStorage.setItem('peso_userId', userId);
     }
+    if (role) {
+      sessionStorage.setItem('userRole', role);
+      localStorage.setItem('peso_userRole', role);
+    }
+    if (sessionToken) {
+      sessionStorage.setItem('sessionToken', sessionToken);
+      sessionStorage.setItem('jwtAccessToken', sessionToken);
+      localStorage.setItem('peso_jwtToken', sessionToken);
+    }
+    if (extraProfile.username) {
+      sessionStorage.setItem('username', extraProfile.username);
+    }
+    if (extraProfile.fullName) {
+      sessionStorage.setItem('userFullName', extraProfile.fullName);
+    }
+
+    _cachedProfile = {
+      id: userId,
+      role: role,
+      ...extraProfile
+    };
   }
 
   /**
-   * Get the session token (synchronous — from cache/sessionStorage)
+   * Get the current access token (JWT)
    */
   function getToken() {
-    return sessionStorage.getItem('sessionToken') || null;
+    return sessionStorage.getItem('jwtAccessToken') ||
+           sessionStorage.getItem('sessionToken') ||
+           localStorage.getItem('peso_jwtToken') ||
+           null;
   }
 
   /**
-   * Get the current user ID (profile ID from staff_profiles or qr_code from beneficiaries)
+   * Get access token asynchronously (from local storage or Supabase)
+   */
+  async function getTokenAsync() {
+    const localToken = getToken();
+    if (localToken && localToken !== 'supabase-managed') return localToken;
+
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        return session?.access_token || localToken;
+      } catch (e) {
+        console.warn('[SessionManager] Failed to get Supabase token:', e.message);
+      }
+    }
+    return localToken;
+  }
+
+  /**
+   * Get the current user ID
    */
   function getUserId() {
-    return sessionStorage.getItem('userId') || null;
+    return sessionStorage.getItem('userId') || localStorage.getItem('peso_userId') || null;
   }
 
   /**
    * Get the current user role
    */
   function getRole() {
-    return sessionStorage.getItem('userRole') || null;
+    return sessionStorage.getItem('userRole') || localStorage.getItem('peso_userRole') || null;
   }
 
   /**
-   * Build headers for authenticated API requests.
-   * With Supabase, the client handles auth headers automatically.
-   * This is kept for backward compatibility with any custom fetch calls.
+   * Build headers for authenticated API requests
    */
   function authHeaders() {
-    return { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getToken();
+    if (token && token !== 'supabase-managed') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
   }
 
   /**
@@ -83,7 +110,16 @@ const SessionManager = (() => {
   function clear() {
     sessionStorage.removeItem('userId');
     sessionStorage.removeItem('sessionToken');
+    sessionStorage.removeItem('jwtAccessToken');
+    sessionStorage.removeItem('jwtRefreshToken');
     sessionStorage.removeItem('userRole');
+    sessionStorage.removeItem('username');
+    sessionStorage.removeItem('userFullName');
+    
+    localStorage.removeItem('peso_userId');
+    localStorage.removeItem('peso_userRole');
+    localStorage.removeItem('peso_jwtToken');
+
     _cachedProfile = null;
     if (_verifyTimer) {
       clearInterval(_verifyTimer);
@@ -92,24 +128,36 @@ const SessionManager = (() => {
   }
 
   /**
-   * Logout: sign out via Supabase Auth and clear local session data
+   * Logout: destroys backend session, signs out Supabase, clears storage, and redirects
    */
   async function logout(redirectUrl) {
+    const apiBase = getApiBase();
+
+    // 1. Terminate Backend Express Session
     try {
-      if (supabaseClient) {
-        await supabaseClient.auth.signOut();
-        console.log('[SessionManager] Supabase sign-out successful.');
-      }
+      await fetch(`${apiBase}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: authHeaders()
+      });
     } catch (e) {
-      console.warn('[SessionManager] Sign-out error (best-effort):', e.message);
+      console.warn('[SessionManager] Backend logout notice:', e.message);
     }
 
-    // Clear everything client-side
-    clear();
-    sessionStorage.clear();
+    // 2. Sign out Supabase
+    try {
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
+    } catch (e) {
+      console.warn('[SessionManager] Supabase sign-out notice:', e.message);
+    }
 
-    // Redirect to login
-    window.location.href = redirectUrl || 'official_login.html';
+    // 3. Clear storage client-side
+    clear();
+
+    const target = redirectUrl || (getRole() === 'Beneficiary' ? 'official_login.html' : 'admin_login.html');
+    window.location.href = target;
   }
 
   /**
@@ -117,86 +165,97 @@ const SessionManager = (() => {
    */
   function forceLogout(message) {
     clear();
-    sessionStorage.clear();
     sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
-    window.location.href = 'official_login.html';
+    window.location.href = 'admin_login.html';
   }
 
   /**
-   * Verify the current session is still valid via Supabase
+   * Verify the current session is still valid
    */
   async function verify() {
-    if (!supabaseClient) {
-      console.warn('[SessionManager] Supabase client not available, skipping verification.');
-      return true;
-    }
+    const apiBase = getApiBase();
 
+    // STEP 1: Verify with Express Backend (/api/auth/me) with credentials & token
     try {
-      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      const response = await fetch(`${apiBase}/api/auth/me`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: authHeaders()
+      });
 
-      if (error || !session) {
-        console.warn('[SessionManager] No valid session found.');
-        forceLogout('Your session has expired. Please log in again.');
-        return false;
-      }
-
-      // Session is valid — update cached data
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (user) {
-        // Try staff_profiles first
-        let profile = null;
-        const { data: staffProfile } = await supabaseClient
-          .from('staff_profiles')
-          .select('id, role, status, first_name, last_name')
-          .eq('auth_id', user.id)
-          .single();
-
-        if (staffProfile) {
-          profile = staffProfile;
-        } else {
-          // Try beneficiaries table
-          const { data: benProfile } = await supabaseClient
-            .from('beneficiaries')
-            .select('qr_code, status, first_name, last_name')
-            .eq('auth_id', user.id)
-            .single();
-
-          if (benProfile) {
-            profile = { id: benProfile.qr_code, role: 'Beneficiary', status: benProfile.status, first_name: benProfile.first_name, last_name: benProfile.last_name };
-          }
-        }
-
-        if (profile) {
-          _cachedProfile = profile;
-          // Update sessionStorage for backward compat
-          sessionStorage.setItem('userId', profile.id);
-          sessionStorage.setItem('userRole', profile.role);
-
-          // Check if account was deactivated
-          if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
-            await supabaseClient.auth.signOut();
-            forceLogout('Your account has been deactivated.');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          const u = data.user;
+          if (u.status === 'Deactivated' || u.status === 'Archived' || u.status === 'Inactive') {
+            forceLogout('Your account has been deactivated. Please contact your administrator.');
             return false;
           }
-        }
-      }
 
-      return true;
-    } catch (e) {
-      console.warn('[SessionManager] Session verification failed:', e.message);
-      // Network error — keep session active (offline tolerance)
-      return true;
+          _cachedProfile = u;
+          sessionStorage.setItem('userId', u.id);
+          sessionStorage.setItem('userRole', u.role);
+          sessionStorage.setItem('username', u.username);
+          if (u.fullName) sessionStorage.setItem('userFullName', u.fullName);
+          return true;
+        }
+      } else if (response.status === 403) {
+        forceLogout('Your account has been deactivated.');
+        return false;
+      }
+    } catch (err) {
+      console.warn('[SessionManager] Backend verify check fallback:', err.message);
     }
+
+    // STEP 2: Fallback to Supabase Auth if initialized
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (!error && session) {
+          const { data: { user } } = await supabaseClient.auth.getUser();
+          if (user) {
+            const { data: staffProfile } = await supabaseClient
+              .from('staff_profiles')
+              .select('id, role, status, first_name, last_name, username')
+              .eq('auth_id', user.id)
+              .maybeSingle();
+
+            if (staffProfile) {
+              if (staffProfile.status === 'Deactivated' || staffProfile.status === 'Inactive') {
+                await supabaseClient.auth.signOut();
+                forceLogout('Your account has been deactivated.');
+                return false;
+              }
+              _cachedProfile = staffProfile;
+              sessionStorage.setItem('userId', staffProfile.id);
+              sessionStorage.setItem('userRole', staffProfile.role);
+              return true;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[SessionManager] Supabase verify fallback notice:', e.message);
+      }
+    }
+
+    // STEP 3: Check cached session credentials
+    const localRole = getRole();
+    const localId = getUserId();
+    const localToken = getToken();
+
+    if (localRole && localId && localToken) {
+      return true; // Session active
+    }
+
+    // No valid session found
+    return false;
   }
 
   /**
-   * Start periodic session verification (call on protected pages)
+   * Start periodic session verification
    */
   function startPeriodicVerification() {
-    // Verify immediately on page load
     verify();
-
-    // Then verify at regular intervals
     if (_verifyTimer) clearInterval(_verifyTimer);
     _verifyTimer = setInterval(() => {
       verify();

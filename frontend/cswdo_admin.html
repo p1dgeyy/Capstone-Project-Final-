@@ -14,6 +14,7 @@
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/system-notifications.js"></script>
     <script src="assets/js/peso-safeguards.js"></script>
+    <script src="assets/js/session-manager.js"></script>
     <script src="assets/js/auth-guard.js"></script>
 
     <style>
@@ -2914,9 +2915,13 @@
         }
 
         function logoutAdmin() {
-            sessionStorage.clear();
-            localStorage.removeItem('peso_session');
-            window.location.href = 'admin_login.html';
+            if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
+                SessionManager.logout('admin_login.html');
+            } else {
+                sessionStorage.clear();
+                localStorage.removeItem('peso_session');
+                window.location.href = 'admin_login.html';
+            }
         }
     </script>
 </body>

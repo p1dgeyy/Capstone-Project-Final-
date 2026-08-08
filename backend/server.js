@@ -15,6 +15,9 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+
 const authRouter = require('./auth');
 const usersRouter = require('./users');
 const auditRouter = require('./routes/audit');
@@ -25,15 +28,37 @@ const { logAudit } = require('./utils/auditLogger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SESSION_SECRET = process.env.SESSION_SECRET || 'koronadal_capstone_jwt_super_secret_key_2026';
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-// Security & Parsing Middlewares
+// Security & Parsing Middlewares with Credentials & Cookie Support
 app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, server-to-server)
+        if (!origin) return callback(null, true);
+        return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Session Configuration for Persistent Administrator Authentication
+app.use(session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    name: 'peso_session',
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: IS_PROD,
+        maxAge: 3600000 // 1 hour session lifetime (3,600,000 ms)
+    }
+}));
 
 // Global Security Safeguards
 app.use(enforceHttps);

@@ -1784,6 +1784,7 @@
                 try {
                     let response = await fetch(`${apiBase}/api/admin/login`, {
                         method: 'POST',
+                        credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             username: identifier,
@@ -1796,6 +1797,7 @@
                     if (response.status === 404) {
                         response = await fetch(`${apiBase}/api/auth/login`, {
                             method: 'POST',
+                            credentials: 'include',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 username: identifier,
@@ -1909,8 +1911,13 @@
                 localStorage.removeItem('peso_failed_attempts');
                 localStorage.removeItem('peso_lockout_until');
 
-                const fullName = `${userProfile.first_name} ${userProfile.last_name}`.trim();
-                SessionManager.save(userProfile.id, accessToken, userProfile.role);
+                const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.fullName || 'Administrator';
+                SessionManager.save(userProfile.id, accessToken, userProfile.role, {
+                    username: userProfile.username,
+                    fullName: fullName,
+                    email: userProfile.email,
+                    department: userProfile.department
+                });
                 sessionStorage.setItem('userRole', userProfile.role);
                 sessionStorage.setItem('username', userProfile.username);
                 sessionStorage.setItem('userId', userProfile.id);

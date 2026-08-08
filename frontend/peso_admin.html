@@ -15,6 +15,8 @@
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/peso-safeguards.js"></script>
     <script src="assets/js/system-notifications.js"></script>
+    <script src="assets/js/session-manager.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/peso_admin.js"></script>
 
     <style>
@@ -6804,7 +6806,14 @@
         });
 
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
-        function logoutAdmin() { window.location.href = 'official_login.html'; }
+        function logoutAdmin() { 
+            if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
+                SessionManager.logout('admin_login.html');
+            } else {
+                sessionStorage.clear();
+                window.location.href = 'admin_login.html';
+            }
+        }
         function escapeHtml(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; }
     </script>
 </body>

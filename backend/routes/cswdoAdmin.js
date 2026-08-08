@@ -56,7 +56,9 @@ const {
     resetIpAttempts, 
     maskContactNumber, 
     requireAuth, 
-    requireAdmin 
+    requireAdmin,
+    setAuthCookies,
+    clearAuthCookies
 } = require('../middleware/auth');
 
 const { logAudit } = require('../utils/auditLogger');
@@ -244,6 +246,17 @@ router.post('/login', async (req, res) => {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
+    // Establish persistent Express Session
+    if (req.session) {
+        req.session.user = {
+            ...tokenPayload,
+            status: user.status
+        };
+    }
+
+    // Set secure HttpOnly cookies
+    setAuthCookies(res, accessToken, refreshToken);
+
     // Audit Log
     logAudit({
         userId: user.username,
@@ -287,6 +300,75 @@ router.post('/login', async (req, res) => {
             status: user.status,
             last_login_at: user.last_login_at
         }
+    });
+});
+
+/**
+ * GET /api/admin/verify-session (also /api/admin/me)
+ * Returns authenticated CSWDO administrator profile
+ */
+router.get('/verify-session', requireAdmin, (req, res) => {
+    const user = req.user;
+    res.json({
+        success: true,
+        authenticated: true,
+        user: {
+            id: user.id || user.userId,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            department: user.department || 'CSWDO',
+            fullName: user.fullName || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+            status: user.status || 'Active'
+        }
+    });
+});
+
+router.get('/me', requireAdmin, (req, res) => {
+    const user = req.user;
+    res.json({
+        success: true,
+        authenticated: true,
+        user: {
+            id: user.id || user.userId,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            department: user.department || 'CSWDO',
+            fullName: user.fullName || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+            status: user.status || 'Active'
+        }
+    });
+});
+
+/**
+ * POST /api/admin/logout
+ * Destroys Express session, clears cookies, and logs audit
+ */
+router.post('/logout', (req, res) => {
+    const user = req.session?.user || req.user || { username: 'CSWDO-ADMIN', role: 'CSWDO Admin' };
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    logAudit({
+        userId: user.username || 'CSWDO_ADMIN',
+        userRole: user.role || 'CSWDO Admin',
+        actionType: 'ADMIN_LOGOUT',
+        targetEntity: 'CSWDO Admin Portal',
+        status: 'SUCCESS',
+        actionReason: 'Administrator terminated session',
+        details: `CSWDO Admin "${user.username}" logged out.`,
+        clientIp
+    });
+
+    if (req.session) {
+        req.session.destroy(() => {});
+    }
+
+    clearAuthCookies(res);
+
+    res.json({
+        success: true,
+        message: 'CSWDO Admin logged out successfully.'
     });
 });
 

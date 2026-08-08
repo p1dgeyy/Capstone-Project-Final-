@@ -16,7 +16,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { getUsers, findUserByIdentifier, findUserById } = require('./data/seedData');
-const { generateAccessToken, generateRefreshToken, verifyToken, trackIpFailedAttempt, resetIpAttempts, maskContactNumber } = require('./middleware/auth');
+const { generateAccessToken, generateRefreshToken, verifyToken, trackIpFailedAttempt, resetIpAttempts, maskContactNumber, requireAuth, setAuthCookies, clearAuthCookies } = require('./middleware/auth');
 const { logAudit } = require('./utils/auditLogger');
 
 // Store for Password Reset Tokens: token -> { userId, email, expiresAt, verified }
@@ -182,11 +182,20 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        fullName: `${user.first_name} ${user.last_name}`
+        fullName: `${user.first_name} ${user.last_name}`,
+        status: user.status
     };
 
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
+
+    // Establish persistent Express Session
+    if (req.session) {
+        req.session.user = tokenPayload;
+    }
+
+    // Set secure HttpOnly cookies
+    setAuthCookies(res, accessToken, refreshToken);
 
     // Immutable Audit Log
     logAudit({
@@ -213,12 +222,82 @@ router.post('/login', async (req, res) => {
             email: user.email,
             first_name: user.first_name,
             last_name: user.last_name,
+            fullName: `${user.first_name} ${user.last_name}`,
             role: user.role,
             department: user.department,
             phone: maskContactNumber(user.phone),
             status: user.status,
             last_login_at: user.last_login_at
         }
+    });
+});
+
+/**
+ * GET /api/auth/me (also /api/auth/verify-session)
+ * Validates session or token and returns active administrator profile
+ */
+router.get('/me', requireAuth, (req, res) => {
+    const user = req.user;
+    res.json({
+        success: true,
+        authenticated: true,
+        user: {
+            id: user.id || user.userId,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            department: user.department,
+            fullName: user.fullName || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+            status: user.status || 'Active'
+        }
+    });
+});
+
+router.get('/verify-session', requireAuth, (req, res) => {
+    const user = req.user;
+    res.json({
+        success: true,
+        authenticated: true,
+        user: {
+            id: user.id || user.userId,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            department: user.department,
+            fullName: user.fullName || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+            status: user.status || 'Active'
+        }
+    });
+});
+
+/**
+ * POST /api/auth/logout
+ * Destroys Express session, clears auth cookies, and records audit trail
+ */
+router.post('/logout', (req, res) => {
+    const user = req.session?.user || req.user || { username: 'GUEST', role: 'GUEST' };
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    logAudit({
+        userId: user.username || 'ANONYMOUS',
+        userRole: user.role || 'USER',
+        actionType: 'LOGOUT_SUCCESS',
+        targetEntity: 'Authentication System',
+        status: 'SUCCESS',
+        actionReason: 'User requested session termination',
+        details: `User "${user.username}" logged out successfully.`,
+        clientIp
+    });
+
+    if (req.session) {
+        req.session.destroy(() => {});
+    }
+
+    clearAuthCookies(res);
+
+    res.json({
+        success: true,
+        message: 'Logged out successfully.'
     });
 });
 
