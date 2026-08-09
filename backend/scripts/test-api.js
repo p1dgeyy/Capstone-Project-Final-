@@ -323,8 +323,9 @@ async function runTests() {
 
     // 18. Conflict Validation: GET /api/interview/check-conflicts
     await test('Conflict Validation: GET /api/interview/check-conflicts detects schedule overlaps', async () => {
-        // Overlapping with 09:00 AM slot on 2026-08-08 for officer 2
-        const res = await request('GET', '/api/interview/check-conflicts?officer_id=2&date=2026-08-08&time=09:00%20AM');
+        // Overlapping with 09:00 AM slot on today's schedule for officer 2
+        const todayStr = new Date().toISOString().split('T')[0];
+        const res = await request('GET', `/api/interview/check-conflicts?officer_id=2&date=${todayStr}&time=09:00%20AM`);
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.body.conflict, true);
         assert.ok(res.body.existingSchedule);
@@ -332,6 +333,7 @@ async function runTests() {
 
     // 19. Schedule Conflict Restriction: POST /api/interview/schedule rejects conflicting schedule (409)
     await test('Schedule Conflict Restriction: POST /api/interview/schedule rejects overlapping slot (409)', async () => {
+        const todayStr = new Date().toISOString().split('T')[0];
         const res = await request('POST', '/api/interview/schedule', {
             officer_id: 2,
             beneficiary_name: 'Conflict Test User',
@@ -339,7 +341,7 @@ async function runTests() {
             beneficiary_address: 'Poblacion, Koronadal City',
             barangay: 'Poblacion',
             program_code: 'TUPAD',
-            interview_date: '2026-08-08',
+            interview_date: todayStr,
             schedule_time: '09:00 AM - 10:00 AM',
             venue_location: 'PESO Main Office'
         });

@@ -19,6 +19,7 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 
 const authRouter = require('./auth');
+const otpRouter = require('./routes/otp');
 const usersRouter = require('./users');
 const auditRouter = require('./routes/audit');
 const officersRouter = require('./routes/officers');
@@ -77,6 +78,8 @@ app.use((req, res, next) => {
 });
 
 // Mount Backend API Routes
+app.use('/api/auth/otp', otpRouter);
+app.use('/api/otp', otpRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', cswdoAdminRouter);
 app.use('/api/cswdo', cswdoAdminRouter);
@@ -98,6 +101,14 @@ app.get('/api/health', (req, res) => {
             rate_limiting: 'ACTIVE',
             jwt_expiry_seconds: 900,
             lockout_policy: '5 failed attempts -> 15 min cooldown',
+            otp_verification: {
+                status: 'ACTIVE',
+                algorithm: 'HMAC-SHA256 (Salted & Peppered)',
+                code_length: 6,
+                expiry_minutes: 5,
+                max_attempts: 3,
+                delivery_channels: ['EMAIL (SMTP/Gmail)', 'SMS (Gateway/Semaphore)']
+            },
             suspicious_ips_tracked: suspiciousIps.length
         }
     });

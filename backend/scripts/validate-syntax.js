@@ -12,16 +12,22 @@ const filesToValidate = [
     'backend/server.js',
     'backend/auth.js',
     'backend/users.js',
+    'backend/routes/otp.js',
     'backend/routes/audit.js',
     'backend/routes/officers.js',
     'backend/middleware/auth.js',
+    'backend/middleware/otpRateLimiter.js',
     'backend/utils/auditLogger.js',
+    'backend/utils/otpService.js',
+    'backend/utils/deliveryService.js',
     'backend/data/seedData.js',
     'backend/scripts/test-api.js',
+    'backend/scripts/test-otp-flow.js',
     'frontend/assets/js/peso_admin.js',
     'frontend/assets/js/peso_officer.js',
     'frontend/assets/js/peso-safeguards.js',
     'frontend/assets/js/session-manager.js',
+    'frontend/assets/js/otp-auth.js',
     'frontend/assets/js/system-notifications.js'
 ];
 

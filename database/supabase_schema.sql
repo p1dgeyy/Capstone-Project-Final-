@@ -771,3 +771,42 @@ INSERT INTO programs (code, name, description, agency, status) VALUES
   ('AICS', 'Assistance to Individuals in Crisis Situation', 'Financial or material assistance to individuals in crisis situations.', 'CSWDO', 'Active'),
   ('SLP', 'Sustainable Livelihood Program', 'Helps poor families become self-sufficient through micro-enterprise development.', 'CSWDO', 'Active')
 ON CONFLICT (code) DO NOTHING;
+
+-- =============================================================================
+-- 15. OTP REQUESTS TABLE (Two-Factor Authentication & Verification)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS otp_requests (
+  id BIGSERIAL PRIMARY KEY,
+  user_id VARCHAR(100) DEFAULT NULL,
+  identifier VARCHAR(255) NOT NULL,
+  otp_hash VARCHAR(255) NOT NULL,
+  salt VARCHAR(64) NOT NULL,
+  purpose VARCHAR(50) NOT NULL DEFAULT '2FA_LOGIN' CHECK (purpose IN ('2FA_LOGIN', 'EMAIL_VERIFICATION', 'PASSWORD_RESET', 'PHONE_VERIFICATION', 'BENEFICIARY_REGISTRATION')),
+  channel VARCHAR(20) NOT NULL DEFAULT 'EMAIL' CHECK (channel IN ('EMAIL', 'SMS')),
+  attempts INT NOT NULL DEFAULT 0,
+  max_attempts INT NOT NULL DEFAULT 3,
+  expiry TIMESTAMPTZ NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'USED', 'EXPIRED', 'BLOCKED')),
+  ip_address VARCHAR(45) DEFAULT NULL,
+  user_agent TEXT DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_otp_identifier_purpose ON otp_requests(identifier, purpose, status);
+CREATE INDEX IF NOT EXISTS idx_otp_expiry ON otp_requests(expiry);
+CREATE INDEX IF NOT EXISTS idx_otp_user_id ON otp_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_otp_status ON otp_requests(status);
+
+ALTER TABLE otp_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can view OTP records"
+  ON otp_requests FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM staff_profiles sp
+      WHERE sp.auth_id = auth.uid()
+      AND sp.role IN ('PESO Admin', 'CSWDO Admin')
+    )
+  );
+

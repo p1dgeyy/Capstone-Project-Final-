@@ -17,6 +17,8 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { getUsers, findUserByIdentifier, findUserById } = require('./data/seedData');
 const { generateAccessToken, generateRefreshToken, verifyToken, trackIpFailedAttempt, resetIpAttempts, maskContactNumber, requireAuth, setAuthCookies, clearAuthCookies } = require('./middleware/auth');
+const { createOtpRequest } = require('./utils/otpService');
+const { deliverEmailOtp, maskEmail } = require('./utils/deliveryService');
 const { logAudit } = require('./utils/auditLogger');
 
 // Store for Password Reset Tokens: token -> { userId, email, expiresAt, verified }
@@ -28,10 +30,10 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 /**
  * POST /api/auth/login
- * Authenticates user credentials, enforces lockout, returns JWT
+ * Authenticates user credentials, enforces lockout, returns JWT or 2FA OTP challenge
  */
 router.post('/login', async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, email, password, require2Fa, twoFactor } = req.body;
     const identifier = (username || email || '').trim();
     const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
 
@@ -169,7 +171,39 @@ router.post('/login', async (req, res) => {
         });
     }
 
-    // Successful Login
+    // OPTIONAL TWO-FACTOR AUTHENTICATION (2FA) CHALLENGE
+    if (require2Fa || twoFactor || user.two_factor_enabled) {
+        try {
+            const otpRecord = createOtpRequest({
+                identifier: user.email,
+                userId: user.id,
+                purpose: '2FA_LOGIN',
+                channel: 'EMAIL',
+                clientIp
+            });
+
+            const delivery = await deliverEmailOtp({
+                email: user.email,
+                otp: otpRecord.otp,
+                purpose: '2FA_LOGIN',
+                name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+                clientIp
+            });
+
+            return res.json({
+                success: true,
+                require2Fa: true,
+                requestId: otpRecord.requestId,
+                maskedRecipient: delivery.maskedDestination,
+                expiresInSeconds: otpRecord.expiresInSeconds,
+                message: `Credentials verified. Enter the 6-digit verification code sent to ${delivery.maskedDestination}.`
+            });
+        } catch (otpErr) {
+            console.error('[2FA DISPATCH ERROR]:', otpErr);
+        }
+    }
+
+    // Direct Successful Login (when 2FA is not required)
     user.failed_login_attempts = 0;
     user.lockout_until = null;
     user.last_login_at = new Date().toISOString();

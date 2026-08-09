@@ -199,7 +199,7 @@ const _interviews = [
         project_type: 'Environmental Sanitation & Community Beautification',
         application_id: 'APP-2026-001',
         date_applied: '2026-07-28',
-        interview_date: '2026-08-08',
+        interview_date: new Date().toISOString().split('T')[0],
         schedule_time: '09:00 AM - 10:00 AM',
         time_slot: '09:00 AM',
         venue_location: 'PESO Main Office - Interview Room A',

@@ -1264,6 +1264,13 @@
         </div>
     </div>
 
+    <!-- External Libraries & Helpers -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/api-config.js"></script>
+    <script src="assets/js/session-manager.js"></script>
+    <script src="assets/js/peso-safeguards.js"></script>
+    <script src="assets/js/otp-auth.js"></script>
+
     <!-- Scripting -->
     <script>
         let activeModalKeydownHandler = null;
@@ -1831,6 +1838,44 @@
 
                     if (response.ok) {
                         const result = await response.json();
+                        if (result.success && result.require2Fa && typeof OTPAuth !== 'undefined') {
+                            spinner.style.display = 'none';
+                            btnText.style.display = 'inline';
+                            btnIcon.style.display = 'inline-block';
+                            loginBtn.disabled = false;
+
+                            OTPAuth.promptOtpModal({
+                                title: 'Two-Factor Authentication',
+                                subtitle: 'Enter the 6-digit verification code sent to:',
+                                maskedRecipient: result.maskedRecipient || 'Official Email',
+                                expiresInSeconds: result.expiresInSeconds || 300,
+                                onVerify: async (code) => {
+                                    const verifyRes = await OTPAuth.loginVerify({
+                                        requestId: result.requestId,
+                                        identifier: identifier,
+                                        otp: code
+                                    });
+                                    if (verifyRes.success) {
+                                        successAlert.querySelector('#successMessage').textContent = '2FA Verified! Redirecting...';
+                                        successAlert.style.display = 'block';
+                                        setTimeout(() => {
+                                            window.location.href = verifyRes.redirectUrl || 'peso_admin.html';
+                                        }, 800);
+                                    }
+                                },
+                                onResend: async () => {
+                                    const regen = await OTPAuth.generateOtp({
+                                        identifier: identifier,
+                                        purpose: '2FA_LOGIN',
+                                        channel: 'EMAIL'
+                                    });
+                                    result.requestId = regen.requestId;
+                                    alert('A new verification code has been dispatched to your email.');
+                                }
+                            });
+                            return;
+                        }
+
                         if (result.success && result.accessToken) {
                             authSuccess = true;
                             userProfile = result.user;
