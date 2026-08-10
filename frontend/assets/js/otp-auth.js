@@ -369,12 +369,126 @@ const OTPAuth = (() => {
         setTimeout(() => digitInputs[0].focus(), 400);
     }
 
+    /**
+     * Dual Verification: Send 4-digit code via Gmail SMTP
+     */
+    async function sendEmailCode(email) {
+        const apiBase = getApiBase();
+        const res = await fetch(`${apiBase}/send-email-code`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: String(email).trim().toLowerCase() })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Failed to dispatch email verification code.');
+        }
+        return data;
+    }
+
+    /**
+     * Dual Verification: Verify 4-digit email code
+     */
+    async function verifyEmailCode(email, code) {
+        const apiBase = getApiBase();
+        const res = await fetch(`${apiBase}/verify-email-code`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: String(email).trim().toLowerCase(), code: String(code).trim() })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Invalid or expired email verification code.');
+        }
+        return data;
+    }
+
+    /**
+     * Dual Verification: Send 6-digit SMS OTP
+     */
+    async function sendSmsOtp(phoneNumber) {
+        const apiBase = getApiBase();
+        const res = await fetch(`${apiBase}/send-sms-otp`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone_number: String(phoneNumber).trim() })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Failed to send SMS OTP.');
+        }
+        return data;
+    }
+
+    /**
+     * Dual Verification: Verify 6-digit SMS OTP
+     */
+    async function verifySmsOtp(phoneNumber, otp) {
+        const apiBase = getApiBase();
+        const res = await fetch(`${apiBase}/verify-sms-otp`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone_number: String(phoneNumber).trim(), otp: String(otp).trim() })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Invalid or expired SMS OTP code.');
+        }
+        return data;
+    }
+
+    /**
+     * Dual Verification: Initial User Registration
+     */
+    async function registerDualUser({ email, password, phone_number, first_name, last_name, role }) {
+        const apiBase = getApiBase();
+        const res = await fetch(`${apiBase}/register`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, phone_number, first_name, last_name, role })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Registration failed.');
+        }
+        return data;
+    }
+
+    /**
+     * Dual Verification: Finalize Registration
+     */
+    async function finalizeRegistration(email, phoneNumber) {
+        const apiBase = getApiBase();
+        const res = await fetch(`${apiBase}/finalize-registration`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, phone_number: phoneNumber })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Could not finalize registration.');
+        }
+        return data;
+    }
+
     return {
         generateOtp,
         verifyOtp,
         loginVerify,
         sendEmailVerification,
         verifyEmail,
+        sendEmailCode,
+        verifyEmailCode,
+        sendSmsOtp,
+        verifySmsOtp,
+        registerDualUser,
+        finalizeRegistration,
         promptOtpModal
     };
 })();

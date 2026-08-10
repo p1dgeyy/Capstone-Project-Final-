@@ -19,6 +19,7 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 
 const authRouter = require('./auth');
+const dualVerificationRouter = require('./routes/dualVerification');
 const otpRouter = require('./routes/otp');
 const usersRouter = require('./users');
 const auditRouter = require('./routes/audit');
@@ -80,12 +81,15 @@ app.use((req, res, next) => {
 // Mount Backend API Routes
 app.use('/api/auth/otp', otpRouter);
 app.use('/api/otp', otpRouter);
+app.use('/api/auth', dualVerificationRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', cswdoAdminRouter);
 app.use('/api/cswdo', cswdoAdminRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/audit-logs', auditRouter);
+app.use('/api', dualVerificationRouter);
 app.use('/api', officersRouter);
+app.use('/', dualVerificationRouter);
 
 // Health Check & Security Diagnostics Endpoint
 app.get('/api/health', (req, res) => {

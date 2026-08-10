@@ -112,13 +112,15 @@ function generateOtpEmailTemplate({ otp, purpose = 'Two-Factor Authentication', 
  * Deliver OTP via Email (SMTP or Console Simulation)
  * @param {Object} params
  * @param {string} params.email - Recipient email
- * @param {string} params.otp - 6-digit OTP
+ * @param {string} params.otp - 4-digit or 6-digit OTP code
+ * @param {string} [params.subject] - Optional custom email subject
+ * @param {string} [params.customBody] - Optional custom email text body
  * @param {string} [params.purpose] - Purpose description
  * @param {string} [params.name] - Recipient name
  * @param {string} [params.clientIp] - Request IP
  * @returns {Promise<Object>} { success: boolean, channel: 'EMAIL', maskedDestination: string }
  */
-async function deliverEmailOtp({ email, otp, purpose = '2FA_LOGIN', name = 'User', clientIp = '127.0.0.1' }) {
+async function deliverEmailOtp({ email, otp, subject, customBody, purpose = '2FA_LOGIN', name = 'User', clientIp = '127.0.0.1' }) {
     const masked = maskEmail(email);
     const smtpHost = process.env.SMTP_HOST;
     const smtpUser = process.env.SMTP_USER;
@@ -127,14 +129,15 @@ async function deliverEmailOtp({ email, otp, purpose = '2FA_LOGIN', name = 'User
     const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
     const fromAddress = process.env.SMTP_FROM || `"City of Koronadal PESO/CSWDO" <${smtpUser || 'noreply@koronadal.gov.ph'}>`;
 
+    const emailSubject = subject || (purpose === 'EMAIL_CODE_VERIFICATION' ? 'Verify your account — Email Code' : `[Koronadal PESO/CSWDO] Your Verification Code: ${otp}`);
+    const textContent = customBody || (purpose === 'EMAIL_CODE_VERIFICATION' ? `Enter this code within 5 minutes: ${otp}` : `City Government of Koronadal - PESO/CSWDO Portal\nYour verification code is: ${otp}\n\nEnter this code within 5 minutes. Do not share this code with anyone.`);
     const htmlContent = generateOtpEmailTemplate({ otp, purpose, recipientName: name });
-    const textContent = `City Government of Koronadal - PESO/CSWDO Portal\nYour verification code is: ${otp}\n\nEnter this code within 5 minutes. Do not share this code with anyone.`;
 
     let deliveredViaSmtp = false;
     let deliveryError = null;
 
     // Check if nodemailer and credentials exist
-    if (nodemailer && smtpHost && smtpUser && smtpPass && smtpPass !== 'your_app_password_here') {
+    if (nodemailer && smtpHost && smtpUser && smtpPass && smtpPass !== 'your_app_password_here' && smtpPass !== 'your_16_digit_app_password') {
         try {
             const transporter = nodemailer.createTransport({
                 host: smtpHost,
@@ -149,7 +152,7 @@ async function deliverEmailOtp({ email, otp, purpose = '2FA_LOGIN', name = 'User
             await transporter.sendMail({
                 from: fromAddress,
                 to: email,
-                subject: `[Koronadal PESO/CSWDO] Your Verification Code: ${otp}`,
+                subject: emailSubject,
                 text: textContent,
                 html: htmlContent
             });
@@ -164,8 +167,9 @@ async function deliverEmailOtp({ email, otp, purpose = '2FA_LOGIN', name = 'User
     // Console Dispatch Log (guaranteed visibility in development/testing environments)
     console.log('===============================================================');
     console.log(`📧 [EMAIL OTP DISPATCH] -> ${masked}`);
-    console.log(`🔑 Purpose: ${purpose}`);
+    console.log(`🔑 Subject: ${emailSubject}`);
     console.log(`🔢 Code: ${otp} (Valid for 5 minutes)`);
+    console.log(`📝 Body: "${textContent.trim()}"`);
     console.log(`🌐 SMTP Status: ${deliveredViaSmtp ? 'DISPATCHED VIA LIVE SMTP' : 'LOGGED (Dev/Simulation Mode)'}`);
     console.log('===============================================================');
 
@@ -185,31 +189,58 @@ async function deliverEmailOtp({ email, otp, purpose = '2FA_LOGIN', name = 'User
         channel: 'EMAIL',
         maskedDestination: masked,
         simulated: !deliveredViaSmtp,
-        message: `Verification code sent to ${masked}. Please check your inbox or spam folder.`
+        message: 'Verification code sent to your email.'
     };
 }
 
 /**
- * Deliver OTP via SMS (SMS Gateway or Console Simulation)
+ * Deliver OTP via SMS (Twilio, Semaphore, or Console Simulation)
  * @param {Object} params
  * @param {string} params.phone - Recipient phone
  * @param {string} params.otp - 6-digit OTP
+ * @param {string} [params.customBody] - Optional custom message text
  * @param {string} [params.purpose] - Purpose
  * @param {string} [params.clientIp] - Client IP
  * @returns {Promise<Object>} { success: boolean, channel: 'SMS', maskedDestination: string }
  */
-async function deliverSmsOtp({ phone, otp, purpose = 'PHONE_VERIFICATION', clientIp = '127.0.0.1' }) {
+async function deliverSmsOtp({ phone, otp, customBody, purpose = 'PHONE_VERIFICATION', clientIp = '127.0.0.1' }) {
     const masked = maskContactNumber(phone);
-    const messageText = `[City of Koronadal PESO/CSWDO] Your verification code is: ${otp}. Enter this code within 5 minutes. Do not share this code with anyone.`;
+    const messageText = customBody || `Your verification code is ${otp}. Valid for 5 minutes.`;
     const gatewayUrl = process.env.SMS_GATEWAY_URL;
     const apiKey = process.env.SMS_API_KEY;
+    const apiSecret = process.env.SMS_API_SECRET;
     const senderName = process.env.SMS_SENDER_NAME || 'KORONADAL';
 
     let deliveredViaGateway = false;
 
-    if (gatewayUrl && apiKey && apiKey !== 'your_sms_api_key_here') {
+    // Twilio REST API integration if Twilio Account SID format detected
+    if (apiKey && apiSecret && apiKey.startsWith('AC') && apiKey !== 'your_sms_gateway_key') {
         try {
-            // Attempt standard SMS Gateway POST
+            const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${apiKey}/Messages.json`;
+            const authHeader = 'Basic ' + Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+            const params = new URLSearchParams();
+            params.append('To', phone.startsWith('+') ? phone : `+63${phone.replace(/^0/, '')}`);
+            params.append('From', senderName);
+            params.append('Body', messageText);
+
+            const res = await fetch(twilioUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': authHeader,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params.toString()
+            });
+
+            if (res.ok) {
+                deliveredViaGateway = true;
+            }
+        } catch (err) {
+            console.warn(`[DELIVERY_WARN] Twilio SMS dispatch to ${masked} failed: ${err.message}. Falling back to system logger.`);
+        }
+    } else if (gatewayUrl && apiKey && apiKey !== 'your_sms_gateway_key' && apiKey !== 'your_sms_api_key_here') {
+        try {
+            // Attempt Semaphore / PhilSMS API POST
             const res = await fetch(gatewayUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -254,7 +285,7 @@ async function deliverSmsOtp({ phone, otp, purpose = 'PHONE_VERIFICATION', clien
         channel: 'SMS',
         maskedDestination: masked,
         simulated: !deliveredViaGateway,
-        message: `Verification code sent via SMS to ${masked}. Enter this code within 5 minutes.`
+        message: 'OTP sent to your phone.'
     };
 }
 

@@ -162,6 +162,57 @@ function findUserByIdentifier(identifier) {
     );
 }
 
+function findUserByEmail(email) {
+    if (!email) return null;
+    const clean = email.trim().toLowerCase();
+    return _users.find(u => (u.email && u.email.toLowerCase() === clean));
+}
+
+function findUserByPhoneNumber(phone) {
+    if (!phone) return null;
+    const clean = phone.replace(/[^0-9]/g, '');
+    return _users.find(u => {
+        const uPhone = (u.phone_number || u.phone || '').replace(/[^0-9]/g, '');
+        return uPhone && (uPhone === clean || (clean.length === 10 && uPhone.endsWith(clean)) || (uPhone.length === 10 && clean.endsWith(uPhone)));
+    });
+}
+
+function createDualVerificationUser({ email, password, password_hash, phone_number, role = 'Beneficiary', first_name = '', last_name = '' }) {
+    const id = _users.length > 0 ? Math.max(..._users.map(u => u.id)) + 1 : 1;
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone_number.trim();
+    const username = cleanEmail.split('@')[0];
+
+    const newUser = {
+        id,
+        username,
+        email: cleanEmail,
+        password: password_hash || password,
+        password_hash: password_hash || password,
+        phone_number: cleanPhone,
+        phone: cleanPhone,
+        first_name: first_name || username,
+        last_name: last_name || '',
+        role,
+        department: 'PESO',
+        status: 'Active',
+        email_status: 'unverified',
+        phone_status: 'unverified',
+        email_code_hash: null,
+        email_code_expiry: null,
+        phone_otp_hash: null,
+        phone_otp_expiry: null,
+        failed_login_attempts: 0,
+        lockout_until: null,
+        last_login_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+
+    _users.push(newUser);
+    return newUser;
+}
+
 function addUser(userData) {
     const id = _users.length > 0 ? Math.max(..._users.map(u => u.id)) + 1 : 1;
     const newUser = {
@@ -176,6 +227,7 @@ function addUser(userData) {
     _users.push(newUser);
     return newUser;
 }
+
 
 // In-memory Interview Schedules Store
 const _interviews = [
@@ -1483,6 +1535,9 @@ module.exports = {
     getUsers,
     findUserById,
     findUserByIdentifier,
+    findUserByEmail,
+    findUserByPhoneNumber,
+    createDualVerificationUser,
     addUser,
     DEFAULT_HASH,
     getInterviews,
