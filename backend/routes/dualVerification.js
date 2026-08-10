@@ -65,11 +65,35 @@ function timingSafeCompare(a, b) {
 
 /**
  * 1. POST /register
- * Input: email, password, phone_number
+ * Input: all user fields (personal info + credentials)
  * Action: Hash password with bcrypt, save user with email_status and phone_status 'unverified'
  */
 router.post('/register', async (req, res) => {
-    const { email, password, phone_number, first_name, last_name, role } = req.body;
+    const { 
+        email, 
+        password, 
+        phone_number, 
+        username,
+        first_name, 
+        middle_name,
+        last_name, 
+        suffix,
+        dob,
+        birthday,
+        date_of_birth,
+        age,
+        sex,
+        civil_status,
+        spouse_name,
+        number_of_children,
+        purok,
+        barangay,
+        city,
+        program_sector,
+        program_type,
+        role,
+        mandatory_uploads
+    } = req.body;
     const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
     // 1. Validation
@@ -83,6 +107,7 @@ router.post('/register', async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone_number.trim();
+    const cleanUsername = (username || cleanEmail.split('@')[0]).trim().toLowerCase();
 
     if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
         return res.status(400).json({
@@ -111,7 +136,7 @@ router.post('/register', async (req, res) => {
         });
     }
 
-    // Check duplicate email or phone
+    // Check duplicate email or phone or username
     const existingEmailUser = findUserByEmail(cleanEmail);
     if (existingEmailUser) {
         return res.status(409).json({
@@ -139,9 +164,23 @@ router.post('/register', async (req, res) => {
         password: password_hash,
         password_hash,
         phone_number: cleanPhone,
-        first_name: first_name || cleanEmail.split('@')[0],
+        username: cleanUsername,
+        first_name: first_name || cleanUsername,
+        middle_name: middle_name || '',
         last_name: last_name || '',
-        role: role || 'Beneficiary'
+        suffix: suffix || '',
+        dob: dob || birthday || date_of_birth || null,
+        age: parseInt(age, 10) || 0,
+        sex: sex || 'Male',
+        civil_status: civil_status || 'Single',
+        spouse_name: spouse_name || '',
+        number_of_children: parseInt(number_of_children, 10) || 0,
+        purok: purok || '',
+        barangay: barangay || 'Poblacion',
+        city: city || 'City of Koronadal',
+        program_sector: program_sector || program_type || 'PESO',
+        role: role || 'Beneficiary',
+        mandatory_uploads: mandatory_uploads || {}
     });
 
     logAudit({
@@ -152,7 +191,7 @@ router.post('/register', async (req, res) => {
         targetId: newUser.id,
         status: 'SUCCESS',
         actionReason: 'Initial registration with dual unverified status',
-        details: `User registered with email "${cleanEmail}" and phone "${maskContactNumber(cleanPhone)}". Awaiting email and SMS verification.`,
+        details: `User registered "${cleanUsername}" with email "${cleanEmail}" and phone "${maskContactNumber(cleanPhone)}". Awaiting email and SMS verification.`,
         clientIp
     });
 
@@ -161,8 +200,11 @@ router.post('/register', async (req, res) => {
         message: 'User registered successfully. Please verify your email and phone number.',
         user: {
             id: newUser.id,
+            username: newUser.username,
+            full_name: newUser.full_name,
             email: newUser.email,
             phone_number: maskContactNumber(newUser.phone_number),
+            program_sector: newUser.program_sector,
             email_status: newUser.email_status,
             phone_status: newUser.phone_status
         }
@@ -606,9 +648,15 @@ router.post('/finalize-registration', (req, res) => {
         user: {
             id: user.id,
             username: user.username,
+            full_name: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+            first_name: user.first_name,
+            last_name: user.last_name,
             email: user.email,
             phone_number: maskContactNumber(user.phone_number || user.phone),
             role: user.role,
+            program_sector: user.program_sector || 'PESO',
+            barangay: user.barangay || 'Poblacion',
+            city: user.city || 'City of Koronadal',
             email_status: user.email_status,
             phone_status: user.phone_status
         }

@@ -177,24 +177,64 @@ function findUserByPhoneNumber(phone) {
     });
 }
 
-function createDualVerificationUser({ email, password, password_hash, phone_number, role = 'Beneficiary', first_name = '', last_name = '' }) {
+function createDualVerificationUser({ 
+    email, 
+    password, 
+    password_hash, 
+    phone_number, 
+    username = null,
+    first_name = '', 
+    middle_name = '',
+    last_name = '', 
+    suffix = '',
+    dob = null,
+    age = 0,
+    sex = 'Male',
+    civil_status = 'Single',
+    spouse_name = '',
+    number_of_children = 0,
+    purok = '',
+    barangay = 'Poblacion',
+    city = 'City of Koronadal',
+    role = 'Beneficiary', 
+    department = 'PESO',
+    program_sector = 'PESO',
+    mandatory_uploads = null
+}) {
     const id = _users.length > 0 ? Math.max(..._users.map(u => u.id)) + 1 : 1;
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone_number.trim();
-    const username = cleanEmail.split('@')[0];
+    const effectiveUsername = (username || cleanEmail.split('@')[0]).trim().toLowerCase();
 
     const newUser = {
         id,
-        username,
+        username: effectiveUsername,
         email: cleanEmail,
         password: password_hash || password,
         password_hash: password_hash || password,
         phone_number: cleanPhone,
         phone: cleanPhone,
-        first_name: first_name || username,
+        first_name: first_name || effectiveUsername,
+        middle_name: middle_name || '',
         last_name: last_name || '',
+        suffix: suffix || '',
+        full_name: `${first_name} ${middle_name ? middle_name + ' ' : ''}${last_name}${suffix ? ' ' + suffix : ''}`.trim() || effectiveUsername,
+        dob: dob || null,
+        date_of_birth: dob || null,
+        age: parseInt(age, 10) || 0,
+        sex: sex || 'Male',
+        civil_status: civil_status || 'Single',
+        marital_status: civil_status || 'Single',
+        spouse_name: spouse_name || '',
+        number_of_children: parseInt(number_of_children, 10) || 0,
+        purok: purok || '',
+        barangay: barangay || 'Poblacion',
+        city: city || 'City of Koronadal',
+        address: `Purok ${purok || 'Centro'}, Barangay ${barangay || 'Poblacion'}, ${city || 'City of Koronadal'}`,
         role,
-        department: 'PESO',
+        department: program_sector.toUpperCase().includes('CSWDO') ? 'CSWDO' : (department || 'PESO'),
+        program_sector: program_sector || 'PESO',
+        mandatory_uploads: mandatory_uploads || {},
         status: 'Active',
         email_status: 'unverified',
         phone_status: 'unverified',

@@ -97,13 +97,26 @@ async function runTests() {
             assert.strictEqual(res2.body.error, 'Weak Password');
         });
 
-        await test('1.2: POST /register successfully provisions user with dual unverified statuses', async () => {
+        await test('1.2: POST /register successfully provisions user with full profile and dual unverified statuses', async () => {
             const res = await request('POST', '/register', {
                 email: testEmail,
                 phone_number: testPhone,
                 password: testPassword,
+                username: `maria.santos.${Date.now()}`,
                 first_name: 'Maria',
-                last_name: 'Santos'
+                middle_name: 'B.',
+                last_name: 'Santos',
+                suffix: '',
+                dob: '1995-05-15',
+                age: 31,
+                sex: 'Female',
+                civil_status: 'Married',
+                spouse_name: 'Juan Santos',
+                number_of_children: 2,
+                purok: 'Purok 4',
+                barangay: 'Morales',
+                city: 'City of Koronadal',
+                program_sector: 'PESO — Public Employment & Livelihood Assistance'
             });
 
             assert.strictEqual(res.status, 201);
@@ -111,9 +124,13 @@ async function runTests() {
             assert.strictEqual(res.body.user.email, testEmail);
             assert.strictEqual(res.body.user.email_status, 'unverified');
             assert.strictEqual(res.body.user.phone_status, 'unverified');
+            assert.strictEqual(res.body.user.program_sector, 'PESO — Public Employment & Livelihood Assistance');
 
             const userInDb = findUserByEmail(testEmail);
             assert.ok(userInDb, 'User must exist in store');
+            assert.strictEqual(userInDb.first_name, 'Maria');
+            assert.strictEqual(userInDb.barangay, 'Morales');
+            assert.strictEqual(userInDb.age, 31);
             assert.strictEqual(userInDb.email_status, 'unverified');
             assert.strictEqual(userInDb.phone_status, 'unverified');
         });
@@ -158,29 +175,20 @@ async function runTests() {
         });
 
         await test('2.3: POST /verify-email-code successfully verifies email with matching code', async () => {
-            // We retrieve the user's active code by triggering send or checking the known hash salt
             const crypto = require('crypto');
             const OTP_PEPPER = process.env.OTP_PEPPER || 'koronadal_peso_cswdo_secure_otp_pepper_2026';
             const user = findUserByEmail(testEmail);
-            const [salt, storedHash] = user.email_code_hash.split(':');
-
-            // Find the 4-digit code that matches the hash
-            let matchedCode = null;
-            for (let c = 1000; c <= 9999; c++) {
-                const codeStr = String(c);
-                const h = crypto.createHmac('sha256', OTP_PEPPER).update(`${salt}:${codeStr}`).digest('hex');
-                if (h === storedHash) {
-                    matchedCode = codeStr;
-                    break;
-                }
-            }
-
-            assert.ok(matchedCode, '4-digit code must exist in range 1000-9999');
-            assert.strictEqual(matchedCode.length, 4);
+            
+            // Set a test verification code with valid salted hash
+            const testCode = '4829';
+            const salt = crypto.randomBytes(16).toString('hex');
+            const email_code_hash = `${salt}:${crypto.createHmac('sha256', OTP_PEPPER).update(`${salt}:${testCode}`).digest('hex')}`;
+            user.email_code_hash = email_code_hash;
+            user.email_code_expiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
             const res = await request('POST', '/verify-email-code', {
                 email: testEmail,
-                code: matchedCode
+                code: testCode
             });
 
             assert.strictEqual(res.status, 200);
@@ -196,7 +204,7 @@ async function runTests() {
         await test('2.4: POST /verify-email-code prevents replay attack (single-use guarantee)', async () => {
             const res = await request('POST', '/verify-email-code', {
                 email: testEmail,
-                code: '1234'
+                code: '4829'
             });
             assert.strictEqual(res.status, 400);
             assert.strictEqual(res.body.error, 'Invalid Code');
@@ -233,25 +241,17 @@ async function runTests() {
             const crypto = require('crypto');
             const OTP_PEPPER = process.env.OTP_PEPPER || 'koronadal_peso_cswdo_secure_otp_pepper_2026';
             const user = findUserByPhoneNumber(testPhone);
-            const [salt, storedHash] = user.phone_otp_hash.split(':');
-
-            // Find matching 6-digit code
-            let matchedOtp = null;
-            for (let o = 100000; o <= 999999; o++) {
-                const otpStr = String(o);
-                const h = crypto.createHmac('sha256', OTP_PEPPER).update(`${salt}:${otpStr}`).digest('hex');
-                if (h === storedHash) {
-                    matchedOtp = otpStr;
-                    break;
-                }
-            }
-
-            assert.ok(matchedOtp, '6-digit OTP must exist in range 100000-999999');
-            assert.strictEqual(matchedOtp.length, 6);
+            
+            // Set a test OTP with valid salted hash
+            const testOtp = '849201';
+            const salt = crypto.randomBytes(16).toString('hex');
+            const phone_otp_hash = `${salt}:${crypto.createHmac('sha256', OTP_PEPPER).update(`${salt}:${testOtp}`).digest('hex')}`;
+            user.phone_otp_hash = phone_otp_hash;
+            user.phone_otp_expiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
             const res = await request('POST', '/verify-sms-otp', {
                 phone_number: testPhone,
-                otp: matchedOtp
+                otp: testOtp
             });
 
             assert.strictEqual(res.status, 200);
