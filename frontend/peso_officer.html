@@ -1558,6 +1558,33 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentOfficerUser = JSON.parse(localStorage.getItem('currentUser') || '{"fullName":"Jane Smith","username":"peso-officer","id":2}');
+
+        // Authoritative current-officer profile, fetched directly from Supabase
+        // (staff_profiles), not trusted from localStorage. Used for any write
+        // that needs the real officer_id (interview_schedules, attendance).
+        let _currentStaffProfile = null;
+        async function getCurrentStaffProfile() {
+            if (_currentStaffProfile) return _currentStaffProfile;
+            try {
+                const { data: userData } = await supabaseClient.auth.getUser();
+                const user = userData?.user;
+                if (!user) return null;
+                const { data: profile, error } = await supabaseClient
+                    .from('staff_profiles')
+                    .select('id, first_name, last_name, role')
+                    .eq('auth_id', user.id)
+                    .maybeSingle();
+                if (error || !profile) return null;
+                _currentStaffProfile = profile;
+                currentOfficerUser.fullName = `${profile.first_name} ${profile.last_name}`.trim();
+                currentOfficerUser.id = profile.id;
+                return profile;
+            } catch (err) {
+                console.error('[OFFICER_SCHEDULE] getCurrentStaffProfile failed:', err?.message || err);
+                return null;
+            }
+        }
+
         let selectedEvalAppId = null;
         let selectedInterviewScheduleId = null;
         let currentScheduleDate = '2026-08-08';
@@ -1574,176 +1601,76 @@
         ];
 
         // Daily Assigned Interview Schedules Store
-        let dailySchedulesList = [
-            {
-                id: 'INT-2026-001',
-                numId: 1,
-                officerId: 2,
-                officerName: 'Jane Smith',
-                beneficiaryId: 'BEN-2026-001',
-                beneficiaryName: 'Maria Santos',
-                beneficiaryPhone: '0917-123-4567',
-                beneficiaryEmail: 'maria.santos@gmail.com',
-                beneficiaryAddress: 'Purok 4, Barangay Morales, Koronadal City',
-                barangay: 'Morales',
-                sex: 'Female',
-                age: 32,
-                programCode: 'TUPAD',
-                programName: 'TUPAD (Emergency Employment Assistance)',
-                projectType: 'Environmental Sanitation & Community Beautification',
-                applicationId: 'APP-2026-001',
-                dateApplied: '2026-07-28',
-                interviewDate: '2026-08-08',
-                scheduleTime: '09:00 AM - 10:00 AM',
-                timeSlot: '09:00 AM',
-                venue: 'PESO Main Office - Interview Room A',
-                status: 'Pending',
-                attendance: 'Unmarked',
-                remarks: 'Scheduled for initial qualification interview and livelihood assessment.',
-                justification: null,
-                documents: ['Barangay Certification', 'Valid Government ID', 'Application Form']
-            },
-            {
-                id: 'INT-2026-002',
-                numId: 2,
-                officerId: 2,
-                officerName: 'Jane Smith',
-                beneficiaryId: 'BEN-2026-002',
-                beneficiaryName: 'Juan Dela Cruz',
-                beneficiaryPhone: '0918-222-3344',
-                beneficiaryEmail: 'juan.delacruz@yahoo.com',
-                beneficiaryAddress: 'Purok Sunflower, Barangay Zone 1, Koronadal City',
-                barangay: 'Zone 1',
-                sex: 'Male',
-                age: 41,
-                programCode: 'PFAS',
-                programName: 'PFAS (Pangkabuhayan Assistance Special Project)',
-                projectType: 'Micro-Enterprise Food Cart & Rolling Store',
-                applicationId: 'APP-2026-002',
-                dateApplied: '2026-07-29',
-                interviewDate: '2026-08-08',
-                scheduleTime: '10:30 AM - 11:30 AM',
-                timeSlot: '10:30 AM',
-                venue: 'PESO Main Office - Interview Room B',
-                status: 'Completed',
-                attendance: 'Present',
-                remarks: 'Candidate successfully presented business proposal and passed interview assessment.',
-                justification: null,
-                documents: ['Barangay Certification', 'Valid Government ID', 'Business Proposal']
-            },
-            {
-                id: 'INT-2026-003',
-                numId: 3,
-                officerId: 2,
-                officerName: 'Jane Smith',
-                beneficiaryId: 'BEN-2026-003',
-                beneficiaryName: 'Pedro Reyes',
-                beneficiaryPhone: '0919-333-5566',
-                beneficiaryEmail: 'pedro.reyes@koronadal.ph',
-                beneficiaryAddress: 'Purok 2, Barangay Rotonda, Koronadal City',
-                barangay: 'Rotonda',
-                sex: 'Male',
-                age: 23,
-                programCode: 'CKGIP',
-                programName: 'CKGIP (City of Koronadal Government Internship Program)',
-                projectType: 'Administrative & Information Systems Internship',
-                applicationId: 'APP-2026-003',
-                dateApplied: '2026-07-30',
-                interviewDate: '2026-08-08',
-                scheduleTime: '01:30 PM - 02:30 PM',
-                timeSlot: '01:30 PM',
-                venue: 'PESO Main Office - Interview Room A',
-                status: 'Pending',
-                attendance: 'Unmarked',
-                remarks: 'Afternoon interview session for technical internship placement.',
-                justification: null,
-                documents: ['Barangay Certification', 'School Clearance', 'Transcript']
-            },
-            {
-                id: 'INT-2026-004',
-                numId: 4,
-                officerId: 2,
-                officerName: 'Jane Smith',
-                beneficiaryId: 'BEN-2026-004',
-                beneficiaryName: 'Ana Lim',
-                beneficiaryPhone: '0920-444-7788',
-                beneficiaryEmail: 'ana.lim@gmail.com',
-                beneficiaryAddress: 'Purok Pag-asa, Barangay Poblacion, Koronadal City',
-                barangay: 'Poblacion',
-                sex: 'Female',
-                age: 28,
-                programCode: 'TUPAD',
-                programName: 'TUPAD (Emergency Employment Assistance)',
-                projectType: 'Community Urban Greening & Tree Planting',
-                applicationId: 'APP-2026-004',
-                dateApplied: '2026-08-01',
-                interviewDate: '2026-08-09',
-                scheduleTime: '09:00 AM - 10:00 AM',
-                timeSlot: '09:00 AM',
-                venue: 'PESO Main Office - Interview Room A',
-                status: 'Pending',
-                attendance: 'Unmarked',
-                remarks: 'Tomorrow morning interview schedule.',
-                justification: null,
-                documents: ['Barangay Certification', 'Valid ID']
-            },
-            {
-                id: 'INT-2026-005',
-                numId: 5,
-                officerId: 2,
-                officerName: 'Jane Smith',
-                beneficiaryId: 'BEN-2026-005',
-                beneficiaryName: 'Carlos Garcia',
-                beneficiaryPhone: '0921-555-8899',
-                beneficiaryEmail: 'carlos.garcia@outlook.com',
-                beneficiaryAddress: 'Purok Centro, Barangay San Isidro, Koronadal City',
-                barangay: 'San Isidro',
-                sex: 'Male',
-                age: 36,
-                programCode: 'PFAS',
-                programName: 'PFAS (Pangkabuhayan Assistance Special Project)',
-                projectType: 'Welding, Metalcraft & Fabrication Starter Kit',
-                applicationId: 'APP-2026-005',
-                dateApplied: '2026-07-20',
-                interviewDate: '2026-08-05',
-                scheduleTime: '11:00 AM - 12:00 PM',
-                timeSlot: '11:00 AM',
-                venue: 'PESO Main Office - Interview Room B',
-                status: 'Missed',
-                attendance: 'Absent',
-                remarks: 'Applicant was unable to attend due to medical emergency.',
-                justification: 'Official doctor certificate submitted by family.',
-                documents: ['Barangay Certification', 'Valid ID', 'Medical Note']
-            },
-            {
-                id: 'INT-2026-006',
-                numId: 6,
-                officerId: 2,
-                officerName: 'Jane Smith',
-                beneficiaryId: 'BEN-2026-006',
-                beneficiaryName: 'Elena Ramos',
-                beneficiaryPhone: '0922-666-9900',
-                beneficiaryEmail: 'elena.ramos@gmail.com',
-                beneficiaryAddress: 'Purok 3, Barangay Concepcion, Koronadal City',
-                barangay: 'Concepcion',
-                sex: 'Female',
-                age: 45,
-                programCode: 'TUPAD',
-                programName: 'TUPAD (Emergency Employment Assistance)',
-                projectType: 'Public Park Maintenance & Tree Pruning',
-                applicationId: 'APP-2026-006',
-                dateApplied: '2026-08-02',
-                interviewDate: '2026-08-10',
-                scheduleTime: '10:00 AM - 11:00 AM',
-                timeSlot: '10:00 AM',
-                venue: 'PESO Main Office - Interview Room A',
-                status: 'Pending',
-                attendance: 'Unmarked',
-                remarks: 'Scheduled interview session.',
-                justification: null,
-                documents: ['Barangay Certification', 'Valid ID']
+        // ---------------------------------------------------------------------
+        // DAILY SCHEDULE — backed by Supabase (interview_schedules table)
+        // ---------------------------------------------------------------------
+        let dailySchedulesList = [];
+
+        async function loadDailySchedulesFromSupabase() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('interview_schedules')
+                    .select(`
+                        id, interview_date, interview_time, venue_location, status, attendance_status, remarks,
+                        application_id, program_id, officer_id, beneficiary_qr,
+                        beneficiaries:beneficiary_qr ( qr_code, first_name, last_name, phone, email, address, sex, age ),
+                        programs:program_id ( code, name ),
+                        staff_profiles:officer_id ( first_name, last_name )
+                    `)
+                    .order('interview_date', { ascending: false });
+
+                if (error) throw error;
+
+                dailySchedulesList = (data || []).map(row => {
+                    const ben = row.beneficiaries || {};
+                    const prog = row.programs || {};
+                    const officer = row.staff_profiles || {};
+                    const timeStart = (row.interview_time || '').split(' - ')[0] || row.interview_time;
+                    const addressParts = (ben.address || '').split(',');
+                    const barangayGuess = addressParts.length > 1 ? addressParts[addressParts.length - 1].trim() : '';
+
+                    return {
+                        id: `INT-${row.id}`,
+                        dbId: row.id,
+                        numId: row.id,
+                        officerId: row.officer_id,
+                        officerName: `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || 'Unassigned',
+                        beneficiaryId: ben.qr_code || '',
+                        beneficiaryName: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Unknown Beneficiary',
+                        beneficiaryPhone: ben.phone || '',
+                        beneficiaryEmail: ben.email || '',
+                        beneficiaryAddress: ben.address || '',
+                        barangay: barangayGuess,
+                        sex: ben.sex || '',
+                        age: ben.age || '',
+                        programCode: prog.code || '',
+                        programName: prog.name || '',
+                        projectType: prog.name || '',
+                        applicationId: row.application_id ? `APP-${row.application_id}` : '',
+                        dateApplied: '',
+                        interviewDate: row.interview_date,
+                        scheduleTime: row.interview_time,
+                        timeSlot: timeStart,
+                        venue: row.venue_location,
+                        status: row.status,
+                        attendance: row.attendance_status,
+                        remarks: row.remarks || '',
+                        justification: null,
+                        documents: []
+                    };
+                });
+            } catch (err) {
+                console.error('[OFFICER_SCHEDULE] Failed to load interview schedules from Supabase:', err?.message || err);
+                dailySchedulesList = [];
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Could not load schedules',
+                        message: 'Failed to load interview schedules from the database. Please refresh the page.',
+                        type: 'error'
+                    });
+                }
             }
-        ];
+        }
 
         let evaluationList = [
             {
@@ -1810,7 +1737,7 @@
         // ---------------------------------------------------------------------
         // INITIALIZATION & TAB SWITCHING
         // ---------------------------------------------------------------------
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             if (document.getElementById('officerNameDisplay')) {
                 document.getElementById('officerNameDisplay').textContent = currentOfficerUser.fullName || 'PESO Officer';
             }
@@ -1824,7 +1751,11 @@
             renderBatchesCards();
             renderLivelihoodMasterTable();
             renderAssistanceRecordsTable();
+
+            // Daily Schedule now loads real data from Supabase (interview_schedules)
+            await loadDailySchedulesFromSupabase();
             renderDailySchedules();
+
             renderAuditLogs();
 
             document.addEventListener('keydown', handleKeyboardNavigation);
@@ -2331,17 +2262,39 @@
             item.remarks = remarks;
             if (justification) item.justification = justification;
 
-            fetch(`/api/interview/${encodeURIComponent(item.id)}/attendance`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ presence_flag: selectedAtt, remarks, justification })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API offline fallback:', e.message));
+            (async () => {
+                try {
+                    const { error: updateErr } = await supabaseClient
+                        .from('interview_schedules')
+                        .update({
+                            status: newStatus,
+                            attendance_status: selectedAtt,
+                            remarks: justification ? `${remarks} [Justification: ${justification}]`.trim() : remarks
+                        })
+                        .eq('id', item.dbId);
+                    if (updateErr) throw updateErr;
 
-            fetch(`/api/interview/${encodeURIComponent(item.id)}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus, remarks, justification })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API offline fallback:', e.message));
+                    const officerProfile = await getCurrentStaffProfile();
+                    if (officerProfile) {
+                        await supabaseClient.from('attendance').insert({
+                            interview_id: item.dbId,
+                            officer_id: officerProfile.id,
+                            presence_flag: selectedAtt,
+                            remarks,
+                            justification: justification || null
+                        });
+                    }
+                } catch (e) {
+                    console.error('[OFFICER_SCHEDULE] Failed to save interview update to Supabase:', e?.message || e);
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Save failed',
+                            message: 'Could not save this update to the database. Please try again.',
+                            type: 'error'
+                        });
+                    }
+                }
+            })();
 
             logOfficerAction('UPDATE_INTERVIEW', `Updated interview ${item.id} (${item.beneficiaryName}) -> Attendance: ${selectedAtt}, Status: ${newStatus}. Remarks: "${remarks}". Justification: "${justification || 'N/A'}"`);
 
@@ -2382,11 +2335,35 @@
             if (flag === 'Absent' && item.status === 'Completed') item.status = 'Missed';
             if (justification) item.justification = justification;
 
-            fetch(`/api/interview/${encodeURIComponent(item.id)}/attendance`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ presence_flag: flag, remarks: item.remarks, justification })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API sync fallback:', e.message));
+            (async () => {
+                try {
+                    const { error: updateErr } = await supabaseClient
+                        .from('interview_schedules')
+                        .update({ attendance_status: flag, status: item.status })
+                        .eq('id', item.dbId);
+                    if (updateErr) throw updateErr;
+
+                    const officerProfile = await getCurrentStaffProfile();
+                    if (officerProfile) {
+                        await supabaseClient.from('attendance').insert({
+                            interview_id: item.dbId,
+                            officer_id: officerProfile.id,
+                            presence_flag: flag,
+                            remarks: item.remarks || null,
+                            justification: justification || null
+                        });
+                    }
+                } catch (e) {
+                    console.error('[OFFICER_SCHEDULE] Failed to save attendance to Supabase:', e?.message || e);
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Save failed',
+                            message: 'Could not save attendance to the database. Please try again.',
+                            type: 'error'
+                        });
+                    }
+                }
+            })();
 
             logOfficerAction('MARK_ATTENDANCE', `Quick marked attendance for interview ${item.id} (${item.beneficiaryName}) as ${flag}. Justification: "${justification || 'N/A'}"`);
 
@@ -2449,7 +2426,7 @@
             }
         }
 
-        function submitNewInterviewSchedule(event) {
+        async function submitNewInterviewSchedule(event) {
             event.preventDefault();
 
             if (checkNewInterviewConflict()) {
@@ -2459,91 +2436,92 @@
 
             const name = document.getElementById('schedBenName')?.value.trim();
             const phone = document.getElementById('schedBenPhone')?.value.trim();
-            const barangay = document.getElementById('schedBenBarangay')?.value;
-            const email = document.getElementById('schedBenEmail')?.value.trim() || 'beneficiary@koronadal.ph';
+            const email = document.getElementById('schedBenEmail')?.value.trim();
             const programCode = document.getElementById('schedProgramCode')?.value;
-            const projectType = document.getElementById('schedProjectType')?.value.trim();
             const date = document.getElementById('schedInterviewDate')?.value;
             const time = document.getElementById('schedTimeSlot')?.value;
             const venue = document.getElementById('schedVenue')?.value.trim();
             const remarks = document.getElementById('schedRemarks')?.value.trim();
 
-            if (!name || !phone || !date || !time) {
+            if (!name || !phone || !date || !time || !programCode) {
                 alert('Validation Error: Please fill in all required fields.');
                 return;
             }
 
-            const newId = `INT-2026-${String(dailySchedulesList.length + 1).padStart(3, '0')}`;
-            const newNumId = dailySchedulesList.length + 1;
-            const newBenId = `BEN-2026-${String(dailySchedulesList.length + 1).padStart(3, '0')}`;
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
 
-            const newScheduleItem = {
-                id: newId,
-                numId: newNumId,
-                officerId: 2,
-                officerName: currentOfficerUser.fullName || 'Jane Smith',
-                beneficiaryId: newBenId,
-                beneficiaryName: name,
-                beneficiaryPhone: phone,
-                beneficiaryEmail: email,
-                beneficiaryAddress: `Purok 1, Barangay ${barangay}, Koronadal City`,
-                barangay,
-                sex: 'Male',
-                age: 30,
-                programCode,
-                programName: programCode === 'TUPAD' ? 'TUPAD (Emergency Employment Assistance)' : programCode === 'PFAS' ? 'PFAS (Pangkabuhayan Assistance Special Project)' : 'CKGIP (City Government Internship Program)',
-                projectType,
-                applicationId: `APP-2026-${String(newNumId).padStart(3, '0')}`,
-                dateApplied: new Date().toISOString().split('T')[0],
-                interviewDate: date,
-                scheduleTime: time,
-                timeSlot: time.split(' - ')[0],
-                venue,
-                status: 'Pending',
-                attendance: 'Unmarked',
-                remarks: remarks || 'Initial interview session.',
-                justification: null,
-                documents: ['Barangay Certification', 'Valid Government ID']
-            };
+            try {
+                // The beneficiary must already be a registered account — interviews
+                // are scheduled against real applications, not free-text entries.
+                let benQuery = supabaseClient.from('beneficiaries').select('qr_code, first_name, last_name, phone, email, address, sex, age');
+                benQuery = email ? benQuery.or(`phone.eq.${phone},email.eq.${email}`) : benQuery.eq('phone', phone);
+                const { data: benMatches, error: benErr } = await benQuery.limit(1);
+                if (benErr) throw benErr;
+                const beneficiary = benMatches && benMatches[0];
 
-            dailySchedulesList.unshift(newScheduleItem);
+                if (!beneficiary) {
+                    alert(`No registered beneficiary found matching that name/phone/email. The beneficiary must complete registration before an interview can be scheduled. (Searched phone: ${phone}${email ? `, email: ${email}` : ''})`);
+                    return;
+                }
 
-            fetch('/api/interview/schedule', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    officer_id: 2,
-                    beneficiary_name: name,
-                    beneficiary_phone: phone,
-                    beneficiary_email: email,
-                    beneficiary_address: newScheduleItem.beneficiaryAddress,
-                    barangay,
-                    program_code: programCode,
-                    program_name: newScheduleItem.programName,
-                    project_type: projectType,
-                    interview_date: date,
-                    schedule_time: time,
-                    venue_location: venue,
-                    remarks
-                })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API create schedule offline fallback:', e.message));
+                const { data: program, error: progErr } = await supabaseClient
+                    .from('programs')
+                    .select('id, code, name')
+                    .eq('code', programCode)
+                    .maybeSingle();
+                if (progErr) throw progErr;
+                if (!program) {
+                    alert(`Program code "${programCode}" was not found. Please select a valid program.`);
+                    return;
+                }
 
-            logOfficerAction('SCHEDULE_INTERVIEW', `Scheduled interview ${newId} for beneficiary "${name}" on ${date} at ${time}`);
+                const officerProfile = await getCurrentStaffProfile();
+                if (!officerProfile) {
+                    alert('Could not verify your officer account. Please refresh and log in again.');
+                    return;
+                }
 
-            if (bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal'))) {
-                bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal')).hide();
-            }
+                const { data: inserted, error: insertErr } = await supabaseClient
+                    .from('interview_schedules')
+                    .insert({
+                        beneficiary_qr: beneficiary.qr_code,
+                        program_id: program.id,
+                        officer_id: officerProfile.id,
+                        interview_date: date,
+                        interview_time: time,
+                        venue_location: venue || 'PESO Main Office - Interview Room A',
+                        status: 'Pending',
+                        attendance_status: 'Unmarked',
+                        remarks: remarks || 'Initial interview session.'
+                    })
+                    .select()
+                    .single();
+                if (insertErr) throw insertErr;
 
-            currentScheduleDate = date;
-            updateScheduleDateHeaderDisplay();
-            renderDailySchedules();
+                logOfficerAction('SCHEDULE_INTERVIEW', `Scheduled interview INT-${inserted.id} for beneficiary "${beneficiary.first_name} ${beneficiary.last_name}" on ${date} at ${time}`);
 
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Interview Scheduled',
-                    message: `Interview "${newId}" successfully scheduled for ${name} on ${date} (${time}).`,
-                    type: 'success'
-                });
+                if (bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal'))) {
+                    bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal')).hide();
+                }
+
+                currentScheduleDate = date;
+                updateScheduleDateHeaderDisplay();
+                await loadDailySchedulesFromSupabase();
+                renderDailySchedules();
+
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Interview Scheduled',
+                        message: `Interview "INT-${inserted.id}" successfully scheduled for ${beneficiary.first_name} ${beneficiary.last_name} on ${date} (${time}).`,
+                        type: 'success'
+                    });
+                }
+            } catch (err) {
+                console.error('[OFFICER_SCHEDULE] Failed to create interview schedule:', err?.message || err);
+                alert('Could not schedule the interview. Please try again.');
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         }
 

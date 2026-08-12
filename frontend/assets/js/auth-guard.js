@@ -85,114 +85,87 @@ const AuthGuard = (() => {
   }
 
   /**
-   * Fetch the current user's profile from Backend Session or Supabase.
-   * Never throws — returns null on failure so callers can degrade gracefully.
+   * Fetch the current user's profile from Supabase.
+   * Never throws — returns null on any failure so callers can degrade
+   * gracefully instead of crashing.
    */
   async function fetchUserProfile() {
-    const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.__API_BASE_URL__ || window.API_BASE_URL || '';
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      console.error('[AUTH_GUARD] Supabase client not available.');
+      return null;
+    }
 
-    // 1. Try Backend Session & Token (/api/auth/me) with credentials & token
     try {
-      const headers = typeof SessionManager !== 'undefined' && SessionManager.authHeaders ? SessionManager.authHeaders() : { 'Content-Type': 'application/json' };
-      const response = await fetch(`${apiBase}/api/auth/me`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: headers
-      });
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      const user = userData?.user;
+      if (userError || !user) {
+        return null;
+      }
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.user) {
-          _currentUserProfile = data.user;
-          return data.user;
+      let profile = null;
+
+      const { data: staffProfile, error: staffError } = await supabaseClient
+        .from('staff_profiles')
+        .select('*')
+        .eq('auth_id', user.id)
+        .maybeSingle();
+
+      if (!staffError && staffProfile) {
+        profile = staffProfile;
+      } else {
+        const { data: benProfile, error: benError } = await supabaseClient
+          .from('beneficiaries')
+          .select('*')
+          .eq('auth_id', user.id)
+          .maybeSingle();
+
+        if (!benError && benProfile) {
+          profile = { ...benProfile, role: 'Beneficiary', id: benProfile.qr_code };
         }
       }
-    } catch (e) {
-      console.warn('[AUTH_GUARD] Backend auth/me check note:', e.message);
-    }
 
-    // 2. Check SessionManager Cache / sessionStorage
-    if (typeof SessionManager !== 'undefined') {
-      const cached = SessionManager.getCachedProfile();
-      if (cached && cached.role) {
-        _currentUserProfile = cached;
-        return cached;
+      if (!profile) {
+        console.warn('[AUTH_GUARD] No staff_profiles or beneficiaries row for auth user:', user.id);
+        return null;
       }
+
+      _currentUserProfile = profile;
+      return profile;
+    } catch (err) {
+      // Covers network errors, RLS errors, malformed rows, etc.
+      console.error('[AUTH_GUARD] Error fetching profile (handled safely):', err?.message || err);
+      return null;
     }
-
-    const localRole = sessionStorage.getItem('userRole') || localStorage.getItem('peso_userRole');
-    const localId = sessionStorage.getItem('userId') || localStorage.getItem('peso_userId');
-    const localUser = sessionStorage.getItem('username');
-    const localName = sessionStorage.getItem('userFullName');
-
-    if (localRole && localId) {
-      _currentUserProfile = {
-        id: localId,
-        role: localRole,
-        username: localUser || 'administrator',
-        fullName: localName || 'Administrator',
-        status: 'Active'
-      };
-      return _currentUserProfile;
-    }
-
-    // 3. Fallback to Supabase Auth if available
-    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-      try {
-        const { data: userData, error: userError } = await supabaseClient.auth.getUser();
-        const user = userData?.user;
-        if (!userError && user) {
-          let profile = null;
-          const { data: staffProfile } = await supabaseClient
-            .from('staff_profiles')
-            .select('*')
-            .eq('auth_id', user.id)
-            .maybeSingle();
-
-          if (staffProfile) {
-            profile = staffProfile;
-          } else {
-            const { data: benProfile } = await supabaseClient
-              .from('beneficiaries')
-              .select('*')
-              .eq('auth_id', user.id)
-              .maybeSingle();
-
-            if (benProfile) {
-              profile = { ...benProfile, role: 'Beneficiary', id: benProfile.qr_code };
-            }
-          }
-
-          if (profile) {
-            _currentUserProfile = profile;
-            return profile;
-          }
-        }
-      } catch (err) {
-        console.warn('[AUTH_GUARD] Supabase user fetch note:', err?.message || err);
-      }
-    }
-
-    return null;
   }
 
   /**
    * Require a valid, active session. Redirects to login if missing/invalid.
+   * Wrapped so a database error never becomes an unhandled exception —
+   * worst case, it fails safe by sending the user to login.
    */
   async function requireAuth() {
-    try {
-      // Check session via SessionManager or backend/local
-      const profile = await fetchUserProfile();
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      redirectToLogin('System error: authentication service unavailable.');
+      return false;
+    }
 
-      if (!profile) {
+    try {
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+      const session = sessionData?.session;
+
+      if (sessionError || !session) {
         redirectToLogin('Please log in to continue.');
         return false;
       }
 
-      if (profile.status === 'Deactivated' || profile.status === 'Inactive' || profile.status === 'Archived') {
-        if (typeof SessionManager !== 'undefined' && SessionManager.clear) {
-          SessionManager.clear();
-        }
+      const profile = await fetchUserProfile();
+      if (!profile) {
+        redirectToLogin('Account profile not found. Please contact support.');
+        return false;
+      }
+
+      if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
+        try { await supabaseClient.auth.signOut(); } catch (e) { /* best effort */ }
         redirectToLogin('Your account has been deactivated. Please contact your administrator.');
         return false;
       }
@@ -201,7 +174,8 @@ const AuthGuard = (() => {
       return true;
 
     } catch (err) {
-      console.error('[AUTH_GUARD] requireAuth error (handled safely):', err?.message || err);
+      // Any unexpected DB/network failure — fail safe, don't crash the page
+      console.error('[AUTH_GUARD] requireAuth failed (handled safely):', err?.message || err);
       redirectToLogin('A system error occurred. Please log in again.');
       return false;
     }
@@ -209,15 +183,14 @@ const AuthGuard = (() => {
 
   /**
    * Require the session's role to be one of allowedRoles. Redirects to the
-   * user's OWN correct dashboard if access is not allowed.
+   * user's OWN correct dashboard (not an error page) if it isn't.
    */
   async function requireRole(allowedRoles) {
     const isAuthenticated = await requireAuth();
     if (!isAuthenticated) return false;
 
-    const userRole = _currentUserProfile?.role || sessionStorage.getItem('userRole') || 'Unknown';
-
-    if (!allowedRoles.includes(userRole)) {
+    if (!_currentUserProfile || !allowedRoles.includes(_currentUserProfile.role)) {
+      const userRole = _currentUserProfile?.role || 'Unknown';
       console.warn(`[AUTH_GUARD] Access denied. Role "${userRole}" not in allowed roles:`, allowedRoles);
 
       const redirectPage = getRoleDashboard(userRole);
@@ -234,6 +207,7 @@ const AuthGuard = (() => {
 
   /**
    * Auto-detect allowed roles for the current page and enforce them.
+   * This is the initialization hook: call it once on page load.
    */
   async function autoGuard() {
     try {
@@ -243,6 +217,8 @@ const AuthGuard = (() => {
       if (allowedRoles) {
         return await requireRole(allowedRoles);
       }
+      // Page not in the map — not a recognized protected page, do nothing
+      // (avoids accidentally locking out public pages like index.html)
       return true;
     } catch (err) {
       console.error('[AUTH_GUARD] autoGuard failed (handled safely):', err?.message || err);
@@ -262,7 +238,7 @@ const AuthGuard = (() => {
   }
 
   function setupAuthStateListener() {
-    if (_authStateListener || typeof supabaseClient === 'undefined' || !supabaseClient) return;
+    if (_authStateListener) return;
     try {
       _authStateListener = supabaseClient.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_OUT') {

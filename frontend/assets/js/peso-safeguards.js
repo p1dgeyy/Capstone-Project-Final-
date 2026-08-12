@@ -340,150 +340,29 @@ if (typeof window.PESOSafeguards === 'undefined') {
     return { conflict: false };
   }
 
-  /**
-   * Double-Validation for Scheduling Management Module
-   * Evaluates past-date restriction, schedule conflict (venue & officer overlap), and role authorization.
-   * @param {Object} activityData - { start_datetime, end_datetime, location, assigned_officer_id, assigned_officer_name, id }
-   * @param {Array} currentList - Current list of activities to cross-check
-   * @returns {Object} { valid: boolean, reason?: string, conflictWith?: Object }
-   */
-  function validateActivitySchedule(activityData, currentList) {
-    if (!activityData) return { valid: false, reason: 'Invalid activity data.' };
-
-    // 1. Role validation check (Admin only)
-    const roleCheck = checkRoleAuthorization('CREATE_SCHEDULED_ACTIVITY');
-    if (!roleCheck.authorized) {
-      return { valid: false, reason: roleCheck.reason };
-    }
-
-    // 2. Past date restriction validation
-    const startStr = activityData.start_datetime || activityData.date || activityData.start;
-    if (startStr) {
-      const dateCheck = checkScheduleDateValidity(startStr);
-      if (!dateCheck.valid) {
-        return { valid: false, reason: `Past Date Restriction: ${dateCheck.reason}` };
-      }
-    } else {
-      return { valid: false, reason: 'Past Date Restriction: Start Date & Time is required.' };
-    }
-
-    // 3. Conflict validation restriction (Venue & Officer Overlap against non-cancelled activities)
-    const start = new Date(startStr).getTime();
-    const end = activityData.end_datetime ? new Date(activityData.end_datetime).getTime() : (start + 3600 * 1000 * 2);
-    
-    if (isNaN(start) || isNaN(end) || end <= start) {
-      return { valid: false, reason: 'Conflict Validation: Activity end time must be after the start time.' };
-    }
-
-    const venue = (activityData.location || activityData.venue || activityData.platform || '').trim().toLowerCase();
-    const officerId = activityData.assigned_officer_id || activityData.officer_id;
-    const officerName = (activityData.assigned_officer_name || activityData.officer_name || activityData.officer || '').trim().toLowerCase();
-    const activityId = activityData.id;
-
-    let list = Array.isArray(currentList) ? currentList : [];
-    if (list.length === 0) {
-      try {
-        const stored = JSON.parse(localStorage.getItem('peso_scheduled_activities_v1') || '[]');
-        list = stored;
-      } catch (e) {}
-    }
-
-    for (const act of list) {
-      // Ignore cancelled or completed activities and ignore self when editing
-      if (act.status === 'Cancelled' || act.status === 'Completed' || (activityId && act.id === activityId)) {
-        continue;
-      }
-
-      const actStart = new Date(act.start_datetime || act.date || act.start).getTime();
-      const actEnd = act.end_datetime ? new Date(act.end_datetime).getTime() : (actStart + 3600 * 1000 * 2);
-
-      // Overlap condition: start < actEnd AND end > actStart
-      const isOverlapping = (start < actEnd) && (end > actStart);
-
-      if (isOverlapping) {
-        const actVenue = (act.location || act.venue || act.platform || '').trim().toLowerCase();
-        const actOfficerId = act.assigned_officer_id || act.officer_id;
-        const actOfficerName = (act.assigned_officer_name || act.officer_name || act.officer || '').trim().toLowerCase();
-
-        // Check Venue / Platform conflict
-        if (venue && actVenue && venue === actVenue && venue !== 'virtual / zoom' && venue !== 'online platform') {
-          return {
-            valid: false,
-            reason: `Conflict Validation Restriction: Venue '${act.location || venue}' is already booked for '${act.title || 'Another Activity'}' (${new Date(actStart).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(actEnd).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}).`,
-            conflictWith: act
-          };
-        }
-
-        // Check Assigned PESO Officer conflict
-        if ((officerId && actOfficerId && officerId === actOfficerId) || (officerName && actOfficerName && officerName === actOfficerName)) {
-          return {
-            valid: false,
-            reason: `Conflict Validation Restriction: Assigned PESO Officer '${act.assigned_officer_name || officerName}' is already scheduled for '${act.title || 'Another Activity'}' during this overlapping timeframe.`,
-            conflictWith: act
-          };
-        }
-      }
-    }
-
-    return { valid: true };
-  }
-
   // ---------------------------------------------------------------------------
-  // 4. Audit Logging & Non-Repudiation Hash-Chaining Engine
+  // 4. Audit Logging & Oversight Engine
   // ---------------------------------------------------------------------------
 
   /**
-   * Compute simple cryptographic hash digest (Fowler-Noll-Vo + SHA-like mixer) for immutable audit log chaining
-   * @param {string} str
-   * @returns {string} hex hash string
-   */
-  function computeHashDigest(str) {
-    let hash1 = 0x811c9dc5;
-    let hash2 = 0x5bd1e995;
-    for (let i = 0; i < str.length; i++) {
-      const code = str.charCodeAt(i);
-      hash1 ^= code;
-      hash1 = (hash1 * 0x01000193) >>> 0;
-      hash2 ^= (code + i);
-      hash2 = (hash2 * 0x5bd1e995) >>> 0;
-    }
-    return ('00000000' + hash1.toString(16)).slice(-8) + ('00000000' + hash2.toString(16)).slice(-8);
-  }
-
-  /**
-   * Log an immutable operational audit record with hash chaining
+   * Log an immutable operational audit record
    * @param {Object} entry 
    */
   function logAudit(entry) {
     const timestamp = new Date().toISOString();
-    const userId = entry.userId || (typeof SessionManager !== 'undefined' && SessionManager.getUserId ? SessionManager.getUserId() : 'ADMIN_01');
+    const userId = entry.userId || (typeof SessionManager !== 'undefined' && SessionManager.getUserId ? SessionManager.getUserId() : 'SYSTEM');
     const userRole = entry.userRole || getNormalizedRole();
     
-    // Retrieve previous hash from last log entry for cryptographic chaining
-    let prevHash = 'GENESIS_HASH_0000000000000000';
-    try {
-      const existingLogs = JSON.parse(localStorage.getItem(LOCAL_AUDIT_KEY) || '[]');
-      if (existingLogs.length > 0 && existingLogs[0].entryHash) {
-        prevHash = existingLogs[0].entryHash;
-      }
-    } catch (e) {}
-
-    const payloadString = `${prevHash}|${timestamp}|${userId}|${userRole}|${entry.actionType || 'ACTION'}|${entry.details || ''}`;
-    const entryHash = computeHashDigest(payloadString);
-
     const auditRecord = {
       id: 'AUDIT_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       timestamp,
       userId,
       userRole,
-      intent: entry.intent || 'Scheduling Management Operation',
+      intent: entry.intent || 'System Operation',
       actionType: entry.actionType || 'GENERIC_ACTION',
-      targetEntity: entry.targetEntity || 'Scheduling & Logistics Record',
+      targetEntity: entry.targetEntity || 'System Record',
       status: entry.status || 'SUCCESS', // 'SUCCESS', 'BLOCKED', 'DRY_RUN'
       details: entry.details || '',
-      prevHash,
-      entryHash,
-      adminCredentials: `${userRole} (${userId})`,
       commandSignature: entry.commandSignature || ''
     };
 
@@ -491,36 +370,22 @@ if (typeof window.PESOSafeguards === 'undefined') {
     try {
       const logs = JSON.parse(localStorage.getItem(LOCAL_AUDIT_KEY) || '[]');
       logs.unshift(auditRecord);
-      if (logs.length > 1000) logs.pop();
+      if (logs.length > 500) logs.pop();
       localStorage.setItem(LOCAL_AUDIT_KEY, JSON.stringify(logs));
     } catch (e) {
       console.warn('[PESOSafeguards] Local audit logging notice:', e.message);
     }
 
-    // 2. Transmit to Backend API / Supabase asynchronously
+    // 2. Transmit to Supabase audit_logs table asynchronously
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       supabaseClient.from('audit_logs').insert({
         user_id: userId,
         action: `${auditRecord.status}:${auditRecord.actionType}`,
         entity_type: auditRecord.targetEntity,
         entity_id: auditRecord.id,
-        details: `[Role: ${userRole}] [Hash: ${entryHash}] ${auditRecord.intent} - ${auditRecord.details}`
+        details: `[Role: ${userRole}] ${auditRecord.intent} - ${auditRecord.details}`
       }).then(({ error }) => {
         if (error) console.warn('[PESOSafeguards] Supabase audit insert fallback:', error.message);
-      });
-    } else if (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL !== undefined) {
-      fetch(API_CONFIG.BASE_URL + '/api/audit-logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          action: `${auditRecord.status}:${auditRecord.actionType}`,
-          entity_type: auditRecord.targetEntity,
-          entity_id: auditRecord.id,
-          details: `[Role: ${userRole}] [Hash: ${entryHash}] ${auditRecord.intent} - ${auditRecord.details}`
-        })
-      }).catch(err => {
-        console.warn('[PESOSafeguards] Backend audit dispatch fallback:', err.message);
       });
     }
 
@@ -550,8 +415,7 @@ if (typeof window.PESOSafeguards === 'undefined') {
           (l.intent || '').toLowerCase().includes(q) ||
           (l.targetEntity || '').toLowerCase().includes(q) ||
           (l.details || '').toLowerCase().includes(q) ||
-          (l.actionType || '').toLowerCase().includes(q) ||
-          (l.entryHash || '').toLowerCase().includes(q)
+          (l.actionType || '').toLowerCase().includes(q)
         );
       }
       return logs;
@@ -858,7 +722,6 @@ if (typeof window.PESOSafeguards === 'undefined') {
     checkOfficerDeactivationEligibility,
     checkScheduleDateValidity,
     checkScheduleConflict,
-    validateActivitySchedule,
     logAudit,
     getAuditLogs,
     renderAuditLogTable,
