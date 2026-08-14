@@ -1638,14 +1638,85 @@
             }
         }
 
-        // In-memory data structures
-        let beneficiariesList = [
-            { id: 'BEN-2026-001', name: 'Maria Santos', barangay: 'Morales', address: 'Purok 4, Morales', contact: '0917-123-4567', email: 'maria.santos@gmail.com', program: 'TUPAD (Emergency Employment)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 32, sex: 'Female' },
-            { id: 'BEN-2026-002', name: 'Juan Dela Cruz', barangay: 'Zone 1', address: 'Purok Sunflower, Zone 1', contact: '0918-222-3344', email: 'juan.delacruz@yahoo.com', program: 'PFAS (Pangkabuhayan Assistance)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 41, sex: 'Male' },
-            { id: 'BEN-2026-003', name: 'Pedro Reyes', barangay: 'Rotonda', address: 'Purok 2, Rotonda', contact: '0919-333-5566', email: 'pedro.reyes@koronadal.ph', program: 'CKGIP (City Internship)', status: 'Inactive', idStatus: 'Pending Review', clearanceStatus: 'Pending Review', age: 23, sex: 'Male' },
-            { id: 'BEN-2026-004', name: 'Ana Lim', barangay: 'Poblacion', address: 'Purok Pag-asa, Poblacion', contact: '0920-444-7788', email: 'ana.lim@gmail.com', program: 'TUPAD (Emergency Employment)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 28, sex: 'Female' },
-            { id: 'BEN-2026-005', name: 'Carlos Garcia', barangay: 'San Isidro', address: 'Purok Centro, San Isidro', contact: '0921-555-8899', email: 'carlos.garcia@outlook.com', program: 'PFAS (Pangkabuhayan Assistance)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 36, sex: 'Male' }
-        ];
+        // In-memory data structures — loaded from Supabase on init
+        let beneficiariesList = [];
+
+        // ---------------------------------------------------------------------
+        // BENEFICIARIES — backed by Supabase (beneficiaries table)
+        // ---------------------------------------------------------------------
+        async function loadBeneficiariesFromSupabase() {
+            try {
+                // Fetch all beneficiaries with their latest program assignment
+                const { data: benRows, error: benError } = await supabaseClient
+                    .from('beneficiaries')
+                    .select(`
+                        qr_code, first_name, middle_name, last_name, suffix,
+                        age, sex, email, phone, address, status,
+                        id_type, id_file_path, terms_agreed, data_consent
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (benError) throw benError;
+
+                // Try to fetch program assignments from applications
+                let programMap = {};
+                try {
+                    const { data: appRows } = await supabaseClient
+                        .from('applications')
+                        .select(`
+                            beneficiary_qr,
+                            programs:program_id ( code, name )
+                        `)
+                        .order('date_applied', { ascending: false });
+
+                    if (appRows) {
+                        // Keep only the first (most recent) application per beneficiary
+                        for (const app of appRows) {
+                            if (app.beneficiary_qr && app.programs && !programMap[app.beneficiary_qr]) {
+                                const p = app.programs;
+                                programMap[app.beneficiary_qr] = `${p.code} (${p.name})`;
+                            }
+                        }
+                    }
+                } catch (progErr) {
+                    console.warn('[OFFICER] Could not load program assignments:', progErr?.message || progErr);
+                }
+
+                beneficiariesList = (benRows || []).map(row => {
+                    const addressParts = (row.address || '').split(',');
+                    const barangayGuess = addressParts.length > 1
+                        ? addressParts[addressParts.length - 1].trim()
+                        : (addressParts[0] || '').trim();
+
+                    return {
+                        id: row.qr_code,
+                        name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+                        barangay: barangayGuess,
+                        address: row.address || '',
+                        contact: row.phone || '',
+                        email: row.email || '',
+                        program: programMap[row.qr_code] || 'Unassigned',
+                        status: row.status || 'Active',
+                        idStatus: row.id_file_path ? 'Verified' : 'Pending Review',
+                        clearanceStatus: (row.terms_agreed && row.data_consent) ? 'Verified' : 'Pending Review',
+                        age: row.age || 0,
+                        sex: row.sex || ''
+                    };
+                });
+
+                console.log(`[OFFICER] Loaded ${beneficiariesList.length} beneficiaries from Supabase.`);
+            } catch (err) {
+                console.error('[OFFICER] Failed to load beneficiaries from Supabase:', err?.message || err);
+                beneficiariesList = [];
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Could not load beneficiaries',
+                        message: 'Failed to load beneficiary records from the database. Please refresh the page.',
+                        type: 'error'
+                    });
+                }
+            }
+        }
 
         // Daily Assigned Interview Schedules Store
         // ---------------------------------------------------------------------
@@ -1910,6 +1981,8 @@
             if (datePicker) datePicker.value = currentScheduleDate;
             updateScheduleDateHeaderDisplay();
 
+            // Beneficiaries now load real data from Supabase (beneficiaries table)
+            await loadBeneficiariesFromSupabase();
             renderBeneficiaryTable();
 
             // Applications, batches, and assistance records now load real data
@@ -2823,7 +2896,7 @@
             alert('Simulation Demo: Email Code verified successfully!');
         }
 
-        function submitBeneficiaryRegistration(event) {
+        async function submitBeneficiaryRegistration(event) {
             event.preventDefault();
 
             const certFile = document.getElementById('benClearanceFile');
@@ -2835,27 +2908,96 @@
             const fn = document.getElementById('benFirstName').value.trim();
             const ln = document.getElementById('benLastName').value.trim();
             const brgy = document.getElementById('benBarangay').value;
+            const purok = document.getElementById('benPurok').value.trim();
+            const phone = document.getElementById('benPhone').value;
+            const email = document.getElementById('benEmail').value;
+            const program = document.getElementById('benProgram').value;
+            const ageVal = parseInt(document.getElementById('benAge')?.value) || 0;
+            const sexVal = document.getElementById('benSex')?.value || null;
 
-            const newId = `BEN-2026-${String(beneficiariesList.length + 1).padStart(3, '0')}`;
-            const newBen = {
-                id: newId,
-                name: `${fn} ${ln}`,
-                barangay: brgy,
-                address: `Purok ${document.getElementById('benPurok').value.trim()}, ${brgy}`,
-                contact: document.getElementById('benPhone').value,
-                email: document.getElementById('benEmail').value,
-                program: document.getElementById('benProgram').value,
-                status: 'Active',
-                idStatus: 'Verified',
-                clearanceStatus: 'Verified'
-            };
+            // Generate a unique QR code for the new beneficiary
+            const qrCode = `QR-BEN-${Date.now().toString(36).toUpperCase()}`;
+            const fullAddress = `Purok ${purok}, ${brgy}`;
 
-            beneficiariesList.unshift(newBen);
-            renderBeneficiaryTable();
-            logOfficerAction('REGISTER_BENEFICIARY', `Registered new beneficiary ${newId} (${fn} ${ln})`);
+            // Attempt to create a Supabase Auth account + beneficiary row
+            // Officer-side registration creates an auth account with a temp password
+            // so the auto-trigger inserts into beneficiaries table.
+            const tempPassword = `PESO_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            const username = `${fn.toLowerCase().replace(/\s+/g, '')}.${ln.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 100)}`;
 
-            bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal')).hide();
-            alert(`Beneficiary ${fn} ${ln} registered successfully with ID ${newId}!`);
+            try {
+                // Step 1: Sign up a new auth user for the beneficiary
+                const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: tempPassword,
+                    options: {
+                        data: {
+                            role: 'beneficiary',
+                            username: username,
+                            first_name: fn,
+                            last_name: ln,
+                            age: ageVal
+                        }
+                    }
+                });
+
+                if (signUpError) throw signUpError;
+
+                const authId = signUpData?.user?.id;
+                if (!authId) throw new Error('Auth signup succeeded but no user ID returned.');
+
+                // Step 2: The DB trigger auto-creates a beneficiaries row.
+                // Update it with the full profile details the officer entered.
+                const { error: updateError } = await supabaseClient
+                    .from('beneficiaries')
+                    .update({
+                        phone: phone,
+                        address: fullAddress,
+                        sex: sexVal,
+                        age: ageVal,
+                        terms_agreed: true,
+                        data_consent: true,
+                        status: 'Active'
+                    })
+                    .eq('auth_id', authId);
+
+                if (updateError) {
+                    console.warn('[OFFICER] Beneficiary profile update warning:', updateError.message);
+                }
+
+                // Reload from Supabase to get the actual DB-generated record
+                await loadBeneficiariesFromSupabase();
+                renderBeneficiaryTable();
+
+                logOfficerAction('REGISTER_BENEFICIARY', `Registered new beneficiary via Supabase (${fn} ${ln}, email: ${email})`);
+                bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal')).hide();
+                alert(`Beneficiary ${fn} ${ln} registered successfully!\nThey can log in with:\nEmail: ${email}\nTemp Password: ${tempPassword}`);
+
+            } catch (err) {
+                console.error('[OFFICER] Supabase registration failed:', err?.message || err);
+
+                // Fallback: add locally so the officer can still work
+                const newBen = {
+                    id: qrCode,
+                    name: `${fn} ${ln}`,
+                    barangay: brgy,
+                    address: fullAddress,
+                    contact: phone,
+                    email: email,
+                    program: program,
+                    status: 'Active',
+                    idStatus: 'Verified',
+                    clearanceStatus: 'Verified',
+                    age: ageVal,
+                    sex: sexVal || ''
+                };
+                beneficiariesList.unshift(newBen);
+                renderBeneficiaryTable();
+
+                logOfficerAction('REGISTER_BENEFICIARY', `Registered beneficiary locally (Supabase failed): ${qrCode} (${fn} ${ln})`);
+                bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal')).hide();
+                alert(`Beneficiary ${fn} ${ln} registered locally.\n\n⚠️ Database sync failed: ${err?.message || 'Unknown error'}\nThe record exists only in this session. Please try again when the connection is restored.`);
+            }
         }
 
         function openBeneficiaryInfoCardModal(id) {
@@ -2902,26 +3044,51 @@
             bootstrap.Modal.getOrCreateInstance(document.getElementById('beneficiaryInfoCardModal')).show();
         }
 
-        function toggleAccountStatus(id) {
+        async function toggleAccountStatus(id) {
             const b = beneficiariesList.find(item => item.id === id);
             if (!b) return;
 
-            b.status = b.status === 'Active' ? 'Inactive' : 'Active';
+            const newStatus = b.status === 'Active' ? 'Inactive' : 'Active';
+            b.status = newStatus;
             renderBeneficiaryTable();
-            logOfficerAction('TOGGLE_STATUS', `Toggled account status for ${b.name} (${id}) to ${b.status}`);
 
+            // Sync status change to Supabase
+            try {
+                const { error } = await supabaseClient
+                    .from('beneficiaries')
+                    .update({ status: newStatus })
+                    .eq('qr_code', id);
+                if (error) console.warn('[OFFICER] Status sync warning:', error.message);
+            } catch (e) {
+                console.warn('[OFFICER] Status sync failed (offline?):', e?.message || e);
+            }
+
+            logOfficerAction('TOGGLE_STATUS', `Toggled account status for ${b.name} (${id}) to ${newStatus}`);
             bootstrap.Modal.getInstance(document.getElementById('beneficiaryInfoCardModal')).hide();
-            alert(`Account status for ${b.name} updated to ${b.status}!`);
+            alert(`Account status for ${b.name} updated to ${newStatus}!`);
         }
 
-        function reviewDocumentStatus(id, docType, newStatus) {
+        async function reviewDocumentStatus(id, docType, newStatus) {
             const b = beneficiariesList.find(item => item.id === id);
             if (!b) return;
 
             b.clearanceStatus = newStatus;
             renderBeneficiaryTable();
-            logOfficerAction('REVIEW_DOCS', `Reviewed ${docType} for ${b.name} (${id}): ${newStatus}`);
 
+            // Sync document review to Supabase
+            // Map clearance status to the terms_agreed / data_consent flags
+            try {
+                const isVerified = newStatus === 'Verified';
+                const { error } = await supabaseClient
+                    .from('beneficiaries')
+                    .update({ terms_agreed: isVerified, data_consent: isVerified })
+                    .eq('qr_code', id);
+                if (error) console.warn('[OFFICER] Document review sync warning:', error.message);
+            } catch (e) {
+                console.warn('[OFFICER] Document review sync failed (offline?):', e?.message || e);
+            }
+
+            logOfficerAction('REVIEW_DOCS', `Reviewed ${docType} for ${b.name} (${id}): ${newStatus}`);
             bootstrap.Modal.getInstance(document.getElementById('beneficiaryInfoCardModal')).hide();
             alert(`Document review status for ${b.name} updated to ${newStatus}!`);
         }
