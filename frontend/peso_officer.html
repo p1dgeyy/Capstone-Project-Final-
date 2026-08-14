@@ -1723,52 +1723,89 @@
         let evaluationList = [];
 
         async function loadEvaluationListFromSupabase() {
-            try {
-                const { data, error } = await supabaseClient
+            // Tries the full query (including the batches join, which needs
+            // database/migrations/20260813_fix_frontend_schema_gaps.sql to have
+            // been run — it adds applications.batch_id and the batches table).
+            // If that specific migration hasn't been applied yet, PostgREST
+            // returns a "relationship not found" error for the batches join —
+            // this degrades gracefully to loading applications WITHOUT batch
+            // info rather than failing the whole evaluation queue.
+            async function fetchApplications(includeBatchJoin) {
+                const selectClause = includeBatchJoin
+                    ? `id, application_number, status, officer_decision, officer_notes, remarks, date_applied, batch_id,
+                       beneficiary_qr, program_id,
+                       beneficiaries:beneficiary_qr ( qr_code, first_name, last_name ),
+                       programs:program_id ( code, name, agency ),
+                       batches:batch_id ( name )`
+                    : `id, application_number, status, officer_decision, officer_notes, remarks, date_applied,
+                       beneficiary_qr, program_id,
+                       beneficiaries:beneficiary_qr ( qr_code, first_name, last_name ),
+                       programs:program_id ( code, name, agency )`;
+
+                return supabaseClient
                     .from('applications')
-                    .select(`
-                        id, application_number, status, officer_decision, officer_notes, remarks, date_applied, batch_id,
-                        beneficiary_qr, program_id,
-                        beneficiaries:beneficiary_qr ( qr_code, first_name, last_name ),
-                        programs:program_id ( code, name, agency ),
-                        batches:batch_id ( name )
-                    `)
+                    .select(selectClause)
                     .order('date_applied', { ascending: false });
+            }
+
+            let data, error, ranWithoutBatches = false;
+            try {
+                ({ data, error } = await fetchApplications(true));
                 if (error) throw error;
-
-                evaluationList = (data || [])
-                    .filter(row => (row.programs && row.programs.agency) === 'PESO')
-                    .map(row => {
-                        const ben = row.beneficiaries || {};
-                        const prog = row.programs || {};
-                        let status = 'Pending';
-                        if (['Approved', 'Officer Approved', 'Completed', 'Released'].includes(row.status)) status = 'Approved';
-                        else if (['Denied', 'Officer Denied', 'Rejected'].includes(row.status)) status = 'Denied';
-
-                        return {
-                            id: row.application_number || `APP-${row.id}`,
-                            dbId: row.id,
-                            qrCodeId: ben.qr_code || '',
-                            beneficiaryName: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Unknown Beneficiary',
-                            program: prog.name || '',
-                            programCode: prog.code || '',
-                            projectType: prog.name || '',
-                            dateSubmitted: row.date_applied,
-                            status: status,
-                            remarks: status === 'Denied' ? (row.officer_notes || row.remarks || '') : '',
-                            missingNotes: row.status === 'Pending Requirements' ? (row.remarks || '') : '',
-                            documents: [],
-                            batchId: row.batch_id ? `BAT-${row.batch_id}` : null,
-                            batchName: row.batches ? row.batches.name : null
-                        };
-                    });
-            } catch (err) {
-                console.error('[OFFICER] Failed to load applications from Supabase:', err?.message || err);
-                evaluationList = [];
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({ title: 'Could not load applications', message: 'Failed to load livelihood applications from the database. Please refresh the page.', type: 'error' });
+            } catch (firstErr) {
+                console.warn('[OFFICER] Applications query with batch join failed, retrying without it (likely means the 2026-08-13 migration hasn\'t been run yet):', firstErr?.message || firstErr);
+                try {
+                    ({ data, error } = await fetchApplications(false));
+                    if (error) throw error;
+                    ranWithoutBatches = true;
+                } catch (secondErr) {
+                    console.error('[OFFICER] Failed to load applications from Supabase even without the batch join:', secondErr?.message || secondErr);
+                    evaluationList = [];
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Could not load applications',
+                            message: 'Failed to load livelihood applications from the database.\n\nThis is usually either a connectivity issue, or the database migration (database/migrations/20260813_fix_frontend_schema_gaps.sql) hasn\'t been run on this Supabase project yet. Check the browser console for the exact error, and confirm the migration has been applied.',
+                            type: 'error'
+                        });
+                    }
+                    return;
                 }
             }
+
+            if (ranWithoutBatches && window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'Batch info unavailable',
+                    message: 'Applications loaded, but batch assignment data could not be loaded — the database migration adding the batches table/applications.batch_id may not have been run yet on this Supabase project. Batch assignment features will not work until that\'s applied.',
+                    type: 'warning'
+                });
+            }
+
+            evaluationList = (data || [])
+                .filter(row => (row.programs && row.programs.agency) === 'PESO')
+                .map(row => {
+                    const ben = row.beneficiaries || {};
+                    const prog = row.programs || {};
+                    let status = 'Pending';
+                    if (['Approved', 'Officer Approved', 'Completed', 'Released'].includes(row.status)) status = 'Approved';
+                    else if (['Denied', 'Officer Denied', 'Rejected'].includes(row.status)) status = 'Denied';
+
+                    return {
+                        id: row.application_number || `APP-${row.id}`,
+                        dbId: row.id,
+                        qrCodeId: ben.qr_code || '',
+                        beneficiaryName: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Unknown Beneficiary',
+                        program: prog.name || '',
+                        programCode: prog.code || '',
+                        projectType: prog.name || '',
+                        dateSubmitted: row.date_applied,
+                        status: status,
+                        remarks: status === 'Denied' ? (row.officer_notes || row.remarks || '') : '',
+                        missingNotes: row.status === 'Pending Requirements' ? (row.remarks || '') : '',
+                        documents: [],
+                        batchId: row.batch_id ? `BAT-${row.batch_id}` : null,
+                        batchName: row.batches ? row.batches.name : null
+                    };
+                });
         }
 
         // Loaded from Supabase on page init (see loadBatchesFromSupabase).

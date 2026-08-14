@@ -305,15 +305,31 @@ document.addEventListener('DOMContentLoaded', () => {
 // behaves when things work correctly.
 // -----------------------------------------------------------------------------
 (function () {
+  function isModalGenuinelyOpen() {
+    // Bootstrap's real "open" signature is the .show class AND an inline
+    // display:block style set by its own JS. Checking both (not just the
+    // class) avoids ever mistaking an unrelated component that happens to
+    // reuse the .show utility class for an actually-open modal.
+    const candidates = document.querySelectorAll('.modal.show');
+    for (const el of candidates) {
+      if (el.style.display === 'block') return true;
+    }
+    return false;
+  }
+
   function cleanupOrphanedModalBackdrops() {
-    const anyModalOpen = !!document.querySelector('.modal.show');
-    if (!anyModalOpen) {
-      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-      if (document.body.classList.contains('modal-open')) {
-        document.body.classList.remove('modal-open');
-        document.body.style.removeProperty('overflow');
-        document.body.style.removeProperty('padding-right');
-      }
+    if (isModalGenuinelyOpen()) return;
+
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    if (backdrops.length > 0) {
+      console.warn(`[AUTH_GUARD] Removed ${backdrops.length} orphaned .modal-backdrop element(s) with no open modal above them.`);
+      backdrops.forEach(el => el.remove());
+    }
+    if (document.body.classList.contains('modal-open')) {
+      console.warn('[AUTH_GUARD] Cleared a stuck modal-open state on <body>.');
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
     }
   }
 
@@ -328,6 +344,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(cleanupOrphanedModalBackdrops, 400);
   }, true);
 
-  // And a periodic safety sweep in case neither of the above catches it.
-  setInterval(cleanupOrphanedModalBackdrops, 3000);
+  // And a fast periodic safety sweep in case neither of the above catches it,
+  // so any stuck state self-heals within ~1.5s instead of persisting.
+  setInterval(cleanupOrphanedModalBackdrops, 1500);
+
+  // Run once immediately too, in case a previous page state (or a stale
+  // cached page load) left a backdrop behind before this script even ran.
+  cleanupOrphanedModalBackdrops();
 })();

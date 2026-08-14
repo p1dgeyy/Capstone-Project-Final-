@@ -24,6 +24,21 @@ Fixed:
 
 Note: `cswdo_admin.html`, `cswdo_officer.html`, and `evaluator.html` don't use real Bootstrap modals (they use a custom `openModal()`/`closeModal()` overlay system instead), so this particular bug class doesn't apply to them — if the darkening still shows up there, it's more likely the alert-overlay issue from section 0, or something page-specific worth sending a screenshot of.
 
+## 0.6. Re-verification pass (peso_admin still darkening + peso_officer real error)
+Went back through with two new screenshots: peso_officer showed a real, working error dialog ("Could not load applications" — that dialog itself was rendering *correctly*, i.e. section 0's fix held), and peso_admin showed the old darkened/stuck symptom again with no visible dialog.
+
+**Verified, not just re-patched:**
+- Confirmed zero remaining `data-bs-toggle="modal"` attributes anywhere in the codebase (searched all 11 HTML files) — the double-trigger bug class from 0.5 cannot recur via that mechanism.
+- Confirmed every `new bootstrap.Modal(...)` in the 4 pages that use real Bootstrap modals was actually converted to the safe `getOrCreateInstance` pattern (checked file-by-file, not just trusted the earlier commit).
+- Confirmed the backdrop watchdog and the overlay height/scroll fix are both present and unmodified in the current `auth-guard.js` / `system-notifications.js`.
+- Traced every button visible in the peso_admin screenshot (New Program, Upload Ordinance, Details, Edit, the Active/Inactive toggle switches) through their actual current handler code — the toggle switches go through `showSystemNotification`'s confirm/cancel path, which was part of the same file fixed in section 0.
+
+**Found and fixed two real remaining issues:**
+1. **`peso_officer.html`'s "Could not load applications" was a genuine bug, not a UI glitch** — `loadEvaluationListFromSupabase()` unconditionally joined the new `batches` table. If `database/migrations/20260813_fix_frontend_schema_gaps.sql` hasn't been run on your Supabase project yet, that join fails and the *entire* evaluation queue refused to load, throwing this error. Fixed: it now tries the full query first, and if that specific join fails, automatically retries without it — so applications still load (just without batch names) instead of the whole page treating it as unrecoverable. It also warns you specifically if this happens, so you know to run the migration.
+2. **The watchdog's "is a modal actually open" check was slightly loose** (matched on CSS class alone). Tightened it to also require Bootstrap's inline `display:block`, which is a more precise signature and rules out any theoretical false-positive from an unrelated component reusing the `.show` class. Also sped up the periodic safety sweep from every 3s to every 1.5s, made it run once immediately on page load (catches a backdrop stuck over from a *previous* broken page state, e.g. before this fix was deployed), and added `console.warn` logging whenever it actually removes something — so if this ever recurs, DevTools console will show exactly when and confirm whether the fix is even running.
+
+**If peso_admin still darkens after this:** the code itself has been traced end-to-end and I can't find a remaining cause in it. The most likely explanation at that point is the browser serving a cached copy of the old JS — please hard-refresh (Ctrl+Shift+R / Cmd+Shift+R) or test in a fresh incognito window, and confirm in the Vercel dashboard that the deployment picked up the latest commit. If it still happens after a confirmed-fresh load, open the browser console (F12) when it happens — the new logging will show whether the watchdog even ran, which pinpoints whether this is a caching issue or a genuinely new bug.
+
 ## 1. Run this first: `database/migrations/20260813_fix_frontend_schema_gaps.sql`
 Purely additive (IF NOT EXISTS / ON CONFLICT everywhere) — safe on your live DB, doesn't touch existing rows. Paste it into the Supabase SQL editor. Adds:
 - `applications.amount_requested` / `amount_approved` — cswdo_admin.html already reads/writes these; they didn't exist, so every admin `select()`/`update()` on applications was failing.
