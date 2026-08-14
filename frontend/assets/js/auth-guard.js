@@ -286,3 +286,48 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('[AUTH_GUARD] Init hook failed (handled safely):', err?.message || err);
   }
 });
+
+// -----------------------------------------------------------------------------
+// MODAL BACKDROP WATCHDOG
+// Fixes the "click a button, the screen dims a bit and becomes completely
+// untouchable" bug. Root cause: some buttons trigger a Bootstrap modal two
+// ways at once (e.g. both a data-bs-toggle/data-bs-target attribute AND an
+// onclick handler that also calls new bootstrap.Modal(...).show()). Bootstrap
+// then gets confused about whether the modal is opening or closing, and can
+// leave a .modal-backdrop element in the DOM with no actual open modal above
+// it — a dark, full-screen, unclosable overlay that blocks every click and
+// persists across tab switches (since this is a single-page-style app, not a
+// tab-per-page reload).
+//
+// This runs on every page that includes auth-guard.js and silently removes
+// any backdrop that shouldn't be there, restoring the page to normal. It's
+// purely a cleanup safety net — it doesn't change how any modal looks or
+// behaves when things work correctly.
+// -----------------------------------------------------------------------------
+(function () {
+  function cleanupOrphanedModalBackdrops() {
+    const anyModalOpen = !!document.querySelector('.modal.show');
+    if (!anyModalOpen) {
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      if (document.body.classList.contains('modal-open')) {
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      }
+    }
+  }
+
+  // Run after every modal fully closes (the normal case — this is nearly
+  // always a no-op, just confirming cleanup happened correctly).
+  document.addEventListener('hidden.bs.modal', cleanupOrphanedModalBackdrops);
+
+  // Also sweep shortly after any click, to catch the specific double-trigger
+  // race condition where a backdrop gets orphaned without a clean
+  // hidden.bs.modal event ever firing.
+  document.addEventListener('click', () => {
+    setTimeout(cleanupOrphanedModalBackdrops, 400);
+  }, true);
+
+  // And a periodic safety sweep in case neither of the above catches it.
+  setInterval(cleanupOrphanedModalBackdrops, 3000);
+})();

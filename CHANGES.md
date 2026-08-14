@@ -12,6 +12,18 @@ Fixed in `assets/js/system-notifications.js`:
 
 This was purely a CSS/JS fix inside one shared file — no visual design changes anywhere else, and no HTML touched.
 
+## 0.5. A SECOND, SEPARATE "darkens and becomes untouchable" bug (modal double-trigger)
+After the fix above, the same symptom was still happening on specific buttons (e.g. "Create New Officer Account", reported "everywhere" across peso_admin.html's tabs). Different root cause, same visible symptom:
+
+The "Create New Officer Account" button had **both** `data-bs-toggle="modal" data-bs-target="#newOfficerModal"` *and* `onclick="openNewOfficerModal()"` (which also opens the same modal). Both fire on one click. Bootstrap's own declarative handler and the onclick handler end up racing to show/toggle the same modal — a well-known Bootstrap footgun that leaves an orphaned `.modal-backdrop` in the DOM with no actual modal above it: a dark, unclickable, unclosable overlay. Because this system keeps everything on one page per role (tabs switch via JS, not full page reloads), that stuck backdrop then covers *every* tab you switch to afterward until a hard refresh — which is exactly why it looked like "everywhere."
+
+Fixed:
+- Removed the redundant `data-bs-toggle`/`data-bs-target` from that button (the `onclick` handler already opens the modal correctly, and also resets the form first).
+- Standardized every `new bootstrap.Modal(el).show()` call across `beneficiary.html`, `beneficiary_register.html`, `peso_admin.html`, and `peso_officer.html` to `bootstrap.Modal.getOrCreateInstance(el).show()` — this is idempotent, so even if something calls it twice it reuses the same instance instead of creating a second, orphan-prone one.
+- Added a small watchdog to `assets/js/auth-guard.js` (shared by all 4 of those pages) that automatically removes any `.modal-backdrop` left in the DOM when no modal is actually open — a self-healing safety net for this entire class of bug, regardless of what specifically triggers it. Runs after every modal close, shortly after any click, and every few seconds as a fallback. It only ever cleans up backdrops that shouldn't be there; it doesn't change how modals look or behave normally.
+
+Note: `cswdo_admin.html`, `cswdo_officer.html`, and `evaluator.html` don't use real Bootstrap modals (they use a custom `openModal()`/`closeModal()` overlay system instead), so this particular bug class doesn't apply to them — if the darkening still shows up there, it's more likely the alert-overlay issue from section 0, or something page-specific worth sending a screenshot of.
+
 ## 1. Run this first: `database/migrations/20260813_fix_frontend_schema_gaps.sql`
 Purely additive (IF NOT EXISTS / ON CONFLICT everywhere) — safe on your live DB, doesn't touch existing rows. Paste it into the Supabase SQL editor. Adds:
 - `applications.amount_requested` / `amount_approved` — cswdo_admin.html already reads/writes these; they didn't exist, so every admin `select()`/`update()` on applications was failing.
