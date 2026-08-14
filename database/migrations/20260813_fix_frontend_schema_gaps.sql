@@ -80,24 +80,40 @@ BEGIN
   END IF;
 END $$;
 
-INSERT INTO programs (code, name, description, agency, status) VALUES
-  ('CKGIP',          'City of Koronadal Government Internship Program (CKGIP)', 'Internship placements within the city government for unemployed youth.', 'PESO', 'Active'),
-  ('KEEP',           'Koronadal Emergency Employment Program (KEEP)', 'Short-term emergency employment for displaced local workers.', 'PESO', 'Active'),
-  ('PFAS',           'Pangkabuhayan Financial Assistance (PFAS)', 'Seed-capital financial assistance for small livelihood ventures.', 'PESO', 'Active'),
-  ('DILP',           'Support to DOLE Integrated Livelihood Program (DILP)', 'City co-implementation of DOLE''s integrated livelihood program.', 'PESO', 'Active'),
-  ('ASSOC-FAC',      'Association Facilitation', 'Assistance forming and registering livelihood associations/cooperatives.', 'PESO', 'Active'),
-  ('JOB-FAIR',       'Conduct of Job Fairs', 'Participation in city-organized job fairs and hiring events.', 'PESO', 'Active'),
-  ('JOB-PORTAL',     'Development of Localized Job Portal', 'Access to the city''s localized online job matching portal.', 'PESO', 'Active'),
-  ('SKILLS-TRAIN',   'Livelihood/Skills Training Program', 'Technical-vocational and livelihood skills training sessions.', 'PESO', 'Active'),
-  ('OFW-FCD',        'OFW Family Circle Day', 'Support services and activities for families of OFWs.', 'PESO', 'Active'),
-  ('PAROKYA',        'Support to Parokya ni OWN A Program', 'City co-implementation with partner community livelihood program.', 'PESO', 'Active'),
-  ('ROFWS',          'Support to Returning OFWs Program (ROFWS)', 'Reintegration assistance for returning overseas Filipino workers.', 'PESO', 'Active'),
-  ('JOB-PLACEMENT',  'Job Placement & Referral', 'Direct job placement and employer referral services.', 'PESO', 'Active'),
-  ('SKILLS-VOUCHER', 'Skills Training Voucher', 'Vouchers covering enrollment fees for accredited skills training.', 'PESO', 'Active'),
-  ('MEDICAL',        'Medical Assistance', 'Financial assistance for hospitalization and medical expenses.', 'CSWDO', 'Active'),
-  ('BURIAL',         'Burial Assistance', 'Financial assistance for burial/funeral expenses.', 'CSWDO', 'Active'),
-  ('FINANCIAL',      'Financial Assistance', 'General financial assistance for individuals/families in crisis.', 'CSWDO', 'Active')
-ON CONFLICT (code) DO NOTHING;
+-- Same reasoning as the funds table below: using WHERE NOT EXISTS (checking
+-- both code and name) instead of ON CONFLICT, since we've now confirmed this
+-- live database has constraints in places that weren't expected — safer not
+-- to assume ON CONFLICT (code) is the only thing that could conflict here.
+DO $$
+DECLARE
+  row_data RECORD;
+BEGIN
+  FOR row_data IN
+    SELECT * FROM (VALUES
+      ('CKGIP',          'City of Koronadal Government Internship Program (CKGIP)', 'Internship placements within the city government for unemployed youth.', 'PESO', 'Active'),
+      ('KEEP',           'Koronadal Emergency Employment Program (KEEP)', 'Short-term emergency employment for displaced local workers.', 'PESO', 'Active'),
+      ('PFAS',           'Pangkabuhayan Financial Assistance (PFAS)', 'Seed-capital financial assistance for small livelihood ventures.', 'PESO', 'Active'),
+      ('DILP',           'Support to DOLE Integrated Livelihood Program (DILP)', 'City co-implementation of DOLE''s integrated livelihood program.', 'PESO', 'Active'),
+      ('ASSOC-FAC',      'Association Facilitation', 'Assistance forming and registering livelihood associations/cooperatives.', 'PESO', 'Active'),
+      ('JOB-FAIR',       'Conduct of Job Fairs', 'Participation in city-organized job fairs and hiring events.', 'PESO', 'Active'),
+      ('JOB-PORTAL',     'Development of Localized Job Portal', 'Access to the city''s localized online job matching portal.', 'PESO', 'Active'),
+      ('SKILLS-TRAIN',   'Livelihood/Skills Training Program', 'Technical-vocational and livelihood skills training sessions.', 'PESO', 'Active'),
+      ('OFW-FCD',        'OFW Family Circle Day', 'Support services and activities for families of OFWs.', 'PESO', 'Active'),
+      ('PAROKYA',        'Support to Parokya ni OWN A Program', 'City co-implementation with partner community livelihood program.', 'PESO', 'Active'),
+      ('ROFWS',          'Support to Returning OFWs Program (ROFWS)', 'Reintegration assistance for returning overseas Filipino workers.', 'PESO', 'Active'),
+      ('JOB-PLACEMENT',  'Job Placement & Referral', 'Direct job placement and employer referral services.', 'PESO', 'Active'),
+      ('SKILLS-VOUCHER', 'Skills Training Voucher', 'Vouchers covering enrollment fees for accredited skills training.', 'PESO', 'Active'),
+      ('MEDICAL',        'Medical Assistance', 'Financial assistance for hospitalization and medical expenses.', 'CSWDO', 'Active'),
+      ('BURIAL',         'Burial Assistance', 'Financial assistance for burial/funeral expenses.', 'CSWDO', 'Active'),
+      ('FINANCIAL',      'Financial Assistance', 'General financial assistance for individuals/families in crisis.', 'CSWDO', 'Active')
+    ) AS t(code, name, description, agency, status)
+  LOOP
+    IF NOT EXISTS (SELECT 1 FROM programs WHERE code = row_data.code OR name = row_data.name) THEN
+      INSERT INTO programs (code, name, description, agency, status)
+      VALUES (row_data.code, row_data.name, row_data.description, row_data.agency, row_data.status);
+    END IF;
+  END LOOP;
+END $$;
 
 -- 4. Widen the applications.status CHECK constraint to include the values
 --    the admin dashboard actually sets ('Denied', 'Released'), alongside the
@@ -157,11 +173,24 @@ CREATE POLICY "Staff can update funds"
     EXISTS (SELECT 1 FROM staff_profiles WHERE auth_id = auth.uid())
   );
 
-INSERT INTO funds (program, program_code, allocated_budget, released_amount) VALUES
-  ('Medical Assistance', 'MEDICAL', 500000.00, 0),
-  ('Financial Assistance', 'FINANCIAL', 500000.00, 0),
-  ('Burial Assistance', 'BURIAL', 300000.00, 0)
-ON CONFLICT (program_code) DO NOTHING;
+-- Using INSERT ... WHERE NOT EXISTS instead of ON CONFLICT here: the live
+-- funds table turned out to already have its own separate UNIQUE constraint
+-- on the `program` column (from whatever created it originally), which
+-- ON CONFLICT (program_code) doesn't protect against — a conflict on a
+-- *different* constraint than the one named still errors instead of being
+-- skipped. This checks both program_code and program name explicitly, so
+-- it's safe regardless of which columns end up being unique on this table.
+INSERT INTO funds (program, program_code, allocated_budget, released_amount)
+SELECT 'Medical Assistance', 'MEDICAL', 500000.00, 0
+WHERE NOT EXISTS (SELECT 1 FROM funds WHERE program_code = 'MEDICAL' OR program = 'Medical Assistance');
+
+INSERT INTO funds (program, program_code, allocated_budget, released_amount)
+SELECT 'Financial Assistance', 'FINANCIAL', 500000.00, 0
+WHERE NOT EXISTS (SELECT 1 FROM funds WHERE program_code = 'FINANCIAL' OR program = 'Financial Assistance');
+
+INSERT INTO funds (program, program_code, allocated_budget, released_amount)
+SELECT 'Burial Assistance', 'BURIAL', 300000.00, 0
+WHERE NOT EXISTS (SELECT 1 FROM funds WHERE program_code = 'BURIAL' OR program = 'Burial Assistance');
 
 -- 6. batches table — powers peso_officer.html's "Create Batch" / "Assign to
 --    Batch" workflow (grouping approved livelihood applications for
