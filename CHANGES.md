@@ -1,5 +1,17 @@
 # Fix pass — 2026-08-13/14
 
+## 0. SYSTEM-WIDE BUG: "clicking any button darkens the screen and it becomes untouchable"
+Root cause: `assets/js/system-notifications.js` globally overrides `window.alert()` (used **everywhere** — hundreds of call sites across every page, including most of the messages this fix pass itself added) to show a custom full-screen dark overlay instead of the native browser alert.
+
+The overlay's card had no height limit. On a long message + a normal-height browser window, the card centered itself taller than the viewport — so its own OK/Cancel buttons rendered **above or below the visible screen**. You'd see the dark backdrop (the "darkens a bit") with nothing clickable anywhere on it (the "untouchable"), because the only interactive element was off-screen.
+
+Fixed in `assets/js/system-notifications.js`:
+- The dialog card now has `max-height: calc(100vh - 2.5rem)` with internal scrolling on the message body, so the header and OK/Cancel buttons are **always** on-screen and reachable regardless of message length.
+- Any existing overlay is removed before a new one is shown, so rapid/duplicate alert calls can't stack into a compounding, unrecoverable dark screen.
+- Added Escape-key and click-outside-the-card dismissal as a safety net.
+
+This was purely a CSS/JS fix inside one shared file — no visual design changes anywhere else, and no HTML touched.
+
 ## 1. Run this first: `database/migrations/20260813_fix_frontend_schema_gaps.sql`
 Purely additive (IF NOT EXISTS / ON CONFLICT everywhere) — safe on your live DB, doesn't touch existing rows. Paste it into the Supabase SQL editor. Adds:
 - `applications.amount_requested` / `amount_approved` — cswdo_admin.html already reads/writes these; they didn't exist, so every admin `select()`/`update()` on applications was failing.

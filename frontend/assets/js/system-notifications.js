@@ -36,6 +36,9 @@
         border-radius: 16px;
         width: 100%;
         max-width: 480px;
+        max-height: calc(100vh - 2.5rem);
+        display: flex;
+        flex-direction: column;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0,0,0,0.05);
         overflow: hidden;
         transform: scale(0.95);
@@ -50,6 +53,7 @@
         display: flex;
         align-items: flex-start;
         gap: 1rem;
+        flex-shrink: 0;
       }
       .sn-icon-wrapper {
         width: 48px;
@@ -97,6 +101,9 @@
         color: #334155;
         line-height: 1.5;
         word-break: break-word;
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
       }
       .sn-actions {
         padding: 1rem 1.5rem;
@@ -105,6 +112,7 @@
         display: flex;
         justify-content: flex-end;
         gap: 0.75rem;
+        flex-shrink: 0;
       }
       .sn-btn {
         padding: 0.625rem 1.25rem;
@@ -192,6 +200,13 @@
       onRetry
     } = options;
 
+    // Guard against overlapping overlays: if something else already called
+    // showSystemNotification and its overlay is still around (e.g. two alerts
+    // fired back-to-back), remove it first instead of stacking a second
+    // semi-transparent layer on top, which was compounding into an
+    // unrecoverable "darkened and stuck" screen.
+    document.querySelectorAll('.sn-overlay').forEach(el => el.parentNode && el.parentNode.removeChild(el));
+
     const overlay = document.createElement('div');
     overlay.className = 'sn-overlay';
 
@@ -231,7 +246,27 @@
       if (overlay.parentNode) {
         overlay.parentNode.removeChild(overlay);
       }
+      document.removeEventListener('keydown', onKeydown);
     }
+
+    function onKeydown(e) {
+      if (e.key === 'Escape') {
+        close();
+        if (onCancel) onCancel();
+      }
+    }
+    document.addEventListener('keydown', onKeydown);
+
+    // Clicking the dark backdrop itself (not the card) dismisses the dialog,
+    // same as clicking Cancel — a safety net in case the card ever renders
+    // somewhere the person can't see or reach (e.g. an unusually long message
+    // on a short viewport).
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) {
+        close();
+        if (onCancel) onCancel();
+      }
+    });
 
     confirmBtn.addEventListener('click', function () {
       close();
