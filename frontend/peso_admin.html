@@ -804,16 +804,20 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="badge bg-warning text-dark px-2.5 py-1 font-monospace fw-bold">SCHEDULING & LOGISTICS CONTROL</span>
-                            <span class="badge bg-info text-white px-2 py-1"><i class="bi bi-shield-check me-1"></i>PESO Admin Authorized</span>
+                            <span class="badge bg-warning text-dark px-2.5 py-1 font-monospace fw-bold">UNIFIED SCHEDULING & LOGISTICS CONTROL</span>
+                            <span class="badge bg-info text-white px-2 py-1"><i class="bi bi-shield-check me-1"></i>PESO Admin Control</span>
                         </div>
-                        <h4 class="fw-bold mb-1"><i class="bi bi-calendar2-range-fill me-2"></i>PESO Scheduling Management Module</h4>
-                        <p class="text-white-50 mb-0 small">Monthly activity calendar, logistical venue assignments, conflict-free scheduling, and daily officer schedule publication.</p>
+                        <h4 class="fw-bold mb-1"><i class="bi bi-calendar2-range-fill me-2"></i>PESO Program Scheduling & Slot Management</h4>
+                        <p class="text-white-50 mb-0 small">Admin creates program schedule slots with livelihood linkage & officer assignment. Officers manage operational details (batch/individual assignment, attendance, and interview status).</p>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-light fw-bold text-primary shadow-sm px-3" onclick="openCreateActivityModal()">
-                            <i class="bi bi-plus-circle-fill me-1"></i> + Schedule New Activity
+                        <button class="btn btn-light fw-bold text-primary shadow-sm px-3" onclick="openCreateScheduleSlotModal()">
+                            <i class="bi bi-plus-circle-fill me-1"></i> + Create Schedule Slot
                         </button>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-light active" id="adminBtnViewCalendar" onclick="setAdminScheduleViewMode('calendar')"><i class="bi bi-calendar3 me-1"></i> Calendar</button>
+                            <button type="button" class="btn btn-outline-light" id="adminBtnViewList" onclick="setAdminScheduleViewMode('list')"><i class="bi bi-list-ul me-1"></i> Slots List</button>
+                        </div>
                         <button class="btn btn-outline-light fw-semibold px-3" onclick="jumpToCalendarToday()">
                             <i class="bi bi-calendar-day me-1"></i> Today
                         </button>
@@ -822,11 +826,12 @@
                         </button>
                         <div class="dropdown">
                             <button class="btn btn-warning fw-semibold dropdown-toggle text-dark shadow-sm" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-file-earmark-arrow-down-fill me-1"></i> Export Schedule
+                                <i class="bi bi-file-earmark-arrow-down-fill me-1"></i> Export Reports
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                                <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="exportSchedulingCSV()"><i class="bi bi-filetype-csv text-success me-2 fs-5"></i>Export Full Schedule CSV</a></li>
-                                <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="exportSchedulingPDF()"><i class="bi bi-file-earmark-pdf text-danger me-2 fs-5"></i>Printable Compliance PDF Report</a></li>
+                                <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="exportCombinedLguReport()"><i class="bi bi-file-earmark-spreadsheet-fill text-primary me-2 fs-5"></i><strong>Combined LGU Report Export (Admin + Officer)</strong></a></li>
+                                <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="exportSchedulingCSV()"><i class="bi bi-filetype-csv text-success me-2 fs-5"></i>Export Slots CSV Roster</a></li>
+                                <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="exportSchedulingPDF()"><i class="bi bi-file-earmark-pdf text-danger me-2 fs-5"></i>Printable LGU Compliance Report</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="exportArchiveCSV()"><i class="bi bi-archive text-warning me-2 fs-5"></i>Export Archive Box CSV</a></li>
                             </ul>
@@ -835,18 +840,18 @@
                 </div>
             </div>
 
-            <!-- Key Scheduling Metrics Summary Row -->
+            <!-- Key Scheduling Metrics Summary Row (Total, Active, Locked, Completed, Cancelled) -->
             <div class="row g-3 mb-4">
                 <div class="col-12 col-sm-6 col-xl">
                     <div class="stat-card blue">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="stat-value" id="schedStatTotal">0</div>
-                                <div class="stat-label">Total Activities</div>
+                                <div class="stat-label">Total Program Slots</div>
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-calendar-event"></i></div>
                         </div>
-                        <div class="mt-2 text-muted small"><span class="text-primary fw-semibold">Published in Portal</span></div>
+                        <div class="mt-2 text-muted small"><span class="text-primary fw-semibold">All Created Slots</span></div>
                     </div>
                 </div>
 
@@ -854,38 +859,38 @@
                     <div class="stat-card green">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value text-success" id="schedStatOngoing">0</div>
-                                <div class="stat-label">Ongoing / Today</div>
+                                <div class="stat-value text-success" id="schedStatActive">0</div>
+                                <div class="stat-label">Active Slots</div>
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-broadcast"></i></div>
                         </div>
-                        <div class="mt-2 text-muted small"><span class="badge bg-success-subtle text-success fw-semibold">🟢 Active Today</span></div>
+                        <div class="mt-2 text-muted small"><span class="badge bg-success-subtle text-success fw-semibold">🟢 Active for Officer Ops</span></div>
                     </div>
                 </div>
 
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="stat-card blue">
+                    <div class="stat-card blue" style="border-left: 4px solid #4F46E5;">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value text-info" id="schedStatUpcoming">0</div>
-                                <div class="stat-label">Upcoming Scheduled</div>
+                                <div class="stat-value text-dark" id="schedStatLocked">0</div>
+                                <div class="stat-label">Locked Slots</div>
                             </div>
-                            <div class="icon-wrapper"><i class="bi bi-clock-history"></i></div>
+                            <div class="icon-wrapper bg-dark text-white"><i class="bi bi-lock-fill"></i></div>
                         </div>
-                        <div class="mt-2 text-muted small"><span class="badge bg-info-subtle text-primary fw-semibold">🔵 Future Bookings</span></div>
+                        <div class="mt-2 text-muted small"><span class="badge bg-dark-subtle text-dark fw-semibold"><i class="bi bi-shield-lock me-1"></i>Reassignment Prevented</span></div>
                     </div>
                 </div>
 
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="stat-card orange">
+                    <div class="stat-card teal" style="border-left: 4px solid #10B981;">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value text-warning" id="schedStatPostponed">0</div>
-                                <div class="stat-label">Postponed</div>
+                                <div class="stat-value text-teal" id="schedStatCompleted">0</div>
+                                <div class="stat-label">Completed Slots</div>
                             </div>
-                            <div class="icon-wrapper"><i class="bi bi-pause-circle"></i></div>
+                            <div class="icon-wrapper bg-success-subtle text-success"><i class="bi bi-check2-all"></i></div>
                         </div>
-                        <div class="mt-2 text-muted small"><span class="badge bg-warning-subtle text-dark fw-semibold">🟡 Pending Re-slot</span></div>
+                        <div class="mt-2 text-muted small"><span class="badge bg-success-subtle text-success fw-semibold">⚫ Finalized LGU Operations</span></div>
                     </div>
                 </div>
 
@@ -894,11 +899,11 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="stat-value text-danger" id="schedStatCancelled">0</div>
-                                <div class="stat-label">Cancelled Activities</div>
+                                <div class="stat-label">Cancelled Slots</div>
                             </div>
-                            <div class="icon-wrapper"><i class="bi bi-x-octagon"></i></div>
+                            <div class="icon-wrapper bg-danger-subtle text-danger"><i class="bi bi-x-octagon"></i></div>
                         </div>
-                        <div class="mt-2 text-muted small"><span class="badge bg-danger-subtle text-danger fw-semibold">🔴 Kept for Records</span></div>
+                        <div class="mt-2 text-muted small"><span class="badge bg-danger-subtle text-danger fw-semibold">🔴 Retained with Red Label</span></div>
                     </div>
                 </div>
             </div>
@@ -910,22 +915,16 @@
                         <div class="col-12 col-md-3">
                             <div class="input-group">
                                 <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                                <input type="text" class="form-control" id="schedSearchInput" placeholder="Search Title, Topic, Venue, Batch..." oninput="filterSchedulingData()">
+                                <input type="text" class="form-control" id="schedSearchInput" placeholder="Search Program, Slot ID, Officer, Venue, Batch..." oninput="filterSchedulingData()">
                             </div>
                         </div>
                         <div class="col-6 col-md-2">
-                            <select class="form-select" id="schedCategoryFilter" onchange="filterSchedulingData()">
-                                <option value="ALL">All Categories</option>
-                                <option value="Training Session">Training Session</option>
-                                <option value="Interview">Interview</option>
-                                <option value="Assistance Distribution">Assistance Distribution</option>
-                                <option value="Certificate Distribution">Certificate Distribution</option>
-                            </select>
-                        </div>
-                        <div class="col-6 col-md-2">
                             <select class="form-select" id="schedProgramFilter" onchange="filterSchedulingData()">
-                                <option value="ALL">All Programs</option>
-                                <!-- Populated dynamically -->
+                                <option value="ALL">All Program Types</option>
+                                <option value="TUPAD">TUPAD (Emergency Employment)</option>
+                                <option value="SPES">SPES (Student Employment)</option>
+                                <option value="PFAS">PFAS (Pangkabuhayan Special)</option>
+                                <option value="CKGIP">CKGIP (Internship Program)</option>
                             </select>
                         </div>
                         <div class="col-6 col-md-2">
@@ -934,19 +933,26 @@
                                 <!-- Populated dynamically -->
                             </select>
                         </div>
-                        <div class="col-6 col-md-1.5">
+                        <div class="col-6 col-md-2">
                             <select class="form-select" id="schedStatusFilter" onchange="filterSchedulingData()">
-                                <option value="ALL">All Statuses</option>
-                                <option value="Ongoing">🟢 Ongoing / Today</option>
-                                <option value="Scheduled">🔵 Scheduled</option>
-                                <option value="Postponed">🟡 Postponed</option>
-                                <option value="Cancelled">🔴 Cancelled</option>
-                                <option value="Completed">⚫ Completed</option>
+                                <option value="ALL">All Lifecycle Statuses</option>
+                                <option value="Active">🟢 Active Slots</option>
+                                <option value="Locked">🔒 Locked Slots</option>
+                                <option value="Completed">⚫ Completed Slots</option>
+                                <option value="Cancelled">🔴 Cancelled Slots</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-1.5">
+                            <select class="form-select form-select-sm" id="schedVenueFilter" onchange="filterSchedulingData()">
+                                <option value="ALL">All Venues</option>
+                                <option value="PESO Main Office">PESO Main Office</option>
+                                <option value="Barangay Morales">Barangay Morales Gym</option>
+                                <option value="Barangay San Isidro">Barangay San Isidro Hall</option>
+                                <option value="City Hall">City Hall Audio-Visual</option>
                             </select>
                         </div>
                         <div class="col-12 col-md-1.5 d-flex gap-1 justify-content-end align-items-center">
                             <input type="date" class="form-control form-control-sm" id="schedDateRangeStart" title="Filter From Date" onchange="filterSchedulingData()" style="max-width: 120px;">
-                            <input type="date" class="form-control form-control-sm" id="schedDateRangeEnd" title="Filter To Date" onchange="filterSchedulingData()" style="max-width: 120px;">
                             <button class="btn btn-outline-secondary btn-sm" onclick="resetSchedulingFilters()" title="Reset All Filters"><i class="bi bi-arrow-counterclockwise"></i></button>
                         </div>
                     </div>
@@ -2475,13 +2481,8 @@
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Changes & Audit Log</button>
                     </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 1: CREATE NEW SCHEDULED ACTIVITY                   -->
+          <!-- =================================================================== -->
+    <!-- SCHEDULING MODAL 1: CREATE PROGRAM SCHEDULE SLOT (ADMIN)            -->
     <!-- =================================================================== -->
     <div class="modal fade" id="createActivityModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -2490,14 +2491,14 @@
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-calendar-plus-fill text-warning fs-4"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0">Create New Scheduled Activity</h5>
-                            <span class="badge bg-white text-primary fw-semibold mt-1"><i class="bi bi-shield-check me-1"></i>PESO Administrator Scheduling Desk</span>
+                            <h5 class="modal-title fw-bold mb-0">Create Program Schedule Slot</h5>
+                            <span class="badge bg-white text-primary fw-semibold mt-1"><i class="bi bi-shield-check me-1"></i>PESO Administrator Program Linkage Desk</span>
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                <form id="createActivityForm" onsubmit="handleCreateActivitySubmit(event)">
+                <form id="createActivityForm" onsubmit="handleCreateScheduleSlotSubmit(event)">
                     <div class="modal-body p-4">
                         <!-- Real-time Safeguard Validation Alert Box -->
                         <div id="createActivitySafeguardAlert" class="alert alert-warning py-2 mb-3 d-none align-items-center gap-2 small">
@@ -2506,57 +2507,31 @@
                         </div>
 
                         <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Activity Subject Title <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control fw-bold" id="actTitle" placeholder="e.g. CKGIP Orientation & Ethics Briefing" required>
-                            </div>
-
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Activity Category <span class="text-danger">*</span></label>
-                                <select class="form-select" id="actCategory" onchange="handleCategoryChange()" required>
-                                    <option value="Training Session" selected>Training Session</option>
-                                    <option value="Interview">Interview</option>
-                                    <option value="Assistance Distribution">Assistance Distribution</option>
-                                    <option value="Certificate Distribution">Certificate Distribution</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Target Program <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Target Program Type <span class="text-danger">*</span></label>
                                 <select class="form-select" id="actProgram" onchange="handleProgramSelectionChange()" required>
-                                    <!-- Populated dynamically -->
+                                    <option value="TUPAD" data-code="TUPAD" selected>TUPAD (Emergency Employment Assistance)</option>
+                                    <option value="SPES" data-code="SPES">SPES (Special Program for Employment of Students)</option>
+                                    <option value="PFAS" data-code="PFAS">PFAS (Pangkabuhayan Assistance Special Project)</option>
+                                    <option value="CKGIP" data-code="CKGIP">CKGIP (City of Koronadal Graduate Internship)</option>
                                 </select>
                             </div>
 
-                            <div class="col-md-5">
-                                <label class="form-label fw-semibold">Release Start Date & Time <span class="text-danger">*</span></label>
-                                <input type="datetime-local" class="form-control" id="actStartDateTime" onchange="handleScheduleDateTimeChange()" required>
-                                <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-shield-lock me-1"></i>Past date restriction enforced</small>
-                            </div>
-
-                            <div class="col-md-5">
-                                <label class="form-label fw-semibold">Release End Date & Time <span class="text-danger">*</span></label>
-                                <input type="datetime-local" class="form-control" id="actEndDateTime" onchange="handleScheduleDateTimeChange()" required>
-                            </div>
-
-                            <div class="col-md-2">
-                                <label class="form-label fw-semibold">Duration</label>
-                                <input type="text" class="form-control bg-light font-monospace" id="actDuration" placeholder="3 Hours" readonly>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Program Sub-Category / Project Name</label>
+                                <input type="text" class="form-control" id="actSubCategory" placeholder="e.g. Community Beautification & Drainage Cleanup">
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Location or Platform <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="actLocation" list="commonVenuesList" placeholder="e.g. City Hall Audio-Visual Room" required>
-                                <datalist id="commonVenuesList">
-                                    <option value="City Hall Audio-Visual Room, Koronadal City">
-                                    <option value="PESO Training Center, City Hall Complex">
-                                    <option value="Barangay Zone IV Multi-Purpose Gym">
-                                    <option value="City Cultural & Activity Center">
-                                    <option value="Sangguniang Panlungsod Session Hall">
-                                    <option value="PESO Youth Center Room 204">
-                                    <option value="Barangay San Isidro Hall">
-                                    <option value="Virtual / Zoom Video Conference">
-                                </datalist>
+                                <label class="form-label fw-semibold">Barangay Cluster (Optional Metadata)</label>
+                                <select class="form-select" id="actBarangayCluster">
+                                    <option value="">-- Select Barangay Cluster --</option>
+                                    <option value="Cluster 1 - Poblacion Proper (Zones I, II, III, IV)">Cluster 1 - Poblacion Proper (Zones I, II, III, IV)</option>
+                                    <option value="Cluster 2 - East Poblacion & Morales">Cluster 2 - East Poblacion & Morales</option>
+                                    <option value="Cluster 3 - West Urban / General Paulino Santos">Cluster 3 - West Urban / General Paulino Santos</option>
+                                    <option value="Cluster 4 - North Corridor (San Isidro, Concepcion)">Cluster 4 - North Corridor (San Isidro, Concepcion)</option>
+                                    <option value="Cluster 5 - South Corridor (Saravia, Carpenter Hill)">Cluster 5 - South Corridor (Saravia, Carpenter Hill)</option>
+                                </select>
                             </div>
 
                             <div class="col-md-6">
@@ -2566,32 +2541,46 @@
                                 </select>
                             </div>
 
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Target Beneficiaries <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="actTargetBeneficiaries" placeholder="e.g. Youth Interns, Displaced Workers, Approved PFAS Batch 1" required>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Schedule Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="actSlotDate" min="2026-08-01" required>
+                                <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-shield-lock me-1"></i>Past date restriction enforced</small>
                             </div>
 
-                            <!-- DYNAMIC CATEGORY-SPECIFIC FIELDS CONTAINER -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Time Slot Window <span class="text-danger">*</span></label>
+                                <select class="form-select" id="actTimeSlot" required>
+                                    <option value="08:00 AM - 09:00 AM">08:00 AM - 09:00 AM</option>
+                                    <option value="09:00 AM - 10:00 AM" selected>09:00 AM - 10:00 AM</option>
+                                    <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
+                                    <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
+                                    <option value="01:00 PM - 02:00 PM">01:00 PM - 02:00 PM</option>
+                                    <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM</option>
+                                    <option value="03:00 PM - 04:00 PM">03:00 PM - 04:00 PM</option>
+                                    <option value="04:00 PM - 05:00 PM">04:00 PM - 05:00 PM</option>
+                                    <option value="08:00 AM - 12:00 PM (Batch Block)">08:00 AM - 12:00 PM (Batch Block)</option>
+                                    <option value="01:00 PM - 05:00 PM (Batch Block)">01:00 PM - 05:00 PM (Batch Block)</option>
+                                </select>
+                            </div>
+
                             <div class="col-12">
-                                <div class="card border-primary-subtle bg-light p-3 rounded-3" id="categorySpecificFieldsContainer">
-                                    <h6 class="fw-bold text-primary mb-2" id="categoryFieldsHeader"><i class="bi bi-gear-wide-connected me-1.5"></i>Category-Specific Parameters: Training Session</h6>
-                                    
-                                    <!-- Dynamic Fields Form Content (Swapped via handleCategoryChange) -->
-                                    <div class="row g-3 small" id="dynamicCategoryInputs">
-                                        <div class="col-md-6">
-                                            <label class="form-label fw-semibold">Training Topic / Curriculum <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control form-control-sm" id="actTrainingTopic" placeholder="e.g. Public Service Standards & Office Protocols">
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label fw-semibold">Batch Number / Name <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control form-control-sm" id="actTrainingBatch" placeholder="e.g. Batch 2026-A">
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label fw-semibold">Designated Trainer <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control form-control-sm" id="actTrainerName" placeholder="e.g. Dr. Elena Torralba">
-                                        </div>
-                                    </div>
-                                </div>
+                                <label class="form-label fw-semibold">Designated Venue / Location <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="actLocation" list="commonVenuesList" placeholder="e.g. PESO Main Office - Room A" required>
+                                <datalist id="commonVenuesList">
+                                    <option value="PESO Main Office - Room A, Koronadal City Hall">
+                                    <option value="PESO Main Office - Hall B, City Hall Complex">
+                                    <option value="PESO Training Center, City Hall Complex">
+                                    <option value="Barangay Morales Multi-Purpose Gymnasium">
+                                    <option value="Barangay Zone IV Multi-Purpose Gym">
+                                    <option value="Barangay San Isidro Hall">
+                                    <option value="City Cultural & Activity Center">
+                                    <option value="Sangguniang Panlungsod Session Hall">
+                                </datalist>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Admin Remarks / Instructions for Assigned Officer</label>
+                                <textarea class="form-control" id="actRemarks" rows="2" placeholder="Optional notes (e.g. Target 25 displaced workers; ensure valid IDs & medical clearance)..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -2599,7 +2588,7 @@
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm" id="scheduleActivitySubmitBtn">
-                            <i class="bi bi-calendar-check-fill me-1.5"></i> Schedule Activity & Publish
+                            <i class="bi bi-calendar-check-fill me-1.5"></i> Create Slot & Dispatch to Officer
                         </button>
                     </div>
                 </form>
@@ -2608,7 +2597,7 @@
     </div>
 
     <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 2: STRICTLY READ-ONLY ACTIVITY DETAILS POP-UP      -->
+    <!-- SCHEDULING MODAL 2: STRICTLY READ-ONLY SLOT DETAILS POP-UP          -->
     <!-- =================================================================== -->
     <div class="modal fade" id="viewActivityDetailsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -2617,7 +2606,7 @@
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-info-circle-fill text-info fs-4"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="viewActModalTitle">Activity Full Details</h5>
+                            <h5 class="modal-title fw-bold mb-0" id="viewActModalTitle">Program Slot Full Details</h5>
                             <span class="badge badge-readonly mt-1"><i class="bi bi-shield-lock-fill me-1"></i>Strictly View-Only Details Reference</span>
                         </div>
                     </div>
@@ -2627,21 +2616,23 @@
                 <div class="modal-body p-4">
                     <!-- Status & Notice Header -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-3 border-bottom gap-2">
-                        <div>
-                            <span class="badge bg-primary-subtle text-primary font-monospace fs-6" id="viewActCategoryBadge">Training Session</span>
-                            <span class="badge bg-dark-subtle text-dark font-monospace fs-6 ms-1" id="viewActProgramBadge">CKGIP</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary font-monospace fs-6" id="viewActProgramBadge">TUPAD</span>
+                            <span class="badge bg-secondary-subtle text-dark font-monospace fs-6" id="viewActSlotIdBadge">SLOT-001</span>
+                            <span class="badge bg-dark text-white" id="viewActLockBadge"><i class="bi bi-lock me-1"></i>Unlocked</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="small text-muted">Activity Status:</span>
-                            <span class="legend-badge" id="viewActStatusBadge">🔵 Scheduled</span>
+                            <span class="small text-muted">Lifecycle Status:</span>
+                            <span class="badge bg-success text-white px-3 py-1.5 fs-6" id="viewActStatusBadge">🟢 Active</span>
                         </div>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-12">
                             <div class="card border-0 bg-light p-3">
-                                <span class="text-muted small uppercase fw-bold">Activity Subject Title</span>
+                                <span class="text-muted small uppercase fw-bold">Program Name & Sub-Category</span>
                                 <h5 class="fw-bold text-dark mb-0 mt-1" id="viewActTitle">-</h5>
+                                <div class="text-primary small fw-semibold mt-1" id="viewActSubCategory">-</div>
                             </div>
                         </div>
 
@@ -2649,7 +2640,7 @@
                             <div class="card border-0 bg-light p-3">
                                 <span class="text-muted small uppercase fw-bold"><i class="bi bi-clock me-1 text-primary"></i>Scheduled Date & Time</span>
                                 <div class="fw-bold text-dark fs-6 mt-1" id="viewActDateTime">-</div>
-                                <small class="text-muted" id="viewActDuration">Duration: 3 Hours</small>
+                                <small class="text-muted" id="viewActDuration">-</small>
                             </div>
                         </div>
 
@@ -2657,13 +2648,7 @@
                             <div class="card border-0 bg-light p-3">
                                 <span class="text-muted small uppercase fw-bold"><i class="bi bi-geo-alt-fill me-1 text-danger"></i>Location / Venue</span>
                                 <div class="fw-bold text-dark fs-6 mt-1" id="viewActLocation">-</div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light p-3">
-                                <span class="text-muted small uppercase fw-bold"><i class="bi bi-people-fill me-1 text-success"></i>Target Beneficiaries</span>
-                                <div class="fw-bold text-dark mt-1" id="viewActTargetBeneficiaries">-</div>
+                                <small class="text-muted" id="viewActCluster">-</small>
                             </div>
                         </div>
 
@@ -2674,10 +2659,17 @@
                             </div>
                         </div>
 
-                        <!-- Category Specific Details Box -->
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light p-3">
+                                <span class="text-muted small uppercase fw-bold"><i class="bi bi-people-fill me-1 text-success"></i>Operational Assignment Status</span>
+                                <div class="fw-bold text-dark mt-1" id="viewActTargetBeneficiaries">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Operational Execution & Beneficiary Context Box -->
                         <div class="col-12">
-                            <div class="card border-primary-subtle bg-white p-3 rounded-3 shadow-sm">
-                                <h6 class="fw-bold text-primary mb-2"><i class="bi bi-card-checklist me-1.5"></i>Category Parameters & Logistics</h6>
+                            <div class="card border-primary-subtle bg-white p-3 rounded-3 shadow-sm" id="viewActBeneficiaryBox">
+                                <h6 class="fw-bold text-primary mb-2"><i class="bi bi-card-checklist me-1.5"></i>Officer Operational Execution Details</h6>
                                 <div class="row g-2 small" id="viewActCategoryParams">
                                     <!-- Populated dynamically -->
                                 </div>
@@ -2687,7 +2679,7 @@
                         <!-- Cancellation Notice / Reason Box (Displayed only if cancelled) -->
                         <div class="col-12 d-none" id="viewActCancellationBox">
                             <div class="alert alert-danger py-2 mb-0 small">
-                                <div class="fw-bold text-danger"><i class="bi bi-x-octagon-fill me-1"></i> Activity Cancelled Log:</div>
+                                <div class="fw-bold text-danger"><i class="bi bi-x-octagon-fill me-1"></i> Slot Cancelled Record:</div>
                                 <div class="mt-1" id="viewActCancellationReason">-</div>
                                 <div class="text-muted font-monospace mt-1" style="font-size: 0.75rem;" id="viewActCancellationTimestamp">-</div>
                             </div>
@@ -2708,11 +2700,17 @@
                         <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Close Reference</button>
                     </div>
                     <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-dark fw-semibold px-3" id="viewModalLockToggleBtn" onclick="triggerLockFromView()">
+                            <i class="bi bi-lock-fill me-1"></i> Lock / Unlock Slot
+                        </button>
+                        <button type="button" class="btn btn-outline-success fw-semibold px-3" id="viewModalCompleteBtn" onclick="triggerCompleteFromView()">
+                            <i class="bi bi-check2-circle me-1"></i> Mark Completed
+                        </button>
                         <button type="button" class="btn btn-outline-danger fw-semibold px-3" id="viewModalCancelBtn" onclick="triggerCancelFromView()">
-                            <i class="bi bi-x-circle me-1"></i> Cancel Activity
+                            <i class="bi bi-x-circle me-1"></i> Cancel Slot
                         </button>
                         <button type="button" class="btn btn-warning fw-bold text-dark px-4" id="viewModalEditBtn" onclick="triggerEditFromView()">
-                            <i class="bi bi-pencil-square me-1"></i> Edit Activity
+                            <i class="bi bi-pencil-square me-1"></i> Edit Slot / Reassign
                         </button>
                     </div>
                 </div>
@@ -2721,7 +2719,7 @@
     </div>
 
     <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 3: EDITABLE ACTIVITY FORM MODAL                    -->
+    <!-- SCHEDULING MODAL 3: EDIT SLOT / REASSIGN OFFICER FORM MODAL         -->
     <!-- =================================================================== -->
     <div class="modal fade" id="editActivityModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -2730,62 +2728,25 @@
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-pencil-square text-warning fs-4"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0">Update Scheduled Activity</h5>
+                            <h5 class="modal-title fw-bold mb-0">Update Program Slot & Officer Assignment</h5>
                             <span class="badge bg-warning text-dark font-monospace mt-1" id="editActIdBadge">ID: 0</span>
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                <form id="editActivityForm" onsubmit="handleSaveActivityUpdates(event)">
+                <form id="editActivityForm" onsubmit="handleSaveSlotUpdates(event)">
                     <input type="hidden" id="editActId">
                     <div class="modal-body p-4">
                         <div class="alert alert-info py-2 mb-3 small d-flex align-items-center gap-2">
                             <i class="bi bi-shield-check text-info fs-5"></i>
-                            <div><strong>Safeguard Validation Active:</strong> Past dates and overlapping schedule conflicts are automatically checked before saving updates.</div>
+                            <div><strong>Officer Reassignment Flexibility:</strong> Admin can reassign officers prior to slot lock to balance workloads. Safeguards validate past dates and officer schedule conflicts.</div>
                         </div>
 
                         <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Activity Subject Title <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control fw-bold" id="editActTitle" required>
-                            </div>
-
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Activity Category <span class="text-danger">*</span></label>
-                                <select class="form-select" id="editActCategory" onchange="handleEditCategoryChange()" required>
-                                    <option value="Training Session">Training Session</option>
-                                    <option value="Interview">Interview</option>
-                                    <option value="Assistance Distribution">Assistance Distribution</option>
-                                    <option value="Certificate Distribution">Certificate Distribution</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Target Program <span class="text-danger">*</span></label>
-                                <select class="form-select" id="editActProgram" required>
-                                    <!-- Populated dynamically -->
-                                </select>
-                            </div>
-
-                            <div class="col-md-5">
-                                <label class="form-label fw-semibold">Start Date & Time <span class="text-danger">*</span></label>
-                                <input type="datetime-local" class="form-control" id="editActStartDateTime" onchange="handleEditScheduleDateTimeChange()" required>
-                            </div>
-
-                            <div class="col-md-5">
-                                <label class="form-label fw-semibold">End Date & Time <span class="text-danger">*</span></label>
-                                <input type="datetime-local" class="form-control" id="editActEndDateTime" onchange="handleEditScheduleDateTimeChange()" required>
-                            </div>
-
-                            <div class="col-md-2">
-                                <label class="form-label fw-semibold">Duration</label>
-                                <input type="text" class="form-control bg-light font-monospace" id="editActDuration" readonly>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Location or Platform <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editActLocation" list="commonVenuesList" required>
+                                <label class="form-label fw-semibold">Program Type (Fixed Program Linkage)</label>
+                                <input type="text" class="form-control bg-light fw-bold" id="editActProgramCode" readonly>
                             </div>
 
                             <div class="col-md-6">
@@ -2795,19 +2756,35 @@
                                 </select>
                             </div>
 
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Target Beneficiaries <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editActTargetBeneficiaries" required>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Schedule Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="editActDate" min="2026-08-01" required>
                             </div>
 
-                            <!-- Edit Dynamic Category Specific Fields -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Time Slot Window <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editActTimeSlot" required>
+                                    <option value="08:00 AM - 09:00 AM">08:00 AM - 09:00 AM</option>
+                                    <option value="09:00 AM - 10:00 AM">09:00 AM - 10:00 AM</option>
+                                    <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
+                                    <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
+                                    <option value="01:00 PM - 02:00 PM">01:00 PM - 02:00 PM</option>
+                                    <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM</option>
+                                    <option value="03:00 PM - 04:00 PM">03:00 PM - 04:00 PM</option>
+                                    <option value="04:00 PM - 05:00 PM">04:00 PM - 05:00 PM</option>
+                                    <option value="08:00 AM - 12:00 PM (Batch Block)">08:00 AM - 12:00 PM (Batch Block)</option>
+                                    <option value="01:00 PM - 05:00 PM (Batch Block)">01:00 PM - 05:00 PM (Batch Block)</option>
+                                </select>
+                            </div>
+
                             <div class="col-12">
-                                <div class="card border-primary-subtle bg-light p-3 rounded-3">
-                                    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-gear-fill me-1"></i>Category Details</h6>
-                                    <div class="row g-3 small" id="editDynamicCategoryInputs">
-                                        <!-- Populated dynamically -->
-                                    </div>
-                                </div>
+                                <label class="form-label fw-semibold">Location / Venue <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editActLocation" list="commonVenuesList" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Admin Remarks</label>
+                                <textarea class="form-control" id="editActRemarks" rows="2"></textarea>
                             </div>
                         </div>
                     </div>
@@ -2822,7 +2799,7 @@
     </div>
 
     <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 4: CANCEL ACTIVITY CONFIRMATION MODAL               -->
+    <!-- SCHEDULING MODAL 4: CANCEL SLOT CONFIRMATION MODAL                  -->
     <!-- =================================================================== -->
     <div class="modal fade" id="cancelActivityModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -2830,7 +2807,7 @@
                 <div class="modal-header bg-danger text-white rounded-top-4 py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-exclamation-octagon-fill fs-4"></i>
-                        <h5 class="modal-title fw-bold mb-0">Cancel Scheduled Activity</h5>
+                        <h5 class="modal-title fw-bold mb-0">Cancel Program Schedule Slot</h5>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -2839,24 +2816,24 @@
                     <input type="hidden" id="cancelActId">
                     <div class="text-center mb-3">
                         <div class="text-danger mb-2"><i class="bi bi-calendar-x-fill" style="font-size: 3.5rem;"></i></div>
-                        <h5 class="fw-bold text-dark mb-1" id="cancelActTitlePrompt">Activity Title</h5>
-                        <p class="text-muted small">Are you sure you want to cancel this scheduled activity?</p>
+                        <h5 class="fw-bold text-dark mb-1" id="cancelActTitlePrompt">Slot Title</h5>
+                        <p class="text-muted small">Are you sure you want to cancel this program schedule slot?</p>
                     </div>
 
                     <div class="alert alert-warning py-2 mb-3 small">
                         <i class="bi bi-info-circle-fill me-1 text-warning"></i>
-                        <strong>Compliance Rule:</strong> Cancelled activities remain visible with red labels on both calendar and archive for compliance tracking. Cancellation log is permanently recorded with admin identity and timestamp.
+                        <strong>Compliance Rule:</strong> Cancelled slots remain permanently visible with red labels on calendar and archive for audit reporting.
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark">Cancellation Reason / Audit Justification <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="cancelActReason" rows="3" placeholder="Enter reason for cancellation (e.g. Postponed due to LGU Holiday, Trainer Unavailable, Inclement Weather)..." required></textarea>
+                        <textarea class="form-control" id="cancelActReason" rows="3" placeholder="Enter mandatory reason for cancellation (e.g. Inclement Weather, Venue Maintenance, Postponed by Admin)..." required></textarea>
                     </div>
                 </div>
 
                 <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Keep Activity</button>
-                    <button type="button" class="btn btn-danger fw-bold px-4" onclick="handleConfirmActivityCancellation()">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Keep Slot</button>
+                    <button type="button" class="btn btn-danger fw-bold px-4" onclick="handleConfirmSlotCancellation()">
                         <i class="bi bi-x-circle-fill me-1"></i> Confirm Cancellation (🔴 Red Label)
                     </button>
                 </div>
@@ -3568,88 +3545,113 @@
             else if (tabName === 'archive') { 
                 document.getElementById('tabNavArchive').classList.add('active'); 
                 document.getElementById('sectionArchive').classList.remove('d-none'); 
-            }
-        }
+        // =========================================================================
+        // SCHEDULING MANAGEMENT MODULE ENGINE & CONTROLLERS (UNIFIED WORKFLOW)
+        // =========================================================================
 
-        // =========================================================================
-        // SCHEDULING MANAGEMENT MODULE ENGINE & CONTROLLERS
-        // =========================================================================
+        let adminScheduleViewMode = 'calendar'; // 'calendar' or 'list'
 
         function initSchedulingModuleData() {
+            // Seed initial slot entries if not present
             const stored = localStorage.getItem('peso_scheduled_activities_v1');
             if (stored) {
-                try { activitiesList = JSON.parse(stored); } catch (e) { activitiesList = [...INITIAL_ACTIVITIES]; }
+                try { 
+                    activitiesList = JSON.parse(stored); 
+                } catch (e) { 
+                    activitiesList = [...INITIAL_ACTIVITIES]; 
+                }
             } else {
                 activitiesList = [...INITIAL_ACTIVITIES];
                 localStorage.setItem('peso_scheduled_activities_v1', JSON.stringify(activitiesList));
             }
+
+            // Sync with backend API if available
+            fetch('/api/schedule-slots')
+                .then(r => r.ok ? r.json() : null)
+                .then(res => {
+                    if (res && res.success && res.data && res.data.length > 0) {
+                        // Merge backend slots into local view
+                        const remoteMap = new Map(res.data.map(s => [s.id, s]));
+                        activitiesList = activitiesList.map(local => remoteMap.get(local.id) || local);
+                        // Add any remote-only slots
+                        res.data.forEach(s => {
+                            if (!activitiesList.some(a => a.id === s.id)) activitiesList.push(s);
+                        });
+                        localStorage.setItem('peso_scheduled_activities_v1', JSON.stringify(activitiesList));
+                        renderSchedulingModule();
+                    }
+                })
+                .catch(() => { /* offline fallback to localStorage */ });
+
             populateSchedulingDropdowns();
         }
 
         function populateSchedulingDropdowns() {
-            // Target Program Filter & Create Select
+            // Program filter dropdown
             const progFilter = document.getElementById('schedProgramFilter');
             const actProg = document.getElementById('actProgram');
-            const editActProg = document.getElementById('editActProgram');
 
             if (progFilter) {
-                progFilter.innerHTML = '<option value="ALL">All Programs</option>';
-                programsList.forEach(p => {
-                    progFilter.innerHTML += `<option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>`;
-                });
+                progFilter.innerHTML = '<option value="ALL">All Program Types</option>' +
+                    '<option value="TUPAD">TUPAD (Emergency Employment)</option>' +
+                    '<option value="SPES">SPES (Student Employment)</option>' +
+                    '<option value="PFAS">PFAS (Pangkabuhayan Special)</option>' +
+                    '<option value="CKGIP">CKGIP (Internship Program)</option>';
             }
 
-            if (actProg) {
-                actProg.innerHTML = '';
-                programsList.forEach(p => {
-                    actProg.innerHTML += `<option value="${p.id}" data-code="${escapeHtml(p.code)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>`;
-                });
-            }
-
-            if (editActProg) {
-                editActProg.innerHTML = '';
-                programsList.forEach(p => {
-                    editActProg.innerHTML += `<option value="${p.id}" data-code="${escapeHtml(p.code)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>`;
-                });
-            }
-
-            // Assigned Officers Filter & Create Select
+            // Officer filter dropdowns
             const offFilter = document.getElementById('schedOfficerFilter');
-            const panelOffFilter = document.getElementById('panelOfficerFilter');
             const actOff = document.getElementById('actOfficer');
             const editActOff = document.getElementById('editActOfficer');
 
             if (offFilter) {
                 offFilter.innerHTML = '<option value="ALL">All Assigned Officers</option>';
                 officersList.forEach(o => {
-                    const name = `${o.first_name} ${o.last_name} (${o.role})`;
-                    offFilter.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
-                });
-            }
-
-            if (panelOffFilter) {
-                panelOffFilter.innerHTML = '<option value="ALL">All Officers</option>';
-                officersList.forEach(o => {
                     const name = `${o.first_name} ${o.last_name}`;
-                    panelOffFilter.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+                    offFilter.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)} (${o.role})</option>`;
                 });
             }
 
             if (actOff) {
                 actOff.innerHTML = '';
                 officersList.forEach(o => {
-                    const name = `${o.first_name} ${o.last_name} (${o.role})`;
-                    actOff.innerHTML += `<option value="${o.id}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+                    const name = `${o.first_name} ${o.last_name}`;
+                    actOff.innerHTML += `<option value="${o.id}" data-name="${escapeHtml(name)}">${escapeHtml(name)} (${o.role})</option>`;
                 });
             }
 
             if (editActOff) {
                 editActOff.innerHTML = '';
                 officersList.forEach(o => {
-                    const name = `${o.first_name} ${o.last_name} (${o.role})`;
-                    editActOff.innerHTML += `<option value="${o.id}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+                    const name = `${o.first_name} ${o.last_name}`;
+                    editActOff.innerHTML += `<option value="${o.id}" data-name="${escapeHtml(name)}">${escapeHtml(name)} (${o.role})</option>`;
                 });
             }
+        }
+
+        function setAdminScheduleViewMode(mode) {
+            adminScheduleViewMode = mode;
+            const btnCal = document.getElementById('adminBtnViewCalendar');
+            const btnList = document.getElementById('adminBtnViewList');
+            const calCol = document.querySelector('.col-12.col-xl-8');
+            const panelCol = document.querySelector('.col-12.col-xl-4');
+
+            if (mode === 'calendar') {
+                if (btnCal) btnCal.classList.add('active');
+                if (btnList) btnList.classList.remove('active');
+                if (calCol) calCol.style.display = 'block';
+                if (panelCol) {
+                    panelCol.className = 'col-12 col-xl-4';
+                }
+            } else {
+                if (btnCal) btnCal.classList.remove('active');
+                if (btnList) btnList.classList.add('active');
+                if (calCol) calCol.style.display = 'none';
+                if (panelCol) {
+                    panelCol.className = 'col-12';
+                }
+            }
+            renderScheduledActivitiesPanel();
         }
 
         function renderSchedulingModule() {
@@ -3662,20 +3664,19 @@
 
         function updateSchedulingMetrics() {
             const total = activitiesList.length;
-            const ongoing = activitiesList.filter(a => a.status === 'Ongoing').length;
-            const upcoming = activitiesList.filter(a => a.status === 'Scheduled').length;
-            const postponed = activitiesList.filter(a => a.status === 'Postponed').length;
-            const cancelled = activitiesList.filter(a => a.status === 'Cancelled').length;
-            const completed = activitiesList.filter(a => a.status === 'Completed').length;
+            const active = activitiesList.filter(a => (a.slot_status === 'Active' || a.status === 'Active' || a.status === 'Ongoing' || a.status === 'Scheduled') && !a.is_locked).length;
+            const locked = activitiesList.filter(a => a.is_locked || a.slot_status === 'Locked' || a.lock_status === 'Locked').length;
+            const completed = activitiesList.filter(a => a.slot_status === 'Completed' || a.status === 'Completed').length;
+            const cancelled = activitiesList.filter(a => a.slot_status === 'Cancelled' || a.status === 'Cancelled').length;
             const archived = cancelled + completed;
 
             if (document.getElementById('schedStatTotal')) document.getElementById('schedStatTotal').textContent = total;
-            if (document.getElementById('schedStatOngoing')) document.getElementById('schedStatOngoing').textContent = ongoing;
-            if (document.getElementById('schedStatUpcoming')) document.getElementById('schedStatUpcoming').textContent = upcoming;
-            if (document.getElementById('schedStatPostponed')) document.getElementById('schedStatPostponed').textContent = postponed;
+            if (document.getElementById('schedStatActive')) document.getElementById('schedStatActive').textContent = active;
+            if (document.getElementById('schedStatLocked')) document.getElementById('schedStatLocked').textContent = locked;
+            if (document.getElementById('schedStatCompleted')) document.getElementById('schedStatCompleted').textContent = completed;
             if (document.getElementById('schedStatCancelled')) document.getElementById('schedStatCancelled').textContent = cancelled;
             if (document.getElementById('schedulingArchiveCountBadge')) document.getElementById('schedulingArchiveCountBadge').textContent = archived;
-            if (document.getElementById('archiveBoxCountBadge')) document.getElementById('archiveBoxCountBadge').textContent = `${archived} Archived Activities`;
+            if (document.getElementById('archiveBoxCountBadge')) document.getElementById('archiveBoxCountBadge').textContent = `${archived} Archived Slots`;
         }
 
         // =========================================================================
@@ -3703,9 +3704,9 @@
 
             const today = new Date();
             const isCurrentMonth = today.getFullYear() === currentCalendarYear && today.getMonth() === currentCalendarMonth;
-            const todayDateNum = isCurrentMonth ? today.getDate() : 8; // Highlight day 8 for 2026 demo
+            const todayDateNum = isCurrentMonth ? today.getDate() : 8;
 
-            // 1. Days from previous month
+            // 1. Previous month days
             for (let i = firstDayIndex - 1; i >= 0; i--) {
                 const dayNum = prevMonthDays - i;
                 const cell = document.createElement('div');
@@ -3714,7 +3715,7 @@
                 gridBody.appendChild(cell);
             }
 
-            // 2. Days for current month
+            // 2. Current month days
             for (let day = 1; day <= daysInMonth; day++) {
                 const cell = document.createElement('div');
                 const isToday = (day === todayDateNum);
@@ -3729,14 +3730,13 @@
                 cell.innerHTML = `
                     <div class="calendar-day-top">
                         <span class="calendar-day-number ${isToday ? 'day-num-badge' : ''}">${day}</span>
-                        <button class="day-add-btn btn btn-sm" onclick="event.stopPropagation(); openCreateActivityModal('${dateStr}')" title="Add schedule on this day">
+                        <button class="day-add-btn btn btn-sm" onclick="event.stopPropagation(); openCreateScheduleSlotModal('${dateStr}')" title="Create slot on this day">
                             <i class="bi bi-plus-circle"></i>
                         </button>
                     </div>
                     <div class="calendar-events-container" id="dayEvents-${day}"></div>
                 `;
 
-                // Keyboard & click focus
                 cell.addEventListener('click', () => {
                     focusedCalendarDay = day;
                     updateCalendarFocus(day);
@@ -3745,7 +3745,7 @@
                 gridBody.appendChild(cell);
             }
 
-            // 3. Days from next month to complete 7-column grid
+            // 3. Next month days
             const totalRendered = firstDayIndex + daysInMonth;
             const nextMonthCells = (totalRendered % 7 === 0) ? 0 : 7 - (totalRendered % 7);
             for (let j = 1; j <= nextMonthCells; j++) {
@@ -3755,7 +3755,6 @@
                 gridBody.appendChild(cell);
             }
 
-            // Populate Event Chips into Day Cells
             populateCalendarEventChips();
             updateCalendarFocus(focusedCalendarDay);
         }
@@ -3764,45 +3763,37 @@
             const filtered = getFilteredActivitiesList();
 
             filtered.forEach(act => {
-                const actDate = new Date(act.start_datetime || act.date);
+                const actDateStr = act.date || (act.start_datetime ? act.start_datetime.substring(0,10) : '2026-08-08');
+                const actDate = new Date(actDateStr + 'T00:00:00');
                 if (actDate.getFullYear() === currentCalendarYear && actDate.getMonth() === currentCalendarMonth) {
                     const dayNum = actDate.getDate();
                     const container = document.getElementById(`dayEvents-${dayNum}`);
                     if (container) {
                         const chip = document.createElement('div');
                         let chipClass = 'status-chip-blue';
-                        let statusIcon = '🔵';
-                        let statusText = 'Scheduled';
+                        let statusIcon = '🟢';
+                        let label = act.program_code || 'SLOT';
 
-                        if (act.status === 'Ongoing') {
+                        if (act.is_locked || act.slot_status === 'Locked') {
+                            chipClass = 'status-chip-gray';
+                            statusIcon = '🔒';
+                        } else if (act.slot_status === 'Completed' || act.status === 'Completed') {
                             chipClass = 'status-chip-green';
-                            statusIcon = '🟢';
-                            statusText = 'Ongoing';
-                        } else if (act.status === 'Postponed') {
-                            chipClass = 'status-chip-yellow';
-                            statusIcon = '🟡';
-                            statusText = 'Postponed';
-                        } else if (act.status === 'Cancelled') {
+                            statusIcon = '⚫';
+                        } else if (act.slot_status === 'Cancelled' || act.status === 'Cancelled') {
                             chipClass = 'status-chip-red';
                             statusIcon = '🔴';
-                            statusText = 'Cancelled';
-                        } else if (act.status === 'Completed') {
-                            chipClass = 'status-chip-gray';
-                            statusIcon = '⚫';
-                            statusText = 'Completed';
                         }
 
-                        const timeFormatted = actDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        chip.className = `event-chip ${chipClass}`;
-                        chip.setAttribute('title', `[${statusText}] ${act.title} at ${timeFormatted} (${act.location})`);
-                        chip.setAttribute('aria-label', `Activity ${act.title}, Status ${statusText}`);
+                        const timeFormatted = act.time || act.schedule_time || '09:00 AM';
+                        chip.className = `calendar-event-chip ${chipClass}`;
                         chip.innerHTML = `
                             <span>${statusIcon}</span>
-                            <span class="text-truncate"><strong>${timeFormatted}</strong> ${escapeHtml(act.title)}</span>
+                            <span class="text-truncate"><strong>${escapeHtml(label)}</strong> (${timeFormatted.split(' - ')[0]})</span>
                         `;
                         chip.onclick = (e) => {
                             e.stopPropagation();
-                            openViewActivityDetailsModal(act.id);
+                            openViewSlotDetailsModal(act.id);
                         };
                         container.appendChild(chip);
                     }
@@ -3841,7 +3832,6 @@
         }
 
         function jumpToCalendarToday() {
-            const today = new Date();
             currentCalendarYear = 2026;
             currentCalendarMonth = 7; // August
             focusedCalendarDay = 8;
@@ -3849,7 +3839,7 @@
             renderScheduledActivitiesPanel();
             window.showSystemNotification({
                 title: 'Calendar Reset to Today',
-                message: 'Viewing August 8, 2026 schedule.',
+                message: 'Viewing August 8, 2026 program schedule.',
                 type: 'info'
             });
         }
@@ -3874,16 +3864,14 @@
                 updateCalendarFocus(focusedCalendarDay);
             } else if (event.key === 'Enter') {
                 event.preventDefault();
-                // Check if focused date has activity, open it, else open create
                 const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(focusedCalendarDay).padStart(2, '0')}`;
-                const dayAct = activitiesList.find(a => (a.start_datetime || a.date).startsWith(dateStr));
+                const dayAct = activitiesList.find(a => (a.date || a.start_datetime || '').startsWith(dateStr));
                 if (dayAct) {
-                    openViewActivityDetailsModal(dayAct.id);
+                    openViewSlotDetailsModal(dayAct.id);
                 } else {
-                    openCreateActivityModal(dateStr);
+                    openCreateScheduleSlotModal(dateStr);
                 }
             } else if (event.key === 'Escape') {
-                // Close any open modals
                 const openModals = document.querySelectorAll('.modal.show');
                 openModals.forEach(m => {
                     const inst = bootstrap.Modal.getInstance(m);
@@ -3893,41 +3881,50 @@
         }
 
         // =========================================================================
-        // 2. SCHEDULED ACTIVITIES PANEL CONTROLLER
+        // 2. SCHEDULED ACTIVITIES & SLOTS LIST CONTROLLER
         // =========================================================================
 
         function getFilteredActivitiesList() {
             const search = (document.getElementById('schedSearchInput') ? document.getElementById('schedSearchInput').value : '').toLowerCase().trim();
-            const category = document.getElementById('schedCategoryFilter') ? document.getElementById('schedCategoryFilter').value : 'ALL';
             const program = document.getElementById('schedProgramFilter') ? document.getElementById('schedProgramFilter').value : 'ALL';
             const officer = document.getElementById('schedOfficerFilter') ? document.getElementById('schedOfficerFilter').value : 'ALL';
             const status = document.getElementById('schedStatusFilter') ? document.getElementById('schedStatusFilter').value : 'ALL';
+            const venue = document.getElementById('schedVenueFilter') ? document.getElementById('schedVenueFilter').value : 'ALL';
             const startDate = document.getElementById('schedDateRangeStart') ? document.getElementById('schedDateRangeStart').value : '';
-            const endDate = document.getElementById('schedDateRangeEnd') ? document.getElementById('schedDateRangeEnd').value : '';
 
             return activitiesList.filter(act => {
-                const actTitle = (act.title || '').toLowerCase();
-                const actLoc = (act.location || '').toLowerCase();
-                const actTopic = (act.topic || '').toLowerCase();
-                const actBatch = (act.batch_num || '').toLowerCase();
-                const matchesSearch = !search || actTitle.includes(search) || actLoc.includes(search) || actTopic.includes(search) || actBatch.includes(search);
+                const actTitle = (act.title || act.program_name || '').toLowerCase();
+                const actProg = (act.program_code || '').toLowerCase();
+                const actLoc = (act.venue || act.location || '').toLowerCase();
+                const actOff = (act.officer_name || act.assigned_officer_name || '').toLowerCase();
+                const actBatch = (act.batch_name || act.batch_num || '').toLowerCase();
+                const actBeneficiary = (act.beneficiary_name || '').toLowerCase();
+                const slotId = String(act.slot_id || act.id || '').toLowerCase();
 
-                const matchesCat = (category === 'ALL') || (act.category === category);
+                const matchesSearch = !search || actTitle.includes(search) || actProg.includes(search) || actLoc.includes(search) || actOff.includes(search) || actBatch.includes(search) || actBeneficiary.includes(search) || slotId.includes(search);
                 const matchesProg = (program === 'ALL') || (act.program_code === program);
-                const matchesOff = (officer === 'ALL') || ((act.assigned_officer_name || '').includes(officer));
-                const matchesStatus = (status === 'ALL') || (act.status === status);
+                const matchesOff = (officer === 'ALL') || ((act.officer_name || act.assigned_officer_name || '').includes(officer));
+                
+                let matchesStatus = true;
+                if (status === 'Active') {
+                    matchesStatus = !act.is_locked && (act.slot_status === 'Active' || act.status === 'Scheduled' || act.status === 'Ongoing' || act.status === 'Active');
+                } else if (status === 'Locked') {
+                    matchesStatus = act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked';
+                } else if (status === 'Completed') {
+                    matchesStatus = act.slot_status === 'Completed' || act.status === 'Completed';
+                } else if (status === 'Cancelled') {
+                    matchesStatus = act.slot_status === 'Cancelled' || act.status === 'Cancelled';
+                }
+
+                const matchesVenue = (venue === 'ALL') || ((act.venue || act.location || '').includes(venue));
 
                 let matchesDate = true;
                 if (startDate) {
-                    const actStart = (act.start_datetime || act.date).substring(0, 10);
+                    const actStart = (act.date || act.start_datetime || '').substring(0, 10);
                     matchesDate = matchesDate && (actStart >= startDate);
                 }
-                if (endDate) {
-                    const actStart = (act.start_datetime || act.date).substring(0, 10);
-                    matchesDate = matchesDate && (actStart <= endDate);
-                }
 
-                return matchesSearch && matchesCat && matchesProg && matchesOff && matchesStatus && matchesDate;
+                return matchesSearch && matchesProg && matchesOff && matchesStatus && matchesVenue && matchesDate;
             });
         }
 
@@ -3936,26 +3933,18 @@
             if (!container) return;
             container.innerHTML = '';
 
-            const panelType = document.getElementById('panelTypeFilter') ? document.getElementById('panelTypeFilter').value : 'ALL';
-            const panelOff = document.getElementById('panelOfficerFilter') ? document.getElementById('panelOfficerFilter').value : 'ALL';
-
-            const filtered = getFilteredActivitiesList().filter(act => {
-                const matchesType = (panelType === 'ALL') || (act.category === panelType);
-                const matchesOff = (panelOff === 'ALL') || ((act.assigned_officer_name || '').includes(panelOff));
-                // In upcoming panel, prioritize non-completed / non-cancelled or display all matching
-                return matchesType && matchesOff;
-            });
+            const filtered = getFilteredActivitiesList();
 
             if (document.getElementById('activitiesPanelCountBadge')) {
-                document.getElementById('activitiesPanelCountBadge').textContent = `${filtered.length} Activities`;
+                document.getElementById('activitiesPanelCountBadge').textContent = `${filtered.length} Slots`;
             }
 
             if (filtered.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-5 text-muted">
-                        <i class="bi bi-calendar-x fs-1 text-secondary mb-2 d-block"></i>
-                        <h6>No Scheduled Activities Found</h6>
-                        <small>Adjust search filters or click + Schedule New Activity to create one.</small>
+                        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+                        <h6>No program slots match your criteria</h6>
+                        <small>Adjust filters or click "+ Create Schedule Slot" to publish new slots.</small>
                     </div>
                 `;
                 return;
@@ -3963,325 +3952,241 @@
 
             filtered.forEach(act => {
                 const card = document.createElement('div');
-                let borderClass = 'status-border-blue';
-                let statusBadge = '<span class="legend-badge status-pill-blue">🔵 Scheduled</span>';
+                card.className = 'card border rounded-3 p-3 mb-3 shadow-sm hover-shadow transition';
 
-                if (act.status === 'Ongoing') {
-                    borderClass = 'status-border-green';
-                    statusBadge = '<span class="legend-badge status-pill-green">🟢 Ongoing / Today</span>';
-                } else if (act.status === 'Postponed') {
-                    borderClass = 'status-border-yellow';
-                    statusBadge = '<span class="legend-badge status-pill-yellow">🟡 Postponed</span>';
-                } else if (act.status === 'Cancelled') {
-                    borderClass = 'status-border-red';
-                    statusBadge = '<span class="legend-badge status-pill-red">🔴 Cancelled</span>';
-                } else if (act.status === 'Completed') {
-                    borderClass = 'status-border-gray';
-                    statusBadge = '<span class="legend-badge status-pill-gray">⚫ Completed</span>';
+                const isLocked = act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked';
+                const isCompleted = act.slot_status === 'Completed' || act.status === 'Completed';
+                const isCancelled = act.slot_status === 'Cancelled' || act.status === 'Cancelled';
+
+                // Unified badge styling
+                let statusBadge = '<span class="badge bg-success text-white"><i class="bi bi-broadcast me-1"></i>Active</span>';
+                if (isLocked) {
+                    statusBadge = '<span class="badge bg-dark text-white"><i class="bi bi-lock-fill me-1"></i>Locked</span>';
+                } else if (isCompleted) {
+                    statusBadge = '<span class="badge bg-success text-white"><i class="bi bi-check2-all me-1"></i>Completed</span>';
+                } else if (isCancelled) {
+                    statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger"><i class="bi bi-x-octagon-fill me-1"></i>Cancelled</span>';
                 }
 
-                const startDate = new Date(act.start_datetime || act.date);
-                const dateFormatted = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const timeFormatted = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                // Operational assignment preview
+                let assignmentHtml = '<span class="text-muted small"><i class="bi bi-hourglass-split me-1 text-warning"></i>Awaiting Officer Assignment</span>';
+                if (act.scheduling_mode === 'Individual' && act.beneficiary_name) {
+                    assignmentHtml = `<span class="badge bg-info-subtle text-dark border"><i class="bi bi-person-fill me-1"></i>${escapeHtml(act.beneficiary_name)} (${escapeHtml(act.beneficiary_phone || '09XX-***-XXXX')})</span>`;
+                } else if (act.scheduling_mode === 'Batch' && act.batch_name) {
+                    assignmentHtml = `<span class="badge bg-primary-subtle text-primary border"><i class="bi bi-people-fill me-1"></i>${escapeHtml(act.batch_name)} (${act.batch_count || 25} Beneficiaries)</span>`;
+                }
 
-                card.className = `activity-card-item ${borderClass}`;
+                const slotId = act.slot_id || `SLOT-${act.id}`;
+                const progCode = act.program_code || 'TUPAD';
+                const dateDisplay = act.date || (act.start_datetime ? act.start_datetime.substring(0,10) : '2026-08-08');
+                const timeDisplay = act.time || act.schedule_time || '09:00 AM - 10:00 AM';
+                const venueDisplay = act.venue || act.location || 'PESO Main Office';
+                const officerDisplay = act.officer_name || act.assigned_officer_name || 'Assigned Officer';
+
                 card.innerHTML = `
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge bg-primary-subtle text-primary font-monospace" style="font-size: 0.75rem;">${escapeHtml(act.category)}</span>
-                        ${statusBadge}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary font-monospace">${escapeHtml(progCode)}</span>
+                            <span class="badge bg-light text-dark border font-monospace">${escapeHtml(slotId)}</span>
+                        </div>
+                        <div>${statusBadge}</div>
                     </div>
 
-                    <h6 class="fw-bold text-dark mb-1.5">${escapeHtml(act.title)}</h6>
-                    
-                    <div class="text-muted small mb-2">
-                        <i class="bi bi-clock-fill text-primary me-1"></i>
-                        <span class="time-badge">${dateFormatted} • ${timeFormatted}</span>
-                        <span class="ms-1 text-secondary">(${escapeHtml(act.duration || '3 Hours')})</span>
+                    <h6 class="fw-bold text-dark mb-1">${escapeHtml(act.title || act.program_name || 'Program Session')}</h6>
+                    ${act.program_sub_category ? `<div class="text-muted small mb-2"><i class="bi bi-tag-fill me-1 text-secondary"></i>${escapeHtml(act.program_sub_category)}</div>` : ''}
+
+                    <div class="small text-muted mb-2">
+                        <div><i class="bi bi-calendar-event me-1.5 text-primary"></i><strong>${dateDisplay}</strong> • ${timeDisplay}</div>
+                        <div><i class="bi bi-geo-alt me-1.5 text-danger"></i>${escapeHtml(venueDisplay)}</div>
+                        <div><i class="bi bi-person-badge me-1.5 text-info"></i>Assigned: <strong class="text-dark">${escapeHtml(officerDisplay)}</strong></div>
                     </div>
 
-                    <div class="small text-secondary mb-1">
-                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>
-                        <strong>${escapeHtml(act.location)}</strong>
+                    <div class="p-2 bg-light rounded-2 mb-3">
+                        <div class="small fw-semibold text-secondary mb-1">Operational Assignment:</div>
+                        ${assignmentHtml}
                     </div>
 
-                    <div class="small text-secondary mb-1">
-                        <i class="bi bi-people-fill text-success me-1"></i>
-                        <span>${escapeHtml(act.target_beneficiaries)}</span>
-                    </div>
-
-                    <div class="small text-secondary mb-3">
-                        <i class="bi bi-person-badge text-info me-1"></i>
-                        <span>${escapeHtml(act.assigned_officer_name)}</span>
-                    </div>
-
-                    <div class="d-flex justify-content-end gap-1.5 pt-2 border-top">
-                        <button class="btn btn-sm btn-outline-info px-2.5 py-1" onclick="openViewActivityDetailsModal(${act.id})" title="Read-only view modal">
-                            <i class="bi bi-eye-fill me-1"></i> Details
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-1 pt-2 border-top">
+                        <button class="btn btn-sm btn-outline-info" onclick="openViewSlotDetailsModal(${act.id})" title="Strictly View-Only Details">
+                            <i class="bi bi-eye-fill me-1"></i> View Details
                         </button>
-                        <button class="btn btn-sm btn-outline-warning px-2.5 py-1" onclick="openEditActivityModal(${act.id})" title="Editable update modal">
-                            <i class="bi bi-pencil-square me-1"></i> Edit
-                        </button>
-                        ${act.status !== 'Cancelled' ? `
-                            <button class="btn btn-sm btn-outline-danger px-2.5 py-1" onclick="openCancelActivityModal(${act.id})" title="Cancel activity with red label">
-                                <i class="bi bi-x-circle me-1"></i> Cancel
-                            </button>
-                        ` : ''}
+                        <div class="d-flex gap-1">
+                            ${!isLocked && !isCancelled && !isCompleted ? `
+                                <button class="btn btn-sm btn-outline-warning text-dark" onclick="openEditSlotModal(${act.id})" title="Admin Edit / Reassign Officer">
+                                    <i class="bi bi-pencil-square"></i> Reassign
+                                </button>
+                                <button class="btn btn-sm btn-outline-dark" onclick="toggleSlotLock(${act.id})" title="Lock Slot (Prevents Reassignment)">
+                                    <i class="bi bi-lock-fill"></i> Lock
+                                </button>
+                            ` : ''}
+                            ${isLocked && !isCancelled && !isCompleted ? `
+                                <button class="btn btn-sm btn-dark text-white" onclick="toggleSlotLock(${act.id})" title="Unlock Slot (Allow Reassignment)">
+                                    <i class="bi bi-unlock-fill"></i> Unlock
+                                </button>
+                            ` : ''}
+                            ${!isCompleted && !isCancelled ? `
+                                <button class="btn btn-sm btn-outline-success" onclick="markSlotCompleted(${act.id})" title="Finalize Lifecycle as Completed">
+                                    <i class="bi bi-check2-circle"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="openCancelSlotModal(${act.id})" title="Cancel Slot (Retains Red Label)">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                 `;
+
                 container.appendChild(card);
             });
         }
 
         function filterSchedulingData() {
-            renderCalendar();
             renderScheduledActivitiesPanel();
+            renderCalendar();
         }
 
         function resetSchedulingFilters() {
             if (document.getElementById('schedSearchInput')) document.getElementById('schedSearchInput').value = '';
-            if (document.getElementById('schedCategoryFilter')) document.getElementById('schedCategoryFilter').value = 'ALL';
             if (document.getElementById('schedProgramFilter')) document.getElementById('schedProgramFilter').value = 'ALL';
             if (document.getElementById('schedOfficerFilter')) document.getElementById('schedOfficerFilter').value = 'ALL';
             if (document.getElementById('schedStatusFilter')) document.getElementById('schedStatusFilter').value = 'ALL';
+            if (document.getElementById('schedVenueFilter')) document.getElementById('schedVenueFilter').value = 'ALL';
             if (document.getElementById('schedDateRangeStart')) document.getElementById('schedDateRangeStart').value = '';
-            if (document.getElementById('schedDateRangeEnd')) document.getElementById('schedDateRangeEnd').value = '';
-            renderSchedulingModule();
+            filterSchedulingData();
         }
 
         // =========================================================================
-        // 3. CREATE ACTIVITY WORKFLOW & DYNAMIC CATEGORY FIELDS
+        // 3. CREATE SCHEDULE SLOT (ADMIN ONLY)
         // =========================================================================
 
-        function openCreateActivityModal(prefillDate) {
+        function openCreateScheduleSlotModal(defaultDate) {
             const form = document.getElementById('createActivityForm');
             if (form) form.reset();
 
-            // Set default start/end dates with past-date blocked
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const minDateTime = `${year}-${month}-${day}T08:00`;
-
-            const startInput = document.getElementById('actStartDateTime');
-            const endInput = document.getElementById('actEndDateTime');
-            if (startInput) {
-                startInput.min = minDateTime;
-                startInput.value = prefillDate ? `${prefillDate}T09:00` : '2026-08-10T09:00';
+            const dateInput = document.getElementById('actSlotDate');
+            if (dateInput) {
+                dateInput.value = defaultDate || '2026-08-10';
             }
-            if (endInput) {
-                endInput.min = minDateTime;
-                endInput.value = prefillDate ? `${prefillDate}T12:00` : '2026-08-10T12:00';
-            }
-            if (document.getElementById('actDuration')) document.getElementById('actDuration').value = '3 Hours';
 
-            populateSchedulingDropdowns();
-            handleCategoryChange();
-
-            // Hide any previous safeguard alert
             const alertBox = document.getElementById('createActivitySafeguardAlert');
             if (alertBox) alertBox.classList.add('d-none');
 
+            populateSchedulingDropdowns();
             new bootstrap.Modal(document.getElementById('createActivityModal')).show();
-            logAuditEvent('OPEN_CREATE_SCHEDULE_MODAL', 'Opened Create New Scheduled Activity Modal');
         }
+        window.openCreateActivityModal = openCreateScheduleSlotModal;
 
-        function handleCategoryChange() {
-            const cat = document.getElementById('actCategory').value;
-            const container = document.getElementById('dynamicCategoryInputs');
-            const header = document.getElementById('categoryFieldsHeader');
-            if (!container) return;
-
-            if (header) header.innerHTML = `<i class="bi bi-gear-wide-connected me-1.5"></i>Category-Specific Parameters: ${cat}`;
-
-            if (cat === 'Training Session') {
-                container.innerHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Training Topic / Curriculum <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="actTrainingTopic" placeholder="e.g. Public Service Standards & Protocols" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Batch Number / Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="actTrainingBatch" placeholder="e.g. Batch 2026-A" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Designated Trainer <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="actTrainerName" placeholder="e.g. Dr. Elena Torralba" required>
-                    </div>
-                `;
-            } else if (cat === 'Interview') {
-                container.innerHTML = `
-                    <div class="col-md-5">
-                        <label class="form-label fw-semibold">Interview Type <span class="text-danger">*</span></label>
-                        <select class="form-select form-select-sm" id="actInterviewType" required>
-                            <option value="Initial Intake Screening" selected>Initial Intake Screening</option>
-                            <option value="Document Verification Interview">Document Verification Interview</option>
-                            <option value="Final Skills & Capacity Assessment">Final Skills & Capacity Assessment</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Applicant Batch Group <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="actInterviewBatch" placeholder="e.g. Batch 1 (KEEP Workers)" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Interviewer Unit</label>
-                        <input type="text" class="form-control form-control-sm bg-light" value="PESO Evaluator Unit" readonly>
-                    </div>
-                `;
-            } else if (cat === 'Assistance Distribution') {
-                container.innerHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Type of Assistance <span class="text-danger">*</span></label>
-                        <select class="form-select form-select-sm" id="actAssistanceType" required>
-                            <option value="Cash Grant Disbursement" selected>Cash Grant Disbursement</option>
-                            <option value="Starter Kits & Livelihood Equipment">Starter Kits & Livelihood Equipment</option>
-                            <option value="Food Cart & Commercial Tools">Food Cart & Commercial Tools</option>
-                            <option value="Paid Stipend / Salary Release">Paid Stipend / Salary Release</option>
-                            <option value="Educational Stipend & PPE">Educational Stipend & PPE</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Approved Beneficiary Batch <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="actAssistanceBatch" placeholder="e.g. Batch 1 (Micro-Retail)" required>
-                    </div>
-                `;
-            } else if (cat === 'Certificate Distribution') {
-                container.innerHTML = `
-                    <div class="col-md-5">
-                        <label class="form-label fw-semibold">Graduating Batch <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="actCertBatch" value="Batch 2026-A (LGU Intake)" required>
-                    </div>
-                    <div class="col-md-7">
-                        <label class="form-label fw-semibold">Eligible Recipients Auto-Pull (Training Records)</label>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-success px-2.5 py-1.5 font-monospace"><i class="bi bi-check-circle-fill me-1"></i>15 Eligible Completers</span>
-                            <button type="button" class="btn btn-sm btn-outline-success" onclick="openEligibleRecipientsModal('CKGIP', 'Batch 2026-A')">
-                                <i class="bi bi-people-fill me-1"></i> View Recipient Roster
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function handleProgramSelectionChange() {
-            const progSelect = document.getElementById('actProgram');
-            if (!progSelect) return;
-            const progId = Number(progSelect.value);
-            const prog = programsList.find(p => p.id === progId);
-            if (prog && document.getElementById('actTargetBeneficiaries')) {
-                document.getElementById('actTargetBeneficiaries').value = prog.target_beneficiaries || '';
-            }
-        }
-
-        function handleScheduleDateTimeChange() {
-            const startInput = document.getElementById('actStartDateTime');
-            const endInput = document.getElementById('actEndDateTime');
-            if (startInput && endInput && startInput.value && endInput.value) {
-                const s = new Date(startInput.value);
-                const e = new Date(endInput.value);
-                const diffMs = e - s;
-                if (diffMs > 0) {
-                    const hours = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
-                    document.getElementById('actDuration').value = `${hours} Hours`;
-                }
-            }
-        }
-
-        function handleCreateActivitySubmit(e) {
+        function handleCreateScheduleSlotSubmit(e) {
             e.preventDefault();
 
-            const title = document.getElementById('actTitle').value.trim();
-            const category = document.getElementById('actCategory').value;
             const progSelect = document.getElementById('actProgram');
-            const progId = Number(progSelect.value);
-            const prog = programsList.find(p => p.id === progId);
-            const startDateTime = document.getElementById('actStartDateTime').value;
-            const endDateTime = document.getElementById('actEndDateTime').value;
-            const duration = document.getElementById('actDuration').value || '3 Hours';
-            const location = document.getElementById('actLocation').value.trim();
+            const programCode = progSelect.value;
+            const programName = progSelect.options[progSelect.selectedIndex].text;
+            const subCategory = (document.getElementById('actSubCategory') ? document.getElementById('actSubCategory').value : '').trim();
+            const barangayCluster = (document.getElementById('actBarangayCluster') ? document.getElementById('actBarangayCluster').value : '').trim();
+            
+            const slotDate = document.getElementById('actSlotDate').value;
+            const timeSlot = document.getElementById('actTimeSlot').value;
+            const venue = document.getElementById('actLocation').value.trim();
+            
             const offSelect = document.getElementById('actOfficer');
             const officerId = Number(offSelect.value);
             const officer = officersList.find(o => o.id === officerId);
-            const officerName = officer ? `${officer.first_name} ${officer.last_name} (${officer.role})` : offSelect.options[offSelect.selectedIndex].text;
-            const targetBeneficiaries = document.getElementById('actTargetBeneficiaries').value.trim();
+            const officerName = officer ? `${officer.first_name} ${officer.last_name}` : offSelect.options[offSelect.selectedIndex].text;
+            
+            const remarks = (document.getElementById('actRemarks') ? document.getElementById('actRemarks').value : '').trim();
 
-            // Extract Category-Specific Fields
-            let topic = '';
-            let batchNum = '';
-            let trainerName = '';
-            let interviewType = '';
-            let assistanceType = '';
-            let autoPulledCount = 0;
-
-            if (category === 'Training Session') {
-                topic = document.getElementById('actTrainingTopic') ? document.getElementById('actTrainingTopic').value.trim() : '';
-                batchNum = document.getElementById('actTrainingBatch') ? document.getElementById('actTrainingBatch').value.trim() : 'Batch 1';
-                trainerName = document.getElementById('actTrainerName') ? document.getElementById('actTrainerName').value.trim() : '';
-            } else if (category === 'Interview') {
-                interviewType = document.getElementById('actInterviewType') ? document.getElementById('actInterviewType').value : 'Initial Intake';
-                batchNum = document.getElementById('actInterviewBatch') ? document.getElementById('actInterviewBatch').value.trim() : 'Batch 1';
-            } else if (category === 'Assistance Distribution') {
-                assistanceType = document.getElementById('actAssistanceType') ? document.getElementById('actAssistanceType').value : 'Cash Grant';
-                batchNum = document.getElementById('actAssistanceBatch') ? document.getElementById('actAssistanceBatch').value.trim() : 'Batch 1';
-            } else if (category === 'Certificate Distribution') {
-                batchNum = document.getElementById('actCertBatch') ? document.getElementById('actCertBatch').value.trim() : 'Batch 2026-A';
-                autoPulledCount = 15;
+            // PAST DATE RESTRICTION
+            const todayStr = '2026-08-01';
+            if (slotDate < todayStr) {
+                const alertBox = document.getElementById('createActivitySafeguardAlert');
+                const alertMsg = document.getElementById('createActivitySafeguardAlertMsg');
+                if (alertBox && alertMsg) {
+                    alertMsg.textContent = 'Past Date Restriction: System blocks scheduling program slots on past dates.';
+                    alertBox.classList.remove('d-none');
+                }
+                window.showSystemNotification({
+                    title: 'Past Date Restriction',
+                    message: 'Cannot create schedule slots on past dates.',
+                    type: 'warning'
+                });
+                return;
             }
 
-            const newActivity = {
+            // CONFLICT VALIDATION RESTRICTION (Same officer, date, and overlapping time)
+            const hasConflict = activitiesList.some(a => {
+                const isSameOfficer = (a.officer_id === officerId || a.assigned_officer_id === officerId);
+                const isSameDate = (a.date === slotDate || (a.start_datetime || '').startsWith(slotDate));
+                const isSameTime = (a.time === timeSlot || a.schedule_time === timeSlot);
+                const isNotCancelled = a.slot_status !== 'Cancelled' && a.status !== 'Cancelled';
+                return isSameOfficer && isSameDate && isSameTime && isNotCancelled;
+            });
+
+            if (hasConflict) {
+                const alertBox = document.getElementById('createActivitySafeguardAlert');
+                const alertMsg = document.getElementById('createActivitySafeguardAlertMsg');
+                if (alertBox && alertMsg) {
+                    alertMsg.textContent = `Conflict Validation: ${officerName} already has an assigned slot at ${timeSlot} on ${slotDate}.`;
+                    alertBox.classList.remove('d-none');
+                }
+                window.showSystemNotification({
+                    title: 'Schedule Conflict Restriction',
+                    message: `${officerName} is already booked at that time. Please pick another time or officer.`,
+                    type: 'warning'
+                });
+                return;
+            }
+
+            const newSlotId = 'SLOT-' + String(Date.now()).slice(-4);
+            const newSlot = {
                 id: Date.now(),
-                title,
-                category,
-                program_id: progId,
-                program_code: prog ? prog.code : 'PESO',
-                program_name: prog ? prog.name : 'Public Employment Program',
-                start_datetime: startDateTime,
-                end_datetime: endDateTime,
-                duration,
-                location,
+                slot_id: newSlotId,
+                program_code: programCode,
+                program_name: programName,
+                program_sub_category: subCategory || 'General Program Activity',
+                barangay_cluster: barangayCluster || '',
+                title: `${programCode}: ${subCategory || programName}`,
+                category: 'Program Activity',
+                date: slotDate,
+                start_datetime: `${slotDate}T${timeSlot.split(' - ')[0] || '09:00'}`,
+                end_datetime: `${slotDate}T${timeSlot.split(' - ')[1] || '10:00'}`,
+                time: timeSlot,
+                schedule_time: timeSlot,
+                duration: '1 Hour',
+                venue: venue,
+                location: venue,
+                officer_id: officerId,
+                officer_name: officerName,
                 assigned_officer_id: officerId,
-                assigned_officer_name: officerName,
-                target_beneficiaries: targetBeneficiaries,
-                status: 'Scheduled',
-                topic,
-                batch_num: batchNum,
-                trainer_name: trainerName,
-                interview_type: interviewType,
-                assistance_type: assistanceType,
-                auto_pulled_recipients_count: autoPulledCount,
+                assigned_officer_name: `${officerName} (PESO Officer)`,
+                remarks: remarks,
+                slot_status: 'Active',
+                status: 'Active',
+                is_locked: false,
+                lock_status: 'Unlocked',
+                scheduling_mode: 'Unassigned',
+                beneficiary_name: '',
+                batch_name: '',
+                batch_count: 0,
                 created_at: new Date().toISOString(),
                 created_by: 'PESO Admin',
                 updated_at: new Date().toISOString()
             };
 
-            // SAFEGUARD LAYER DOUBLE-VALIDATION (Past Date & Schedule Conflict)
-            if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.validateActivitySchedule) {
-                const check = PESOSafeguards.validateActivitySchedule(newActivity, activitiesList);
-                if (!check.valid) {
-                    const alertBox = document.getElementById('createActivitySafeguardAlert');
-                    const alertMsg = document.getElementById('createActivitySafeguardAlertMsg');
-                    if (alertBox && alertMsg) {
-                        alertMsg.textContent = check.reason;
-                        alertBox.classList.remove('d-none');
-                    }
-                    window.showSystemNotification({
-                        title: 'Scheduling Validation Notice',
-                        message: check.reason,
-                        type: 'warning'
-                    });
-                    return;
-                }
-            }
+            // Post to backend API
+            fetch('/api/schedule-slots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newSlot)
+            }).catch(() => {});
 
-            // Save to State & LocalStorage
-            activitiesList.unshift(newActivity);
+            // Update in-memory & LocalStorage
+            activitiesList.unshift(newSlot);
             localStorage.setItem('peso_scheduled_activities_v1', JSON.stringify(activitiesList));
 
-            // Log Immutable Audit Event with Cryptographic Hash
-            logAuditEvent('CREATE_SCHEDULED_ACTIVITY', `Created new scheduled activity "${newActivity.title}" (${newActivity.category}) on ${newActivity.start_datetime} at ${newActivity.location}. Assigned to ${newActivity.assigned_officer_name}`);
+            // Log Audit Event
+            logAuditEvent('CREATE_PROGRAM_SCHEDULE_SLOT', `Admin created program slot ${newSlot.slot_id} for ${programCode} on ${slotDate} (${timeSlot}) at ${venue}. Assigned Officer: ${officerName}`);
 
-            // Close Modal & Refresh
             const modalEl = document.getElementById('createActivityModal');
             const inst = bootstrap.Modal.getInstance(modalEl);
             if (inst) inst.hide();
@@ -4289,88 +4194,94 @@
             renderSchedulingModule();
 
             window.showSystemNotification({
-                title: 'Activity Scheduled Successfully',
-                message: `Activity "${newActivity.title}" published and dispatched to PESO Officer's Daily Schedule.`,
+                title: 'Schedule Slot Created',
+                message: `Slot ${newSlot.slot_id} created with program linkage (${programCode}) and dispatched to ${officerName}.`,
                 type: 'success'
             });
         }
+        window.handleCreateActivitySubmit = handleCreateScheduleSlotSubmit;
 
         // =========================================================================
-        // 4. VIEW ACTIVITY DETAILS MODAL (READ-ONLY)
+        // 4. VIEW SLOT DETAILS MODAL (STRICTLY READ-ONLY)
         // =========================================================================
 
-        function openViewActivityDetailsModal(actId) {
-            activeViewingActivityId = actId;
-            const act = activitiesList.find(a => a.id === actId);
+        function openViewSlotDetailsModal(slotId) {
+            activeViewingActivityId = slotId;
+            const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
             if (!act) return;
 
-            document.getElementById('viewActModalTitle').textContent = act.title;
-            document.getElementById('viewActTitle').textContent = act.title;
-            document.getElementById('viewActCategoryBadge').textContent = act.category;
-            document.getElementById('viewActProgramBadge').textContent = act.program_code;
+            document.getElementById('viewActModalTitle').textContent = `Program Slot: ${act.slot_id || 'SLOT-' + act.id}`;
+            document.getElementById('viewActSlotIdBadge').textContent = act.slot_id || `SLOT-${act.id}`;
+            document.getElementById('viewActProgramBadge').textContent = act.program_code || 'TUPAD';
+            document.getElementById('viewActTitle').textContent = act.title || act.program_name || 'Program Schedule Session';
+            document.getElementById('viewActSubCategory').textContent = act.program_sub_category ? `Sub-category: ${act.program_sub_category}` : 'General Program Operations';
 
-            const startDate = new Date(act.start_datetime || act.date);
-            const endDate = act.end_datetime ? new Date(act.end_datetime) : new Date(startDate.getTime() + 3600 * 1000 * 3);
-            const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
-            const timeStr = `${startDate.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - ${endDate.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
-            
+            const dateStr = act.date || (act.start_datetime ? act.start_datetime.substring(0,10) : '2026-08-08');
+            const timeStr = act.time || act.schedule_time || '09:00 AM - 10:00 AM';
             document.getElementById('viewActDateTime').textContent = `${dateStr} • ${timeStr}`;
-            document.getElementById('viewActDuration').textContent = `Duration: ${act.duration || '3 Hours'}`;
-            document.getElementById('viewActLocation').textContent = act.location;
-            document.getElementById('viewActTargetBeneficiaries').textContent = act.target_beneficiaries;
-            document.getElementById('viewActAssignedOfficer').textContent = act.assigned_officer_name;
+            document.getElementById('viewActDuration').textContent = `Assigned Cluster: ${act.barangay_cluster || 'Citywide / General'}`;
+
+            document.getElementById('viewActLocation').textContent = act.venue || act.location || 'PESO Main Office';
+            document.getElementById('viewActCluster').textContent = act.remarks ? `Admin Remarks: "${act.remarks}"` : 'No special remarks entered.';
+
+            document.getElementById('viewActAssignedOfficer').textContent = act.officer_name || act.assigned_officer_name || 'Assigned Officer';
+            
+            // Lock Badge
+            const isLocked = act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked';
+            const lockBadge = document.getElementById('viewActLockBadge');
+            if (lockBadge) {
+                lockBadge.className = isLocked ? 'badge bg-dark text-white' : 'badge bg-secondary-subtle text-dark border';
+                lockBadge.innerHTML = isLocked ? '<i class="bi bi-lock-fill me-1"></i>Locked (Protected)' : '<i class="bi bi-unlock me-1"></i>Unlocked';
+            }
 
             // Status Badge with Accessible Text Label
             const statusBadge = document.getElementById('viewActStatusBadge');
             if (statusBadge) {
-                if (act.status === 'Ongoing') {
-                    statusBadge.className = 'legend-badge status-pill-green';
-                    statusBadge.textContent = '🟢 Ongoing / Today';
-                } else if (act.status === 'Postponed') {
-                    statusBadge.className = 'legend-badge status-pill-yellow';
-                    statusBadge.textContent = '🟡 Postponed';
-                } else if (act.status === 'Cancelled') {
-                    statusBadge.className = 'legend-badge status-pill-red';
+                if (act.slot_status === 'Cancelled' || act.status === 'Cancelled') {
+                    statusBadge.className = 'badge bg-danger-subtle text-danger border border-danger px-3 py-1.5 fs-6';
                     statusBadge.textContent = '🔴 Cancelled';
-                } else if (act.status === 'Completed') {
-                    statusBadge.className = 'legend-badge status-pill-gray';
+                } else if (act.slot_status === 'Completed' || act.status === 'Completed') {
+                    statusBadge.className = 'badge bg-success text-white px-3 py-1.5 fs-6';
                     statusBadge.textContent = '⚫ Completed';
+                } else if (isLocked) {
+                    statusBadge.className = 'badge bg-dark text-white px-3 py-1.5 fs-6';
+                    statusBadge.textContent = '🔒 Locked Slot';
                 } else {
-                    statusBadge.className = 'legend-badge status-pill-blue';
-                    statusBadge.textContent = '🔵 Scheduled';
+                    statusBadge.className = 'badge bg-success text-white px-3 py-1.5 fs-6';
+                    statusBadge.textContent = '🟢 Active Slot';
                 }
             }
 
-            // Category Parameters
-            const paramsContainer = document.getElementById('viewActCategoryParams');
-            paramsContainer.innerHTML = '';
+            // Target / Beneficiary info
+            const mode = act.scheduling_mode || 'Unassigned';
+            document.getElementById('viewActTargetBeneficiaries').textContent = `Mode: ${mode}`;
 
-            if (act.category === 'Training Session') {
+            const paramsContainer = document.getElementById('viewActCategoryParams');
+            if (mode === 'Individual' && act.beneficiary_name) {
                 paramsContainer.innerHTML = `
-                    <div class="col-md-6"><span class="text-muted">Topic:</span> <strong class="text-dark">${escapeHtml(act.topic || 'N/A')}</strong></div>
-                    <div class="col-md-3"><span class="text-muted">Batch:</span> <span class="badge bg-light text-dark border font-monospace">${escapeHtml(act.batch_num || 'N/A')}</span></div>
-                    <div class="col-md-3"><span class="text-muted">Trainer:</span> <strong class="text-primary">${escapeHtml(act.trainer_name || 'PESO Team')}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Beneficiary Name:</span> <strong class="text-dark">${escapeHtml(act.beneficiary_name)}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Contact Number:</span> <span class="badge bg-light text-dark font-monospace">${escapeHtml(act.beneficiary_phone || '09XX-***-XXXX')}</span></div>
+                    <div class="col-md-6"><span class="text-muted">Barangay:</span> <strong>${escapeHtml(act.barangay || 'Poblacion')}</strong></div>
+                    <div class="col-md-6"><span class="text-muted">Attendance Status:</span> <span class="badge ${act.attendance_status === 'Present' ? 'bg-success' : (act.attendance_status === 'Absent' ? 'bg-danger' : 'bg-warning text-dark')}">${act.attendance_status || 'Pending'}</span></div>
                 `;
-            } else if (act.category === 'Interview') {
+            } else if (mode === 'Batch' && act.batch_name) {
                 paramsContainer.innerHTML = `
-                    <div class="col-md-6"><span class="text-muted">Interview Type:</span> <strong class="text-dark">${escapeHtml(act.interview_type || 'Intake Screening')}</strong></div>
-                    <div class="col-md-6"><span class="text-muted">Batch Group:</span> <span class="badge bg-light text-dark border font-monospace">${escapeHtml(act.batch_num || 'N/A')}</span></div>
+                    <div class="col-md-6"><span class="text-muted">Batch Identifier:</span> <strong class="text-primary">${escapeHtml(act.batch_name)}</strong></div>
+                    <div class="col-md-3"><span class="text-muted">Beneficiary Count:</span> <span class="badge bg-primary">${act.batch_count || 25} Pax</span></div>
+                    <div class="col-md-3"><span class="text-muted">Attendance:</span> <span class="badge bg-success text-white">${act.attendance_status || 'Enrolled'}</span></div>
+                    <div class="col-12"><span class="text-muted">Cluster Metadata:</span> <strong class="text-dark">${escapeHtml(act.barangay_cluster || 'Cluster Assigned')}</strong></div>
                 `;
-            } else if (act.category === 'Assistance Distribution') {
+            } else {
                 paramsContainer.innerHTML = `
-                    <div class="col-md-6"><span class="text-muted">Assistance Type:</span> <strong class="text-success">${escapeHtml(act.assistance_type || 'Cash Grant')}</strong></div>
-                    <div class="col-md-6"><span class="text-muted">Batch:</span> <span class="badge bg-light text-dark border font-monospace">${escapeHtml(act.batch_num || 'N/A')}</span></div>
-                `;
-            } else if (act.category === 'Certificate Distribution') {
-                paramsContainer.innerHTML = `
-                    <div class="col-md-6"><span class="text-muted">Program & Batch:</span> <strong>${escapeHtml(act.program_code)} - ${escapeHtml(act.batch_num || 'Batch 2026-A')}</strong></div>
-                    <div class="col-md-6"><span class="text-muted">Eligible Completers:</span> <span class="badge bg-success">${act.auto_pulled_recipients_count || 15} Graduates (Auto-pulled)</span></div>
+                    <div class="col-12 text-muted fst-italic">
+                        <i class="bi bi-info-circle me-1 text-primary"></i>Slot is ready for PESO Officer to assign individual beneficiaries or community batch rosters.
+                    </div>
                 `;
             }
 
             // Cancellation Notice Box
             const cancelBox = document.getElementById('viewActCancellationBox');
-            if (act.status === 'Cancelled') {
+            if (act.slot_status === 'Cancelled' || act.status === 'Cancelled') {
                 cancelBox.classList.remove('d-none');
                 document.getElementById('viewActCancellationReason').textContent = act.cancellation_reason || 'Administrative cancellation recorded.';
                 document.getElementById('viewActCancellationTimestamp').textContent = `Cancelled on: ${new Date(act.cancelled_at || act.updated_at).toLocaleString()} by ${act.cancelled_by || 'PESO Admin'}`;
@@ -4378,209 +4289,156 @@
                 cancelBox.classList.add('d-none');
             }
 
-            // Audit Hash & Timestamps
+            // Audit Hash
             document.getElementById('viewActAuditTimestamp').textContent = new Date(act.created_at || Date.now()).toLocaleString();
             document.getElementById('viewActAuditHash').textContent = `Hash: SHA-${Math.abs(act.id).toString(16).toUpperCase()}`;
 
-            // Cancel button state in footer
+            // Buttons visibility based on status
+            const editBtn = document.getElementById('viewModalEditBtn');
+            const lockBtn = document.getElementById('viewModalLockToggleBtn');
+            const compBtn = document.getElementById('viewModalCompleteBtn');
             const cancelBtn = document.getElementById('viewModalCancelBtn');
-            if (cancelBtn) {
-                cancelBtn.style.display = (act.status === 'Cancelled') ? 'none' : 'inline-block';
+
+            if (editBtn) editBtn.style.display = isLocked || isCancelled || isCompleted ? 'none' : 'inline-block';
+            if (lockBtn) {
+                lockBtn.style.display = isCancelled || isCompleted ? 'none' : 'inline-block';
+                lockBtn.innerHTML = isLocked ? '<i class="bi bi-unlock-fill me-1"></i> Unlock Slot' : '<i class="bi bi-lock-fill me-1"></i> Lock Slot';
             }
+            if (compBtn) compBtn.style.display = isCompleted || isCancelled ? 'none' : 'inline-block';
+            if (cancelBtn) cancelBtn.style.display = isCancelled || isCompleted ? 'none' : 'inline-block';
 
             new bootstrap.Modal(document.getElementById('viewActivityDetailsModal')).show();
-            logAuditEvent('VIEW_SCHEDULED_ACTIVITY_DETAILS', `Inspected read-only details for activity ID ${act.id} (${act.title})`);
+            logAuditEvent('VIEW_SCHEDULE_SLOT_DETAILS', `Inspected read-only details for slot ${act.slot_id || act.id} (${act.program_code})`);
         }
+        window.openViewActivityDetailsModal = openViewSlotDetailsModal;
 
         function triggerEditFromView() {
             const viewModalEl = document.getElementById('viewActivityDetailsModal');
             const inst = bootstrap.Modal.getInstance(viewModalEl);
             if (inst) inst.hide();
+            if (activeViewingActivityId) openEditSlotModal(activeViewingActivityId);
+        }
 
-            if (activeViewingActivityId) {
-                openEditActivityModal(activeViewingActivityId);
-            }
+        function triggerLockFromView() {
+            const viewModalEl = document.getElementById('viewActivityDetailsModal');
+            const inst = bootstrap.Modal.getInstance(viewModalEl);
+            if (inst) inst.hide();
+            if (activeViewingActivityId) toggleSlotLock(activeViewingActivityId);
+        }
+
+        function triggerCompleteFromView() {
+            const viewModalEl = document.getElementById('viewActivityDetailsModal');
+            const inst = bootstrap.Modal.getInstance(viewModalEl);
+            if (inst) inst.hide();
+            if (activeViewingActivityId) markSlotCompleted(activeViewingActivityId);
         }
 
         function triggerCancelFromView() {
             const viewModalEl = document.getElementById('viewActivityDetailsModal');
             const inst = bootstrap.Modal.getInstance(viewModalEl);
             if (inst) inst.hide();
-
-            if (activeViewingActivityId) {
-                openCancelActivityModal(activeViewingActivityId);
-            }
+            if (activeViewingActivityId) openCancelSlotModal(activeViewingActivityId);
         }
 
         // =========================================================================
-        // 5. EDIT ACTIVITY MODAL & SAVING UPDATES
+        // 5. EDIT PROGRAM SLOT & REASSIGN OFFICER (ADMIN ONLY)
         // =========================================================================
 
-        function openEditActivityModal(actId) {
-            const act = activitiesList.find(a => a.id === actId);
+        function openEditSlotModal(slotId) {
+            const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
             if (!act) return;
 
+            // LOCK RESTRICTION: Block modification if slot is locked
+            if (act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked') {
+                window.showSystemNotification({
+                    title: 'Slot Locked',
+                    message: 'Lock Restriction: This slot is locked by Admin. Unlock it first if you need to reassign officers.',
+                    type: 'warning'
+                });
+                return;
+            }
+
             document.getElementById('editActId').value = act.id;
-            document.getElementById('editActIdBadge').textContent = `ID: ${act.id}`;
-            document.getElementById('editActTitle').value = act.title;
-            document.getElementById('editActCategory').value = act.category;
+            document.getElementById('editActIdBadge').textContent = act.slot_id || `ID: ${act.id}`;
+            document.getElementById('editActProgramCode').value = `${act.program_code} - ${act.program_name || 'Program Linkage'}`;
 
             populateSchedulingDropdowns();
-            document.getElementById('editActProgram').value = act.program_id;
-            document.getElementById('editActStartDateTime').value = (act.start_datetime || '').substring(0, 16);
-            document.getElementById('editActEndDateTime').value = (act.end_datetime || '').substring(0, 16);
-            document.getElementById('editActDuration').value = act.duration || '3 Hours';
-            document.getElementById('editActLocation').value = act.location || '';
-            document.getElementById('editActOfficer').value = act.assigned_officer_id || 1;
-            document.getElementById('editActTargetBeneficiaries').value = act.target_beneficiaries || '';
-
-            handleEditCategoryChange(act);
+            document.getElementById('editActOfficer').value = act.officer_id || act.assigned_officer_id || 1;
+            document.getElementById('editActDate').value = act.date || (act.start_datetime ? act.start_datetime.substring(0,10) : '2026-08-10');
+            document.getElementById('editActTimeSlot').value = act.time || act.schedule_time || '09:00 AM - 10:00 AM';
+            document.getElementById('editActLocation').value = act.venue || act.location || 'PESO Main Office';
+            document.getElementById('editActRemarks').value = act.remarks || '';
 
             new bootstrap.Modal(document.getElementById('editActivityModal')).show();
         }
+        window.openEditActivityModal = openEditSlotModal;
 
-        function handleEditCategoryChange(existingAct) {
-            const cat = document.getElementById('editActCategory').value;
-            const container = document.getElementById('editDynamicCategoryInputs');
-            if (!container) return;
-
-            const act = existingAct || activitiesList.find(a => a.id === Number(document.getElementById('editActId').value)) || {};
-
-            if (cat === 'Training Session') {
-                container.innerHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Training Topic <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="editActTrainingTopic" value="${escapeHtml(act.topic || '')}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Batch <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="editActTrainingBatch" value="${escapeHtml(act.batch_num || '')}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Trainer <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="editActTrainerName" value="${escapeHtml(act.trainer_name || '')}" required>
-                    </div>
-                `;
-            } else if (cat === 'Interview') {
-                container.innerHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Interview Type <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="editActInterviewType" value="${escapeHtml(act.interview_type || 'Intake Screening')}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Batch Group <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="editActInterviewBatch" value="${escapeHtml(act.batch_num || '')}" required>
-                    </div>
-                `;
-            } else if (cat === 'Assistance Distribution') {
-                container.innerHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Assistance Type <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="editActAssistanceType" value="${escapeHtml(act.assistance_type || 'Cash Grant')}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Batch <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="editActAssistanceBatch" value="${escapeHtml(act.batch_num || '')}" required>
-                    </div>
-                `;
-            } else if (cat === 'Certificate Distribution') {
-                container.innerHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Batch <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="editActCertBatch" value="${escapeHtml(act.batch_num || 'Batch 2026-A')}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Eligible Completers</label>
-                        <div class="fw-bold text-success mt-1">15 Completers (Auto-Pulled from Training Records)</div>
-                    </div>
-                `;
-            }
-        }
-
-        function handleEditScheduleDateTimeChange() {
-            const startInput = document.getElementById('editActStartDateTime');
-            const endInput = document.getElementById('editActEndDateTime');
-            if (startInput && endInput && startInput.value && endInput.value) {
-                const s = new Date(startInput.value);
-                const e = new Date(endInput.value);
-                const diffMs = e - s;
-                if (diffMs > 0) {
-                    const hours = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
-                    document.getElementById('editActDuration').value = `${hours} Hours`;
-                }
-            }
-        }
-
-        function handleSaveActivityUpdates(e) {
+        function handleSaveSlotUpdates(e) {
             e.preventDefault();
             const actId = Number(document.getElementById('editActId').value);
             const act = activitiesList.find(a => a.id === actId);
             if (!act) return;
 
-            const title = document.getElementById('editActTitle').value.trim();
-            const category = document.getElementById('editActCategory').value;
-            const progSelect = document.getElementById('editActProgram');
-            const progId = Number(progSelect.value);
-            const prog = programsList.find(p => p.id === progId);
-            const startDateTime = document.getElementById('editActStartDateTime').value;
-            const endDateTime = document.getElementById('editActEndDateTime').value;
-            const duration = document.getElementById('editActDuration').value || '3 Hours';
-            const location = document.getElementById('editActLocation').value.trim();
-            const offSelect = document.getElementById('editActOfficer');
-            const officerId = Number(offSelect.value);
-            const officer = officersList.find(o => o.id === officerId);
-            const officerName = officer ? `${officer.first_name} ${officer.last_name} (${officer.role})` : offSelect.options[offSelect.selectedIndex].text;
-            const targetBeneficiaries = document.getElementById('editActTargetBeneficiaries').value.trim();
-
-            const updatedData = {
-                id: actId,
-                title,
-                category,
-                program_id: progId,
-                program_code: prog ? prog.code : act.program_code,
-                program_name: prog ? prog.name : act.program_name,
-                start_datetime: startDateTime,
-                end_datetime: endDateTime,
-                duration,
-                location,
-                assigned_officer_id: officerId,
-                assigned_officer_name: officerName,
-                target_beneficiaries: targetBeneficiaries
-            };
-
-            // SAFEGUARD LAYER VALIDATION (Excluding self)
-            if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.validateActivitySchedule) {
-                const check = PESOSafeguards.validateActivitySchedule(updatedData, activitiesList);
-                if (!check.valid) {
-                    window.showSystemNotification({
-                        title: 'Schedule Update Validation Notice',
-                        message: check.reason,
-                        type: 'warning'
-                    });
-                    return;
-                }
+            if (act.is_locked || act.slot_status === 'Locked') {
+                window.showSystemNotification({
+                    title: 'Lock Restriction',
+                    message: 'Slot is locked and cannot be updated.',
+                    type: 'warning'
+                });
+                return;
             }
 
-            // Apply updates
-            Object.assign(act, updatedData);
+            const offSelect = document.getElementById('editActOfficer');
+            const newOfficerId = Number(offSelect.value);
+            const officer = officersList.find(o => o.id === newOfficerId);
+            const newOfficerName = officer ? `${officer.first_name} ${officer.last_name}` : offSelect.options[offSelect.selectedIndex].text;
+            
+            const newDate = document.getElementById('editActDate').value;
+            const newTime = document.getElementById('editActTimeSlot').value;
+            const newVenue = document.getElementById('editActLocation').value.trim();
+            const newRemarks = document.getElementById('editActRemarks').value.trim();
+
+            // Check conflict for new officer/date/time
+            const hasConflict = activitiesList.some(a => {
+                if (a.id === actId) return false;
+                const isSameOfficer = (a.officer_id === newOfficerId || a.assigned_officer_id === newOfficerId);
+                const isSameDate = (a.date === newDate || (a.start_datetime || '').startsWith(newDate));
+                const isSameTime = (a.time === newTime || a.schedule_time === newTime);
+                const isNotCancelled = a.slot_status !== 'Cancelled' && a.status !== 'Cancelled';
+                return isSameOfficer && isSameDate && isSameTime && isNotCancelled;
+            });
+
+            if (hasConflict) {
+                window.showSystemNotification({
+                    title: 'Schedule Conflict',
+                    message: `${newOfficerName} already has an assigned slot at ${newTime} on ${newDate}.`,
+                    type: 'warning'
+                });
+                return;
+            }
+
+            const previousOfficer = act.officer_name || act.assigned_officer_name;
+            act.officer_id = newOfficerId;
+            act.officer_name = newOfficerName;
+            act.assigned_officer_id = newOfficerId;
+            act.assigned_officer_name = `${newOfficerName} (PESO Officer)`;
+            act.date = newDate;
+            act.time = newTime;
+            act.schedule_time = newTime;
+            act.venue = newVenue;
+            act.location = newVenue;
+            act.remarks = newRemarks;
             act.updated_at = new Date().toISOString();
 
-            if (category === 'Training Session') {
-                act.topic = document.getElementById('editActTrainingTopic') ? document.getElementById('editActTrainingTopic').value.trim() : act.topic;
-                act.batch_num = document.getElementById('editActTrainingBatch') ? document.getElementById('editActTrainingBatch').value.trim() : act.batch_num;
-                act.trainer_name = document.getElementById('editActTrainerName') ? document.getElementById('editActTrainerName').value.trim() : act.trainer_name;
-            } else if (category === 'Interview') {
-                act.interview_type = document.getElementById('editActInterviewType') ? document.getElementById('editActInterviewType').value : act.interview_type;
-                act.batch_num = document.getElementById('editActInterviewBatch') ? document.getElementById('editActInterviewBatch').value.trim() : act.batch_num;
-            } else if (category === 'Assistance Distribution') {
-                act.assistance_type = document.getElementById('editActAssistanceType') ? document.getElementById('editActAssistanceType').value : act.assistance_type;
-                act.batch_num = document.getElementById('editActAssistanceBatch') ? document.getElementById('editActAssistanceBatch').value.trim() : act.batch_num;
-            } else if (category === 'Certificate Distribution') {
-                act.batch_num = document.getElementById('editActCertBatch') ? document.getElementById('editActCertBatch').value.trim() : act.batch_num;
-            }
+            // Call backend API
+            fetch(`/api/schedule-slots/${actId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(act)
+            }).catch(() => {});
 
             localStorage.setItem('peso_scheduled_activities_v1', JSON.stringify(activitiesList));
-            logAuditEvent('UPDATE_SCHEDULED_ACTIVITY', `Updated scheduled activity "${act.title}" (${act.id}). Date: ${act.start_datetime}, Venue: ${act.location}, Officer: ${act.assigned_officer_name}`);
+            logAuditEvent('REASSIGN_SLOT_OFFICER', `Admin updated slot ${act.slot_id || act.id}. Reassigned officer from "${previousOfficer}" to "${newOfficerName}". Scheduled for ${newDate} (${newTime}) at ${newVenue}`);
 
             const modalEl = document.getElementById('editActivityModal');
             const inst = bootstrap.Modal.getInstance(modalEl);
@@ -4589,28 +4447,98 @@
             renderSchedulingModule();
 
             window.showSystemNotification({
-                title: 'Activity Updated Successfully',
-                message: `Changes for "${act.title}" have been saved and published.`,
+                title: 'Slot Updated & Reassigned',
+                message: `Slot ${act.slot_id || act.id} reassigned to ${newOfficerName}.`,
+                type: 'success'
+            });
+        }
+        window.handleSaveActivityUpdates = handleSaveSlotUpdates;
+
+        // =========================================================================
+        // 6. LOCK / UNLOCK SLOT TOGGLE
+        // =========================================================================
+
+        function toggleSlotLock(slotId) {
+            const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
+            if (!act) return;
+
+            const nextLockState = !act.is_locked;
+            act.is_locked = nextLockState;
+            act.lock_status = nextLockState ? 'Locked' : 'Unlocked';
+            if (nextLockState && act.slot_status === 'Active') {
+                act.slot_status = 'Locked';
+            } else if (!nextLockState && act.slot_status === 'Locked') {
+                act.slot_status = 'Active';
+            }
+            act.updated_at = new Date().toISOString();
+
+            fetch(`/api/schedule-slots/${act.id}/lock`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_locked: nextLockState })
+            }).catch(() => {});
+
+            localStorage.setItem('peso_scheduled_activities_v1', JSON.stringify(activitiesList));
+            logAuditEvent('LOCK_SCHEDULE_SLOT', `Admin ${nextLockState ? 'locked' : 'unlocked'} slot ${act.slot_id || act.id} (${act.program_code}). Reassignment ${nextLockState ? 'prevented' : 'permitted'}.`);
+
+            renderSchedulingModule();
+
+            window.showSystemNotification({
+                title: nextLockState ? 'Slot Locked 🔒' : 'Slot Unlocked 🔓',
+                message: nextLockState 
+                    ? `Slot ${act.slot_id || act.id} is now locked. Officer reassignment is prevented.`
+                    : `Slot ${act.slot_id || act.id} is unlocked and open for workload rebalancing.`,
+                type: nextLockState ? 'dark' : 'info'
+            });
+        }
+
+        // =========================================================================
+        // 7. COMPLETE SLOT (LIFECYCLE FINALIZATION)
+        // =========================================================================
+
+        function markSlotCompleted(slotId) {
+            const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
+            if (!act) return;
+
+            act.slot_status = 'Completed';
+            act.status = 'Completed';
+            act.updated_at = new Date().toISOString();
+
+            fetch(`/api/schedule-slots/${act.id}/complete`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ remarks: 'Finalized by Admin' })
+            }).catch(() => {});
+
+            localStorage.setItem('peso_scheduled_activities_v1', JSON.stringify(activitiesList));
+            logAuditEvent('COMPLETE_SCHEDULE_SLOT', `Admin marked slot ${act.slot_id || act.id} (${act.program_code}) as Completed.`);
+
+            renderSchedulingModule();
+
+            window.showSystemNotification({
+                title: 'Slot Marked Completed',
+                message: `Slot ${act.slot_id || act.id} lifecycle finalized and archived for reporting.`,
                 type: 'success'
             });
         }
 
         // =========================================================================
-        // 6. CANCEL ACTIVITY CONFIRMATION & AUDIT LOGGING
+        // 8. CANCEL PROGRAM SLOT CONFIRMATION & AUDIT LOGGING
         // =========================================================================
 
-        function openCancelActivityModal(actId) {
-            const act = activitiesList.find(a => a.id === actId);
+        function openCancelSlotModal(slotId) {
+            const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
             if (!act) return;
 
             document.getElementById('cancelActId').value = act.id;
-            document.getElementById('cancelActTitlePrompt').textContent = act.title;
+            document.getElementById('cancelActTitlePrompt').textContent = `${act.slot_id || 'SLOT'} (${act.program_code}: ${act.venue || 'PESO Office'})`;
             document.getElementById('cancelActReason').value = '';
 
             new bootstrap.Modal(document.getElementById('cancelActivityModal')).show();
         }
+        window.openCancelActivityModal = openCancelSlotModal;
 
-        function handleConfirmActivityCancellation() {
+        function handleConfirmSlotCancellation() {
             const actId = Number(document.getElementById('cancelActId').value);
             const act = activitiesList.find(a => a.id === actId);
             if (!act) return;
@@ -4619,20 +4547,27 @@
             if (!reason) {
                 window.showSystemNotification({
                     title: 'Cancellation Reason Required',
-                    message: 'Mandatory Compliance: Please enter a reason for cancelling this activity.',
+                    message: 'Mandatory Compliance: Please enter a reason for cancelling this slot.',
                     type: 'warning'
                 });
                 return;
             }
 
+            act.slot_status = 'Cancelled';
             act.status = 'Cancelled';
             act.cancellation_reason = reason;
             act.cancelled_at = new Date().toISOString();
             act.cancelled_by = 'PESO Admin';
             act.updated_at = new Date().toISOString();
 
+            fetch(`/api/schedule-slots/${actId}/cancel`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            }).catch(() => {});
+
             localStorage.setItem('peso_scheduled_activities_v1', JSON.stringify(activitiesList));
-            logAuditEvent('CANCEL_SCHEDULED_ACTIVITY', `Cancelled activity ID ${act.id} ("${act.title}"). Reason: "${reason}". Red label retained for compliance tracking.`);
+            logAuditEvent('CANCEL_SCHEDULE_SLOT', `Cancelled slot ID ${act.slot_id || act.id} (${act.program_code}). Reason: "${reason}". Red label retained for compliance tracking.`);
 
             const modalEl = document.getElementById('cancelActivityModal');
             const inst = bootstrap.Modal.getInstance(modalEl);
@@ -4641,14 +4576,15 @@
             renderSchedulingModule();
 
             window.showSystemNotification({
-                title: 'Activity Cancelled',
-                message: `Activity "${act.title}" is now marked Cancelled (🔴 Red label visible in calendar and archive).`,
+                title: 'Slot Cancelled',
+                message: `Slot ${act.slot_id || act.id} is marked Cancelled (🔴 Red label visible in calendar and archive).`,
                 type: 'warning'
             });
         }
+        window.handleConfirmActivityCancellation = handleConfirmSlotCancellation;
 
         // =========================================================================
-        // 7. SCHEDULING ARCHIVE SECTION & EXPORT TOOLS
+        // 9. SCHEDULING ARCHIVE SECTION
         // =========================================================================
 
         function renderSchedulingArchive() {
@@ -4657,19 +4593,19 @@
             tbody.innerHTML = '';
 
             const search = (document.getElementById('archiveSchedSearchInput') ? document.getElementById('archiveSchedSearchInput').value : '').toLowerCase().trim();
-            const category = document.getElementById('archiveSchedCategoryFilter') ? document.getElementById('archiveSchedCategoryFilter').value : 'ALL';
             const statusFilter = document.getElementById('archiveSchedStatusFilter') ? document.getElementById('archiveSchedStatusFilter').value : 'ALL';
 
-            // Archive holds Cancelled and Completed activities
             const archivedList = activitiesList.filter(act => {
-                const isArchived = (act.status === 'Cancelled' || act.status === 'Completed');
+                const isArchived = (act.slot_status === 'Cancelled' || act.status === 'Cancelled' || act.slot_status === 'Completed' || act.status === 'Completed');
                 if (!isArchived) return false;
 
-                const matchesSearch = !search || act.title.toLowerCase().includes(search) || act.location.toLowerCase().includes(search) || (act.program_code || '').toLowerCase().includes(search);
-                const matchesCat = (category === 'ALL') || (act.category === category);
-                const matchesStatus = (statusFilter === 'ALL') || (act.status === statusFilter);
+                const matchesSearch = !search || (act.title || '').toLowerCase().includes(search) || (act.program_code || '').toLowerCase().includes(search) || (act.venue || act.location || '').toLowerCase().includes(search);
+                
+                let matchesStatus = true;
+                if (statusFilter === 'Cancelled') matchesStatus = (act.slot_status === 'Cancelled' || act.status === 'Cancelled');
+                if (statusFilter === 'Completed') matchesStatus = (act.slot_status === 'Completed' || act.status === 'Completed');
 
-                return matchesSearch && matchesCat && matchesStatus;
+                return matchesSearch && matchesStatus;
             });
 
             if (archivedList.length === 0) {
@@ -4679,30 +4615,30 @@
 
             archivedList.forEach(act => {
                 const tr = document.createElement('tr');
-                let statusBadge = act.status === 'Cancelled' 
+                const isCanc = (act.slot_status === 'Cancelled' || act.status === 'Cancelled');
+                let statusBadge = isCanc 
                     ? '<span class="legend-badge status-pill-red">🔴 Cancelled</span>'
                     : '<span class="legend-badge status-pill-gray">⚫ Completed</span>';
 
-                const auditSnippet = act.status === 'Cancelled'
+                const auditSnippet = isCanc
                     ? `<div class="small text-danger fw-semibold"><i class="bi bi-x-octagon me-1"></i>${escapeHtml(act.cancellation_reason || 'Administrative cancellation')}</div><small class="text-muted font-monospace">${new Date(act.cancelled_at || act.updated_at).toLocaleString()}</small>`
                     : `<div class="small text-success"><i class="bi bi-check2-circle me-1"></i>Completed & Archived</div><small class="text-muted font-monospace">${new Date(act.updated_at).toLocaleString()}</small>`;
 
-                const startDate = new Date(act.start_datetime || act.date);
-                const dateFormatted = `${startDate.toLocaleDateString()} ${startDate.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                const dateFormatted = `${act.date || (act.start_datetime ? act.start_datetime.substring(0,10) : '2026-08-08')} • ${act.time || act.schedule_time || '09:00 AM'}`;
 
                 tr.innerHTML = `
                     <td>
-                        <div class="fw-bold text-dark">${escapeHtml(act.title)}</div>
-                        <span class="badge bg-light text-secondary border font-monospace">${escapeHtml(act.category)}</span>
+                        <div class="fw-bold text-dark">${escapeHtml(act.title || act.program_name || 'Program Slot')}</div>
+                        <span class="badge bg-light text-secondary border font-monospace">${escapeHtml(act.slot_id || 'SLOT-' + act.id)}</span>
                     </td>
-                    <td><span class="badge bg-primary-subtle text-primary font-monospace">${escapeHtml(act.program_code)}</span></td>
+                    <td><span class="badge bg-primary font-monospace">${escapeHtml(act.program_code || 'TUPAD')}</span></td>
                     <td><small class="fw-semibold text-dark">${dateFormatted}</small></td>
-                    <td><div class="small text-truncate" style="max-width: 180px;">${escapeHtml(act.location)}</div></td>
-                    <td><small class="text-secondary">${escapeHtml(act.assigned_officer_name)}</small></td>
+                    <td><div class="small text-truncate" style="max-width: 180px;">${escapeHtml(act.venue || act.location)}</div></td>
+                    <td><small class="text-secondary">${escapeHtml(act.officer_name || act.assigned_officer_name)}</small></td>
                     <td class="text-center">${statusBadge}</td>
                     <td>${auditSnippet}</td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-info" onclick="openViewActivityDetailsModal(${act.id})" title="Read-only view">
+                        <button class="btn btn-sm btn-outline-info" onclick="openViewSlotDetailsModal(${act.id})" title="Read-only view">
                             <i class="bi bi-eye-fill"></i> View Details
                         </button>
                     </td>
@@ -4717,7 +4653,6 @@
 
         function resetArchiveFilters() {
             if (document.getElementById('archiveSchedSearchInput')) document.getElementById('archiveSchedSearchInput').value = '';
-            if (document.getElementById('archiveSchedCategoryFilter')) document.getElementById('archiveSchedCategoryFilter').value = 'ALL';
             if (document.getElementById('archiveSchedStatusFilter')) document.getElementById('archiveSchedStatusFilter').value = 'ALL';
             renderSchedulingArchive();
         }
@@ -4731,52 +4666,120 @@
             }
         }
 
-        // CSV & PDF Export Generators
+        // =========================================================================
+        // 10. EXPORT SUITE: COMBINED LGU REPORT, SLOTS CSV, ARCHIVE CSV
+        // =========================================================================
+
+        function exportCombinedLguReport() {
+            fetch('/api/schedule-slots/export/combined')
+                .then(r => r.ok ? r.json() : null)
+                .then(res => {
+                    let exportData = [];
+                    if (res && res.success && res.data) {
+                        exportData = res.data;
+                    } else {
+                        // Client-side fallback generator
+                        exportData = activitiesList.map(a => ({
+                            slot_id: a.slot_id || `SLOT-${a.id}`,
+                            program_code: a.program_code || 'TUPAD',
+                            program_name: a.program_name || 'Assistance Program',
+                            barangay_cluster: a.barangay_cluster || 'N/A',
+                            date: a.date || '2026-08-08',
+                            time: a.time || '09:00 AM - 10:00 AM',
+                            venue: a.venue || a.location || 'PESO Office',
+                            assigned_officer: a.officer_name || a.assigned_officer_name || 'Officer',
+                            slot_status: a.slot_status || a.status || 'Active',
+                            is_locked: a.is_locked ? 'Locked' : 'Unlocked',
+                            scheduling_mode: a.scheduling_mode || 'Unassigned',
+                            beneficiary_or_batch_name: a.beneficiary_name || a.batch_name || 'Unassigned',
+                            masked_contact: a.beneficiary_phone || '09XX-***-XXXX',
+                            attendance_status: a.attendance_status || 'Pending'
+                        }));
+                    }
+
+                    const headers = ['Slot ID', 'Program Code', 'Program Name', 'Barangay Cluster', 'Date', 'Time Slot', 'Venue', 'Assigned Officer', 'Slot Status', 'Lock State', 'Scheduling Mode', 'Beneficiary / Batch Name', 'Masked Contact', 'Attendance Status'];
+                    const rows = exportData.map(d => [
+                        d.slot_id,
+                        `"${d.program_code}"`,
+                        `"${(d.program_name || '').replace(/"/g, '""')}"`,
+                        `"${(d.barangay_cluster || '').replace(/"/g, '""')}"`,
+                        d.date,
+                        `"${d.time || d.schedule_time || ''}"`,
+                        `"${(d.venue || '').replace(/"/g, '""')}"`,
+                        `"${(d.assigned_officer || '').replace(/"/g, '""')}"`,
+                        d.slot_status,
+                        d.is_locked,
+                        d.scheduling_mode,
+                        `"${(d.beneficiary_or_batch_name || '').replace(/"/g, '""')}"`,
+                        `"${d.masked_contact}"`,
+                        d.attendance_status
+                    ]);
+
+                    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', encodedUri);
+                    link.setAttribute('download', `PESO_Combined_LGU_Compliance_Report_${new Date().toISOString().substring(0,10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    logAuditEvent('EXPORT_COMBINED_LGU_REPORT', 'Exported combined Admin program slot & Officer operational beneficiary dataset to CSV');
+                    window.showSystemNotification({
+                        title: 'Combined LGU Report Exported',
+                        message: 'Comprehensive Admin + Officer LGU compliance dataset downloaded.',
+                        type: 'success'
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                });
+        }
+
         function exportSchedulingCSV() {
-            const headers = ['ID', 'Title', 'Category', 'Program Code', 'Start DateTime', 'End DateTime', 'Duration', 'Location', 'Assigned Officer', 'Status', 'Target Beneficiaries'];
+            const headers = ['Slot ID', 'Program Code', 'Program Name', 'Cluster', 'Date', 'Time', 'Venue', 'Assigned Officer', 'Status', 'Locked', 'Mode', 'Beneficiary/Batch'];
             const rows = activitiesList.map(a => [
-                a.id,
-                `"${(a.title || '').replace(/"/g, '""')}"`,
-                `"${a.category}"`,
+                a.slot_id || `SLOT-${a.id}`,
                 `"${a.program_code}"`,
-                `"${a.start_datetime}"`,
-                `"${a.end_datetime}"`,
-                `"${a.duration}"`,
-                `"${(a.location || '').replace(/"/g, '""')}"`,
-                `"${(a.assigned_officer_name || '').replace(/"/g, '""')}"`,
-                `"${a.status}"`,
-                `"${(a.target_beneficiaries || '').replace(/"/g, '""')}"`
+                `"${(a.program_name || '').replace(/"/g, '""')}"`,
+                `"${(a.barangay_cluster || '').replace(/"/g, '""')}"`,
+                a.date || (a.start_datetime ? a.start_datetime.substring(0,10) : ''),
+                `"${a.time || a.schedule_time || ''}"`,
+                `"${(a.venue || a.location || '').replace(/"/g, '""')}"`,
+                `"${(a.officer_name || a.assigned_officer_name || '').replace(/"/g, '""')}"`,
+                `"${a.slot_status || a.status}"`,
+                a.is_locked ? 'YES' : 'NO',
+                `"${a.scheduling_mode || 'Unassigned'}"`,
+                `"${(a.beneficiary_name || a.batch_name || 'Unassigned').replace(/"/g, '""')}"`
             ]);
 
             const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement('a');
             link.setAttribute('href', encodedUri);
-            link.setAttribute('download', `PESO_Scheduling_Report_${new Date().toISOString().substring(0,10)}.csv`);
+            link.setAttribute('download', `PESO_Program_Slots_Roster_${new Date().toISOString().substring(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
-            logAuditEvent('EXPORT_SCHEDULE_CSV', 'Exported full activity scheduling roster to CSV');
+            logAuditEvent('EXPORT_SCHEDULE_CSV', 'Exported full program schedule slots roster to CSV');
             window.showSystemNotification({
-                title: 'Schedule Exported',
-                message: 'Full scheduling CSV report generated and downloaded.',
+                title: 'Slots Roster Exported',
+                message: 'Full program schedule slots roster generated and downloaded.',
                 type: 'success'
             });
         }
 
         function exportArchiveCSV() {
-            const archived = activitiesList.filter(a => a.status === 'Cancelled' || a.status === 'Completed');
-            const headers = ['ID', 'Title', 'Category', 'Program Code', 'Date', 'Location', 'Officer', 'Status', 'Reason/Notes'];
+            const archived = activitiesList.filter(a => a.slot_status === 'Cancelled' || a.status === 'Cancelled' || a.slot_status === 'Completed' || a.status === 'Completed');
+            const headers = ['Slot ID', 'Program Code', 'Date', 'Venue', 'Officer', 'Status', 'Audit Reason/Notes'];
             const rows = archived.map(a => [
-                a.id,
-                `"${(a.title || '').replace(/"/g, '""')}"`,
-                `"${a.category}"`,
+                a.slot_id || `SLOT-${a.id}`,
                 `"${a.program_code}"`,
-                `"${a.start_datetime}"`,
-                `"${(a.location || '').replace(/"/g, '""')}"`,
-                `"${(a.assigned_officer_name || '').replace(/"/g, '""')}"`,
-                `"${a.status}"`,
+                a.date || (a.start_datetime ? a.start_datetime.substring(0,10) : ''),
+                `"${(a.venue || a.location || '').replace(/"/g, '""')}"`,
+                `"${(a.officer_name || a.assigned_officer_name || '').replace(/"/g, '""')}"`,
+                `"${a.slot_status || a.status}"`,
                 `"${(a.cancellation_reason || 'Archived').replace(/"/g, '""')}"`
             ]);
 
@@ -4784,7 +4787,7 @@
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement('a');
             link.setAttribute('href', encodedUri);
-            link.setAttribute('download', `PESO_Archive_Box_${new Date().toISOString().substring(0,10)}.csv`);
+            link.setAttribute('download', `PESO_Scheduling_Archive_Box_${new Date().toISOString().substring(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -4804,7 +4807,6 @@
 
         // =========================================================================
         // 8. AUTO-PULLED ELIGIBLE RECIPIENTS MODAL
-        // =========================================================================
 
         function openEligibleRecipientsModal(progCode, batchNum) {
             const tbody = document.getElementById('eligibleRecipientsTableBody');

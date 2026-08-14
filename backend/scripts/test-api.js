@@ -373,6 +373,192 @@ async function runTests() {
         assert.strictEqual(res.body.data.beneficiary_phone.includes('***'), true);
     });
 
+    // 21. Unified Scheduling: GET /api/schedule-slots returns slots with summary metrics
+    await test('GET /api/schedule-slots returns slot list with active, locked, completed, and cancelled metrics', async () => {
+        const res = await request('GET', '/api/schedule-slots');
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.ok(res.body.metrics.total_slots >= 8);
+        assert.ok(typeof res.body.metrics.active_slots === 'number');
+        assert.ok(typeof res.body.metrics.locked_slots === 'number');
+        assert.ok(typeof res.body.metrics.completed_slots === 'number');
+        assert.ok(typeof res.body.metrics.cancelled_slots === 'number');
+    });
+
+    // 22. Admin Slot Creation: POST /api/schedule-slots creates new slot with program linkage & officer
+    let createdSlotId;
+    await test('POST /api/schedule-slots Admin creates new slot with program linkage and officer', async () => {
+        const res = await request('POST', '/api/schedule-slots', {
+            program_code: 'TUPAD',
+            program_name: 'TUPAD (Emergency Employment Assistance)',
+            program_sub_category: 'Urban Reforestation & Riverway Beautification',
+            barangay_cluster: 'Cluster 2 - East Poblacion & Morales',
+            date: '2026-08-20',
+            time: '03:00 PM - 04:00 PM',
+            venue: 'PESO Main Office - Hall A',
+            officer_id: 2,
+            officer_name: 'Jane Smith',
+            remarks: 'Admin created slot for Riverway Beautification project.'
+        });
+        assert.strictEqual(res.status, 201);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.data.program_code, 'TUPAD');
+        assert.strictEqual(res.body.data.officer_name, 'Jane Smith');
+        assert.strictEqual(res.body.data.slot_status, 'Active');
+        assert.strictEqual(res.body.data.is_locked, false);
+        createdSlotId = res.body.data.id;
+    });
+
+    // 23. Past Date Restriction on Slot Creation: POST /api/schedule-slots rejects past dates
+    await test('POST /api/schedule-slots Past Date Restriction: rejects slot creation on past date (400)', async () => {
+        const res = await request('POST', '/api/schedule-slots', {
+            program_code: 'TUPAD',
+            date: '2026-07-01',
+            time: '08:00 AM - 09:00 AM',
+            venue: 'PESO Main Office',
+            officer_id: 2
+        });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.body.success, false);
+        assert.ok(res.body.error === 'Past Date Restriction' || res.body.message.includes('Past Date'));
+    });
+
+    // 24. Officer Reassignment Flexibility: Admin reassigns officer on unlocked slot
+    await test('PUT /api/schedule-slots/:id Admin reassigns officer on unlocked slot', async () => {
+        const res = await request('PUT', `/api/schedule-slots/${createdSlotId}`, {
+            officer_id: 6,
+            officer_name: 'Patricia Marquez'
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.data.officer_id, 6);
+        assert.strictEqual(res.body.data.officer_name, 'Patricia Marquez');
+    });
+
+    // 25. Slot Locking Safeguard: PUT /api/schedule-slots/:id/lock locks slot and prevents reassignment
+    await test('PUT /api/schedule-slots/:id/lock locks slot and blocks officer reassignment', async () => {
+        const lockRes = await request('PUT', `/api/schedule-slots/${createdSlotId}/lock`, { is_locked: true });
+        assert.strictEqual(lockRes.status, 200);
+        assert.strictEqual(lockRes.body.data.is_locked, true);
+        assert.strictEqual(lockRes.body.data.lock_status, 'Locked');
+
+        // Attempting to reassign officer while locked must be rejected with 403
+        const reassignRes = await request('PUT', `/api/schedule-slots/${createdSlotId}`, {
+            officer_id: 2,
+            officer_name: 'Jane Smith'
+        });
+        assert.strictEqual(reassignRes.status, 403);
+        assert.strictEqual(reassignRes.body.error, 'Lock Restriction');
+
+        // Unlock for further testing
+        await request('PUT', `/api/schedule-slots/${createdSlotId}/lock`, { is_locked: false });
+    });
+
+    // 26. Officer Beneficiary Assignment (Individual Mode): POST /api/schedule-slots/:id/assign
+    await test('POST /api/schedule-slots/:id/assign (Individual Mode) assigns beneficiary with masked phone', async () => {
+        const res = await request('POST', `/api/schedule-slots/${createdSlotId}/assign`, {
+            mode: 'Individual',
+            beneficiary_name: 'Lucia Tan',
+            beneficiary_phone: '0917-888-9999',
+            beneficiary_email: 'lucia.tan@gmail.com',
+            barangay: 'Morales',
+            sex: 'Female',
+            age: 29,
+            remarks: 'Assigned for individual qualification interview.'
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.data.beneficiary_name, 'Lucia Tan');
+        assert.strictEqual(res.body.data.scheduling_mode, 'Individual');
+        assert.strictEqual(res.body.data.beneficiary_phone.includes('***'), true);
+        assert.strictEqual(res.body.data.program_code, 'TUPAD'); // Preserves Admin's linked program
+    });
+
+    // 27. Double-Booking Restriction: POST /api/schedule-slots/:id/assign rejects double-booking
+    await test('POST /api/schedule-slots/:id/assign Double-Booking Restriction: rejects booking same beneficiary twice at same time (409)', async () => {
+        // Create another slot at the exact same date and time
+        const slot2Res = await request('POST', '/api/schedule-slots', {
+            program_code: 'SPES',
+            date: '2026-08-20',
+            time: '03:00 PM - 04:00 PM',
+            venue: 'City Hall Room 3',
+            officer_id: 5,
+            officer_name: 'Edward Davis'
+        });
+        assert.strictEqual(slot2Res.status, 201);
+        const slot2Id = slot2Res.body.data.id;
+
+        // Attempt to assign "Lucia Tan" who is already booked on 2026-08-20 at 03:00 PM - 04:00 PM
+        const assignConflictRes = await request('POST', `/api/schedule-slots/${slot2Id}/assign`, {
+            mode: 'Individual',
+            beneficiary_name: 'Lucia Tan',
+            beneficiary_phone: '0917-888-9999',
+            barangay: 'Morales'
+        });
+        assert.strictEqual(assignConflictRes.status, 409);
+        assert.strictEqual(assignConflictRes.body.error, 'Double-Booking Restriction');
+    });
+
+    // 28. Officer Beneficiary Assignment (Batch Mode): POST /api/schedule-slots/:id/assign with metadata
+    await test('POST /api/schedule-slots/:id/assign (Batch Mode) assigns batch with cluster and sub-category metadata', async () => {
+        const batchSlotRes = await request('POST', '/api/schedule-slots', {
+            program_code: 'TUPAD',
+            date: '2026-08-22',
+            time: '08:00 AM - 12:00 PM',
+            venue: 'Barangay San Isidro Gymnasium',
+            officer_id: 2,
+            officer_name: 'Jane Smith'
+        });
+        assert.strictEqual(batchSlotRes.status, 201);
+        const bSlotId = batchSlotRes.body.data.id;
+
+        const assignRes = await request('POST', `/api/schedule-slots/${bSlotId}/assign`, {
+            mode: 'Batch',
+            batch_name: 'Batch 2026-02: San Isidro Tree Planting Initiative',
+            batch_count: 30,
+            barangay_cluster: 'Cluster 4 - North Corridor (San Isidro, Concepcion)',
+            program_sub_category: 'Community Tree Planting & Urban Reforestation',
+            remarks: 'Batch orientation and equipment distribution.'
+        });
+        assert.strictEqual(assignRes.status, 200);
+        assert.strictEqual(assignRes.body.success, true);
+        assert.strictEqual(assignRes.body.data.scheduling_mode, 'Batch');
+        assert.strictEqual(assignRes.body.data.batch_count, 30);
+        assert.strictEqual(assignRes.body.data.barangay_cluster, 'Cluster 4 - North Corridor (San Isidro, Concepcion)');
+    });
+
+    // 29. Slot Lifecycle Completion: PUT /api/schedule-slots/:id/complete marks slot completed
+    await test('PUT /api/schedule-slots/:id/complete Admin finalizes slot as Completed', async () => {
+        const res = await request('PUT', `/api/schedule-slots/${createdSlotId}/complete`, {
+            remarks: 'All interviews and orientation sessions finished.'
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.data.slot_status, 'Completed');
+        assert.strictEqual(res.body.data.status, 'Completed');
+    });
+
+    // 30. Slot Cancellation: PUT /api/schedule-slots/:id/cancel retains red status label and audit trail
+    await test('PUT /api/schedule-slots/:id/cancel cancels slot with mandatory reason and retains red label', async () => {
+        const res = await request('PUT', `/api/schedule-slots/${createdSlotId}/cancel`, {
+            reason: 'Venue undergoing unexpected emergency repairs.'
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.data.slot_status, 'Cancelled');
+        assert.strictEqual(res.body.data.cancellation_reason, 'Venue undergoing unexpected emergency repairs.');
+    });
+
+    // 31. Combined LGU Export: GET /api/schedule-slots/export/combined returns comprehensive reporting dataset
+    await test('GET /api/schedule-slots/export/combined returns combined Admin and Officer reporting dataset', async () => {
+        const res = await request('GET', '/api/schedule-slots/export/combined');
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.ok(res.body.total_records >= 8);
+        assert.ok(res.body.data[0].slot_id);
+        assert.ok(res.body.data[0].program_code);
+        assert.ok(res.body.data[0].assigned_officer);
+        assert.ok(res.body.data[0].masked_contact.includes('***'));
+    });
+
     console.log('\n===============================================================');
     console.log(`📊 Test Summary: ${passed} passed, ${failed} failed.`);
     console.log('===============================================================\n');

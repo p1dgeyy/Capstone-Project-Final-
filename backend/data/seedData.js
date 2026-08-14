@@ -269,10 +269,11 @@ function addUser(userData) {
 }
 
 
-// In-memory Interview Schedules Store
+// In-memory Unified Schedule Slots & Interview Schedules Store
 const _interviews = [
     {
         interview_id: 'INT-2026-001',
+        slot_id: 'SLOT-2026-001',
         id: 1,
         officer_id: 2, // PESO Officer (Jane Smith)
         officer_name: 'Jane Smith',
@@ -289,6 +290,8 @@ const _interviews = [
         program_code: 'TUPAD',
         program_name: 'TUPAD (Emergency Employment Assistance)',
         project_type: 'Environmental Sanitation & Community Beautification',
+        program_sub_category: 'Environmental Sanitation',
+        barangay_cluster: 'Cluster 2 - East Poblacion & Morales',
         application_id: 'APP-2026-001',
         date_applied: '2026-07-28',
         interview_date: new Date().toISOString().split('T')[0],
@@ -296,15 +299,25 @@ const _interviews = [
         time_slot: '09:00 AM',
         venue_location: 'PESO Main Office - Interview Room A',
         status: 'Pending', // 'Pending', 'Completed', 'Missed', 'Scheduled', 'Cancelled'
+        slot_status: 'Active', // 'Active', 'Locked', 'Completed', 'Cancelled'
+        is_locked: false,
+        lock_status: 'Unlocked',
+        scheduling_mode: 'Individual', // 'Individual', 'Batch', 'Unassigned'
+        batch_id: null,
+        batch_name: null,
+        batch_count: 1,
+        batch_members: [],
         attendance_status: 'Unmarked', // 'Unmarked', 'Present', 'Absent'
         presence_flag: 'Unmarked',
         remarks: 'Scheduled for initial qualification interview and livelihood assessment.',
         justification: null,
+        cancellation_reason: null,
         created_at: '2026-08-01T08:00:00.000Z',
         updated_at: '2026-08-08T08:00:00.000Z'
     },
     {
         interview_id: 'INT-2026-002',
+        slot_id: 'SLOT-2026-002',
         id: 2,
         officer_id: 2,
         officer_name: 'Jane Smith',
@@ -321,6 +334,8 @@ const _interviews = [
         program_code: 'PFAS',
         program_name: 'PFAS (Pangkabuhayan Assistance Special Project)',
         project_type: 'Micro-Enterprise Food Cart & Rolling Store',
+        program_sub_category: 'Food Cart Livelihood Enterprise',
+        barangay_cluster: 'Cluster 1 - Urban (Poblacion, Zone I, Zone II)',
         application_id: 'APP-2026-002',
         date_applied: '2026-07-29',
         interview_date: '2026-08-08',
@@ -328,15 +343,25 @@ const _interviews = [
         time_slot: '10:30 AM',
         venue_location: 'PESO Main Office - Interview Room B',
         status: 'Completed',
+        slot_status: 'Completed',
+        is_locked: false,
+        lock_status: 'Unlocked',
+        scheduling_mode: 'Individual',
+        batch_id: null,
+        batch_name: null,
+        batch_count: 1,
+        batch_members: [],
         attendance_status: 'Present',
         presence_flag: 'Present',
         remarks: 'Candidate successfully presented business proposal and passed interview assessment.',
         justification: null,
+        cancellation_reason: null,
         created_at: '2026-08-01T08:30:00.000Z',
         updated_at: '2026-08-08T10:35:00.000Z'
     },
     {
         interview_id: 'INT-2026-003',
+        slot_id: 'SLOT-2026-003',
         id: 3,
         officer_id: 2,
         officer_name: 'Jane Smith',
@@ -353,6 +378,8 @@ const _interviews = [
         program_code: 'CKGIP',
         program_name: 'CKGIP (City of Koronadal Government Internship Program)',
         project_type: 'Administrative & Information Systems Internship',
+        program_sub_category: 'Government Systems IT Internship',
+        barangay_cluster: 'Cluster 3 - West Corridor (Rotonda, GPS)',
         application_id: 'APP-2026-003',
         date_applied: '2026-07-30',
         interview_date: '2026-08-08',
@@ -360,15 +387,25 @@ const _interviews = [
         time_slot: '01:30 PM',
         venue_location: 'PESO Main Office - Interview Room A',
         status: 'Pending',
+        slot_status: 'Locked',
+        is_locked: true,
+        lock_status: 'Locked',
+        scheduling_mode: 'Individual',
+        batch_id: null,
+        batch_name: null,
+        batch_count: 1,
+        batch_members: [],
         attendance_status: 'Unmarked',
         presence_flag: 'Unmarked',
         remarks: 'Afternoon interview session for technical internship placement.',
         justification: null,
+        cancellation_reason: null,
         created_at: '2026-08-02T09:00:00.000Z',
         updated_at: '2026-08-08T08:00:00.000Z'
     },
     {
         interview_id: 'INT-2026-004',
+        slot_id: 'SLOT-2026-004',
         id: 4,
         officer_id: 2,
         officer_name: 'Jane Smith',
@@ -385,6 +422,8 @@ const _interviews = [
         program_code: 'TUPAD',
         program_name: 'TUPAD (Emergency Employment Assistance)',
         project_type: 'Community Urban Greening & Tree Planting',
+        program_sub_category: 'Urban Greening & Tree Planting',
+        barangay_cluster: 'Cluster 1 - Urban (Poblacion, Zone I, Zone II)',
         application_id: 'APP-2026-004',
         date_applied: '2026-08-01',
         interview_date: '2026-08-09',
@@ -392,15 +431,25 @@ const _interviews = [
         time_slot: '09:00 AM',
         venue_location: 'PESO Main Office - Interview Room A',
         status: 'Pending',
+        slot_status: 'Active',
+        is_locked: false,
+        lock_status: 'Unlocked',
+        scheduling_mode: 'Individual',
+        batch_id: null,
+        batch_name: null,
+        batch_count: 1,
+        batch_members: [],
         attendance_status: 'Unmarked',
         presence_flag: 'Unmarked',
         remarks: 'Tomorrow morning interview schedule.',
         justification: null,
+        cancellation_reason: null,
         created_at: '2026-08-03T10:00:00.000Z',
         updated_at: '2026-08-08T08:00:00.000Z'
     },
     {
         interview_id: 'INT-2026-005',
+        slot_id: 'SLOT-2026-005',
         id: 5,
         officer_id: 2,
         officer_name: 'Jane Smith',
@@ -417,6 +466,8 @@ const _interviews = [
         program_code: 'PFAS',
         program_name: 'PFAS (Pangkabuhayan Assistance Special Project)',
         project_type: 'Welding, Metalcraft & Fabrication Starter Kit',
+        program_sub_category: 'Technical Vocational Skills Livelihood',
+        barangay_cluster: 'Cluster 4 - North Corridor (San Isidro, Concepcion)',
         application_id: 'APP-2026-005',
         date_applied: '2026-07-20',
         interview_date: '2026-08-05', // Past date for testing past-date restriction
@@ -424,15 +475,25 @@ const _interviews = [
         time_slot: '11:00 AM',
         venue_location: 'PESO Main Office - Interview Room B',
         status: 'Missed',
+        slot_status: 'Completed',
+        is_locked: false,
+        lock_status: 'Unlocked',
+        scheduling_mode: 'Individual',
+        batch_id: null,
+        batch_name: null,
+        batch_count: 1,
+        batch_members: [],
         attendance_status: 'Absent',
         presence_flag: 'Absent',
         remarks: 'Applicant was unable to attend due to medical emergency.',
         justification: 'Logged official beneficiary absence notice.',
+        cancellation_reason: null,
         created_at: '2026-07-25T08:00:00.000Z',
         updated_at: '2026-08-05T12:00:00.000Z'
     },
     {
         interview_id: 'INT-2026-006',
+        slot_id: 'SLOT-2026-006',
         id: 6,
         officer_id: 2,
         officer_name: 'Jane Smith',
@@ -449,6 +510,8 @@ const _interviews = [
         program_code: 'TUPAD',
         program_name: 'TUPAD (Emergency Employment Assistance)',
         project_type: 'Public Park Maintenance & Tree Pruning',
+        program_sub_category: 'Public Facilities Maintenance',
+        barangay_cluster: 'Cluster 4 - North Corridor (San Isidro, Concepcion)',
         application_id: 'APP-2026-006',
         date_applied: '2026-08-02',
         interview_date: '2026-08-10',
@@ -456,12 +519,113 @@ const _interviews = [
         time_slot: '10:00 AM',
         venue_location: 'PESO Main Office - Interview Room A',
         status: 'Pending',
+        slot_status: 'Active',
+        is_locked: false,
+        lock_status: 'Unlocked',
+        scheduling_mode: 'Individual',
+        batch_id: null,
+        batch_name: null,
+        batch_count: 1,
+        batch_members: [],
         attendance_status: 'Unmarked',
         presence_flag: 'Unmarked',
         remarks: 'Scheduled interview session.',
         justification: null,
+        cancellation_reason: null,
         created_at: '2026-08-04T09:00:00.000Z',
         updated_at: '2026-08-08T08:00:00.000Z'
+    },
+    {
+        interview_id: 'INT-2026-007',
+        slot_id: 'SLOT-2026-007',
+        id: 7,
+        officer_id: 2,
+        officer_name: 'Jane Smith',
+        beneficiary_id: 'BATCH-2026-001',
+        beneficiary_name: 'Batch 2026-01: Morales Drainage Sanitation (25 Beneficiaries)',
+        beneficiary_phone: '0917-000-0000',
+        beneficiary_email: 'officer.smith@koronadal.gov.ph',
+        beneficiary_address: 'Barangay Morales Multi-Purpose Center, Koronadal City',
+        barangay: 'Morales',
+        sex: 'Mixed',
+        age: 35,
+        documents_verified: true,
+        program_id: 'PRG-TUPAD',
+        program_code: 'TUPAD',
+        program_name: 'TUPAD (Emergency Employment Assistance)',
+        project_type: 'Community Drainage Declogging & Sanitation',
+        program_sub_category: 'Drainage Declogging Assistance',
+        barangay_cluster: 'Cluster 2 - East Poblacion & Morales',
+        application_id: 'BATCH-APP-001',
+        date_applied: '2026-08-01',
+        interview_date: '2026-08-12',
+        schedule_time: '08:00 AM - 12:00 PM',
+        time_slot: '08:00 AM',
+        venue_location: 'Barangay Morales Multi-Purpose Gymnasium',
+        status: 'Pending',
+        slot_status: 'Active',
+        is_locked: false,
+        lock_status: 'Unlocked',
+        scheduling_mode: 'Batch',
+        batch_id: 'BAT-2026-001',
+        batch_name: 'Batch 2026-01: Morales Drainage Sanitation',
+        batch_count: 25,
+        batch_members: [
+            { name: 'Reynaldo Cortez', phone: '0917-111-3344', barangay: 'Morales' },
+            { name: 'Grace Bautista', phone: '0918-222-5566', barangay: 'Morales' },
+            { name: 'Danilo Mendoza', phone: '0919-333-7788', barangay: 'Morales' }
+        ],
+        attendance_status: 'Unmarked',
+        presence_flag: 'Unmarked',
+        remarks: 'Batch orientation and safety equipment distribution.',
+        justification: null,
+        cancellation_reason: null,
+        created_at: '2026-08-05T08:00:00.000Z',
+        updated_at: '2026-08-08T08:00:00.000Z'
+    },
+    {
+        interview_id: 'INT-2026-008',
+        slot_id: 'SLOT-2026-008',
+        id: 8,
+        officer_id: 2,
+        officer_name: 'Jane Smith',
+        beneficiary_id: null,
+        beneficiary_name: 'Open Schedule Slot (Awaiting Officer Beneficiary Assignment)',
+        beneficiary_phone: '0900-000-0000',
+        beneficiary_email: '',
+        beneficiary_address: 'City Hall Complex, Koronadal City',
+        barangay: 'Poblacion',
+        sex: 'N/A',
+        age: 0,
+        documents_verified: false,
+        program_id: 'PRG-SPES',
+        program_code: 'SPES',
+        program_name: 'SPES (Special Program for Employment of Students)',
+        project_type: 'Student Youth Government Internship',
+        program_sub_category: 'Student Employment Facilitation',
+        barangay_cluster: 'Cluster 1 - Urban (Poblacion, Zone I, Zone II)',
+        application_id: null,
+        date_applied: null,
+        interview_date: '2026-08-14',
+        schedule_time: '01:00 PM - 02:00 PM',
+        time_slot: '01:00 PM',
+        venue_location: 'PESO Main Office - Interview Room A',
+        status: 'Pending',
+        slot_status: 'Active',
+        is_locked: false,
+        lock_status: 'Unlocked',
+        scheduling_mode: 'Unassigned',
+        batch_id: null,
+        batch_name: null,
+        batch_count: 0,
+        batch_members: [],
+        attendance_status: 'Unmarked',
+        presence_flag: 'Unmarked',
+        remarks: 'Admin-created slot for SPES pre-qualification screening.',
+        justification: null,
+        cancellation_reason: null,
+        created_at: '2026-08-06T10:00:00.000Z',
+        updated_at: '2026-08-06T10:00:00.000Z'
     }
 ];
 
@@ -496,7 +660,8 @@ function findInterviewById(idOrInterviewId) {
     const str = String(idOrInterviewId).trim().toLowerCase();
     return _interviews.find(i => 
         String(i.id) === str || 
-        i.interview_id.toLowerCase() === str
+        (i.interview_id && i.interview_id.toLowerCase() === str) ||
+        (i.slot_id && i.slot_id.toLowerCase() === str)
     );
 }
 
@@ -508,26 +673,135 @@ function getInterviewsByOfficer(officerId, filters = {}) {
         officerId === 'ALL'
     );
 
-    if (filters.date) {
+    if (filters.date && filters.date !== 'ALL') {
         list = list.filter(i => i.interview_date === filters.date);
+    }
+    if (filters.program_type && filters.program_type !== 'ALL') {
+        const p = filters.program_type.toLowerCase();
+        list = list.filter(i => (i.program_code && i.program_code.toLowerCase() === p) || (i.program_name && i.program_name.toLowerCase().includes(p)));
     }
     if (filters.status && filters.status !== 'ALL') {
         const s = filters.status.toLowerCase();
-        list = list.filter(i => i.status.toLowerCase() === s);
+        list = list.filter(i => (i.status && i.status.toLowerCase() === s) || (i.slot_status && i.slot_status.toLowerCase() === s));
+    }
+    if (filters.attendance && filters.attendance !== 'ALL') {
+        const a = filters.attendance.toLowerCase();
+        list = list.filter(i => (i.attendance_status && i.attendance_status.toLowerCase() === a) || (i.presence_flag && i.presence_flag.toLowerCase() === a));
     }
     if (filters.search) {
         const q = filters.search.toLowerCase().trim();
         list = list.filter(i => 
-            i.beneficiary_name.toLowerCase().includes(q) ||
-            i.beneficiary_id.toLowerCase().includes(q) ||
-            i.interview_id.toLowerCase().includes(q) ||
+            (i.beneficiary_name && i.beneficiary_name.toLowerCase().includes(q)) ||
+            (i.beneficiary_id && i.beneficiary_id.toLowerCase().includes(q)) ||
+            (i.interview_id && i.interview_id.toLowerCase().includes(q)) ||
+            (i.slot_id && i.slot_id.toLowerCase().includes(q)) ||
+            (i.batch_name && i.batch_name.toLowerCase().includes(q)) ||
             (i.program_code && i.program_code.toLowerCase().includes(q)) ||
             (i.program_name && i.program_name.toLowerCase().includes(q)) ||
-            (i.barangay && i.barangay.toLowerCase().includes(q))
+            (i.barangay && i.barangay.toLowerCase().includes(q)) ||
+            (i.barangay_cluster && i.barangay_cluster.toLowerCase().includes(q)) ||
+            (i.venue_location && i.venue_location.toLowerCase().includes(q))
         );
     }
 
     return list;
+}
+
+/**
+ * Get all schedule slots for Admin with filters and summary counters
+ */
+function getScheduleSlots(filters = {}) {
+    let list = [..._interviews];
+
+    if (filters.program_type && filters.program_type !== 'ALL') {
+        const p = filters.program_type.toLowerCase();
+        list = list.filter(s => (s.program_code && s.program_code.toLowerCase() === p) || (s.program_name && s.program_name.toLowerCase().includes(p)));
+    }
+    if (filters.date && filters.date !== 'ALL') {
+        list = list.filter(s => s.interview_date === filters.date);
+    }
+    if (filters.date_from) {
+        list = list.filter(s => s.interview_date >= filters.date_from);
+    }
+    if (filters.date_to) {
+        list = list.filter(s => s.interview_date <= filters.date_to);
+    }
+    if (filters.venue && filters.venue !== 'ALL') {
+        const v = filters.venue.toLowerCase();
+        list = list.filter(s => s.venue_location && s.venue_location.toLowerCase().includes(v));
+    }
+    if (filters.officer_id && filters.officer_id !== 'ALL') {
+        list = list.filter(s => s.officer_id === Number(filters.officer_id));
+    }
+    if (filters.status && filters.status !== 'ALL') {
+        const st = filters.status.toLowerCase();
+        list = list.filter(s => (s.slot_status && s.slot_status.toLowerCase() === st) || (s.status && s.status.toLowerCase() === st));
+    }
+    if (filters.is_locked !== undefined && filters.is_locked !== null && filters.is_locked !== '') {
+        const lockBool = String(filters.is_locked) === 'true';
+        list = list.filter(s => s.is_locked === lockBool);
+    }
+    if (filters.search) {
+        const q = filters.search.toLowerCase().trim();
+        list = list.filter(s => 
+            (s.beneficiary_name && s.beneficiary_name.toLowerCase().includes(q)) ||
+            (s.slot_id && s.slot_id.toLowerCase().includes(q)) ||
+            (s.interview_id && s.interview_id.toLowerCase().includes(q)) ||
+            (s.program_code && s.program_code.toLowerCase().includes(q)) ||
+            (s.venue_location && s.venue_location.toLowerCase().includes(q)) ||
+            (s.officer_name && s.officer_name.toLowerCase().includes(q)) ||
+            (s.batch_name && s.batch_name.toLowerCase().includes(q))
+        );
+    }
+
+    // Compute Summary Metrics
+    const total_slots = _interviews.length;
+    const active_slots = _interviews.filter(s => s.slot_status === 'Active' || s.status === 'Pending').length;
+    const locked_slots = _interviews.filter(s => s.is_locked === true || s.slot_status === 'Locked').length;
+    const completed_slots = _interviews.filter(s => s.slot_status === 'Completed' || s.status === 'Completed').length;
+    const cancelled_slots = _interviews.filter(s => s.slot_status === 'Cancelled' || s.status === 'Cancelled').length;
+
+    return {
+        slots: list,
+        metrics: {
+            total_slots,
+            active_slots,
+            locked_slots,
+            completed_slots,
+            cancelled_slots
+        }
+    };
+}
+
+/**
+ * Check if a beneficiary is already scheduled in an overlapping slot
+ */
+function checkBeneficiaryDoubleBooking(beneficiaryName, interviewDate, scheduleTime, excludeSlotId = null) {
+    if (!beneficiaryName || !interviewDate || !scheduleTime) return null;
+    const cleanName = beneficiaryName.trim().toLowerCase();
+    if (cleanName.includes('open schedule slot') || cleanName.includes('unassigned')) return null;
+
+    const cleanTime = scheduleTime.trim().toLowerCase();
+
+    return _interviews.find(i => {
+        if (excludeSlotId && (i.id === Number(excludeSlotId) || i.interview_id === excludeSlotId || i.slot_id === excludeSlotId)) return false;
+        if (i.status === 'Cancelled' || i.slot_status === 'Cancelled') return false;
+        if (i.interview_date !== interviewDate) return false;
+
+        const iName = (i.beneficiary_name || '').trim().toLowerCase();
+        if (!iName || iName.includes('open schedule slot')) return false;
+
+        if (iName === cleanName || (i.batch_name && i.batch_name.toLowerCase().includes(cleanName))) {
+            const existingSlot = (i.schedule_time || '').toLowerCase();
+            const existingStart = existingSlot.split(' - ')[0].trim();
+            const incomingStart = cleanTime.split(' - ')[0].trim();
+
+            if (existingSlot.includes(cleanTime) || cleanTime.includes(existingSlot) || existingStart === incomingStart) {
+                return true;
+            }
+        }
+        return false;
+    });
 }
 
 function updateInterviewAttendance(interviewId, presenceFlag, remarks = '', justification = '') {
@@ -559,6 +833,9 @@ function updateInterviewStatus(interviewId, status, remarks = '', justification 
     if (!interview) return null;
 
     interview.status = status;
+    if (status === 'Completed') {
+        interview.slot_status = 'Completed';
+    }
     if (remarks) interview.remarks = remarks;
     if (justification) interview.justification = justification;
     interview.updated_at = new Date().toISOString();
@@ -573,10 +850,10 @@ function checkOfficerScheduleConflict(officerId, interviewDate, scheduleTime, ex
     return _interviews.find(i => {
         if (i.officer_id !== Number(officerId)) return false;
         if (i.interview_date !== interviewDate) return false;
-        if (i.status === 'Cancelled') return false;
-        if (excludeInterviewId && (i.interview_id === excludeInterviewId || String(i.id) === String(excludeInterviewId))) return false;
+        if (i.status === 'Cancelled' || i.slot_status === 'Cancelled') return false;
+        if (excludeInterviewId && (i.interview_id === excludeInterviewId || i.slot_id === excludeInterviewId || String(i.id) === String(excludeInterviewId))) return false;
 
-        const existingSlot = i.schedule_time.toLowerCase();
+        const existingSlot = (i.schedule_time || '').toLowerCase();
         const existingStart = existingSlot.split(' - ')[0].trim();
         const incomingStart = cleanTime.split(' - ')[0].trim();
 
@@ -587,43 +864,204 @@ function checkOfficerScheduleConflict(officerId, interviewDate, scheduleTime, ex
     });
 }
 
-function addInterview(data) {
+/**
+ * Admin creates a new schedule slot with program linkage and officer assignment
+ */
+function createScheduleSlot(data) {
     const id = _interviews.length > 0 ? Math.max(..._interviews.map(i => i.id)) + 1 : 1;
-    const interview_id = data.interview_id || `INT-2026-${String(id).padStart(3, '0')}`;
-    const newInterview = {
+    const slot_id = `SLOT-2026-${String(id).padStart(3, '0')}`;
+    const interview_id = `INT-2026-${String(id).padStart(3, '0')}`;
+
+    const newSlot = {
         id,
+        slot_id,
         interview_id,
-        officer_id: data.officer_id || 2,
-        officer_name: data.officer_name || 'Jane Smith',
-        beneficiary_id: data.beneficiary_id || `BEN-2026-${String(id).padStart(3, '0')}`,
-        beneficiary_name: data.beneficiary_name,
-        beneficiary_phone: data.beneficiary_phone || '0917-111-2222',
-        beneficiary_email: data.beneficiary_email || 'beneficiary@koronadal.ph',
+        officer_id: Number(data.officer_id) || 2,
+        officer_name: data.officer_name || (data.officer_id === 2 ? 'Jane Smith' : 'PESO Officer'),
+        beneficiary_id: data.beneficiary_id || null,
+        beneficiary_name: data.beneficiary_name || 'Open Schedule Slot (Awaiting Officer Beneficiary Assignment)',
+        beneficiary_phone: data.beneficiary_phone || '0900-000-0000',
+        beneficiary_email: data.beneficiary_email || '',
         beneficiary_address: data.beneficiary_address || 'Koronadal City',
         barangay: data.barangay || 'Poblacion',
-        sex: data.sex || 'Male',
-        age: data.age || 30,
-        documents_verified: true,
-        program_id: data.program_id || 'PRG-TUPAD',
-        program_code: data.program_code || 'TUPAD',
-        program_name: data.program_name || 'TUPAD (Emergency Employment Assistance)',
-        project_type: data.project_type || 'Community Assistance',
-        application_id: data.application_id || `APP-2026-${String(id).padStart(3, '0')}`,
+        sex: data.sex || 'N/A',
+        age: Number(data.age) || 0,
+        documents_verified: Boolean(data.documents_verified),
+        program_id: data.program_id || (data.program_code ? `PRG-${data.program_code}` : 'PRG-TUPAD'),
+        program_code: (data.program_code || 'TUPAD').toUpperCase(),
+        program_name: data.program_name || (data.program_code === 'SPES' ? 'SPES (Special Program for Employment of Students)' : data.program_code === 'PFAS' ? 'PFAS (Pangkabuhayan Assistance Special Project)' : data.program_code === 'CKGIP' ? 'CKGIP (City of Koronadal Government Internship Program)' : 'TUPAD (Emergency Employment Assistance)'),
+        project_type: data.project_type || 'Livelihood & Community Employment',
+        program_sub_category: data.program_sub_category || 'General Livelihood Program',
+        barangay_cluster: data.barangay_cluster || 'Cluster 1 - Urban (Poblacion, Zone I, Zone II)',
+        application_id: data.application_id || null,
         date_applied: data.date_applied || new Date().toISOString().split('T')[0],
-        interview_date: data.interview_date || new Date().toISOString().split('T')[0],
-        schedule_time: data.schedule_time || '09:00 AM - 10:00 AM',
-        time_slot: data.time_slot || '09:00 AM',
-        venue_location: data.venue_location || 'PESO Main Office - Interview Room A',
+        interview_date: data.interview_date || data.date || new Date().toISOString().split('T')[0],
+        schedule_time: data.schedule_time || data.time || '09:00 AM - 10:00 AM',
+        time_slot: (data.schedule_time || data.time || '09:00 AM').split(' - ')[0],
+        venue_location: data.venue_location || data.venue || 'PESO Main Office - Interview Room A',
         status: data.status || 'Pending',
-        attendance_status: data.attendance_status || 'Unmarked',
-        presence_flag: data.presence_flag || 'Unmarked',
-        remarks: data.remarks || 'Scheduled interview session.',
+        slot_status: 'Active',
+        is_locked: false,
+        lock_status: 'Unlocked',
+        scheduling_mode: data.scheduling_mode || 'Unassigned',
+        batch_id: data.batch_id || null,
+        batch_name: data.batch_name || null,
+        batch_count: Number(data.batch_count) || (data.scheduling_mode === 'Individual' ? 1 : 0),
+        batch_members: data.batch_members || [],
+        attendance_status: 'Unmarked',
+        presence_flag: 'Unmarked',
+        remarks: data.remarks || 'Admin created program schedule slot.',
         justification: data.justification || null,
+        cancellation_reason: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     };
-    _interviews.push(newInterview);
-    return newInterview;
+
+    _interviews.push(newSlot);
+    return newSlot;
+}
+
+/**
+ * Admin updates slot (reassigns officer, changes date/time/venue/remarks)
+ */
+function updateScheduleSlot(id, data) {
+    const slot = findInterviewById(id);
+    if (!slot) return null;
+
+    if (slot.is_locked && (data.officer_id && Number(data.officer_id) !== slot.officer_id)) {
+        throw new Error('Lock Restriction: Slot is locked. Unlock the slot before reassigning the PESO officer.');
+    }
+
+    if (data.program_code) slot.program_code = data.program_code;
+    if (data.program_name) slot.program_name = data.program_name;
+    if (data.program_sub_category) slot.program_sub_category = data.program_sub_category;
+    if (data.barangay_cluster) slot.barangay_cluster = data.barangay_cluster;
+    if (data.interview_date || data.date) slot.interview_date = data.interview_date || data.date;
+    if (data.schedule_time || data.time) {
+        slot.schedule_time = data.schedule_time || data.time;
+        slot.time_slot = slot.schedule_time.split(' - ')[0];
+    }
+    if (data.venue_location || data.venue) slot.venue_location = data.venue_location || data.venue;
+    if (data.officer_id) {
+        slot.officer_id = Number(data.officer_id);
+        if (data.officer_name) slot.officer_name = data.officer_name;
+    }
+    if (data.remarks !== undefined) slot.remarks = data.remarks;
+    if (data.status) slot.status = data.status;
+    if (data.slot_status) slot.slot_status = data.slot_status;
+
+    slot.updated_at = new Date().toISOString();
+    return slot;
+}
+
+/**
+ * Admin locks / unlocks slot
+ */
+function lockScheduleSlot(id, isLocked) {
+    const slot = findInterviewById(id);
+    if (!slot) return null;
+
+    slot.is_locked = Boolean(isLocked);
+    slot.lock_status = isLocked ? 'Locked' : 'Unlocked';
+    slot.slot_status = isLocked ? 'Locked' : (slot.status === 'Completed' ? 'Completed' : 'Active');
+    slot.updated_at = new Date().toISOString();
+    return slot;
+}
+
+/**
+ * Admin marks slot finalized/completed
+ */
+function completeScheduleSlot(id, data = {}) {
+    const slot = findInterviewById(id);
+    if (!slot) return null;
+
+    slot.slot_status = 'Completed';
+    slot.status = 'Completed';
+    if (data.remarks) slot.remarks = data.remarks;
+    slot.updated_at = new Date().toISOString();
+    return slot;
+}
+
+/**
+ * Admin cancels slot (retains record with red label for compliance)
+ */
+function cancelScheduleSlot(id, reason = 'Administrative schedule cancellation') {
+    const slot = findInterviewById(id);
+    if (!slot) return null;
+
+    slot.slot_status = 'Cancelled';
+    slot.status = 'Cancelled';
+    slot.cancellation_reason = reason;
+    slot.updated_at = new Date().toISOString();
+    return slot;
+}
+
+/**
+ * Officer assigns beneficiary (Individual or Batch mode) to an Admin-created slot
+ */
+function assignBeneficiariesToSlot(slotId, data) {
+    const slot = findInterviewById(slotId);
+    if (!slot) return { error: 'Schedule slot not found.' };
+
+    if (slot.is_locked) {
+        return { error: 'Lock Restriction: This slot has been locked by PESO Admin. Reassignment or beneficiary modifications are prevented.' };
+    }
+
+    const mode = data.mode || (data.batch_name ? 'Batch' : 'Individual');
+
+    if (mode === 'Individual') {
+        if (!data.beneficiary_name) {
+            return { error: 'Beneficiary name is required for individual assignment.' };
+        }
+
+        // Double-booking check
+        const conflict = checkBeneficiaryDoubleBooking(data.beneficiary_name, slot.interview_date, slot.schedule_time, slot.id);
+        if (conflict) {
+            return { 
+                error: `Double-Booking Restriction: Beneficiary "${data.beneficiary_name}" is already scheduled in slot ${conflict.slot_id || conflict.interview_id} on ${conflict.interview_date} at ${conflict.schedule_time}.`,
+                conflictSlot: conflict 
+            };
+        }
+
+        slot.scheduling_mode = 'Individual';
+        slot.beneficiary_name = data.beneficiary_name.trim();
+        slot.beneficiary_phone = data.beneficiary_phone || '0917-111-2222';
+        slot.beneficiary_email = data.beneficiary_email || 'beneficiary@koronadal.ph';
+        slot.beneficiary_address = data.beneficiary_address || `Barangay ${data.barangay || 'Poblacion'}, Koronadal City`;
+        slot.barangay = data.barangay || slot.barangay || 'Poblacion';
+        slot.sex = data.sex || 'Male';
+        slot.age = Number(data.age) || 30;
+        slot.beneficiary_id = data.beneficiary_id || `BEN-2026-${String(slot.id).padStart(3, '0')}`;
+        slot.application_id = data.application_id || `APP-2026-${String(slot.id).padStart(3, '0')}`;
+        slot.batch_id = null;
+        slot.batch_name = null;
+        slot.batch_count = 1;
+        slot.batch_members = [];
+        if (data.remarks) slot.remarks = data.remarks;
+    } else if (mode === 'Batch') {
+        if (!data.batch_name) {
+            return { error: 'Batch name is required for batch assignment.' };
+        }
+
+        slot.scheduling_mode = 'Batch';
+        slot.batch_id = data.batch_id || `BAT-2026-${String(slot.id).padStart(3, '0')}`;
+        slot.batch_name = data.batch_name.trim();
+        slot.batch_count = Number(data.batch_count) || (Array.isArray(data.batch_members) ? data.batch_members.length : 10);
+        slot.batch_members = Array.isArray(data.batch_members) ? data.batch_members : [];
+        slot.barangay_cluster = data.barangay_cluster || slot.barangay_cluster || 'Cluster 1 - Urban';
+        slot.program_sub_category = data.program_sub_category || slot.program_sub_category || 'Batch Community Project';
+        slot.beneficiary_name = `${slot.batch_name} (${slot.batch_count} Beneficiaries)`;
+        slot.beneficiary_id = slot.batch_id;
+        slot.application_id = `BATCH-APP-${String(slot.id).padStart(3, '0')}`;
+        if (data.remarks) slot.remarks = data.remarks;
+    }
+
+    slot.updated_at = new Date().toISOString();
+    return { success: true, slot };
+}
+
+function addInterview(data) {
+    return createScheduleSlot(data);
 }
 
 function getAttendanceRecords(filters = {}) {
@@ -1583,6 +2021,14 @@ module.exports = {
     getInterviews,
     findInterviewById,
     getInterviewsByOfficer,
+    getScheduleSlots,
+    createScheduleSlot,
+    updateScheduleSlot,
+    lockScheduleSlot,
+    completeScheduleSlot,
+    cancelScheduleSlot,
+    assignBeneficiariesToSlot,
+    checkBeneficiaryDoubleBooking,
     updateInterviewAttendance,
     updateInterviewStatus,
     checkOfficerScheduleConflict,

@@ -719,16 +719,16 @@
             </div>
         </section>
 
-        <!-- 6. DAILY INTERVIEW SCHEDULE MANAGEMENT TAB -->
+        <!-- 6. DAILY INTERVIEW SCHEDULE & BENEFICIARY ASSIGNMENT DESK -->
         <section id="tab-daily-schedules" class="tab-section d-none">
             <div class="page-header">
                 <div>
-                    <h1 class="page-title"><i class="bi bi-calendar-check-fill text-primary me-2"></i>Daily Interview Schedule Management</h1>
-                    <p class="text-muted">Manage assigned interviews, monitor beneficiary attendance (Present/Absent), update statuses, and inspect applied livelihood programs</p>
+                    <h1 class="page-title"><i class="bi bi-calendar-check-fill text-primary me-2"></i>Officer Daily Schedule & Beneficiary Assignment Desk</h1>
+                    <p class="text-muted">Manage beneficiary assignments (Individual / Batch), monitor attendance (Present / Absent), update interview statuses, and review Admin-provisioned slots</p>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <button class="btn btn-outline-secondary" onclick="exportDailyScheduleCSV()"><i class="bi bi-download me-1"></i> Export Schedule</button>
-                    <button class="btn btn-primary" onclick="openScheduleNewInterviewModal()"><i class="bi bi-calendar-plus me-1"></i> Schedule Interview</button>
+                    <button class="btn btn-outline-secondary" onclick="exportDailyScheduleCSV()"><i class="bi bi-download me-1"></i> Export Daily Roster (CSV)</button>
+                    <button class="btn btn-primary" onclick="openScheduleNewInterviewModal()"><i class="bi bi-person-plus-fill me-1"></i> Assign Beneficiary</button>
                 </div>
             </div>
 
@@ -749,7 +749,7 @@
                                 </button>
                                 <div class="ms-2">
                                     <h5 class="fw-bold text-dark mb-0" id="currentScheduleDateDisplay">Saturday, August 8, 2026</h5>
-                                    <small class="text-muted" id="scheduleDateSubtitle">Assigned Interviews for PESO Officer</small>
+                                    <small class="text-muted" id="scheduleDateSubtitle">Assigned Program Slots for PESO Officer</small>
                                 </div>
                             </div>
                         </div>
@@ -783,25 +783,35 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" id="dailyScheduleSearchInput" placeholder="Search beneficiary name, ID, QR, or program..." onkeyup="filterDailySchedules()">
+                                <input type="text" class="form-control" id="dailyScheduleSearchInput" placeholder="Search beneficiary, batch, ID..." onkeyup="filterDailySchedules()">
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <select class="form-select" id="dailyScheduleStatusFilter" onchange="filterDailySchedules()">
-                                <option value="">All Statuses (Pending, Completed, Missed)</option>
-                                <option value="Pending">🟢 Pending</option>
-                                <option value="Completed">🔵 Completed</option>
-                                <option value="Missed">🔴 Missed</option>
+                            <select class="form-select" id="dailyScheduleProgramFilter" onchange="filterDailySchedules()">
+                                <option value="">All Programs (TUPAD, SPES, PFAS, CKGIP)</option>
+                                <option value="TUPAD">TUPAD (Emergency Employment)</option>
+                                <option value="SPES">SPES (Student Employment)</option>
+                                <option value="PFAS">PFAS (Pangkabuhayan Assistance)</option>
+                                <option value="CKGIP">CKGIP (City Internship)</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <select class="form-select" id="dailyScheduleStatusFilter" onchange="filterDailySchedules()">
+                                <option value="">All Statuses</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Missed">Missed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <select class="form-select" id="dailyScheduleAttendanceFilter" onchange="filterDailySchedules()">
-                                <option value="">All Attendance (Present, Absent, Unmarked)</option>
-                                <option value="Present">Present (Checked-in)</option>
-                                <option value="Absent">Absent (No-show)</option>
+                                <option value="">All Attendance</option>
+                                <option value="Present">Present (Attended)</option>
+                                <option value="Absent">Absent (No-Show)</option>
                                 <option value="Unmarked">Unmarked</option>
                             </select>
                         </div>
@@ -817,7 +827,7 @@
                 <div class="col-md-3">
                     <div class="stat-card p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-muted small fw-semibold">Total Scheduled</span>
+                            <span class="text-muted small fw-semibold">Total Assigned Slots</span>
                             <h4 class="fw-bold mb-0 text-dark" id="statDailyTotal">0</h4>
                         </div>
                         <div class="stat-icon bg-light text-primary fs-4"><i class="bi bi-calendar-event"></i></div>
@@ -826,7 +836,7 @@
                 <div class="col-md-3">
                     <div class="stat-card p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-muted small fw-semibold">🟢 Pending</span>
+                            <span class="text-muted small fw-semibold">Pending Interviews</span>
                             <h4 class="fw-bold mb-0 text-warning" id="statDailyPending">0</h4>
                         </div>
                         <div class="stat-icon bg-warning-subtle text-warning fs-4"><i class="bi bi-hourglass-split"></i></div>
@@ -835,16 +845,16 @@
                 <div class="col-md-3">
                     <div class="stat-card p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-muted small fw-semibold">🔵 Completed</span>
-                            <h4 class="fw-bold mb-0 text-primary" id="statDailyCompleted">0</h4>
+                            <span class="text-muted small fw-semibold">Completed Slots</span>
+                            <h4 class="fw-bold mb-0 text-success" id="statDailyCompleted">0</h4>
                         </div>
-                        <div class="stat-icon bg-primary-subtle text-primary fs-4"><i class="bi bi-check2-all"></i></div>
+                        <div class="stat-icon bg-success-subtle text-success fs-4"><i class="bi bi-check2-all"></i></div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-muted small fw-semibold">🔴 Missed / Absent</span>
+                            <span class="text-muted small fw-semibold">Missed / Absent</span>
                             <h4 class="fw-bold mb-0 text-danger" id="statDailyMissed">0</h4>
                         </div>
                         <div class="stat-icon bg-danger-subtle text-danger fs-4"><i class="bi bi-x-circle"></i></div>
@@ -855,21 +865,21 @@
             <!-- List View Container -->
             <div id="dailyScheduleListViewContainer" class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist text-primary me-2"></i>Scheduled Interviews List</h5>
-                    <span class="badge bg-primary-subtle text-primary" id="dailyScheduleCountBadge">0 Interviews</span>
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist text-primary me-2"></i>Officer Assigned Slots & Interviews Roster</h5>
+                    <span class="badge bg-primary-subtle text-primary" id="dailyScheduleCountBadge">0 Records</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Interview ID</th>
-                                    <th>Beneficiary Name</th>
+                                    <th>Slot ID</th>
+                                    <th>Mode & Beneficiary / Batch</th>
+                                    <th>Program Linkage (Admin)</th>
                                     <th>Time Slot & Venue</th>
-                                    <th>Applied Livelihood Program</th>
-                                    <th>Status Badge</th>
+                                    <th>Status</th>
                                     <th>Attendance</th>
-                                    <th>Remarks</th>
+                                    <th>Remarks & Cluster</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
@@ -1387,7 +1397,7 @@
         </div>
     </div>
 
-    <!-- INTERVIEW SCHEDULE & BENEFICIARY DETAIL VIEW MODAL -->
+    <!-- INTERVIEW SCHEDULE & BENEFICIARY DETAIL VIEW MODAL (VIEW ONLY) -->
     <div class="modal fade" id="interviewScheduleDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
@@ -1407,13 +1417,13 @@
         </div>
     </div>
 
-    <!-- SCHEDULE NEW INTERVIEW MODAL (With Conflict Validation) -->
+    <!-- OFFICER BENEFICIARY ASSIGNMENT MODAL (INDIVIDUAL & BATCH MODES) -->
     <div class="modal fade" id="scheduleNewInterviewModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title fw-bold">
-                        <i class="bi bi-calendar-plus me-2"></i>Schedule Beneficiary Interview
+                        <i class="bi bi-person-plus-fill me-2"></i>Officer Beneficiary Assignment & Scheduling Desk
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -1424,53 +1434,111 @@
                             <i class="bi bi-exclamation-octagon-fill me-2"></i><span id="newInterviewConflictText"></span>
                         </div>
 
-                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Beneficiary Information</h6>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Beneficiary Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="schedBenName" required placeholder="e.g. Maria Santos Dela Cruz">
+                        <!-- Fixed Admin Program Linkage Header -->
+                        <div class="card border-primary-subtle bg-light p-3 rounded-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-primary font-monospace fs-6" id="assignModalProgramBadge">TUPAD</span>
+                                    <span class="badge bg-dark-subtle text-dark ms-1" id="assignModalSlotIdBadge">SLOT-001</span>
+                                </div>
+                                <span class="badge bg-secondary-subtle text-dark border"><i class="bi bi-shield-lock me-1"></i>Admin Linked Program (Read-Only)</span>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Contact Phone Number <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="schedBenPhone" required placeholder="09171234567">
-                                <div class="form-text text-muted">Masked in all public views pursuant to Data Privacy Act.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Barangay (Koronadal City) <span class="text-danger">*</span></label>
-                                <select class="form-select" id="schedBenBarangay" required>
-                                    <option value="Morales">Morales</option>
-                                    <option value="Poblacion">Poblacion</option>
-                                    <option value="Zone 1">Zone 1</option>
-                                    <option value="Zone 2">Zone 2</option>
-                                    <option value="Rotonda">Rotonda</option>
-                                    <option value="San Isidro">San Isidro</option>
-                                    <option value="Concepcion">Concepcion</option>
-                                    <option value="Mabini">Mabini</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Email Address</label>
-                                <input type="email" class="form-control" id="schedBenEmail" placeholder="beneficiary@koronadal.ph">
+                            <h6 class="fw-bold text-dark mt-2 mb-0" id="assignModalProgramName">Emergency Employment Assistance Program</h6>
+                            <input type="hidden" id="assignModalSlotId" value="">
+                        </div>
+
+                        <!-- Assignment Mode Switcher -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">Assignment Mode <span class="text-danger">*</span></label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="assignModeRadio" id="modeIndividualRadio" value="Individual" checked onchange="toggleAssignMode('Individual')">
+                                <label class="btn btn-outline-primary fw-bold py-2" for="modeIndividualRadio"><i class="bi bi-person-fill me-1"></i> Individual Beneficiary</label>
+
+                                <input type="radio" class="btn-check" name="assignModeRadio" id="modeBatchRadio" value="Batch" onchange="toggleAssignMode('Batch')">
+                                <label class="btn btn-outline-primary fw-bold py-2" for="modeBatchRadio"><i class="bi bi-people-fill me-1"></i> Batch / Group Assignment</label>
                             </div>
                         </div>
 
-                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Applied Livelihood Program</h6>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Livelihood Program <span class="text-danger">*</span></label>
-                                <select class="form-select" id="schedProgramCode" required>
-                                    <option value="TUPAD">TUPAD (Emergency Employment Assistance)</option>
-                                    <option value="PFAS">PFAS (Pangkabuhayan Assistance Special Project)</option>
-                                    <option value="CKGIP">CKGIP (City Government Internship Program)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Project / Business Category <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="schedProjectType" required placeholder="e.g. Micro-Enterprise Food Cart, Sanitation">
+                        <!-- INDIVIDUAL BENEFICIARY FIELDS CONTAINER -->
+                        <div id="assignIndividualFieldsContainer">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Beneficiary Personal Details</h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Beneficiary Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="schedBenName" placeholder="e.g. Generoso Alcantara">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Contact Phone Number <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" id="schedBenPhone" placeholder="0917-123-4567">
+                                    <div class="form-text text-muted">Protected under Data Privacy Act (Masked in public views).</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Barangay (Koronadal City) <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="schedBenBarangay">
+                                        <option value="Poblacion">Poblacion</option>
+                                        <option value="Morales" selected>Morales</option>
+                                        <option value="Zone 1">Zone 1</option>
+                                        <option value="Zone 2">Zone 2</option>
+                                        <option value="Rotonda">Rotonda</option>
+                                        <option value="San Isidro">San Isidro</option>
+                                        <option value="Concepcion">Concepcion</option>
+                                        <option value="Mabini">Mabini</option>
+                                        <option value="Carpenter Hill">Carpenter Hill</option>
+                                        <option value="Saravia">Saravia</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Email Address</label>
+                                    <input type="email" class="form-control" id="schedBenEmail" placeholder="beneficiary@koronadal.ph">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Sex</label>
+                                    <select class="form-select" id="schedBenSex">
+                                        <option value="Female">Female</option>
+                                        <option value="Male">Male</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Age</label>
+                                    <input type="number" class="form-control" id="schedBenAge" value="28" min="15" max="99">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Project / Sub-Category</label>
+                                    <input type="text" class="form-control" id="schedProjectType" placeholder="e.g. Road Maintenance">
+                                </div>
                             </div>
                         </div>
 
-                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">3. Schedule Time & Venue</h6>
+                        <!-- BATCH ASSIGNMENT FIELDS CONTAINER -->
+                        <div id="assignBatchFieldsContainer" class="d-none">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Batch Metadata & Cluster Parameters</h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold">Batch Identifier / Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="schedBatchName" placeholder="e.g. Batch 2026-02: San Isidro Tree Planting Initiative">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Beneficiary Count <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="schedBatchCount" value="25" min="1" max="500">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Barangay Cluster <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="schedBatchCluster">
+                                        <option value="Cluster 1 - Poblacion Proper (Zone I, II, III, IV)">Cluster 1 - Poblacion Proper (Zone I, II, III, IV)</option>
+                                        <option value="Cluster 2 - East Poblacion & Morales" selected>Cluster 2 - East Poblacion & Morales</option>
+                                        <option value="Cluster 3 - West Urban / General Paulino Santos">Cluster 3 - West Urban / General Paulino Santos</option>
+                                        <option value="Cluster 4 - North Corridor (San Isidro, Concepcion)">Cluster 4 - North Corridor (San Isidro, Concepcion)</option>
+                                        <option value="Cluster 5 - South Corridor (Saravia, Carpenter Hill)">Cluster 5 - South Corridor (Saravia, Carpenter Hill)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Program Sub-Category</label>
+                                    <input type="text" class="form-control" id="schedBatchSubCategory" placeholder="e.g. Community Tree Planting & Urban Reforestation">
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Schedule Time & Location</h6>
                         <div class="row g-3 mb-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Interview Date <span class="text-danger">*</span></label>
@@ -1479,27 +1547,33 @@
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Time Slot <span class="text-danger">*</span></label>
                                 <select class="form-select" id="schedTimeSlot" required onchange="checkNewInterviewConflict()">
-                                    <option value="09:00 AM - 10:00 AM">09:00 AM - 10:00 AM</option>
-                                    <option value="10:30 AM - 11:30 AM">10:30 AM - 11:30 AM</option>
-                                    <option value="01:30 PM - 02:30 PM">01:30 PM - 02:30 PM</option>
+                                    <option value="08:00 AM - 09:00 AM">08:00 AM - 09:00 AM</option>
+                                    <option value="09:00 AM - 10:00 AM" selected>09:00 AM - 10:00 AM</option>
+                                    <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
+                                    <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
+                                    <option value="01:00 PM - 02:00 PM">01:00 PM - 02:00 PM</option>
+                                    <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM</option>
                                     <option value="03:00 PM - 04:00 PM">03:00 PM - 04:00 PM</option>
+                                    <option value="04:00 PM - 05:00 PM">04:00 PM - 05:00 PM</option>
+                                    <option value="08:00 AM - 12:00 PM">08:00 AM - 12:00 PM (Batch Block)</option>
+                                    <option value="01:00 PM - 05:00 PM">01:00 PM - 05:00 PM (Batch Block)</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Interview Venue / Room <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="schedVenue" required value="PESO Main Office - Interview Room A">
+                                <input type="text" class="form-control" id="schedVenue" required value="PESO Main Office - Room A">
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Initial Remarks / Notes</label>
-                            <textarea class="form-control" id="schedRemarks" rows="2" placeholder="e.g. Initial orientation and qualification interview"></textarea>
+                            <label class="form-label fw-bold">Officer Remarks / Notes</label>
+                            <textarea class="form-control" id="schedRemarks" rows="2" placeholder="e.g. Verified eligibility; pre-qualification interview scheduled"></textarea>
                         </div>
 
                         <div class="modal-footer px-0 pb-0">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-primary px-4" id="btnSubmitNewSchedule">
-                                <i class="bi bi-calendar-check me-1"></i> Save Interview Schedule
+                                <i class="bi bi-calendar-check me-1"></i> Save Beneficiary Assignment
                             </button>
                         </div>
                     </form>
@@ -1573,175 +1647,251 @@
             { id: 'BEN-2026-005', name: 'Carlos Garcia', barangay: 'San Isidro', address: 'Purok Centro, San Isidro', contact: '0921-555-8899', email: 'carlos.garcia@outlook.com', program: 'PFAS (Pangkabuhayan Assistance)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 36, sex: 'Male' }
         ];
 
-        // Daily Assigned Interview Schedules Store
+        // Unified Daily Program Schedule Slots Store
         let dailySchedulesList = [
             {
-                id: 'INT-2026-001',
+                id: 'SLOT-001',
+                slot_id: 'SLOT-001',
                 numId: 1,
                 officerId: 2,
+                officer_id: 2,
                 officerName: 'Jane Smith',
+                officer_name: 'Jane Smith',
+                programCode: 'TUPAD',
+                program_code: 'TUPAD',
+                programName: 'TUPAD (Emergency Employment Assistance)',
+                program_name: 'TUPAD (Emergency Employment Assistance)',
+                program_sub_category: 'Environmental Sanitation & Community Beautification',
+                projectType: 'Environmental Sanitation & Community Beautification',
+                interviewDate: '2026-08-08',
+                slot_date: '2026-08-08',
+                scheduleTime: '09:00 AM - 10:00 AM',
+                schedule_time: '09:00 AM - 10:00 AM',
+                timeSlot: '09:00 AM',
+                venue: 'PESO Main Office - Room A',
+                scheduling_mode: 'Individual',
                 beneficiaryId: 'BEN-2026-001',
                 beneficiaryName: 'Maria Santos',
+                beneficiary_name: 'Maria Santos',
                 beneficiaryPhone: '0917-123-4567',
+                beneficiary_phone: '0917-123-4567',
                 beneficiaryEmail: 'maria.santos@gmail.com',
                 beneficiaryAddress: 'Purok 4, Barangay Morales, Koronadal City',
                 barangay: 'Morales',
                 sex: 'Female',
                 age: 32,
-                programCode: 'TUPAD',
-                programName: 'TUPAD (Emergency Employment Assistance)',
-                projectType: 'Environmental Sanitation & Community Beautification',
                 applicationId: 'APP-2026-001',
                 dateApplied: '2026-07-28',
-                interviewDate: '2026-08-08',
-                scheduleTime: '09:00 AM - 10:00 AM',
-                timeSlot: '09:00 AM',
-                venue: 'PESO Main Office - Interview Room A',
                 status: 'Pending',
+                slot_status: 'Active',
+                is_locked: false,
+                lock_status: 'Active',
                 attendance: 'Unmarked',
                 remarks: 'Scheduled for initial qualification interview and livelihood assessment.',
+                admin_remarks: 'Priority allocation for Barangay Morales displaced workers.',
                 justification: null,
                 documents: ['Barangay Certification', 'Valid Government ID', 'Application Form']
             },
             {
-                id: 'INT-2026-002',
+                id: 'SLOT-002',
+                slot_id: 'SLOT-002',
                 numId: 2,
                 officerId: 2,
+                officer_id: 2,
                 officerName: 'Jane Smith',
+                officer_name: 'Jane Smith',
+                programCode: 'TUPAD',
+                program_code: 'TUPAD',
+                programName: 'TUPAD (Emergency Employment Assistance)',
+                program_name: 'TUPAD (Emergency Employment Assistance)',
+                program_sub_category: 'Urban Reforestation & Riverway Cleanup',
+                projectType: 'Urban Reforestation & Riverway Cleanup',
+                interviewDate: '2026-08-08',
+                slot_date: '2026-08-08',
+                scheduleTime: '10:30 AM - 11:30 AM',
+                schedule_time: '10:30 AM - 11:30 AM',
+                timeSlot: '10:30 AM',
+                venue: 'Koronadal Civic Center - Function Hall B',
+                scheduling_mode: 'Batch',
+                batch_name: 'Batch 2026-02: San Isidro Tree Planting Initiative',
+                batch_count: 30,
+                barangay_cluster: 'Cluster 2 - East Poblacion & Morales',
+                barangay: 'San Isidro',
+                status: 'Completed',
+                slot_status: 'Completed',
+                is_locked: false,
+                lock_status: 'Active',
+                attendance: 'Present',
+                remarks: 'Full batch orientation completed; all 30 beneficiaries checked-in and cleared.',
+                admin_remarks: 'LGU Environmental Sanitation partnership batch.',
+                justification: null,
+                documents: ['Cluster Endorsement', 'Masterlist Roster']
+            },
+            {
+                id: 'SLOT-003',
+                slot_id: 'SLOT-003',
+                numId: 3,
+                officerId: 2,
+                officer_id: 2,
+                officerName: 'Jane Smith',
+                officer_name: 'Jane Smith',
+                programCode: 'PFAS',
+                program_code: 'PFAS',
+                programName: 'PFAS (Pangkabuhayan Assistance Special Project)',
+                program_name: 'PFAS (Pangkabuhayan Assistance Special Project)',
+                program_sub_category: 'Micro-Enterprise Food Cart & Rolling Store',
+                projectType: 'Micro-Enterprise Food Cart & Rolling Store',
+                interviewDate: '2026-08-08',
+                slot_date: '2026-08-08',
+                scheduleTime: '01:30 PM - 02:30 PM',
+                schedule_time: '01:30 PM - 02:30 PM',
+                timeSlot: '01:30 PM',
+                venue: 'PESO Main Office - Room B',
+                scheduling_mode: 'Individual',
                 beneficiaryId: 'BEN-2026-002',
                 beneficiaryName: 'Juan Dela Cruz',
+                beneficiary_name: 'Juan Dela Cruz',
                 beneficiaryPhone: '0918-222-3344',
+                beneficiary_phone: '0918-222-3344',
                 beneficiaryEmail: 'juan.delacruz@yahoo.com',
                 beneficiaryAddress: 'Purok Sunflower, Barangay Zone 1, Koronadal City',
                 barangay: 'Zone 1',
                 sex: 'Male',
                 age: 41,
-                programCode: 'PFAS',
-                programName: 'PFAS (Pangkabuhayan Assistance Special Project)',
-                projectType: 'Micro-Enterprise Food Cart & Rolling Store',
                 applicationId: 'APP-2026-002',
                 dateApplied: '2026-07-29',
-                interviewDate: '2026-08-08',
-                scheduleTime: '10:30 AM - 11:30 AM',
-                timeSlot: '10:30 AM',
-                venue: 'PESO Main Office - Interview Room B',
-                status: 'Completed',
-                attendance: 'Present',
-                remarks: 'Candidate successfully presented business proposal and passed interview assessment.',
+                status: 'Pending',
+                slot_status: 'Active',
+                is_locked: false,
+                lock_status: 'Active',
+                attendance: 'Unmarked',
+                remarks: 'Candidate presenting business proposal for rolling food cart.',
+                admin_remarks: 'Livelihood kit starter grant screening.',
                 justification: null,
                 documents: ['Barangay Certification', 'Valid Government ID', 'Business Proposal']
             },
             {
-                id: 'INT-2026-003',
-                numId: 3,
+                id: 'SLOT-004',
+                slot_id: 'SLOT-004',
+                numId: 4,
                 officerId: 2,
+                officer_id: 2,
                 officerName: 'Jane Smith',
+                officer_name: 'Jane Smith',
+                programCode: 'CKGIP',
+                program_code: 'CKGIP',
+                programName: 'CKGIP (City Government Internship Program)',
+                program_name: 'CKGIP (City Government Internship Program)',
+                program_sub_category: 'Administrative & Systems Support',
+                projectType: 'Administrative & Systems Support',
+                interviewDate: '2026-08-08',
+                slot_date: '2026-08-08',
+                scheduleTime: '03:00 PM - 04:00 PM',
+                schedule_time: '03:00 PM - 04:00 PM',
+                timeSlot: '03:00 PM',
+                venue: 'PESO Main Office - Room A',
+                scheduling_mode: 'Individual',
                 beneficiaryId: 'BEN-2026-003',
                 beneficiaryName: 'Pedro Reyes',
+                beneficiary_name: 'Pedro Reyes',
                 beneficiaryPhone: '0919-333-5566',
+                beneficiary_phone: '0919-333-5566',
                 beneficiaryEmail: 'pedro.reyes@koronadal.ph',
                 beneficiaryAddress: 'Purok 2, Barangay Rotonda, Koronadal City',
                 barangay: 'Rotonda',
                 sex: 'Male',
                 age: 23,
-                programCode: 'CKGIP',
-                programName: 'CKGIP (City of Koronadal Government Internship Program)',
-                projectType: 'Administrative & Information Systems Internship',
                 applicationId: 'APP-2026-003',
                 dateApplied: '2026-07-30',
-                interviewDate: '2026-08-08',
-                scheduleTime: '01:30 PM - 02:30 PM',
-                timeSlot: '01:30 PM',
-                venue: 'PESO Main Office - Interview Room A',
                 status: 'Pending',
+                slot_status: 'Locked',
+                is_locked: true,
+                lock_status: 'Locked',
                 attendance: 'Unmarked',
-                remarks: 'Afternoon interview session for technical internship placement.',
+                remarks: 'Finalist screening slot locked by Admin; assignment finalized.',
+                admin_remarks: 'Slot locked by Admin pending department interview.',
                 justification: null,
-                documents: ['Barangay Certification', 'School Clearance', 'Transcript']
+                documents: ['School Clearance', 'Transcript', 'Valid ID']
             },
             {
-                id: 'INT-2026-004',
-                numId: 4,
+                id: 'SLOT-005',
+                slot_id: 'SLOT-005',
+                numId: 5,
                 officerId: 2,
+                officer_id: 2,
                 officerName: 'Jane Smith',
+                officer_name: 'Jane Smith',
+                programCode: 'SPES',
+                program_code: 'SPES',
+                programName: 'SPES (Special Program for Employment of Students)',
+                program_name: 'SPES (Special Program for Employment of Students)',
+                program_sub_category: 'Youth Academic Support',
+                projectType: 'Youth Academic Support',
+                interviewDate: '2026-08-08',
+                slot_date: '2026-08-08',
+                scheduleTime: '04:00 PM - 05:00 PM',
+                schedule_time: '04:00 PM - 05:00 PM',
+                timeSlot: '04:00 PM',
+                venue: 'PESO Main Office - Room B',
+                scheduling_mode: 'Unassigned',
+                beneficiaryId: null,
+                beneficiaryName: null,
+                beneficiary_name: null,
+                beneficiaryPhone: null,
+                beneficiary_phone: null,
+                barangay: null,
+                status: 'Pending',
+                slot_status: 'Active',
+                is_locked: false,
+                lock_status: 'Active',
+                attendance: 'Unmarked',
+                remarks: 'Open slot provisioned by Admin. Awaiting officer beneficiary assignment.',
+                admin_remarks: 'Open student quota slot.',
+                justification: null,
+                documents: []
+            },
+            {
+                id: 'SLOT-006',
+                slot_id: 'SLOT-006',
+                numId: 6,
+                officerId: 2,
+                officer_id: 2,
+                officerName: 'Jane Smith',
+                officer_name: 'Jane Smith',
+                programCode: 'TUPAD',
+                program_code: 'TUPAD',
+                programName: 'TUPAD (Emergency Employment Assistance)',
+                program_name: 'TUPAD (Emergency Employment Assistance)',
+                program_sub_category: 'Community Urban Greening',
+                projectType: 'Community Urban Greening',
+                interviewDate: '2026-08-09',
+                slot_date: '2026-08-09',
+                scheduleTime: '09:00 AM - 10:00 AM',
+                schedule_time: '09:00 AM - 10:00 AM',
+                timeSlot: '09:00 AM',
+                venue: 'PESO Main Office - Room A',
+                scheduling_mode: 'Individual',
                 beneficiaryId: 'BEN-2026-004',
                 beneficiaryName: 'Ana Lim',
+                beneficiary_name: 'Ana Lim',
                 beneficiaryPhone: '0920-444-7788',
+                beneficiary_phone: '0920-444-7788',
                 beneficiaryEmail: 'ana.lim@gmail.com',
                 beneficiaryAddress: 'Purok Pag-asa, Barangay Poblacion, Koronadal City',
                 barangay: 'Poblacion',
                 sex: 'Female',
                 age: 28,
-                programCode: 'TUPAD',
-                programName: 'TUPAD (Emergency Employment Assistance)',
-                projectType: 'Community Urban Greening & Tree Planting',
                 applicationId: 'APP-2026-004',
                 dateApplied: '2026-08-01',
-                interviewDate: '2026-08-09',
-                scheduleTime: '09:00 AM - 10:00 AM',
-                timeSlot: '09:00 AM',
-                venue: 'PESO Main Office - Interview Room A',
                 status: 'Pending',
+                slot_status: 'Active',
+                is_locked: false,
+                lock_status: 'Active',
                 attendance: 'Unmarked',
-                remarks: 'Tomorrow morning interview schedule.',
+                remarks: 'Upcoming morning interview schedule.',
+                admin_remarks: 'Poblacion greening team slot.',
                 justification: null,
-                documents: ['Barangay Certification', 'Valid ID']
-            },
-            {
-                id: 'INT-2026-005',
-                numId: 5,
-                officerId: 2,
-                officerName: 'Jane Smith',
-                beneficiaryId: 'BEN-2026-005',
-                beneficiaryName: 'Carlos Garcia',
-                beneficiaryPhone: '0921-555-8899',
-                beneficiaryEmail: 'carlos.garcia@outlook.com',
-                beneficiaryAddress: 'Purok Centro, Barangay San Isidro, Koronadal City',
-                barangay: 'San Isidro',
-                sex: 'Male',
-                age: 36,
-                programCode: 'PFAS',
-                programName: 'PFAS (Pangkabuhayan Assistance Special Project)',
-                projectType: 'Welding, Metalcraft & Fabrication Starter Kit',
-                applicationId: 'APP-2026-005',
-                dateApplied: '2026-07-20',
-                interviewDate: '2026-08-05',
-                scheduleTime: '11:00 AM - 12:00 PM',
-                timeSlot: '11:00 AM',
-                venue: 'PESO Main Office - Interview Room B',
-                status: 'Missed',
-                attendance: 'Absent',
-                remarks: 'Applicant was unable to attend due to medical emergency.',
-                justification: 'Official doctor certificate submitted by family.',
-                documents: ['Barangay Certification', 'Valid ID', 'Medical Note']
-            },
-            {
-                id: 'INT-2026-006',
-                numId: 6,
-                officerId: 2,
-                officerName: 'Jane Smith',
-                beneficiaryId: 'BEN-2026-006',
-                beneficiaryName: 'Elena Ramos',
-                beneficiaryPhone: '0922-666-9900',
-                beneficiaryEmail: 'elena.ramos@gmail.com',
-                beneficiaryAddress: 'Purok 3, Barangay Concepcion, Koronadal City',
-                barangay: 'Concepcion',
-                sex: 'Female',
-                age: 45,
-                programCode: 'TUPAD',
-                programName: 'TUPAD (Emergency Employment Assistance)',
-                projectType: 'Public Park Maintenance & Tree Pruning',
-                applicationId: 'APP-2026-006',
-                dateApplied: '2026-08-02',
-                interviewDate: '2026-08-10',
-                scheduleTime: '10:00 AM - 11:00 AM',
-                timeSlot: '10:00 AM',
-                venue: 'PESO Main Office - Interview Room A',
-                status: 'Pending',
-                attendance: 'Unmarked',
-                remarks: 'Scheduled interview session.',
-                justification: null,
-                documents: ['Barangay Certification', 'Valid ID']
+                documents: ['Barangay Clearance', 'Valid ID']
             }
         ];
 
@@ -1870,10 +2020,23 @@
         }
 
         // ---------------------------------------------------------------------
-        // DAILY SCHEDULE MANAGEMENT MODULE
+        // DAILY SCHEDULE MANAGEMENT MODULE (UNIFIED WORKFLOW)
         // ---------------------------------------------------------------------
         function getTodayDateStr() {
             return '2026-08-08';
+        }
+
+        // Toggle assignment mode between Individual and Batch
+        function toggleAssignMode(mode) {
+            const indCont = document.getElementById('assignIndividualFieldsContainer');
+            const batchCont = document.getElementById('assignBatchFieldsContainer');
+            if (mode === 'Batch') {
+                if (indCont) indCont.classList.add('d-none');
+                if (batchCont) batchCont.classList.remove('d-none');
+            } else {
+                if (indCont) indCont.classList.remove('d-none');
+                if (batchCont) batchCont.classList.add('d-none');
+            }
         }
 
         function updateScheduleDateHeaderDisplay() {
@@ -1894,7 +2057,7 @@
                 dtDisplay.innerHTML = `${formattedText} ${isToday ? '<span class="badge bg-success ms-2 fs-6">Today</span>' : isPast ? '<span class="badge bg-secondary ms-2 fs-6">Past Date</span>' : '<span class="badge bg-info ms-2 fs-6 text-dark">Upcoming</span>'}`;
             }
             if (subDisplay) {
-                subDisplay.textContent = `Assigned Interviews for PESO Officer (${currentOfficerUser.fullName || 'Jane Smith'})`;
+                subDisplay.textContent = `Assigned Program Slots for PESO Officer (${currentOfficerUser.fullName || 'Jane Smith'})`;
             }
         }
 
@@ -1942,12 +2105,15 @@
             renderDailySchedules();
         }
 
+        // Consistent Unified Badge Color Schemes
         function getStatusBadgeHtml(status) {
             switch (status) {
                 case 'Completed':
-                    return `<span class="badge bg-primary text-white"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>`;
+                    return `<span class="badge bg-success text-white"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>`;
                 case 'Missed':
                     return `<span class="badge bg-danger text-white"><i class="bi bi-x-circle-fill me-1"></i>Missed</span>`;
+                case 'Cancelled':
+                    return `<span class="badge bg-danger-subtle text-danger border border-danger"><i class="bi bi-slash-circle me-1"></i>Cancelled</span>`;
                 case 'Pending':
                 default:
                     return `<span class="badge bg-warning text-dark border border-warning-subtle"><i class="bi bi-hourglass-split me-1"></i>Pending</span>`;
@@ -1975,12 +2141,13 @@
             let conflicts = [];
 
             dateSchedules.forEach(item => {
-                if (item.status === 'Cancelled') return;
-                const slot = item.scheduleTime.trim().toLowerCase();
-                if (timeMap[slot]) {
-                    conflicts.push(`"${item.beneficiaryName}" and "${timeMap[slot].beneficiaryName}" at ${item.scheduleTime}`);
+                if (item.status === 'Cancelled' || item.slot_status === 'Cancelled') return;
+                const slotTime = (item.scheduleTime || item.schedule_time || '').trim().toLowerCase();
+                const displayName = item.beneficiaryName || item.beneficiary_name || item.batch_name || item.id;
+                if (timeMap[slotTime]) {
+                    conflicts.push(`"${displayName}" and "${timeMap[slotTime].name}" at ${slotTime}`);
                 } else {
-                    timeMap[slot] = item;
+                    timeMap[slotTime] = { name: displayName, item };
                 }
             });
 
@@ -1998,35 +2165,47 @@
 
         function renderDailySchedules() {
             const search = document.getElementById('dailyScheduleSearchInput') ? document.getElementById('dailyScheduleSearchInput').value.toLowerCase().trim() : '';
+            const progFilter = document.getElementById('dailyScheduleProgramFilter') ? document.getElementById('dailyScheduleProgramFilter').value : '';
             const statusFilter = document.getElementById('dailyScheduleStatusFilter') ? document.getElementById('dailyScheduleStatusFilter').value : '';
             const attFilter = document.getElementById('dailyScheduleAttendanceFilter') ? document.getElementById('dailyScheduleAttendanceFilter').value : '';
 
-            let dateSchedules = dailySchedulesList.filter(s => s.interviewDate === currentScheduleDate);
+            let dateSchedules = dailySchedulesList.filter(s => (s.interviewDate || s.slot_date) === currentScheduleDate);
             checkDailyScheduleConflicts(dateSchedules);
 
             let filtered = dateSchedules.filter(item => {
+                const benName = (item.beneficiaryName || item.beneficiary_name || item.batch_name || '').toLowerCase();
+                const slotId = (item.id || item.slot_id || '').toLowerCase();
+                const progCode = (item.programCode || item.program_code || '').toLowerCase();
+                const progName = (item.programName || item.program_name || '').toLowerCase();
+                const brgy = (item.barangay || item.barangay_cluster || '').toLowerCase();
+
                 const matchSearch = !search || 
-                    item.beneficiaryName.toLowerCase().includes(search) || 
-                    item.id.toLowerCase().includes(search) || 
-                    item.beneficiaryId.toLowerCase().includes(search) || 
-                    item.programCode.toLowerCase().includes(search) ||
-                    item.programName.toLowerCase().includes(search) ||
-                    item.barangay.toLowerCase().includes(search);
-                const matchStatus = !statusFilter || item.status === statusFilter;
-                const matchAtt = !attFilter || item.attendance === attFilter;
-                return matchSearch && matchStatus && matchAtt;
+                    benName.includes(search) || 
+                    slotId.includes(search) || 
+                    progCode.includes(search) ||
+                    progName.includes(search) ||
+                    brgy.includes(search);
+                
+                const currentProg = item.programCode || item.program_code;
+                const matchProg = !progFilter || currentProg === progFilter;
+                const currentStatus = item.status || item.slot_status;
+                const matchStatus = !statusFilter || currentStatus === statusFilter;
+                const currentAtt = item.attendance;
+                const matchAtt = !attFilter || currentAtt === attFilter;
+
+                return matchSearch && matchProg && matchStatus && matchAtt;
             });
 
             const totalScheduled = dateSchedules.length;
-            const pendingCount = dateSchedules.filter(s => s.status === 'Pending').length;
-            const completedCount = dateSchedules.filter(s => s.status === 'Completed').length;
-            const missedCount = dateSchedules.filter(s => s.status === 'Missed' || s.attendance === 'Absent').length;
+            const pendingCount = dateSchedules.filter(s => (s.status || s.slot_status) === 'Pending' || (s.status || s.slot_status) === 'Active').length;
+            const completedCount = dateSchedules.filter(s => (s.status || s.slot_status) === 'Completed').length;
+            const missedCount = dateSchedules.filter(s => (s.status || s.slot_status) === 'Missed' || s.attendance === 'Absent').length;
 
             if (document.getElementById('statDailyTotal')) document.getElementById('statDailyTotal').textContent = totalScheduled;
             if (document.getElementById('statDailyPending')) document.getElementById('statDailyPending').textContent = pendingCount;
             if (document.getElementById('statDailyCompleted')) document.getElementById('statDailyCompleted').textContent = completedCount;
             if (document.getElementById('statDailyMissed')) document.getElementById('statDailyMissed').textContent = missedCount;
-            if (document.getElementById('dailyScheduleCountBadge')) document.getElementById('dailyScheduleCountBadge').textContent = `${filtered.length} of ${totalScheduled} Interviews`;
+            if (document.getElementById('dailyScheduleCountBadge')) document.getElementById('dailyScheduleCountBadge').textContent = `${filtered.length} of ${totalScheduled} Records`;
 
             const tbody = document.getElementById('dailyScheduleTableBody');
             if (tbody) {
@@ -2035,72 +2214,129 @@
                         <tr>
                             <td colspan="8" class="text-center py-5 text-muted">
                                 <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
-                                <h6 class="fw-bold mb-1">No interviews scheduled for this date.</h6>
-                                <p class="small text-muted mb-3">Click "Schedule Interview" to assign a beneficiary or navigate dates above.</p>
-                                <button class="btn btn-sm btn-outline-primary" onclick="openScheduleNewInterviewModal()"><i class="bi bi-plus-circle me-1"></i>Schedule New Interview</button>
+                                <h6 class="fw-bold mb-1">No schedules or beneficiary assignments found for this date.</h6>
+                                <p class="small text-muted mb-3">Click "Assign Beneficiary" or navigate dates using toolbar.</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="openScheduleNewInterviewModal()"><i class="bi bi-plus-circle me-1"></i>Assign Beneficiary to Slot</button>
                             </td>
                         </tr>
                     `;
                 } else {
-                    tbody.innerHTML = filtered.map(item => `
-                        <tr style="cursor:pointer" onclick="openInterviewScheduleDetail('${item.id}')">
-                            <td><span class="fw-bold text-primary">${item.id}</span></td>
-                            <td>
-                                <span class="fw-semibold text-dark">${item.beneficiaryName}</span><br>
-                                <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${item.barangay} • ${maskContact(item.beneficiaryPhone)}</small>
-                            </td>
-                            <td>
-                                <span class="fw-bold text-dark"><i class="bi bi-clock me-1 text-primary"></i>${item.scheduleTime}</span><br>
-                                <small class="text-muted"><i class="bi bi-building me-1"></i>${item.venue}</small>
-                            </td>
-                            <td>
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">${item.programCode}</span>
-                                <small class="d-block text-muted text-truncate" style="max-width: 180px;">${item.projectType}</small>
-                            </td>
-                            <td>${getStatusBadgeHtml(item.status)}</td>
-                            <td>${getAttendanceBadgeHtml(item.attendance)}</td>
-                            <td><small class="text-muted text-truncate d-inline-block" style="max-width: 150px;">${item.remarks || 'No remarks'}</small></td>
-                            <td class="text-end" onclick="event.stopPropagation()">
-                                <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="openInterviewScheduleDetail('${item.id}')">
-                                    <i class="bi bi-eye me-1"></i>Details & Actions
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('');
+                    tbody.innerHTML = filtered.map(item => {
+                        const slotId = item.id || item.slot_id;
+                        const isLocked = item.is_locked || item.lock_status === 'Locked';
+                        const isBatch = item.scheduling_mode === 'Batch' || (item.batch_count && item.batch_count > 1);
+                        const isUnassigned = item.scheduling_mode === 'Unassigned' || (!item.beneficiaryName && !item.beneficiary_name && !item.batch_name);
+                        
+                        const progCode = item.programCode || item.program_code || 'TUPAD';
+                        const progName = item.programName || item.program_name || 'Assistance Program';
+                        const schedTime = item.scheduleTime || item.schedule_time || '09:00 AM - 10:00 AM';
+                        const venue = item.venue || 'PESO Main Office';
+                        const status = item.status || item.slot_status || 'Pending';
+                        const attendance = item.attendance || 'Unmarked';
+                        const remarks = item.remarks || item.admin_remarks || '';
+                        const cluster = item.barangay_cluster || item.barangay || '';
+
+                        let benDisplay = '';
+                        if (isBatch) {
+                            benDisplay = `
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1"><i class="bi bi-people-fill me-1"></i>Batch</span>
+                                <strong class="text-dark">${item.batch_name || 'Community Batch Group'}</strong><br>
+                                <small class="text-muted"><i class="bi bi-person-lines-fill me-1"></i>${item.batch_count || 30} Beneficiaries • ${cluster || 'Cluster Area'}</small>
+                            `;
+                        } else if (isUnassigned) {
+                            benDisplay = `
+                                <span class="badge bg-secondary-subtle text-dark border me-1"><i class="bi bi-person-x me-1"></i>Unassigned</span>
+                                <span class="text-muted fst-italic">Awaiting Officer Assignment</span>
+                            `;
+                        } else {
+                            const name = item.beneficiaryName || item.beneficiary_name || 'Assigned Beneficiary';
+                            const phone = item.beneficiaryPhone || item.beneficiary_phone || '0917-000-0000';
+                            benDisplay = `
+                                <span class="badge bg-info-subtle text-dark border me-1"><i class="bi bi-person-fill me-1"></i>Individual</span>
+                                <strong class="text-dark">${name}</strong><br>
+                                <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${item.barangay || 'Koronadal'} • ${maskContact(phone)}</small>
+                            `;
+                        }
+
+                        return `
+                            <tr style="cursor:pointer" onclick="openInterviewScheduleDetail('${slotId}')">
+                                <td>
+                                    <span class="fw-bold font-monospace text-primary">${slotId}</span><br>
+                                    ${isLocked ? '<span class="badge bg-dark text-white small"><i class="bi bi-lock-fill me-1"></i>Locked</span>' : '<span class="badge bg-success-subtle text-success border small"><i class="bi bi-unlock-fill me-1"></i>Unlocked</span>'}
+                                </td>
+                                <td>${benDisplay}</td>
+                                <td>
+                                    <span class="badge bg-primary font-monospace">${progCode}</span>
+                                    <small class="d-block text-muted text-truncate" style="max-width: 170px;">${progName}</small>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-dark"><i class="bi bi-clock me-1 text-primary"></i>${schedTime}</span><br>
+                                    <small class="text-muted"><i class="bi bi-building me-1"></i>${venue}</small>
+                                </td>
+                                <td>${getStatusBadgeHtml(status)}</td>
+                                <td>${getAttendanceBadgeHtml(attendance)}</td>
+                                <td>
+                                    <small class="text-muted text-truncate d-inline-block" style="max-width: 140px;">${remarks || 'No remarks'}</small>
+                                    ${cluster ? `<br><span class="badge bg-light text-dark border small">${cluster}</span>` : ''}
+                                </td>
+                                <td class="text-end" onclick="event.stopPropagation()">
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary py-1 px-2" title="Strictly View-Only Details" onclick="openInterviewScheduleDetail('${slotId}')">
+                                            <i class="bi bi-eye me-1"></i>Details
+                                        </button>
+                                        ${(!isLocked && isUnassigned) ? `
+                                            <button class="btn btn-sm btn-primary py-1 px-2 ms-1" title="Assign Beneficiary" onclick="openScheduleNewInterviewModal('${slotId}')">
+                                                <i class="bi bi-person-plus me-1"></i>Assign
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
                 }
             }
 
             const gridCont = document.getElementById('dailyScheduleCalendarGridCards');
             if (gridCont) {
                 if (filtered.length === 0) {
-                    gridCont.innerHTML = `<div class="col-12 text-center py-5 text-muted"><p>No interviews found for this date in calendar view.</p></div>`;
+                    gridCont.innerHTML = `<div class="col-12 text-center py-5 text-muted"><p>No schedule records found for this date in calendar view.</p></div>`;
                 } else {
-                    gridCont.innerHTML = filtered.map(item => `
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-0 shadow-sm p-3" style="border-left: 4px solid ${item.status === 'Completed' ? '#0284C7' : item.status === 'Missed' ? '#EF4444' : '#F59E0B'} !important;">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <span class="badge bg-light text-primary border fw-bold">${item.id}</span>
-                                        <h6 class="fw-bold text-dark mt-2 mb-0">${item.beneficiaryName}</h6>
-                                        <small class="text-muted"><i class="bi bi-telephone me-1"></i>${maskContact(item.beneficiaryPhone)}</small>
+                    gridCont.innerHTML = filtered.map(item => {
+                        const slotId = item.id || item.slot_id;
+                        const status = item.status || item.slot_status || 'Pending';
+                        const isBatch = item.scheduling_mode === 'Batch' || (item.batch_count && item.batch_count > 1);
+                        const displayName = item.beneficiaryName || item.beneficiary_name || item.batch_name || 'Slot Activity';
+                        const progCode = item.programCode || item.program_code || 'TUPAD';
+                        const schedTime = item.scheduleTime || item.schedule_time || '09:00 AM - 10:00 AM';
+
+                        return `
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 border-0 shadow-sm p-3" style="border-left: 4px solid ${status === 'Completed' ? '#16a34a' : status === 'Missed' ? '#dc2626' : '#f59e0b'} !important;">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span class="badge bg-light text-primary border fw-bold">${slotId}</span>
+                                            <h6 class="fw-bold text-dark mt-2 mb-0">${displayName}</h6>
+                                            <small class="text-muted">${isBatch ? `Batch count: ${item.batch_count || 30} pax` : maskContact(item.beneficiaryPhone || item.beneficiary_phone || '0917-000-0000')}</small>
+                                        </div>
+                                        <div>${getStatusBadgeHtml(status)}</div>
                                     </div>
-                                    <div>${getStatusBadgeHtml(item.status)}</div>
-                                </div>
-                                <hr class="my-2 text-muted">
-                                <div class="small mb-2">
-                                    <div><strong><i class="bi bi-clock me-1 text-primary"></i>Time:</strong> ${item.scheduleTime}</div>
-                                    <div><strong><i class="bi bi-diagram-3 me-1 text-info"></i>Program:</strong> ${item.programCode} (${item.projectType})</div>
-                                    <div><strong><i class="bi bi-person-badge me-1"></i>Attendance:</strong> ${getAttendanceBadgeHtml(item.attendance)}</div>
-                                </div>
-                                <div class="mt-auto pt-2 d-flex justify-content-between align-items-center">
-                                    <small class="text-muted text-truncate" style="max-width: 140px;">${item.remarks || 'No notes'}</small>
-                                    <button class="btn btn-sm btn-primary py-0 px-2" onclick="openInterviewScheduleDetail('${item.id}')">
-                                        <i class="bi bi-pencil-square me-1"></i>Review
-                                    </button>
+                                    <hr class="my-2 text-muted">
+                                    <div class="small mb-2">
+                                        <div><strong><i class="bi bi-clock me-1 text-primary"></i>Time:</strong> ${schedTime}</div>
+                                        <div><strong><i class="bi bi-diagram-3 me-1 text-info"></i>Program:</strong> ${progCode}</div>
+                                        <div><strong><i class="bi bi-person-badge me-1"></i>Attendance:</strong> ${getAttendanceBadgeHtml(item.attendance)}</div>
+                                    </div>
+                                    <div class="mt-auto pt-2 d-flex justify-content-between align-items-center">
+                                        <small class="text-muted text-truncate" style="max-width: 140px;">${item.remarks || item.admin_remarks || 'No notes'}</small>
+                                        <button class="btn btn-sm btn-primary py-0 px-2" onclick="openInterviewScheduleDetail('${slotId}')">
+                                            <i class="bi bi-eye me-1"></i>View Details
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `).join('');
+                        `;
+                    }).join('');
                 }
             }
         }
@@ -2111,112 +2347,119 @@
 
         function resetDailyScheduleFilters() {
             if (document.getElementById('dailyScheduleSearchInput')) document.getElementById('dailyScheduleSearchInput').value = '';
+            if (document.getElementById('dailyScheduleProgramFilter')) document.getElementById('dailyScheduleProgramFilter').value = '';
             if (document.getElementById('dailyScheduleStatusFilter')) document.getElementById('dailyScheduleStatusFilter').value = '';
             if (document.getElementById('dailyScheduleAttendanceFilter')) document.getElementById('dailyScheduleAttendanceFilter').value = '';
             renderDailySchedules();
         }
 
         // ---------------------------------------------------------------------
-        // DETAIL VIEW & ATTENDANCE / STATUS UPDATE MODAL
+        // STRICTLY READ-ONLY COMBINED DETAILS MODAL
         // ---------------------------------------------------------------------
         function openInterviewScheduleDetail(id) {
-            const item = dailySchedulesList.find(s => s.id === id || s.numId === Number(id));
+            const item = dailySchedulesList.find(s => s.id === id || s.slot_id === id || s.numId === Number(id));
             if (!item) {
-                alert(`Interview schedule with identifier "${id}" not found.`);
+                alert(`Schedule record with identifier "${id}" not found.`);
                 return;
             }
 
-            selectedInterviewScheduleId = item.id;
-            const isPast = item.interviewDate < getTodayDateStr();
+            selectedInterviewScheduleId = item.id || item.slot_id;
+            const isPast = (item.interviewDate || item.slot_date) < getTodayDateStr();
+            const isBatch = item.scheduling_mode === 'Batch' || (item.batch_count && item.batch_count > 1);
+            const isLocked = item.is_locked || item.lock_status === 'Locked';
 
             const modalTitle = document.getElementById('interviewDetailModalHeaderTitle');
             if (modalTitle) {
-                modalTitle.innerHTML = `<i class="bi bi-person-lines-fill me-2"></i>Interview Schedule Detail — ${item.id} (${item.beneficiaryName})`;
+                modalTitle.innerHTML = `<i class="bi bi-journal-text me-2"></i>Schedule & Assignment Details — ${item.id || item.slot_id}`;
             }
 
             const modalBody = document.getElementById('interviewScheduleDetailModalBody');
             if (modalBody) {
+                let assignmentSection = '';
+                if (isBatch) {
+                    assignmentSection = `
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-people-fill me-2"></i>Batch Assignment Context</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr><th class="text-muted" style="width: 150px;">Mode:</th><td><span class="badge bg-primary-subtle text-primary border">Batch / Group Assignment</span></td></tr>
+                            <tr><th class="text-muted">Batch Name:</th><td><strong class="text-dark">${item.batch_name || 'San Isidro Group Initiative'}</strong></td></tr>
+                            <tr><th class="text-muted">Pax Count:</th><td><span class="badge bg-success-subtle text-success fs-6">${item.batch_count || 30} Beneficiaries</span></td></tr>
+                            <tr><th class="text-muted">Barangay Cluster:</th><td>${item.barangay_cluster || 'Cluster 2 - East Poblacion & Morales'}</td></tr>
+                            <tr><th class="text-muted">Sub-Category:</th><td>${item.program_sub_category || 'Community Tree Planting'}</td></tr>
+                        </table>
+                    `;
+                } else if (item.scheduling_mode === 'Unassigned' || (!item.beneficiaryName && !item.beneficiary_name)) {
+                    assignmentSection = `
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-x me-2"></i>Beneficiary Assignment Context</h6>
+                        <div class="alert alert-secondary border p-3">
+                            <i class="bi bi-info-circle me-1"></i> No beneficiary or batch assigned yet. Officer can assign a beneficiary to this slot before lock.
+                        </div>
+                    `;
+                } else {
+                    const bName = item.beneficiaryName || item.beneficiary_name || 'N/A';
+                    const bPhone = item.beneficiaryPhone || item.beneficiary_phone || '0917-000-0000';
+                    const bBrgy = item.barangay || 'Poblacion';
+                    const bEmail = item.beneficiaryEmail || item.beneficiary_email || 'beneficiary@koronadal.ph';
+                    const bAddr = item.beneficiaryAddress || item.beneficiary_address || `Purok 1, Barangay ${bBrgy}, Koronadal City`;
+
+                    assignmentSection = `
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-badge-fill me-2"></i>Beneficiary Profile (View-Only)</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr><th class="text-muted" style="width: 150px;">Full Name:</th><td><strong class="text-dark fs-6">${bName}</strong></td></tr>
+                            <tr><th class="text-muted">Contact Number:</th><td><span class="badge bg-light text-dark border fs-6"><i class="bi bi-shield-lock text-success me-1"></i>${maskContact(bPhone)}</span></td></tr>
+                            <tr><th class="text-muted">Email:</th><td>${bEmail}</td></tr>
+                            <tr><th class="text-muted">Address:</th><td>${bAddr}</td></tr>
+                            <tr><th class="text-muted">Demographics:</th><td>${item.age || 28} yrs old • ${item.sex || 'Female'}</td></tr>
+                            <tr><th class="text-muted">Application Ref:</th><td><code>${item.applicationId || 'APP-2026-001'}</code></td></tr>
+                        </table>
+                    `;
+                }
+
                 modalBody.innerHTML = `
                     <div class="row g-4">
                         <div class="col-lg-6 border-end">
-                            <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
-                                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-person-badge-fill me-2"></i>Beneficiary Profile (View-Only)</h6>
-                                <span class="badge bg-secondary-subtle text-dark border"><i class="bi bi-lock-fill me-1"></i>Strictly View-Only</span>
-                            </div>
+                            ${assignmentSection}
 
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mt-4 mb-3"><i class="bi bi-diagram-3-fill me-2"></i>Admin Linked Program</h6>
                             <table class="table table-sm table-borderless">
                                 <tr>
-                                    <th class="text-muted" style="width: 140px;">Beneficiary ID:</th>
-                                    <td><span class="fw-bold text-dark">${item.beneficiaryId}</span></td>
+                                    <th class="text-muted" style="width: 150px;">Program Type:</th>
+                                    <td><span class="badge bg-primary font-monospace fs-6">${item.programCode || item.program_code || 'TUPAD'}</span> — ${item.programName || item.program_name || 'Employment Program'}</td>
                                 </tr>
                                 <tr>
-                                    <th class="text-muted">Full Name:</th>
-                                    <td><strong class="text-dark fs-6">${item.beneficiaryName}</strong></td>
+                                    <th class="text-muted">Sub-Category:</th>
+                                    <td><strong>${item.program_sub_category || item.projectType || 'Environmental Assistance'}</strong></td>
                                 </tr>
                                 <tr>
-                                    <th class="text-muted">Contact Number:</th>
-                                    <td><span class="badge bg-light text-dark border fs-6"><i class="bi bi-shield-lock text-success me-1"></i>${maskContact(item.beneficiaryPhone)}</span></td>
-                                </tr>
-                                <tr>
-                                    <th class="text-muted">Email Address:</th>
-                                    <td>${item.beneficiaryEmail}</td>
-                                </tr>
-                                <tr>
-                                    <th class="text-muted">Barangay & Address:</th>
-                                    <td>${item.beneficiaryAddress}</td>
-                                </tr>
-                                <tr>
-                                    <th class="text-muted">Age / Sex:</th>
-                                    <td>${item.age} yrs old • ${item.sex}</td>
-                                </tr>
-                            </table>
-
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mt-4 mb-3"><i class="bi bi-diagram-3-fill me-2"></i>Applied Livelihood Program</h6>
-                            <table class="table table-sm table-borderless">
-                                <tr>
-                                    <th class="text-muted" style="width: 140px;">Program Applied:</th>
-                                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">${item.programCode}</span> — ${item.programName}</td>
-                                </tr>
-                                <tr>
-                                    <th class="text-muted">Project / Business:</th>
-                                    <td><strong>${item.projectType}</strong></td>
-                                </tr>
-                                <tr>
-                                    <th class="text-muted">Application ID:</th>
-                                    <td><code>${item.applicationId}</code> (Applied: ${item.dateApplied})</td>
-                                </tr>
-                                <tr>
-                                    <th class="text-muted">Attached Documents:</th>
-                                    <td>
-                                        <div class="d-flex flex-wrap gap-1">
-                                            ${(item.documents || ['Barangay Certification', 'Valid ID']).map(d => `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>${d}</span>`).join(' ')}
-                                        </div>
-                                    </td>
+                                    <th class="text-muted">Lock State:</th>
+                                    <td>${isLocked ? '<span class="badge bg-dark text-white"><i class="bi bi-lock-fill me-1"></i>Locked by Admin</span>' : '<span class="badge bg-success-subtle text-success border"><i class="bi bi-unlock-fill me-1"></i>Unlocked (Officer Editable)</span>'}</td>
                                 </tr>
                             </table>
                         </div>
 
                         <div class="col-lg-6">
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-clock-history me-2"></i>Interview Schedule Details</h6>
-                            
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-clock-history me-2"></i>Slot Logistics & Schedule Details</h6>
                             <div class="p-3 bg-light rounded border mb-3">
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <small class="text-muted d-block">Scheduled Date</small>
-                                        <strong class="text-dark">${item.interviewDate}</strong>
+                                        <strong class="text-dark">${item.interviewDate || item.slot_date}</strong>
                                     </div>
                                     <div class="col-6">
                                         <small class="text-muted d-block">Time Slot</small>
-                                        <strong class="text-primary">${item.scheduleTime}</strong>
+                                        <strong class="text-primary">${item.scheduleTime || item.schedule_time}</strong>
                                     </div>
                                     <div class="col-12 mt-2">
-                                        <small class="text-muted d-block">Interview Venue</small>
+                                        <small class="text-muted d-block">Venue / Room</small>
                                         <span class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${item.venue}</span>
+                                    </div>
+                                    <div class="col-12 mt-1">
+                                        <small class="text-muted d-block">Assigned Officer</small>
+                                        <span class="text-dark"><i class="bi bi-person-fill text-primary me-1"></i>${item.officerName || item.officer_name || 'Jane Smith'}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-person-check-fill me-1 text-success"></i>Monitor Attendance</h6>
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-person-check-fill me-1 text-success"></i>Attendance Monitoring</h6>
                             <div class="btn-group w-100 mb-3" role="group">
                                 <input type="radio" class="btn-check" name="attRadioGroup" id="attRadioPresent" value="Present" ${item.attendance === 'Present' ? 'checked' : ''} onchange="onModalAttendanceRadioChange('Present')">
                                 <label class="btn btn-outline-success fw-bold py-2" for="attRadioPresent"><i class="bi bi-check2-circle me-1"></i> Present (Attended)</label>
@@ -2225,23 +2468,23 @@
                                 <label class="btn btn-outline-danger fw-bold py-2" for="attRadioAbsent"><i class="bi bi-x-circle me-1"></i> Absent (No-Show)</label>
                             </div>
 
-                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-arrow-repeat me-1 text-primary"></i>Update Interview Status</h6>
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-arrow-repeat me-1 text-primary"></i>Interview Outcome / Status</h6>
                             <div class="d-flex gap-2 mb-3" id="modalStatusBtnGroup">
-                                <button type="button" class="btn ${item.status === 'Completed' ? 'btn-primary' : 'btn-outline-primary'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Completed')">
+                                <button type="button" class="btn ${(item.status || item.slot_status) === 'Completed' ? 'btn-success' : 'btn-outline-success'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Completed')">
                                     <i class="bi bi-check-circle-fill me-1"></i> Completed
                                 </button>
-                                <button type="button" class="btn ${item.status === 'Pending' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Pending')">
+                                <button type="button" class="btn ${(item.status || item.slot_status) === 'Pending' || (item.status || item.slot_status) === 'Active' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Pending')">
                                     <i class="bi bi-hourglass-split me-1"></i> Pending
                                 </button>
-                                <button type="button" class="btn ${item.status === 'Missed' ? 'btn-danger' : 'btn-outline-danger'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Missed')">
+                                <button type="button" class="btn ${(item.status || item.slot_status) === 'Missed' ? 'btn-danger' : 'btn-outline-danger'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Missed')">
                                     <i class="bi bi-x-circle me-1"></i> Missed
                                 </button>
                             </div>
-                            <input type="hidden" id="modalActiveStatusInput" value="${item.status}">
+                            <input type="hidden" id="modalActiveStatusInput" value="${item.status || item.slot_status || 'Pending'}">
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold text-dark">Remarks / Notes</label>
-                                <textarea class="form-control" id="modalInterviewRemarksInput" rows="2" placeholder="e.g. Rescheduled at beneficiary's request / orientation attended...">${item.remarks || ''}</textarea>
+                                <label class="form-label fw-bold text-dark">Remarks / Progress Notes</label>
+                                <textarea class="form-control" id="modalInterviewRemarksInput" rows="2" placeholder="e.g. Verified requirements; candidate cleared for program placement...">${item.remarks || item.admin_remarks || ''}</textarea>
                             </div>
 
                             <div id="modalPastDateJustificationContainer" class="${isPast ? '' : 'd-none'} alert alert-warning border-warning p-3">
@@ -2249,8 +2492,8 @@
                                     <i class="bi bi-shield-exclamation text-warning fs-5 me-2"></i>
                                     Past Date Audit Justification (Mandatory)
                                 </div>
-                                <p class="small text-muted mb-2">Past Date Restriction: Modifying attendance/status for interviews scheduled in the past requires mandatory justification for audit compliance.</p>
-                                <input type="text" class="form-control" id="modalPastDateJustificationInput" value="${item.justification || ''}" placeholder="Enter mandatory reason for past date update...">
+                                <p class="small text-muted mb-2">Past Date Restriction: Modifying attendance or status for past-dated schedules requires mandatory audit justification.</p>
+                                <input type="text" class="form-control" id="modalPastDateJustificationInput" value="${item.justification || ''}" placeholder="Enter mandatory reason for past date modification...">
                             </div>
                         </div>
                     </div>
@@ -2261,16 +2504,17 @@
             if (modalFooter) {
                 modalFooter.innerHTML = `
                     <div>
-                        <button type="button" class="btn btn-outline-success me-2" onclick="quickMarkAttendance('${item.id}', 'Present')">
+                        <button type="button" class="btn btn-outline-success me-2" onclick="quickMarkAttendance('${item.id || item.slot_id}', 'Present')">
                             <i class="bi bi-person-check me-1"></i> Quick Present
                         </button>
-                        <button type="button" class="btn btn-outline-danger me-2" onclick="quickMarkAttendance('${item.id}', 'Absent')">
+                        <button type="button" class="btn btn-outline-danger me-2" onclick="quickMarkAttendance('${item.id || item.slot_id}', 'Absent')">
                             <i class="bi bi-person-x me-1"></i> Quick Absent
                         </button>
                     </div>
                     <div>
-                        <button type="button" class="btn btn-primary px-4 fw-bold" onclick="saveInterviewDetailUpdates('${item.id}')">
-                            <i class="bi bi-save me-1"></i> Save & Update Schedule
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary px-4 fw-bold" onclick="saveInterviewDetailUpdates('${item.id || item.slot_id}')">
+                            <i class="bi bi-save me-1"></i> Save Changes
                         </button>
                     </div>
                 `;
@@ -2295,10 +2539,10 @@
             const parent = document.getElementById('modalStatusBtnGroup');
             if (parent) {
                 parent.innerHTML = `
-                    <button type="button" class="btn ${newStatus === 'Completed' ? 'btn-primary' : 'btn-outline-primary'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Completed')">
+                    <button type="button" class="btn ${newStatus === 'Completed' ? 'btn-success' : 'btn-outline-success'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Completed')">
                         <i class="bi bi-check-circle-fill me-1"></i> Completed
                     </button>
-                    <button type="button" class="btn ${newStatus === 'Pending' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Pending')">
+                    <button type="button" class="btn ${newStatus === 'Pending' || newStatus === 'Active' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Pending')">
                         <i class="bi bi-hourglass-split me-1"></i> Pending
                     </button>
                     <button type="button" class="btn ${newStatus === 'Missed' ? 'btn-danger' : 'btn-outline-danger'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Missed')">
@@ -2308,42 +2552,43 @@
             }
         }
 
-        function saveInterviewDetailUpdates(interviewId) {
-            const item = dailySchedulesList.find(s => s.id === interviewId);
+        function saveInterviewDetailUpdates(scheduleId) {
+            const item = dailySchedulesList.find(s => s.id === scheduleId || s.slot_id === scheduleId);
             if (!item) return;
 
-            const selectedAtt = document.querySelector('input[name="attRadioGroup"]:checked')?.value || item.attendance;
-            const newStatus = document.getElementById('modalActiveStatusInput')?.value || item.status;
+            const selectedAtt = document.querySelector('input[name="attRadioGroup"]:checked')?.value || item.attendance || 'Unmarked';
+            const newStatus = document.getElementById('modalActiveStatusInput')?.value || item.status || 'Pending';
             const remarks = document.getElementById('modalInterviewRemarksInput')?.value.trim() || '';
             const justificationInput = document.getElementById('modalPastDateJustificationInput');
             const justification = justificationInput ? justificationInput.value.trim() : '';
 
-            const isPast = item.interviewDate < getTodayDateStr();
+            const isPast = (item.interviewDate || item.slot_date) < getTodayDateStr();
 
             if (isPast && !justification && !remarks) {
-                alert('Past Date Restriction: Modifying attendance or status for past-dated interviews requires explicit audit justification.');
+                alert('Past Date Restriction: Modifying attendance or status for past-dated schedules requires explicit audit justification.');
                 if (justificationInput) justificationInput.focus();
                 return;
             }
 
             item.attendance = selectedAtt;
             item.status = newStatus;
+            item.slot_status = newStatus;
             item.remarks = remarks;
             if (justification) item.justification = justification;
 
-            fetch(`/api/interview/${encodeURIComponent(item.id)}/attendance`, {
+            fetch(`/api/interview/${encodeURIComponent(scheduleId)}/attendance`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ presence_flag: selectedAtt, remarks, justification })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API offline fallback:', e.message));
+            }).catch(e => console.warn('[OFFICER_SCHEDULE] API attendance fallback:', e.message));
 
-            fetch(`/api/interview/${encodeURIComponent(item.id)}/status`, {
+            fetch(`/api/interview/${encodeURIComponent(scheduleId)}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus, remarks, justification })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API offline fallback:', e.message));
+            }).catch(e => console.warn('[OFFICER_SCHEDULE] API status fallback:', e.message));
 
-            logOfficerAction('UPDATE_INTERVIEW', `Updated interview ${item.id} (${item.beneficiaryName}) -> Attendance: ${selectedAtt}, Status: ${newStatus}. Remarks: "${remarks}". Justification: "${justification || 'N/A'}"`);
+            logOfficerAction('UPDATE_SCHEDULE', `Updated schedule ${scheduleId} -> Attendance: ${selectedAtt}, Status: ${newStatus}. Remarks: "${remarks}". Justification: "${justification || 'N/A'}"`);
 
             renderDailySchedules();
 
@@ -2354,23 +2599,23 @@
             if (window.showSystemNotification) {
                 window.showSystemNotification({
                     title: 'Schedule Updated',
-                    message: `Interview ${item.id} for ${item.beneficiaryName} successfully updated (Status: ${newStatus}, Attendance: ${selectedAtt}). Audit log created.`,
+                    message: `Schedule ${scheduleId} successfully updated. Status: ${newStatus}, Attendance: ${selectedAtt}.`,
                     type: 'success'
                 });
             } else {
-                alert(`Interview ${item.id} for ${item.beneficiaryName} updated successfully.`);
+                alert(`Schedule ${scheduleId} updated successfully.`);
             }
         }
 
-        function quickMarkAttendance(interviewId, flag) {
-            const item = dailySchedulesList.find(s => s.id === interviewId);
+        function quickMarkAttendance(scheduleId, flag) {
+            const item = dailySchedulesList.find(s => s.id === scheduleId || s.slot_id === scheduleId);
             if (!item) return;
 
-            const isPast = item.interviewDate < getTodayDateStr();
+            const isPast = (item.interviewDate || item.slot_date) < getTodayDateStr();
             let justification = null;
 
             if (isPast) {
-                justification = prompt(`Past Date Restriction: Enter mandatory audit justification for updating past interview ${item.id} to ${flag}:`);
+                justification = prompt(`Past Date Restriction: Enter mandatory audit justification for updating past schedule ${scheduleId} to ${flag}:`);
                 if (!justification || !justification.trim()) {
                     alert('Past Date Restriction: Action cancelled. Justification is mandatory for past dates.');
                     return;
@@ -2378,17 +2623,23 @@
             }
 
             item.attendance = flag;
-            if (flag === 'Present' && item.status === 'Missed') item.status = 'Completed';
-            if (flag === 'Absent' && item.status === 'Completed') item.status = 'Missed';
+            if (flag === 'Present' && (item.status === 'Missed' || item.slot_status === 'Missed')) {
+                item.status = 'Completed';
+                item.slot_status = 'Completed';
+            }
+            if (flag === 'Absent' && (item.status === 'Completed' || item.slot_status === 'Completed')) {
+                item.status = 'Missed';
+                item.slot_status = 'Missed';
+            }
             if (justification) item.justification = justification;
 
-            fetch(`/api/interview/${encodeURIComponent(item.id)}/attendance`, {
+            fetch(`/api/interview/${encodeURIComponent(scheduleId)}/attendance`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ presence_flag: flag, remarks: item.remarks, justification })
             }).catch(e => console.warn('[OFFICER_SCHEDULE] API sync fallback:', e.message));
 
-            logOfficerAction('MARK_ATTENDANCE', `Quick marked attendance for interview ${item.id} (${item.beneficiaryName}) as ${flag}. Justification: "${justification || 'N/A'}"`);
+            logOfficerAction('MARK_ATTENDANCE', `Quick marked attendance for ${scheduleId} as ${flag}. Justification: "${justification || 'N/A'}"`);
 
             renderDailySchedules();
 
@@ -2399,24 +2650,42 @@
             if (window.showSystemNotification) {
                 window.showSystemNotification({
                     title: 'Attendance Marked',
-                    message: `Attendance for ${item.beneficiaryName} marked as ${flag}. Record updated instantly.`,
+                    message: `Attendance for ${scheduleId} marked as ${flag}.`,
                     type: 'success'
                 });
             }
         }
 
         // ---------------------------------------------------------------------
-        // SCHEDULE NEW INTERVIEW MODAL & CONFLICT VALIDATION
+        // ASSIGN BENEFICIARY / BATCH MODAL LOGIC
         // ---------------------------------------------------------------------
-        function openScheduleNewInterviewModal() {
+        function openScheduleNewInterviewModal(targetSlotId) {
             const form = document.getElementById('newInterviewScheduleForm');
             if (form) form.reset();
-            
-            const dateInput = document.getElementById('schedInterviewDate');
-            if (dateInput) dateInput.value = currentScheduleDate;
+
+            // Default to Individual mode
+            const indRadio = document.getElementById('modeIndividualRadio');
+            if (indRadio) indRadio.checked = true;
+            toggleAssignMode('Individual');
 
             const alertBox = document.getElementById('newInterviewConflictAlert');
             if (alertBox) alertBox.classList.add('d-none');
+
+            // Find matching slot or create default
+            let slot = dailySchedulesList.find(s => s.id === targetSlotId || s.slot_id === targetSlotId);
+            if (!slot) {
+                slot = dailySchedulesList.find(s => (s.interviewDate || s.slot_date) === currentScheduleDate) || dailySchedulesList[0];
+            }
+
+            if (slot) {
+                if (document.getElementById('assignModalSlotId')) document.getElementById('assignModalSlotId').value = slot.id || slot.slot_id;
+                if (document.getElementById('assignModalSlotIdBadge')) document.getElementById('assignModalSlotIdBadge').textContent = slot.id || slot.slot_id;
+                if (document.getElementById('assignModalProgramBadge')) document.getElementById('assignModalProgramBadge').textContent = slot.programCode || slot.program_code || 'TUPAD';
+                if (document.getElementById('assignModalProgramName')) document.getElementById('assignModalProgramName').textContent = slot.programName || slot.program_name || 'Emergency Employment Assistance';
+                if (document.getElementById('schedInterviewDate')) document.getElementById('schedInterviewDate').value = slot.interviewDate || slot.slot_date || currentScheduleDate;
+                if (document.getElementById('schedTimeSlot')) document.getElementById('schedTimeSlot').value = slot.scheduleTime || slot.schedule_time || '09:00 AM - 10:00 AM';
+                if (document.getElementById('schedVenue')) document.getElementById('schedVenue').value = slot.venue || 'PESO Main Office - Room A';
+            }
 
             new bootstrap.Modal(document.getElementById('scheduleNewInterviewModal')).show();
         }
@@ -2424,6 +2693,7 @@
         function checkNewInterviewConflict() {
             const date = document.getElementById('schedInterviewDate')?.value;
             const time = document.getElementById('schedTimeSlot')?.value;
+            const currentSlotId = document.getElementById('assignModalSlotId')?.value;
             const alertBox = document.getElementById('newInterviewConflictAlert');
             const alertText = document.getElementById('newInterviewConflictText');
             const submitBtn = document.getElementById('btnSubmitNewSchedule');
@@ -2432,14 +2702,16 @@
 
             const cleanTime = time.trim().toLowerCase();
             const conflict = dailySchedulesList.find(s => 
-                s.interviewDate === date && 
-                s.scheduleTime.toLowerCase().includes(cleanTime) &&
-                s.status !== 'Cancelled'
+                (s.id || s.slot_id) !== currentSlotId &&
+                (s.interviewDate || s.slot_date) === date && 
+                (s.scheduleTime || s.schedule_time || '').toLowerCase().includes(cleanTime) &&
+                s.status !== 'Cancelled' &&
+                s.slot_status !== 'Cancelled'
             );
 
             if (conflict) {
                 if (alertBox) alertBox.classList.remove('d-none');
-                if (alertText) alertText.innerHTML = `<strong>Conflict Detected!</strong> An interview is already scheduled with <strong>${conflict.beneficiaryName}</strong> on ${date} at ${conflict.scheduleTime}. Overlapping schedules are prevented.`;
+                if (alertText) alertText.innerHTML = `<strong>Conflict Detected!</strong> Another slot (${conflict.id || conflict.slot_id}) is scheduled on ${date} at ${time}. Overlapping slots for the officer are prevented.`;
                 if (submitBtn) submitBtn.disabled = true;
                 return true;
             } else {
@@ -2457,137 +2729,186 @@
                 return;
             }
 
-            const name = document.getElementById('schedBenName')?.value.trim();
-            const phone = document.getElementById('schedBenPhone')?.value.trim();
-            const barangay = document.getElementById('schedBenBarangay')?.value;
-            const email = document.getElementById('schedBenEmail')?.value.trim() || 'beneficiary@koronadal.ph';
-            const programCode = document.getElementById('schedProgramCode')?.value;
-            const projectType = document.getElementById('schedProjectType')?.value.trim();
+            const slotId = document.getElementById('assignModalSlotId')?.value;
+            const mode = document.querySelector('input[name="assignModeRadio"]:checked')?.value || 'Individual';
             const date = document.getElementById('schedInterviewDate')?.value;
             const time = document.getElementById('schedTimeSlot')?.value;
             const venue = document.getElementById('schedVenue')?.value.trim();
             const remarks = document.getElementById('schedRemarks')?.value.trim();
 
-            if (!name || !phone || !date || !time) {
-                alert('Validation Error: Please fill in all required fields.');
+            let targetSlot = dailySchedulesList.find(s => (s.id || s.slot_id) === slotId);
+
+            if (targetSlot && (targetSlot.is_locked || targetSlot.lock_status === 'Locked')) {
+                alert('Lock Restriction: This slot has been locked by PESO Admin. Beneficiary assignment cannot be modified while locked.');
                 return;
             }
 
-            const newId = `INT-2026-${String(dailySchedulesList.length + 1).padStart(3, '0')}`;
-            const newNumId = dailySchedulesList.length + 1;
-            const newBenId = `BEN-2026-${String(dailySchedulesList.length + 1).padStart(3, '0')}`;
-
-            const newScheduleItem = {
-                id: newId,
-                numId: newNumId,
-                officerId: 2,
-                officerName: currentOfficerUser.fullName || 'Jane Smith',
-                beneficiaryId: newBenId,
-                beneficiaryName: name,
-                beneficiaryPhone: phone,
-                beneficiaryEmail: email,
-                beneficiaryAddress: `Purok 1, Barangay ${barangay}, Koronadal City`,
-                barangay,
-                sex: 'Male',
-                age: 30,
-                programCode,
-                programName: programCode === 'TUPAD' ? 'TUPAD (Emergency Employment Assistance)' : programCode === 'PFAS' ? 'PFAS (Pangkabuhayan Assistance Special Project)' : 'CKGIP (City Government Internship Program)',
-                projectType,
-                applicationId: `APP-2026-${String(newNumId).padStart(3, '0')}`,
-                dateApplied: new Date().toISOString().split('T')[0],
-                interviewDate: date,
-                scheduleTime: time,
-                timeSlot: time.split(' - ')[0],
-                venue,
-                status: 'Pending',
-                attendance: 'Unmarked',
-                remarks: remarks || 'Initial interview session.',
-                justification: null,
-                documents: ['Barangay Certification', 'Valid Government ID']
+            let assignmentPayload = {
+                scheduling_mode: mode,
+                remarks
             };
 
-            dailySchedulesList.unshift(newScheduleItem);
+            if (mode === 'Individual') {
+                const benName = document.getElementById('schedBenName')?.value.trim();
+                const benPhone = document.getElementById('schedBenPhone')?.value.trim();
+                const benBarangay = document.getElementById('schedBenBarangay')?.value;
+                const benEmail = document.getElementById('schedBenEmail')?.value.trim() || 'beneficiary@koronadal.ph';
+                const benSex = document.getElementById('schedBenSex')?.value;
+                const benAge = Number(document.getElementById('schedBenAge')?.value) || 28;
+                const subCategory = document.getElementById('schedProjectType')?.value.trim();
 
-            fetch('/api/interview/schedule', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    officer_id: 2,
-                    beneficiary_name: name,
-                    beneficiary_phone: phone,
-                    beneficiary_email: email,
-                    beneficiary_address: newScheduleItem.beneficiaryAddress,
-                    barangay,
-                    program_code: programCode,
-                    program_name: newScheduleItem.programName,
-                    project_type: projectType,
-                    interview_date: date,
-                    schedule_time: time,
-                    venue_location: venue,
-                    remarks
-                })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API create schedule offline fallback:', e.message));
+                if (!benName || !benPhone) {
+                    alert('Validation Error: Please provide Beneficiary Name and Phone Number.');
+                    return;
+                }
 
-            logOfficerAction('SCHEDULE_INTERVIEW', `Scheduled interview ${newId} for beneficiary "${name}" on ${date} at ${time}`);
+                // Check double booking for beneficiary
+                const doubleBooked = dailySchedulesList.find(s => 
+                    (s.id || s.slot_id) !== slotId &&
+                    (s.interviewDate || s.slot_date) === date &&
+                    (s.scheduleTime || s.schedule_time) === time &&
+                    (s.beneficiaryName || s.beneficiary_name || '').toLowerCase() === benName.toLowerCase() &&
+                    s.status !== 'Cancelled'
+                );
+
+                if (doubleBooked) {
+                    alert(`Double Booking Restriction: Beneficiary "${benName}" is already scheduled in slot ${doubleBooked.id || doubleBooked.slot_id} on ${date} at ${time}.`);
+                    return;
+                }
+
+                assignmentPayload = {
+                    ...assignmentPayload,
+                    beneficiary_name: benName,
+                    beneficiary_phone: benPhone,
+                    beneficiary_email: benEmail,
+                    beneficiary_address: `Purok 1, Barangay ${benBarangay}, Koronadal City`,
+                    barangay: benBarangay,
+                    sex: benSex,
+                    age: benAge,
+                    program_sub_category: subCategory
+                };
+
+                if (targetSlot) {
+                    targetSlot.scheduling_mode = 'Individual';
+                    targetSlot.beneficiaryName = benName;
+                    targetSlot.beneficiary_name = benName;
+                    targetSlot.beneficiaryPhone = benPhone;
+                    targetSlot.beneficiary_phone = benPhone;
+                    targetSlot.beneficiaryEmail = benEmail;
+                    targetSlot.barangay = benBarangay;
+                    targetSlot.sex = benSex;
+                    targetSlot.age = benAge;
+                    targetSlot.projectType = subCategory;
+                    targetSlot.program_sub_category = subCategory;
+                    targetSlot.remarks = remarks;
+                }
+            } else {
+                const batchName = document.getElementById('schedBatchName')?.value.trim();
+                const batchCount = Number(document.getElementById('schedBatchCount')?.value) || 25;
+                const cluster = document.getElementById('schedBatchCluster')?.value;
+                const subCategory = document.getElementById('schedBatchSubCategory')?.value.trim();
+
+                if (!batchName) {
+                    alert('Validation Error: Please provide Batch Identifier / Name.');
+                    return;
+                }
+
+                assignmentPayload = {
+                    ...assignmentPayload,
+                    batch_name: batchName,
+                    batch_count: batchCount,
+                    barangay_cluster: cluster,
+                    program_sub_category: subCategory
+                };
+
+                if (targetSlot) {
+                    targetSlot.scheduling_mode = 'Batch';
+                    targetSlot.batch_name = batchName;
+                    targetSlot.batch_count = batchCount;
+                    targetSlot.barangay_cluster = cluster;
+                    targetSlot.program_sub_category = subCategory;
+                    targetSlot.remarks = remarks;
+                }
+            }
+
+            // Sync with backend API
+            if (targetSlot) {
+                fetch(`/api/schedule-slots/${encodeURIComponent(targetSlot.id || targetSlot.slot_id)}/assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(assignmentPayload)
+                }).catch(e => console.warn('[OFFICER_ASSIGN] API sync fallback:', e.message));
+            }
+
+            logOfficerAction('ASSIGN_BENEFICIARY', `Assigned ${mode} mode to slot ${slotId} (${mode === 'Individual' ? assignmentPayload.beneficiary_name : assignmentPayload.batch_name})`);
 
             if (bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal'))) {
                 bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal')).hide();
             }
 
-            currentScheduleDate = date;
-            updateScheduleDateHeaderDisplay();
             renderDailySchedules();
 
             if (window.showSystemNotification) {
                 window.showSystemNotification({
-                    title: 'Interview Scheduled',
-                    message: `Interview "${newId}" successfully scheduled for ${name} on ${date} (${time}).`,
+                    title: 'Assignment Saved',
+                    message: `Beneficiary assignment saved for slot ${slotId} (${mode} Mode).`,
                     type: 'success'
                 });
+            } else {
+                alert(`Beneficiary assignment saved successfully for slot ${slotId}.`);
             }
         }
 
         function exportDailyScheduleCSV() {
-            const dateSchedules = dailySchedulesList.filter(s => s.interviewDate === currentScheduleDate);
+            const dateSchedules = dailySchedulesList.filter(s => (s.interviewDate || s.slot_date) === currentScheduleDate);
             if (dateSchedules.length === 0) {
-                alert(`No interview records found for date ${currentScheduleDate} to export.`);
+                alert(`No schedule records found for date ${currentScheduleDate} to export.`);
                 return;
             }
 
-            const headers = ['Interview ID', 'Beneficiary Name', 'Masked Contact', 'Barangay', 'Program', 'Project Type', 'Date', 'Time Slot', 'Venue', 'Status', 'Attendance', 'Remarks'];
-            const rows = dateSchedules.map(s => [
-                s.id,
-                `"${s.beneficiaryName}"`,
-                `"${maskContact(s.beneficiaryPhone)}"`,
-                `"${s.barangay}"`,
-                `"${s.programCode}"`,
-                `"${s.projectType}"`,
-                `"${s.interviewDate}"`,
-                `"${s.scheduleTime}"`,
-                `"${s.venue}"`,
-                `"${s.status}"`,
-                `"${s.attendance}"`,
-                `"${(s.remarks || '').replace(/"/g, '""')}"`
-            ]);
+            const headers = ['Slot ID', 'Mode', 'Beneficiary / Batch Name', 'Masked Contact', 'Barangay / Cluster', 'Program Code', 'Program Name', 'Sub-Category', 'Date', 'Time Slot', 'Venue', 'Status', 'Attendance', 'Lock Status', 'Remarks'];
+            const rows = dateSchedules.map(s => {
+                const isBatch = s.scheduling_mode === 'Batch' || (s.batch_count && s.batch_count > 1);
+                const name = isBatch ? (s.batch_name || 'Batch') : (s.beneficiaryName || s.beneficiary_name || 'Unassigned');
+                const phone = isBatch ? 'N/A' : maskContact(s.beneficiaryPhone || s.beneficiary_phone || '09XX-***-XXXX');
+                const brgy = isBatch ? (s.barangay_cluster || 'Cluster') : (s.barangay || 'Poblacion');
+
+                return [
+                    s.id || s.slot_id,
+                    s.scheduling_mode || 'Individual',
+                    `"${name}"`,
+                    `"${phone}"`,
+                    `"${brgy}"`,
+                    `"${s.programCode || s.program_code || 'TUPAD'}"`,
+                    `"${s.programName || s.program_name || 'Assistance Program'}"`,
+                    `"${s.program_sub_category || s.projectType || 'General'}"`,
+                    `"${s.interviewDate || s.slot_date}"`,
+                    `"${s.scheduleTime || s.schedule_time}"`,
+                    `"${s.venue}"`,
+                    `"${s.status || s.slot_status || 'Pending'}"`,
+                    `"${s.attendance || 'Unmarked'}"`,
+                    `"${s.is_locked ? 'Locked' : 'Active'}"`,
+                    `"${(s.remarks || s.admin_remarks || '').replace(/"/g, '""')}"`
+                ];
+            });
 
             const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `PESO_Daily_Interview_Schedule_${currentScheduleDate}.csv`;
+            link.download = `PESO_Officer_Daily_Schedule_${currentScheduleDate}.csv`;
             link.click();
 
             logOfficerAction('EXPORT_SCHEDULE_CSV', `Exported CSV daily schedule report for date ${currentScheduleDate}`);
             if (window.showSystemNotification) {
                 window.showSystemNotification({
-                    title: 'CSV Export Generated',
+                    title: 'Daily Roster Exported',
                     message: `Daily schedule for ${currentScheduleDate} (${dateSchedules.length} records) exported to CSV successfully.`,
                     type: 'success'
                 });
             }
         }
 
-        // ---------------------------------------------------------------------
         // BENEFICIARIES TABLE CONTROLLER
         // ---------------------------------------------------------------------
         function renderBeneficiaryTable() {
