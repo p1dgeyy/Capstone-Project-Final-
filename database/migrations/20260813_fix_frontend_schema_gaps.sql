@@ -65,6 +65,21 @@ CREATE POLICY "Staff can write activity log"
 -- 3. Fill in the programs referenced by the beneficiary "apply" dropdown
 --    (frontend/beneficiary.html) that don't exist yet. Existing rows
 --    (TUPAD, SPES, GIP, LIVELIHOOD, AICS, SLP) are left untouched.
+-- Defensive: same reasoning as the funds table below — ensure programs.code
+-- actually has a UNIQUE constraint on the live database before relying on
+-- ON CONFLICT (code), regardless of how/when the programs table was created.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'programs'::regclass AND contype = 'u'
+      AND conkey = (SELECT array_agg(attnum) FROM pg_attribute
+                    WHERE attrelid = 'programs'::regclass AND attname = 'code')
+  ) THEN
+    ALTER TABLE programs ADD CONSTRAINT programs_code_key UNIQUE (code);
+  END IF;
+END $$;
+
 INSERT INTO programs (code, name, description, agency, status) VALUES
   ('CKGIP',          'City of Koronadal Government Internship Program (CKGIP)', 'Internship placements within the city government for unemployed youth.', 'PESO', 'Active'),
   ('KEEP',           'Koronadal Emergency Employment Program (KEEP)', 'Short-term emergency employment for displaced local workers.', 'PESO', 'Active'),
@@ -107,6 +122,24 @@ CREATE TABLE IF NOT EXISTS funds (
   remaining_balance DECIMAL(12,2) GENERATED ALWAYS AS (allocated_budget - released_amount) STORED,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Defensive: if a `funds` table already existed on this database from
+-- outside this migration (e.g. earlier manual/ad-hoc SQL), the CREATE TABLE
+-- IF NOT EXISTS above silently did nothing, and that existing table might
+-- not have a UNIQUE constraint on program_code — which the INSERT ... ON
+-- CONFLICT (program_code) below requires. This adds it if it's missing,
+-- regardless of how the table originally got created.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'funds'::regclass AND contype = 'u'
+      AND conkey = (SELECT array_agg(attnum) FROM pg_attribute
+                    WHERE attrelid = 'funds'::regclass AND attname = 'program_code')
+  ) THEN
+    ALTER TABLE funds ADD CONSTRAINT funds_program_code_key UNIQUE (program_code);
+  END IF;
+END $$;
 
 ALTER TABLE funds ENABLE ROW LEVEL SECURITY;
 
