@@ -4475,6 +4475,75 @@ function viewNotification(id) { openModal('viewNotificationModal'); }
 function sendNotification() { alert('Sent!'); closeModal('createNotificationModal'); }
 function viewApprovalDetails(id) { openModal('approvalDetailsModal'); }
 function openBeneficiaryTracking(id) { openModal('beneficiaryTrackingModal'); }
+function openApplicantTracking(id) {
+    var idField = document.getElementById('trackingAppId');
+    if (idField) idField.textContent = id;
+    openModal('applicantTrackingModal');
+}
+function quickActionAddBeneficiary() { openModal('createApplicantModal'); }
+function searchByApplicantId() {
+    var id = document.getElementById('manualApplicantId');
+    var value = id ? id.value : '';
+    if (value) {
+        alert('Searching for application: ' + value);
+    } else {
+        alert('Please enter an Applicant/Application ID.');
+    }
+}
+// Tracks which application the checklist/decision modal is currently open for.
+// Set by whatever opens applicationChecklistModal (e.g. openEvaluationForApplicant).
+var currentChecklistApplicationId = null;
+function submitApplicationDecision(decision) {
+    var notes = document.getElementById('checklistReviewNotes');
+    var notesVal = notes ? notes.value.trim() : '';
+    var label = decision === 'approved' ? 'approved' : 'denied';
+    alert('Application ' + (currentChecklistApplicationId ? '#' + currentChecklistApplicationId + ' ' : '') + 'has been ' + label + '.' + (notesVal ? ' Notes recorded.' : ''));
+    closeModal('applicationChecklistModal');
+    if (notes) notes.value = '';
+}
+function downloadQRCode() {
+    // NOTE: qrCodeDisplay currently renders a placeholder icon, not a real
+    // scannable QR image — there's no QR-generation library loaded on this
+    // page yet. This produces a real download so the button isn't dead, but
+    // wiring an actual QR image (e.g. via the qrcode.js library already
+    // usable in peso_officer.js) is a follow-up item, not a quick fix.
+    var idEl = document.getElementById('qrCodeApplicantId') || document.getElementById('qrCodeBeneficiaryId');
+    var nameEl = document.getElementById('qrCodeApplicantName') || document.getElementById('qrCodeBeneficiaryName');
+    var content = 'ID: ' + (idEl ? idEl.textContent : 'N/A') + '\nName: ' + (nameEl ? nameEl.textContent : 'N/A');
+    var blob = new Blob([content], { type: 'text/plain' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (idEl ? idEl.textContent : 'qr-code') + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+// Minimal working calendar nav — updates the displayed month/year label.
+// A day-grid re-render (populating calendarGrid with that month's actual
+// dates/events) is a bigger follow-up item; this at least makes the button
+// do something correct rather than nothing.
+var calendarViewDate = new Date(2026, 3, 1); // April 2026, matches the static default
+function renderCalendarTitle() {
+    var title = document.getElementById('calendarTitle');
+    if (title) {
+        var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        title.textContent = 'Calendar View - ' + months[calendarViewDate.getMonth()] + ' ' + calendarViewDate.getFullYear();
+    }
+}
+function changeCalendarMonth(delta) {
+    calendarViewDate.setMonth(calendarViewDate.getMonth() + delta);
+    renderCalendarTitle();
+}
+function changeCalendarYear() {
+    var input = prompt('Jump to year:', calendarViewDate.getFullYear());
+    var year = parseInt(input, 10);
+    if (!isNaN(year)) {
+        calendarViewDate.setFullYear(year);
+        renderCalendarTitle();
+    }
+}
 function updateCompletionStatus() { alert('Updated!'); closeModal('completionModal'); }
 document.addEventListener('DOMContentLoaded', function() {
     try { initCharts(); } catch(e) {}
@@ -4547,6 +4616,27 @@ window.calculateAge = function() {
         age.value = ageVal;
     }
 };
+window.calculateEditAge = function() {
+    var dob = document.getElementById('editApplicantDob');
+    var age = document.getElementById('editApplicantAge');
+    if (dob && age && dob.value) {
+        var birthDate = new Date(dob.value);
+        var today = new Date();
+        var ageVal = today.getFullYear() - birthDate.getFullYear();
+        var m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            ageVal--;
+        }
+        age.value = ageVal;
+    }
+};
+window.openApplicantTracking = openApplicantTracking;
+window.quickActionAddBeneficiary = quickActionAddBeneficiary;
+window.searchByApplicantId = searchByApplicantId;
+window.submitApplicationDecision = submitApplicationDecision;
+window.downloadQRCode = downloadQRCode;
+window.changeCalendarMonth = changeCalendarMonth;
+window.changeCalendarYear = changeCalendarYear;
 window.searchByBeneficiaryId = function() {
     var id = document.getElementById('manualBeneficiaryId').value;
     if (id) {

@@ -3064,7 +3064,7 @@
                         const { data, error } = await supabaseClient
                             .from('interview_schedules')
                             .select('*')
-                            .eq('beneficiary_id', beneId)
+                            .eq('beneficiary_qr', beneId)
                             .order('interview_date', { ascending: false });
                         if (!error && data && data.length > 0) {
                             interviews = data;
@@ -3334,8 +3334,41 @@
             });
         }
 
+        // Formats a number as a comma-separated peso amount without the currency symbol
+        // (callers prepend ₱ themselves), e.g. formatCurrency(5000) -> "5,000.00"
+        function formatCurrency(value) {
+            const num = Number(value) || 0;
+            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Maps the text shown in the "Choose program..." dropdown (beneficiary.html)
+        // to the stable `code` in the programs table, so we can look up program_id
+        // before inserting into applications. Keep in sync with the <option> list
+        // and with database/migrations/20260813_fix_frontend_schema_gaps.sql.
+        const PROGRAM_CODE_MAP = {
+            'Livelihood Assistance': 'LIVELIHOOD',
+            'City of Koronadal Government Internship Program (CKGIP)': 'CKGIP',
+            'Koronadal Emergency Employment Program (KEEP)': 'KEEP',
+            'Support to Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)': 'TUPAD',
+            'Pangkabuhayan Financial Assistance (PFAS)': 'PFAS',
+            'Support to DOLE Integrated Livelihood Program (DILP)': 'DILP',
+            'Association Facilitation': 'ASSOC-FAC',
+            'Conduct of Job Fairs': 'JOB-FAIR',
+            'Development of Localized Job Portal': 'JOB-PORTAL',
+            'Livelihood/Skills Training Program': 'SKILLS-TRAIN',
+            'OFW Family Circle Day': 'OFW-FCD',
+            'Special Program for Employment of Students (SPES)': 'SPES',
+            'Support to Parokya ni OWN A Program': 'PAROKYA',
+            'Support to Returning OFWs Program (ROFWS)': 'ROFWS',
+            'Job Placement & Referral': 'JOB-PLACEMENT',
+            'Skills Training Voucher': 'SKILLS-VOUCHER',
+            'Medical Assistance': 'MEDICAL',
+            'Burial Assistance': 'BURIAL',
+            'Financial Assistance': 'FINANCIAL'
+        };
+
         // Submit application
-        function submitApplication() {
+        async function submitApplication() {
             const type = document.getElementById('assistanceType').value;
             const reason = document.getElementById('assistanceReason').value.trim();
             const fileInput = document.getElementById('fileInput');
@@ -3359,11 +3392,62 @@
                 return;
             }
 
-            // Generate new App ID
-            const newAppId = 'CSWDO-2026-' + Math.floor(1000 + Math.random() * 9000);
-            
-            // Add new application to our database
+            // --- Actually write the application to Supabase ---
+            // Falls back to a locally-generated ID (old behavior) only if the
+            // Supabase write can't complete, so the page never hard-crashes,
+            // but a real submission attempt is always made first.
+            let newAppId = 'CSWDO-2026-' + Math.floor(1000 + Math.random() * 9000);
+            let dbId = null;
+
+            try {
+                if (!supabaseClient) throw new Error('Supabase client not initialized.');
+
+                const beneficiaryQr = sessionStorage.getItem('userId');
+                if (!beneficiaryQr) throw new Error('No logged-in beneficiary session found.');
+
+                const programCode = PROGRAM_CODE_MAP[type];
+                if (!programCode) throw new Error(`No program mapping for "${type}". Add it to PROGRAM_CODE_MAP.`);
+
+                const { data: program, error: programError } = await supabaseClient
+                    .from('programs')
+                    .select('id')
+                    .eq('code', programCode)
+                    .single();
+                if (programError || !program) {
+                    throw new Error(`Program "${type}" (${programCode}) not found in the programs table. Run the latest migration.`);
+                }
+
+                const documentsJson = {};
+                Array.from(files).forEach(f => { documentsJson[f.name] = { size: f.size, type: f.type }; });
+
+                const applicationNumber = 'APP-' + Date.now();
+
+                const { data: inserted, error: insertError } = await supabaseClient
+                    .from('applications')
+                    .insert({
+                        application_number: applicationNumber,
+                        beneficiary_qr: beneficiaryQr,
+                        program_id: program.id,
+                        status: 'Pending',
+                        progress_percent: 25,
+                        remarks: reason,
+                        documents_json: documentsJson
+                    })
+                    .select('id, application_number')
+                    .single();
+                if (insertError) throw insertError;
+
+                dbId = inserted.id;
+                newAppId = inserted.application_number;
+                console.log('[Beneficiary] Application saved to Supabase, id:', dbId);
+            } catch (e) {
+                console.error('[Beneficiary] Supabase application insert failed:', e.message || e);
+                alert('Warning: Your application could not be saved to the server (' + (e.message || e) + '). It is only showing locally in this browser tab for now — please tell your CSWDO officer or check your connection and try again.');
+            }
+
+            // Add new application to our local view-model (drives this page's UI)
             applications[newAppId] = {
+                dbId: dbId,
                 type: type,
                 date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
                 status: 'Pending',

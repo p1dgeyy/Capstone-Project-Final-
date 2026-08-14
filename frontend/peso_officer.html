@@ -1591,6 +1591,53 @@
         let currentScheduleViewMode = 'list';
         let selectedBatchAssignAppIds = [];
 
+        // Maps the program dropdown labels used in the Intake, Assistance, and
+        // Batch modals to the stable programs.code values in Supabase.
+        const PESO_PROGRAM_LABEL_TO_CODE = {
+            'TUPAD (Emergency Employment)': 'TUPAD',
+            'PFAS (Pangkabuhayan Assistance)': 'PFAS',
+            'CKGIP (City Internship)': 'CKGIP'
+        };
+
+        async function getProgramIdByCode(code) {
+            if (!code) return null;
+            try {
+                const { data, error } = await supabaseClient.from('programs').select('id').eq('code', code).maybeSingle();
+                if (error || !data) return null;
+                return data.id;
+            } catch (e) {
+                console.error('[OFFICER] getProgramIdByCode failed:', e?.message || e);
+                return null;
+            }
+        }
+
+        // Officer-facing forms (intake, assistance recording) only collect a
+        // free-text full name, but applications/approved_assistance require a
+        // real beneficiary_qr foreign key. Every beneficiary row is tied to a
+        // Supabase Auth account (created at self-registration), so this looks
+        // up an EXISTING registered beneficiary by name — it deliberately does
+        // NOT create a new beneficiary record, since that would require
+        // service-role auth admin access that isn't safe to use from the browser.
+        async function resolveBeneficiaryByName(fullName) {
+            const parts = (fullName || '').trim().split(/\s+/).filter(Boolean);
+            if (parts.length < 2) return null;
+            const first = parts[0];
+            const last = parts[parts.length - 1];
+            try {
+                const { data, error } = await supabaseClient
+                    .from('beneficiaries')
+                    .select('qr_code, first_name, last_name')
+                    .ilike('first_name', first)
+                    .ilike('last_name', last)
+                    .maybeSingle();
+                if (error || !data) return null;
+                return data;
+            } catch (e) {
+                console.error('[OFFICER] resolveBeneficiaryByName failed:', e?.message || e);
+                return null;
+            }
+        }
+
         // In-memory data structures
         let beneficiariesList = [
             { id: 'BEN-2026-001', name: 'Maria Santos', barangay: 'Morales', address: 'Purok 4, Morales', contact: '0917-123-4567', email: 'maria.santos@gmail.com', program: 'TUPAD (Emergency Employment)', status: 'Active', idStatus: 'Verified', clearanceStatus: 'Verified', age: 32, sex: 'Female' },
@@ -1672,51 +1719,131 @@
             }
         }
 
-        let evaluationList = [
-            {
-                id: 'APP-2026-001',
-                qrCodeId: 'BEN-2026-001',
-                beneficiaryName: 'Juan Dela Cruz',
-                program: 'TUPAD (Emergency Employment)',
-                projectType: 'Environmental Sanitation',
-                dateSubmitted: '2026-02-10',
-                status: 'Pending',
-                remarks: '',
-                missingNotes: 'Awaiting updated Barangay Certification.',
-                documents: [
-                    { name: '2x2 ID Photo', type: 'photo2x2', status: 'Verified' },
-                    { name: 'Letter of Intent to City Mayor', type: 'letter_intent', status: 'Verified' },
-                    { name: 'Barangay Certification', type: 'barangay_cert', status: 'Pending Review' },
-                    { name: 'Business Plan / Proposal', type: 'business_plan', status: 'Verified' }
-                ]
-            },
-            {
-                id: 'APP-2026-002',
-                qrCodeId: 'BEN-2026-002',
-                beneficiaryName: 'Maria Santos',
-                program: 'PFAS (Pangkabuhayan Assistance)',
-                projectType: 'Micro-Enterprise Food Cart',
-                dateSubmitted: '2026-02-12',
-                status: 'Approved',
-                remarks: 'Application complete. Forwarded to Admin for final review.',
-                missingNotes: '',
-                documents: [
-                    { name: '2x2 ID Photo', type: 'photo2x2', status: 'Verified' },
-                    { name: 'Letter of Intent to City Mayor', type: 'letter_intent', status: 'Verified' },
-                    { name: 'Barangay Certification', type: 'barangay_cert', status: 'Verified' },
-                    { name: 'Business Plan / Proposal', type: 'business_plan', status: 'Verified' }
-                ]
+        // Loaded from Supabase on page init (see loadEvaluationListFromSupabase).
+        let evaluationList = [];
+
+        async function loadEvaluationListFromSupabase() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('applications')
+                    .select(`
+                        id, application_number, status, officer_decision, officer_notes, remarks, date_applied, batch_id,
+                        beneficiary_qr, program_id,
+                        beneficiaries:beneficiary_qr ( qr_code, first_name, last_name ),
+                        programs:program_id ( code, name, agency ),
+                        batches:batch_id ( name )
+                    `)
+                    .order('date_applied', { ascending: false });
+                if (error) throw error;
+
+                evaluationList = (data || [])
+                    .filter(row => (row.programs && row.programs.agency) === 'PESO')
+                    .map(row => {
+                        const ben = row.beneficiaries || {};
+                        const prog = row.programs || {};
+                        let status = 'Pending';
+                        if (['Approved', 'Officer Approved', 'Completed', 'Released'].includes(row.status)) status = 'Approved';
+                        else if (['Denied', 'Officer Denied', 'Rejected'].includes(row.status)) status = 'Denied';
+
+                        return {
+                            id: row.application_number || `APP-${row.id}`,
+                            dbId: row.id,
+                            qrCodeId: ben.qr_code || '',
+                            beneficiaryName: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Unknown Beneficiary',
+                            program: prog.name || '',
+                            programCode: prog.code || '',
+                            projectType: prog.name || '',
+                            dateSubmitted: row.date_applied,
+                            status: status,
+                            remarks: status === 'Denied' ? (row.officer_notes || row.remarks || '') : '',
+                            missingNotes: row.status === 'Pending Requirements' ? (row.remarks || '') : '',
+                            documents: [],
+                            batchId: row.batch_id ? `BAT-${row.batch_id}` : null,
+                            batchName: row.batches ? row.batches.name : null
+                        };
+                    });
+            } catch (err) {
+                console.error('[OFFICER] Failed to load applications from Supabase:', err?.message || err);
+                evaluationList = [];
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({ title: 'Could not load applications', message: 'Failed to load livelihood applications from the database. Please refresh the page.', type: 'error' });
+                }
             }
-        ];
+        }
 
-        let batchesList = [
-            { id: 'BAT-2026-01', name: 'TUPAD Batch 1 - Barangay Morales Clean-up', program: 'TUPAD', capacity: 50, assignedCount: 15, dateCreated: '2026-01-15' },
-            { id: 'BAT-2026-02', name: 'CKGIP Youth Internship Batch A', program: 'CKGIP', capacity: 30, assignedCount: 10, dateCreated: '2026-02-01' }
-        ];
+        // Loaded from Supabase on page init (see loadBatchesFromSupabase).
+        let batchesList = [];
 
-        let assistanceRecordsList = [
-            { id: 'AST-2026-001', appId: 'APP-2026-002', beneficiaryName: 'Maria Santos', program: 'PFAS (Pangkabuhayan Assistance)', type: 'Equipment Starter Kit', quantity: '1 unit Sewing Machine + Starter Accessories', dateApproved: '2026-02-15', conditions: 'Must maintain micro-enterprise for 6 months.', officer: 'Jane Smith' }
-        ];
+        async function loadBatchesFromSupabase() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('batches')
+                    .select('id, name, program_code, capacity, created_at')
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                batchesList = (data || []).map(b => ({
+                    id: `BAT-${b.id}`,
+                    dbId: b.id,
+                    name: b.name,
+                    program: b.program_code,
+                    capacity: b.capacity,
+                    assignedCount: 0, // recomputed by recomputeBatchAssignedCounts() after applications load
+                    dateCreated: (b.created_at || '').substring(0, 10)
+                }));
+            } catch (err) {
+                console.error('[OFFICER] Failed to load batches from Supabase:', err?.message || err);
+                batchesList = [];
+            }
+        }
+
+        // Counts how many applications currently reference each batch. Run this
+        // after both loadEvaluationListFromSupabase() and loadBatchesFromSupabase()
+        // have completed.
+        function recomputeBatchAssignedCounts() {
+            batchesList.forEach(b => {
+                b.assignedCount = evaluationList.filter(e => e.batchId === b.id).length;
+            });
+        }
+
+        // Loaded from Supabase on page init (see loadAssistanceRecordsFromSupabase).
+        let assistanceRecordsList = [];
+
+        async function loadAssistanceRecordsFromSupabase() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('approved_assistance')
+                    .select(`
+                        id, assistance_type, quantity_amount, conditions, approval_date, application_id,
+                        beneficiaries:beneficiary_qr ( first_name, last_name ),
+                        programs:program_id ( code, name ),
+                        staff_profiles:officer_id ( first_name, last_name )
+                    `)
+                    .order('approval_date', { ascending: false });
+                if (error) throw error;
+
+                assistanceRecordsList = (data || []).map(row => {
+                    const ben = row.beneficiaries || {};
+                    const prog = row.programs || {};
+                    const officer = row.staff_profiles || {};
+                    return {
+                        id: `AST-${row.id}`,
+                        dbId: row.id,
+                        appId: row.application_id ? `APP-${row.application_id}` : '',
+                        beneficiaryName: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Unknown',
+                        program: prog.name || '',
+                        programCode: prog.code || '',
+                        type: row.assistance_type,
+                        quantity: row.quantity_amount,
+                        dateApproved: row.approval_date,
+                        conditions: row.conditions || '',
+                        officer: `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || currentOfficerUser.fullName
+                    };
+                });
+            } catch (err) {
+                console.error('[OFFICER] Failed to load approved_assistance from Supabase:', err?.message || err);
+                assistanceRecordsList = [];
+            }
+        }
 
         let auditLogs = [
             { timestamp: new Date().toLocaleString(), officer: currentOfficerUser.fullName, action: 'LOGIN', details: 'PESO Officer logged in.' }
@@ -1747,6 +1874,14 @@
             updateScheduleDateHeaderDisplay();
 
             renderBeneficiaryTable();
+
+            // Applications, batches, and assistance records now load real data
+            // from Supabase instead of static mock arrays.
+            await loadEvaluationListFromSupabase();
+            await loadBatchesFromSupabase();
+            recomputeBatchAssignedCounts();
+            await loadAssistanceRecordsFromSupabase();
+
             renderEvaluationQueueTable();
             renderBatchesCards();
             renderLivelihoodMasterTable();
@@ -2768,10 +2903,15 @@
         // ---------------------------------------------------------------------
         // APPLICATION EVALUATION LOGIC
         // ---------------------------------------------------------------------
-        function renderEvaluationQueueTable() {
+        function renderEvaluationQueueTable(listToRender) {
             const tbody = document.getElementById('evaluationQueueTableBody');
             if (!tbody) return;
-            tbody.innerHTML = evaluationList.map(item => {
+            const list = listToRender || evaluationList;
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No applications match.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = list.map(item => {
                 let badgeClass = item.status === 'Approved' ? 'badge-approved' : item.status === 'Denied' ? 'badge-denied' : 'badge-pending';
                 return `
                     <tr style="cursor:pointer" onclick="openApplicationDetail('${item.id}')">
@@ -2854,14 +2994,59 @@
             new bootstrap.Modal(document.getElementById('applicationDetailModal')).show();
         }
 
-        function approveApplication(id) {
+        function filterEvaluationQueue() {
+            const search = (document.getElementById('evalSearchInput')?.value || '').toLowerCase();
+            const status = document.getElementById('evalStatusFilter')?.value || '';
+
+            const filtered = evaluationList.filter(item => {
+                const matchSearch = !search ||
+                    item.beneficiaryName.toLowerCase().includes(search) ||
+                    item.id.toLowerCase().includes(search) ||
+                    (item.qrCodeId && item.qrCodeId.toLowerCase().includes(search));
+                const matchStatus = !status || item.status === status;
+                return matchSearch && matchStatus;
+            });
+
+            renderEvaluationQueueTable(filtered);
+        }
+
+        function resetEvalFilters() {
+            const s = document.getElementById('evalSearchInput'); if (s) s.value = '';
+            const st = document.getElementById('evalStatusFilter'); if (st) st.value = '';
+            renderEvaluationQueueTable();
+        }
+
+        async function approveApplication(id) {
             const item = evaluationList.find(e => e.id === id);
             if (!item) return;
 
+            const remarksText = 'Application evaluation complete. Approved by PESO Officer.';
+
+            if (item.dbId) {
+                try {
+                    const profile = await getCurrentStaffProfile();
+                    const { error } = await supabaseClient
+                        .from('applications')
+                        .update({
+                            status: 'Officer Approved',
+                            officer_decision: 'Approved',
+                            officer_notes: remarksText,
+                            officer_id: profile?.id || null,
+                            officer_action_at: new Date().toISOString()
+                        })
+                        .eq('id', item.dbId);
+                    if (error) throw error;
+                } catch (e) {
+                    console.error('[OFFICER] Approve failed to save to Supabase:', e?.message || e);
+                    alert('Warning: this approval could not be saved to the database (' + (e.message || e) + '). It will only show locally until this is resolved.');
+                }
+            }
+
             item.status = 'Approved';
-            item.remarks = 'Application evaluation complete. Approved by PESO Officer.';
+            item.remarks = remarksText;
             item.missingNotes = '';
             renderEvaluationQueueTable();
+            if (typeof renderLivelihoodMasterTable === 'function') renderLivelihoodMasterTable();
             logOfficerAction('APPROVE_APP', `Approved application ${id} for beneficiary ${item.beneficiaryName}.`);
 
             bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
@@ -2881,7 +3066,7 @@
             new bootstrap.Modal(document.getElementById('denyRemarksModal')).show();
         }
 
-        function confirmDenyApplication() {
+        async function confirmDenyApplication() {
             const remarks = document.getElementById('denyRemarksInput').value.trim();
             if (!remarks) {
                 alert('Mandatory Remarks Required: Rejection remarks are mandatory when denying an application.');
@@ -2891,11 +3076,32 @@
             const item = evaluationList.find(e => e.id === selectedEvalAppId);
             if (!item) return;
 
+            if (item.dbId) {
+                try {
+                    const profile = await getCurrentStaffProfile();
+                    const { error } = await supabaseClient
+                        .from('applications')
+                        .update({
+                            status: 'Officer Denied',
+                            officer_decision: 'Denied',
+                            officer_notes: remarks,
+                            officer_id: profile?.id || null,
+                            officer_action_at: new Date().toISOString()
+                        })
+                        .eq('id', item.dbId);
+                    if (error) throw error;
+                } catch (e) {
+                    console.error('[OFFICER] Deny failed to save to Supabase:', e?.message || e);
+                    alert('Warning: this denial could not be saved to the database (' + (e.message || e) + '). It will only show locally until this is resolved.');
+                }
+            }
+
             item.status = 'Denied';
             item.remarks = remarks;
             item.missingNotes = '';
 
             renderEvaluationQueueTable();
+            if (typeof renderLivelihoodMasterTable === 'function') renderLivelihoodMasterTable();
             logOfficerAction('DENY_APP', `Denied application ${selectedEvalAppId} for ${item.beneficiaryName}. Reason: ${remarks}`);
 
             if (bootstrap.Modal.getInstance(document.getElementById('denyRemarksModal'))) {
@@ -2913,7 +3119,7 @@
             new bootstrap.Modal(document.getElementById('pendingNotesModal')).show();
         }
 
-        function confirmPendingApplication() {
+        async function confirmPendingApplication() {
             const notes = document.getElementById('pendingNotesInput').value.trim();
             if (!notes) {
                 alert('Mandatory Notes Required: Notes regarding missing documents are mandatory.');
@@ -2923,10 +3129,31 @@
             const item = evaluationList.find(e => e.id === selectedEvalAppId);
             if (!item) return;
 
+            if (item.dbId) {
+                try {
+                    const profile = await getCurrentStaffProfile();
+                    const { error } = await supabaseClient
+                        .from('applications')
+                        .update({
+                            status: 'Pending Requirements',
+                            officer_decision: 'Pending Requirements',
+                            remarks: notes,
+                            officer_id: profile?.id || null,
+                            officer_action_at: new Date().toISOString()
+                        })
+                        .eq('id', item.dbId);
+                    if (error) throw error;
+                } catch (e) {
+                    console.error('[OFFICER] Pending-notes failed to save to Supabase:', e?.message || e);
+                    alert('Warning: this could not be saved to the database (' + (e.message || e) + '). It will only show locally until this is resolved.');
+                }
+            }
+
             item.status = 'Pending';
             item.missingNotes = notes;
 
             renderEvaluationQueueTable();
+            if (typeof renderLivelihoodMasterTable === 'function') renderLivelihoodMasterTable();
             logOfficerAction('PENDING_APP', `Set application ${selectedEvalAppId} for ${item.beneficiaryName} to Pending. Missing Notes: ${notes}`);
 
             if (bootstrap.Modal.getInstance(document.getElementById('pendingNotesModal'))) {
@@ -3026,6 +3253,563 @@
 
         function toggleSelectAllApps(mainCheckbox) {
             document.querySelectorAll('.app-row-checkbox').forEach(cb => cb.checked = mainCheckbox.checked);
+        }
+
+        // ---------------------------------------------------------------------
+        // AUDIT LOGGING
+        // Was called from 11 places (approve/deny/pending, interview updates,
+        // attendance, schedule-interview, beneficiary registration, etc.) but
+        // never defined anywhere — every one of those actions was throwing a
+        // silent ReferenceError partway through, which is why modals weren't
+        // closing / notifications weren't showing after those actions.
+        // ---------------------------------------------------------------------
+        async function logOfficerAction(action, details) {
+            const entry = { timestamp: new Date().toLocaleString(), officer: currentOfficerUser.fullName, action, details };
+            auditLogs.unshift(entry);
+            if (typeof renderAuditLogs === 'function') renderAuditLogs();
+
+            // Best-effort real persistence to Supabase's audit_logs table.
+            // Non-blocking: a logging failure should never break the action
+            // that triggered it.
+            try {
+                const profile = await getCurrentStaffProfile();
+                if (profile) {
+                    await supabaseClient.from('audit_logs').insert({
+                        staff_user_id: profile.id,
+                        action: action,
+                        entity_type: 'peso_officer_action',
+                        details: details
+                    });
+                }
+            } catch (e) {
+                console.warn('[OFFICER] Could not write audit_logs row to Supabase:', e?.message || e);
+            }
+        }
+
+        function renderAuditLogs() {
+            const tbody = document.getElementById('auditLogsTableBody');
+            if (!tbody) return;
+            if (auditLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No audit log entries yet.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = auditLogs.map(a => `
+                <tr>
+                    <td class="text-nowrap">${a.timestamp}</td>
+                    <td>${a.officer}</td>
+                    <td><span class="badge bg-secondary">${a.action}</span></td>
+                    <td>${a.details}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function openAuditModal() {
+            // Best-effort refresh from the real audit_logs table, so this shows
+            // more than just what happened in the current browser session.
+            try {
+                const { data, error } = await supabaseClient
+                    .from('audit_logs')
+                    .select('created_at, action, details, staff_profiles:staff_user_id ( first_name, last_name )')
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                if (!error && data && data.length > 0) {
+                    auditLogs = data.map(row => ({
+                        timestamp: new Date(row.created_at).toLocaleString(),
+                        officer: row.staff_profiles ? `${row.staff_profiles.first_name} ${row.staff_profiles.last_name}`.trim() : 'System',
+                        action: row.action,
+                        details: row.details || ''
+                    }));
+                }
+            } catch (e) {
+                console.warn('[OFFICER] Could not refresh audit_logs from Supabase:', e?.message || e);
+            }
+            renderAuditLogs();
+            new bootstrap.Modal(document.getElementById('auditLogsModal')).show();
+        }
+
+        // ---------------------------------------------------------------------
+        // GLOBAL SEARCH & QR LOOKUP
+        // ---------------------------------------------------------------------
+        function routeSearchQuery(query) {
+            const q = (query || '').trim();
+            if (!q) { alert('Please enter a Beneficiary ID, QR code, or Application ID.'); return; }
+
+            const app = evaluationList.find(e =>
+                e.id.toLowerCase() === q.toLowerCase() ||
+                (e.qrCodeId && e.qrCodeId.toLowerCase() === q.toLowerCase())
+            );
+            if (app) { openApplicationDetail(app.id); return; }
+
+            const ben = beneficiariesList.find(b => b.id.toLowerCase() === q.toLowerCase())
+                || beneficiariesList.find(b => b.name.toLowerCase().includes(q.toLowerCase()));
+            if (ben) { openBeneficiaryInfoCardModal(ben.id); return; }
+
+            alert(`No beneficiary or application found matching "${q}".`);
+        }
+
+        function handleGlobalSearch(event) {
+            if (event && event.key && event.key !== 'Enter') return;
+            const input = document.getElementById('globalSearchInput');
+            const query = input ? input.value.trim() : '';
+            if (!query) return;
+            routeSearchQuery(query);
+        }
+
+        function openQrScannerModal() {
+            const input = document.getElementById('manualQrInput');
+            if (input) input.value = '';
+            new bootstrap.Modal(document.getElementById('qrScannerModal')).show();
+        }
+
+        function executeQrScanLookup() {
+            const input = document.getElementById('manualQrInput');
+            const q = input ? input.value.trim() : '';
+            if (!q) { alert('Please enter or scan a QR code / ID first.'); return; }
+            const modalEl = document.getElementById('qrScannerModal');
+            const instance = modalEl && bootstrap.Modal.getInstance(modalEl);
+            if (instance) instance.hide();
+            routeSearchQuery(q);
+        }
+
+        // ---------------------------------------------------------------------
+        // 2x2 PHOTO PREVIEW (Add Beneficiary modal)
+        // ---------------------------------------------------------------------
+        function previewBenPhoto(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const img = document.getElementById('imgBen2x2Preview');
+            const placeholder = document.getElementById('benPhotoPlaceholder');
+
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file for the 2x2 photo.');
+                input.value = '';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Photo must be under 5MB.');
+                input.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (img) { img.src = e.target.result; img.classList.remove('d-none'); }
+                if (placeholder) placeholder.classList.add('d-none');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ---------------------------------------------------------------------
+        // WALK-IN INTAKE (Record New Livelihood Assistance Application)
+        // ---------------------------------------------------------------------
+        function openIntakeModal() {
+            const form = document.getElementById('intakeForm');
+            if (form) form.reset();
+            const alertBox = document.getElementById('intakeValidationAlert');
+            if (alertBox) alertBox.classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('intakeApplicationModal')).show();
+        }
+
+        function validateIntakeFileInput(input, maxMB) {
+            const alertBox = document.getElementById('intakeValidationAlert');
+            const alertText = document.getElementById('intakeValidationText');
+            if (!input.files || !input.files[0]) return true;
+
+            const file = input.files[0];
+            const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+            const maxBytes = maxMB * 1024 * 1024;
+
+            if (!allowed.includes(file.type)) {
+                if (alertBox && alertText) {
+                    alertText.textContent = `"${file.name}" is not an allowed file type. Please upload PDF, JPG, or PNG only.`;
+                    alertBox.classList.remove('d-none');
+                }
+                input.value = '';
+                return false;
+            }
+            if (file.size > maxBytes) {
+                if (alertBox && alertText) {
+                    alertText.textContent = `"${file.name}" exceeds the ${maxMB}MB limit.`;
+                    alertBox.classList.remove('d-none');
+                }
+                input.value = '';
+                return false;
+            }
+            if (alertBox) alertBox.classList.add('d-none');
+            return true;
+        }
+
+        async function submitIntakeApplication(event) {
+            event.preventDefault();
+            const alertBox = document.getElementById('intakeValidationAlert');
+            const alertText = document.getElementById('intakeValidationText');
+
+            const name = document.getElementById('intakeBenName').value.trim();
+            const address = document.getElementById('intakeBenAddress').value.trim();
+            const programLabel = document.getElementById('intakeProgram').value;
+            const projectType = document.getElementById('intakeProjectType').value.trim();
+            const certFile = document.getElementById('intakeBarangayCertFile').files[0];
+            const idFile = document.getElementById('intakeValidIdFile').files[0];
+            const reqFile = document.getElementById('intakeProgramReqFile').files[0];
+
+            if (!name || !address || !programLabel || !projectType || !certFile || !idFile || !reqFile) {
+                if (alertBox && alertText) {
+                    alertText.textContent = 'Please complete all fields and attach all three mandatory documents (Barangay Certification, Valid ID, Program Requirements).';
+                    alertBox.classList.remove('d-none');
+                }
+                return;
+            }
+
+            const programCode = PESO_PROGRAM_LABEL_TO_CODE[programLabel] || null;
+            const newAppId = 'APP-' + Date.now();
+            let dbId = null;
+            let beneficiaryQr = null;
+
+            try {
+                const ben = await resolveBeneficiaryByName(name);
+                if (!ben) {
+                    throw new Error(`No registered beneficiary account found matching "${name}". Every application must link to a verified, self-registered beneficiary account (the database requires it) — ask them to register through the beneficiary portal first, or double-check the name matches their account exactly.`);
+                }
+                beneficiaryQr = ben.qr_code;
+
+                const programId = await getProgramIdByCode(programCode);
+                if (!programId) throw new Error(`Program "${programLabel}" was not found in the programs table.`);
+
+                const documentsJson = {
+                    barangay_certification: { name: certFile.name, size: certFile.size },
+                    valid_id: { name: idFile.name, size: idFile.size },
+                    program_requirements: { name: reqFile.name, size: reqFile.size }
+                };
+
+                const { data: inserted, error } = await supabaseClient
+                    .from('applications')
+                    .insert({
+                        application_number: newAppId,
+                        beneficiary_qr: beneficiaryQr,
+                        program_id: programId,
+                        status: 'Pending',
+                        progress_percent: 25,
+                        remarks: `Recorded via walk-in intake by ${currentOfficerUser.fullName}. Project/Business type: ${projectType}.`,
+                        documents_json: documentsJson
+                    })
+                    .select('id, application_number')
+                    .single();
+                if (error) throw error;
+
+                dbId = inserted.id;
+                logOfficerAction('INTAKE_APPLICATION', `Recorded walk-in application ${inserted.application_number} for ${name} (${programLabel}).`);
+            } catch (e) {
+                console.error('[OFFICER] Intake submission issue:', e?.message || e);
+                alert('Could not save this application to the database:\n\n' + (e.message || e) + '\n\nIt has been added to today\'s local queue for your reference, but will NOT persist or be visible to other officers/admins until this is resolved.');
+            }
+
+            evaluationList.unshift({
+                id: newAppId,
+                dbId: dbId,
+                qrCodeId: beneficiaryQr || 'N/A',
+                beneficiaryName: name,
+                program: programLabel,
+                programCode: programCode,
+                projectType: projectType,
+                dateSubmitted: new Date().toISOString().substring(0, 10),
+                status: 'Pending',
+                remarks: '',
+                missingNotes: '',
+                documents: [
+                    { name: 'Barangay Certification', type: 'barangay_cert', status: 'Submitted' },
+                    { name: 'Valid Government ID', type: 'valid_id', status: 'Submitted' },
+                    { name: 'Program Requirements Document', type: 'program_req', status: 'Submitted' }
+                ]
+            });
+
+            renderEvaluationQueueTable();
+            if (typeof renderLivelihoodMasterTable === 'function') renderLivelihoodMasterTable();
+
+            const modalEl = document.getElementById('intakeApplicationModal');
+            const instance = modalEl && bootstrap.Modal.getInstance(modalEl);
+            if (instance) instance.hide();
+            document.getElementById('intakeForm').reset();
+            if (alertBox) alertBox.classList.add('d-none');
+            alert(`Intake application ${newAppId} recorded${dbId ? '.' : ' locally only (not saved to server — see warning above).'}`);
+        }
+
+        // ---------------------------------------------------------------------
+        // BATCH CREATION & ASSIGNMENT
+        // ---------------------------------------------------------------------
+        function openCreateBatchModal() {
+            const nameEl = document.getElementById('batchNameInput');
+            const progEl = document.getElementById('batchProgramInput');
+            const capEl = document.getElementById('batchCapacityInput');
+            if (nameEl) nameEl.value = '';
+            if (progEl) progEl.value = 'TUPAD';
+            if (capEl) capEl.value = 50;
+            new bootstrap.Modal(document.getElementById('createBatchModal')).show();
+        }
+
+        async function submitCreateBatch() {
+            const name = document.getElementById('batchNameInput').value.trim();
+            const program = document.getElementById('batchProgramInput').value;
+            const capacity = parseInt(document.getElementById('batchCapacityInput').value, 10) || 50;
+
+            if (!name) { alert('Please enter a batch name/title.'); return; }
+
+            let dbId = null;
+            try {
+                const profile = await getCurrentStaffProfile();
+                const { data: inserted, error } = await supabaseClient
+                    .from('batches')
+                    .insert({ name, program_code: program, capacity, created_by: profile?.id || null })
+                    .select('id')
+                    .single();
+                if (error) throw error;
+                dbId = inserted.id;
+                logOfficerAction('CREATE_BATCH', `Created batch "${name}" (${program}, capacity ${capacity}).`);
+            } catch (e) {
+                console.error('[OFFICER] Batch creation failed to save to Supabase:', e?.message || e);
+                alert('Could not save this batch to the database:\n\n' + (e.message || e) + '\n\nIt has been created locally only, and won\'t be visible to other officers/admins until this is resolved.');
+            }
+
+            batchesList.push({
+                id: dbId ? `BAT-${dbId}` : 'BAT-LOCAL-' + Date.now(),
+                dbId: dbId,
+                name: name,
+                program: program,
+                capacity: capacity,
+                assignedCount: 0,
+                dateCreated: new Date().toISOString().substring(0, 10)
+            });
+
+            renderBatchesCards();
+            const modalEl = document.getElementById('createBatchModal');
+            const instance = modalEl && bootstrap.Modal.getInstance(modalEl);
+            if (instance) instance.hide();
+        }
+
+        function openBatchAssignModal(appId) {
+            selectedBatchAssignAppIds = appId ? [appId] : [];
+            if (selectedBatchAssignAppIds.length === 0) {
+                document.querySelectorAll('.app-row-checkbox:checked').forEach(cb => selectedBatchAssignAppIds.push(cb.value));
+            }
+
+            const select = document.getElementById('targetBatchSelect');
+            if (select) {
+                select.innerHTML = batchesList.length
+                    ? batchesList.map(b => `<option value="${b.id}">${b.name} (${b.assignedCount}/${b.capacity})</option>`).join('')
+                    : '<option value="">No batches available — create one first</option>';
+            }
+
+            const rows = selectedBatchAssignAppIds.map(id => evaluationList.find(e => e.id === id)).filter(Boolean);
+            const ineligible = rows.filter(r => r.status !== 'Approved');
+
+            const restrictionAlert = document.getElementById('batchAssignRestrictionAlert');
+            const restrictionText = document.getElementById('batchAssignRestrictionText');
+            if (restrictionAlert && restrictionText) {
+                if (ineligible.length > 0) {
+                    restrictionText.textContent = `${ineligible.length} selected application(s) are not yet Approved and will be skipped.`;
+                    restrictionAlert.classList.remove('d-none');
+                } else {
+                    restrictionAlert.classList.add('d-none');
+                }
+            }
+
+            const tbody = document.getElementById('batchAssignSelectedTableBody');
+            if (tbody) {
+                tbody.innerHTML = rows.length
+                    ? rows.map(r => `
+                        <tr>
+                            <td>${r.id}</td>
+                            <td>${r.beneficiaryName}</td>
+                            <td>${r.program}</td>
+                            <td><span class="badge ${r.status === 'Approved' ? 'badge-approved' : 'badge-pending'}">${r.status}</span></td>
+                            <td>${r.status === 'Approved' ? '<span class="text-success">Eligible</span>' : '<span class="text-danger">Not Eligible</span>'}</td>
+                        </tr>
+                    `).join('')
+                    : `<tr><td colspan="5" class="text-center text-muted py-3">No applications selected. Check applications in the Livelihood Master Table, or open this from a specific approved application.</td></tr>`;
+            }
+
+            const confirmBtn = document.getElementById('confirmBatchAssignBtn');
+            if (confirmBtn) confirmBtn.disabled = batchesList.length === 0 || rows.filter(r => r.status === 'Approved').length === 0;
+
+            new bootstrap.Modal(document.getElementById('batchAssignModal')).show();
+        }
+
+        async function submitBatchAssignment() {
+            const batchSelectVal = document.getElementById('targetBatchSelect')?.value;
+            const batch = batchesList.find(b => b.id === batchSelectVal);
+            if (!batch) { alert('Please select a target batch.'); return; }
+
+            const eligible = selectedBatchAssignAppIds
+                .map(id => evaluationList.find(e => e.id === id))
+                .filter(item => item && item.status === 'Approved');
+
+            if (eligible.length === 0) {
+                alert('No eligible (Approved) applications selected for batch assignment.');
+                return;
+            }
+
+            let successCount = 0;
+            for (const item of eligible) {
+                if (item.dbId && batch.dbId) {
+                    try {
+                        const { error } = await supabaseClient.from('applications').update({ batch_id: batch.dbId }).eq('id', item.dbId);
+                        if (error) throw error;
+                    } catch (e) {
+                        console.error(`[OFFICER] Failed to persist batch assignment for ${item.id}:`, e?.message || e);
+                        continue;
+                    }
+                }
+                item.batchId = batch.id;
+                item.batchName = batch.name;
+                successCount++;
+            }
+
+            batch.assignedCount += successCount;
+
+            renderLivelihoodMasterTable();
+            renderBatchesCards();
+            logOfficerAction('ASSIGN_BATCH', `Assigned ${successCount} application(s) to batch "${batch.name}".`);
+
+            const modalEl = document.getElementById('batchAssignModal');
+            const instance = modalEl && bootstrap.Modal.getInstance(modalEl);
+            if (instance) instance.hide();
+            alert(`${successCount} application(s) assigned to ${batch.name}.`);
+        }
+
+        // ---------------------------------------------------------------------
+        // APPROVED ASSISTANCE RECORDING & MONITORING
+        // ---------------------------------------------------------------------
+        function renderAssistanceRecordsTable(listToRender) {
+            const tbody = document.getElementById('assistanceRecordsTableBody');
+            if (!tbody) return;
+            const list = listToRender || assistanceRecordsList;
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No assistance records yet.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = list.map(a => `
+                <tr>
+                    <td class="fw-bold text-primary">${a.id}</td>
+                    <td class="fw-semibold">${a.beneficiaryName}</td>
+                    <td><span class="badge bg-light text-dark border">${a.program}</span></td>
+                    <td>${a.type} — ${a.quantity}</td>
+                    <td>${a.dateApproved}</td>
+                    <td>${a.conditions || '—'}</td>
+                    <td>${a.officer}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterAssistanceTable() {
+            const search = (document.getElementById('astSearchInput')?.value || '').toLowerCase();
+            const program = document.getElementById('astProgramFilter')?.value || '';
+            const type = document.getElementById('astTypeFilter')?.value || '';
+
+            const filtered = assistanceRecordsList.filter(a => {
+                const matchSearch = !search || a.beneficiaryName.toLowerCase().includes(search) || a.id.toLowerCase().includes(search);
+                const matchProgram = !program || a.programCode === program || (a.program && a.program.includes(program));
+                const matchType = !type || a.type === type;
+                return matchSearch && matchProgram && matchType;
+            });
+
+            renderAssistanceRecordsTable(filtered);
+        }
+
+        function openRecordAssistanceModal() {
+            const form = document.getElementById('assistanceRecordForm');
+            if (form) form.reset();
+            new bootstrap.Modal(document.getElementById('recordAssistanceModal')).show();
+        }
+
+        async function submitAssistanceRecord(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('astBenName').value.trim();
+            const programLabel = document.getElementById('astProgram').value;
+            const type = document.getElementById('astType').value;
+            const quantity = document.getElementById('astQuantity').value.trim();
+            const conditions = document.getElementById('astConditions').value.trim();
+
+            if (!name || !programLabel || !type || !quantity) {
+                alert('Please complete all required fields.');
+                return;
+            }
+
+            const programCode = PESO_PROGRAM_LABEL_TO_CODE[programLabel] || null;
+            const today = new Date().toISOString().substring(0, 10);
+            let dbId = null;
+
+            try {
+                const ben = await resolveBeneficiaryByName(name);
+                if (!ben) {
+                    throw new Error(`No registered beneficiary account found matching "${name}". This must match an existing registered beneficiary's name exactly.`);
+                }
+                const programId = await getProgramIdByCode(programCode);
+                if (!programId) throw new Error(`Program "${programLabel}" was not found.`);
+
+                const profile = await getCurrentStaffProfile();
+                if (!profile) throw new Error('Could not verify your officer profile — please re-login.');
+
+                const { data: inserted, error } = await supabaseClient
+                    .from('approved_assistance')
+                    .insert({
+                        beneficiary_qr: ben.qr_code,
+                        program_id: programId,
+                        assistance_type: type,
+                        quantity_amount: quantity,
+                        conditions: conditions || null,
+                        approval_date: today,
+                        officer_id: profile.id
+                    })
+                    .select('id')
+                    .single();
+                if (error) throw error;
+
+                dbId = inserted.id;
+                logOfficerAction('RECORD_ASSISTANCE', `Recorded ${type} (${quantity}) for ${name} under ${programLabel}.`);
+            } catch (e) {
+                console.error('[OFFICER] Assistance record save failed:', e?.message || e);
+                alert('Could not save this assistance record to the database:\n\n' + (e.message || e) + '\n\nIt has been added locally for reference only, and won\'t be visible to other officers/admins until this is resolved.');
+            }
+
+            assistanceRecordsList.unshift({
+                id: dbId ? `AST-${dbId}` : 'AST-LOCAL-' + Date.now(),
+                dbId: dbId,
+                beneficiaryName: name,
+                program: programLabel,
+                programCode: programCode,
+                type: type,
+                quantity: quantity,
+                dateApproved: today,
+                conditions: conditions,
+                officer: currentOfficerUser.fullName
+            });
+
+            renderAssistanceRecordsTable();
+            const modalEl = document.getElementById('recordAssistanceModal');
+            const instance = modalEl && bootstrap.Modal.getInstance(modalEl);
+            if (instance) instance.hide();
+            document.getElementById('assistanceRecordForm').reset();
+        }
+
+        function exportAssistanceCSV() {
+            const rows = [['Assistance ID', 'Beneficiary Name', 'Program', 'Type', 'Quantity/Amount', 'Date Approved', 'Conditions', 'Recording Officer']];
+            assistanceRecordsList.forEach(a => rows.push([a.id, a.beneficiaryName, a.program, a.type, a.quantity, a.dateApproved, a.conditions || '', a.officer]));
+            const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'assistance-records-' + new Date().toISOString().substring(0, 10) + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            logOfficerAction('EXPORT_ASSISTANCE_CSV', 'Exported approved assistance records as CSV.');
+        }
+
+        function printAssistanceReport() {
+            logOfficerAction('PRINT_ASSISTANCE_REPORT', 'Printed approved assistance monitoring report.');
+            window.print();
         }
 
         function logoutOfficer() {

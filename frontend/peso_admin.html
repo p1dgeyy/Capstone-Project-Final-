@@ -2008,13 +2008,34 @@
         function renderAssignProgramsTable() {
             const tbody = document.getElementById('assignProgramsTableBody');
             tbody.innerHTML = '';
-            programsList.forEach(prog => {
+            const searchEl = document.getElementById('assignProgSearch');
+            const statusEl = document.getElementById('assignProgStatusFilter');
+            const searchTerm = (searchEl ? searchEl.value : '').trim().toLowerCase();
+            const statusFilter = statusEl ? statusEl.value : 'ALL';
+
+            const filtered = programsList.filter(prog => {
+                const matchesSearch = !searchTerm ||
+                    (prog.name || '').toLowerCase().includes(searchTerm) ||
+                    (prog.category || '').toLowerCase().includes(searchTerm);
+                const matchesStatus = statusFilter === 'ALL' || prog.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No programs match your filter.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(prog => {
                 const total = prog.total_slots || 50;
                 const rem = Math.max(0, total - (prog.beneficiaries_count || 0));
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${escapeHtml(prog.name)}</td><td>${escapeHtml(prog.category)}</td><td class="text-center">${total}</td><td class="text-center"><span class="badge bg-success-subtle text-success">${rem} slots</span></td><td class="text-center">${prog.status}</td><td class="text-end"><button class="btn btn-primary btn-sm" onclick="showLevel2Batches(${prog.id})">View Batches →</button></td>`;
                 tbody.appendChild(tr);
             });
+        }
+        function filterAssignPrograms() {
+            renderAssignProgramsTable();
         }
 
         function showLevel2Batches(progId) {
