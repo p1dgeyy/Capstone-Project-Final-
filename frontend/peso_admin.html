@@ -5446,15 +5446,21 @@
 
         async function fetchOfficersFromApi() {
             try {
-                const apiBase = window.API_BASE_URL || '';
+                const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
                 if (window.location.protocol === 'file:' && !apiBase) return;
-                const response = await fetch(`${apiBase}/api/officers`);
+                const headers = (typeof SessionManager !== 'undefined' && SessionManager.authHeaders) ? SessionManager.authHeaders() : { 'Content-Type': 'application/json' };
+                const response = await fetch(`${apiBase}/api/officers`, {
+                    method: 'GET',
+                    headers: headers,
+                    credentials: 'include'
+                });
                 const contentType = response.headers.get('content-type') || '';
                 if (response.ok && contentType.includes('application/json')) {
                     const result = await response.json();
-                    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-                        officersList = result.data.map(off => ({
-                            id: off.id,
+                    const rawList = Array.isArray(result?.data) ? result.data : (Array.isArray(result) ? result : []);
+                    if (rawList.length > 0) {
+                        officersList = rawList.map(off => ({
+                            id: off.id || Date.now(),
                             first_name: off.first_name || '',
                             middle_name: off.middle_name || '',
                             last_name: off.last_name || '',
@@ -5463,8 +5469,8 @@
                             email: off.email || '',
                             role: off.role || 'PESO Officer',
                             department: off.department || 'PESO',
-                            phone: off.phone || 'N/A',
-                            sex: off.sex || 'Male',
+                            phone: off.phone || off.contact_number || 'N/A',
+                            sex: off.sex || off.gender || 'Male',
                             address: off.address || 'City of Koronadal',
                             status: (off.status === 'Deactivated' || off.status === 'Inactive') ? 'Deactivated' : 'Active'
                         }));
@@ -5472,7 +5478,10 @@
                     }
                 }
             } catch (err) {
-                console.warn('[OFFICERS] Fetch API notice — operating with cached roster:', err.message);
+                console.debug('[OFFICERS] Backend sync note — operating with cached roster.');
+            }
+            if (!Array.isArray(officersList)) {
+                officersList = [];
             }
             if (document.getElementById('sectionOfficers') && !document.getElementById('sectionOfficers').classList.contains('d-none')) {
                 renderOfficersTables();
@@ -5484,14 +5493,21 @@
         }
 
         function renderOfficersTables() {
+            if (!Array.isArray(officersList)) {
+                console.warn('[OFFICERS] Officers roster list invalid — resetting to empty array.');
+                officersList = [];
+            }
+
             const search = (document.getElementById('officerSearchInput') ? document.getElementById('officerSearchInput').value : '').toLowerCase().trim();
             const roleFilter = document.getElementById('officerRoleFilter') ? document.getElementById('officerRoleFilter').value : 'ALL';
             const deptFilter = document.getElementById('officerDeptFilter') ? document.getElementById('officerDeptFilter').value : 'ALL';
             const statusFilter = document.getElementById('officerStatusFilter') ? document.getElementById('officerStatusFilter').value : 'ALL';
 
-            const filtered = officersList.filter(off => {
-                const fullName = `${off.first_name} ${off.middle_name || ''} ${off.last_name} ${off.suffix !== 'N/A' ? off.suffix : ''}`.toLowerCase();
-                const matchesSearch = !search || fullName.includes(search) || off.username.toLowerCase().includes(search) || off.email.toLowerCase().includes(search);
+            const safeList = Array.isArray(officersList) ? officersList : [];
+            const filtered = safeList.filter(off => {
+                if (!off) return false;
+                const fullName = `${off.first_name || ''} ${off.middle_name || ''} ${off.last_name || ''} ${off.suffix && off.suffix !== 'N/A' ? off.suffix : ''}`.toLowerCase();
+                const matchesSearch = !search || fullName.includes(search) || (off.username || '').toLowerCase().includes(search) || (off.email || '').toLowerCase().includes(search);
                 const matchesRole = roleFilter === 'ALL' || off.role === roleFilter;
                 const matchesDept = deptFilter === 'ALL' || off.department === deptFilter;
                 const matchesStatus = statusFilter === 'ALL' || off.status === statusFilter;
@@ -5571,6 +5587,25 @@
             const totalDeactivated = officersList.filter(o => o.status === 'Deactivated').length;
             if (document.getElementById('activeOfficersBadge')) document.getElementById('activeOfficersBadge').textContent = `${totalActive} Active Officers`;
             if (document.getElementById('archiveOfficersBadge')) document.getElementById('archiveOfficersBadge').textContent = `${totalDeactivated} Archived Officers`;
+        }
+
+        function renderArchiveTable(customList) {
+            if (customList && !Array.isArray(customList)) {
+                console.warn('[OFFICERS] Archive list invalid — expected array.');
+                return;
+            }
+            if (!Array.isArray(officersList)) {
+                console.warn('[OFFICERS] Archive list invalid — resetting to empty array.');
+                officersList = [];
+            }
+            renderOfficersTables();
+        }
+
+        function renderActiveOfficersTable() {
+            if (!Array.isArray(officersList)) {
+                officersList = [];
+            }
+            renderOfficersTables();
         }
 
         function openNewOfficerModal() {

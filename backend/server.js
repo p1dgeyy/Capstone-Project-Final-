@@ -36,11 +36,23 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 // Enable trust proxy for reverse proxies (Railway, Vercel, Render)
 app.set('trust proxy', 1);
 
+// Allowed Origins for CORS Compliance
+const ALLOWED_ORIGINS = [
+    'https://capstone-project-final-sooty.vercel.app',
+    'https://capstone-project-final-production.up.railway.app',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5500'
+];
+
 // Security & Parsing Middlewares with Credentials & Cookie Support
 const corsOptions = {
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps, curl, server-to-server) or any origin in development / Vercel deployments
-        if (!origin) return callback(null, true);
+        // Allow requests with no origin or matching whitelist / Vercel preview domains
+        if (!origin || ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app')) {
+            return callback(null, true);
+        }
         return callback(null, true);
     },
     credentials: true,
@@ -53,15 +65,14 @@ app.options('*', cors(corsOptions));
 
 // Explicit Global CORS & Preflight Safeguard Middleware
 app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    }
+    const origin = req.headers.origin || 'https://capstone-project-final-sooty.vercel.app';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    
     if (req.method === 'OPTIONS') {
-        return res.sendStatus(204);
+        return res.status(204).end();
     }
     next();
 });
