@@ -680,7 +680,7 @@
         </div>
 
         <!-- =================================================================== -->
-        <!-- TAB 1: PROGRAM OVERVIEW & BUDGET MODULE -->
+        <!-- TAB 1: PROGRAM OVERVIEW & BUDGET MODULE                             -->
         <!-- =================================================================== -->
         <div id="sectionOverview">
             <!-- Ordinance Header Banner -->
@@ -811,7 +811,146 @@
         </div>
 
         <!-- =================================================================== -->
-        <!-- TAB: SCHEDULING MANAGEMENT MODULE (CALENDAR & ACTIVITIES PANEL)    -->
+        <!-- TAB 2: USER MANAGEMENT MODULE                                       -->
+        <!-- =================================================================== -->
+        <div id="sectionUsers" class="d-none">
+            <!-- User Management Header Banner -->
+            <div class="ordinance-banner">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-primary text-white px-2.5 py-1 font-monospace fw-bold">RBAC & USER ROSTER</span>
+                        <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-shield-lock-fill me-1"></i> Data Privacy Act 2012 Compliant</span>
+                    </div>
+                    <h4 class="fw-bold mb-1">PESO & CSWDO Portal User Management Module</h4>
+                    <p class="text-white-50 mb-0 small"><i class="bi bi-person-badge-fill me-1"></i> Administrative user directory, role assignment, credential control, temporary lockout management, and immutable audit tracking.</p>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openNewUserModal()">
+                        <i class="bi bi-person-plus-fill me-1 text-primary"></i> Create New User
+                    </button>
+                    <button class="btn btn-outline-light fw-semibold px-3" onclick="exportUsersCsv()">
+                        <i class="bi bi-filetype-csv me-1"></i> Export Users CSV
+                    </button>
+                    <button class="btn btn-outline-light fw-semibold px-3" onclick="exportCompliancePdf()">
+                        <i class="bi bi-printer-fill me-1"></i> Compliance PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- User Management Key Metrics Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card blue">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-primary" id="statTotalUsers">6</div>
+                                <div class="stat-label">Total Registered Users</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-people-fill"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                            <span class="text-primary fw-semibold"><i class="bi bi-check2-circle"></i> PESO & CSWDO Personnel</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card green">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-success" id="statActiveAdmins">2</div>
+                                <div class="stat-label">Active Administrators</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-shield-check"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">Full CRUD & Security Authorities</div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card teal">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-teal" id="statActiveStaff">4</div>
+                                <div class="stat-label">Officers & Evaluator Staff</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-person-workspace"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">Beneficiary Assignment Operators</div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card orange" style="border-left: 4px solid var(--danger);">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-danger" id="statLockedUsers">0</div>
+                                <div class="stat-label">Locked / Archived Accounts</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-lock-fill"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">Exceeded attempts or archived</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Filter & Data Table Card -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 650px;">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="userSearchInput" placeholder="Search user by name, username, email, or department..." oninput="filterUsers()">
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <select class="form-select" id="userRoleFilter" style="width: 150px;" onchange="filterUsers()">
+                            <option value="ALL">All Roles</option>
+                            <option value="Admin">Administrators</option>
+                            <option value="Officer">Officers</option>
+                            <option value="Staff">Staff</option>
+                        </select>
+                        <select class="form-select" id="userStatusFilter" style="width: 140px;" onchange="filterUsers()">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="Locked">Locked</option>
+                            <option value="Archived">Archived</option>
+                        </select>
+                        <select class="form-select" id="userDeptFilter" style="width: 140px;" onchange="filterUsers()">
+                            <option value="ALL">All Depts</option>
+                            <option value="PESO">PESO</option>
+                            <option value="CSWDO">CSWDO</option>
+                        </select>
+                        <button class="btn btn-primary fw-semibold" onclick="openNewUserModal()">
+                            <i class="bi bi-plus-lg me-1"></i> New User
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0" id="usersManagementTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 240px;">Full Name & Identity</th>
+                                <th style="width: 200px;">Username / Email</th>
+                                <th style="width: 140px;">Role & RBAC</th>
+                                <th style="width: 120px;">Department</th>
+                                <th style="width: 150px;">Contact Number</th>
+                                <th class="text-center" style="width: 120px;">Status</th>
+                                <th style="width: 170px;">Last Login</th>
+                                <th class="text-end" style="width: 220px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Populated dynamically by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- TAB 3: SCHEDULING MANAGEMENT MODULE                                 -->
         <!-- =================================================================== -->
         <div id="sectionScheduling" class="d-none">
             <!-- Header Banner -->
@@ -1131,146 +1270,7 @@
         </div>
 
         <!-- =================================================================== -->
-        <!-- TAB: USER MANAGEMENT & ROLE-BASED ACCESS CONTROL (RBAC) -->
-        <!-- =================================================================== -->
-        <div id="sectionUsers" class="d-none">
-            <!-- User Management Header Banner -->
-            <div class="ordinance-banner">
-                <div>
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge bg-primary text-white px-2.5 py-1 font-monospace fw-bold">RBAC & USER ROSTER</span>
-                        <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-shield-lock-fill me-1"></i> Data Privacy Act 2012 Compliant</span>
-                    </div>
-                    <h4 class="fw-bold mb-1">PESO & CSWDO Portal User Management Module</h4>
-                    <p class="text-white-50 mb-0 small"><i class="bi bi-person-badge-fill me-1"></i> Administrative user directory, role assignment, credential control, temporary lockout management, and immutable audit tracking.</p>
-                </div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openNewUserModal()">
-                        <i class="bi bi-person-plus-fill me-1 text-primary"></i> Create New User
-                    </button>
-                    <button class="btn btn-outline-light fw-semibold px-3" onclick="exportUsersCsv()">
-                        <i class="bi bi-filetype-csv me-1"></i> Export Users CSV
-                    </button>
-                    <button class="btn btn-outline-light fw-semibold px-3" onclick="exportCompliancePdf()">
-                        <i class="bi bi-printer-fill me-1"></i> Compliance PDF
-                    </button>
-                </div>
-            </div>
-
-            <!-- User Management Key Metrics Cards -->
-            <div class="row g-3 mb-4">
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="stat-card blue">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="stat-value text-primary" id="statTotalUsers">6</div>
-                                <div class="stat-label">Total Registered Users</div>
-                            </div>
-                            <div class="icon-wrapper"><i class="bi bi-people-fill"></i></div>
-                        </div>
-                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
-                            <span class="text-primary fw-semibold"><i class="bi bi-check2-circle"></i> PESO & CSWDO Personnel</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="stat-card green">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="stat-value text-success" id="statActiveAdmins">2</div>
-                                <div class="stat-label">Active Administrators</div>
-                            </div>
-                            <div class="icon-wrapper"><i class="bi bi-shield-check"></i></div>
-                        </div>
-                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">Full CRUD & Security Authorities</div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="stat-card teal">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="stat-value text-teal" id="statActiveStaff">4</div>
-                                <div class="stat-label">Officers & Evaluator Staff</div>
-                            </div>
-                            <div class="icon-wrapper"><i class="bi bi-person-workspace"></i></div>
-                        </div>
-                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">Beneficiary Assignment Operators</div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="stat-card orange" style="border-left: 4px solid var(--danger);">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="stat-value text-danger" id="statLockedUsers">0</div>
-                                <div class="stat-label">Locked / Archived Accounts</div>
-                            </div>
-                            <div class="icon-wrapper"><i class="bi bi-lock-fill"></i></div>
-                        </div>
-                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">Exceeded attempts or archived</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Users Filter & Data Table Card -->
-            <div class="content-card">
-                <div class="card-header-custom">
-                    <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 650px;">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" class="form-control border-start-0" id="userSearchInput" placeholder="Search user by name, username, email, or department..." oninput="filterUsers()">
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <select class="form-select" id="userRoleFilter" style="width: 150px;" onchange="filterUsers()">
-                            <option value="ALL">All Roles</option>
-                            <option value="Admin">Administrators</option>
-                            <option value="Officer">Officers</option>
-                            <option value="Staff">Staff</option>
-                        </select>
-                        <select class="form-select" id="userStatusFilter" style="width: 140px;" onchange="filterUsers()">
-                            <option value="ALL">All Statuses</option>
-                            <option value="Active">Active</option>
-                            <option value="Locked">Locked</option>
-                            <option value="Archived">Archived</option>
-                        </select>
-                        <select class="form-select" id="userDeptFilter" style="width: 140px;" onchange="filterUsers()">
-                            <option value="ALL">All Depts</option>
-                            <option value="PESO">PESO</option>
-                            <option value="CSWDO">CSWDO</option>
-                        </select>
-                        <button class="btn btn-primary fw-semibold" onclick="openNewUserModal()">
-                            <i class="bi bi-plus-lg me-1"></i> New User
-                        </button>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-custom align-middle mb-0" id="usersManagementTable">
-                        <thead>
-                            <tr>
-                                <th style="width: 240px;">Full Name & Identity</th>
-                                <th style="width: 200px;">Username / Email</th>
-                                <th style="width: 140px;">Role & RBAC</th>
-                                <th style="width: 120px;">Department</th>
-                                <th style="width: 150px;">Contact Number</th>
-                                <th class="text-center" style="width: 120px;">Status</th>
-                                <th style="width: 170px;">Last Login</th>
-                                <th class="text-end" style="width: 220px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <!-- Populated dynamically by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- =================================================================== -->
-        <!-- TAB 2: APPLICATION EVALUATION MODULE -->
+        <!-- TAB 4: APPLICATION EVALUATION MODULE                                -->
         <!-- =================================================================== -->
         <div id="sectionEvaluation" class="d-none">
             <!-- Evaluation Breadcrumb Banner -->
@@ -1489,7 +1489,7 @@
         </div>
 
         <!-- =================================================================== -->
-        <!-- TAB 3: PROGRAM ASSIGNMENT MODULE (3-LEVEL DRILLDOWN) -->
+        <!-- TAB 5: PROGRAM ASSIGNMENT MODULE                                    -->
         <!-- =================================================================== -->
         <div id="sectionAssignment" class="d-none">
             
@@ -1612,45 +1612,7 @@
         </div>
 
         <!-- =================================================================== -->
-        <!-- TAB 3: ARCHIVE SECTION (READ-ONLY MONITORING) -->
-        <!-- =================================================================== -->
-        <div id="sectionArchive" class="d-none">
-            <div class="content-card border-warning">
-                <div class="card-header-custom bg-warning-subtle border-warning">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-archive-fill text-warning fs-3"></i>
-                        <div>
-                            <h5 class="fw-bold mb-0 text-dark">Program Archive Section (Read-Only Monitoring)</h5>
-                            <small class="text-muted">Deactivated and completed programs are safely preserved here. Admin can view archived programs, restore active status, or permanently delete.</small>
-                        </div>
-                    </div>
-                    <div>
-                        <span class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill" id="archiveSectionCountBadge">0 Deactivated Programs</span>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-custom align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Program Code & Name</th>
-                                <th>Category</th>
-                                <th>Budget</th>
-                                <th>Target Beneficiaries</th>
-                                <th>Date Deactivated</th>
-                                <th class="text-end">Archive Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="archiveTableBody">
-                            <!-- Populated dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- =================================================================== -->
-        <!-- TAB 4: PESO OFFICERS MANAGEMENT MODULE -->
+        <!-- TAB 6: PESO OFFICERS MANAGEMENT MODULE                              -->
         <!-- =================================================================== -->
         <div id="sectionOfficers" class="d-none">
             <!-- Header Banner & Action Bar -->
@@ -1771,12 +1733,125 @@
             </div>
         </div>
 
+        <!-- =================================================================== -->
+        <!-- TAB 7: ARCHIVE SECTION (READ-ONLY MONITORING)                       -->
+        <!-- =================================================================== -->
+        <div id="sectionArchive" class="d-none">
+            <div class="content-card border-warning">
+                <div class="card-header-custom bg-warning-subtle border-warning">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-archive-fill text-warning fs-3"></i>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">Program Archive Section (Read-Only Monitoring)</h5>
+                            <small class="text-muted">Deactivated and completed programs are safely preserved here. Admin can view archived programs, restore active status, or permanently delete.</small>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill" id="archiveSectionCountBadge">0 Deactivated Programs</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Program Code & Name</th>
+                                <th>Category</th>
+                                <th>Budget</th>
+                                <th>Target Beneficiaries</th>
+                                <th>Date Deactivated</th>
+                                <th class="text-end">Archive Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archiveTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
 
-    <!-- =================================================================== -->
-    <!-- MODAL A: READ-ONLY PROGRAM DETAILS MODAL (STRICTLY VIEW-ONLY) -->
-    <!-- =================================================================== -->
-    <div class="modal fade" id="programDetailsViewModal" tabindex="-1" aria-labelledby="viewModalTitle" aria-hidden="true">
+    <!-- ======================================================================= -->
+    <!-- SECTION A: PROGRAM MANAGEMENT MODALS                                    -->
+    <!-- ======================================================================= -->
+    <div class="modal fade" id="createProgramModal" tabindex="-1" aria-labelledby="createProgramModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-header-title fw-bold mb-0" id="createProgramModalTitle"><i class="bi bi-folder-plus me-2"></i>Create New Livelihood Program</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="createProgramForm" onsubmit="handleCreateProgramSubmit(event)">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="newProgName" class="form-label fw-semibold">Program Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgName" placeholder="e.g. Youth Micro-Entrepreneurship Scheme" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="newProgCode" class="form-label fw-semibold">Program Code <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="newProgCode" placeholder="e.g. YMES-2026" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="newProgCategory" class="form-label fw-semibold">Program Category <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newProgCategory" required>
+                                    <option value="Employment Facilitation">Employment Facilitation</option>
+                                    <option value="Livelihood Programs" selected>Livelihood Programs</option>
+                                    <option value="Other Programs">Other Programs</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="newProgBudget" class="form-label fw-semibold">Budget (PHP ₱) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control fw-bold" id="newProgBudget" placeholder="0.00" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="newProgDateTime" class="form-label fw-semibold">Date and Time <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="newProgDateTime" required>
+                            </div>
+                            <div class="col-12">
+                                <label for="newProgDesc" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="newProgDesc" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="newProgTarget" class="form-label fw-semibold">Target Beneficiaries <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgTarget" placeholder="PWDs, Students, Job Applicants..." required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="newProgAssistance" class="form-label fw-semibold">Type of Assistance <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newProgAssistance" required>
+                                    <option value="Cash Grant">Cash Grant</option>
+                                    <option value="Equipment & Tools">Equipment & Tools</option>
+                                    <option value="Skills Training">Skills Training</option>
+                                    <option value="Starter Kits">Starter Kits</option>
+                                    <option value="Paid Stipend / Salary">Paid Stipend / Salary</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="newProgEligibility" class="form-label fw-semibold">Eligibility Criteria <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="newProgEligibility" rows="2" required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label for="newProgLimitations" class="form-label fw-semibold">Limitations & Restrictions <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="newProgLimitations" rows="2" required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label for="newProgOrdinance" class="form-label fw-semibold">Current LGU Appropriation Ordinance <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgOrdinance" value="Appropriation Ordinance No. 6, Series of 2025" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-check-lg me-1"></i> Save & Record Program</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<div class="modal fade" id="programDetailsViewModal" tabindex="-1" aria-labelledby="viewModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4 py-3">
@@ -1885,10 +1960,7 @@
         </div>
     </div>
 
-    <!-- =================================================================== -->
-    <!-- MODAL B: EDITABLE PROGRAM FORM MODAL (WITH AUDIT LOGGING) -->
-    <!-- =================================================================== -->
-    <div class="modal fade" id="programEditModal" tabindex="-1" aria-labelledby="programEditModalTitle" aria-hidden="true">
+<div class="modal fade" id="programEditModal" tabindex="-1" aria-labelledby="programEditModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
@@ -1960,280 +2032,7 @@
         </div>
     </div>
 
-    <!-- MODAL C: CREATE NEW PROGRAM MODAL -->
-    <div class="modal fade" id="createProgramModal" tabindex="-1" aria-labelledby="createProgramModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-header-title fw-bold mb-0" id="createProgramModalTitle"><i class="bi bi-folder-plus me-2"></i>Create New Livelihood Program</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="createProgramForm" onsubmit="handleCreateProgramSubmit(event)">
-                    <div class="modal-body p-4">
-                        <div class="row g-3">
-                            <div class="col-md-8">
-                                <label for="newProgName" class="form-label fw-semibold">Program Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newProgName" placeholder="e.g. Youth Micro-Entrepreneurship Scheme" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="newProgCode" class="form-label fw-semibold">Program Code <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="newProgCode" placeholder="e.g. YMES-2026" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="newProgCategory" class="form-label fw-semibold">Program Category <span class="text-danger">*</span></label>
-                                <select class="form-select" id="newProgCategory" required>
-                                    <option value="Employment Facilitation">Employment Facilitation</option>
-                                    <option value="Livelihood Programs" selected>Livelihood Programs</option>
-                                    <option value="Other Programs">Other Programs</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="newProgBudget" class="form-label fw-semibold">Budget (PHP ₱) <span class="text-danger">*</span></label>
-                                <input type="number" step="0.01" class="form-control fw-bold" id="newProgBudget" placeholder="0.00" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="newProgDateTime" class="form-label fw-semibold">Date and Time <span class="text-danger">*</span></label>
-                                <input type="datetime-local" class="form-control" id="newProgDateTime" required>
-                            </div>
-                            <div class="col-12">
-                                <label for="newProgDesc" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="newProgDesc" rows="3" required></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="newProgTarget" class="form-label fw-semibold">Target Beneficiaries <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newProgTarget" placeholder="PWDs, Students, Job Applicants..." required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="newProgAssistance" class="form-label fw-semibold">Type of Assistance <span class="text-danger">*</span></label>
-                                <select class="form-select" id="newProgAssistance" required>
-                                    <option value="Cash Grant">Cash Grant</option>
-                                    <option value="Equipment & Tools">Equipment & Tools</option>
-                                    <option value="Skills Training">Skills Training</option>
-                                    <option value="Starter Kits">Starter Kits</option>
-                                    <option value="Paid Stipend / Salary">Paid Stipend / Salary</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label for="newProgEligibility" class="form-label fw-semibold">Eligibility Criteria <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="newProgEligibility" rows="2" required></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label for="newProgLimitations" class="form-label fw-semibold">Limitations & Restrictions <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="newProgLimitations" rows="2" required></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label for="newProgOrdinance" class="form-label fw-semibold">Current LGU Appropriation Ordinance <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newProgOrdinance" value="Appropriation Ordinance No. 6, Series of 2025" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-check-lg me-1"></i> Save & Record Program</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL D: READ-ONLY BENEFICIARY PROFILE POP-UP -->
-    <div class="modal fade" id="beneficiaryProfileModal" tabindex="-1" aria-labelledby="benProfileName" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-dark text-white rounded-top-4 py-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-person-bounding-box text-warning fs-4"></i>
-                        <div>
-                            <h5 class="modal-title fw-bold mb-0" id="benProfileName">Beneficiary Full Profile</h5>
-                            <span class="badge badge-readonly mt-1"><i class="bi bi-shield-lock-fill me-1"></i>Read-Only Administrator View</span>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
-                <div class="modal-body p-4">
-                    <div class="alert alert-warning py-2 mb-4 d-flex align-items-center gap-2 small">
-                        <i class="bi bi-info-circle-fill text-warning fs-5"></i>
-                        <div>
-                            <strong>Restriction Notice:</strong> PESO Administrators cannot alter or modify beneficiary details directly; assignments and edits are strictly managed by assigned PESO Officers.
-                        </div>
-                    </div>
-
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light rounded-3 p-3">
-                                <h6 class="fw-bold text-primary mb-3 border-bottom pb-2"><i class="bi bi-person-vcard me-2"></i>Personal Details</h6>
-                                <div class="row g-3 small">
-                                    <div class="col-6"><div class="text-muted">Full Name</div><div class="fw-bold text-dark" id="pFullName">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Contact Number (Masked)</div><div class="masked-phone" id="pContact">-</div></div>
-                                    <div class="col-12"><div class="text-muted">Address</div><div class="fw-bold text-dark" id="pAddress">-</div></div>
-                                    <div class="col-4"><div class="text-muted">Age</div><div class="fw-bold text-dark" id="pAge">-</div></div>
-                                    <div class="col-4"><div class="text-muted">Sex</div><div class="fw-bold text-dark" id="pSex">-</div></div>
-                                    <div class="col-4"><div class="text-muted">Civil Status</div><div class="fw-bold text-dark" id="pCivilStatus">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Birthday</div><div class="fw-bold text-dark" id="pBirthday">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Number of Children</div><div class="fw-bold text-dark" id="pChildren">-</div></div>
-                                    <div class="col-12"><div class="text-muted">Name of Spouse</div><div class="fw-bold text-dark" id="pSpouse">-</div></div>
-                                    <div class="col-12"><div class="text-muted">Valid ID Type & Number</div><div class="fw-bold text-dark" id="pValidId">-</div></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light rounded-3 p-3 mb-3">
-                                <h6 class="fw-bold text-success mb-3 border-bottom pb-2"><i class="bi bi-briefcase me-2"></i>Business & Program Profile</h6>
-                                <div class="row g-3 small">
-                                    <div class="col-6"><div class="text-muted">Type of Business</div><div class="fw-bold text-dark" id="pBusinessType">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Program Component</div><div class="fw-bold text-dark" id="pProgramComponent">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Status of Business</div><div class="fw-bold text-dark" id="pBusinessStatus">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Amount Needed</div><div class="fw-bold text-success" id="pAmountNeeded">-</div></div>
-                                    <div class="col-12"><div class="text-muted">Proposed Business</div><div class="fw-bold text-dark" id="pProposedBusiness">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Employment Status</div><div class="fw-bold text-dark" id="pEmploymentStatus">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Seminars Attended</div><div class="fw-bold text-dark" id="pSeminars">-</div></div>
-                                </div>
-                            </div>
-
-                            <div class="card border-0 bg-light rounded-3 p-3">
-                                <h6 class="fw-bold text-info mb-3 border-bottom pb-2"><i class="bi bi-check2-circle me-2"></i>Requirements & Verification</h6>
-                                <div class="row g-3 small">
-                                    <div class="col-6"><div class="text-muted">Requirements Checklist</div><div class="fw-bold" id="pChecklist">-</div></div>
-                                    <div class="col-6"><div class="text-muted">Assignment Status</div><div class="fw-bold" id="pAssignmentStatus">-</div></div>
-                                    <div class="col-12"><div class="text-muted mb-1">Uploaded Documents</div><div id="pDocsList" class="d-flex flex-wrap gap-1"></div></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-    <!-- MODAL: REVIEW SUBMITTED LIVELIHOOD CASE FILE -->
-    <div class="modal fade" id="reviewCaseFileModal" tabindex="-1" aria-labelledby="reviewCaseFileModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title fw-bold" id="reviewCaseFileModalTitle"><i class="bi bi-file-earmark-medical-fill me-2"></i>Review Submitted Livelihood Case File</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <!-- Applicant Header & Status Bar -->
-                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
-                        <div>
-                            <h4 class="fw-bold text-dark mb-1" id="reviewApplicantName">Applicant Name</h4>
-                            <span class="badge bg-primary-subtle text-primary font-monospace fs-6" id="reviewProgramBatchTag">Program - Batch</span>
-                        </div>
-                        <div class="text-end">
-                            <div class="small text-muted">Verification Status</div>
-                            <span class="badge bg-success px-3 py-1 fs-6" id="reviewVerificationStatusBadge"><i class="bi bi-patch-check-fill me-1"></i> Verified Documents</span>
-                        </div>
-                    </div>
-
-                    <!-- Applicant Personal Info Card -->
-                    <div class="card border-0 bg-light p-3 rounded-3 mb-4">
-                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-vcard me-1"></i> Beneficiary Personal & Contact Profile</h6>
-                        <div class="row g-2 small">
-                            <div class="col-md-4"><span class="text-muted">Contact Number:</span> <span class="fw-bold font-monospace" id="reviewApplicantContact">09XX-***-XXXX</span></div>
-                            <div class="col-md-4"><span class="text-muted">Address:</span> <span class="fw-bold" id="reviewApplicantAddress">Purok 1, Barangay Poblacion</span></div>
-                            <div class="col-md-4"><span class="text-muted">Civil Status:</span> <span class="fw-bold" id="reviewApplicantCivilStatus">Single</span></div>
-                            <div class="col-md-4"><span class="text-muted">Spouse Name:</span> <span class="fw-bold" id="reviewApplicantSpouse">N/A</span></div>
-                            <div class="col-md-4"><span class="text-muted">Children Details:</span> <span class="fw-bold" id="reviewApplicantChildren">None</span></div>
-                            <div class="col-md-4"><span class="text-muted">Date Submitted:</span> <span class="fw-bold text-dark" id="reviewSubmissionDate">2026-03-15</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Verified Documents Compliance Section -->
-                    <div class="mb-4">
-                        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-check-fill text-success me-1"></i> Verified Documents Compliance Section (Pre-validated)</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Document Type</th>
-                                        <th>File Name</th>
-                                        <th class="text-center">Officer Verification</th>
-                                        <th class="text-end">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reviewDocumentsTableBody">
-                                    <!-- Populated dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Action Assessment Notes Area -->
-                    <div class="mb-3">
-                        <label for="reviewActionAssessmentNotes" class="form-label fw-bold text-dark">
-                            <i class="bi bi-journal-text text-primary me-1"></i> Action Assessment Notes 
-                            <span class="text-danger fw-semibold" style="font-size: 0.85rem;">(Mandatory for Denied and Pending Evaluation)</span>
-                        </label>
-                        <textarea id="reviewActionAssessmentNotes" class="form-control" rows="3" placeholder="Enter evaluation remarks, compliance findings, or denial reasons for auditing..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light rounded-bottom-4 d-flex justify-content-between">
-                    <div>
-                        <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Close</button>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-warning fw-semibold px-3" onclick="executeEvalDecision('Pending Evaluation')">
-                            <i class="bi bi-clock-history me-1"></i> Pending Evaluation
-                        </button>
-                        <button type="button" class="btn btn-danger fw-semibold px-3" onclick="executeEvalDecision('Denied')">
-                            <i class="bi bi-x-circle-fill me-1"></i> Deny Application
-                        </button>
-                        <button type="button" class="btn btn-success fw-semibold px-4" onclick="executeEvalDecision('Approved')">
-                            <i class="bi bi-check-circle-fill me-1"></i> Approve Case
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: DOCUMENT PREVIEW MODAL -->
-    <div class="modal fade" id="docPreviewModal" tabindex="-1" aria-labelledby="docPreviewTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-dark text-white rounded-top-4">
-                    <h5 class="modal-title fw-bold" id="docPreviewTitle"><i class="bi bi-eye-fill me-2 text-info"></i>Document Preview</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 text-center bg-light">
-                    <div id="docPreviewContainer" class="p-5 border bg-white rounded-3 shadow-sm">
-                        <i class="bi bi-file-earmark-pdf-fill text-danger display-1 mb-3"></i>
-                        <h5 class="fw-bold text-dark mb-1" id="docPreviewFileName">Document.pdf</h5>
-                        <p class="text-muted small mb-3">Verified Document Compliance File — City Government of Koronadal PESO Intake</p>
-                        <div class="alert alert-success d-inline-block px-4 py-2 small">
-                            <i class="bi bi-patch-check-fill me-1"></i> Document authenticity pre-checked by PESO Intake Officer.
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Preview</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL E: RESTRICTION WARNING MODAL -->
-    <div class="modal fade" id="restrictionWarningModal" tabindex="-1" aria-labelledby="restrictionWarningModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-danger text-white rounded-top-4">
-                    <h5 class="modal-title fw-bold" id="restrictionWarningModalTitle"><i class="bi bi-shield-slash-fill me-2"></i>Restriction Warning</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 text-center">
-                    <div class="text-danger mb-3"><i class="bi bi-exclamation-triangle-fill" style="font-size: 3.5rem;"></i></div>
-                    <h5 class="fw-bold mb-2">Program Deactivation Restricted</h5>
-                    <p class="text-muted" id="restrictionWarningText">Cannot deactivate program. This program currently has active enrolled beneficiaries processing financial aid.</p>
-                </div>
-                <div class="modal-footer bg-light rounded-bottom-4 justify-content-center">
-                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Acknowledge</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL F: UPLOAD ORDINANCE MODAL -->
-    <div class="modal fade" id="uploadOrdinanceModal" tabindex="-1" aria-labelledby="uploadOrdinanceModalTitle" aria-hidden="true">
+<div class="modal fade" id="uploadOrdinanceModal" tabindex="-1" aria-labelledby="uploadOrdinanceModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4">
@@ -2264,8 +2063,7 @@
         </div>
     </div>
 
-    <!-- MODAL G: ORDINANCE REFERENCE OVERVIEW MODAL -->
-    <div class="modal fade" id="ordinanceReferenceModal" tabindex="-1" aria-labelledby="ordinanceReferenceModalTitle" aria-hidden="true">
+<div class="modal fade" id="ordinanceReferenceModal" tabindex="-1" aria-labelledby="ordinanceReferenceModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4">
@@ -2305,212 +2103,350 @@
         </div>
     </div>
 
-    <!-- MODAL H: AUDIT LOGS MODAL -->
-    <div class="modal fade" id="auditLogsModal" tabindex="-1" aria-labelledby="auditLogsModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-info text-white rounded-top-4">
-                    <h5 class="modal-title fw-bold" id="auditLogsModalTitle"><i class="bi bi-shield-check me-2"></i>PESO Operational Audit Trail</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                        <table class="table table-sm table-striped align-middle" style="font-size: 0.85rem;">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>User Role</th>
-                                    <th>Action Type</th>
-                                    <th>Target Entity</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="auditLogsModalTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Audit Trail</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<!-- Officer Creation Modal -->
-<div class="modal fade" id="newOfficerModal" tabindex="-1" aria-labelledby="newOfficerModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      
-      <!-- Header -->
-      <div class="modal-header">
-        <h5 class="modal-title" id="newOfficerModalLabel">Create New Officer Account</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      
-      <!-- Body -->
-      <div class="modal-body">
-        <form id="newOfficerForm" onsubmit="handleCreateOfficerSubmit(event)">
-          
-          <!-- Name Fields -->
-          <div class="row mb-3">
-            <div class="col">
-              <label for="newOffFirstName" class="form-label">First Name</label>
-              <input type="text" class="form-control" id="newOffFirstName" required>
-            </div>
-            <div class="col">
-              <label for="newOffMiddleName" class="form-label">Middle Name</label>
-              <input type="text" class="form-control" id="newOffMiddleName">
-            </div>
-            <div class="col">
-              <label for="newOffLastName" class="form-label">Last Name</label>
-              <input type="text" class="form-control" id="newOffLastName" required>
-            </div>
-            <div class="col">
-              <label for="newOffSuffix" class="form-label">Suffix</label>
-              <input type="text" class="form-control" id="newOffSuffix">
-            </div>
-          </div>
-          
-          <!-- Account Fields -->
-          <div class="mb-3">
-            <label for="newOffUsername" class="form-label">Username</label>
-            <input type="text" class="form-control" id="newOffUsername" required>
-          </div>
-          <div class="mb-3">
-            <label for="newOffPassword" class="form-label">Password</label>
-            <input type="password" class="form-control" id="newOffPassword" required>
-          </div>
-          <div class="mb-3">
-            <label for="newOffConfirmPassword" class="form-label">Confirm Password</label>
-            <input type="password" class="form-control" id="newOffConfirmPassword" required>
-          </div>
-          
-          <!-- Contact Fields -->
-          <div class="mb-3">
-            <label for="newOffEmail" class="form-label">Email Address</label>
-            <input type="email" class="form-control" id="newOffEmail" required>
-          </div>
-          <div class="mb-3">
-            <label for="newOffContactNumber" class="form-label">Contact Number</label>
-            <input type="tel" class="form-control" id="newOffContactNumber" required>
-          </div>
-          <div class="mb-3">
-            <label for="newOffAddress" class="form-label">Address</label>
-            <textarea class="form-control" id="newOffAddress" rows="2" required></textarea>
-          </div>
-          
-          <!-- Role & Department -->
-          <div class="row mb-3">
-            <div class="col">
-              <label for="newOffRole" class="form-label">Assigned Role</label>
-              <select class="form-select" id="newOffRole" required>
-                <option value="">Select Role</option>
-                <option value="Admin">Admin</option>
-                <option value="Officer">Officer</option>
-              </select>
-            </div>
-            <div class="col">
-              <label for="newOffDepartment" class="form-label">Department</label>
-              <input type="text" class="form-control" id="newOffDepartment" required>
-            </div>
-            <div class="col">
-              <label for="newOffGender" class="form-label">Gender</label>
-              <select class="form-select" id="newOffGender" required>
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-          
-        </form>
-      </div>
-      
-      <!-- Footer -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" form="newOfficerForm" class="btn btn-primary">Create Officer</button>
-      </div>
-      
-    </div>
-  </div>
-</div>
-
-<!-- MODAL I: EDIT OFFICER ACCOUNT PROFILE MODAL -->
-    <div class="modal fade" id="editOfficerModal" tabindex="-1" aria-labelledby="editOfficerModalTitle" aria-hidden="true">
+    <!-- ======================================================================= -->
+    <!-- SECTION B: USER MANAGEMENT MODALS (RBAC & PRIVACY COMPLIANT)            -->
+    <!-- ======================================================================= -->
+    <div class="modal fade" id="newUserModal" tabindex="-1" aria-labelledby="newUserModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-person-gear fs-3 text-warning"></i>
+                        <i class="bi bi-person-plus-fill fs-3 text-warning"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="editOfficerModalTitle">Officer Account Details & Edit Profile</h5>
-                            <small class="text-white-50">Manage Officer Credentials, Role & Department</small>
+                            <h5 class="modal-title fw-bold mb-0" id="newUserModalTitle">Create New User Account</h5>
+                            <small class="text-white-50">Authorized PESO Administrator Access Only</small>
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="editOfficerForm" onsubmit="handleSaveOfficerUpdates(event)">
+
+                <form id="newUserForm" onsubmit="handleCreateUserSubmit(event)">
                     <div class="modal-body p-4">
-                        <input type="hidden" id="editOffId">
+                        <div class="alert alert-info py-2 mb-3 small">
+                            <i class="bi bi-shield-check me-1"></i> Passwords are automatically hashed with <strong>bcrypt</strong> before storage. Role permissions and action reasons are recorded in immutable audit logs.
+                        </div>
+
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="editOffFullName" class="form-label fw-semibold">Officer Full Name</label>
-                                <input type="text" class="form-control bg-light fw-bold" id="editOffFullName" readonly>
+                            <div class="col-md-3">
+                                <label for="newUsrFirstName" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newUsrFirstName" required placeholder="First Name">
                             </div>
-                            <div class="col-md-6">
-                                <label for="editOffUsername" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="editOffUsername" required>
+                            <div class="col-md-3">
+                                <label for="newUsrMiddleName" class="form-label fw-semibold">Middle Name</label>
+                                <input type="text" class="form-control" id="newUsrMiddleName" placeholder="Middle Name">
                             </div>
-                            <div class="col-md-6">
-                                <label for="editOffEmail" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="editOffEmail" required>
+                            <div class="col-md-4">
+                                <label for="newUsrLastName" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newUsrLastName" required placeholder="Last Name">
                             </div>
-                            <div class="col-md-6">
-                                <label for="editOffPhone" class="form-label fw-semibold">Contact Number (Full) <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="editOffPhone" required placeholder="09XX-XXX-XXXX">
-                                <small class="text-muted" style="font-size: 0.75rem;">Full contact number visible for Admin management</small>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="editOffRole" class="form-label fw-semibold">Assigned Role <span class="text-danger">*</span></label>
-                                <select class="form-select" id="editOffRole" required>
-                                    <option value="PESO Officer">PESO Officer</option>
-                                    <option value="PESO Admin">PESO Admin</option>
-                                    <option value="CSWDO Officer">CSWDO Officer</option>
-                                    <option value="CSWDO Admin">CSWDO Admin</option>
-                                    <option value="Evaluator">Evaluator</option>
+                            <div class="col-md-2">
+                                <label for="newUsrSuffix" class="form-label fw-semibold">Suffix</label>
+                                <select class="form-select" id="newUsrSuffix">
+                                    <option value="N/A" selected>N/A</option>
+                                    <option value="Jr.">Jr.</option>
+                                    <option value="Sr.">Sr.</option>
+                                    <option value="II">II</option>
+                                    <option value="III">III</option>
+                                    <option value="IV">IV</option>
                                 </select>
                             </div>
+
                             <div class="col-md-6">
-                                <label for="editOffDepartment" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
-                                <select class="form-select" id="editOffDepartment" required>
-                                    <option value="PESO">PESO</option>
+                                <label for="newUsrUsername" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="newUsrUsername" required placeholder="e.g. jdoe_peso">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="newUsrEmail" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="newUsrEmail" required placeholder="e.g. jdoe@koronadal.gov.ph">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="newUsrPassword" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="newUsrPassword" required minlength="6" placeholder="Minimum 6 characters">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="newUsrPasswordConfirm" class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="newUsrPasswordConfirm" required minlength="6" placeholder="Re-type password">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="newUsrRole" class="form-label fw-semibold">Role & Permissions <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newUsrRole" required>
+                                    <option value="PESO Admin">PESO Admin</option>
+                                    <option value="PESO Officer" selected>PESO Officer</option>
+                                    <option value="CSWDO Admin">CSWDO Admin</option>
+                                    <option value="CSWDO Officer">CSWDO Officer</option>
+                                    <option value="Evaluator">Evaluator</option>
+                                    <option value="Staff">Staff</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="newUsrDept" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newUsrDept" required>
+                                    <option value="PESO" selected>PESO</option>
                                     <option value="CSWDO">CSWDO</option>
                                     <option value="IT/MIS">IT/MIS</option>
+                                    <option value="LGU Executive">LGU Executive</option>
                                 </select>
                             </div>
-                            <div class="col-12">
-                                <label for="editOffAddress" class="form-label fw-semibold">Office / Residential Address <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editOffAddress" required>
+                            <div class="col-md-4">
+                                <label for="newUsrSex" class="form-label fw-semibold">Sex / Gender <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newUsrSex" required>
+                                    <option value="Male" selected>Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="newUsrPhone" class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="newUsrPhone" required placeholder="09XX-XXX-XXXX">
+                                <div class="form-text small">Display format in UI will be masked: <span class="masked-phone" id="newUsrPhonePreview">09XX-***-XXXX</span></div>
                             </div>
                             <div class="col-md-6">
-                                <label for="editOffStatus" class="form-label fw-semibold">Account Status</label>
-                                <input type="text" class="form-control bg-light fw-bold" id="editOffStatus" readonly>
+                                <label for="newUsrAddress" class="form-label fw-semibold">Office / Residence Address <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newUsrAddress" required placeholder="Barangay / City of Koronadal">
+                            </div>
+
+                            <div class="col-12">
+                                <label for="newUsrActionReason" class="form-label fw-semibold text-primary">Creation Reason / Administrative Justification <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="newUsrActionReason" rows="2" placeholder="State reason for creating account (e.g. New PESO Officer onboarding for BY 2026)..." required></textarea>
                             </div>
                         </div>
                     </div>
+
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Changes & Audit Log</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-person-check-fill me-1"></i> Create User & Log Audit</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-          <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 1: CREATE PROGRAM SCHEDULE SLOT (ADMIN)            -->
-    <!-- =================================================================== -->
+
+<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="viewUserModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-person-badge-fill text-primary fs-3"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="viewUserModalTitle">User Account Details (View-Only)</h5>
+                            <span class="badge bg-secondary mt-1"><i class="bi bi-eye-fill me-1"></i> Strictly Read-Only Profile (Rule 1 Compliant)</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 mb-3 small d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-lock-fill fs-5 text-primary"></i>
+                        <div><strong>Compliance Notice:</strong> Sensitive personal identifiers (such as phone numbers) are masked in accordance with the Data Privacy Act. This details view is strictly read-only.</div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-semibold mb-1">Full Legal Name</label>
+                            <div class="form-control bg-light fw-bold text-dark" id="viewUserFullName">-</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-semibold mb-1">Username / Identifier</label>
+                            <div class="form-control bg-light font-monospace" id="viewUserUsername">-</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-semibold mb-1">Official Email Address</label>
+                            <div class="form-control bg-light text-primary fw-semibold" id="viewUserEmail">-</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-semibold mb-1">Assigned System Role</label>
+                            <div class="form-control bg-light" id="viewUserRoleContainer"><span class="badge bg-primary px-3 py-1.5" id="viewUserRoleBadge">-</span></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-semibold mb-1">Department / Organization</label>
+                            <div class="form-control bg-light fw-semibold" id="viewUserDepartment">-</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-semibold mb-1">Contact Number (Masked)</label>
+                            <div class="form-control bg-light font-monospace text-muted" id="viewUserPhone">-</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="text-muted small fw-semibold mb-1">Gender / Sex</label>
+                            <div class="form-control bg-light" id="viewUserSex">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small fw-semibold mb-1">Account Security Status</label>
+                            <div class="form-control bg-light" id="viewUserStatusContainer"><span class="badge bg-success px-3 py-1.5" id="viewUserStatusBadge">Active</span></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small fw-semibold mb-1">Failed Login Attempts</label>
+                            <div class="form-control bg-light font-monospace fw-bold" id="viewUserFailedAttempts">0 / 5</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="text-muted small fw-semibold mb-1">Office / Assigned Address</label>
+                            <div class="form-control bg-light" id="viewUserAddress">-</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-semibold mb-1">Account Creation Date</label>
+                            <div class="form-control bg-light text-muted small" id="viewUserCreatedAt">-</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-semibold mb-1">Last Login Timestamp</label>
+                            <div class="form-control bg-light text-muted small" id="viewUserLastLogin">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                    <span class="text-muted small"><i class="bi bi-clock-history me-1"></i> Audit timestamp logged on access</span>
+                    <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Close Read-Only View</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-pencil-square fs-3 text-warning"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="editUserModalTitle">Edit User Account & Role</h5>
+                            <small class="text-white-50">Administrator Credential & Role Modification</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="editUserForm" onsubmit="handleSaveUserUpdates(event)">
+                    <div class="modal-body p-4">
+                        <input type="hidden" id="editUsrId">
+
+                        <div class="alert alert-warning py-2 mb-3 small d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-exclamation text-warning fs-5"></i>
+                            <div><strong>Audit Notice:</strong> Account changes (role updates, contact updates, or status resets) require a mandatory action reason and are logged to immutable audit records.</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="editUsrFullName" class="form-label fw-semibold">Full Legal Name</label>
+                                <input type="text" class="form-control bg-light fw-bold" id="editUsrFullName" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editUsrUsername" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="editUsrUsername" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="editUsrEmail" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="editUsrEmail" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editUsrPhone" class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="editUsrPhone" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="editUsrRole" class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editUsrRole" required>
+                                    <option value="PESO Admin">PESO Admin</option>
+                                    <option value="PESO Officer">PESO Officer</option>
+                                    <option value="CSWDO Admin">CSWDO Admin</option>
+                                    <option value="CSWDO Officer">CSWDO Officer</option>
+                                    <option value="Evaluator">Evaluator</option>
+                                    <option value="Staff">Staff</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="editUsrDept" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editUsrDept" required>
+                                    <option value="PESO">PESO</option>
+                                    <option value="CSWDO">CSWDO</option>
+                                    <option value="IT/MIS">IT/MIS</option>
+                                    <option value="LGU Executive">LGU Executive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="editUsrStatus" class="form-label fw-semibold">Account Status</label>
+                                <select class="form-select" id="editUsrStatus">
+                                    <option value="Active">Active</option>
+                                    <option value="Locked">Locked</option>
+                                    <option value="Archived">Archived</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="editUsrAddress" class="form-label fw-semibold">Office / Residence Address</label>
+                                <input type="text" class="form-control" id="editUsrAddress">
+                            </div>
+
+                            <div class="col-12">
+                                <label for="editUsrNewPassword" class="form-label fw-semibold">Reset Password (Optional)</label>
+                                <input type="password" class="form-control" id="editUsrNewPassword" minlength="6" placeholder="Leave blank to keep current password">
+                            </div>
+
+                            <div class="col-12">
+                                <label for="editUsrActionReason" class="form-label fw-semibold text-danger">Action Reason / Justification <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="editUsrActionReason" rows="2" placeholder="Required: Why is this user profile being updated?..." required></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Changes & Log Audit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<div class="modal fade" id="userActionConfirmModal" tabindex="-1" aria-labelledby="userActionConfirmTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header rounded-top-4 py-3 text-white" id="userActionConfirmHeader">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi fs-4" id="userActionConfirmIcon"></i>
+                        <h5 class="modal-title fw-bold mb-0" id="userActionConfirmTitle">Confirm Action</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="userActionConfirmForm" onsubmit="handleUserActionConfirm(event)">
+                    <div class="modal-body p-4">
+                        <input type="hidden" id="userActionTargetId">
+                        <input type="hidden" id="userActionType">
+
+                        <div class="text-center mb-3" id="userActionIconBanner">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <div class="alert alert-warning py-2 mb-3 small" id="userActionAlertBox">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="userActionReasonInput" class="form-label fw-semibold text-dark">Action Reason / Administrative Justification <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="userActionReasonInput" rows="3" placeholder="Provide clear reason for compliance audit log..." required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn fw-bold px-4" id="userActionSubmitBtn">Confirm</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- SECTION C: SCHEDULING MANAGEMENT MODALS                                 -->
+    <!-- ======================================================================= -->
     <div class="modal fade" id="createActivityModal" tabindex="-1" aria-labelledby="createActivityModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
@@ -2623,10 +2559,7 @@
         </div>
     </div>
 
-    <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 2: STRICTLY READ-ONLY SLOT DETAILS POP-UP          -->
-    <!-- =================================================================== -->
-    <div class="modal fade" id="viewActivityDetailsModal" tabindex="-1" aria-labelledby="viewActModalTitle" aria-hidden="true">
+<div class="modal fade" id="viewActivityDetailsModal" tabindex="-1" aria-labelledby="viewActModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4 py-3">
@@ -2745,10 +2678,7 @@
         </div>
     </div>
 
-    <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 3: EDIT SLOT / REASSIGN OFFICER FORM MODAL         -->
-    <!-- =================================================================== -->
-    <div class="modal fade" id="editActivityModal" tabindex="-1" aria-labelledby="editActivityModalTitle" aria-hidden="true">
+<div class="modal fade" id="editActivityModal" tabindex="-1" aria-labelledby="editActivityModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
@@ -2825,10 +2755,7 @@
         </div>
     </div>
 
-    <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 4: CANCEL SLOT CONFIRMATION MODAL                  -->
-    <!-- =================================================================== -->
-    <div class="modal fade" id="cancelActivityModal" tabindex="-1" aria-labelledby="cancelActivityModalTitle" aria-hidden="true">
+<div class="modal fade" id="cancelActivityModal" tabindex="-1" aria-labelledby="cancelActivityModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-danger text-white rounded-top-4 py-3">
@@ -2868,10 +2795,7 @@
         </div>
     </div>
 
-    <!-- =================================================================== -->
-    <!-- SCHEDULING MODAL 5: AUTO-PULLED ELIGIBLE RECIPIENTS MODAL           -->
-    <!-- =================================================================== -->
-    <div class="modal fade" id="eligibleRecipientsModal" tabindex="-1" aria-labelledby="eligibleRecipientsModalTitle" aria-hidden="true">
+<div class="modal fade" id="eligibleRecipientsModal" tabindex="-1" aria-labelledby="eligibleRecipientsModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-success text-white rounded-top-4 py-3">
@@ -2916,354 +2840,424 @@
         </div>
     </div>
 
-    <!-- =================================================================== -->
-    <!-- USER MANAGEMENT MODALS (RBAC & DATA PRIVACY ACT COMPLIANT)            -->
-    <!-- =================================================================== -->
-
-    <!-- MODAL 1: VIEW USER DETAILS (STRICTLY READ-ONLY PER USER RULE 1) -->
-    <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="viewUserModalTitle" aria-hidden="true">
+    <!-- ======================================================================= -->
+    <!-- SECTION D: APPLICATION EVALUATION & CASE FILE MODALS                   -->
+    <!-- ======================================================================= -->
+    <div class="modal fade" id="reviewCaseFileModal" tabindex="-1" aria-labelledby="reviewCaseFileModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title fw-bold" id="reviewCaseFileModalTitle"><i class="bi bi-file-earmark-medical-fill me-2"></i>Review Submitted Livelihood Case File</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Applicant Header & Status Bar -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <div>
+                            <h4 class="fw-bold text-dark mb-1" id="reviewApplicantName">Applicant Name</h4>
+                            <span class="badge bg-primary-subtle text-primary font-monospace fs-6" id="reviewProgramBatchTag">Program - Batch</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="small text-muted">Verification Status</div>
+                            <span class="badge bg-success px-3 py-1 fs-6" id="reviewVerificationStatusBadge"><i class="bi bi-patch-check-fill me-1"></i> Verified Documents</span>
+                        </div>
+                    </div>
+
+                    <!-- Applicant Personal Info Card -->
+                    <div class="card border-0 bg-light p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-vcard me-1"></i> Beneficiary Personal & Contact Profile</h6>
+                        <div class="row g-2 small">
+                            <div class="col-md-4"><span class="text-muted">Contact Number:</span> <span class="fw-bold font-monospace" id="reviewApplicantContact">09XX-***-XXXX</span></div>
+                            <div class="col-md-4"><span class="text-muted">Address:</span> <span class="fw-bold" id="reviewApplicantAddress">Purok 1, Barangay Poblacion</span></div>
+                            <div class="col-md-4"><span class="text-muted">Civil Status:</span> <span class="fw-bold" id="reviewApplicantCivilStatus">Single</span></div>
+                            <div class="col-md-4"><span class="text-muted">Spouse Name:</span> <span class="fw-bold" id="reviewApplicantSpouse">N/A</span></div>
+                            <div class="col-md-4"><span class="text-muted">Children Details:</span> <span class="fw-bold" id="reviewApplicantChildren">None</span></div>
+                            <div class="col-md-4"><span class="text-muted">Date Submitted:</span> <span class="fw-bold text-dark" id="reviewSubmissionDate">2026-03-15</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Verified Documents Compliance Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-check-fill text-success me-1"></i> Verified Documents Compliance Section (Pre-validated)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Document Type</th>
+                                        <th>File Name</th>
+                                        <th class="text-center">Officer Verification</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reviewDocumentsTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Action Assessment Notes Area -->
+                    <div class="mb-3">
+                        <label for="reviewActionAssessmentNotes" class="form-label fw-bold text-dark">
+                            <i class="bi bi-journal-text text-primary me-1"></i> Action Assessment Notes 
+                            <span class="text-danger fw-semibold" style="font-size: 0.85rem;">(Mandatory for Denied and Pending Evaluation)</span>
+                        </label>
+                        <textarea id="reviewActionAssessmentNotes" class="form-control" rows="3" placeholder="Enter evaluation remarks, compliance findings, or denial reasons for auditing..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-warning fw-semibold px-3" onclick="executeEvalDecision('Pending Evaluation')">
+                            <i class="bi bi-clock-history me-1"></i> Pending Evaluation
+                        </button>
+                        <button type="button" class="btn btn-danger fw-semibold px-3" onclick="executeEvalDecision('Denied')">
+                            <i class="bi bi-x-circle-fill me-1"></i> Deny Application
+                        </button>
+                        <button type="button" class="btn btn-success fw-semibold px-4" onclick="executeEvalDecision('Approved')">
+                            <i class="bi bi-check-circle-fill me-1"></i> Approve Case
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div class="modal fade" id="docPreviewModal" tabindex="-1" aria-labelledby="docPreviewTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="docPreviewTitle"><i class="bi bi-eye-fill me-2 text-info"></i>Document Preview</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center bg-light">
+                    <div id="docPreviewContainer" class="p-5 border bg-white rounded-3 shadow-sm">
+                        <i class="bi bi-file-earmark-pdf-fill text-danger display-1 mb-3"></i>
+                        <h5 class="fw-bold text-dark mb-1" id="docPreviewFileName">Document.pdf</h5>
+                        <p class="text-muted small mb-3">Verified Document Compliance File — City Government of Koronadal PESO Intake</p>
+                        <div class="alert alert-success d-inline-block px-4 py-2 small">
+                            <i class="bi bi-patch-check-fill me-1"></i> Document authenticity pre-checked by PESO Intake Officer.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Preview</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- SECTION E: PROGRAM ASSIGNMENT & BENEFICIARY PROFILE MODALS              -->
+    <!-- ======================================================================= -->
+    <div class="modal fade" id="beneficiaryProfileModal" tabindex="-1" aria-labelledby="benProfileName" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4 py-3">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-person-badge-fill text-primary fs-3"></i>
+                        <i class="bi bi-person-bounding-box text-warning fs-4"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="viewUserModalTitle">User Account Details (View-Only)</h5>
-                            <span class="badge bg-secondary mt-1"><i class="bi bi-eye-fill me-1"></i> Strictly Read-Only Profile (Rule 1 Compliant)</span>
+                            <h5 class="modal-title fw-bold mb-0" id="benProfileName">Beneficiary Full Profile</h5>
+                            <span class="badge badge-readonly mt-1"><i class="bi bi-shield-lock-fill me-1"></i>Read-Only Administrator View</span>
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body p-4">
-                    <div class="alert alert-info py-2 mb-3 small d-flex align-items-center gap-2">
-                        <i class="bi bi-shield-lock-fill fs-5 text-primary"></i>
-                        <div><strong>Compliance Notice:</strong> Sensitive personal identifiers (such as phone numbers) are masked in accordance with the Data Privacy Act. This details view is strictly read-only.</div>
+                    <div class="alert alert-warning py-2 mb-4 d-flex align-items-center gap-2 small">
+                        <i class="bi bi-info-circle-fill text-warning fs-5"></i>
+                        <div>
+                            <strong>Restriction Notice:</strong> PESO Administrators cannot alter or modify beneficiary details directly; assignments and edits are strictly managed by assigned PESO Officers.
+                        </div>
                     </div>
 
-                    <div class="row g-3">
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <div class="text-muted small fw-semibold mb-1">Full Legal Name</label>
-                            <div class="form-control bg-light fw-bold text-dark" id="viewUserFullName">-</div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-muted small fw-semibold mb-1">Username / Identifier</label>
-                            <div class="form-control bg-light font-monospace" id="viewUserUsername">-</div>
+                            <div class="card border-0 bg-light rounded-3 p-3">
+                                <h6 class="fw-bold text-primary mb-3 border-bottom pb-2"><i class="bi bi-person-vcard me-2"></i>Personal Details</h6>
+                                <div class="row g-3 small">
+                                    <div class="col-6"><div class="text-muted">Full Name</div><div class="fw-bold text-dark" id="pFullName">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Contact Number (Masked)</div><div class="masked-phone" id="pContact">-</div></div>
+                                    <div class="col-12"><div class="text-muted">Address</div><div class="fw-bold text-dark" id="pAddress">-</div></div>
+                                    <div class="col-4"><div class="text-muted">Age</div><div class="fw-bold text-dark" id="pAge">-</div></div>
+                                    <div class="col-4"><div class="text-muted">Sex</div><div class="fw-bold text-dark" id="pSex">-</div></div>
+                                    <div class="col-4"><div class="text-muted">Civil Status</div><div class="fw-bold text-dark" id="pCivilStatus">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Birthday</div><div class="fw-bold text-dark" id="pBirthday">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Number of Children</div><div class="fw-bold text-dark" id="pChildren">-</div></div>
+                                    <div class="col-12"><div class="text-muted">Name of Spouse</div><div class="fw-bold text-dark" id="pSpouse">-</div></div>
+                                    <div class="col-12"><div class="text-muted">Valid ID Type & Number</div><div class="fw-bold text-dark" id="pValidId">-</div></div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="col-md-6">
-                            <div class="text-muted small fw-semibold mb-1">Official Email Address</label>
-                            <div class="form-control bg-light text-primary fw-semibold" id="viewUserEmail">-</div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-muted small fw-semibold mb-1">Assigned System Role</label>
-                            <div class="form-control bg-light" id="viewUserRoleContainer"><span class="badge bg-primary px-3 py-1.5" id="viewUserRoleBadge">-</span></div>
-                        </div>
+                            <div class="card border-0 bg-light rounded-3 p-3 mb-3">
+                                <h6 class="fw-bold text-success mb-3 border-bottom pb-2"><i class="bi bi-briefcase me-2"></i>Business & Program Profile</h6>
+                                <div class="row g-3 small">
+                                    <div class="col-6"><div class="text-muted">Type of Business</div><div class="fw-bold text-dark" id="pBusinessType">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Program Component</div><div class="fw-bold text-dark" id="pProgramComponent">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Status of Business</div><div class="fw-bold text-dark" id="pBusinessStatus">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Amount Needed</div><div class="fw-bold text-success" id="pAmountNeeded">-</div></div>
+                                    <div class="col-12"><div class="text-muted">Proposed Business</div><div class="fw-bold text-dark" id="pProposedBusiness">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Employment Status</div><div class="fw-bold text-dark" id="pEmploymentStatus">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Seminars Attended</div><div class="fw-bold text-dark" id="pSeminars">-</div></div>
+                                </div>
+                            </div>
 
-                        <div class="col-md-6">
-                            <div class="text-muted small fw-semibold mb-1">Department / Organization</label>
-                            <div class="form-control bg-light fw-semibold" id="viewUserDepartment">-</div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-muted small fw-semibold mb-1">Contact Number (Masked)</label>
-                            <div class="form-control bg-light font-monospace text-muted" id="viewUserPhone">-</div>
-                        </div>
-
-                        <div class="col-md-4">
-                            <div class="text-muted small fw-semibold mb-1">Gender / Sex</label>
-                            <div class="form-control bg-light" id="viewUserSex">-</div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="text-muted small fw-semibold mb-1">Account Security Status</label>
-                            <div class="form-control bg-light" id="viewUserStatusContainer"><span class="badge bg-success px-3 py-1.5" id="viewUserStatusBadge">Active</span></div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="text-muted small fw-semibold mb-1">Failed Login Attempts</label>
-                            <div class="form-control bg-light font-monospace fw-bold" id="viewUserFailedAttempts">0 / 5</div>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="text-muted small fw-semibold mb-1">Office / Assigned Address</label>
-                            <div class="form-control bg-light" id="viewUserAddress">-</div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="text-muted small fw-semibold mb-1">Account Creation Date</label>
-                            <div class="form-control bg-light text-muted small" id="viewUserCreatedAt">-</div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-muted small fw-semibold mb-1">Last Login Timestamp</label>
-                            <div class="form-control bg-light text-muted small" id="viewUserLastLogin">-</div>
+                            <div class="card border-0 bg-light rounded-3 p-3">
+                                <h6 class="fw-bold text-info mb-3 border-bottom pb-2"><i class="bi bi-check2-circle me-2"></i>Requirements & Verification</h6>
+                                <div class="row g-3 small">
+                                    <div class="col-6"><div class="text-muted">Requirements Checklist</div><div class="fw-bold" id="pChecklist">-</div></div>
+                                    <div class="col-6"><div class="text-muted">Assignment Status</div><div class="fw-bold" id="pAssignmentStatus">-</div></div>
+                                    <div class="col-12"><div class="text-muted mb-1">Uploaded Documents</div><div id="pDocsList" class="d-flex flex-wrap gap-1"></div></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
-                    <span class="text-muted small"><i class="bi bi-clock-history me-1"></i> Audit timestamp logged on access</span>
-                    <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Close Read-Only View</button>
+                    <span class="text-muted small"><i class="bi bi-shield-lock-fill me-1"></i> Data Privacy Act strictly enforced</span>
+                    <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Close Profile</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 2: CREATE NEW USER ACCOUNT (ADMIN ONLY) -->
-    <div class="modal fade" id="newUserModal" tabindex="-1" aria-labelledby="newUserModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header modal-header-custom py-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-person-plus-fill fs-3 text-warning"></i>
-                        <div>
-                            <h5 class="modal-title fw-bold mb-0" id="newUserModalTitle">Create New User Account</h5>
-                            <small class="text-white-50">Authorized PESO Administrator Access Only</small>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
-                <form id="newUserForm" onsubmit="handleCreateUserSubmit(event)">
-                    <div class="modal-body p-4">
-                        <div class="alert alert-info py-2 mb-3 small">
-                            <i class="bi bi-shield-check me-1"></i> Passwords are automatically hashed with <strong>bcrypt</strong> before storage. Role permissions and action reasons are recorded in immutable audit logs.
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label for="newUsrFirstName" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newUsrFirstName" required placeholder="First Name">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="newUsrMiddleName" class="form-label fw-semibold">Middle Name</label>
-                                <input type="text" class="form-control" id="newUsrMiddleName" placeholder="Middle Name">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="newUsrLastName" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newUsrLastName" required placeholder="Last Name">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="newUsrSuffix" class="form-label fw-semibold">Suffix</label>
-                                <select class="form-select" id="newUsrSuffix">
-                                    <option value="N/A" selected>N/A</option>
-                                    <option value="Jr.">Jr.</option>
-                                    <option value="Sr.">Sr.</option>
-                                    <option value="II">II</option>
-                                    <option value="III">III</option>
-                                    <option value="IV">IV</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="newUsrUsername" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="newUsrUsername" required placeholder="e.g. jdoe_peso">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="newUsrEmail" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="newUsrEmail" required placeholder="e.g. jdoe@koronadal.gov.ph">
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="newUsrPassword" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
-                                <input type="password" class="form-control" id="newUsrPassword" required minlength="6" placeholder="Minimum 6 characters">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="newUsrPasswordConfirm" class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
-                                <input type="password" class="form-control" id="newUsrPasswordConfirm" required minlength="6" placeholder="Re-type password">
-                            </div>
-
-                            <div class="col-md-4">
-                                <label for="newUsrRole" class="form-label fw-semibold">Role & Permissions <span class="text-danger">*</span></label>
-                                <select class="form-select" id="newUsrRole" required>
-                                    <option value="PESO Admin">PESO Admin</option>
-                                    <option value="PESO Officer" selected>PESO Officer</option>
-                                    <option value="CSWDO Admin">CSWDO Admin</option>
-                                    <option value="CSWDO Officer">CSWDO Officer</option>
-                                    <option value="Evaluator">Evaluator</option>
-                                    <option value="Staff">Staff</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="newUsrDept" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
-                                <select class="form-select" id="newUsrDept" required>
-                                    <option value="PESO" selected>PESO</option>
-                                    <option value="CSWDO">CSWDO</option>
-                                    <option value="IT/MIS">IT/MIS</option>
-                                    <option value="LGU Executive">LGU Executive</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="newUsrSex" class="form-label fw-semibold">Sex / Gender <span class="text-danger">*</span></label>
-                                <select class="form-select" id="newUsrSex" required>
-                                    <option value="Male" selected>Male</option>
-                                    <option value="Female">Female</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="newUsrPhone" class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="newUsrPhone" required placeholder="09XX-XXX-XXXX">
-                                <div class="form-text small">Display format in UI will be masked: <span class="masked-phone" id="newUsrPhonePreview">09XX-***-XXXX</span></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="newUsrAddress" class="form-label fw-semibold">Office / Residence Address <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newUsrAddress" required placeholder="Barangay / City of Koronadal">
-                            </div>
-
-                            <div class="col-12">
-                                <label for="newUsrActionReason" class="form-label fw-semibold text-primary">Creation Reason / Administrative Justification <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="newUsrActionReason" rows="2" placeholder="State reason for creating account (e.g. New PESO Officer onboarding for BY 2026)..." required></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-person-check-fill me-1"></i> Create User & Log Audit</button>
-                    </div>
-                </form>
+    <!-- ======================================================================= -->
+    <!-- SECTION F: PESO OFFICERS MANAGEMENT MODALS                              -->
+    <!-- ======================================================================= -->
+    <div class="modal fade" id="newOfficerModal" tabindex="-1" aria-labelledby="newOfficerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title" id="newOfficerModalLabel">Create New Officer Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <!-- Body -->
+      <div class="modal-body">
+        <form id="newOfficerForm" onsubmit="handleCreateOfficerSubmit(event)">
+          
+          <!-- Name Fields -->
+          <div class="row mb-3">
+            <div class="col">
+              <label for="newOffFirstName" class="form-label">First Name</label>
+              <input type="text" class="form-control" id="newOffFirstName" required>
             </div>
-        </div>
+            <div class="col">
+              <label for="newOffMiddleName" class="form-label">Middle Name</label>
+              <input type="text" class="form-control" id="newOffMiddleName">
+            </div>
+            <div class="col">
+              <label for="newOffLastName" class="form-label">Last Name</label>
+              <input type="text" class="form-control" id="newOffLastName" required>
+            </div>
+            <div class="col">
+              <label for="newOffSuffix" class="form-label">Suffix</label>
+              <input type="text" class="form-control" id="newOffSuffix">
+            </div>
+          </div>
+          
+          <!-- Account Fields -->
+          <div class="mb-3">
+            <label for="newOffUsername" class="form-label">Username</label>
+            <input type="text" class="form-control" id="newOffUsername" required>
+          </div>
+          <div class="mb-3">
+            <label for="newOffPassword" class="form-label">Password</label>
+            <input type="password" class="form-control" id="newOffPassword" required>
+          </div>
+          <div class="mb-3">
+            <label for="newOffConfirmPassword" class="form-label">Confirm Password</label>
+            <input type="password" class="form-control" id="newOffConfirmPassword" required>
+          </div>
+          
+          <!-- Contact Fields -->
+          <div class="mb-3">
+            <label for="newOffEmail" class="form-label">Email Address</label>
+            <input type="email" class="form-control" id="newOffEmail" required>
+          </div>
+          <div class="mb-3">
+            <label for="newOffContactNumber" class="form-label">Contact Number</label>
+            <input type="tel" class="form-control" id="newOffContactNumber" required>
+          </div>
+          <div class="mb-3">
+            <label for="newOffAddress" class="form-label">Address</label>
+            <textarea class="form-control" id="newOffAddress" rows="2" required></textarea>
+          </div>
+          
+          <!-- Role & Department -->
+          <div class="row mb-3">
+            <div class="col">
+              <label for="newOffRole" class="form-label">Assigned Role</label>
+              <select class="form-select" id="newOffRole" required>
+                <option value="">Select Role</option>
+                <option value="Admin">Admin</option>
+                <option value="Officer">Officer</option>
+              </select>
+            </div>
+            <div class="col">
+              <label for="newOffDepartment" class="form-label">Department</label>
+              <input type="text" class="form-control" id="newOffDepartment" required>
+            </div>
+            <div class="col">
+              <label for="newOffGender" class="form-label">Gender</label>
+              <select class="form-select" id="newOffGender" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          
+        </form>
+      </div>
+      
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="newOfficerForm" class="btn btn-primary">Create Officer</button>
+      </div>
+      
     </div>
+  </div>
+</div>
 
-    <!-- MODAL 3: EDIT USER ACCOUNT (ADMIN ONLY) -->
-    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalTitle" aria-hidden="true">
+<div class="modal fade" id="editOfficerModal" tabindex="-1" aria-labelledby="editOfficerModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-pencil-square fs-3 text-warning"></i>
+                        <i class="bi bi-person-gear fs-3 text-warning"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="editUserModalTitle">Edit User Account & Role</h5>
-                            <small class="text-white-50">Administrator Credential & Role Modification</small>
+                            <h5 class="modal-title fw-bold mb-0" id="editOfficerModalTitle">Officer Account Details & Edit Profile</h5>
+                            <small class="text-white-50">Manage Officer Credentials, Role & Department</small>
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-
-                <form id="editUserForm" onsubmit="handleSaveUserUpdates(event)">
+                <form id="editOfficerForm" onsubmit="handleSaveOfficerUpdates(event)">
                     <div class="modal-body p-4">
-                        <input type="hidden" id="editUsrId">
-
-                        <div class="alert alert-warning py-2 mb-3 small d-flex align-items-center gap-2">
-                            <i class="bi bi-shield-exclamation text-warning fs-5"></i>
-                            <div><strong>Audit Notice:</strong> Account changes (role updates, contact updates, or status resets) require a mandatory action reason and are logged to immutable audit records.</div>
-                        </div>
-
+                        <input type="hidden" id="editOffId">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="editUsrFullName" class="form-label fw-semibold">Full Legal Name</label>
-                                <input type="text" class="form-control bg-light fw-bold" id="editUsrFullName" readonly>
+                                <label for="editOffFullName" class="form-label fw-semibold">Officer Full Name</label>
+                                <input type="text" class="form-control bg-light fw-bold" id="editOffFullName" readonly>
                             </div>
                             <div class="col-md-6">
-                                <label for="editUsrUsername" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="editUsrUsername" required>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="editUsrEmail" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="editUsrEmail" required>
+                                <label for="editOffUsername" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="editOffUsername" required>
                             </div>
                             <div class="col-md-6">
-                                <label for="editUsrPhone" class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="editUsrPhone" required>
+                                <label for="editOffEmail" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="editOffEmail" required>
                             </div>
-
-                            <div class="col-md-4">
-                                <label for="editUsrRole" class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
-                                <select class="form-select" id="editUsrRole" required>
-                                    <option value="PESO Admin">PESO Admin</option>
+                            <div class="col-md-6">
+                                <label for="editOffPhone" class="form-label fw-semibold">Contact Number (Full) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="editOffPhone" required placeholder="09XX-XXX-XXXX">
+                                <small class="text-muted" style="font-size: 0.75rem;">Full contact number visible for Admin management</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editOffRole" class="form-label fw-semibold">Assigned Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editOffRole" required>
                                     <option value="PESO Officer">PESO Officer</option>
-                                    <option value="CSWDO Admin">CSWDO Admin</option>
+                                    <option value="PESO Admin">PESO Admin</option>
                                     <option value="CSWDO Officer">CSWDO Officer</option>
+                                    <option value="CSWDO Admin">CSWDO Admin</option>
                                     <option value="Evaluator">Evaluator</option>
-                                    <option value="Staff">Staff</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <label for="editUsrDept" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
-                                <select class="form-select" id="editUsrDept" required>
+                            <div class="col-md-6">
+                                <label for="editOffDepartment" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editOffDepartment" required>
                                     <option value="PESO">PESO</option>
                                     <option value="CSWDO">CSWDO</option>
                                     <option value="IT/MIS">IT/MIS</option>
-                                    <option value="LGU Executive">LGU Executive</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <label for="editUsrStatus" class="form-label fw-semibold">Account Status</label>
-                                <select class="form-select" id="editUsrStatus">
-                                    <option value="Active">Active</option>
-                                    <option value="Locked">Locked</option>
-                                    <option value="Archived">Archived</option>
-                                </select>
-                            </div>
-
                             <div class="col-12">
-                                <label for="editUsrAddress" class="form-label fw-semibold">Office / Residence Address</label>
-                                <input type="text" class="form-control" id="editUsrAddress">
+                                <label for="editOffAddress" class="form-label fw-semibold">Office / Residential Address <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editOffAddress" required>
                             </div>
-
-                            <div class="col-12">
-                                <label for="editUsrNewPassword" class="form-label fw-semibold">Reset Password (Optional)</label>
-                                <input type="password" class="form-control" id="editUsrNewPassword" minlength="6" placeholder="Leave blank to keep current password">
-                            </div>
-
-                            <div class="col-12">
-                                <label for="editUsrActionReason" class="form-label fw-semibold text-danger">Action Reason / Justification <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="editUsrActionReason" rows="2" placeholder="Required: Why is this user profile being updated?..." required></textarea>
+                            <div class="col-md-6">
+                                <label for="editOffStatus" class="form-label fw-semibold">Account Status</label>
+                                <input type="text" class="form-control bg-light fw-bold" id="editOffStatus" readonly>
                             </div>
                         </div>
                     </div>
-
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Changes & Log Audit</button>
+                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Changes & Audit Log</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 4: SENSITIVE ACTION CONFIRMATION MODAL (WITH MANDATORY ACTION REASON) -->
-    <div class="modal fade" id="userActionConfirmModal" tabindex="-1" aria-labelledby="userActionConfirmTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <!-- ======================================================================= -->
+    <!-- SECTION G: SYSTEM AUDIT & RESTRICTION MODALS                            -->
+    <!-- ======================================================================= -->
+    <div class="modal fade" id="auditLogsModal" tabindex="-1" aria-labelledby="auditLogsModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header rounded-top-4 py-3 text-white" id="userActionConfirmHeader">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi fs-4" id="userActionConfirmIcon"></i>
-                        <h5 class="modal-title fw-bold mb-0" id="userActionConfirmTitle">Confirm Action</h5>
-                    </div>
+                <div class="modal-header bg-info text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="auditLogsModalTitle"><i class="bi bi-shield-check me-2"></i>PESO Operational Audit Trail</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-
-                <form id="userActionConfirmForm" onsubmit="handleUserActionConfirm(event)">
-                    <div class="modal-body p-4">
-                        <input type="hidden" id="userActionTargetId">
-                        <input type="hidden" id="userActionType">
-
-                        <div class="text-center mb-3" id="userActionIconBanner">
-                            <!-- Populated dynamically -->
-                        </div>
-
-                        <div class="alert alert-warning py-2 mb-3 small" id="userActionAlertBox">
-                            <!-- Populated dynamically -->
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="userActionReasonInput" class="form-label fw-semibold text-dark">Action Reason / Administrative Justification <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="userActionReasonInput" rows="3" placeholder="Provide clear reason for compliance audit log..." required></textarea>
-                        </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped align-middle" style="font-size: 0.85rem;">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User Role</th>
+                                    <th>Action Type</th>
+                                    <th>Target Entity</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditLogsModalTableBody"></tbody>
+                        </table>
                     </div>
-
-                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn fw-bold px-4" id="userActionSubmitBtn">Confirm</button>
-                    </div>
-                </form>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Audit Trail</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS Bundle already loaded in <head> with jQuery -->
+<div class="modal fade" id="restrictionWarningModal" tabindex="-1" aria-labelledby="restrictionWarningModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-danger text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="restrictionWarningModalTitle"><i class="bi bi-shield-slash-fill me-2"></i>Restriction Warning</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="text-danger mb-3"><i class="bi bi-exclamation-triangle-fill" style="font-size: 3.5rem;"></i></div>
+                    <h5 class="fw-bold mb-2">Program Deactivation Restricted</h5>
+                    <p class="text-muted" id="restrictionWarningText">Cannot deactivate program. This program currently has active enrolled beneficiaries processing financial aid.</p>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 justify-content-center">
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Acknowledge</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- PORTAL JAVASCRIPT APPLICATION CORE                                      -->
+    <!-- ======================================================================= -->
     <script>
+
 
         // =========================================================================
         // ARCHITECTURAL CONSISTENCY NOTE:
@@ -3669,50 +3663,7 @@
             renderArchiveTable(archiveList);
         }
 
-        function switchTab(tabName) {
-            document.getElementById('tabNavOverview').classList.remove('active');
-            if (document.getElementById('tabNavScheduling')) document.getElementById('tabNavScheduling').classList.remove('active');
-            if (document.getElementById('tabNavEvaluation')) document.getElementById('tabNavEvaluation').classList.remove('active');
-            document.getElementById('tabNavAssignment').classList.remove('active');
-            document.getElementById('tabNavOfficers').classList.remove('active');
-            document.getElementById('tabNavArchive').classList.remove('active');
-
-            document.getElementById('sectionOverview').classList.add('d-none');
-            if (document.getElementById('sectionScheduling')) document.getElementById('sectionScheduling').classList.add('d-none');
-            if (document.getElementById('sectionEvaluation')) document.getElementById('sectionEvaluation').classList.add('d-none');
-            document.getElementById('sectionAssignment').classList.add('d-none');
-            document.getElementById('sectionOfficers').classList.add('d-none');
-            document.getElementById('sectionArchive').classList.add('d-none');
-
-            if (tabName === 'overview') { 
-                document.getElementById('tabNavOverview').classList.add('active'); 
-                document.getElementById('sectionOverview').classList.remove('d-none'); 
-            }
-            else if (tabName === 'scheduling') {
-                if (document.getElementById('tabNavScheduling')) document.getElementById('tabNavScheduling').classList.add('active');
-                if (document.getElementById('sectionScheduling')) document.getElementById('sectionScheduling').classList.remove('d-none');
-                renderSchedulingModule();
-            }
-            else if (tabName === 'evaluation') { 
-                if (document.getElementById('tabNavEvaluation')) document.getElementById('tabNavEvaluation').classList.add('active'); 
-                if (document.getElementById('sectionEvaluation')) document.getElementById('sectionEvaluation').classList.remove('d-none'); 
-                renderEvalLevel1Programs(); 
-            }
-            else if (tabName === 'assignment') { 
-                document.getElementById('tabNavAssignment').classList.add('active'); 
-                document.getElementById('sectionAssignment').classList.remove('d-none'); 
-                showLevel1Programs(); 
-            }
-            else if (tabName === 'officers') { 
-                document.getElementById('tabNavOfficers').classList.add('active'); 
-                document.getElementById('sectionOfficers').classList.remove('d-none'); 
-                renderOfficersTables(); 
-            }
-            else if (tabName === 'archive') { 
-                document.getElementById('tabNavArchive').classList.add('active'); 
-                document.getElementById('sectionArchive').classList.remove('d-none'); 
-            }
-        }
+// [Consolidated switchTab controller located in Module Navigation section]
 
         // =========================================================================
         // SCHEDULING MANAGEMENT MODULE ENGINE & CONTROLLERS (UNIFIED WORKFLOW)
@@ -5138,6 +5089,57 @@
         }
 
         // Assignment Module Navigation
+        
+        // =========================================================================
+        // PROGRAM ASSIGNMENT FILTER HANDLERS & AUTO-FILL HANDLERS
+        // =========================================================================
+        function filterAssignPrograms() {
+            const search = (document.getElementById('assignProgSearch')?.value || '').toLowerCase().trim();
+            const status = document.getElementById('assignProgStatusFilter')?.value || 'ALL';
+
+            const filtered = programsList.filter(prog => {
+                const matchesSearch = !search || (prog.name && prog.name.toLowerCase().includes(search)) || (prog.category && prog.category.toLowerCase().includes(search)) || (prog.code && prog.code.toLowerCase().includes(search));
+                const matchesStatus = status === 'ALL' || prog.status === status;
+                return matchesSearch && matchesStatus;
+            });
+
+            renderAssignProgramsTable(filtered);
+        }
+
+        function filterBatches() {
+            const search = (document.getElementById('batchSearchInput')?.value || '').toLowerCase().trim();
+            const batches = PROGRAM_BATCHES[selectedProgramId] || [{ batch_id: 1011, batch_num: 'Batch 2026-A', date: '2026-03-15', trainer: 'Hon. Mark Gonzales', enrolled: 15, total: 15 }];
+            const filtered = batches.filter(b => {
+                return !search || (b.batch_num && b.batch_num.toLowerCase().includes(search)) || (b.trainer && b.trainer.toLowerCase().includes(search)) || (b.date && b.date.toLowerCase().includes(search));
+            });
+            renderBatchesTable(filtered);
+        }
+
+        function filterBeneficiaries() {
+            const search = (document.getElementById('benSearchInput')?.value || '').toLowerCase().trim();
+            const list = BATCH_BENEFICIARIES[selectedBatchId] || [{ id: 6, full_name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved' }];
+            const filtered = list.filter(b => {
+                return !search || (b.full_name && b.full_name.toLowerCase().includes(search)) || (b.phone && b.phone.includes(search));
+            });
+            renderBeneficiariesTable(filtered);
+        }
+
+        function handleProgramSelectionChange() {
+            const progSelect = document.getElementById('actProgram');
+            const subCatInput = document.getElementById('actSubCategory');
+            if (!progSelect || !subCatInput) return;
+            const val = progSelect.value;
+            const defaults = {
+                'TUPAD': 'Emergency Community Employment Assistance',
+                'SPES': 'Special Program for Employment of Students - Summer Cohort',
+                'PFAS': 'Pangkabuhayan Assistance Livelihood Project',
+                'CKGIP': 'City Graduate Internship Workplace Placement'
+            };
+            if (!subCatInput.value || Object.values(defaults).includes(subCatInput.value)) {
+                subCatInput.value = defaults[val] || '';
+            }
+        }
+
         function showLevel1Programs() {
             document.getElementById('assignmentLevel1').classList.remove('d-none');
             document.getElementById('assignmentLevel2').classList.add('d-none');
@@ -5145,10 +5147,16 @@
             renderAssignProgramsTable();
         }
 
-        function renderAssignProgramsTable() {
+        function renderAssignProgramsTable(customList) {
+            const list = customList || programsList;
             const tbody = document.getElementById('assignProgramsTableBody');
+            if (!tbody) return;
             tbody.innerHTML = '';
-            programsList.forEach(prog => {
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No programs match current filters.</td></tr>';
+                return;
+            }
+            list.forEach(prog => {
                 const total = prog.total_slots || 50;
                 const rem = Math.max(0, total - (prog.beneficiaries_count || 0));
                 const tr = document.createElement('tr');
@@ -5166,10 +5174,15 @@
             renderBatchesTable();
         }
 
-        function renderBatchesTable() {
+        function renderBatchesTable(customList) {
             const tbody = document.getElementById('batchesTableBody');
+            if (!tbody) return;
             tbody.innerHTML = '';
-            const batches = PROGRAM_BATCHES[selectedProgramId] || [{ batch_id: 1011, batch_num: 'Batch 2026-A', date: '2026-03-15', trainer: 'Hon. Mark Gonzales', enrolled: 15, total: 15 }];
+            const batches = customList || (PROGRAM_BATCHES[selectedProgramId] || [{ batch_id: 1011, batch_num: 'Batch 2026-A', date: '2026-03-15', trainer: 'Hon. Mark Gonzales', enrolled: 15, total: 15 }]);
+            if (batches.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No batches match current filter.</td></tr>';
+                return;
+            }
             batches.forEach(b => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${escapeHtml(b.batch_num)}</td><td>${escapeHtml(b.date)}</td><td>${escapeHtml(b.trainer)}</td><td class="text-center">${b.enrolled} / ${b.total}</td><td class="text-center">${b.total - b.enrolled} slots</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" onclick="showLevel3Beneficiaries(${b.batch_id}, '${escapeHtml(b.batch_num)}')">View Beneficiaries →</button></td>`;
@@ -5185,10 +5198,15 @@
             renderBeneficiariesTable();
         }
 
-        function renderBeneficiariesTable() {
+        function renderBeneficiariesTable(customList) {
             const tbody = document.getElementById('beneficiariesTableBody');
+            if (!tbody) return;
             tbody.innerHTML = '';
-            const list = BATCH_BENEFICIARIES[selectedBatchId] || [{ id: 6, full_name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved' }];
+            const list = customList || (BATCH_BENEFICIARIES[selectedBatchId] || [{ id: 6, full_name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved' }]);
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No beneficiaries match current search.</td></tr>';
+                return;
+            }
             list.forEach(ben => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${escapeHtml(ben.full_name)}</td><td><span class="masked-phone">${maskContactNumber(ben.phone)}</span></td><td><span class="badge bg-success-subtle text-success">${escapeHtml(ben.checklist_status)}</span></td><td><span class="badge bg-primary">${escapeHtml(ben.assignment_status)}</span></td><td class="text-end"><button class="btn btn-sm btn-info text-white" onclick="openBeneficiaryProfileModal(${ben.id})">View Profile 👁️</button></td>`;
@@ -5559,7 +5577,7 @@
             if (document.getElementById('archiveOfficersBadge')) document.getElementById('archiveOfficersBadge').textContent = `${totalDeactivated} Archived Officers`;
         }
 
-        function renderArchiveTable(customList) {
+        function renderOfficersArchiveTable(customList) {
             if (customList && !Array.isArray(customList)) {
                 console.warn('[OFFICERS] Archive list invalid — expected array.');
                 return;
@@ -7036,6 +7054,7 @@
             }
         }
         function escapeHtml(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; }
+    
     </script>
 </body>
 </html>
