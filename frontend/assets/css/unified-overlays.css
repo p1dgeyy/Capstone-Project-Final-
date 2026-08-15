@@ -1,0 +1,392 @@
+/**
+ * Unified Overlay & Dashboard Design System
+ * City Government of Koronadal — PESO & CSWDO Portals
+ * 
+ * Enforces:
+ * 1. Z-Index Layering: Header = top priority, Sidebar = sticky nav, Modals = contextual overlay, Toasts = notification layer.
+ * 2. Non-blocking Overlay Behavior: Modals positioned below fixed header with semi-transparent blur backdrops.
+ * 3. Modern Aesthetics: Subtle multi-layered shadows, rounded corners (16px / 1rem), smooth cubic-bezier animations.
+ * 4. Responsive & Accessible: Adapts across desktop, tablet, and mobile; WCAG compliant in light & dark modes.
+ */
+
+:root {
+  /* Z-Index Hierarchy Tokens */
+  --z-base: 1;
+  --z-dropdown: 1030;
+  --z-sidebar: 1035;
+  --z-header: 1040;
+  --z-modal-backdrop: 1050;
+  --z-modal-dialog: 1055;
+  --z-toast: 1090;
+
+  /* Header & Navigation Metrics */
+  --header-height: 70px;
+  --sidebar-width: 270px;
+
+  /* Overlay Design Tokens */
+  --overlay-backdrop-bg: rgba(15, 23, 42, 0.48);
+  --overlay-backdrop-blur: 5px;
+  --overlay-dialog-radius: 16px;
+  --overlay-dialog-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  --overlay-transition-curve: cubic-bezier(0.16, 1, 0.3, 1);
+  --overlay-transition-duration: 0.24s;
+}
+
+/* ==========================================================================
+   1. FIXED HEADER & NAVIGATION LAYERING
+   ========================================================================== */
+.top-navbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: var(--header-height, 70px) !important;
+  z-index: var(--z-header) !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04) !important;
+  border-bottom: 1px solid var(--card-border, #E2E8F0) !important;
+}
+
+.header-top {
+  position: fixed !important;
+  top: 0 !important;
+  left: var(--sidebar-width, 270px) !important;
+  right: 0 !important;
+  height: var(--header-height, 70px) !important;
+  z-index: var(--z-header) !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04) !important;
+  border-bottom: 1px solid var(--card-border, #E2E8F0) !important;
+}
+
+.sidebar {
+  z-index: var(--z-sidebar) !important;
+}
+
+/* Base Dashboard Spacing: Never obscured behind fixed header */
+.main-content {
+  margin-left: var(--sidebar-width, 270px) !important;
+  margin-top: var(--header-height, 70px) !important;
+  padding: 28px !important;
+  position: relative !important;
+  z-index: var(--z-base) !important;
+  min-height: calc(100vh - var(--header-height, 70px)) !important;
+}
+
+.app-container {
+  position: relative !important;
+  z-index: var(--z-base) !important;
+}
+
+/* ==========================================================================
+   2. CONTEXTUAL DROPDOWNS & SELECT MENUS
+   ========================================================================== */
+.dropdown-menu,
+.select-popover,
+.custom-dropdown-menu {
+  z-index: var(--z-dropdown) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--card-border, #E2E8F0) !important;
+  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.04) !important;
+  padding: 0.5rem !important;
+  margin-top: 0.35rem !important;
+  animation: dropdownSlideIn var(--overlay-transition-duration) var(--overlay-transition-curve) !important;
+  transform-origin: top center;
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Prevent Table Overflows From Clipping Dropdowns */
+.table-responsive {
+  overflow-x: auto;
+  overflow-y: visible !important;
+}
+
+/* ==========================================================================
+   3. NON-BLOCKING MODAL OVERLAYS & BACKDROPS (Bootstrap & Custom)
+   ========================================================================== */
+
+/* Universal Backdrop: Positioned cleanly with blur and non-blocking depth */
+.modal-backdrop,
+.custom-modal-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: var(--overlay-backdrop-bg) !important;
+  backdrop-filter: blur(var(--overlay-backdrop-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--overlay-backdrop-blur)) !important;
+  z-index: var(--z-modal-backdrop) !important;
+  opacity: 0;
+  transition: opacity var(--overlay-transition-duration) var(--overlay-transition-curve) !important;
+}
+
+.modal-backdrop.show,
+.custom-modal-backdrop.show {
+  opacity: 1 !important;
+}
+
+/* Custom Modal Backdrop Display Helper: Positioned aligned below header */
+.custom-modal-backdrop {
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: calc(var(--header-height, 70px) + 1.25rem) 1rem 2rem 1rem !important;
+}
+
+.custom-modal-backdrop.show {
+  display: flex !important;
+}
+
+/* Standard Bootstrap Modal Alignment */
+.modal {
+  z-index: var(--z-modal-dialog) !important;
+  padding-top: calc(var(--header-height, 70px) + 0.75rem) !important;
+  overflow-y: auto !important;
+}
+
+/* Modal Dialog Geometry & Visual Polish */
+.modal-dialog,
+.custom-modal-dialog {
+  margin: 0.75rem auto 2rem auto !important;
+  border-radius: var(--overlay-dialog-radius) !important;
+  box-shadow: var(--overlay-dialog-shadow) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  background-color: #FFFFFF !important;
+  overflow: hidden !important;
+  transform: scale(0.96) translateY(-8px);
+  transition: transform var(--overlay-transition-duration) var(--overlay-transition-curve), opacity var(--overlay-transition-duration) var(--overlay-transition-curve) !important;
+  max-height: calc(100vh - var(--header-height, 70px) - 2.5rem) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.show .modal-dialog,
+.custom-modal-backdrop.show .custom-modal-dialog {
+  transform: scale(1) translateY(0) !important;
+}
+
+/* Modal Internal Layout Structure */
+.modal-content {
+  border: none !important;
+  border-radius: var(--overlay-dialog-radius) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: calc(100vh - var(--header-height, 70px) - 2.5rem) !important;
+}
+
+.modal-header,
+.custom-modal-header {
+  padding: 1.15rem 1.5rem !important;
+  background-color: #F8FAFC !important;
+  border-bottom: 1px solid var(--card-border, #E2E8F0) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-shrink: 0 !important;
+}
+
+.modal-body,
+.custom-modal-body {
+  padding: 1.5rem !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  flex-grow: 1 !important;
+}
+
+.modal-footer,
+.custom-modal-footer {
+  padding: 1rem 1.5rem !important;
+  background-color: #F8FAFC !important;
+  border-top: 1px solid var(--card-border, #E2E8F0) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0.75rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* ==========================================================================
+   4. SYSTEM NOTIFICATIONS & TOAST OVERLAYS
+   ========================================================================== */
+.sn-overlay,
+.toast-container,
+#notificationContainer,
+.system-notification-container {
+  z-index: var(--z-toast) !important;
+}
+
+.sn-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: var(--overlay-backdrop-bg) !important;
+  backdrop-filter: blur(var(--overlay-backdrop-blur)) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1.5rem !important;
+}
+
+.sn-card {
+  border-radius: var(--overlay-dialog-radius) !important;
+  box-shadow: var(--overlay-dialog-shadow) !important;
+}
+
+/* ==========================================================================
+   5. DASHBOARD CARD & GRID AESTHETICS POLISH
+   ========================================================================== */
+.card,
+.stat-card,
+.content-card,
+.ordinance-banner {
+  border-radius: 14px !important;
+  border: 1px solid var(--card-border, #E2E8F0) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.card:hover,
+.stat-card:hover {
+  box-shadow: 0 6px 16px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Close Button Accessibility & Hover Feedback */
+.btn-close,
+.custom-modal-close {
+  transition: transform 0.15s ease, opacity 0.15s ease !important;
+  cursor: pointer !important;
+}
+
+.btn-close:hover,
+.custom-modal-close:hover {
+  transform: scale(1.15) !important;
+  opacity: 0.9 !important;
+}
+
+.btn-close:focus-visible,
+.custom-modal-close:focus-visible {
+  outline: 2px solid var(--primary, #0284C7) !important;
+  outline-offset: 2px !important;
+}
+
+/* ==========================================================================
+   6. DARK MODE THEME SUPPORT
+   ========================================================================== */
+body.dark-mode {
+  --overlay-backdrop-bg: rgba(2, 6, 23, 0.65);
+  --card-border: #334155;
+}
+
+body.dark-mode .top-navbar,
+body.dark-mode .header-top,
+body.dark-mode .portal-header {
+  background-color: #0F172A !important;
+  border-bottom-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .dropdown-menu,
+body.dark-mode .custom-dropdown-menu {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+  box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-mode .dropdown-item {
+  color: #E2E8F0 !important;
+}
+
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+  background-color: #334155 !important;
+  color: #FFFFFF !important;
+}
+
+body.dark-mode .modal-dialog,
+body.dark-mode .custom-modal-dialog,
+body.dark-mode .modal-content {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+body.dark-mode .modal-header,
+body.dark-mode .custom-modal-header {
+  background-color: #0F172A !important;
+  border-bottom-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .modal-footer,
+body.dark-mode .custom-modal-footer {
+  background-color: #0F172A !important;
+  border-top-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+body.dark-mode .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* ==========================================================================
+   7. RESPONSIVE BREAKPOINTS (Mobile & Tablet)
+   ========================================================================== */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 60px;
+    --sidebar-width: 0px;
+  }
+
+  .header-top {
+    left: 0 !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: 16px !important;
+  }
+
+  .custom-modal-backdrop {
+    padding: calc(var(--header-height, 60px) + 0.75rem) 0.5rem 1rem 0.5rem !important;
+  }
+
+  .modal {
+    padding-top: calc(var(--header-height, 60px) + 0.5rem) !important;
+  }
+
+  .modal-dialog,
+  .custom-modal-dialog {
+    width: 96% !important;
+    max-width: 96% !important;
+    margin: 0.5rem auto !important;
+    border-radius: 12px !important;
+  }
+
+  .modal-body,
+  .custom-modal-body {
+    padding: 1rem !important;
+  }
+
+  .modal-header,
+  .custom-modal-header,
+  .modal-footer,
+  .custom-modal-footer {
+    padding: 0.85rem 1rem !important;
+  }
+}

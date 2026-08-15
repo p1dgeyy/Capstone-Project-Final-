@@ -260,6 +260,16 @@
       .replace(/'/g, '&#039;');
   }
 
+  // Dismiss active system notification overlay
+  window.hideSystemNotification = function () {
+    const activeOverlays = document.querySelectorAll('.sn-overlay');
+    activeOverlays.forEach((ov) => {
+      if (ov && ov.parentNode) {
+        ov.parentNode.removeChild(ov);
+      }
+    });
+  };
+
   // Override standard window.alert to direct to System Notification Modal Card
   window.alert = function (msg) {
     window.showSystemNotification({
