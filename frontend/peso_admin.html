@@ -6380,9 +6380,11 @@
 
         async function fetchUsersFromApi() {
             try {
-                const apiBase = window.API_BASE_URL || '';
+                const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
+                if (window.location.protocol === 'file:' && !apiBase) return;
                 const response = await fetch(`${apiBase}/api/users`);
-                if (response.ok) {
+                const contentType = response.headers.get('content-type') || '';
+                if (response.ok && contentType.includes('application/json')) {
                     const result = await response.json();
                     if (result.success && Array.isArray(result.data) && result.data.length > 0) {
                         usersList = result.data;
