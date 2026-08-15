@@ -32,6 +32,16 @@ router.get('/', requireAuth, (req, res) => {
     const { role, status, department, search } = req.query;
     let list = getUsers();
 
+    const requesterDept = req.user?.department;
+    const requesterRole = req.user?.role || '';
+
+    // Enforce default department scoping based on authenticated admin/officer session
+    if (requesterDept === 'PESO' || requesterRole.includes('PESO')) {
+        list = list.filter(u => u.department !== 'CSWDO' && !u.role.includes('CSWDO'));
+    } else if (requesterDept === 'CSWDO' || requesterRole.includes('CSWDO')) {
+        list = list.filter(u => u.department === 'CSWDO' || u.role.includes('CSWDO'));
+    }
+
     // Filter by Role
     if (role && role !== 'ALL') {
         const r = role.toLowerCase();
@@ -43,7 +53,7 @@ router.get('/', requireAuth, (req, res) => {
         list = list.filter(u => u.status === status);
     }
 
-    // Filter by Department (PESO, CSWDO)
+    // Filter by Department (PESO, CSWDO, IT/MIS)
     if (department && department !== 'ALL') {
         list = list.filter(u => u.department === department);
     }
@@ -113,6 +123,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
     const adminUser = req.user?.username || 'PESO Admin';
     const adminRole = req.user?.role || 'PESO Admin';
+    const adminDept = req.user?.department || (adminRole.includes('CSWDO') ? 'CSWDO' : 'PESO');
     const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
     // Validation
@@ -121,6 +132,22 @@ router.post('/', requireAdmin, async (req, res) => {
             success: false,
             error: 'Validation Error',
             message: 'First name, last name, username, email, password, role, and department are required.'
+        });
+    }
+
+    // Cross-Department Isolation Validation
+    if (adminDept === 'PESO' && (department === 'CSWDO' || role.includes('CSWDO'))) {
+        return res.status(403).json({
+            success: false,
+            error: 'Cross-Department Restriction',
+            message: 'PESO Administrators are strictly prohibited from creating CSWDO accounts.'
+        });
+    }
+    if (adminDept === 'CSWDO' && (department === 'PESO' || role.includes('PESO'))) {
+        return res.status(403).json({
+            success: false,
+            error: 'Cross-Department Restriction',
+            message: 'CSWDO Administrators are strictly prohibited from creating PESO accounts.'
         });
     }
 
@@ -225,6 +252,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 
     const adminUser = req.user?.username || 'PESO Admin';
     const adminRole = req.user?.role || 'PESO Admin';
+    const adminDept = req.user?.department || (adminRole.includes('CSWDO') ? 'CSWDO' : 'PESO');
     const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
     if (!user) {
@@ -232,6 +260,22 @@ router.put('/:id', requireAdmin, async (req, res) => {
             success: false,
             error: 'User Not Found',
             message: `User with ID ${userId} does not exist.`
+        });
+    }
+
+    // Cross-Department Isolation Validation
+    if (adminDept === 'PESO' && (user.department === 'CSWDO' || req.body.department === 'CSWDO' || (req.body.role && req.body.role.includes('CSWDO')))) {
+        return res.status(403).json({
+            success: false,
+            error: 'Cross-Department Restriction',
+            message: 'PESO Administrators are strictly prohibited from modifying CSWDO accounts.'
+        });
+    }
+    if (adminDept === 'CSWDO' && (user.department === 'PESO' || req.body.department === 'PESO' || (req.body.role && req.body.role.includes('PESO')))) {
+        return res.status(403).json({
+            success: false,
+            error: 'Cross-Department Restriction',
+            message: 'CSWDO Administrators are strictly prohibited from modifying PESO accounts.'
         });
     }
 
@@ -346,11 +390,28 @@ router.post('/:id/unlock', requireAdmin, (req, res) => {
 
     const adminUser = req.user?.username || 'PESO Admin';
     const adminRole = req.user?.role || 'PESO Admin';
+    const adminDept = req.user?.department || (adminRole.includes('CSWDO') ? 'CSWDO' : 'PESO');
     const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
     const reason = req.body.action_reason || req.body.reason || 'Admin verified account legitimacy';
 
     if (!user) {
         return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Cross-Department Isolation Validation
+    if (adminDept === 'PESO' && user.department === 'CSWDO') {
+        return res.status(403).json({
+            success: false,
+            error: 'Cross-Department Restriction',
+            message: 'PESO Administrators cannot unlock CSWDO accounts.'
+        });
+    }
+    if (adminDept === 'CSWDO' && user.department === 'PESO') {
+        return res.status(403).json({
+            success: false,
+            error: 'Cross-Department Restriction',
+            message: 'CSWDO Administrators cannot unlock PESO accounts.'
+        });
     }
 
     user.lockout_until = null;
@@ -386,12 +447,29 @@ router.delete('/:id', requireAdmin, (req, res) => {
 
     const adminUser = req.user?.username || 'PESO Admin';
     const adminRole = req.user?.role || 'PESO Admin';
+    const adminDept = req.user?.department || (adminRole.includes('CSWDO') ? 'CSWDO' : 'PESO');
     const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
     const reason = req.body.action_reason || req.body.reason || req.query.reason || 'Staff reassignment/archival';
     const isPermanent = req.query.permanent === 'true';
 
     if (!user) {
         return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Cross-Department Isolation Validation
+    if (adminDept === 'PESO' && user.department === 'CSWDO') {
+        return res.status(403).json({
+            success: false,
+            error: 'Cross-Department Restriction',
+            message: 'PESO Administrators cannot archive or delete CSWDO accounts.'
+        });
+    }
+    if (adminDept === 'CSWDO' && user.department === 'PESO') {
+        return res.status(403).json({
+            success: false,
+            error: 'Cross-Department Restriction',
+            message: 'CSWDO Administrators cannot archive or delete PESO accounts.'
+        });
     }
 
     // Protect primary admin from deletion

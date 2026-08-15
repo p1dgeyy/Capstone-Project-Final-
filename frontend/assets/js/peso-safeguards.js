@@ -848,6 +848,70 @@ if (typeof window.PESOSafeguards === 'undefined') {
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // 5. Cross-Department Data & Scope Segregation Safeguards
+  // ---------------------------------------------------------------------------
+  const PESO_ALLOWED_ROLES = ['PESO ADMIN', 'PESO OFFICER', 'STAFF', 'EVALUATOR', 'ADMIN', 'OFFICER'];
+  const CSWDO_ALLOWED_ROLES = ['CSWDO ADMIN', 'CSWDO OFFICER', 'CSWDO EVALUATOR'];
+  const PESO_ALLOWED_DEPTS = ['PESO', 'IT/MIS', 'LGU EXECUTIVE'];
+  const CSWDO_ALLOWED_DEPTS = ['CSWDO', 'MEDICAL', 'FINANCIAL', 'BURIAL'];
+
+  /**
+   * Validate that an action, role, or data payload conforms to portal department scope
+   * @param {string} portalType - 'PESO' or 'CSWDO'
+   * @param {Object} payload - { role, department, programName, category, targetEntity }
+   * @returns {Object} { allowed: boolean, reason?: string }
+   */
+  function validateDepartmentScope(portalType, payload) {
+    const portal = (portalType || 'PESO').toString().toUpperCase().trim();
+    const data = payload || {};
+    const role = (data.role || '').toString().toUpperCase().trim();
+    const dept = (data.department || '').toString().toUpperCase().trim();
+    const prog = (data.programName || data.category || data.type || '').toString().toUpperCase();
+
+    if (portal === 'PESO') {
+      if (role.includes('CSWDO')) {
+        return {
+          allowed: false,
+          reason: `Cross-department violation: CSWDO role (${data.role}) cannot be managed or assigned in PESO portals.`
+        };
+      }
+      if (dept === 'CSWDO' || dept === 'MEDICAL' || dept === 'BURIAL' || dept === 'FINANCIAL ASSISTANCE') {
+        return {
+          allowed: false,
+          reason: `Cross-department violation: Department '${data.department}' belongs to CSWDO and cannot be handled in PESO portals.`
+        };
+      }
+      if (prog.includes('BURIAL') || prog.includes('AICS') || (prog.includes('MEDICAL') && !prog.includes('EMPLOYMENT'))) {
+        return {
+          allowed: false,
+          reason: `Cross-department violation: Program '${data.programName || data.category}' is a CSWDO social/medical assistance program.`
+        };
+      }
+    } else if (portal === 'CSWDO') {
+      if (role.includes('PESO')) {
+        return {
+          allowed: false,
+          reason: `Cross-department violation: PESO role (${data.role}) cannot be managed or assigned in CSWDO portals.`
+        };
+      }
+      if (dept === 'PESO') {
+        return {
+          allowed: false,
+          reason: `Cross-department violation: Department 'PESO' belongs to Public Employment Service Office and cannot be handled in CSWDO portals.`
+        };
+      }
+      if (prog.includes('TUPAD') || prog.includes('SPES') || prog.includes('CKGIP') || prog.includes('PFAS') || prog.includes('LIVELIHOOD')) {
+        return {
+          allowed: false,
+          reason: `Cross-department violation: Program '${data.programName || data.category}' is a PESO livelihood/employment program.`
+        };
+      }
+    }
+
+    return { allowed: true };
+  }
+
   // Public API Surface
   return Object.freeze({
     registerBeforeExecuteHook,
@@ -859,6 +923,7 @@ if (typeof window.PESOSafeguards === 'undefined') {
     checkScheduleDateValidity,
     checkScheduleConflict,
     validateActivitySchedule,
+    validateDepartmentScope,
     logAudit,
     getAuditLogs,
     renderAuditLogTable,

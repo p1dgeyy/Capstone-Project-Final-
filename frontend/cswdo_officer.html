@@ -1973,15 +1973,15 @@
                 localStorage.setItem('cswdo_activities', JSON.stringify(defaultActivities));
             }
 
-            // Default Beneficiaries Integration (load from PESO if exists, or use default)
-            if (!localStorage.getItem('peso_beneficiaries')) {
+            // CSWDO Social & Medical Assistance Beneficiaries Roster (Strictly CSWDO Isolated)
+            if (!localStorage.getItem('cswdo_beneficiaries')) {
                 const defaultBeneficiaries = [
                     { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active" },
                     { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active" },
                     { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active" },
                     { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active" }
                 ];
-                localStorage.setItem('peso_beneficiaries', JSON.stringify(defaultBeneficiaries));
+                localStorage.setItem('cswdo_beneficiaries', JSON.stringify(defaultBeneficiaries));
             }
 
             // Default Program Assignments for CSWDO
@@ -2595,7 +2595,7 @@
         // ==============================================
         function renderAssignmentsTable() {
             const assignments = JSON.parse(localStorage.getItem('cswdo_assignments')) || [];
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
             const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
             const tbody = document.getElementById('assignmentsTableBody');
             if (!tbody) return;
@@ -2626,7 +2626,7 @@
         }
 
         function openAddAssignmentModal() {
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
             const programs = JSON.parse(localStorage.getItem('cswdo_programs')).filter(p => p.status === 'Active') || [];
 
             const benSelect = document.getElementById('assignApplicantSelect');
@@ -2684,7 +2684,7 @@
             assignments.push(newAs);
             localStorage.setItem('cswdo_assignments', JSON.stringify(assignments));
 
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
             const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
             const bName = (beneficiaries.find(b => b.id === benId) || {}).name;
             const pCode = (programs.find(p => p.id === progId) || {}).code;
@@ -2881,7 +2881,7 @@
 
         // Auto Notify Beneficiary
         function triggerAssistanceNotification(app, status, amount, remarks) {
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
             const beneficiary = beneficiaries.find(b => b.id === app.beneficiaryId);
             const contact = beneficiary ? beneficiary.contact : '+639********';
             const name = beneficiary ? beneficiary.name : app.beneficiaryName;
@@ -3336,11 +3336,11 @@
                         localStorage.setItem('cswdo_officers', JSON.stringify(officers));
                     }
                 } else {
-                    const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+                    const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
                     const offIndex = officers.findIndex(o => o.username.toLowerCase() === username.toLowerCase() || o.email.toLowerCase() === username.toLowerCase());
                     if (offIndex !== -1) {
                         officers[offIndex].password = 'password123';
-                        localStorage.setItem('peso_officers', JSON.stringify(officers));
+                        localStorage.setItem('cswdo_officers', JSON.stringify(officers));
                     }
                 }
 
@@ -3487,7 +3487,7 @@
                 renderDiv.innerHTML = html;
 
             } else if (category === 'demographics') {
-                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
                 
                 let barangayMap = {};
                 beneficiaries.forEach(b => {
@@ -3524,7 +3524,7 @@
                 renderDiv.innerHTML = html;
 
             } else if (category === 'barangay') {
-                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
                 
                 let bMap = {};
                 beneficiaries.forEach(b => {
@@ -3681,7 +3681,7 @@
             if (benSelect) {
                 benSelect.addEventListener('change', function() {
                     const benId = this.value;
-                    const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                    const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
                     const ben = beneficiaries.find(b => b.id === benId);
                     const contactInput = document.getElementById('assignContactInput');
                     if (contactInput) {
@@ -3787,7 +3787,7 @@
         }
 
         function updateNotificationBadge() {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             const unreadCount = notifications.filter(n => !n.read).length;
             const badge = document.getElementById('notificationBadge');
             
@@ -3802,7 +3802,7 @@
         }
 
         function renderNotifications() {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             const container = document.getElementById('notificationListContainer');
             if (!container) return;
             container.innerHTML = '';
@@ -3851,19 +3851,19 @@
         }
 
         function markNotificationAsRead(id) {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             const idx = notifications.findIndex(n => n.id === id);
             if (idx !== -1) {
                 notifications[idx].read = true;
-                localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+                localStorage.setItem('cswdo_notifications', JSON.stringify(notifications));
                 renderNotifications();
             }
         }
 
         function markAllNotificationsRead() {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             notifications.forEach(n => n.read = true);
-            localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+            localStorage.setItem('cswdo_notifications', JSON.stringify(notifications));
             renderNotifications();
         }
 
@@ -3875,12 +3875,12 @@
         };
 
         function clearAllNotifications() {
-            localStorage.setItem('peso_notifications', JSON.stringify([]));
+            localStorage.setItem('cswdo_notifications', JSON.stringify([]));
             renderNotifications();
         }
 
         function pushNotification(title, message, category = 'alert') {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             const newNotif = {
                 id: 'N' + Date.now(),
                 title,
@@ -3890,7 +3890,7 @@
                 read: false
             };
             notifications.unshift(newNotif);
-            localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+            localStorage.setItem('cswdo_notifications', JSON.stringify(notifications));
             
             // Trigger browser in-app notification toast as well
             if (typeof showWebNotification === 'function') {
