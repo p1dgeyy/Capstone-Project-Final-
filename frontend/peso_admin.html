@@ -2440,16 +2440,22 @@
     <div class="modal fade" id="editOfficerModal" tabindex="-1" aria-labelledby="editOfficerModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-header-title fw-bold mb-0" id="editOfficerModalTitle"><i class="bi bi-pencil-square me-2"></i>Officer Account Profile & Edit</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header modal-header-custom py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-person-gear fs-3 text-warning"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="editOfficerModalTitle">Officer Account Details & Edit Profile</h5>
+                            <small class="text-white-50">Manage Officer Credentials, Role & Department</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="editOfficerForm" onsubmit="handleSaveOfficerUpdates(event)">
                     <div class="modal-body p-4">
                         <input type="hidden" id="editOffId">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Officer Name</label>
+                                <label class="form-label fw-semibold">Officer Full Name</label>
                                 <input type="text" class="form-control bg-light fw-bold" id="editOffFullName" readonly>
                             </div>
                             <div class="col-md-6">
@@ -2461,8 +2467,9 @@
                                 <input type="email" class="form-control" id="editOffEmail" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editOffPhone" required>
+                                <label class="form-label fw-semibold">Contact Number (Full) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="editOffPhone" required placeholder="09XX-XXX-XXXX">
+                                <small class="text-muted" style="font-size: 0.75rem;">Full contact number visible for Admin management</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Assigned Role <span class="text-danger">*</span></label>
@@ -2492,10 +2499,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3">
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Changes & Audit Log</button>
                     </div>
+                </form>
+            </div>
+        </div>
+    </div>
           <!-- =================================================================== -->
     <!-- SCHEDULING MODAL 1: CREATE PROGRAM SCHEDULE SLOT (ADMIN)            -->
     <!-- =================================================================== -->
@@ -5452,25 +5463,26 @@
                 activeTbody.innerHTML = activeOfficers.length === 0 ? `<tr><td colspan="8" class="text-center py-4 text-muted">No active officer accounts found matching criteria.</td></tr>` : '';
                 activeOfficers.forEach(off => {
                     const tr = document.createElement('tr');
+                    tr.style.cursor = 'pointer';
                     const fullName = `${escapeHtml(off.first_name)} ${escapeHtml(off.middle_name || '')} ${escapeHtml(off.last_name)} ${off.suffix && off.suffix !== 'N/A' ? escapeHtml(off.suffix) : ''}`.trim();
                     tr.innerHTML = `
-                        <td>
+                        <td onclick="openEditOfficerModal(${off.id})">
                             <div class="fw-bold text-dark">${fullName}</div>
                             <small class="text-muted"><i class="bi bi-gender-ambiguous me-1"></i>${escapeHtml(off.sex || 'N/A')}</small>
                         </td>
-                        <td><span class="badge bg-light text-dark font-monospace border">${escapeHtml(off.username)}</span></td>
-                        <td>${escapeHtml(off.email)}</td>
-                        <td><span class="badge bg-primary-subtle text-primary fw-semibold">${escapeHtml(off.role)}</span></td>
-                        <td><span class="badge bg-secondary-subtle text-dark">${escapeHtml(off.department)}</span></td>
-                        <td><span class="masked-phone">${escapeHtml(off.phone)}</span></td>
-                        <td><span class="badge bg-success px-2.5 py-1">Active</span></td>
-                        <td class="text-end">
+                        <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-light text-dark font-monospace border">${escapeHtml(off.username)}</span></td>
+                        <td onclick="openEditOfficerModal(${off.id})">${escapeHtml(off.email)}</td>
+                        <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-primary-subtle text-primary fw-semibold">${escapeHtml(off.role)}</span></td>
+                        <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-secondary-subtle text-dark">${escapeHtml(off.department)}</span></td>
+                        <td onclick="openEditOfficerModal(${off.id})"><span class="masked-phone">${escapeHtml(maskContactNumber(off.phone))}</span></td>
+                        <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-success px-2.5 py-1">Active</span></td>
+                        <td class="text-end" onclick="event.stopPropagation()">
                             <div class="d-inline-flex align-items-center gap-2">
-                                <div class="form-check form-switch mb-0" title="Toggle account status (Active / Deactivated)">
+                                <div class="form-check form-switch mb-0" title="Toggle status (Active / Deactivated)">
                                     <input class="form-check-input" type="checkbox" role="switch" checked onchange="handleOfficerStatusToggle(event, ${off.id})">
                                 </div>
                                 <button class="btn btn-sm btn-outline-primary" onclick="openEditOfficerModal(${off.id})">
-                                    <i class="bi bi-pencil-square"></i> Edit
+                                    <i class="bi bi-pencil-square"></i> Details / Edit
                                 </button>
                             </div>
                         </td>
@@ -5495,11 +5507,11 @@
                         <td>${escapeHtml(off.email)}</td>
                         <td><span class="badge bg-secondary-subtle text-secondary">${escapeHtml(off.role)}</span></td>
                         <td><span class="badge bg-light text-dark">${escapeHtml(off.department)}</span></td>
-                        <td><span class="masked-phone">${escapeHtml(off.phone)}</span></td>
+                        <td><span class="masked-phone">${escapeHtml(maskContactNumber(off.phone))}</span></td>
                         <td><span class="badge bg-danger px-2.5 py-1">Deactivated</span></td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-success me-1" onclick="activateOfficerAccount(${off.id})">
-                                <i class="bi bi-shield-check"></i> Activate
+                                <i class="bi bi-shield-check"></i> Restore (Activate)
                             </button>
                             <button class="btn btn-sm btn-outline-danger" onclick="permanentlyDeleteOfficer(${off.id})">
                                 <i class="bi bi-trash-fill"></i> Delete
@@ -5530,24 +5542,44 @@
         async function handleCreateOfficerSubmit(e) {
             e.preventDefault();
 
-            const firstName = document.getElementById('newOffFirstName').value.trim();
-            const middleName = document.getElementById('newOffMiddleName').value.trim();
-            const lastName = document.getElementById('newOffLastName').value.trim();
-            const suffix = document.getElementById('newOffSuffix').value;
-            const username = document.getElementById('newOffUsername').value.trim();
-            const email = document.getElementById('newOffEmail').value.trim();
-            const password = document.getElementById('newOffPassword').value;
-            const passwordConfirm = document.getElementById('newOffPasswordConfirm').value;
+            const firstName = (document.getElementById('newOffFirstName').value || '').trim();
+            const middleName = (document.getElementById('newOffMiddleName').value || '').trim();
+            const lastName = (document.getElementById('newOffLastName').value || '').trim();
+            const suffix = document.getElementById('newOffSuffix').value || 'N/A';
+            const username = (document.getElementById('newOffUsername').value || '').trim();
+            const email = (document.getElementById('newOffEmail').value || '').trim();
+            const password = document.getElementById('newOffPassword').value || '';
+            const passwordConfirm = document.getElementById('newOffPasswordConfirm').value || '';
             const role = document.getElementById('newOffRole').value;
             const department = document.getElementById('newOffDepartment').value;
             const sex = document.getElementById('newOffSex').value;
-            const phone = document.getElementById('newOffPhone').value.trim();
-            const address = document.getElementById('newOffAddress').value.trim();
+            const phone = (document.getElementById('newOffPhone').value || '').trim();
+            const address = (document.getElementById('newOffAddress').value || '').trim();
 
-            if (!firstName || !middleName || !lastName || !username || !email || !password || !passwordConfirm || !phone || !address) {
+            // Client-side validation checks
+            if (!firstName || !lastName || !username || !email || !password || !passwordConfirm || !phone || !address) {
                 window.showSystemNotification({
                     title: 'Validation Error',
-                    message: 'All required fields must be completed (names, username, password confirmation, email, role, gender, address, contact number, department).',
+                    message: 'Please complete all required fields marked with an asterisk (*).',
+                    type: 'warning'
+                });
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                window.showSystemNotification({
+                    title: 'Invalid Email Format',
+                    message: 'Please provide a valid email address (e.g. officer@koronadal.gov.ph).',
+                    type: 'warning'
+                });
+                return;
+            }
+
+            if (password.length < 6) {
+                window.showSystemNotification({
+                    title: 'Password Too Short',
+                    message: 'Password must be at least 6 characters in length.',
                     type: 'warning'
                 });
                 return;
@@ -5558,6 +5590,16 @@
                     title: 'Password Mismatch',
                     message: 'Password and Password Confirmation do not match.',
                     type: 'error'
+                });
+                return;
+            }
+
+            // Check if username already exists
+            if (officersList.some(o => o.username.toLowerCase() === username.toLowerCase())) {
+                window.showSystemNotification({
+                    title: 'Username Taken',
+                    message: `Username "${username}" is already assigned to another account.`,
+                    type: 'warning'
                 });
                 return;
             }
@@ -5620,7 +5662,7 @@
             renderOfficersTables();
             window.showSystemNotification({
                 title: 'Officer Account Created',
-                message: `Officer account for ${firstName} ${lastName} (${username}) created successfully. Initial Status: Active.`,
+                message: `Officer account for ${firstName} ${lastName} (${username}) created successfully. Status: Active.`,
                 type: 'success'
             });
         }
@@ -5633,7 +5675,7 @@
             document.getElementById('editOffFullName').value = `${off.first_name} ${off.middle_name || ''} ${off.last_name} ${off.suffix !== 'N/A' ? off.suffix : ''}`.trim();
             document.getElementById('editOffUsername').value = off.username;
             document.getElementById('editOffEmail').value = off.email;
-            document.getElementById('editOffPhone').value = off.phone;
+            document.getElementById('editOffPhone').value = off.phone || '';
             document.getElementById('editOffRole').value = off.role;
             document.getElementById('editOffDepartment').value = off.department || 'PESO';
             document.getElementById('editOffAddress').value = off.address || 'City of Koronadal';
@@ -5648,57 +5690,67 @@
             const off = officersList.find(o => o.id === offId);
             if (!off) return;
 
-            const updatedUsername = document.getElementById('editOffUsername').value.trim();
-            const updatedEmail = document.getElementById('editOffEmail').value.trim();
-            const updatedPhone = document.getElementById('editOffPhone').value.trim();
+            const updatedUsername = (document.getElementById('editOffUsername').value || '').trim();
+            const updatedEmail = (document.getElementById('editOffEmail').value || '').trim();
+            const updatedPhone = (document.getElementById('editOffPhone').value || '').trim();
             const updatedRole = document.getElementById('editOffRole').value;
             const updatedDept = document.getElementById('editOffDepartment').value;
-            const updatedAddress = document.getElementById('editOffAddress').value.trim();
+            const updatedAddress = (document.getElementById('editOffAddress').value || '').trim();
 
+            if (!updatedUsername || !updatedEmail || !updatedPhone || !updatedAddress) {
+                window.showSystemNotification({
+                    title: 'Validation Error',
+                    message: 'Please ensure all required fields are filled before saving.',
+                    type: 'warning'
+                });
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(updatedEmail)) {
+                window.showSystemNotification({
+                    title: 'Invalid Email',
+                    message: 'Please provide a valid email address format.',
+                    type: 'warning'
+                });
+                return;
+            }
+
+            off.username = updatedUsername;
+            off.email = updatedEmail;
+            off.phone = updatedPhone;
+            off.role = updatedRole;
+            off.department = updatedDept;
+            off.address = updatedAddress;
+
+            try {
+                const apiBase = window.API_BASE_URL || '';
+                await fetch(`${apiBase}/api/officers/${offId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: updatedUsername,
+                        email: updatedEmail,
+                        phone: updatedPhone,
+                        role: updatedRole,
+                        department: updatedDept,
+                        address: updatedAddress
+                    })
+                });
+            } catch (err) {
+                console.warn('[OFFICERS] API update notice — saved to local state:', err.message);
+            }
+
+            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+            logAuditEvent('UPDATE_OFFICER_ACCOUNT', `Updated details for officer account ID ${offId} (${updatedUsername}), Role: ${updatedRole}, Dept: ${updatedDept}`);
+
+            safeHideModal('editOfficerModal');
+
+            renderOfficersTables();
             window.showSystemNotification({
-                title: 'Confirm Profile Update',
-                message: `Save profile updates for officer account "${off.username}"?`,
-                type: 'info',
-                showCancel: true,
-                confirmText: 'Save Changes',
-                onConfirm: async () => {
-                    off.username = updatedUsername;
-                    off.email = updatedEmail;
-                    off.phone = updatedPhone;
-                    off.role = updatedRole;
-                    off.department = updatedDept;
-                    off.address = updatedAddress;
-
-                    try {
-                        const apiBase = window.API_BASE_URL || '';
-                        await fetch(`${apiBase}/api/officers/${offId}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                username: updatedUsername,
-                                email: updatedEmail,
-                                phone: updatedPhone,
-                                role: updatedRole,
-                                department: updatedDept,
-                                address: updatedAddress
-                            })
-                        });
-                    } catch (err) {}
-
-                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
-                    logAuditEvent('UPDATE_OFFICER_ACCOUNT', `Updated details for officer account ID ${offId} (${updatedUsername}), Role: ${updatedRole}, Dept: ${updatedDept}`);
-
-                    const modalEl = document.getElementById('editOfficerModal');
-                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                    if (modalInstance) modalInstance.hide();
-
-                    renderOfficersTables();
-                    window.showSystemNotification({
-                        title: 'Account Updated',
-                        message: `Officer account details for "${updatedUsername}" updated successfully.`,
-                        type: 'success'
-                    });
-                }
+                title: 'Account Updated',
+                message: `Officer account details for "${updatedUsername}" updated successfully.`,
+                type: 'success'
             });
         }
 
@@ -5709,38 +5761,24 @@
             const isDeactivating = !event.target.checked;
             const newStatus = isDeactivating ? 'Deactivated' : 'Active';
 
+            off.status = newStatus;
+            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+
+            try {
+                const apiBase = window.API_BASE_URL || '';
+                await fetch(`${apiBase}/api/officers/${officerId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+            } catch (err) {}
+
+            logAuditEvent(isDeactivating ? 'DEACTIVATE_OFFICER_ACCOUNT' : 'ACTIVATE_OFFICER_ACCOUNT', `Updated status of officer account "${off.username}" to ${newStatus}`);
+            renderOfficersTables();
             window.showSystemNotification({
-                title: isDeactivating ? 'Confirm Account Deactivation' : 'Confirm Account Activation',
-                message: isDeactivating
-                    ? `Are you sure you want to deactivate officer account "${off.username}"? Deactivated officers lose login access but historical records are retained in Archive.`
-                    : `Re-activate officer account "${off.username}" to grant active system access?`,
-                type: isDeactivating ? 'warning' : 'info',
-                showCancel: true,
-                confirmText: isDeactivating ? 'Deactivate' : 'Activate',
-                onCancel: () => {
-                    event.target.checked = !isDeactivating;
-                },
-                onConfirm: async () => {
-                    off.status = newStatus;
-                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
-
-                    try {
-                        const apiBase = window.API_BASE_URL || '';
-                        await fetch(`${apiBase}/api/officers/${officerId}/status`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: newStatus })
-                        });
-                    } catch (err) {}
-
-                    logAuditEvent(isDeactivating ? 'DEACTIVATE_OFFICER_ACCOUNT' : 'ACTIVATE_OFFICER_ACCOUNT', `Updated status of officer account "${off.username}" to ${newStatus}`);
-                    renderOfficersTables();
-                    window.showSystemNotification({
-                        title: 'Officer Status Updated',
-                        message: `Officer account "${off.username}" set to ${newStatus}.`,
-                        type: isDeactivating ? 'warning' : 'success'
-                    });
-                }
+                title: 'Officer Status Updated',
+                message: `Officer account "${off.username}" set to ${newStatus}.`,
+                type: isDeactivating ? 'warning' : 'success'
             });
         }
 
@@ -5748,29 +5786,20 @@
             const off = officersList.find(o => o.id === officerId);
             if (!off) return;
 
+            off.status = 'Active';
+            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+
+            try {
+                const apiBase = window.API_BASE_URL || '';
+                await fetch(`${apiBase}/api/officers/${officerId}/restore`, { method: 'POST' });
+            } catch (err) {}
+
+            logAuditEvent('ACTIVATE_OFFICER_ACCOUNT', `Restored officer account "${off.username}" to Active status.`);
+            renderOfficersTables();
             window.showSystemNotification({
-                title: 'Restore Officer Account',
-                message: `Restore and activate officer account "${off.username}"? This will move the account back to the Active Officer roster.`,
-                type: 'info',
-                showCancel: true,
-                confirmText: 'Restore Account',
-                onConfirm: async () => {
-                    off.status = 'Active';
-                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
-
-                    try {
-                        const apiBase = window.API_BASE_URL || '';
-                        await fetch(`${apiBase}/api/officers/${officerId}/restore`, { method: 'POST' });
-                    } catch (err) {}
-
-                    logAuditEvent('ACTIVATE_OFFICER_ACCOUNT', `Restored officer account "${off.username}" to Active status.`);
-                    renderOfficersTables();
-                    window.showSystemNotification({
-                        title: 'Account Restored',
-                        message: `Officer account "${off.username}" restored to Active status successfully.`,
-                        type: 'success'
-                    });
-                }
+                title: 'Account Restored',
+                message: `Officer account "${off.username}" restored to Active status successfully.`,
+                type: 'success'
             });
         }
 
@@ -5778,29 +5807,25 @@
             const off = officersList.find(o => o.id === officerId);
             if (!off) return;
 
+            const username = off.username;
+            officersList = officersList.filter(o => o.id !== officerId);
+            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+
+            try {
+                const apiBase = window.API_BASE_URL || '';
+                await fetch(`${apiBase}/api/officers/${officerId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ permanent: true })
+                });
+            } catch (err) {}
+
+            logAuditEvent('PERMANENT_DELETE_OFFICER', `Permanently deleted officer account "${username}" (ID: ${officerId})`);
+            renderOfficersTables();
             window.showSystemNotification({
-                title: 'PERMANENT DELETE WARNING',
-                message: `Are you sure you want to permanently delete officer account "${off.username}"? This action CANNOT be undone and will erase the account.`,
-                type: 'error',
-                showCancel: true,
-                confirmText: 'Permanently Delete',
-                onConfirm: async () => {
-                    officersList = officersList.filter(o => o.id !== officerId);
-                    localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
-
-                    try {
-                        const apiBase = window.API_BASE_URL || '';
-                        await fetch(`${apiBase}/api/officers/${officerId}/permanent`, { method: 'DELETE' });
-                    } catch (err) {}
-
-                    logAuditEvent('PERMANENT_DELETE_OFFICER_ACCOUNT', `Permanently deleted officer account ID ${officerId}`);
-                    renderOfficersTables();
-                    window.showSystemNotification({
-                        title: 'Account Permanently Deleted',
-                        message: `Officer account ID ${officerId} has been permanently deleted.`,
-                        type: 'success'
-                    });
-                }
+                title: 'Officer Account Deleted',
+                message: `Officer account "${username}" permanently deleted from archive.`,
+                type: 'danger'
             });
         }
 
