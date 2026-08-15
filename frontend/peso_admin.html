@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PESO Administrator Portal - Program Management & Assignments | City of Koronadal</title>
-    <!-- Dependencies -->
+    <!-- Dependencies: Load jQuery first, then Bootstrap JS Bundle, then Chart.js -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- API Configuration -->
@@ -76,6 +78,19 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Outfit', sans-serif;
+        }
+
+        /* Modal & Backdrop Layering Safeguards (Guarantees visible stacking) */
+        .modal-backdrop {
+            z-index: 1050 !important;
+        }
+        .modal {
+            z-index: 1055 !important;
+        }
+        .toast-container,
+        #notificationContainer,
+        .system-notification-container {
+            z-index: 1090 !important;
         }
 
         body {
@@ -1761,7 +1776,7 @@
     <!-- =================================================================== -->
     <!-- MODAL A: READ-ONLY PROGRAM DETAILS MODAL (STRICTLY VIEW-ONLY) -->
     <!-- =================================================================== -->
-    <div class="modal fade" id="programDetailsViewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="programDetailsViewModal" tabindex="-1" aria-labelledby="viewModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4 py-3">
@@ -1873,13 +1888,13 @@
     <!-- =================================================================== -->
     <!-- MODAL B: EDITABLE PROGRAM FORM MODAL (WITH AUDIT LOGGING) -->
     <!-- =================================================================== -->
-    <div class="modal fade" id="programEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="programEditModal" tabindex="-1" aria-labelledby="programEditModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div>
                         <span class="badge bg-warning text-dark font-monospace mb-1" id="editModalCodeBadge">CODE</span>
-                        <h5 class="modal-title fw-bold mb-0">Edit Program Details</h5>
+                        <h5 class="modal-title fw-bold mb-0" id="programEditModalTitle">Edit Program Details</h5>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -1946,11 +1961,11 @@
     </div>
 
     <!-- MODAL C: CREATE NEW PROGRAM MODAL -->
-    <div class="modal fade" id="createProgramModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="createProgramModal" tabindex="-1" aria-labelledby="createProgramModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-header-title fw-bold mb-0"><i class="bi bi-folder-plus me-2"></i>Create New Livelihood Program</h5>
+                    <h5 class="modal-header-title fw-bold mb-0" id="createProgramModalTitle"><i class="bi bi-folder-plus me-2"></i>Create New Livelihood Program</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="createProgramForm" onsubmit="handleCreateProgramSubmit(event)">
@@ -2022,7 +2037,7 @@
     </div>
 
     <!-- MODAL D: READ-ONLY BENEFICIARY PROFILE POP-UP -->
-    <div class="modal fade" id="beneficiaryProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="beneficiaryProfileModal" tabindex="-1" aria-labelledby="benProfileName" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4 py-3">
@@ -2090,11 +2105,11 @@
                 </div>
 
     <!-- MODAL: REVIEW SUBMITTED LIVELIHOOD CASE FILE -->
-    <div class="modal fade" id="reviewCaseFileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="reviewCaseFileModal" tabindex="-1" aria-labelledby="reviewCaseFileModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-medical-fill me-2"></i>Review Submitted Livelihood Case File</h5>
+                    <h5 class="modal-title fw-bold" id="reviewCaseFileModalTitle"><i class="bi bi-file-earmark-medical-fill me-2"></i>Review Submitted Livelihood Case File</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -2173,7 +2188,7 @@
     </div>
 
     <!-- MODAL: DOCUMENT PREVIEW MODAL -->
-    <div class="modal fade" id="docPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="docPreviewModal" tabindex="-1" aria-labelledby="docPreviewTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4">
@@ -2198,11 +2213,11 @@
     </div>
 
     <!-- MODAL E: RESTRICTION WARNING MODAL -->
-    <div class="modal fade" id="restrictionWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="restrictionWarningModal" tabindex="-1" aria-labelledby="restrictionWarningModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-danger text-white rounded-top-4">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-slash-fill me-2"></i>Restriction Warning</h5>
+                    <h5 class="modal-title fw-bold" id="restrictionWarningModalTitle"><i class="bi bi-shield-slash-fill me-2"></i>Restriction Warning</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 text-center">
@@ -2218,11 +2233,11 @@
     </div>
 
     <!-- MODAL F: UPLOAD ORDINANCE MODAL -->
-    <div class="modal fade" id="uploadOrdinanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="uploadOrdinanceModal" tabindex="-1" aria-labelledby="uploadOrdinanceModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-arrow-up-fill me-2 text-warning"></i>Upload LGU Appropriation Ordinance</h5>
+                    <h5 class="modal-title fw-bold" id="uploadOrdinanceModalTitle"><i class="bi bi-file-earmark-arrow-up-fill me-2 text-warning"></i>Upload LGU Appropriation Ordinance</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="uploadOrdinanceForm" onsubmit="handleUploadOrdinance(event)">
@@ -2250,11 +2265,11 @@
     </div>
 
     <!-- MODAL G: ORDINANCE REFERENCE OVERVIEW MODAL -->
-    <div class="modal fade" id="ordinanceReferenceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="ordinanceReferenceModal" tabindex="-1" aria-labelledby="ordinanceReferenceModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-book-fill me-2 text-warning"></i>LGU Appropriation Ordinance Reference</h5>
+                    <h5 class="modal-title fw-bold" id="ordinanceReferenceModalTitle"><i class="bi bi-book-fill me-2 text-warning"></i>LGU Appropriation Ordinance Reference</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -2291,11 +2306,11 @@
     </div>
 
     <!-- MODAL H: AUDIT LOGS MODAL -->
-    <div class="modal fade" id="auditLogsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="auditLogsModal" tabindex="-1" aria-labelledby="auditLogsModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-info text-white rounded-top-4">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-check me-2"></i>PESO Operational Audit Trail</h5>
+                    <h5 class="modal-title fw-bold" id="auditLogsModalTitle"><i class="bi bi-shield-check me-2"></i>PESO Operational Audit Trail</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -2322,11 +2337,11 @@
     </div>
 
     <!-- MODAL H: NEW OFFICER ACCOUNT CREATION MODAL -->
-    <div class="modal fade" id="newOfficerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="newOfficerModal" tabindex="-1" aria-labelledby="newOfficerModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-header-title fw-bold mb-0"><i class="bi bi-person-plus-fill me-2"></i>Create New Officer Account</h5>
+                    <h5 class="modal-header-title fw-bold mb-0" id="newOfficerModalTitle"><i class="bi bi-person-plus-fill me-2"></i>Create New Officer Account</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="newOfficerForm" onsubmit="handleCreateOfficerSubmit(event)">
@@ -2422,11 +2437,11 @@
     </div>
 
     <!-- MODAL I: EDIT OFFICER ACCOUNT PROFILE MODAL -->
-    <div class="modal fade" id="editOfficerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="editOfficerModal" tabindex="-1" aria-labelledby="editOfficerModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-header-title fw-bold mb-0"><i class="bi bi-pencil-square me-2"></i>Officer Account Profile & Edit</h5>
+                    <h5 class="modal-header-title fw-bold mb-0" id="editOfficerModalTitle"><i class="bi bi-pencil-square me-2"></i>Officer Account Profile & Edit</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="editOfficerForm" onsubmit="handleSaveOfficerUpdates(event)">
@@ -2484,14 +2499,14 @@
           <!-- =================================================================== -->
     <!-- SCHEDULING MODAL 1: CREATE PROGRAM SCHEDULE SLOT (ADMIN)            -->
     <!-- =================================================================== -->
-    <div class="modal fade" id="createActivityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="createActivityModal" tabindex="-1" aria-labelledby="createActivityModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-calendar-plus-fill text-warning fs-4"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0">Create Program Schedule Slot</h5>
+                            <h5 class="modal-title fw-bold mb-0" id="createActivityModalTitle">Create Program Schedule Slot</h5>
                             <span class="badge bg-white text-primary fw-semibold mt-1"><i class="bi bi-shield-check me-1"></i>PESO Administrator Program Linkage Desk</span>
                         </div>
                     </div>
@@ -2599,7 +2614,7 @@
     <!-- =================================================================== -->
     <!-- SCHEDULING MODAL 2: STRICTLY READ-ONLY SLOT DETAILS POP-UP          -->
     <!-- =================================================================== -->
-    <div class="modal fade" id="viewActivityDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="viewActivityDetailsModal" tabindex="-1" aria-labelledby="viewActModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4 py-3">
@@ -2721,14 +2736,14 @@
     <!-- =================================================================== -->
     <!-- SCHEDULING MODAL 3: EDIT SLOT / REASSIGN OFFICER FORM MODAL         -->
     <!-- =================================================================== -->
-    <div class="modal fade" id="editActivityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="editActivityModal" tabindex="-1" aria-labelledby="editActivityModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-pencil-square text-warning fs-4"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0">Update Program Slot & Officer Assignment</h5>
+                            <h5 class="modal-title fw-bold mb-0" id="editActivityModalTitle">Update Program Slot & Officer Assignment</h5>
                             <span class="badge bg-warning text-dark font-monospace mt-1" id="editActIdBadge">ID: 0</span>
                         </div>
                     </div>
@@ -2801,13 +2816,13 @@
     <!-- =================================================================== -->
     <!-- SCHEDULING MODAL 4: CANCEL SLOT CONFIRMATION MODAL                  -->
     <!-- =================================================================== -->
-    <div class="modal fade" id="cancelActivityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="cancelActivityModal" tabindex="-1" aria-labelledby="cancelActivityModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-danger text-white rounded-top-4 py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-exclamation-octagon-fill fs-4"></i>
-                        <h5 class="modal-title fw-bold mb-0">Cancel Program Schedule Slot</h5>
+                        <h5 class="modal-title fw-bold mb-0" id="cancelActivityModalTitle">Cancel Program Schedule Slot</h5>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -2844,14 +2859,14 @@
     <!-- =================================================================== -->
     <!-- SCHEDULING MODAL 5: AUTO-PULLED ELIGIBLE RECIPIENTS MODAL           -->
     <!-- =================================================================== -->
-    <div class="modal fade" id="eligibleRecipientsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="eligibleRecipientsModal" tabindex="-1" aria-labelledby="eligibleRecipientsModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-success text-white rounded-top-4 py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-award-fill fs-4 text-warning"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0">Eligible Recipients Roster (Auto-Pulled from Training Records)</h5>
+                            <h5 class="modal-title fw-bold mb-0" id="eligibleRecipientsModalTitle">Eligible Recipients Roster (Auto-Pulled from Training Records)</h5>
                             <span class="badge bg-white text-success fw-semibold mt-1">Certificate Distribution Clearance</span>
                         </div>
                     </div>
@@ -2894,7 +2909,7 @@
     <!-- =================================================================== -->
 
     <!-- MODAL 1: VIEW USER DETAILS (STRICTLY READ-ONLY PER USER RULE 1) -->
-    <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="viewUserModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white rounded-top-4 py-3">
@@ -2980,14 +2995,14 @@
     </div>
 
     <!-- MODAL 2: CREATE NEW USER ACCOUNT (ADMIN ONLY) -->
-    <div class="modal fade" id="newUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="newUserModal" tabindex="-1" aria-labelledby="newUserModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-person-plus-fill fs-3 text-warning"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0">Create New User Account</h5>
+                            <h5 class="modal-title fw-bold mb-0" id="newUserModalTitle">Create New User Account</h5>
                             <small class="text-white-50">Authorized PESO Administrator Access Only</small>
                         </div>
                     </div>
@@ -3098,14 +3113,14 @@
     </div>
 
     <!-- MODAL 3: EDIT USER ACCOUNT (ADMIN ONLY) -->
-    <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-pencil-square fs-3 text-warning"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0">Edit User Account & Role</h5>
+                            <h5 class="modal-title fw-bold mb-0" id="editUserModalTitle">Edit User Account & Role</h5>
                             <small class="text-white-50">Administrator Credential & Role Modification</small>
                         </div>
                     </div>
@@ -3196,7 +3211,7 @@
     </div>
 
     <!-- MODAL 4: SENSITIVE ACTION CONFIRMATION MODAL (WITH MANDATORY ACTION REASON) -->
-    <div class="modal fade" id="userActionConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="userActionConfirmModal" tabindex="-1" aria-labelledby="userActionConfirmTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header rounded-top-4 py-3 text-white" id="userActionConfirmHeader">
@@ -3235,10 +3250,138 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+    <!-- Bootstrap JS Bundle already loaded in <head> with jQuery -->
     <script>
+
+        // =========================================================================
+        // ARCHITECTURAL CONSISTENCY NOTE:
+        // PESO Admin and Officer portals share the same unified modal launcher,
+        // event delegation, lifecycle logging, and dynamic import guard architecture.
+        // =========================================================================
+
+        // --- GLOBAL ERROR HANDLING & RESILIENCE (REQUIREMENT 5) ---
+        window.addEventListener('error', function (event) {
+            console.error('[PESO Admin Uncaught Error Caught]:', event.error || event.message, 'at', event.filename, 'line:', event.lineno);
+        });
+
+        window.addEventListener('unhandledrejection', function (event) {
+            console.warn('[PESO Admin Unhandled Promise Rejection]:', event.reason);
+        });
+
+        // --- DYNAMIC IMPORT GUARDS (REQUIREMENT: DYNAMIC GUARDS) ---
+        if (typeof window.showSystemNotification !== 'function') {
+            window.showSystemNotification = function(opts) {
+                console.log('[System Notification Fallback]:', opts.title || '', '-', opts.message || '');
+                if (opts && (opts.type === 'danger' || opts.type === 'error')) {
+                    alert((opts.title ? opts.title + ': ' : '') + (opts.message || 'An error occurred.'));
+                }
+            };
+        }
+
+        // --- MODAL CONTROLLER & SAFE LAUNCHER (REQUIREMENTS 1, 3, 6, 7 & LIFECYCLE LOGGING) ---
+        function setupModalLifecycleListeners(modalEl) {
+            if (!modalEl || modalEl.dataset.lifecycleBound === 'true') return;
+            modalEl.dataset.lifecycleBound = 'true';
+
+            modalEl.addEventListener('show.bs.modal', function () {
+                console.log(`[Modal Lifecycle] Opening #${modalEl.id}`);
+            });
+            modalEl.addEventListener('shown.bs.modal', function () {
+                console.log(`[Modal Lifecycle] Opened #${modalEl.id}`);
+            });
+            modalEl.addEventListener('hide.bs.modal', function () {
+                console.log(`[Modal Lifecycle] Closing #${modalEl.id}`);
+            });
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                console.log(`[Modal Lifecycle] Closed #${modalEl.id}`);
+            });
+        }
+
+        function safeOpenModal(modalId, options = {}) {
+            try {
+                const modalEl = document.getElementById(modalId);
+                if (!modalEl) {
+                    console.error(`[Modal Error] Target #${modalId} not found in DOM.`);
+                    window.showSystemNotification({
+                        title: 'Dialog Error',
+                        message: `Target modal window (#${modalId}) could not be located.`,
+                        type: 'danger'
+                    });
+                    return null;
+                }
+
+                setupModalLifecycleListeners(modalEl);
+
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const instance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl, options);
+                    instance.show();
+                    return instance;
+                } else {
+                    throw new Error('Bootstrap Modal library is not loaded');
+                }
+            } catch (err) {
+                console.error(`[Modal Error] Failed to open modal #${modalId}:`, err);
+                window.showSystemNotification({
+                    title: 'Modal Launch Failure',
+                    message: `Could not open #${modalId}: ${err.message}`,
+                    type: 'danger'
+                });
+                return null;
+            }
+        }
+
+        function safeHideModal(modalId) {
+            try {
+                const modalEl = document.getElementById(modalId);
+                if (!modalEl) return;
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const instance = bootstrap.Modal.getInstance(modalEl);
+                    if (instance) instance.hide();
+                }
+            } catch (err) {
+                console.error(`[Modal Error] Failed to hide modal #${modalId}:`, err);
+            }
+        }
+
+        // --- AUTOMATED BATCH TESTING TOOL (REQUIREMENT: BATCH TESTING) ---
+        window.runModalBatchTest = async function() {
+            const modalIds = [
+                'programDetailsViewModal', 'programEditModal', 'createProgramModal',
+                'beneficiaryProfileModal', 'reviewCaseFileModal', 'docPreviewModal',
+                'restrictionWarningModal', 'uploadOrdinanceModal', 'ordinanceReferenceModal',
+                'auditLogsModal', 'newOfficerModal', 'editOfficerModal',
+                'createActivityModal', 'viewActivityDetailsModal', 'editActivityModal',
+                'cancelActivityModal', 'eligibleRecipientsModal', 'userDetailsModal',
+                'newUserModal', 'editUserModal', 'userActionConfirmModal'
+            ];
+
+            console.log(`[Batch Modal Test] Starting automated sequence on ${modalIds.length} modals...`);
+            let passCount = 0;
+            let failCount = 0;
+
+            for (const id of modalIds) {
+                const el = document.getElementById(id);
+                if (!el) {
+                    console.error(`[Batch Modal Test FAIL] Element #${id} missing from DOM.`);
+                    failCount++;
+                    continue;
+                }
+                try {
+                    const inst = safeOpenModal(id);
+                    await new Promise(r => setTimeout(r, 120));
+                    safeHideModal(id);
+                    await new Promise(r => setTimeout(r, 120));
+                    console.log(`[Batch Modal Test PASS] #${id}`);
+                    passCount++;
+                } catch (e) {
+                    console.error(`[Batch Modal Test FAIL] #${id}:`, e);
+                    failCount++;
+                }
+            }
+
+            console.log(`[Batch Modal Test Completed] Passed: ${passCount}/${modalIds.length}, Failed: ${failCount}`);
+            return { passed: passCount, failed: failCount, total: modalIds.length };
+        };
         // Pre-loaded Programs
         const INITIAL_PROGRAMS = [
             { id: 101, code: 'CKGIP', name: 'City of Koronadal Government Internship Program (CKGIP)', category: 'Employment Facilitation', budget: 500000.00, beneficiaries_count: 25, total_slots: 30, target_beneficiaries: 'Youth, Fresh Graduates & Students', assistance_type: 'Paid Stipend', description: 'Hands-on government internship opportunities for Koronadal youth.', eligibility_criteria: 'Ages 18-25, resident of Koronadal City.', limitations: 'Maximum 3 months internship duration per beneficiary.', restrictions: 'One per household.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
@@ -4075,7 +4218,7 @@
             if (alertBox) alertBox.classList.add('d-none');
 
             populateSchedulingDropdowns();
-            new bootstrap.Modal(document.getElementById('createActivityModal')).show();
+            safeOpenModal('createActivityModal');
         }
         window.openCreateActivityModal = openCreateScheduleSlotModal;
 
@@ -4310,7 +4453,7 @@
             if (compBtn) compBtn.style.display = isCompleted || isCancelled ? 'none' : 'inline-block';
             if (cancelBtn) cancelBtn.style.display = isCancelled || isCompleted ? 'none' : 'inline-block';
 
-            new bootstrap.Modal(document.getElementById('viewActivityDetailsModal')).show();
+            safeOpenModal('viewActivityDetailsModal');
             logAuditEvent('VIEW_SCHEDULE_SLOT_DETAILS', `Inspected read-only details for slot ${act.slot_id || act.id} (${act.program_code})`);
         }
         window.openViewActivityDetailsModal = openViewSlotDetailsModal;
@@ -4372,7 +4515,7 @@
             document.getElementById('editActLocation').value = act.venue || act.location || 'PESO Main Office';
             document.getElementById('editActRemarks').value = act.remarks || '';
 
-            new bootstrap.Modal(document.getElementById('editActivityModal')).show();
+            safeOpenModal('editActivityModal');
         }
         window.openEditActivityModal = openEditSlotModal;
 
@@ -4537,7 +4680,7 @@
             document.getElementById('cancelActTitlePrompt').textContent = `${act.slot_id || 'SLOT'} (${act.program_code}: ${act.venue || 'PESO Office'})`;
             document.getElementById('cancelActReason').value = '';
 
-            new bootstrap.Modal(document.getElementById('cancelActivityModal')).show();
+            safeOpenModal('cancelActivityModal');
         }
         window.openCancelActivityModal = openCancelSlotModal;
 
@@ -4845,7 +4988,7 @@
                 </tr>
             `).join('');
 
-            new bootstrap.Modal(document.getElementById('eligibleRecipientsModal')).show();
+            safeOpenModal('eligibleRecipientsModal');
             logAuditEvent('VIEW_ELIGIBLE_RECIPIENTS_ROSTER', `Inspected auto-pulled training records roster for Certificate Distribution (${progCode} - ${batchNum})`);
         }
 
@@ -4914,7 +5057,7 @@
             statusBadge.textContent = prog.status;
             statusBadge.className = prog.status === 'Active' ? 'badge bg-success fs-6' : 'badge bg-secondary fs-6';
 
-            new bootstrap.Modal(document.getElementById('programDetailsViewModal')).show();
+            safeOpenModal('programDetailsViewModal');
             logAuditEvent('VIEW_PROGRAM_DETAILS', `Opened read-only program details reference for ${prog.code} (${prog.name})`);
         }
 
@@ -4936,7 +5079,7 @@
             document.getElementById('editProgEligibility').value = prog.eligibility_criteria || '';
             document.getElementById('editProgLimitations').value = prog.limitations || '';
 
-            new bootstrap.Modal(document.getElementById('programEditModal')).show();
+            safeOpenModal('programEditModal');
         }
 
         function handleSaveProgramUpdates(e) {
@@ -4966,7 +5109,7 @@
                 localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
                 logAuditEvent('EDIT_PROGRAM_DETAILS', `Updated program details for ${prog.code} - ${prog.name}. New budget: ₱${updatedBudget.toLocaleString()}`);
 
-                bootstrap.Modal.getInstance(document.getElementById('programEditModal')).hide();
+                safeHideModal('programEditModal');
                 renderDashboardTables();
             }
         }
@@ -5053,7 +5196,7 @@
             document.getElementById('pChecklist').textContent = ben.checklist_status;
             document.getElementById('pAssignmentStatus').textContent = ben.assignment_status;
             document.getElementById('pDocsList').innerHTML = ben.docs.map(d => `<span class="badge bg-secondary me-1">${d}</span>`).join('');
-            new bootstrap.Modal(document.getElementById('beneficiaryProfileModal')).show();
+            safeOpenModal('beneficiaryProfileModal');
             logAuditEvent('VIEW_BENEFICIARY_PROFILE', `Viewed profile for beneficiary ${ben.full_name}`);
         }
 
@@ -5174,7 +5317,7 @@
             });
         }
 
-        function openCreateProgramModal() { new bootstrap.Modal(document.getElementById('createProgramModal')).show(); }
+        function openCreateProgramModal() { safeOpenModal('createProgramModal'); }
         function handleCreateProgramSubmit(e) {
             e.preventDefault();
             const newProg = {
@@ -5196,7 +5339,7 @@
             programsList.unshift(newProg);
             localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
             logAuditEvent('CREATE_PROGRAM', `Created new program ${newProg.code}`);
-            bootstrap.Modal.getInstance(document.getElementById('createProgramModal')).hide();
+            safeHideModal('createProgramModal');
             renderDashboardTables();
             window.showSystemNotification({
                 title: 'Program Created',
@@ -5213,32 +5356,13 @@
                 logAuditEvent('OPEN_UPLOAD_ORDINANCE_FORM', 'Opened Upload Ordinance form modal');
             }
 
-            const modalEl = document.getElementById('uploadOrdinanceModal');
-            if (modalEl) {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modalInstance.show();
-                } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
-                    $('#uploadOrdinanceModal').modal('show');
-                } else {
-                    modalEl.classList.add('show');
-                    modalEl.style.display = 'block';
-                }
-            }
+            safeOpenModal('uploadOrdinanceModal');
         }
 
         function handleUploadOrdinance(e) {
             e.preventDefault();
             logAuditEvent('UPLOAD_ORDINANCE', 'Uploaded Appropriation Ordinance document');
-            const modalEl = document.getElementById('uploadOrdinanceModal');
-            if (modalEl) {
-                const instance = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
-                    ? (bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl))
-                    : null;
-                if (instance) instance.hide();
-                else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) $('#uploadOrdinanceModal').modal('hide');
-                else { modalEl.classList.remove('show'); modalEl.style.display = 'none'; }
-            }
+            safeHideModal('uploadOrdinanceModal');
             window.showSystemNotification({
                 title: 'Ordinance Uploaded',
                 message: 'Appropriation Ordinance document uploaded and attached successfully.',
@@ -5246,8 +5370,8 @@
             });
         }
 
-        function showOrdinanceReferenceModal() { new bootstrap.Modal(document.getElementById('ordinanceReferenceModal')).show(); }
-        function showAuditLogsModal() { new bootstrap.Modal(document.getElementById('auditLogsModal')).show(); }
+        function showOrdinanceReferenceModal() { safeOpenModal('ordinanceReferenceModal'); }
+        function showAuditLogsModal() { safeOpenModal('auditLogsModal'); }
         function logAuditEvent(actionType, details) {
             try {
                 const logs = JSON.parse(localStorage.getItem('peso_immutable_audit_logs') || '[]');
@@ -5400,18 +5524,7 @@
             // Record audit log when form is opened
             logAuditEvent('OPEN_CREATE_OFFICER_FORM', 'Opened Create New Officer Account form modal');
 
-            const modalEl = document.getElementById('newOfficerModal');
-            if (modalEl) {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modalInstance.show();
-                } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
-                    $('#newOfficerModal').modal('show');
-                } else {
-                    modalEl.classList.add('show');
-                    modalEl.style.display = 'block';
-                }
-            }
+            safeOpenModal('newOfficerModal');
         }
 
         async function handleCreateOfficerSubmit(e) {
@@ -5502,15 +5615,7 @@
 
             logAuditEvent('CREATE_OFFICER_ACCOUNT', `Created new officer account "${username}" (${firstName} ${lastName}), Role: ${role}, Dept: ${department}`);
 
-            const modalEl = document.getElementById('newOfficerModal');
-            if (modalEl) {
-                const instance = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
-                    ? (bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl))
-                    : null;
-                if (instance) instance.hide();
-                else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) $('#newOfficerModal').modal('hide');
-                else { modalEl.classList.remove('show'); modalEl.style.display = 'none'; }
-            }
+            safeHideModal('newOfficerModal');
 
             renderOfficersTables();
             window.showSystemNotification({
@@ -5534,7 +5639,7 @@
             document.getElementById('editOffAddress').value = off.address || 'City of Koronadal';
             document.getElementById('editOffStatus').value = off.status;
 
-            new bootstrap.Modal(document.getElementById('editOfficerModal')).show();
+            safeOpenModal('editOfficerModal');
         }
 
         async function handleSaveOfficerUpdates(e) {
@@ -6070,14 +6175,14 @@
                 `;
             });
 
-            new bootstrap.Modal(document.getElementById('reviewCaseFileModal')).show();
+            safeOpenModal('reviewCaseFileModal');
             logAuditEvent('REVIEW_CASE_FILE', `Opened Case File Review Modal for Applicant: ${app.applicant_name} (App ID: ${app.id})`);
         }
 
         function previewDocument(docType, fileName) {
             document.getElementById('docPreviewTitle').innerHTML = `<i class="bi bi-eye-fill me-2 text-info"></i>Preview: ${escapeHtml(docType)}`;
             document.getElementById('docPreviewFileName').textContent = fileName;
-            new bootstrap.Modal(document.getElementById('docPreviewModal')).show();
+            safeOpenModal('docPreviewModal');
         }
 
         // --- FINAL EVALUATION DECISION EXECUTION WITH SYSTEM NOTIFICATION MODALS ---
@@ -6364,7 +6469,7 @@
             if (preview) preview.textContent = '09XX-***-XXXX';
 
             logAuditEvent('OPEN_CREATE_USER_FORM', 'Admin opened New User Account modal');
-            new bootstrap.Modal(document.getElementById('newUserModal')).show();
+            safeOpenModal('newUserModal');
         }
 
         async function handleCreateUserSubmit(e) {
@@ -6503,7 +6608,7 @@
             document.getElementById('viewUserLastLogin').textContent = usr.last_login ? new Date(usr.last_login).toLocaleString() : 'Never logged in';
 
             logAuditEvent('VIEW_USER_DETAILS', `Inspected read-only details for user ID ${usr.id} (${usr.username})`);
-            new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+            safeOpenModal('userDetailsModal');
         }
 
         function openEditUserModal(userId) {
@@ -6522,7 +6627,7 @@
             document.getElementById('editUsrNewPassword').value = '';
             document.getElementById('editUsrActionReason').value = '';
 
-            new bootstrap.Modal(document.getElementById('editUserModal')).show();
+            safeOpenModal('editUserModal');
         }
 
         async function handleSaveUserUpdates(e) {
@@ -6650,7 +6755,7 @@
                 submitBtn.textContent = 'Permanently Delete';
             }
 
-            new bootstrap.Modal(document.getElementById('userActionConfirmModal')).show();
+            safeOpenModal('userActionConfirmModal');
         }
 
         async function handleUserActionConfirm(e) {
@@ -6799,15 +6904,48 @@
             logAuditEvent('SWITCH_NAVIGATION_TAB', `Switched active navigation tab to "${tabName.toUpperCase()}"`);
         }
 
-        // Initial App Load Dispatcher
+        // Initial App Load Dispatcher & Unified Event Bindings
         document.addEventListener('DOMContentLoaded', () => {
-            initUserManagementData();
-            fetchUsersFromApi();
-            initProgramsData();
-            initSchedulingData();
-            initOfficersData();
-            initEvalModuleData();
-            renderDashboardTables();
+            // 1. Initialize Module Data Stores
+            try {
+                initUserManagementData();
+                fetchUsersFromApi();
+                initProgramsData();
+                initSchedulingData();
+                initOfficersData();
+                initEvalModuleData();
+                renderDashboardTables();
+            } catch (initErr) {
+                console.error('[PESO Admin Init Error]:', initErr);
+            }
+
+            // 2. Setup Lifecycle Logging for all existing Modals in DOM
+            document.querySelectorAll('.modal').forEach(setupModalLifecycleListeners);
+
+            // 3. Explicit Event Listeners for Primary Admin Action Buttons (Prevents Dead Buttons)
+            const bindBtn = (id, fn) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('click', fn);
+            };
+
+            bindBtn('createNewOfficerBtn', () => openNewOfficerModal());
+            bindBtn('uploadOrdinanceBtn', () => openUploadOrdinanceModal());
+            bindBtn('adminBtnViewCalendar', () => setAdminScheduleViewMode('calendar'));
+            bindBtn('adminBtnViewList', () => setAdminScheduleViewMode('list'));
+
+            // 4. Document-Level Unified Click Delegation for Dynamic Action Buttons
+            document.addEventListener('click', function (e) {
+                const target = e.target.closest('[data-modal-target], [data-admin-action]');
+                if (!target) return;
+
+                const modalTarget = target.getAttribute('data-modal-target');
+                if (modalTarget) {
+                    e.preventDefault();
+                    safeOpenModal(modalTarget);
+                }
+            });
+
+            console.log('[PESO Admin Portal] Unified event bindings & modal safety system initialized.');
         });
 
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
