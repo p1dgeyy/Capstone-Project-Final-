@@ -33,17 +33,23 @@ const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'koronadal_capstone_jwt_super_secret_key_2026';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+// Enable trust proxy for reverse proxies (Railway, Vercel, Render)
+app.set('trust proxy', 1);
+
 // Security & Parsing Middlewares with Credentials & Cookie Support
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps, curl, server-to-server)
+        // Allow requests with no origin (like mobile apps, curl, server-to-server) or any origin in development / Vercel deployments
         if (!origin) return callback(null, true);
         return callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

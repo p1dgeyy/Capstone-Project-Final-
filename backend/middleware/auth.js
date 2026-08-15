@@ -147,8 +147,12 @@ function getIpSuspiciousReport() {
  * HTTPS Enforcement Middleware
  */
 function enforceHttps(req, res, next) {
-    // Check proto header (useful behind reverse proxies like Vercel / Nginx)
-    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    // Allow preflight OPTIONS requests without HTTPS enforcement
+    if (req.method === 'OPTIONS') return next();
+
+    // Check proto header (useful behind reverse proxies like Vercel / Railway / Nginx)
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const isHttps = req.secure || (forwardedProto && forwardedProto.includes('https'));
     if (process.env.NODE_ENV === 'production' && !isHttps) {
         return res.status(403).json({
             success: false,

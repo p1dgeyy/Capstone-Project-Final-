@@ -3643,6 +3643,30 @@
         let selectedProgramId = null;
         let selectedBatchId = null;
 
+        function initProgramsData() {
+            const localData = localStorage.getItem('peso_livelihood_programs_v1');
+            if (localData) {
+                try { programsList = JSON.parse(localData); } catch (e) { programsList = [...INITIAL_PROGRAMS]; }
+            } else {
+                programsList = [...INITIAL_PROGRAMS];
+                localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList));
+            }
+        }
+
+        function initOfficersData() {
+            const localOff = localStorage.getItem('peso_officers_list_v1');
+            if (localOff) {
+                try { officersList = JSON.parse(localOff); } catch (e) { officersList = [...INITIAL_OFFICERS]; }
+            } else {
+                officersList = [...INITIAL_OFFICERS];
+                localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+            }
+        }
+
+        function initSchedulingData() {
+            initSchedulingModuleData();
+        }
+
         // Calendar State (Defaulting to August 2026 / current date)
         let currentCalendarYear = 2026;
         let currentCalendarMonth = 7; // August (0-indexed)
@@ -3656,20 +3680,7 @@
             return '09XX-***-XXXX';
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const localData = localStorage.getItem('peso_livelihood_programs_v1');
-            if (localData) { try { programsList = JSON.parse(localData); } catch (e) { programsList = [...INITIAL_PROGRAMS]; } }
-            else { programsList = [...INITIAL_PROGRAMS]; localStorage.setItem('peso_livelihood_programs_v1', JSON.stringify(programsList)); }
-            
-            const localOff = localStorage.getItem('peso_officers_list_v1');
-            if (localOff) { try { officersList = JSON.parse(localOff); } catch (e) { officersList = [...INITIAL_OFFICERS]; } }
-            else { officersList = [...INITIAL_OFFICERS]; localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList)); }
 
-            initSchedulingModuleData();
-            renderDashboardTables();
-            initEvalModuleData();
-            fetchOfficersFromApi();
-        });
 
         function renderDashboardTables() {
             const activeList = programsList.filter(p => p.status === 'Active');
@@ -5436,8 +5447,10 @@
         async function fetchOfficersFromApi() {
             try {
                 const apiBase = window.API_BASE_URL || '';
+                if (window.location.protocol === 'file:' && !apiBase) return;
                 const response = await fetch(`${apiBase}/api/officers`);
-                if (response.ok) {
+                const contentType = response.headers.get('content-type') || '';
+                if (response.ok && contentType.includes('application/json')) {
                     const result = await response.json();
                     if (result.success && Array.isArray(result.data) && result.data.length > 0) {
                         officersList = result.data.map(off => ({
