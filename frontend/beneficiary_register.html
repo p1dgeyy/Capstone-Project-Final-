@@ -500,8 +500,8 @@
                                     class="text-danger">*</span></label>
                             <input type="email" class="form-control" id="regEmail" placeholder="e.g. juan@email.com"
                                 required>
-                            <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>A 4-digit code will
-                                be sent via Gmail in Step 2.</div>
+                            <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>A 6-digit code will
+                                be sent to this address in Step 2.</div>
                         </div>
                     </div>
 
@@ -645,7 +645,7 @@
                 </div>
 
                 <h3 class="fw-bold text-dark mb-1">Verify Your Email Address</h3>
-                <p class="text-muted mb-2">We sent a 4-digit verification code to:</p>
+                <p class="text-muted mb-2">We sent a 6-digit verification code to:</p>
                 <div class="badge bg-light text-primary border px-3 py-2 fs-6 fw-bold mb-3" id="displayMaskedEmail">
                     user@email.com</div>
 
@@ -660,7 +660,7 @@
                         code.</span>
                 </div>
 
-                <!-- 4-DIGIT SEGMENTED CODE INPUTS -->
+                <!-- 6-DIGIT SEGMENTED CODE INPUTS -->
                 <div class="code-box-container" id="emailCodeBoxes">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
                         id="emailDigit1">
@@ -670,6 +670,10 @@
                         id="emailDigit3">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
                         id="emailDigit4">
+                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
+                        id="emailDigit5">
+                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
+                        id="emailDigit6">
                 </div>
 
                 <!-- RESEND & EXPIRY TIMER -->
@@ -950,7 +954,7 @@
                 ind2.classList.add('active');
                 progress.style.width = '50%';
                 startEmailTimers();
-                setupSegmentedInputs('emailCodeBoxes', 4);
+                setupSegmentedInputs('emailCodeBoxes', 6);
             } else if (step === 3) {
                 document.getElementById('step3View').classList.remove('d-none');
                 ind1.classList.add('completed');
@@ -1101,28 +1105,50 @@
                 btnSubmit.disabled = true;
                 spinner.classList.remove('d-none');
 
-                // 1. Call POST /register to initialize account
-                if (typeof OTPAuth !== 'undefined' && OTPAuth.registerDualUser) {
-                    await OTPAuth.registerDualUser(registrationData);
-                } else {
-                    const res = await fetch('/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(registrationData)
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.message || 'Registration initialization failed.');
+                // 1. Create the Supabase Auth account. The on_auth_user_created
+                //    trigger auto-provisions a matching row in `beneficiaries`,
+                //    and Supabase dispatches its own 6-digit verification code
+                //    to the user's email (via the connected Resend SMTP).
+                if (!supabaseClient) {
+                    throw new Error('Supabase client not initialized.');
                 }
 
-                // 2. Dispatch 4-digit code via Gmail SMTP
-                if (typeof OTPAuth !== 'undefined' && OTPAuth.sendEmailCode) {
-                    await OTPAuth.sendEmailCode(email);
-                } else {
-                    await fetch('/send-email-code', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email })
-                    });
+                const { data: authResult, error: authError } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            role: 'Beneficiary',
+                            username: username,
+                            first_name: fn,
+                            last_name: ln,
+                            age: age ? parseInt(age, 10) : 0
+                        }
+                    }
+                });
+
+                if (authError) throw new Error(authError.message);
+                if (!authResult.user) throw new Error('Registration failed. Please try again.');
+
+                registrationData.auth_id = authResult.user.id;
+
+                // 2. Fill in the remaining profile fields that the auto-provision
+                //    trigger doesn't set (it only covers the core identity fields).
+                const { error: profileError } = await supabaseClient
+                    .from('beneficiaries')
+                    .update({
+                        middle_name: mn || null,
+                        suffix: suffix || null,
+                        date_of_birth: bdate || null,
+                        sex: sex || null,
+                        marital_status: civilStatus || null,
+                        phone: phone || null,
+                        address: [purok, barangay, 'City of Koronadal'].filter(Boolean).join(', ')
+                    })
+                    .eq('auth_id', authResult.user.id);
+
+                if (profileError) {
+                    console.warn('[REGISTRATION] Profile detail update warning:', profileError.message);
                 }
 
                 // Update masked displays
@@ -1131,7 +1157,7 @@
 
                 window.showSystemNotification({
                     title: 'Account Created',
-                    message: 'Step 1 complete! A 4-digit verification code was sent to your email.',
+                    message: 'Step 1 complete! A 6-digit verification code was sent to your email.',
                     type: 'success'
                 });
 
@@ -1193,22 +1219,21 @@
         async function resendEmailVerificationCode() {
             try {
                 const email = registrationData.email;
-                if (typeof OTPAuth !== 'undefined' && OTPAuth.sendEmailCode) {
-                    await OTPAuth.sendEmailCode(email);
-                } else {
-                    await fetch('/send-email-code', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email })
-                    });
+                if (!supabaseClient) {
+                    throw new Error('Supabase client not initialized.');
                 }
+                const { error: resendError } = await supabaseClient.auth.resend({
+                    type: 'signup',
+                    email: email
+                });
+                if (resendError) throw new Error(resendError.message);
                 window.showSystemNotification({
                     title: 'Code Resent',
-                    message: 'A new 4-digit verification code has been dispatched to your email.',
+                    message: 'A new 6-digit verification code has been dispatched to your email.',
                     type: 'info'
                 });
                 startEmailTimers();
-                setupSegmentedInputs('emailCodeBoxes', 4);
+                setupSegmentedInputs('emailCodeBoxes', 6);
             } catch (err) {
                 window.showSystemNotification({
                     title: 'Resend Failed',
@@ -1223,15 +1248,17 @@
             const d2 = document.getElementById('emailDigit2').value;
             const d3 = document.getElementById('emailDigit3').value;
             const d4 = document.getElementById('emailDigit4').value;
-            const code = `${d1}${d2}${d3}${d4}`.trim();
+            const d5 = document.getElementById('emailDigit5').value;
+            const d6 = document.getElementById('emailDigit6').value;
+            const code = `${d1}${d2}${d3}${d4}${d5}${d6}`.trim();
 
             const alertEl = document.getElementById('emailVerifyAlert');
             const alertMsg = document.getElementById('emailVerifyAlertMsg');
             const btnConfirm = document.getElementById('btnConfirmEmailCode');
             const spinner = document.getElementById('emailVerifySpinner');
 
-            if (code.length !== 4) {
-                alertMsg.textContent = 'Please enter all 4 digits of your email verification code.';
+            if (code.length !== 6) {
+                alertMsg.textContent = 'Please enter all 6 digits of your email verification code.';
                 alertEl.classList.remove('d-none');
                 return;
             }
@@ -1241,38 +1268,53 @@
             spinner.classList.remove('d-none');
 
             try {
-                // 1. Verify 4-digit email code
-                if (typeof OTPAuth !== 'undefined' && OTPAuth.verifyEmailCode) {
-                    await OTPAuth.verifyEmailCode(registrationData.email, code);
-                } else {
-                    const res = await fetch('/verify-email-code', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: registrationData.email, code })
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.message || 'Invalid or expired email verification code.');
+                if (!supabaseClient) {
+                    throw new Error('Supabase client not initialized.');
                 }
 
-                // 2. Automatically dispatch 6-digit SMS OTP for Step 3
-                if (typeof OTPAuth !== 'undefined' && OTPAuth.sendSmsOtp) {
-                    await OTPAuth.sendSmsOtp(registrationData.phone_number);
-                } else {
-                    await fetch('/send-sms-otp', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ phone_number: registrationData.phone_number })
+                // 1. Verify the 6-digit email code issued by Supabase Auth
+                const { data: verifyData, error: verifyError } = await supabaseClient.auth.verifyOtp({
+                    email: registrationData.email,
+                    token: code,
+                    type: 'signup'
+                });
+
+                if (verifyError) throw new Error(verifyError.message || 'Invalid or expired email verification code.');
+
+                // Note: SMS/phone verification is temporarily bypassed until an
+                // SMS provider is configured in Supabase Auth settings. The
+                // account is fully created and email-verified at this point.
+                const user = verifyData.user || {};
+
+                if (typeof SessionManager !== 'undefined' && verifyData.session) {
+                    SessionManager.save(registrationData.auth_id || user.id, verifyData.session.access_token, 'Beneficiary', {
+                        username: registrationData.username,
+                        fullName: `${registrationData.first_name} ${registrationData.last_name}`,
+                        email: registrationData.email,
+                        department: registrationData.program_sector && registrationData.program_sector.includes('CSWDO') ? 'CSWDO' : 'PESO'
                     });
                 }
+                sessionStorage.setItem('beneficiaryLoggedIn', 'true');
+                sessionStorage.setItem('beneficiaryUsername', registrationData.username);
+                sessionStorage.setItem('beneficiaryName', `${registrationData.first_name} ${registrationData.last_name}`);
+                if (verifyData.session) sessionStorage.setItem('jwtAccessToken', verifyData.session.access_token);
+
+                // Populate Summary Card
+                document.getElementById('summaryFullName').textContent = `${registrationData.first_name} ${registrationData.middle_name ? registrationData.middle_name + ' ' : ''}${registrationData.last_name} ${registrationData.suffix || ''}`.trim();
+                document.getElementById('summaryUsername').textContent = registrationData.username;
+                document.getElementById('summaryEmail').textContent = registrationData.email;
+                document.getElementById('summaryPhone').textContent = registrationData.phone_number;
+                document.getElementById('summarySector').textContent = registrationData.program_sector;
 
                 window.showSystemNotification({
-                    title: 'Email Verified',
-                    message: 'Email address verified successfully! An SMS OTP code has been sent to your phone.',
+                    title: 'Registration Completed!',
+                    message: 'Email verified and account created successfully! Welcome to the PESO & CSWDO Portal.',
                     type: 'success'
                 });
 
-                // Advance to Step 3
-                goToStep(3);
+                // Advance directly to the Finalization screen (phone/SMS
+                // verification is postponed until an SMS provider is set up)
+                goToStep(4);
 
             } catch (err) {
                 console.error('[EMAIL VERIFY ERROR]:', err);
