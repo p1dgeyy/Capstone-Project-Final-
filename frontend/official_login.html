@@ -18,6 +18,7 @@
     <!-- System & Supabase Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/system-notifications.js"></script>
     <script src="assets/js/session-manager.js"></script>
     <script src="assets/js/portal-login-support.js"></script>
@@ -96,16 +97,16 @@
                     <span id="successMessage">Success!</span>
                 </div>
 
-                <form id="loginForm">
+                <form id="loginForm" autocomplete="off">
                     <div class="form-group">
                         <label class="form-label" for="username" data-translate="username_label">Username or Email</label>
-                        <input type="text" class="form-control" id="username" placeholder="Enter username or email" data-translate-placeholder="username_placeholder_beneficiary" required autocomplete="username" aria-label="Username or Email">
+                        <input type="text" class="form-control" id="username" placeholder="Enter username or email" data-translate-placeholder="username_placeholder_beneficiary" required autocomplete="off" aria-label="Username or Email">
                     </div>
 
                     <div class="form-group">
                         <label class="form-label" for="password" data-translate="password_label">Password</label>
                         <div class="password-wrapper">
-                            <input type="password" class="form-control" id="password" placeholder="Enter password" data-translate-placeholder="password_placeholder" required autocomplete="current-password" aria-label="Password">
+                            <input type="password" class="form-control" id="password" placeholder="Enter password" data-translate-placeholder="password_placeholder" required autocomplete="new-password" aria-label="Password">
                             <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle Password Visibility">
                                 <i class="bi bi-eye"></i>
                             </button>
@@ -415,33 +416,9 @@
                 let authSuccess = false;
                 let userProfile = null;
                 let accessToken = null;
-                const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
 
-                // Step 1: Backend API Check
-                try {
-                    const response = await fetch(`${apiBase}/api/auth/login`, {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: email, email: email, password: password, portal: 'beneficiary' })
-                    });
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        if (result.success && result.accessToken) {
-                            authSuccess = true;
-                            userProfile = result.user;
-                            accessToken = result.accessToken;
-                            sessionStorage.setItem('jwtAccessToken', accessToken);
-                            if (result.refreshToken) sessionStorage.setItem('jwtRefreshToken', result.refreshToken);
-                        }
-                    }
-                } catch (backendErr) {
-                    console.warn('[LOGIN] Backend API notice:', backendErr.message);
-                }
-
-                // Step 2: Fallback to Supabase Auth
-                if (!authSuccess && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                // Step 1: Direct Supabase Authentication
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     const { data: resolvedEmail, error: resolveError } = await supabaseClient
                         .rpc('resolve_login_email', { p_identifier: email, p_portal: 'beneficiary' });
 
@@ -492,7 +469,7 @@
                     throw new Error('Account has been deactivated. Please contact your administrator.');
                 }
 
-                // Save session data
+                // Save session data & AuthGuard integration
                 const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.username;
                 if (typeof SessionManager !== 'undefined' && SessionManager.save) {
                     SessionManager.save(userProfile.id, accessToken, 'Beneficiary');
@@ -508,7 +485,8 @@
                 sessionStorage.setItem('beneficiaryName', fullName);
                 if (userProfile.qr_code) sessionStorage.setItem('beneficiaryQrCode', userProfile.qr_code);
 
-                successAlert.querySelector('#successMessage').textContent = LoginSupport.translations[lang]['success_redirect'];
+                const dict = (window.LoginSupport && window.LoginSupport.translations && window.LoginSupport.translations[lang]) || (window.translations && window.translations[lang]) || {};
+                successAlert.querySelector('#successMessage').textContent = dict['success_redirect'] || 'Login successful! Redirecting...';
                 successAlert.style.display = 'block';
 
                 setTimeout(() => {

@@ -331,6 +331,7 @@
     });
 
     // Expose Global Helper API
+    window.translations = translations;
     window.LoginSupport = {
         translations,
         applyTheme,

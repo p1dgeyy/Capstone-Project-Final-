@@ -18,6 +18,7 @@
     <!-- System & Supabase Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/system-notifications.js"></script>
     <script src="assets/js/session-manager.js"></script>
     <script src="assets/js/peso-safeguards.js"></script>
@@ -98,16 +99,16 @@
                     <span id="successMessage">Success!</span>
                 </div>
 
-                <form id="loginForm">
+                <form id="loginForm" autocomplete="off">
                     <div class="form-group">
                         <label class="form-label" for="username" data-translate="username_email">Username or Email</label>
-                        <input type="text" class="form-control" id="username" placeholder="Enter username or email" data-translate-placeholder="username_placeholder" required autocomplete="username" aria-label="Username or Email">
+                        <input type="text" class="form-control" id="username" placeholder="Enter username or email" data-translate-placeholder="username_placeholder" required autocomplete="off" aria-label="Username or Email">
                     </div>
 
                     <div class="form-group">
                         <label class="form-label" for="password" data-translate="password">Password</label>
                         <div class="password-wrapper">
-                            <input type="password" class="form-control" id="password" placeholder="Enter password" data-translate-placeholder="password_placeholder" required autocomplete="current-password" aria-label="Password">
+                            <input type="password" class="form-control" id="password" placeholder="Enter password" data-translate-placeholder="password_placeholder" required autocomplete="new-password" aria-label="Password">
                             <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle Password Visibility">
                                 <i class="bi bi-eye"></i>
                             </button>
@@ -512,30 +513,9 @@
                 let authSuccess = false;
                 let userProfile = null;
                 let accessToken = null;
-                const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
 
-                // Step 1: Backend API Check
-                try {
-                    const res = await fetch(`${apiBase}/api/auth/login`, {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: identifier, email: identifier, password, portal: 'admin' })
-                    });
-                    if (res.ok) {
-                        const json = await res.json();
-                        if (json.success && json.accessToken) {
-                            authSuccess = true;
-                            userProfile = json.user;
-                            accessToken = json.accessToken;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[LOGIN] Backend API notice:', e.message);
-                }
-
-                // Step 2: Supabase Auth Verification
-                if (!authSuccess && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                // Step 1: Direct Supabase Auth Verification
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     let targetEmail = identifier.includes('@') ? identifier : null;
 
                     if (!targetEmail) {
@@ -615,7 +595,7 @@
                     throw new Error('Account has been deactivated. Please contact your administrator.');
                 }
 
-                // Session Storage
+                // Session Storage & AuthGuard Integration
                 const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.username;
                 sessionStorage.setItem('jwtAccessToken', accessToken || '');
                 sessionStorage.setItem('userRole', userProfile.role || 'PESO Admin');
@@ -639,7 +619,8 @@
                     });
                 }
 
-                successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
+                const dict = (window.LoginSupport && window.LoginSupport.translations && window.LoginSupport.translations[lang]) || (window.translations && window.translations[lang]) || {};
+                successAlert.querySelector('#successMessage').textContent = dict['success_redirect'] || 'Login successful! Redirecting...';
                 successAlert.style.display = 'block';
 
                 // Determine Portal Destination
