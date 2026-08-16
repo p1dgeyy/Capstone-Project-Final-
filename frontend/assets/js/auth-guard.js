@@ -290,6 +290,21 @@ const AuthGuard = (() => {
         return false;
       }
 
+      // Safeguard: the primary PESO admin account must never be locked out by
+      // a stale/incorrect 'Deactivated' or 'Inactive' status in staff_profiles.
+      // This mirrors the same safeguard already applied on the login page
+      // (admin-login.js) — without it, a status flip in the database (e.g.
+      // from testing the Active/Inactive toggle) would sign this account
+      // straight back out immediately after a successful login.
+      const isPrimaryAdmin =
+        (profile.username && profile.username.toLowerCase() === 'peso-admin') ||
+        (profile.email && profile.email.toLowerCase() === 'peso.admin@koronadal.gov.ph');
+
+      if (isPrimaryAdmin && (profile.status === 'Deactivated' || profile.status === 'Inactive')) {
+        console.warn('[AUTH_GUARD] Primary admin account had a non-Active status in the database; overriding to Active to prevent lockout.');
+        profile.status = 'Active';
+      }
+
       if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
         try { await supabaseClient.auth.signOut(); } catch (e) { /* best effort */ }
         redirectToLogin('Your account has been deactivated. Please contact your administrator.');
