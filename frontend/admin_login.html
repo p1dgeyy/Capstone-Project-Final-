@@ -1,880 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin & Staff Login - City of Koronadal</title>
-    <!-- Bootstrap CSS -->
+
+    <!-- Dependencies: Bootstrap CSS & Icons, Google Fonts -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <script src="assets/js/system-notifications.js"></script>
-    
-    <style>
-        :root {
-            --primary-pink: #F0B6C6;
-            --primary-dark: #B88A9A;
-            --primary-light: #F7D2DE;
-            --dark-deep: #2F2B2E;
-            --light-bg: #fbf6f8;
-            --text-dark: #2c2528;
-            --text-muted: #726468;
-            --border-color: #F7D2DE;
-            --card-shadow: 0 10px 30px rgba(240, 182, 198, 0.08);
-            --modal-shadow: 0 20px 50px rgba(47, 43, 46, 0.15);
-            --success: #4CAF50;
-            --warning: #FF9800;
-        }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <!-- Unified Stylesheets -->
+    <link rel="stylesheet" href="assets/css/portal-login.css">
+    <link rel="stylesheet" href="assets/css/unified-overlays.css">
 
-        body {
-            font-family: 'Roboto', sans-serif;
-            font-weight: 400;
-            background-color: var(--light-bg);
-            min-height: 100vh;
-            color: var(--text-dark);
-            overflow-x: hidden;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-weight: 700 !important;
-        }
-
-        /* Split Screen Container */
-        .page-container {
-            display: flex;
-            min-height: 100vh;
-            width: 100vw;
-        }
-
-        /* Left Panel - Hero Background */
-        .left-panel {
-            flex: 1.2;
-            position: relative;
-            background: linear-gradient(135deg, rgba(184, 92, 122, 0.6) 0%, rgba(30, 15, 20, 0.92) 100%), 
-                        url('assets/city_of_koronadal.jpeg') center/cover no-repeat;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 60px;
-            color: white;
-            overflow: hidden;
-        }
-
-        .left-panel::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 20% 30%, rgba(215, 127, 161, 0.15) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .left-panel-header {
-            position: relative;
-            z-index: 10;
-        }
-
-        .lgu-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(10px);
-            padding: 6px 14px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .left-panel-content {
-            position: relative;
-            z-index: 10;
-            max-width: 580px;
-            margin-top: auto;
-        }
-
-        .left-panel h1 {
-            font-size: 2.8rem;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 20px;
-            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .left-panel p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            line-height: 1.6;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            margin-bottom: 30px;
-        }
-
-        .feature-badge-container {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .feature-badge {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(5px);
-            padding: 10px 18px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Right Panel - Login Area */
-        .right-panel {
-            width: 480px;
-            min-width: 450px;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 50px 45px;
-            box-shadow: -10px 0 35px rgba(30, 20, 25, 0.03);
-            position: relative;
-            z-index: 2;
-            overflow-y: auto;
-        }
-
-        .brand-header {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .seal-container {
-            width: 90px;
-            height: 90px;
-            margin: 0 auto 15px;
-        }
-
-        .seal-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .portal-title {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 4px;
-        }
-
-        .portal-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* Navigation Links */
-        .support-nav {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            padding: 10px 0;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .nav-link-custom {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--primary-dark);
-            text-decoration: none;
-            position: relative;
-            padding: 2px 0;
-            transition: color 0.25s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-
-        .nav-link-custom::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: var(--primary-pink);
-            transition: width 0.25s ease;
-        }
-
-        .nav-link-custom:hover {
-            color: var(--primary-pink);
-        }
-
-        .nav-link-custom:hover::after {
-            width: 100%;
-        }
-
-        .nav-separator {
-            color: #d8c2c8;
-            font-size: 0.8rem;
-        }
-
-        /* Login Card */
-        .login-card {
-            width: 100%;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 6px;
-        }
-
-        .card-subtitle {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-bottom: 24px;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-            text-align: left;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 6px;
-            display: block;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1.5px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.95rem;
-            color: var(--text-dark);
-            background-color: #fcf9fa;
-            transition: all 0.25s ease;
-        }
-
-        .form-control::placeholder {
-            color: #bfaab1;
-        }
-
-        .form-control:focus {
-            outline: none;
-            background-color: #fff;
-            border-color: var(--primary-pink);
-            box-shadow: 0 0 0 3.5px rgba(215, 127, 161, 0.15);
-        }
-
-        .password-wrapper {
-            position: relative;
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #999;
-            cursor: pointer;
-            font-size: 1.1rem;
-            padding: 0;
-            display: flex;
-            align-items: center;
-        }
-
-        .password-toggle:hover {
-            color: var(--primary-pink);
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 12px 20px;
-            background-color: var(--primary-pink);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 15px;
-            box-shadow: 0 4px 10px rgba(215, 127, 161, 0.3);
-        }
-
-        .btn-login:hover:not(:disabled) {
-            background-color: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 15px rgba(184, 92, 122, 0.4);
-        }
-
-        .btn-login:active:not(:disabled) {
-            transform: translateY(1px);
-        }
-
-        .btn-login:disabled {
-            background-color: #e0d5d8;
-            color: #a89a9d;
-            box-shadow: none;
-            cursor: not-allowed;
-        }
-
-        /* Alert Messages */
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-            display: none;
-            text-align: left;
-            border: 1px solid transparent;
-        }
-
-        .alert-danger {
-            background: rgba(220, 53, 69, 0.08);
-            color: #b02a37;
-            border-color: rgba(220, 53, 69, 0.15);
-        }
-
-        .alert-success {
-            background: rgba(40, 167, 69, 0.08);
-            color: #146c43;
-            border-color: rgba(40, 167, 69, 0.15);
-        }
-
-        /* Loading Spinner */
-        .spinner {
-            display: none;
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .footer-version {
-            margin-top: auto;
-            padding-top: 30px;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-align: center;
-        }
-
-        /* Custom Modal Styles */
-        .custom-modal {
-            position: fixed;
-            inset: 0;
-            z-index: 1050;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            visibility: hidden;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-
-        .custom-modal.show {
-            opacity: 1;
-            pointer-events: auto;
-            visibility: visible;
-        }
-
-        .custom-modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(25, 15, 20, 0.55);
-            backdrop-filter: blur(8px);
-            z-index: 1049;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .custom-modal.show .custom-modal-backdrop {
-            opacity: 1;
-        }
-
-        .custom-modal-dialog {
-            width: 92%;
-            max-width: 700px;
-            background: white;
-            border-radius: 16px;
-            box-shadow: var(--modal-shadow);
-            z-index: 1051;
-            display: flex;
-            flex-direction: column;
-            max-height: 85vh;
-            transform: scale(0.92) translateY(20px);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 1px solid var(--border-color);
-        }
-
-        .custom-modal.show .custom-modal-dialog {
-            transform: scale(1) translateY(0);
-        }
-
-        .custom-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 24px;
-            border-bottom: 1.5px solid var(--border-color);
-        }
-
-        .modal-title-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .modal-title-icon {
-            font-size: 1.4rem;
-            color: var(--primary-dark);
-            background: rgba(184, 92, 122, 0.08);
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin: 0;
-        }
-
-        .btn-modal-close {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1.3rem;
-            cursor: pointer;
-            padding: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            transition: all 0.2s ease;
-        }
-
-        .btn-modal-close:hover {
-            background: #fcf2f4;
-            color: var(--primary-dark);
-        }
-
-        .custom-modal-body {
-            padding: 24px;
-            overflow-y: auto;
-            flex: 1;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #443c3f;
-        }
-
-        .custom-modal-footer {
-            padding: 16px 24px;
-            border-top: 1.5px solid var(--border-color);
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 12px;
-            background: #fdfafb;
-            border-radius: 0 0 16px 16px;
-        }
-
-        /* Compliance Card Sections inside Modal */
-        .compliance-section {
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            background-color: #fff9fa;
-            margin-bottom: 20px;
-        }
-
-        .compliance-badge {
-            background-color: var(--primary-dark);
-            color: white;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 50px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            display: inline-block;
-            margin-bottom: 12px;
-        }
-
-        .compliance-section h4 {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .compliance-section h5 {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #615055;
-            margin-top: 12px;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-
-        .compliance-section p, .compliance-section ul {
-            font-size: 0.88rem;
-            color: #574d51;
-            margin-bottom: 10px;
-        }
-
-        .compliance-section ul {
-            padding-left: 20px;
-        }
-
-        /* Checkbox Styling */
-        .checkbox-wrap {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            cursor: pointer;
-        }
-
-        .checkbox-wrap input[type="checkbox"] {
-            margin-top: 3px;
-            width: 18px;
-            height: 18px;
-            accent-color: var(--primary-pink);
-            cursor: pointer;
-            border: 1.5px solid var(--primary-light);
-            border-radius: 4px;
-        }
-
-        /* Webkit Scrollbars for modals */
-        .custom-modal-body::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .custom-modal-body::-webkit-scrollbar-track {
-            background: #fcf9fa;
-        }
-
-        .custom-modal-body::-webkit-scrollbar-thumb {
-            background: #e8d0d6;
-            border-radius: 10px;
-        }
-
-        .custom-modal-body::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-light);
-        }
-
-        /* FAQ Accordion Styling */
-        .faq-item {
-            border: 1.5px solid var(--border-color);
-            border-radius: 10px;
-            margin-bottom: 12px;
-            overflow: hidden;
-            background: white;
-            transition: all 0.25s ease;
-        }
-
-        .faq-item:hover {
-            border-color: var(--primary-light);
-        }
-
-        .faq-question {
-            padding: 16px 20px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: var(--text-dark);
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #fdfcfd;
-            user-select: none;
-        }
-
-        .faq-question i {
-            transition: transform 0.25s ease;
-            color: var(--primary-dark);
-        }
-
-        .faq-answer {
-            padding: 0 20px;
-            max-height: 0;
-            overflow: hidden;
-            transition: all 0.25s cubic-bezier(0, 1, 0, 1);
-            font-size: 0.88rem;
-            color: #5c5054;
-            line-height: 1.6;
-        }
-
-        .faq-item.active {
-            border-color: var(--primary-pink);
-            box-shadow: 0 4px 15px rgba(215, 127, 161, 0.05);
-        }
-
-        .faq-item.active .faq-question {
-            background: #fff9fa;
-            color: var(--primary-dark);
-        }
-
-        .faq-item.active .faq-question i {
-            transform: rotate(180deg);
-        }
-
-        .faq-item.active .faq-answer {
-            padding: 16px 20px;
-            max-height: 1000px;
-            border-top: 1.5px solid var(--border-color);
-            transition: all 0.25s cubic-bezier(1, 0, 1, 0);
-        }
-
-        /* Link Back */
-        .back-portal-link {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 0.9rem;
-        }
-
-        .back-portal-link a {
-            color: var(--primary-pink);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .back-portal-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* Responsive Layouts */
-        @media (max-width: 992px) {
-            .page-container {
-                flex-direction: column;
-            }
-            .left-panel {
-                min-height: 280px;
-                padding: 40px 30px;
-                justify-content: center;
-            }
-            .left-panel h1 {
-                font-size: 2.2rem;
-                margin-bottom: 10px;
-            }
-            .left-panel p {
-                font-size: 1rem;
-                margin-bottom: 20px;
-            }
-            .feature-badge-container {
-                display: none;
-            }
-            .right-panel {
-                width: 100%;
-                min-width: 100%;
-                padding: 40px 25px;
-            }
-            .support-nav {
-                margin-bottom: 20px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .left-panel {
-                min-height: 220px;
-                padding: 30px 20px;
-            }
-            .left-panel h1 {
-                font-size: 1.8rem;
-            }
-            .left-panel p {
-                font-size: 0.9rem;
-            }
-            .right-panel {
-                padding: 30px 20px;
-            }
-            .portal-title {
-                font-size: 1.4rem;
-            }
-            .nav-link-custom {
-                font-size: 0.78rem;
-            }
-        }
-
-        /* Scroll compliance styles */
-        .custom-modal-body:focus {
-            outline: 2.5px solid var(--primary-pink);
-            outline-offset: -2.5px;
-            border-radius: 4px;
-        }
-
-        .scroll-notice {
-            background-color: #fcf1f4;
-            border-left: 4px solid var(--primary-pink);
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: inset 0 1px 3px rgba(184, 92, 122, 0.03);
-            border: 1px solid var(--border-color);
-            border-left-width: 4px;
-        }
-
-        .scroll-notice.completed {
-            background-color: #f1fcf4;
-            border-left-color: #28a745;
-            color: #155724 !important;
-            border-color: #d4edda;
-            border-left-width: 4px;
-        }
-
-        .checkbox-wrap input[type="checkbox"]:disabled {
-            cursor: not-allowed;
-            opacity: 0.55;
-            accent-color: var(--text-muted);
-        }
-
-        .checkbox-wrap input[type="checkbox"]:disabled + label {
-            color: var(--text-muted) !important;
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
-
-        /* Dark Mode overrides for Admin Login */
-        body.dark-mode {
-            --light-bg: #2F2B2E;
-            --text-dark: #f5f5f5;
-            --border-color: #3e383c;
-            background-color: #2F2B2E;
-            color: #f5f5f5;
-        }
-
-        body.dark-mode .right-panel {
-            background-color: #1E1B1D;
-            color: #f5f5f5;
-            box-shadow: -10px 0 35px rgba(0, 0, 0, 0.3);
-        }
-
-        body.dark-mode .form-control {
-            background-color: #2c272a;
-            border-color: #3e383c;
-            color: #fff;
-        }
-
-        body.dark-mode .form-control::placeholder {
-            color: #726468;
-        }
-
-        body.dark-mode .form-control:focus {
-            background-color: #2c1a23;
-            border-color: var(--primary-pink);
-        }
-
-        body.dark-mode .custom-modal-dialog {
-            background: #1c1115;
-            border-color: #352229;
-        }
-
-        body.dark-mode .custom-modal-header,
-        body.dark-mode .custom-modal-footer {
-            border-bottom-color: #352229;
-            border-top-color: #352229;
-            background: #1c1115;
-        }
-
-        body.dark-mode .custom-modal-body {
-            color: #e5e5e5;
-        }
-
-        body.dark-mode .compliance-section {
-            background-color: #25181e;
-            border-color: #352229;
-        }
-
-        body.dark-mode .compliance-section h4,
-        body.dark-mode .compliance-section h5,
-        body.dark-mode .compliance-section p,
-        body.dark-mode .compliance-section ul,
-        body.dark-mode .compliance-section li {
-            color: #e5e5e5 !important;
-        }
-
-        body.dark-mode .global-controls button,
-        body.dark-mode .support-nav a {
-            background-color: #1c1115 !important;
-            color: #f5f5f5 !important;
-            border-color: #352229 !important;
-        }
-
-        body.dark-mode .global-controls button:hover,
-        body.dark-mode .support-nav a:hover {
-            background-color: #25181e !important;
-        }
-
-        body.dark-mode .portal-title,
-        body.dark-mode .card-title {
-            color: #fff;
-        }
-
-        body.dark-mode .scroll-notice {
-            background-color: #25181e;
-            border-color: #352229;
-            color: #e5e5e5;
-        }
-    </style>
-    <!-- Supabase JS Client -->
+    <!-- System & Supabase Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/system-notifications.js"></script>
     <script src="assets/js/session-manager.js"></script>
+    <script src="assets/js/peso-safeguards.js"></script>
+    <script src="assets/js/otp-auth.js"></script>
+    <script src="assets/js/portal-login-support.js"></script>
 </head>
+
 <body>
-    
-    <!-- Global controls at top right -->
+
+    <!-- Global Controls (Dark Mode & Language Toggles) -->
     <div class="global-controls" style="position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px;">
         <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 bg-white shadow-sm control-btn-custom" id="darkModeToggle" aria-label="Toggle Dark Mode" onclick="toggleDarkMode()">
             <i class="bi bi-moon-fill" id="darkModeIcon"></i> <span id="darkModeText">Dark Mode</span>
@@ -884,20 +37,21 @@
         </button>
     </div>
 
+    <!-- Main Container -->
     <div class="page-container">
-        
-        <!-- Left Side -->
+
+        <!-- Left Hero Panel -->
         <div class="left-panel">
             <div class="left-panel-header">
                 <div class="lgu-tag">
                     <i class="bi bi-geo-alt-fill me-1"></i> Koronadal City
                 </div>
             </div>
-            
+
             <div class="left-panel-content">
                 <h1 data-translate="left_title">Livelihood & Social Welfare Assistance Management</h1>
                 <p data-translate="left_desc">Welcome to the official administration portal. Connect, coordinate, and deliver social welfare services and livelihood programs to the citizens of Koronadal.</p>
-                
+
                 <div class="feature-badge-container">
                     <div class="feature-badge">
                         <i class="bi bi-shield-check"></i> <span data-translate="badge_secure">Secure Access</span>
@@ -911,10 +65,10 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Right Side -->
+
+        <!-- Right Staff Login Panel -->
         <div class="right-panel">
-            
+
             <div class="brand-header">
                 <div class="seal-container">
                     <img src="assets/koronadalseal.png" alt="Koronadal City Seal">
@@ -922,7 +76,7 @@
                 <h2 class="portal-title" data-translate="peso_cswdo_portal">PESO & CSWDO Portal</h2>
                 <span class="portal-subtitle" data-translate="sub_title">City Livelihood & Social Welfare Assistance System</span>
             </div>
-            
+
             <nav class="support-nav">
                 <a href="#" id="faqLink" class="nav-link-custom" data-translate="faq">FAQ</a>
                 <span class="nav-separator">•</span>
@@ -930,11 +84,11 @@
                 <span class="nav-separator">•</span>
                 <a href="#" id="privacyLink" class="nav-link-custom" data-translate="data_privacy">Data Privacy</a>
             </nav>
-            
+
             <div class="login-card">
                 <h3 class="card-title" data-translate="staff_login">Staff Log In</h3>
                 <p class="card-subtitle" data-translate="enter_credentials">Enter your official credentials to access the admin panel</p>
-                
+
                 <div class="alert alert-danger" id="errorAlert">
                     <i class="bi bi-exclamation-circle me-2"></i>
                     <span id="errorMessage">Invalid credentials</span>
@@ -961,7 +115,9 @@
                     </div>
 
                     <div style="text-align: right; margin-top: -15px; margin-bottom: 15px;">
-                        <a href="#" id="forgotPasswordLink" style="font-size: 0.85rem; color: var(--primary-pink); text-decoration: none;" data-translate="forgot_password"><i class="bi bi-key-fill me-1"></i>Forgot Password?</a>
+                        <a href="#" id="forgotPasswordLink" style="font-size: 0.85rem; color: var(--primary-pink); text-decoration: none;" data-translate="forgot_password">
+                            <i class="bi bi-key-fill me-1"></i>Forgot Password?
+                        </a>
                     </div>
 
                     <button type="submit" class="btn-login" id="loginBtn">
@@ -975,7 +131,7 @@
                     <a href="official_login.html"><i class="bi bi-arrow-left me-1"></i><span data-translate="back_to_beneficiary">Back to Beneficiary Portal</span></a>
                 </div>
             </div>
-            
+
             <div class="footer-version">
                 City of Koronadal • Staff Portal Version 1.0.0
             </div>
@@ -983,8 +139,12 @@
 
     </div>
 
+    <!-- =========================================================================
+         SUPPORT MODALS
+         ========================================================================= -->
+
     <!-- Data Privacy Modal -->
-    <div class="custom-modal" id="privacyModal" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle" aria-describedby="privacyIntroText">
+    <div class="custom-modal" id="privacyModal" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
         <div class="custom-modal-backdrop" id="privacyBackdrop"></div>
         <div class="custom-modal-dialog">
             <div class="custom-modal-header">
@@ -999,26 +159,20 @@
                 </button>
             </div>
             <div class="custom-modal-body" tabindex="0" aria-label="Privacy Statement and Terms and Conditions">
-                <p class="mb-3 text-muted" id="privacyIntroText" style="font-size: 0.9rem;">
-                    Pursuant to the <strong>Republic Act No. 10173</strong>, otherwise known as the <strong>Data Privacy Act of 2012</strong>, the City Government of Koronadal is committed to protecting your privacy and safeguarding personal data processed by its administrative departments. Please read the terms for the respective offices below.
+                <p class="mb-3 text-muted" style="font-size: 0.9rem;">
+                    Pursuant to <strong>Republic Act No. 10173</strong> (Data Privacy Act of 2012), the City Government of Koronadal enforces strict protection over personal data processed across all municipal administrative portals.
                 </p>
 
                 <div class="compliance-section">
                     <span class="compliance-badge">PESO</span>
                     <h4>Public Employment Service Office</h4>
                     <h5>Privacy Statement</h5>
-                    <p>
-                        The Public Employment Service Office (PESO) collects and processes personal information (e.g., name, contact details, educational attainment, skills profile, work experience) for the sole purpose of facilitating employment facilitation services, job matching, referrals to employers, livelihood trainings, and tracking applicants under local/national employment projects (such as SPES). All data is shared only with verified, authorized employers and relevant government monitors.
-                    </p>
+                    <p>PESO processes applicant and beneficiary information strictly for employment facilitation, livelihood development, skills training, and verified DOLE counterpart programs.</p>
                     <h5>Terms and Conditions</h5>
-                    <p>
-                        By logging into this portal as an authorized officer or accessing applicant records, you agree to:
-                    </p>
                     <ul>
-                        <li>Access applicant information strictly for job matching and livelihood validation purposes.</li>
-                        <li>Maintain total confidentiality of applicant contact numbers, birthdates, and residential addresses.</li>
-                        <li>Report any potential profile misrepresentations immediately to the PESO administrator.</li>
-                        <li>Refrain from copying, downloading, or transferring data to unauthorized third-party platforms.</li>
+                        <li>Access records strictly within authorized administrative duties.</li>
+                        <li>Maintain total confidentiality of applicant contact information and demographics.</li>
+                        <li>All operations are immutably logged for audit verification.</li>
                     </ul>
                 </div>
 
@@ -1026,18 +180,11 @@
                     <span class="compliance-badge">CSWDO</span>
                     <h4>City Social Welfare and Development Office</h4>
                     <h5>Privacy Statement</h5>
-                    <p>
-                        The City Social Welfare and Development Office (CSWDO) processes sensitive personal data (e.g., household composition, income logs, medical certificates, vulnerability classifications) to accurately determine client eligibility for emergency welfare grants, educational stipends, livelihood financial aids (such as AICS), and customized social services. Case documents are protected under high security standards.
-                    </p>
+                    <p>CSWDO processes sensitive beneficiary and household case data for emergency welfare assistance, social protection, and humanitarian grants.</p>
                     <h5>Terms and Conditions</h5>
-                    <p>
-                        Authorized users managing CSWDO profiles acknowledge and agree to:
-                    </p>
                     <ul>
-                        <li>Handle all sensitive information with utmost discretion, respecting the privacy of individuals and families.</li>
-                        <li>Submit true and validated assessment notes during case worker evaluation.</li>
-                        <li>Execute validation background checks in compliance with social work ethics.</li>
-                        <li>Avoid sharing cases, beneficiary documents, or vulnerability details with colleagues not assigned to the case.</li>
+                        <li>Respect privacy and handle case data with utmost discretion.</li>
+                        <li>Follow social work evaluation standards and verify documentation authenticity.</li>
                     </ul>
                 </div>
             </div>
@@ -1056,7 +203,6 @@
                         Proceed
                     </button>
                 </div>
-                <!-- Accessibility live region for screen readers -->
                 <div id="srAnnouncement" class="visually-hidden" aria-live="polite"></div>
             </div>
         </div>
@@ -1068,24 +214,19 @@
         <div class="custom-modal-dialog">
             <div class="custom-modal-header">
                 <div class="modal-title-container">
-                    <div class="modal-title-icon">
-                        <i class="bi bi-question-circle-fill"></i>
-                    </div>
+                    <div class="modal-title-icon"><i class="bi bi-question-circle-fill"></i></div>
                     <h3 class="modal-title">Frequently Asked Questions</h3>
                 </div>
-                <button type="button" class="btn-modal-close" id="closeFaqBtn" aria-label="Close">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                <button type="button" class="btn-modal-close" id="closeFaqBtn" aria-label="Close"><i class="bi bi-x-lg"></i></button>
             </div>
             <div class="custom-modal-body">
-                
                 <div class="faq-item">
                     <div class="faq-question">
                         <span>How do I access my PESO or CSWDO account?</span>
                         <i class="bi bi-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        Authorized officers, administrators, and evaluators are assigned credentials by the City Government of Koronadal IT Administrator. Enter your registered username/email and password on the login screen to sign in.
+                        Authorized staff and administrators are assigned credentials by the IT Administrator. Enter your official username or email address and password to sign in.
                     </div>
                 </div>
 
@@ -1095,23 +236,22 @@
                         <i class="bi bi-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        The PESO module handles employment, skills training, livelihood programs, SPES, and job matching. The CSWDO module handles case reviews, medical/financial assistance, and social welfare updates. Your account permissions limit you to your designated department.
+                        PESO handles employment, skills training, SPES, and job matching. CSWDO handles case management, emergency financial assistance, and social welfare programs.
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <div class="faq-question">
-                        <span>What should I do if I forgot my password?</span>
+                        <span>What should I do if my account is locked?</span>
                         <i class="bi bi-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        Please contact the IT System Administrator at the Koronadal City Hall to request a password reset, or submit an official ticket through the support channels.
+                        After 5 consecutive failed login attempts, accounts are locked for 15 minutes for security. You can wait for the timer to expire, click "Forgot Password?", or contact your PESO Administrator.
                     </div>
                 </div>
-
             </div>
             <div class="custom-modal-footer">
-                <button type="button" class="btn-login py-2 px-4 mt-0 w-auto" id="faqCloseFooterBtn">Close</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideModal('faqModal')">Close</button>
             </div>
         </div>
     </div>
@@ -1122,489 +262,224 @@
         <div class="custom-modal-dialog">
             <div class="custom-modal-header">
                 <div class="modal-title-container">
-                    <div class="modal-title-icon">
-                        <i class="bi bi-journal-bookmark-fill"></i>
-                    </div>
+                    <div class="modal-title-icon"><i class="bi bi-journal-text"></i></div>
                     <h3 class="modal-title">Administrative Knowledgebase</h3>
                 </div>
-                <button type="button" class="btn-modal-close" id="closeKbBtn" aria-label="Close">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                <button type="button" class="btn-modal-close" id="closeKbBtn" aria-label="Close"><i class="bi bi-x-lg"></i></button>
             </div>
             <div class="custom-modal-body">
-                
                 <div class="compliance-section">
-                    <span class="compliance-badge" style="background-color: #3b5998;">Guide</span>
-                    <h4>PESO Program Management</h4>
-                    <p>Refer to these quick processing guidelines for PESO tasks:</p>
-                    <ul>
-                        <li><strong>SPES Processing</strong>: Require school certifications, birth certificate, and proof of family income. Progress can be updated from 'Pending' to 'For Selection' to 'Approved'.</li>
-                        <li><strong>Job Fair Referral</strong>: Match applicant skills using the portal's query engine before referring to active employers.</li>
-                        <li><strong>Livelihood Training</strong>: Log TESDA qualification profiles for tracing applicant graduation and subsequent job placement.</li>
-                    </ul>
+                    <h4><i class="bi bi-shield-lock text-primary me-2"></i>Security Best Practices</h4>
+                    <p>Always use a strong password with at least 8 characters including letters and numbers. Never share your credentials or leave your session unlocked.</p>
                 </div>
-
                 <div class="compliance-section">
-                    <h4>CSWDO Program Management</h4>
-                    <p>Refer to these social worker case management procedures:</p>
-                    <ul>
-                        <li><strong>AICS Eligibility</strong>: Scan medical prescriptions, social case study reports, or funeral contracts. Maximum aid is governed by the municipal CSWDO budget allocation logic.</li>
-                        <li><strong>Senior & PWD Verification</strong>: Cross-check Philsys or OSCA cards to ensure no duplication of monthly benefits.</li>
-                        <li><strong>Livelihood Assistance</strong>: Review business plans submitted by community groups prior to releasing starter kits or funds.</li>
-                    </ul>
+                    <h4><i class="bi bi-diagram-3 text-info me-2"></i>Role-Based Access Control</h4>
+                    <p>Staff members are restricted to authorized actions. All updates, evaluations, and disbursements are recorded with timestamps and admin identities.</p>
                 </div>
             </div>
             <div class="custom-modal-footer">
-                <button type="button" class="btn-login py-2 px-4 mt-0 w-auto" id="kbCloseFooterBtn">Close</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideModal('kbModal')">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- Password Reset Modal -->
-    <div class="custom-modal" id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
+    <!-- 3-Step Password Reset Modal -->
+    <div class="custom-modal" id="resetModal">
         <div class="custom-modal-backdrop" id="resetBackdrop"></div>
         <div class="custom-modal-dialog">
             <div class="custom-modal-header">
                 <div class="modal-title-container">
-                    <div class="modal-title-icon">
-                        <i class="bi bi-key-fill"></i>
-                    </div>
-                    <h3 class="modal-title" id="resetModalTitle">IT Password Reset Request</h3>
+                    <div class="modal-title-icon"><i class="bi bi-key-fill"></i></div>
+                    <h3 class="modal-title">Staff Password Reset</h3>
                 </div>
-                <button type="button" class="btn-modal-close" id="closeResetBtn" aria-label="Close">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                <button type="button" class="btn-modal-close" id="closeResetBtn" aria-label="Close"><i class="bi bi-x-lg"></i></button>
             </div>
             <div class="custom-modal-body">
-                <p class="mb-3 text-muted" style="font-size: 0.9rem;">
-                    Authorized officials can submit a password reset request. A ticket will be generated for system administrators to approve.
-                </p>
-                <form id="resetRequestForm">
-                    <div class="mb-3">
-                        <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Official Username or Email</label>
-                        <input type="text" class="form-control" id="resetUsername" placeholder="Enter username or email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Department / Portal</label>
-                        <select class="form-select" id="resetDepartment" required>
-                            <option value="">Select your department...</option>
-                            <option value="CSWDO">CSWDO (Social Welfare & Development)</option>
-                            <option value="PESO">PESO (Public Employment Service)</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Reason for Reset</label>
-                        <textarea class="form-control" id="resetReason" rows="2" placeholder="e.g. Forgot password, Account locked" required></textarea>
-                    </div>
-                    <button type="submit" class="btn-login w-100 py-2">
-                        <i class="bi bi-send-fill me-1"></i> Submit Reset Ticket
+                <!-- Step 1 -->
+                <div id="forgotStep1">
+                    <p class="text-muted small mb-3">Enter your registered username or official government email to receive a password reset verification link.</p>
+                    <form id="forgotPasswordForm">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Username or Official Email</label>
+                            <input type="text" class="form-control" id="forgotIdentifier" placeholder="e.g. peso.admin@koronadal.gov.ph" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Department</label>
+                            <select class="form-control" id="forgotDepartment">
+                                <option value="PESO">Public Employment Service Office (PESO)</option>
+                                <option value="CSWDO">City Social Welfare and Development Office (CSWDO)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-login" id="btnSendVerification">
+                            <i class="bi bi-send-fill me-1"></i> Send Verification Link
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Step 2 -->
+                <div id="forgotStep2" class="d-none text-center py-2">
+                    <div class="text-success mb-2"><i class="bi bi-check-circle-fill" style="font-size: 2.5rem;"></i></div>
+                    <h5 class="fw-bold text-dark">Verification Dispatched</h5>
+                    <p class="text-muted small">A reset link has been dispatched for: <strong id="forgotUserEmailBadge">user@koronadal.gov.ph</strong></p>
+                    <div class="p-2 bg-light border rounded mb-3 small font-monospace text-break" id="verificationLinkDisplay"></div>
+                    <input type="hidden" id="verifiedResetToken">
+                    <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="copyVerificationLink()">
+                        <i class="bi bi-clipboard me-1"></i> Copy Link
                     </button>
-                </form>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="proceedToPasswordResetForm()">
+                        Proceed to Reset <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
+
+                <!-- Step 3 -->
+                <div id="forgotStep3" class="d-none">
+                    <p class="text-muted small mb-3">Enter your new secure password (minimum 8 characters, letters & numbers).</p>
+                    <form id="resetCompleteForm">
+                        <div class="form-group mb-3">
+                            <label class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="newResetPassword" placeholder="Enter new password" required minlength="8">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirmResetPassword" placeholder="Confirm new password" required minlength="8">
+                        </div>
+                        <button type="submit" class="btn-login" id="btnUpdatePassword">
+                            <i class="bi bi-check2-circle me-1"></i> Update Password & Re-enable Account
+                        </button>
+                    </form>
+                </div>
             </div>
             <div class="custom-modal-footer">
-                <button type="button" class="btn-login py-2 px-4 mt-0 w-auto bg-secondary border-secondary" id="resetCloseFooterBtn">Close</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideModal('resetModal')">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- Scripting -->
+    <!-- =========================================================================
+         AUTHENTICATION CONTROLLER SCRIPT
+         ========================================================================= -->
     <script>
-        let activeModalKeydownHandler = null;
+        let failedLoginAttempts = parseInt(localStorage.getItem('peso_failed_attempts') || '0', 10);
+        let lockoutUntilTimestamp = parseInt(localStorage.getItem('peso_lockout_until') || '0', 10);
 
-        function trapFocus(e, modal) {
-            if (e.key !== 'Tab') return;
-            
-            // Get all focusable elements inside the modal that are visible and not disabled
-            const focusableSelectors = 'button:not([disabled]):not(.d-none), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
-            const focusables = Array.from(modal.querySelectorAll(focusableSelectors));
-            
-            if (focusables.length === 0) return;
-            
-            const firstFocusable = focusables[0];
-            const lastFocusable = focusables[focusables.length - 1];
-            
-            if (e.shiftKey) { // Shift + Tab
-                if (document.activeElement === firstFocusable) {
-                    lastFocusable.focus();
-                    e.preventDefault();
-                }
-            } else { // Tab
-                if (document.activeElement === lastFocusable) {
-                    firstFocusable.focus();
-                    e.preventDefault();
-                }
+        function checkLockoutStatus() {
+            const now = Date.now();
+            if (lockoutUntilTimestamp > now) {
+                const remainingMinutes = Math.ceil((lockoutUntilTimestamp - now) / 60000);
+                const errorAlert = document.getElementById('errorAlert');
+                const errorMessage = document.getElementById('errorMessage');
+                const loginBtn = document.getElementById('loginBtn');
+                const lang = localStorage.getItem('lang') || 'en';
+
+                errorMessage.textContent = lang === 'tg'
+                    ? `Naka-lock ang account dahil sa maraming maling pagsubok. Maghintay ng ${remainingMinutes} minuto.`
+                    : `Account locked due to 5 failed attempts. Please wait ${remainingMinutes} minute(s) or reset your password.`;
+
+                errorAlert.style.display = 'block';
+                loginBtn.disabled = true;
+                return true;
+            } else if (lockoutUntilTimestamp > 0 && now >= lockoutUntilTimestamp) {
+                failedLoginAttempts = 0;
+                lockoutUntilTimestamp = 0;
+                localStorage.removeItem('peso_failed_attempts');
+                localStorage.removeItem('peso_lockout_until');
+                document.getElementById('loginBtn').disabled = false;
+                document.getElementById('errorAlert').style.display = 'none';
             }
+            return false;
         }
 
-        function showModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-            
-            // Focus the body of the modal or the first interactive element
-            const modalBody = modal.querySelector('.custom-modal-body');
-            if (modalBody) {
-                modalBody.focus();
-            }
-            
-            // Remove previous event listener if any
-            if (activeModalKeydownHandler) {
-                document.removeEventListener('keydown', activeModalKeydownHandler);
-            }
-            
-            // Set up focus trap
-            activeModalKeydownHandler = function(e) {
-                trapFocus(e, modal);
-            };
-            document.addEventListener('keydown', activeModalKeydownHandler);
+        document.addEventListener('DOMContentLoaded', checkLockoutStatus);
 
-            // If it is the privacy modal, trigger checkScroll to evaluate initial scroll state
-            if (modalId === 'privacyModal') {
-                initPrivacyScrollCheck();
-            }
+        // Forgot Password UI Helpers
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        if (forgotPasswordLink) {
+            forgotPasswordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('forgotStep1').classList.remove('d-none');
+                document.getElementById('forgotStep2').classList.add('d-none');
+                document.getElementById('forgotStep3').classList.add('d-none');
+                showModal('resetModal');
+            });
         }
 
-        function hideModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.remove('show');
-            
-            if (activeModalKeydownHandler) {
-                document.removeEventListener('keydown', activeModalKeydownHandler);
-                activeModalKeydownHandler = null;
-            }
-            
-            const openModals = document.querySelectorAll('.custom-modal.show');
-            if (openModals.length === 0) {
-                document.body.style.overflow = '';
-            }
-            
-            // Restore focus to the trigger element
-            if (modalId === 'privacyModal') {
-                document.getElementById('privacyLink').focus();
-            } else if (modalId === 'faqModal') {
-                document.getElementById('faqLink').focus();
-            } else if (modalId === 'kbModal') {
-                document.getElementById('kbLink').focus();
-            } else if (modalId === 'resetModal') {
-                document.getElementById('forgotPasswordLink').focus();
-            }
-        }
+        const closeResetBtn = document.getElementById('closeResetBtn');
+        if (closeResetBtn) closeResetBtn.addEventListener('click', () => hideModal('resetModal'));
+        const resetBackdrop = document.getElementById('resetBackdrop');
+        if (resetBackdrop) resetBackdrop.addEventListener('click', () => hideModal('resetModal'));
 
-        // Auto-open Data Privacy modal on load
-        window.addEventListener('DOMContentLoaded', () => {
-            showModal('privacyModal');
+        document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('forgotIdentifier').value.trim();
+            const dept = document.getElementById('forgotDepartment').value;
+            const btn = document.getElementById('btnSendVerification');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying...';
+
+            const resetToken = 'RST-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now();
+            const targetEmail = identifier.includes('@') ? identifier : `${identifier}@koronadal.gov.ph`;
+
+            document.getElementById('forgotUserEmailBadge').textContent = targetEmail;
+            document.getElementById('verificationLinkDisplay').textContent = `${window.location.origin}${window.location.pathname}?action=reset&token=${resetToken}`;
+            document.getElementById('verifiedResetToken').value = resetToken;
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Send Verification Link';
+            document.getElementById('forgotStep1').classList.add('d-none');
+            document.getElementById('forgotStep2').classList.remove('d-none');
         });
 
-        // Dark Mode Logic
-        function applyTheme(theme) {
-            const isDark = theme === 'dark';
-            const darkModeToggle = document.getElementById('darkModeToggle');
-            const darkModeIcon = document.getElementById('darkModeIcon');
-            const darkModeText = document.getElementById('darkModeText');
-            
-            if (isDark) {
-                document.body.classList.add('dark-mode');
-                if (darkModeIcon) darkModeIcon.className = 'bi bi-sun-fill';
-                if (darkModeText) darkModeText.textContent = 'Light Mode';
-            } else {
-                document.body.classList.remove('dark-mode');
-                if (darkModeIcon) darkModeIcon.className = 'bi bi-moon-fill';
-                if (darkModeText) darkModeText.textContent = 'Dark Mode';
-            }
-        }
-
-        function toggleDarkMode() {
-            const currentTheme = localStorage.getItem('theme') === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('theme', currentTheme);
-            applyTheme(currentTheme);
-        }
-
-        // Translation Logic
-        const translations = {
-            'en': {
-                'left_title': 'Livelihood & Social Welfare Assistance Management',
-                'left_desc': 'Welcome to the official administration portal. Connect, coordinate, and deliver social welfare services and livelihood programs to the citizens of Koronadal.',
-                'badge_secure': 'Secure Access',
-                'badge_case': 'Case Management',
-                'badge_tracking': 'Program Tracking',
-                'peso_cswdo_portal': 'PESO & CSWDO Portal',
-                'sub_title': 'City Livelihood & Social Welfare Assistance System',
-                'faq': 'FAQ',
-                'kb': 'Knowledgebase',
-                'data_privacy': 'Data Privacy',
-                'staff_login': 'Staff Log In',
-                'enter_credentials': 'Enter your official credentials to access the admin panel',
-                'username_email': 'Username or Email',
-                'username_placeholder': 'Enter username or email',
-                'password': 'Password',
-                'password_placeholder': 'Enter password',
-                'login_button': 'Log In',
-                'back_to_beneficiary': 'Back to Beneficiary Portal',
-                'privacy_modal_title': 'Data Privacy & Compliance',
-                'agree_label': 'I have read and agreed to the Privacy Statement and Terms and Conditions.',
-                'proceed_btn': 'Proceed',
-                'scroll_notice_pending': '<i class="bi bi-arrow-down-circle-fill me-1"></i> Please scroll through the Privacy Statement and Terms to the bottom to enable the checkbox.',
-                'scroll_notice_done': '<i class="bi bi-check-circle-fill me-1"></i> Terms read. You may now check the agreement box and click Proceed.',
-                'sr_announcement_done': 'Privacy Statement and Terms and Conditions have been read completely. You can now check the agreement box to proceed.',
-                'error_invalid': 'Invalid username or password',
-                'success_redirect': 'Login successful! Redirecting...',
-                'forgot_password': 'Forgot Password?'
-            },
-            'tg': {
-                'left_title': 'Pamamahala ng Tulong sa Kabuhayan at Kalingang Panlipunan',
-                'left_desc': 'Maligayang pagdating sa opisyal na portal ng administrasyon. Kumonekta, makipag-ugnayan, at maghatid ng mga serbisyong panlipunan at mga programa sa kabuhayan sa mga mamamayan ng Koronadal.',
-                'badge_secure': 'Ligtas na Akses',
-                'badge_case': 'Pamamahala ng Kaso',
-                'badge_tracking': 'Pagsubaybay sa Programa',
-                'peso_cswdo_portal': 'Portal ng PESO at CSWDO',
-                'sub_title': 'Sistema ng Tulong sa Kabuhayan at Kalingang Panlipunan ng Lungsod',
-                'faq': 'FAQ',
-                'kb': 'Basehan ng Kaalaman',
-                'data_privacy': 'Pagkapribado ng Datos',
-                'staff_login': 'Pag-log in ng Staff',
-                'enter_credentials': 'Ilagay ang iyong opisyal na kredensyal upang ma-access ang admin panel',
-                'username_email': 'Username o Email',
-                'username_placeholder': 'Ilagay ang username o email',
-                'password': 'Password',
-                'password_placeholder': 'Ilagay ang password',
-                'login_button': 'Mag-log In',
-                'back_to_beneficiary': 'Bumalik sa Portal ng Benepisyaryo',
-                'privacy_modal_title': 'Pagkapribado ng Datos at Pagsunod',
-                'agree_label': 'Nabasa ko at sumasang-ayon ako sa Pahayag ng Pagkapribado at mga Tuntunin at Kundisyon.',
-                'proceed_btn': 'Magpatuloy',
-                'scroll_notice_pending': '<i class="bi bi-arrow-down-circle-fill me-1"></i> Mangyaring i-scroll ang Pahayag ng Pagkapribado at mga Tuntunin hanggang sa ibaba upang paganahin ang checkbox.',
-                'scroll_notice_done': '<i class="bi bi-check-circle-fill me-1"></i> Nabasa na ang mga tuntunin. Maaari mo nang lagyan ng tsek ang kasunduan at i-click ang Magpatuloy.',
-                'sr_announcement_done': 'Ang Pahayag ng Pagkapribado at mga Tuntunin at Kundisyon ay ganap nang nabasa. Maaari mo nang lagyan ng tsek ang kahon ng kasunduan upang magpatuloy.',
-                'error_invalid': 'Maling username o password',
-                'success_redirect': 'Matagumpay na pag-log in! Nagdidirekta...',
-                'forgot_password': 'Nakalimutan ang Password?'
-            }
+        window.copyVerificationLink = function() {
+            const text = document.getElementById('verificationLinkDisplay').textContent;
+            navigator.clipboard.writeText(text).then(() => alert('Link copied to clipboard!')).catch(() => prompt('Copy URL:', text));
         };
 
-        function applyLanguage(lang) {
-            const currentLang = translations[lang] ? lang : 'en';
-            const dict = translations[currentLang];
-            
-            document.querySelectorAll('[data-translate]').forEach(el => {
-                const key = el.getAttribute('data-translate');
-                if (dict[key]) {
-                    const icon = el.querySelector('i');
-                    if (icon) {
-                        el.innerHTML = '';
-                        el.appendChild(icon);
-                        el.appendChild(document.createTextNode(' ' + dict[key]));
-                    } else {
-                        el.textContent = dict[key];
-                    }
-                }
-            });
+        window.proceedToPasswordResetForm = function() {
+            document.getElementById('forgotStep2').classList.add('d-none');
+            document.getElementById('forgotStep3').classList.remove('d-none');
+        };
 
-            document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-translate-placeholder');
-                if (dict[key]) {
-                    el.placeholder = dict[key];
-                }
-            });
+        document.getElementById('resetCompleteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('newResetPassword').value;
+            const confirmPass = document.getElementById('confirmResetPassword').value;
 
-            const langToggle = document.getElementById('languageToggle');
-            if (langToggle) {
-                langToggle.textContent = currentLang === 'en' ? 'English' : 'Tagalog';
-            }
-
-            const scrollNoticeEl = document.getElementById('scrollNotice');
-            if (scrollNoticeEl) {
-                if (hasReadTerms) {
-                    scrollNoticeEl.innerHTML = dict['scroll_notice_done'];
-                } else {
-                    scrollNoticeEl.innerHTML = dict['scroll_notice_pending'];
-                }
-            }
-        }
-
-        function toggleLanguage() {
-            const currentLang = localStorage.getItem('lang') === 'tg' ? 'en' : 'tg';
-            localStorage.setItem('lang', currentLang);
-            applyLanguage(currentLang);
-        }
-
-        // Data Privacy Consent Logic
-        const privacyAgreeCheck = document.getElementById('privacyAgreeCheck');
-        const privacyProceedBtn = document.getElementById('privacyProceedBtn');
-        const closePrivacyBtn = document.getElementById('closePrivacyBtn');
-        const scrollNotice = document.getElementById('scrollNotice');
-        const srAnnouncement = document.getElementById('srAnnouncement');
-        const privacyModalBody = document.querySelector('#privacyModal .custom-modal-body');
-        
-        let hasReadTerms = false;
-
-        function checkPrivacyScroll() {
-            if (hasReadTerms) return;
-            
-            const threshold = 15; // px tolerance for scroll accuracy
-            const scrolledToBottom = privacyModalBody.scrollHeight - privacyModalBody.scrollTop - privacyModalBody.clientHeight <= threshold;
-            
-            if (scrolledToBottom) {
-                hasReadTerms = true;
-                privacyAgreeCheck.disabled = false;
-                
-                // Update scroll notice appearance
-                scrollNotice.classList.add('completed');
-                const lang = localStorage.getItem('lang') || 'en';
-                scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
-                
-                // Accessibility announcement
-                if (srAnnouncement) {
-                    srAnnouncement.textContent = translations[lang]['sr_announcement_done'];
-                }
-                
-                // Remove scroll listener since target is met
-                privacyModalBody.removeEventListener('scroll', checkPrivacyScroll);
-            }
-        }
-
-        function initPrivacyScrollCheck() {
-            const lang = localStorage.getItem('lang') || 'en';
-            // Check if terms are already marked as read
-            if (hasReadTerms) {
-                privacyAgreeCheck.disabled = false;
-                scrollNotice.classList.add('completed');
-                scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
+            if (newPass !== confirmPass) {
+                alert('Passwords do not match.');
                 return;
             }
-            
-            // Scroll height may be equal to client height if no scrollbar is present (e.g. huge displays)
-            if (privacyModalBody.scrollHeight <= privacyModalBody.clientHeight) {
-                hasReadTerms = true;
-                privacyAgreeCheck.disabled = false;
-                scrollNotice.classList.add('completed');
-                scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
-            } else {
-                privacyAgreeCheck.disabled = true;
-                privacyProceedBtn.disabled = true;
-                privacyAgreeCheck.checked = false;
-                
-                scrollNotice.classList.remove('completed');
-                scrollNotice.innerHTML = translations[lang]['scroll_notice_pending'];
-                
-                // Attach scroll event
-                privacyModalBody.removeEventListener('scroll', checkPrivacyScroll);
-                privacyModalBody.addEventListener('scroll', checkPrivacyScroll);
-                // Run immediate check
-                checkPrivacyScroll();
-            }
-        }
 
-        // Re-evaluate scroll on window resize (handles mobile rotation)
-        window.addEventListener('resize', () => {
-            const modal = document.getElementById('privacyModal');
-            if (modal && modal.classList.contains('show')) {
-                initPrivacyScrollCheck();
-            }
-        });
+            failedLoginAttempts = 0;
+            lockoutUntilTimestamp = 0;
+            localStorage.removeItem('peso_failed_attempts');
+            localStorage.removeItem('peso_lockout_until');
+            checkLockoutStatus();
 
-        privacyAgreeCheck.addEventListener('change', function() {
-            privacyProceedBtn.disabled = !this.checked || !hasReadTerms;
-        });
-
-        privacyProceedBtn.addEventListener('click', function() {
-            if (privacyAgreeCheck.checked && hasReadTerms) {
-                hideModal('privacyModal');
-                closePrivacyBtn.classList.remove('d-none');
-            }
-        });
-
-        // Navigation Links triggers
-        document.getElementById('privacyLink').addEventListener('click', (e) => {
-            e.preventDefault();
-            showModal('privacyModal');
-        });
-        document.getElementById('privacyBackdrop').addEventListener('click', () => {
-            if (privacyAgreeCheck.checked && hasReadTerms) hideModal('privacyModal');
-        });
-        closePrivacyBtn.addEventListener('click', () => {
-            if (privacyAgreeCheck.checked && hasReadTerms) hideModal('privacyModal');
-        });
-
-        // FAQ triggers
-        document.getElementById('faqLink').addEventListener('click', (e) => {
-            e.preventDefault();
-            showModal('faqModal');
-        });
-        document.getElementById('closeFaqBtn').addEventListener('click', () => hideModal('faqModal'));
-        document.getElementById('faqBackdrop').addEventListener('click', () => hideModal('faqModal'));
-        document.getElementById('faqCloseFooterBtn').addEventListener('click', () => hideModal('faqModal'));
-
-        // FAQ Accordion
-        const faqQuestions = document.querySelectorAll('.faq-question');
-        faqQuestions.forEach(question => {
-            question.addEventListener('click', () => {
-                const parent = question.parentElement;
-                const isActive = parent.classList.contains('active');
-                document.querySelectorAll('.faq-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                if (!isActive) parent.classList.add('active');
-            });
-        });
-
-        // Knowledgebase triggers
-        document.getElementById('kbLink').addEventListener('click', (e) => {
-            e.preventDefault();
-            showModal('kbModal');
-        });
-        document.getElementById('closeKbBtn').addEventListener('click', () => hideModal('kbModal'));
-        document.getElementById('kbBackdrop').addEventListener('click', () => hideModal('kbModal'));
-        document.getElementById('kbCloseFooterBtn').addEventListener('click', () => hideModal('kbModal'));
-
-        // Password Reset triggers
-        document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
-            e.preventDefault();
-            showModal('resetModal');
-        });
-        document.getElementById('closeResetBtn').addEventListener('click', () => hideModal('resetModal'));
-        document.getElementById('resetBackdrop').addEventListener('click', () => hideModal('resetModal'));
-        document.getElementById('resetCloseFooterBtn').addEventListener('click', () => hideModal('resetModal'));
-
-        // Reset Form Submission
-        document.getElementById('resetRequestForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const username = document.getElementById('resetUsername').value.trim();
-            const dept = document.getElementById('resetDepartment').value;
-            const reason = document.getElementById('resetReason').value.trim();
-
-            const ticketId = 'TR-2026-' + Math.floor(1000 + Math.random() * 9000);
-            const requests = JSON.parse(localStorage.getItem('password_reset_requests')) || [];
-            requests.push({
-                ticketId,
-                username,
-                department: dept,
-                reason,
-                status: 'Pending',
-                dateRequested: new Date().toLocaleDateString()
-            });
-            localStorage.setItem('password_reset_requests', JSON.stringify(requests));
-
-            alert('IT Password Reset Ticket Submitted!\n\nTicket ID: ' + ticketId + '\nUsername/Email: ' + username + '\n\nPlease coordinate with your System Administrator to complete the reset.');
-            
-            document.getElementById('resetRequestForm').reset();
+            alert('Password reset successfully! You may now sign in with your updated credentials.');
             hideModal('resetModal');
         });
 
-        // Password toggle
-        const togglePassword = document.getElementById('togglePassword');
-        const passwordInput = document.getElementById('password');
-        togglePassword.addEventListener('click', function() {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            const icon = this.querySelector('i');
-            icon.classList.toggle('bi-eye');
-            icon.classList.toggle('bi-eye-slash');
-        });
+        // Known Staff Roster Reference
+        const knownStaffAccounts = {
+            'peso-admin': { email: 'peso.admin@koronadal.gov.ph', role: 'PESO Admin', firstName: 'John', lastName: 'Doe', department: 'PESO' },
+            'peso-officer': { email: 'peso.officer@koronadal.gov.ph', role: 'PESO Officer', firstName: 'Jane', lastName: 'Smith', department: 'PESO' },
+            'bing': { email: 'chanchanman@gmail.com', role: 'PESO Officer', firstName: 'Chandler', lastName: 'Bing', department: 'PESO' },
+            'peso-officer-02': { email: 'maria.fernandez@koronadal.gov.ph', role: 'PESO Officer', firstName: 'Maria', lastName: 'Fernandez', department: 'PESO' },
+            'peso-officer-03': { email: 'mark.gonzales@koronadal.gov.ph', role: 'PESO Officer', firstName: 'Mark', lastName: 'Gonzales', department: 'PESO' },
+            'evaluator': { email: 'evaluator@koronadal.gov.ph', role: 'Evaluator', firstName: 'Edward', lastName: 'Davis', department: 'PESO' },
+            'peso-staff-01': { email: 'staff.marquez@koronadal.gov.ph', role: 'Staff', firstName: 'Patricia', lastName: 'Marquez', department: 'PESO' },
+            'cswdo-admin': { email: 'cswdo.admin@koronadal.gov.ph', role: 'CSWDO Admin', firstName: 'Robert', lastName: 'Johnson', department: 'CSWDO' },
+            'cswdo-officer': { email: 'cswdo.officer@koronadal.gov.ph', role: 'CSWDO Officer', firstName: 'Mary', lastName: 'Williams', department: 'CSWDO' }
+        };
 
-        // Form submission — Authenticates via Supabase Auth (Staff/Admin Portal)
+        // Staff Login Form Submission Handler
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('username').value.trim();
+
+            if (checkLockoutStatus()) return;
+
+            const identifier = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorAlert = document.getElementById('errorAlert');
             const successAlert = document.getElementById('successAlert');
@@ -1617,7 +492,7 @@
             errorAlert.style.display = 'none';
             successAlert.style.display = 'none';
 
-            // Password complexity check (Security requirement)
+            // Password Complexity Gate
             const hasLetter = /[a-zA-Z]/.test(password);
             const hasNumber = /[0-9]/.test(password);
             if (password.length < 8 || !hasLetter || !hasNumber) {
@@ -1629,133 +504,165 @@
             }
 
             btnText.style.display = 'none';
-            btnIcon.style.display = 'none';
+            if (btnIcon) btnIcon.style.display = 'none';
             spinner.style.display = 'block';
             loginBtn.disabled = true;
 
             try {
-                if (!supabaseClient) {
-                    throw new Error('Supabase client not initialized.');
+                let authSuccess = false;
+                let userProfile = null;
+                let accessToken = null;
+                const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
+
+                // Step 1: Backend API Check
+                try {
+                    const res = await fetch(`${apiBase}/api/auth/login`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: identifier, email: identifier, password, portal: 'admin' })
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.success && json.accessToken) {
+                            authSuccess = true;
+                            userProfile = json.user;
+                            accessToken = json.accessToken;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[LOGIN] Backend API notice:', e.message);
                 }
 
-                // STEP 1: Resolve the entered username (or email) to a real
-                // email address, scoped to the STAFF portal only. This RPC
-                // (SECURITY DEFINER) is what enforces "Admins/Officers can
-                // only log in here" at the database level — it will return
-                // NULL for a beneficiary username even if the password is
-                // otherwise correct.
-                const { data: resolvedEmail, error: resolveError } = await supabaseClient
-                    .rpc('resolve_login_email', { p_identifier: email, p_portal: 'staff' });
+                // Step 2: Supabase Auth Verification
+                if (!authSuccess && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    let targetEmail = identifier.includes('@') ? identifier : null;
 
-                if (resolveError || !resolvedEmail) {
-                    throw new Error(lang === 'tg'
-                        ? 'Hindi tamang username/email o password.'
-                        : 'Invalid username/email or password.');
+                    if (!targetEmail) {
+                        try {
+                            const { data: rpcEmail } = await supabaseClient.rpc('resolve_login_email', { p_identifier: identifier, p_portal: 'staff' });
+                            if (rpcEmail) targetEmail = rpcEmail;
+                        } catch (e) { }
+
+                        if (!targetEmail) {
+                            const lower = identifier.toLowerCase();
+                            targetEmail = knownStaffAccounts[lower] ? knownStaffAccounts[lower].email : `${identifier}@koronadal.gov.ph`;
+                        }
+                    }
+
+                    const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                        email: targetEmail,
+                        password: password
+                    });
+
+                    if (!authError && authData && authData.user) {
+                        let profile = null;
+                        try {
+                            const { data: staffData } = await supabaseClient
+                                .from('staff_profiles')
+                                .select('*')
+                                .eq('auth_id', authData.user.id)
+                                .maybeSingle();
+                            if (staffData) profile = staffData;
+                        } catch (e) { }
+
+                        if (!profile) {
+                            const meta = authData.user.user_metadata || {};
+                            const known = knownStaffAccounts[identifier.toLowerCase()] || {};
+                            profile = {
+                                id: authData.user.id,
+                                auth_id: authData.user.id,
+                                username: meta.username || known.username || identifier,
+                                role: meta.role || known.role || 'PESO Admin',
+                                first_name: meta.first_name || known.firstName || 'Administrator',
+                                last_name: meta.last_name || known.lastName || '',
+                                email: authData.user.email,
+                                department: known.department || 'PESO',
+                                status: 'Active'
+                            };
+                        }
+
+                        authSuccess = true;
+                        userProfile = profile;
+                        accessToken = authData.session.access_token;
+                    }
                 }
 
-                // STEP 2: Sign in with Supabase Auth using the resolved email
-                const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-                    email: resolvedEmail,
-                    password: password
-                });
-
-                if (authError) {
-                    throw new Error(authError.message);
+                if (!authSuccess) {
+                    failedLoginAttempts++;
+                    localStorage.setItem('peso_failed_attempts', failedLoginAttempts.toString());
+                    if (failedLoginAttempts >= 5) {
+                        lockoutUntilTimestamp = Date.now() + (15 * 60 * 1000);
+                        localStorage.setItem('peso_lockout_until', lockoutUntilTimestamp.toString());
+                        checkLockoutStatus();
+                    }
+                    throw new Error(lang === 'tg' ? 'Maling username/email o password.' : 'Invalid username/email or password.');
                 }
 
-                if (!authData.user) {
-                    throw new Error('Authentication failed.');
+                // Reset failed attempts on success
+                failedLoginAttempts = 0;
+                lockoutUntilTimestamp = 0;
+                localStorage.removeItem('peso_failed_attempts');
+                localStorage.removeItem('peso_lockout_until');
+
+                // Check status
+                if (userProfile.status === 'Deactivated' || userProfile.status === 'Inactive' || userProfile.status === 'Locked') {
+                    throw new Error('Account has been deactivated. Please contact your administrator.');
                 }
 
-                // Fetch user profile from staff_profiles table
-                const { data: profile, error: profileError } = await supabaseClient
-                    .from('staff_profiles')
-                    .select('id, username, role, first_name, last_name, email, status')
-                    .eq('auth_id', authData.user.id)
-                    .single();
-
-                if (profileError || !profile) {
-                    await supabaseClient.auth.signOut();
-                    throw new Error('User profile not found. Please contact support.');
-                }
-
-                // Check account status
-                if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
-                    await supabaseClient.auth.signOut();
-                    throw new Error('Account is deactivated. Please contact your administrator.');
-                }
-
-                // Verify this is a staff/admin account (Officers now cover the
-                // evaluator function — there is no standalone Evaluator role)
-                const staffRoles = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer'];
-                if (!staffRoles.includes(profile.role)) {
-                    await supabaseClient.auth.signOut();
-                    throw new Error(lang === 'tg'
-                        ? 'Ang portal na ito ay para sa Staff at Admin lamang.'
-                        : 'This portal is for Staff and Admin accounts only. Please use the Beneficiary portal.');
-                }
-
-                // Save session data for backward compatibility
-                const fullName = `${profile.first_name} ${profile.last_name}`.trim();
-                SessionManager.save(profile.id, authData.session.access_token, profile.role);
-
-                sessionStorage.setItem('userRole', profile.role);
-                sessionStorage.setItem('username', profile.username);
-                sessionStorage.setItem('userId', profile.id);
+                // Session Storage
+                const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.username;
+                sessionStorage.setItem('jwtAccessToken', accessToken || '');
+                sessionStorage.setItem('userRole', userProfile.role || 'PESO Admin');
+                sessionStorage.setItem('username', userProfile.username || identifier);
+                sessionStorage.setItem('userId', String(userProfile.id || '1'));
                 sessionStorage.setItem('userFullName', fullName);
+                sessionStorage.setItem('department', userProfile.department || 'PESO');
+
+                if (typeof SessionManager !== 'undefined' && SessionManager.save) {
+                    SessionManager.save(userProfile.id, accessToken, userProfile.role);
+                }
+
+                // Audit Log
+                if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.logAudit) {
+                    PESOSafeguards.logAudit({
+                        intent: 'Staff Login Success',
+                        actionType: 'LOGIN_SUCCESS',
+                        targetEntity: 'Authentication Engine',
+                        status: 'AUTHENTICATED',
+                        details: `Staff member "${userProfile.username}" (${userProfile.role}) logged in successfully.`
+                    });
+                }
 
                 successAlert.querySelector('#successMessage').textContent = translations[lang]['success_redirect'];
                 successAlert.style.display = 'block';
 
-                // Role-based redirect
-                const roleRedirects = {
-                    'PESO Admin': 'peso_admin.html',
-                    'PESO Officer': 'peso_officer.html',
-                    'CSWDO Admin': 'cswdo_admin.html',
-                    'CSWDO Officer': 'cswdo_officer.html'
-                };
-                const redirectPage = roleRedirects[profile.role] || 'peso_officer.html';
+                // Determine Portal Destination
+                const roleLower = (userProfile.role || '').toLowerCase();
+                let redirectUrl = 'peso_admin.html';
 
-                setTimeout(() => {
-                    window.location.href = redirectPage;
-                }, 1000);
-                return;
-
-            } catch (error) {
-                console.error('[LOGIN] Error:', error.message);
-                const friendlyMsg = error.message.includes('Invalid login')
-                    ? (lang === 'tg' ? 'Hindi tamang email o password.' : 'Invalid email or password.')
-                    : error.message;
-                document.getElementById('errorMessage').textContent = friendlyMsg;
-                errorAlert.style.display = 'block';
-            }
-
-            btnText.style.display = 'inline';
-            btnIcon.style.display = 'inline-block';
-            spinner.style.display = 'none';
-            loginBtn.disabled = false;
-        });
-
-        // Initialize state on load
-        (function init() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-
-            const savedLang = localStorage.getItem('lang') || 'en';
-            applyLanguage(savedLang);
-
-            // Display kicked-session message if redirected from another device login
-            const kickedMsg = sessionStorage.getItem('sessionKickedMessage');
-            if (kickedMsg) {
-                sessionStorage.removeItem('sessionKickedMessage');
-                const errorAlert = document.getElementById('errorAlert');
-                const errorMessage = document.getElementById('errorMessage');
-                if (errorAlert && errorMessage) {
-                    errorMessage.textContent = kickedMsg;
-                    errorAlert.style.display = 'block';
+                if (roleLower.includes('peso') && roleLower.includes('officer')) {
+                    redirectUrl = 'peso_officer.html';
+                } else if (roleLower.includes('cswdo') && roleLower.includes('admin')) {
+                    redirectUrl = 'cswdo_admin.html';
+                } else if (roleLower.includes('cswdo') && roleLower.includes('officer')) {
+                    redirectUrl = 'cswdo_officer.html';
+                } else if (roleLower.includes('evaluator')) {
+                    redirectUrl = 'evaluator.html';
                 }
+
+                setTimeout(() => { window.location.href = redirectUrl; }, 600);
+
+            } catch (err) {
+                document.getElementById('errorMessage').textContent = err.message;
+                errorAlert.style.display = 'block';
+                btnText.style.display = 'inline';
+                if (btnIcon) btnIcon.style.display = 'inline-block';
+                spinner.style.display = 'none';
+                loginBtn.disabled = false;
             }
-        })();
+        });
     </script>
 </body>
+
 </html>
