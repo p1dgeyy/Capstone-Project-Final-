@@ -318,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function cleanupOrphanedModalBackdrops() {
+    if (typeof document === 'undefined' || !document.body) return;
     if (isModalGenuinelyOpen()) return;
 
     const backdrops = document.querySelectorAll('.modal-backdrop');
@@ -325,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn(`[AUTH_GUARD] Removed ${backdrops.length} orphaned .modal-backdrop element(s) with no open modal above them.`);
       backdrops.forEach(el => el.remove());
     }
-    if (document.body.classList.contains('modal-open')) {
+    if (document.body && document.body.classList && document.body.classList.contains('modal-open')) {
       console.warn('[AUTH_GUARD] Cleared a stuck modal-open state on <body>.');
       document.body.classList.remove('modal-open');
       document.body.style.removeProperty('overflow');
@@ -348,7 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // so any stuck state self-heals within ~1.5s instead of persisting.
   setInterval(cleanupOrphanedModalBackdrops, 1500);
 
-  // Run once immediately too, in case a previous page state (or a stale
-  // cached page load) left a backdrop behind before this script even ran.
-  cleanupOrphanedModalBackdrops();
+  // Run safely once the DOM is ready (or immediately if already parsed)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', cleanupOrphanedModalBackdrops);
+  } else {
+    cleanupOrphanedModalBackdrops();
+  }
 })();
