@@ -1,0 +1,399 @@
+/**
+ * PESO Admin Portal - Application Evaluation Module (Tab 4)
+ * Module: Evaluation (peso-admin-evaluation.js)
+ */
+
+let evalApplicationsList = [];
+let currentEvalProgId = null;
+let currentEvalBatchId = null;
+let activeReviewAppId = null;
+
+async function initEvalModuleData() {
+    if (typeof DataService !== 'undefined' && DataService.applications) {
+        try {
+            const res = await DataService.applications.getAll({ agency: 'PESO' });
+            if (res.data && Array.isArray(res.data)) {
+                evalApplicationsList = res.data.map(a => ({
+                    id: a.id,
+                    application_number: a.application_number,
+                    beneficiary_qr: a.beneficiary_qr,
+                    applicant_name: a.beneficiary ? `${a.beneficiary.first_name || ''} ${a.beneficiary.last_name || ''}`.trim() : 'Applicant',
+                    phone: a.beneficiary ? a.beneficiary.phone || a.beneficiary.contact_number : '',
+                    address: a.beneficiary ? a.beneficiary.address : '',
+                    civil_status: a.beneficiary ? a.beneficiary.marital_status || 'Single' : 'Single',
+                    spouse_name: 'N/A',
+                    children_info: 'None',
+                    program_id: a.program_id,
+                    program_name: a.program ? a.program.name : 'Assistance Program',
+                    program_code: a.program ? a.program.code : 'PESO',
+                    batch_id: a.batch_id || 1011,
+                    batch_num: a.batch ? a.batch.name : 'Intake Batch',
+                    date_submitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+                    verification_status: a.status === 'Pending Requirements' ? 'Pending Verification' : 'Verified',
+                    evaluation_status: a.status === 'Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' ? 'Denied' : 'Pending Evaluation'),
+                    notes: a.remarks || a.officer_notes || '',
+                    docs: Array.isArray(a.documents_json) ? a.documents_json : [
+                        { type: 'Valid ID', file_name: 'Beneficiary_ID.pdf', status: 'Verified' },
+                        { type: 'Barangay Clearance', file_name: 'BrgyClearance.pdf', status: 'Verified' }
+                    ]
+                }));
+                updateEvalMetrics();
+                return;
+            }
+        } catch (e) {
+            console.warn('[EVALUATION] Supabase applications fetch notice:', e);
+        }
+    }
+    evalApplicationsList = [];
+    updateEvalMetrics();
+}
+
+function updateEvalMetrics() {
+    const pendingCount = evalApplicationsList.filter(a => a.evaluation_status === 'Pending Evaluation').length;
+    const approvedCount = evalApplicationsList.filter(a => a.evaluation_status === 'Approved').length;
+    const deniedCount = evalApplicationsList.filter(a => a.evaluation_status === 'Denied').length;
+
+    if (document.getElementById('evalStatTotalPrograms')) document.getElementById('evalStatTotalPrograms').textContent = programsList.length;
+    if (document.getElementById('evalStatPendingApps')) document.getElementById('evalStatPendingApps').textContent = pendingCount;
+    if (document.getElementById('evalStatApprovedApps')) document.getElementById('evalStatApprovedApps').textContent = approvedCount;
+    if (document.getElementById('evalStatDeniedApps')) document.getElementById('evalStatDeniedApps').textContent = deniedCount;
+}
+
+// --- LEVEL 1: PROGRAMS VIEW ---
+function renderEvalLevel1Programs() {
+    initEvalModuleData();
+    updateEvalMetrics();
+    showEvalLevel1();
+    filterEvalLevel1Programs();
+}
+
+function showEvalLevel1() {
+    const l1 = document.getElementById('evalViewLevel1');
+    const l2 = document.getElementById('evalViewLevel2');
+    const l3 = document.getElementById('evalViewLevel3');
+    if (l1) l1.classList.remove('d-none');
+    if (l2) l2.classList.add('d-none');
+    if (l3) l3.classList.add('d-none');
+}
+
+function filterEvalLevel1Programs() {
+    const searchInput = document.getElementById('evalProgSearchInput');
+    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const statusSelect = document.getElementById('evalProgStatusFilter');
+    const statusFilter = statusSelect ? statusSelect.value : 'ALL';
+    const tbody = document.getElementById('evalLevel1ProgramsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const activeProgs = programsList.filter(p => p.status === 'Active');
+
+    activeProgs.forEach(prog => {
+        const progApps = evalApplicationsList.filter(a => a.program_id === prog.id);
+        const hasPending = progApps.some(a => a.evaluation_status === 'Pending Evaluation');
+        const hasApproved = progApps.some(a => a.evaluation_status === 'Approved');
+
+        let overallStatus = 'Completed';
+        let badgeClass = 'bg-success';
+        if (progApps.length === 0 || hasPending) {
+            overallStatus = 'Pending Evaluation';
+            badgeClass = 'bg-warning text-dark';
+        } else if (hasApproved) {
+            overallStatus = 'In Progress';
+            badgeClass = 'bg-info text-white';
+        }
+
+        const matchesSearch = prog.name.toLowerCase().includes(search) || prog.code.toLowerCase().includes(search);
+        const matchesStatus = (statusFilter === 'ALL') || (overallStatus === statusFilter);
+
+        if (matchesSearch && matchesStatus) {
+            tbody.innerHTML += `
+                <tr>
+                    <td><div class="fw-bold text-dark">${escapeHtml(prog.name)}</div><span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(prog.code)}</span></td>
+                    <td><span class="badge badge-category badge-emp">${escapeHtml(prog.category)}</span></td>
+                    <td class="text-center"><span class="badge bg-light text-dark border px-3 py-1 fs-6"><i class="bi bi-file-earmark-text text-primary me-1"></i>${progApps.length} applications</span></td>
+                    <td class="text-center"><span class="badge ${badgeClass} px-3 py-1.5 fs-6">${overallStatus}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-primary fw-semibold" onclick="openEvalLevel2Batches(${prog.id})">
+                            View Batches <i class="bi bi-chevron-right ms-1"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    });
+
+    if (tbody.children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No programs found matching evaluation criteria.</td></tr>';
+    }
+}
+
+// --- LEVEL 2: BATCHES VIEW ---
+function openEvalLevel2Batches(progId) {
+    currentEvalProgId = progId;
+    const prog = programsList.find(p => p.id === progId);
+    if (!prog) return;
+
+    const breadcrumb = document.getElementById('evalLevel2Breadcrumb');
+    if (breadcrumb) breadcrumb.textContent = prog.name;
+
+    const l1 = document.getElementById('evalViewLevel1');
+    const l2 = document.getElementById('evalViewLevel2');
+    const l3 = document.getElementById('evalViewLevel3');
+    if (l1) l1.classList.add('d-none');
+    if (l2) l2.classList.remove('d-none');
+    if (l3) l3.classList.add('d-none');
+
+    filterEvalLevel2Batches();
+    logAuditEvent('EVALUATION_VIEW_BATCHES', `Navigated to Level 2 Batches View for Program: ${prog.code} (${prog.name})`);
+}
+
+function showEvalLevel2() {
+    if (currentEvalProgId) openEvalLevel2Batches(currentEvalProgId);
+    else showEvalLevel1();
+}
+
+function filterEvalLevel2Batches() {
+    if (!currentEvalProgId) return;
+    const searchInput = document.getElementById('evalBatchSearchInput');
+    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const statusSelect = document.getElementById('evalBatchStatusFilter');
+    const statusFilter = statusSelect ? statusSelect.value : 'ALL';
+    const tbody = document.getElementById('evalLevel2BatchesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const defaultBatches = PROGRAM_BATCHES[currentEvalProgId] || [
+        { batch_id: currentEvalProgId * 10 + 1, batch_num: 'Batch 1 (General Intake)', date: '2026-03-15', trainer: 'PESO Intake Unit', enrolled: 25, total: 30 }
+    ];
+
+    defaultBatches.forEach(b => {
+        const batchApps = evalApplicationsList.filter(a => a.program_id === currentEvalProgId && (a.batch_id === b.batch_id || a.batch_num === b.batch_num));
+        const count = batchApps.length > 0 ? batchApps.length : b.enrolled;
+
+        const hasPending = batchApps.some(a => a.evaluation_status === 'Pending Evaluation');
+        let batchStatus = hasPending || batchApps.length === 0 ? 'Pending Evaluation' : 'Approved';
+        let badgeClass = batchStatus === 'Approved' ? 'bg-success' : 'bg-warning text-dark';
+
+        const matchesSearch = b.batch_num.toLowerCase().includes(search) || (b.trainer || '').toLowerCase().includes(search);
+        const matchesStatus = (statusFilter === 'ALL') || (batchStatus === statusFilter);
+
+        if (matchesSearch && matchesStatus) {
+            tbody.innerHTML += `
+                <tr>
+                    <td><div class="fw-bold text-dark">${escapeHtml(b.batch_num)}</div><span class="badge bg-light text-secondary border font-monospace">ID: ${b.batch_id}</span></td>
+                    <td><div>${escapeHtml(b.trainer || 'PESO Team')}</div><small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${b.date || '2026-03-15'}</small></td>
+                    <td class="text-center"><span class="badge bg-primary-subtle text-primary px-3 py-1 fs-6"><i class="bi bi-people-fill me-1"></i>${count} applications</span></td>
+                    <td class="text-center"><span class="badge ${badgeClass} px-3 py-1.5 fs-6">${batchStatus}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openEvalLevel3Apps(${currentEvalProgId}, ${b.batch_id}, '${escapeHtml(b.batch_num)}')">
+                            View Applications <i class="bi bi-chevron-right ms-1"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    });
+
+    if (tbody.children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No batches recorded under this program.</td></tr>';
+    }
+}
+
+// --- LEVEL 3: APPLICATIONS VIEW ---
+function openEvalLevel3Apps(progId, batchId, batchNumStr) {
+    currentEvalProgId = progId;
+    currentEvalBatchId = batchId;
+    const prog = programsList.find(p => p.id === progId);
+    if (!prog) return;
+
+    const progBreadcrumb = document.getElementById('evalLevel3ProgBreadcrumb');
+    const batchBreadcrumb = document.getElementById('evalLevel3BatchBreadcrumb');
+    if (progBreadcrumb) progBreadcrumb.textContent = prog.name;
+    if (batchBreadcrumb) batchBreadcrumb.textContent = batchNumStr || `Batch ${batchId}`;
+
+    const l1 = document.getElementById('evalViewLevel1');
+    const l2 = document.getElementById('evalViewLevel2');
+    const l3 = document.getElementById('evalViewLevel3');
+    if (l1) l1.classList.add('d-none');
+    if (l2) l2.classList.add('d-none');
+    if (l3) l3.classList.remove('d-none');
+
+    filterEvalLevel3Apps();
+    logAuditEvent('EVALUATION_VIEW_APPLICATIONS', `Navigated to Level 3 Applications View for Batch: ${batchNumStr || batchId}`);
+}
+
+function filterEvalLevel3Apps() {
+    const searchInput = document.getElementById('evalAppSearchInput');
+    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const verifSelect = document.getElementById('evalAppVerifFilter');
+    const verifFilter = verifSelect ? verifSelect.value : 'ALL';
+    const statusSelect = document.getElementById('evalAppStatusFilter');
+    const statusFilter = statusSelect ? statusSelect.value : 'ALL';
+    const tbody = document.getElementById('evalLevel3AppsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const filtered = evalApplicationsList.filter(app => {
+        const matchesProg = !currentEvalProgId || (app.program_id === currentEvalProgId);
+        const matchesSearch = app.applicant_name.toLowerCase().includes(search) || (app.address || '').toLowerCase().includes(search);
+        const matchesVerif = (verifFilter === 'ALL') || (app.verification_status === verifFilter);
+        const matchesStatus = (statusFilter === 'ALL') || (app.evaluation_status === statusFilter);
+        return matchesProg && matchesSearch && matchesVerif && matchesStatus;
+    });
+
+    filtered.forEach(app => {
+        let statusBadgeHTML = '';
+        if (app.evaluation_status === 'Approved') {
+            statusBadgeHTML = '<span class="badge bg-success px-3 py-1.5 fs-6"><i class="bi bi-check-circle-fill me-1"></i> Approved</span>';
+        } else if (app.evaluation_status === 'Denied') {
+            statusBadgeHTML = '<span class="badge bg-danger px-3 py-1.5 fs-6"><i class="bi bi-x-circle-fill me-1"></i> Denied</span>';
+        } else {
+            statusBadgeHTML = '<span class="badge bg-warning text-dark px-3 py-1.5 fs-6"><i class="bi bi-clock-history me-1"></i> Pending Evaluation</span>';
+        }
+
+        const verifBadgeHTML = app.verification_status === 'Verified'
+            ? '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-patch-check-fill me-1"></i> Verified</span>'
+            : '<span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-hourglass-split me-1"></i> Pending Verif</span>';
+
+        tbody.innerHTML += `
+            <tr>
+                <td>
+                    <div class="fw-bold text-dark">${escapeHtml(app.applicant_name)}</div>
+                    <small class="text-muted"><i class="bi bi-telephone me-1"></i>${maskContactNumber(app.phone)}</small>
+                </td>
+                <td>
+                    <div class="fw-semibold text-primary">${escapeHtml(app.program_code || 'LIVELIHOOD')}</div>
+                    <small class="text-secondary">${escapeHtml(app.batch_num || 'Batch 1')}</small>
+                </td>
+                <td><small class="fw-semibold text-dark"><i class="bi bi-calendar3 me-1 text-muted"></i>${app.date_submitted}</small></td>
+                <td class="text-center">${verifBadgeHTML}</td>
+                <td class="text-center">${statusBadgeHTML}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary fw-semibold shadow-sm" onclick="openReviewCaseFileModal(${app.id})">
+                        <i class="bi bi-file-earmark-medical me-1"></i> Review Case File
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No submitted applications found matching filter criteria.</td></tr>';
+    }
+}
+
+// --- LEVEL 4: REVIEW SUBMITTED LIVELIHOOD CASE FILE MODAL ---
+function openReviewCaseFileModal(appId) {
+    activeReviewAppId = appId;
+    const app = evalApplicationsList.find(a => a.id === appId);
+    if (!app) return;
+
+    document.getElementById('reviewApplicantName').textContent = app.applicant_name;
+    document.getElementById('reviewProgramBatchTag').textContent = `${app.program_code} — ${app.batch_num}`;
+    document.getElementById('reviewApplicantContact').textContent = maskContactNumber(app.phone);
+    document.getElementById('reviewApplicantAddress').textContent = app.address || 'Koronadal City';
+    document.getElementById('reviewApplicantCivilStatus').textContent = app.civil_status || 'Single';
+    document.getElementById('reviewApplicantSpouse').textContent = app.spouse_name || 'N/A';
+    document.getElementById('reviewApplicantChildren').textContent = app.children_info || 'None';
+    document.getElementById('reviewSubmissionDate').textContent = app.date_submitted;
+    document.getElementById('reviewActionAssessmentNotes').value = app.notes || '';
+
+    const verifBadge = document.getElementById('reviewVerificationStatusBadge');
+    if (verifBadge) {
+        verifBadge.innerHTML = app.verification_status === 'Verified'
+            ? '<i class="bi bi-patch-check-fill me-1"></i> Verified Documents (Pre-validated)'
+            : '<i class="bi bi-hourglass-split me-1"></i> Pending Verification';
+        verifBadge.className = app.verification_status === 'Verified' ? 'badge bg-success px-3 py-1 fs-6' : 'badge bg-warning text-dark px-3 py-1 fs-6';
+    }
+
+    const docsTable = document.getElementById('reviewDocumentsTableBody');
+    if (docsTable) {
+        docsTable.innerHTML = '';
+        const docsList = app.docs || [
+            { type: 'Valid ID', file_name: 'PhilID_Document.pdf', status: 'Verified' },
+            { type: 'Barangay Clearance', file_name: 'Brgy_Clearance.pdf', status: 'Verified' },
+            { type: 'Program Requirements', file_name: 'Business_Proposal.pdf', status: 'Verified' }
+        ];
+
+        docsList.forEach(doc => {
+            docsTable.innerHTML += `
+                <tr>
+                    <td><strong>${escapeHtml(doc.type)}</strong></td>
+                    <td><code>${escapeHtml(doc.file_name)}</code></td>
+                    <td class="text-center"><span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>${doc.status || 'Verified'}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-info me-1" onclick="previewDocument('${escapeHtml(doc.type)}', '${escapeHtml(doc.file_name)}')">
+                            <i class="bi bi-eye"></i> Preview
+                        </button>
+                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" onclick="window.showSystemNotification({ title: 'Download Notice', message: 'Downloading ${escapeHtml(doc.file_name)} compliance record...', type: 'info' })">
+                            <i class="bi bi-download"></i> Download
+                        </a>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    safeOpenModal('reviewCaseFileModal');
+    logAuditEvent('REVIEW_CASE_FILE', `Opened Case File Review Modal for Applicant: ${app.applicant_name} (App ID: ${app.id})`);
+}
+
+function previewDocument(docType, fileName) {
+    document.getElementById('docPreviewTitle').innerHTML = `<i class="bi bi-eye-fill me-2 text-info"></i>Preview: ${escapeHtml(docType)}`;
+    document.getElementById('docPreviewFileName').textContent = fileName;
+    safeOpenModal('docPreviewModal');
+}
+
+// --- FINAL EVALUATION DECISION EXECUTION WITH SYSTEM NOTIFICATIONS ---
+async function executeEvalDecision(decision) {
+    const app = evalApplicationsList.find(a => a.id === activeReviewAppId);
+    if (!app) return;
+
+    const notes = document.getElementById('reviewActionAssessmentNotes').value.trim();
+
+    if ((decision === 'Denied' || decision === 'Pending Evaluation') && !notes) {
+        window.showSystemNotification({
+            title: 'Action Assessment Notes Required',
+            message: `Mandatory Requirement: Please enter detailed assessment notes in the Action Assessment Notes field before finalizing "${decision}".`,
+            type: 'warning'
+        });
+        return;
+    }
+
+    window.showSystemNotification({
+        title: `Confirm Final Evaluation: ${decision}`,
+        message: `Are you sure you want to finalize the evaluation decision for "${app.applicant_name}" as "${decision}"? Once confirmed, status timestamp is recorded and beneficiary is notified.`,
+        type: decision === 'Approved' ? 'info' : (decision === 'Denied' ? 'warning' : 'info'),
+        showCancel: true,
+        confirmText: `Confirm ${decision}`,
+        onConfirm: async () => {
+            app.evaluation_status = decision;
+            app.notes = notes;
+            app.evaluated_at = new Date().toISOString();
+
+            if (typeof DataService !== 'undefined' && DataService.applications) {
+                try {
+                    await DataService.applications.update(app.id, {
+                        status: decision === 'Approved' ? 'Approved' : (decision === 'Denied' ? 'Denied' : 'Pending Requirements'),
+                        remarks: notes
+                    });
+                } catch (err) {
+                    console.warn('[EVALUATION] Supabase application update warning:', err);
+                }
+            }
+
+            logAuditEvent(`EVALUATE_APPLICATION_${decision.toUpperCase().replace(/\s+/g, '_')}`, `PESO Admin evaluated application ID ${app.id} (${app.applicant_name}) -> ${decision}. Notes: ${notes || 'None'}`);
+
+            safeHideModal('reviewCaseFileModal');
+
+            updateEvalMetrics();
+            filterEvalLevel3Apps();
+
+            window.showSystemNotification({
+                title: 'Evaluation Decision Finalized',
+                message: `Application case file for "${app.applicant_name}" has been officially marked as "${decision}". Timestamp recorded.`,
+                type: decision === 'Approved' ? 'success' : (decision === 'Denied' ? 'error' : 'warning')
+            });
+        }
+    });
+}

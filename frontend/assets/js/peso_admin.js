@@ -1,67 +1,17 @@
-// PESO Admin Portal JavaScript Module - Officers Management & Modal Handlers
+/**
+ * PESO Administrator Portal - Master JavaScript Module Coordinator
+ * City Government of Koronadal
+ *
+ * This file serves as the master entrypoint for the PESO Admin portal.
+ * Sub-modules are organized modularly under `frontend/assets/js/peso-admin/`:
+ *  - peso-admin-core.js       : Architecture, safe modal controllers, batch tester, audit engine, phone masking
+ *  - peso-admin-programs.js   : Program Management (Tab 1), metrics, ordinance uploads, deactivation restriction & archive
+ *  - peso-admin-users.js      : User Management & RBAC (Tab 2), roster, account actions, department scope
+ *  - peso-admin-scheduling.js : Scheduling Management (Tab 3), calendar/list views, slot CRUD, conflict & past date checks
+ *  - peso-admin-evaluation.js : Application Evaluation (Tab 4), 3-level queue, case file review, decisions
+ *  - peso-admin-assignment.js : Program Assignment (Tab 5), 3-level quota tracking, masked contact rosters
+ *  - peso-admin-officers.js   : PESO Officers Management (Tab 6), officer directory, account creation & status
+ *  - peso-admin-main.js       : Global navigation controller, tab switcher, and DOM bootloader
+ */
 
-function openNewOfficerModal() {
-    const form = document.getElementById('newOfficerForm');
-    if (form) form.reset();
-    
-    // Record audit log when form is opened
-    if (typeof logAuditEvent === 'function') {
-        logAuditEvent('OPEN_CREATE_OFFICER_FORM', 'Opened Create New Officer Account form modal');
-    }
-
-    const modalEl = document.getElementById('newOfficerModal');
-    if (modalEl) {
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modalInstance.show();
-        } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
-            $('#newOfficerModal').modal('show');
-        } else {
-            modalEl.classList.add('show');
-            modalEl.style.display = 'block';
-        }
-    }
-}
-
-function openUploadOrdinanceModal() {
-    const form = document.getElementById('uploadOrdinanceForm');
-    if (form) form.reset();
-
-    // Record audit log when form is opened
-    if (typeof logAuditEvent === 'function') {
-        logAuditEvent('OPEN_UPLOAD_ORDINANCE_FORM', 'Opened Upload Ordinance form modal');
-    }
-
-    const modalEl = document.getElementById('uploadOrdinanceModal');
-    if (modalEl) {
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modalInstance.show();
-        } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
-            $('#uploadOrdinanceModal').modal('show');
-        } else {
-            modalEl.classList.add('show');
-            modalEl.style.display = 'block';
-        }
-    }
-}
-
-// Single consolidated DOMContentLoaded event listener for modal action buttons
-document.addEventListener('DOMContentLoaded', function() {
-    const createBtn = document.getElementById('createNewOfficerBtn');
-    if (createBtn) {
-        createBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            openNewOfficerModal();
-        });
-    }
-
-    const uploadBtn = document.getElementById('uploadOrdinanceBtn');
-    if (uploadBtn) {
-        uploadBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            openUploadOrdinanceModal();
-        });
-    }
-});
-
+console.log('[PESO Admin] Master module coordinator loaded.');
