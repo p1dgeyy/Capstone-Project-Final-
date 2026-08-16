@@ -167,7 +167,7 @@ async function showAuditLogsModal() {
                         <td><span class="badge bg-light text-dark border">${escapeHtml(actor)}</span></td>
                         <td><span class="badge ${badgeClass}">${escapeHtml(action)}</span></td>
                         <td><span class="fw-semibold text-secondary">${escapeHtml(l.entity_type || l.targetEntity || 'System Record')}</span></td>
-                        <td><div class="small text-truncate" style="max-width: 320px;" title="${escapeHtml(l.details || l.actionReason || '')}">${escapeHtml(l.details || l.actionReason || '—')}</div></td>
+                        <td><div class="small text-truncate" style="max-width: 320px;" title="${escapeHtml(l.details || l.actionReason || '')}">${escapeHtml(l.details || l.actionReason || '—')}
                     </tr>
                 `;
             }).join('');
@@ -224,3 +224,19 @@ function logoutAdmin() {
 function escapeHtml(str) {
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
+
+// --- Backwards-compatible global aliases for PesoAdmin diagnostics and consumers ---
+// Explicitly expose the core helpers under the global `window` so that
+// the PesoAdmin.diagnose() runtime checks and any consumers expecting
+// globals (including non-module script tags) can find them.
+window.safeOpenModal = window.safeOpenModal || safeOpenModal;
+window.safeHideModal = window.safeHideModal || safeHideModal;
+window.safeCloseModal = window.safeCloseModal || safeCloseModal;
+window.logAuditEvent = window.logAuditEvent || logAuditEvent;
+// Expose the phone masker under the historically-checked name
+window.maskPhoneNumber = window.maskPhoneNumber || maskContactNumber;
+// Keep the original name available as well
+window.maskContactNumber = window.maskContactNumber || maskContactNumber;
+// Optional integrations: set to null by default if not initialized elsewhere
+window.UnifiedOverlayController = typeof window.UnifiedOverlayController !== 'undefined' ? window.UnifiedOverlayController : null;
+window.supabaseConfig = typeof window.supabaseConfig !== 'undefined' ? window.supabaseConfig : null;
