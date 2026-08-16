@@ -56,6 +56,7 @@ const {
 } = require('../data/seedData');
 const { requireAuth, requireStaff, requireAdmin, maskContactNumber } = require('../middleware/auth');
 const { logAudit } = require('../utils/auditLogger');
+const { queryAllOfficers, insertOfficerAtomic, recordAuditLog } = require('../data/db');
 
 /**
  * Helper to get today's date string (YYYY-MM-DD)
@@ -971,131 +972,51 @@ router.post('/interview/schedule', (req, res) => {
 
 /**
  * GET /api/officers
- * Fetch all registered PESO officers
+ * Fetch all registered PESO officers (defaults to active accounts)
  */
-router.get('/officers', (req, res) => {
-    const list = getUsers().filter(u => 
-        (u.department === 'PESO' || !u.department || u.role.includes('PESO')) &&
-        u.department !== 'CSWDO' && 
-        !u.role.includes('CSWDO') &&
-        u.role !== 'Beneficiary'
-    );
+router.get('/officers', async (req, res) => {
+    try {
+        const status = req.query.status || 'Active';
+        const role = req.query.role || null;
+        const search = req.query.search || null;
+        const department = req.query.department || 'PESO';
 
-    const formatted = list.map(o => ({
-        id: o.id,
-        first_name: o.first_name,
-        middle_name: o.middle_name || '',
-        last_name: o.last_name,
-        suffix: o.suffix || '',
-        full_name: `${o.first_name} ${o.middle_name ? o.middle_name + ' ' : ''}${o.last_name}${o.suffix ? ' ' + o.suffix : ''}`.trim(),
-        username: o.username,
-        email: o.email,
-        role: o.role,
-        department: o.department || 'PESO',
-        sex: o.sex || 'Male',
-        phone: maskContactNumber(o.phone),
-        address: o.address || 'City of Koronadal',
-        status: o.status || 'Active',
-        created_at: o.created_at,
-        updated_at: o.updated_at
-    }));
-
-    res.json({
-        success: true,
-        count: formatted.length,
-        data: formatted
-    });
+        const list = await queryAllOfficers({ status, role, search, department });
+        res.json({
+            success: true,
+            count: list.length,
+            data: list
+        });
+    } catch (err) {
+        res.status(503).json({
+            success: false,
+            error: 'Service Unavailable',
+            message: 'System temporarily unavailable. Please try again later.'
+        });
+    }
 });
 
 /**
  * POST /api/officers
- * Admin provisions a new PESO officer account with bcrypt password hashing
+ * Admin provisions a new PESO officer account with atomic transaction & bcrypt hashing
  */
 router.post('/officers', async (req, res) => {
-    const {
-        first_name,
-        middle_name,
-        last_name,
-        suffix,
-        username,
-        email,
-        password,
-        role,
-        department,
-        sex,
-        phone,
-        address
-    } = req.body;
-
-    const adminUser = req.user?.username || 'PESO Admin';
-    const adminRole = req.user?.role || 'PESO Admin';
-    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
-
-    if (!first_name || !last_name || !username || !email || !password) {
-        return res.status(400).json({
+    try {
+        const adminUser = req.user?.username || 'PESO Admin';
+        const newOfficer = await insertOfficerAtomic(req.body, adminUser);
+        res.status(201).json({
+            success: true,
+            message: `Officer account "${newOfficer.username}" created successfully.`,
+            data: newOfficer
+        });
+    } catch (err) {
+        const status = err.statusCode || (err.code === 'DB_UNAVAILABLE' ? 503 : 500);
+        res.status(status).json({
             success: false,
-            error: 'Validation Error',
-            message: 'First Name, Last Name, Username, Email, and Password are required.'
+            error: err.statusCode === 409 ? 'Duplicate Account' : (err.statusCode === 400 ? 'Validation Error' : 'Server Error'),
+            message: err.message || 'System temporarily unavailable. Please try again later.'
         });
     }
-
-    const cleanUsername = username.trim().toLowerCase();
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Check duplicate username or email
-    const existing = findUserByIdentifier(cleanUsername) || findUserByIdentifier(cleanEmail);
-    if (existing) {
-        return res.status(409).json({
-            success: false,
-            error: 'Duplicate Account',
-            message: `An account with username "${cleanUsername}" or email "${cleanEmail}" already exists.`
-        });
-    }
-
-    // Hash password with bcrypt (salt rounds: 10)
-    const password_hash = await bcrypt.hash(password, 10);
-
-    const newOfficer = addUser({
-        first_name: first_name.trim(),
-        middle_name: (middle_name || '').trim(),
-        last_name: last_name.trim(),
-        suffix: suffix || '',
-        username: cleanUsername,
-        email: cleanEmail,
-        password_hash,
-        role: role || 'PESO Officer',
-        department: department || 'PESO',
-        sex: sex || 'Male',
-        phone: (phone || '').trim(),
-        address: (address || 'City of Koronadal').trim(),
-        status: 'Active'
-    });
-
-    logAudit({
-        userId: adminUser,
-        userRole: adminRole,
-        actionType: 'CREATE_PESO_OFFICER',
-        targetEntity: 'Officer Account Management',
-        targetId: newOfficer.id,
-        status: 'SUCCESS',
-        actionReason: 'Administrative creation of new PESO Officer account',
-        details: `Admin "${adminUser}" created officer account "${newOfficer.username}" (${newOfficer.first_name} ${newOfficer.last_name}). Role: ${newOfficer.role}, Dept: ${newOfficer.department}.`,
-        clientIp
-    });
-
-    res.status(201).json({
-        success: true,
-        message: `Officer account "${newOfficer.username}" created successfully.`,
-        data: {
-            id: newOfficer.id,
-            username: newOfficer.username,
-            email: newOfficer.email,
-            full_name: `${newOfficer.first_name} ${newOfficer.last_name}`,
-            role: newOfficer.role,
-            department: newOfficer.department,
-            status: newOfficer.status
-        }
-    });
 });
 
 /**

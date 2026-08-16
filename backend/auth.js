@@ -16,6 +16,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { getUsers, findUserByIdentifier, findUserById } = require('./data/seedData');
+const { queryUserByIdentifier, recordAuditLog } = require('./data/db');
 const { generateAccessToken, generateRefreshToken, verifyToken, trackIpFailedAttempt, resetIpAttempts, maskContactNumber, requireAuth, setAuthCookies, clearAuthCookies } = require('./middleware/auth');
 const { createOtpRequest } = require('./utils/otpService');
 const { deliverEmailOtp, maskEmail } = require('./utils/deliveryService');
@@ -65,12 +66,21 @@ router.post('/login', async (req, res) => {
         });
     }
 
-    const user = findUserByIdentifier(identifier);
+    let user;
+    try {
+        user = await queryUserByIdentifier(identifier, portal);
+    } catch (dbErr) {
+        return res.status(503).json({
+            success: false,
+            error: 'Service Unavailable',
+            message: 'System temporarily unavailable. Please try again later or contact your administrator.'
+        });
+    }
 
     // If user not found: record failed attempt & return exact standard error
     if (!user) {
         trackIpFailedAttempt(clientIp, identifier);
-        logAudit({
+        recordAuditLog({
             userId: identifier,
             userRole: 'GUEST',
             actionType: 'LOGIN_FAILED',
