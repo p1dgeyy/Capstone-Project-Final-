@@ -4248,6 +4248,11 @@ function filterPrograms() {
                     const res = await DataService.staffProfiles.getAll({ agency: 'PESO' });
                     if (res.data && res.data.length > 0) {
                         usersList = res.data;
+                        const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
+                        if (adminUser) {
+                            adminUser.status = 'Active';
+                            adminUser.failed_attempts = 0;
+                        }
                         updateUserMetrics();
                         return;
                     }
@@ -4264,12 +4269,22 @@ function filterPrograms() {
                     const result = await response.json();
                     if (result.success && Array.isArray(result.data) && result.data.length > 0) {
                         usersList = result.data;
+                        const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
+                        if (adminUser) {
+                            adminUser.status = 'Active';
+                            adminUser.failed_attempts = 0;
+                        }
                         localStorage.setItem('peso_users_list_v1', JSON.stringify(usersList));
                         updateUserMetrics();
                     }
                 }
             } catch (err) {
                 console.warn('[USERS] Fetch API notice — operating with cached roster:', err.message);
+            }
+            const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
+            if (adminUser) {
+                adminUser.status = 'Active';
+                adminUser.failed_attempts = 0;
             }
             if (document.getElementById('sectionUsers') && !document.getElementById('sectionUsers').classList.contains('d-none')) {
                 renderUsersModule();
@@ -6820,6 +6835,10 @@ function filterPrograms() {
                 }
             }
             officersList = merged;
+            const adminOff = officersList.find(o => (o.username && o.username.toLowerCase() === 'peso-admin') || (o.email && o.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
+            if (adminOff) {
+                adminOff.status = 'Active';
+            }
             localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
         }
 
