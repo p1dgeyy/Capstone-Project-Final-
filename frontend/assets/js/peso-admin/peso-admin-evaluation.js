@@ -49,11 +49,13 @@ async function initEvalModuleData() {
 }
 
 function updateEvalMetrics() {
-    const pendingCount = evalApplicationsList.filter(a => a.evaluation_status === 'Pending Evaluation').length;
-    const approvedCount = evalApplicationsList.filter(a => a.evaluation_status === 'Approved').length;
-    const deniedCount = evalApplicationsList.filter(a => a.evaluation_status === 'Denied').length;
+    const list = Array.isArray(evalApplicationsList) ? evalApplicationsList : [];
+    const progs = Array.isArray(programsList) ? programsList : [];
+    const pendingCount = list.filter(a => a.evaluation_status === 'Pending Evaluation').length;
+    const approvedCount = list.filter(a => a.evaluation_status === 'Approved').length;
+    const deniedCount = list.filter(a => a.evaluation_status === 'Denied').length;
 
-    if (document.getElementById('evalStatTotalPrograms')) document.getElementById('evalStatTotalPrograms').textContent = programsList.length;
+    if (document.getElementById('evalStatTotalPrograms')) document.getElementById('evalStatTotalPrograms').textContent = progs.length;
     if (document.getElementById('evalStatPendingApps')) document.getElementById('evalStatPendingApps').textContent = pendingCount;
     if (document.getElementById('evalStatApprovedApps')) document.getElementById('evalStatApprovedApps').textContent = approvedCount;
     if (document.getElementById('evalStatDeniedApps')) document.getElementById('evalStatDeniedApps').textContent = deniedCount;
@@ -85,10 +87,12 @@ function filterEvalLevel1Programs() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const activeProgs = programsList.filter(p => p.status === 'Active');
+    const progs = Array.isArray(programsList) ? programsList : [];
+    const activeProgs = progs.filter(p => p.status === 'Active');
 
     activeProgs.forEach(prog => {
-        const progApps = evalApplicationsList.filter(a => a.program_id === prog.id);
+        const apps = Array.isArray(evalApplicationsList) ? evalApplicationsList : [];
+        const progApps = apps.filter(a => a.program_id === prog.id);
         const hasPending = progApps.some(a => a.evaluation_status === 'Pending Evaluation');
         const hasApproved = progApps.some(a => a.evaluation_status === 'Approved');
 
@@ -122,7 +126,7 @@ function filterEvalLevel1Programs() {
         }
     });
 
-    if (tbody.children.length === 0) {
+    if (!tbody.children || tbody.children.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No programs found matching evaluation criteria.</td></tr>';
     }
 }
@@ -194,7 +198,7 @@ function filterEvalLevel2Batches() {
         }
     });
 
-    if (tbody.children.length === 0) {
+    if (!tbody.children || tbody.children.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No batches recorded under this program.</td></tr>';
     }
 }

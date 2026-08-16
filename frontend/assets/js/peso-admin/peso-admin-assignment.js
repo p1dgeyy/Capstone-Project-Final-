@@ -9,8 +9,9 @@ let selectedBatchId = null;
 function filterAssignPrograms() {
     const search = (document.getElementById('assignProgSearch')?.value || '').toLowerCase().trim();
     const status = document.getElementById('assignProgStatusFilter')?.value || 'ALL';
+    const progs = Array.isArray(programsList) ? programsList : [];
 
-    const filtered = programsList.filter(prog => {
+    const filtered = progs.filter(prog => {
         const matchesSearch = !search || (prog.name && prog.name.toLowerCase().includes(search)) || (prog.category && prog.category.toLowerCase().includes(search)) || (prog.code && prog.code.toLowerCase().includes(search));
         const matchesStatus = status === 'ALL' || prog.status === status;
         return matchesSearch && matchesStatus;
@@ -64,11 +65,11 @@ function showLevel1Programs() {
 }
 
 function renderAssignProgramsTable(customList) {
-    const list = customList || programsList;
+    const list = customList || (Array.isArray(programsList) ? programsList : []);
     const tbody = document.getElementById('assignProgramsTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    if (list.length === 0) {
+    if (!Array.isArray(list) || list.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No programs match current filters.</td></tr>';
         return;
     }

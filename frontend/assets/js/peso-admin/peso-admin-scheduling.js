@@ -674,6 +674,8 @@ function openViewSlotDetailsModal(slotId) {
     document.getElementById('viewActAssignedOfficer').textContent = act.officer_name || act.assigned_officer_name || 'Assigned Officer';
 
     const isLocked = act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked';
+    const isCancelled = act.slot_status === 'Cancelled' || act.status === 'Cancelled';
+    const isCompleted = act.slot_status === 'Completed' || act.status === 'Completed';
     const lockBadge = document.getElementById('viewActLockBadge');
     if (lockBadge) {
         lockBadge.className = isLocked ? 'badge bg-dark text-white' : 'badge bg-secondary-subtle text-dark border';
