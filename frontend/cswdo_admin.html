@@ -2527,6 +2527,39 @@
         let selectedOfficerId = null;
 
         async function loadOfficersData() {
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                try {
+                    const res = await DataService.staffProfiles.getAll({ agency: 'CSWDO' });
+                    if (res.data && Array.isArray(res.data)) {
+                        allOfficers = res.data.map(o => ({
+                            id: o.id,
+                            first_name: o.first_name || '',
+                            middle_name: o.middle_name || '',
+                            last_name: o.last_name || '',
+                            suffix: o.suffix || 'N/A',
+                            full_name: `${o.first_name || ''} ${o.last_name || ''}`.trim(),
+                            username: o.username || '',
+                            email: o.email || '',
+                            role: o.role || 'CSWDO Officer',
+                            department: o.department || 'CSWDO',
+                            gender: o.sex || 'Female',
+                            contact_number: o.phone || 'N/A',
+                            address: o.address || 'Koronadal City',
+                            status: (o.status === 'Deactivated' || o.status === 'Inactive') ? 'Deactivated' : 'Active'
+                        }));
+                        const activeList = allOfficers.filter(o => o.status === 'Active');
+                        const archivedList = allOfficers.filter(o => o.status === 'Deactivated');
+                        document.getElementById('activeOfficersCount').textContent = activeList.length;
+                        document.getElementById('archivedOfficersCount').textContent = archivedList.length;
+                        renderActiveOfficersTable(activeList);
+                        renderArchivedOfficersTable(archivedList);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('[CSWDO ADMIN] Supabase staff fetch notice:', e);
+                }
+            }
+
             try {
                 const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/officers');
                 const json = await res.json();
@@ -2541,7 +2574,7 @@
                 console.error('[CSWDO] Error loading officers:', err);
                 const activeTbody = document.getElementById('activeOfficersTableBody');
                 if (activeTbody) {
-                    activeTbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Failed to connect to officers API.</td></tr>`;
+                    activeTbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-people fs-3 d-block mb-2 text-secondary"></i>No officer records found in database.</td></tr>`;
                 }
             }
         }

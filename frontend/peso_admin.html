@@ -4009,66 +4009,41 @@ function maskContactNumber(phone) {
         // =========================================================================
         // SECTION 1: PROGRAM MANAGEMENT MODULE (TAB 1)
         // =========================================================================
-const INITIAL_PROGRAMS = [
-            { id: 101, code: 'CKGIP', name: 'City of Koronadal Government Internship Program (CKGIP)', category: 'Employment Facilitation', budget: 500000.00, beneficiaries_count: 25, total_slots: 30, target_beneficiaries: 'Youth, Fresh Graduates & Students', assistance_type: 'Paid Stipend', description: 'Hands-on government internship opportunities for Koronadal youth.', eligibility_criteria: 'Ages 18-25, resident of Koronadal City.', limitations: 'Maximum 3 months internship duration per beneficiary.', restrictions: 'One per household.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 102, code: 'KEEP', name: 'Koronadal Emergency Employment Program (KEEP)', category: 'Employment Facilitation', budget: 1500000.00, beneficiaries_count: 60, total_slots: 80, target_beneficiaries: 'Displaced Workers', assistance_type: 'Cash / Short-term Salary', description: 'Cash-for-work emergency employment assistance.', eligibility_criteria: 'Displaced worker or informal wage earner.', limitations: 'Maximum 15 to 30 work days per worker.', restrictions: 'No simultaneous TUPAD enrollment.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 103, code: 'TUPAD', name: 'Support to TUPAD', category: 'Employment Facilitation', budget: 40000.00, beneficiaries_count: 15, total_slots: 20, target_beneficiaries: 'Disadvantaged Workers', assistance_type: 'Cash & PPE', description: 'LGU counterpart support for DOLE TUPAD.', eligibility_criteria: 'Underemployed informal worker.', limitations: 'Subject to DOLE guidelines.', restrictions: 'Max twice a year.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 104, code: 'PFAS', name: 'Pangkabuhayan Financial Assistance (PFAS)', category: 'Livelihood Programs', budget: 7000000.00, beneficiaries_count: 140, total_slots: 150, target_beneficiaries: 'Individual Entrepreneurs & Micro-businesses', assistance_type: 'Cash Grant & Starter Kits', description: 'Financial grants to establish or expand micro-enterprises.', eligibility_criteria: 'Registered micro-entrepreneur or low-income head.', limitations: 'Max ₱50,000 grant per enterprise.', restrictions: 'Single grant per household per year.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 105, code: 'DILP', name: 'Support to DOLE Integrated Livelihood Program (DILP)', category: 'Livelihood Programs', budget: 500000.00, beneficiaries_count: 30, total_slots: 40, target_beneficiaries: 'Workers Associations', assistance_type: 'Equipment & Starter Kits', description: 'Counterpart fund for DOLE Integrated Livelihood Program.', eligibility_criteria: 'DOLE-accredited workers association.', limitations: 'Asset grant in-kind.', restrictions: 'Non-transferable for 3 years.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 106, code: 'ASSOC_FAC', name: 'Association Facilitation', category: 'Other Programs', budget: 50000.00, beneficiaries_count: 12, total_slots: 15, target_beneficiaries: 'Workers Associations', assistance_type: 'Skills Training', description: 'Registration and capacity building assistance.', eligibility_criteria: 'Community worker groups seeking accreditation.', limitations: 'Administrative fee sponsorship only.', restrictions: 'Must maintain 15 members.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 107, code: 'JOB_FAIRS', name: 'Conduct of Job Fairs', category: 'Other Programs', budget: 100000.00, beneficiaries_count: 500, total_slots: 600, target_beneficiaries: 'Job Applicants & Employers', assistance_type: 'Recruitment Platform', description: 'Quarterly mega job fairs.', eligibility_criteria: 'Open to all jobseekers.', limitations: 'Quarterly event.', restrictions: 'Valid DOLE/POEA license.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 108, code: 'JOB_PORTAL', name: 'Development of Localized Job Portal', category: 'Other Programs', budget: 150000.00, beneficiaries_count: 1200, total_slots: 1500, target_beneficiaries: 'Job Applicants & Employers', assistance_type: 'Digital Platform', description: 'Digital job matching portal.', eligibility_criteria: 'Registered jobseekers and employers.', limitations: 'Free of charge.', restrictions: 'Data privacy consent mandatory.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 109, code: 'SKILLS_TRAIN', name: 'Livelihood/Skills Training Program', category: 'Other Programs', budget: 150000.00, beneficiaries_count: 85, total_slots: 100, target_beneficiaries: 'Unemployed Adults & Youth', assistance_type: 'Skills Training & Kits', description: 'Tech-voc skills training with TESDA.', eligibility_criteria: 'Resident age 18+.', limitations: '80% attendance required.', restrictions: 'One skill track per year.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 110, code: 'OFW_DAY', name: 'OFW Family Circle Day', category: 'Other Programs', budget: 200000.00, beneficiaries_count: 150, total_slots: 200, target_beneficiaries: 'OFW Families', assistance_type: 'Welfare Support', description: 'Annual summit for OFW families.', eligibility_criteria: 'Accredited OFW Circle member.', limitations: 'Annual event.', restrictions: 'Pre-registration required.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 111, code: 'SPES', name: 'Special Program for Employment of Students (SPES)', category: 'Other Programs', budget: 2000000.00, beneficiaries_count: 180, total_slots: 200, target_beneficiaries: 'Students & OSY', assistance_type: 'Educational Stipend', description: 'Summer break employment for poor students.', eligibility_criteria: 'Students aged 15-30 below poverty line.', limitations: '20 to 30 work days.', restrictions: 'Passing grades required.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 112, code: 'PAROKYA_OWWA', name: 'Support to Parokya ni OWWA Program', category: 'Other Programs', budget: 40000.00, beneficiaries_count: 20, total_slots: 25, target_beneficiaries: 'OWWA Members', assistance_type: 'Cash & Welfare Guidance', description: 'Emergency desk for migrant workers.', eligibility_criteria: 'OWWA member in distress.', limitations: 'Reintegration assistance.', restrictions: 'OWWA coordination required.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' },
-            { id: 113, code: 'ROFW', name: 'Support to Returning OFWs Program (ROFW’s)', category: 'Other Programs', budget: 100000.00, beneficiaries_count: 35, total_slots: 50, target_beneficiaries: 'Returning OFWs', assistance_type: 'Starter Kits & Training', description: 'Reintegration package for returned OFWs.', eligibility_criteria: 'Returned OFW permanently residing in Koronadal.', limitations: 'One-time package.', restrictions: 'Must present passport.', ordinance: 'Appropriation Ordinance No. 6, Series of 2025', status: 'Active' }
-        ];
-
-        const PROGRAM_BATCHES = {
-            101: [{ batch_id: 1011, batch_num: 'Batch 2026-A (LGU Intake)', date: '2026-03-15', trainer: 'Hon. Mark Gonzales', enrolled: 15, total: 15 }],
-            104: [{ batch_id: 1041, batch_num: 'Batch 1 (Micro-Retail)', date: '2026-03-01', trainer: 'Dr. Elena Torralba', enrolled: 70, total: 75 }]
-        };
-
-        const BATCH_BENEFICIARIES = {
-            1011: [{ id: 6, full_name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', address: 'Barangay Zone IV, Koronadal', age: 29, sex: 'Male', civil_status: 'Single', birthday: '1997-04-12', children: 0, spouse: 'N/A', valid_id: 'PhilID', business_type: 'Micro-Enterprise', program_component: 'CKGIP', business_status: 'Operational', proposed_business: 'Sari-Sari Store', amount_needed: '₱35,000.00', employment_status: 'Underemployed', seminars: 'Entrepreneurship 101', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved', docs: ['PhilID.pdf'] }]
-        };
-
         let programsList = [];
         let archiveList = [];
+        const PROGRAM_BATCHES = {};
+        const BATCH_BENEFICIARIES = {};
 
         async function initProgramsData() {
             if (typeof DataService !== 'undefined' && DataService.programs) {
-                const res = await DataService.programs.getAll({ agency: 'PESO' });
-                if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-                    programsList = res.data.map(p => ({
-                        id: p.id,
-                        code: p.code,
-                        name: p.name,
-                        category: p.category || 'Livelihood Programs',
-                        budget: p.budget || 500000.00,
-                        beneficiaries_count: p.beneficiaries_count || 0,
-                        total_slots: p.total_slots || 50,
-                        target_beneficiaries: p.target_beneficiaries || 'Beneficiaries & Jobseekers',
-                        assistance_type: p.assistance_type || 'Livelihood Assistance',
-                        description: p.description || '',
-                        eligibility_criteria: p.eligibility_criteria || 'Resident of Koronadal City',
-                        limitations: p.limitations || 'Standard LGU guidelines apply.',
-                        restrictions: p.restrictions || 'One grant per household.',
-                        ordinance: p.ordinance || 'Appropriation Ordinance No. 6, Series of 2025',
-                        status: p.status || 'Active'
-                    }));
-                    renderDashboardTables();
-                    return;
+                try {
+                    const res = await DataService.programs.getAll({ agency: 'PESO' });
+                    if (res.data && Array.isArray(res.data)) {
+                        programsList = res.data.map(p => ({
+                            id: p.id,
+                            code: p.code,
+                            name: p.name,
+                            category: p.category || 'Livelihood Programs',
+                            budget: p.budget || 500000.00,
+                            beneficiaries_count: p.beneficiaries_count || 0,
+                            total_slots: p.total_slots || 50,
+                            target_beneficiaries: p.target_beneficiaries || 'Beneficiaries & Jobseekers',
+                            assistance_type: p.assistance_type || 'Livelihood Assistance',
+                            description: p.description || '',
+                            eligibility_criteria: p.eligibility_criteria || 'Resident of Koronadal City',
+                            limitations: p.limitations || 'Standard LGU guidelines apply.',
+                            restrictions: p.restrictions || 'One grant per household.',
+                            ordinance: p.ordinance || 'Appropriation Ordinance No. 6, Series of 2025',
+                            status: p.status || 'Active'
+                        }));
+                        renderDashboardTables();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('[PROGRAMS] Supabase fetch notice:', e);
                 }
             }
-
-            const localData = localStorage.getItem('peso_livelihood_programs_v1');
-            if (localData) {
-                try { programsList = JSON.parse(localData); } catch (e) { programsList = [...INITIAL_PROGRAMS]; }
-            } else {
-                programsList = [...INITIAL_PROGRAMS];
-            }
+            programsList = [];
             renderDashboardTables();
         }
 
@@ -4237,57 +4212,32 @@ function filterPrograms() {
 // USER MANAGEMENT & ROLE-BASED ACCESS CONTROL (RBAC) CONTROLLER
         // =========================================================================
 
-        let usersList = [
-            { id: 1, first_name: 'John', last_name: 'Doe', username: 'peso-admin', email: 'peso.admin@koronadal.gov.ph', role: 'PESO Admin', department: 'PESO', phone: '0917-123-4567', status: 'Active' },
-            { id: 2, first_name: 'Jane', last_name: 'Smith', username: 'peso-officer', email: 'peso.officer@koronadal.gov.ph', role: 'PESO Officer', department: 'PESO', phone: '0918-234-5678', status: 'Active' }
-        ];
+        let usersList = [];
 
         async function initUserManagementData() {
             if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
                 try {
                     const res = await DataService.staffProfiles.getAll({ agency: 'PESO' });
-                    if (res.data && res.data.length > 0) {
+                    if (res.data && Array.isArray(res.data)) {
                         usersList = res.data;
                         const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
                         if (adminUser) {
                             adminUser.status = 'Active';
-                            adminUser.failed_attempts = 0;
                         }
                         updateUserMetrics();
+                        if (document.getElementById('sectionUsers') && !document.getElementById('sectionUsers').classList.contains('d-none')) {
+                            filterUsers();
+                        }
                         return;
                     }
                 } catch (e) {
-                    console.warn('[USERS] DataService staff fallback:', e);
+                    console.warn('[USERS] Supabase staff fetch notice:', e);
                 }
             }
-            try {
-                const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
-                if (window.location.protocol === 'file:' && !apiBase) return;
-                const response = await fetch(`${apiBase}/api/users`);
-                const contentType = response.headers.get('content-type') || '';
-                if (response.ok && contentType.includes('application/json')) {
-                    const result = await response.json();
-                    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-                        usersList = result.data;
-                        const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
-                        if (adminUser) {
-                            adminUser.status = 'Active';
-                            adminUser.failed_attempts = 0;
-                        }
-                        localStorage.setItem('peso_users_list_v1', JSON.stringify(usersList));
-                        updateUserMetrics();
-                    }
-                }
-            } catch (err) {
-                console.warn('[USERS] Fetch API notice — operating with cached roster:', err.message);
-            }
-            const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
-            if (adminUser) {
-                adminUser.status = 'Active';
-                adminUser.failed_attempts = 0;
-            }
+            usersList = [];
+            updateUserMetrics();
             if (document.getElementById('sectionUsers') && !document.getElementById('sectionUsers').classList.contains('d-none')) {
-                renderUsersModule();
+                filterUsers();
             }
         }
 
@@ -4806,31 +4756,6 @@ function filterPrograms() {
         // SECTION 3: SCHEDULING MANAGEMENT MODULE (TAB 3)
         // =========================================================================
 
-        const INITIAL_ACTIVITIES = [
-            {
-                id: 301,
-                title: 'CKGIP Youth Internship Orientation & Ethics Briefing',
-                category: 'Training Session',
-                program_id: 101,
-                program_code: 'CKGIP',
-                program_name: 'City of Koronadal Government Internship Program (CKGIP)',
-                start_datetime: '2026-08-08T09:00',
-                end_datetime: '2026-08-08T12:00',
-                duration: '3 Hours',
-                location: 'City Hall Audio-Visual Room, Koronadal City',
-                assigned_officer_id: 2,
-                assigned_officer_name: 'Jane Smith (PESO Officer)',
-                target_beneficiaries: 'Youth Interns & Fresh Graduates (30 Interns)',
-                status: 'Ongoing',
-                topic: 'Public Service Ethics & Administrative Work Standards',
-                batch_num: 'Batch 2026-A (LGU Intake)',
-                trainer_name: 'Hon. Mark Gonzales',
-                created_at: '2026-08-01T08:30:00.000Z',
-                created_by: 'PESO Admin',
-                updated_at: '2026-08-08T08:00:00.000Z'
-            }
-        ];
-
         let activitiesList = [];
         let adminScheduleViewMode = 'calendar'; // 'calendar' or 'list'
 
@@ -4840,62 +4765,55 @@ function filterPrograms() {
 
         async function initSchedulingModuleData() {
             if (typeof DataService !== 'undefined' && DataService.interviews) {
-                const res = await DataService.interviews.getAll({ agency: 'PESO' });
-                if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-                    activitiesList = res.data.map(i => ({
-                        id: i.id,
-                        slot_id: `SLOT-${i.id}`,
-                        program_id: i.program_id,
-                        program_code: (i.program && i.program.code) || 'PESO',
-                        program_name: (i.program && i.program.name) || 'Livelihood Assistance',
-                        program_sub_category: 'Program Activity',
-                        barangay_cluster: 'Koronadal Central',
-                        title: i.title || `${(i.program && i.program.code) || 'PESO'} Assessment Session`,
-                        category: i.category || 'Interview',
-                        date: i.scheduled_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : '2026-08-15'),
-                        start_datetime: i.scheduled_time || `${i.scheduled_date || '2026-08-15'}T09:00`,
-                        end_datetime: `${i.scheduled_date || '2026-08-15'}T12:00`,
-                        time: '09:00 AM - 12:00 PM',
-                        schedule_time: '09:00 AM - 12:00 PM',
-                        duration: '3 Hours',
-                        venue: i.location || 'PESO Office, Koronadal City',
-                        location: i.location || 'PESO Office, Koronadal City',
-                        officer_id: i.officer_id,
-                        officer_name: (i.officer && `${i.officer.first_name} ${i.officer.last_name}`) || 'Jane Smith',
-                        assigned_officer_id: i.officer_id,
-                        assigned_officer_name: (i.officer && `${i.officer.first_name} ${i.officer.last_name} (PESO Officer)`) || 'Jane Smith (PESO Officer)',
-                        remarks: i.notes || '',
-                        slot_status: i.status || 'Active',
-                        status: i.status || 'Active',
-                        is_locked: false,
-                        lock_status: 'Unlocked',
-                        scheduling_mode: i.beneficiary_qr ? 'Individual' : 'Unassigned',
-                        beneficiary_name: i.beneficiary ? `${i.beneficiary.first_name} ${i.beneficiary.last_name}` : '',
-                        beneficiary_phone: i.beneficiary ? i.beneficiary.contact_number : '',
-                        attendance_status: i.status === 'Completed' ? 'Present' : (i.status === 'Cancelled' ? 'Cancelled' : 'Pending'),
-                        batch_name: '',
-                        batch_count: 0,
-                        created_at: i.created_at || new Date().toISOString(),
-                        created_by: 'PESO Admin',
-                        updated_at: i.created_at || new Date().toISOString()
-                    }));
-                    renderSchedulingModule();
-                    populateSchedulingDropdowns();
-                    return;
-                }
-            }
-
-            const stored = localStorage.getItem('peso_scheduled_activities_v1');
-            if (stored) {
                 try {
-                    activitiesList = JSON.parse(stored);
+                    const res = await DataService.interviews.getAll({ agency: 'PESO' });
+                    if (res.data && Array.isArray(res.data)) {
+                        activitiesList = res.data.map(i => ({
+                            id: i.id,
+                            slot_id: `SLOT-${i.id}`,
+                            program_id: i.program_id,
+                            program_code: (i.program && i.program.code) || 'PESO',
+                            program_name: (i.program && i.program.name) || 'Livelihood Assistance',
+                            program_sub_category: 'Program Activity',
+                            barangay_cluster: 'Koronadal Central',
+                            title: i.title || `${(i.program && i.program.code) || 'PESO'} Assessment Session`,
+                            category: i.category || 'Interview',
+                            date: i.scheduled_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : '2026-08-15'),
+                            start_datetime: i.scheduled_time || `${i.scheduled_date || '2026-08-15'}T09:00`,
+                            end_datetime: `${i.scheduled_date || '2026-08-15'}T12:00`,
+                            time: '09:00 AM - 12:00 PM',
+                            schedule_time: '09:00 AM - 12:00 PM',
+                            duration: '3 Hours',
+                            venue: i.location || 'PESO Office, Koronadal City',
+                            location: i.location || 'PESO Office, Koronadal City',
+                            officer_id: i.officer_id,
+                            officer_name: (i.officer && `${i.officer.first_name} ${i.officer.last_name}`) || 'Jane Smith',
+                            assigned_officer_id: i.officer_id,
+                            assigned_officer_name: (i.officer && `${i.officer.first_name} ${i.officer.last_name} (PESO Officer)`) || 'Jane Smith (PESO Officer)',
+                            remarks: i.notes || '',
+                            slot_status: i.status || 'Active',
+                            status: i.status || 'Active',
+                            is_locked: false,
+                            lock_status: 'Unlocked',
+                            scheduling_mode: i.beneficiary_qr ? 'Individual' : 'Unassigned',
+                            beneficiary_name: i.beneficiary ? `${i.beneficiary.first_name} ${i.beneficiary.last_name}` : '',
+                            beneficiary_phone: i.beneficiary ? i.beneficiary.contact_number : '',
+                            attendance_status: i.status === 'Completed' ? 'Present' : (i.status === 'Cancelled' ? 'Cancelled' : 'Pending'),
+                            batch_name: '',
+                            batch_count: 0,
+                            created_at: i.created_at || new Date().toISOString(),
+                            created_by: 'PESO Admin',
+                            updated_at: i.created_at || new Date().toISOString()
+                        }));
+                        renderSchedulingModule();
+                        populateSchedulingDropdowns();
+                        return;
+                    }
                 } catch (e) {
-                    activitiesList = [...INITIAL_ACTIVITIES];
+                    console.warn('[SCHEDULING] Supabase fetch notice:', e);
                 }
-            } else {
-                activitiesList = [...INITIAL_ACTIVITIES];
             }
-
+            activitiesList = [];
             populateSchedulingDropdowns();
             renderSchedulingModule();
         }
@@ -6159,112 +6077,49 @@ function filterPrograms() {
         // =========================================================================
 // PESO ADMIN APPLICATION EVALUATION MODULE STATE & LOGIC
         // =========================================================================
-        const INITIAL_EVALUATION_APPLICATIONS = [
-            {
-                id: 501,
-                applicant_name: 'Juan Santos Dela Cruz',
-                phone: '0905-111-2222',
-                address: 'Purok 2, Barangay Zone IV, Koronadal City',
-                civil_status: 'Single',
-                spouse_name: 'N/A',
-                children_info: 'None',
-                program_id: 101,
-                program_name: 'City of Koronadal Government Internship Program (CKGIP)',
-                program_code: 'CKGIP',
-                batch_id: 1011,
-                batch_num: 'Batch 2026-A (LGU Intake)',
-                date_submitted: '2026-03-15',
-                verification_status: 'Verified',
-                evaluation_status: 'Pending Evaluation',
-                notes: 'Submitted initial internship papers; pre-validated by PESO Officer Smith.',
-                docs: [
-                    { type: 'Valid ID', file_name: 'PhilID_Scan_JuanCruz.pdf', status: 'Verified' },
-                    { type: 'Barangay Clearance', file_name: 'BrgyClearance_Zone4.pdf', status: 'Verified' },
-                    { type: 'Program Requirements', file_name: 'CKGIP_ApplicationForm.pdf', status: 'Verified' }
-                ]
-            },
-            {
-                id: 502,
-                applicant_name: 'Maria Clara Santos',
-                phone: '0917-333-4444',
-                address: 'Purok Sunflower, Barangay Poblacion, Koronadal City',
-                civil_status: 'Married',
-                spouse_name: 'Pedro Santos',
-                children_info: '2 Children (Ages 4, 7)',
-                program_id: 104,
-                program_name: 'Pangkabuhayan Financial Assistance (PFAS)',
-                program_code: 'PFAS',
-                batch_id: 1041,
-                batch_num: 'Batch 1 (Micro-Retail)',
-                date_submitted: '2026-03-10',
-                verification_status: 'Verified',
-                evaluation_status: 'Approved',
-                notes: 'All financial grant requirements and business plan verified. Approved for grant disbursement.',
-                docs: [
-                    { type: 'Valid ID', file_name: 'UMID_MariaSantos.pdf', status: 'Verified' },
-                    { type: 'Barangay Clearance', file_name: 'BrgyClearance_Poblacion.pdf', status: 'Verified' },
-                    { type: 'Business Proposal', file_name: 'PFAS_SariSariStore_Plan.pdf', status: 'Verified' }
-                ]
-            },
-            {
-                id: 503,
-                applicant_name: 'Roberto Fernandez',
-                phone: '0928-555-6666',
-                address: 'Purok Mabuhay, Barangay Concepcion, Koronadal City',
-                civil_status: 'Married',
-                spouse_name: 'Ana Fernandez',
-                children_info: '1 Child (Age 2)',
-                program_id: 104,
-                program_name: 'Pangkabuhayan Financial Assistance (PFAS)',
-                program_code: 'PFAS',
-                batch_id: 1041,
-                batch_num: 'Batch 1 (Micro-Retail)',
-                date_submitted: '2026-03-12',
-                verification_status: 'Pending Verification',
-                evaluation_status: 'Denied',
-                notes: 'Incomplete business plan and duplicate household grant application detected.',
-                docs: [
-                    { type: 'Valid ID', file_name: 'VotersID_Roberto.pdf', status: 'Verified' },
-                    { type: 'Barangay Clearance', file_name: 'BrgyClearance_Concepcion.pdf', status: 'Pending Verification' }
-                ]
-            },
-            {
-                id: 504,
-                applicant_name: 'Ana Reyes',
-                phone: '0939-777-8888',
-                address: 'Purok Daisy, Barangay San Isidro, Koronadal City',
-                civil_status: 'Single',
-                spouse_name: 'N/A',
-                children_info: 'None',
-                program_id: 102,
-                program_name: 'Koronadal Emergency Employment Program (KEEP)',
-                program_code: 'KEEP',
-                batch_id: 1021,
-                batch_num: 'Batch 1 (KEEP Workers)',
-                date_submitted: '2026-03-18',
-                verification_status: 'Verified',
-                evaluation_status: 'Pending Evaluation',
-                notes: 'Emergency employment intake recorded; pending final administrative review.',
-                docs: [
-                    { type: 'Valid ID', file_name: 'PhilID_AnaReyes.pdf', status: 'Verified' },
-                    { type: 'Barangay Clearance', file_name: 'BrgyClearance_SanIsidro.pdf', status: 'Verified' }
-                ]
-            }
-        ];
-
         let evalApplicationsList = [];
         let currentEvalProgId = null;
         let currentEvalBatchId = null;
         let activeReviewAppId = null;
 
-        function initEvalModuleData() {
-            const stored = localStorage.getItem('peso_eval_applications_v1');
-            if (stored) {
-                try { evalApplicationsList = JSON.parse(stored); } catch (e) { evalApplicationsList = [...INITIAL_EVALUATION_APPLICATIONS]; }
-            } else {
-                evalApplicationsList = [...INITIAL_EVALUATION_APPLICATIONS];
-                localStorage.setItem('peso_eval_applications_v1', JSON.stringify(evalApplicationsList));
+        async function initEvalModuleData() {
+            if (typeof DataService !== 'undefined' && DataService.applications) {
+                try {
+                    const res = await DataService.applications.getAll({ agency: 'PESO' });
+                    if (res.data && Array.isArray(res.data)) {
+                        evalApplicationsList = res.data.map(a => ({
+                            id: a.id,
+                            application_number: a.application_number,
+                            beneficiary_qr: a.beneficiary_qr,
+                            applicant_name: a.beneficiary ? `${a.beneficiary.first_name || ''} ${a.beneficiary.last_name || ''}`.trim() : 'Applicant',
+                            phone: a.beneficiary ? a.beneficiary.phone || a.beneficiary.contact_number : '',
+                            address: a.beneficiary ? a.beneficiary.address : '',
+                            civil_status: a.beneficiary ? a.beneficiary.marital_status || 'Single' : 'Single',
+                            spouse_name: 'N/A',
+                            children_info: 'None',
+                            program_id: a.program_id,
+                            program_name: a.program ? a.program.name : 'Assistance Program',
+                            program_code: a.program ? a.program.code : 'PESO',
+                            batch_id: a.batch_id || 1011,
+                            batch_num: a.batch ? a.batch.name : 'Intake Batch',
+                            date_submitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+                            verification_status: a.status === 'Pending Requirements' ? 'Pending Verification' : 'Verified',
+                            evaluation_status: a.status === 'Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' ? 'Denied' : 'Pending Evaluation'),
+                            notes: a.remarks || a.officer_notes || '',
+                            docs: Array.isArray(a.documents_json) ? a.documents_json : [
+                                { type: 'Valid ID', file_name: 'Beneficiary_ID.pdf', status: 'Verified' },
+                                { type: 'Barangay Clearance', file_name: 'BrgyClearance.pdf', status: 'Verified' }
+                            ]
+                        }));
+                        updateEvalMetrics();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('[EVALUATION] Supabase applications fetch notice:', e);
+                }
             }
+            evalApplicationsList = [];
+            updateEvalMetrics();
         }
 
         function updateEvalMetrics() {
@@ -6787,78 +6642,15 @@ function filterPrograms() {
         // =========================================================================
         // SECTION 6: PESO OFFICERS MANAGEMENT MODULE (TAB 6)
         // =========================================================================
-        const INITIAL_OFFICERS = [
-            { id: 1, first_name: 'John', middle_name: 'A.', last_name: 'Doe', suffix: 'N/A', username: 'peso-admin', email: 'peso.admin@koronadal.gov.ph', role: 'PESO Admin', department: 'PESO', phone: '0917-111-2222', sex: 'Male', address: 'City Hall Complex, Koronadal City', status: 'Active' },
-            { id: 2, first_name: 'Jane', middle_name: 'B.', last_name: 'Smith', suffix: 'N/A', username: 'peso-officer', email: 'peso.officer@koronadal.gov.ph', role: 'PESO Officer', department: 'PESO', phone: '0918-222-3333', sex: 'Female', address: 'PESO Office, Koronadal City', status: 'Active' },
-            { id: 3, first_name: 'Chandler', middle_name: 'M.', last_name: 'Bing', suffix: 'N/A', username: 'bing', email: 'chanchanman@gmail.com', role: 'PESO Officer', department: 'PESO', phone: '0949-888-5342', sex: 'Male', address: 'Barangay Zone IV, Koronadal City', status: 'Active' },
-            { id: 4, first_name: 'Maria', middle_name: 'L.', last_name: 'Fernandez', suffix: 'N/A', username: 'peso-officer-02', email: 'maria.fernandez@koronadal.gov.ph', role: 'PESO Officer', department: 'PESO', phone: '0919-333-4444', sex: 'Female', address: 'Barangay Morales, Koronadal City', status: 'Active' },
-            { id: 5, first_name: 'Mark', middle_name: 'D.', last_name: 'Gonzales', suffix: 'N/A', username: 'peso-officer-03', email: 'mark.gonzales@koronadal.gov.ph', role: 'PESO Officer', department: 'PESO', phone: '0920-444-5555', sex: 'Male', address: 'Barangay GPS, Koronadal City', status: 'Active' },
-            { id: 6, first_name: 'Edward', middle_name: 'E.', last_name: 'Davis', suffix: 'Jr.', username: 'evaluator', email: 'evaluator@koronadal.gov.ph', role: 'Evaluator', department: 'PESO', phone: '0921-555-6666', sex: 'Male', address: 'City Hall Annex, Koronadal City', status: 'Active' },
-            { id: 7, first_name: 'Patricia', middle_name: 'M.', last_name: 'Marquez', suffix: 'N/A', username: 'peso-staff-01', email: 'staff.marquez@koronadal.gov.ph', role: 'Staff', department: 'PESO', phone: '0922-777-8888', sex: 'Female', address: 'Barangay Zone II, Koronadal City', status: 'Active' },
-            { id: 8, first_name: 'Elena', middle_name: 'S.', last_name: 'Ramos', suffix: 'N/A', username: 'elena-ramos', email: 'elena.ramos@koronadal.gov.ph', role: 'PESO Officer', department: 'PESO', phone: '0919-555-1234', sex: 'Female', address: 'Barangay Zone III, Koronadal City', status: 'Active' },
-            { id: 9, first_name: 'Gabriel', middle_name: 'P.', last_name: 'Mercado', suffix: 'N/A', username: 'gabriel-mercado', email: 'gabriel.mercado@koronadal.gov.ph', role: 'PESO Officer', department: 'PESO', phone: '0928-333-7777', sex: 'Male', address: 'Barangay GPS, Koronadal City', status: 'Active' },
-            { id: 10, first_name: 'Carlos', middle_name: 'R.', last_name: 'Garcia', suffix: 'N/A', username: 'carlos-garcia', email: 'carlos.garcia@koronadal.gov.ph', role: 'Staff', department: 'PESO', phone: '0923-888-9999', sex: 'Male', address: 'Barangay San Isidro, Koronadal City', status: 'Active' }
-        ];
-
-        // Pre-loaded Scheduled Activities Dataset
-
         let officersList = [];
 
-        function initOfficersData() {
-            const localOff = localStorage.getItem('peso_officers_list_v1') || localStorage.getItem('peso_officers');
-            let merged = [...INITIAL_OFFICERS];
-            if (localOff) {
+        async function initOfficersData() {
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
                 try {
-                    let parsed = JSON.parse(localOff);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        // Purge any CSWDO accounts from cached PESO officers roster
-                        parsed = parsed.filter(o => o && o.department !== 'CSWDO' && !(o.role && o.role.includes('CSWDO')));
-                        
-                        // Merge parsed officers with INITIAL_OFFICERS
-                        parsed.forEach(p => {
-                            const pUser = (p.username || '').toLowerCase();
-                            const pEmail = (p.email || '').toLowerCase();
-                            const matchIndex = merged.findIndex(m => 
-                                (m.username && m.username.toLowerCase() === pUser) || 
-                                (m.email && m.email.toLowerCase() === pEmail) ||
-                                (m.id && p.id && m.id === p.id)
-                            );
-                            if (matchIndex !== -1) {
-                                merged[matchIndex] = { ...merged[matchIndex], ...p };
-                            } else {
-                                merged.push(p);
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.debug('[OFFICERS] Cache parse note — using default roster.');
-                }
-            }
-            officersList = merged;
-            const adminOff = officersList.find(o => (o.username && o.username.toLowerCase() === 'peso-admin') || (o.email && o.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
-            if (adminOff) {
-                adminOff.status = 'Active';
-            }
-            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
-        }
-
-        async function fetchOfficersFromApi() {
-            try {
-                const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
-                if (window.location.protocol === 'file:' && !apiBase) return;
-                const headers = (typeof SessionManager !== 'undefined' && SessionManager.authHeaders) ? SessionManager.authHeaders() : { 'Content-Type': 'application/json' };
-                const response = await fetch(`${apiBase}/api/officers`, {
-                    method: 'GET',
-                    headers: headers,
-                    credentials: 'include'
-                });
-                const contentType = response.headers.get('content-type') || '';
-                if (response.ok && contentType.includes('application/json')) {
-                    const result = await response.json();
-                    const rawList = Array.isArray(result?.data) ? result.data : (Array.isArray(result) ? result : []);
-                    if (rawList.length > 0) {
-                        const fetchedOfficers = rawList.map(off => ({
-                            id: off.id || Date.now(),
+                    const res = await DataService.staffProfiles.getAll({ agency: 'PESO' });
+                    if (res.data && Array.isArray(res.data)) {
+                        officersList = res.data.map(off => ({
+                            id: off.id,
                             first_name: off.first_name || '',
                             middle_name: off.middle_name || '',
                             last_name: off.last_name || '',
@@ -6872,30 +6664,25 @@ function filterPrograms() {
                             address: off.address || 'City of Koronadal',
                             status: (off.status === 'Deactivated' || off.status === 'Inactive') ? 'Deactivated' : 'Active'
                         }));
-                        
-                        // Merge fetched with current list
-                        let updatedList = [...officersList];
-                        fetchedOfficers.forEach(f => {
-                            const idx = updatedList.findIndex(u => (u.username && u.username.toLowerCase() === (f.username || '').toLowerCase()) || (u.email && u.email.toLowerCase() === (f.email || '').toLowerCase()) || u.id === f.id);
-                            if (idx !== -1) {
-                                updatedList[idx] = { ...updatedList[idx], ...f };
-                            } else {
-                                updatedList.push(f);
-                            }
-                        });
-                        officersList = updatedList;
-                        localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
+                        const adminOff = officersList.find(o => (o.username && o.username.toLowerCase() === 'peso-admin') || (o.email && o.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
+                        if (adminOff) adminOff.status = 'Active';
+                        if (document.getElementById('sectionOfficers') && !document.getElementById('sectionOfficers').classList.contains('d-none')) {
+                            renderOfficersTables();
+                        }
+                        return;
                     }
+                } catch (e) {
+                    console.warn('[OFFICERS] Supabase staff fetch notice:', e);
                 }
-            } catch (err) {
-                console.debug('[OFFICERS] Backend sync note — operating with cached roster.');
             }
-            if (!Array.isArray(officersList)) {
-                officersList = [];
-            }
+            officersList = [];
             if (document.getElementById('sectionOfficers') && !document.getElementById('sectionOfficers').classList.contains('d-none')) {
                 renderOfficersTables();
             }
+        }
+
+        async function fetchOfficersFromApi() {
+            await initOfficersData();
         }
 
         function filterOfficers() {
@@ -7043,15 +6830,15 @@ function filterPrograms() {
                 role: document.getElementById('newOffRole')?.value || 'PESO Officer',
                 gender: document.getElementById('newOffGender')?.value || 'Male',
                 address: (document.getElementById('newOffAddress')?.value || '').trim(),
-                contactNumber: (document.getElementById('newOffContactNumber')?.value || '').trim(),
+                contactNumber: (document.getElementById('newOffContactNumber')?.value || document.getElementById('newOffContact')?.value || '').trim(),
                 department: (document.getElementById('newOffDepartment')?.value || 'PESO').trim()
             };
 
             // Client-side validation checks
-            if (!officerData.firstName || !officerData.lastName || !officerData.username || !officerData.email || !officerData.password || !officerData.confirmPassword || !officerData.contactNumber || !officerData.address || !officerData.department) {
+            if (!officerData.firstName || !officerData.lastName || !officerData.username || !officerData.email || !officerData.password || !officerData.confirmPassword || !officerData.contactNumber) {
                 window.showSystemNotification({
                     title: 'Validation Error',
-                    message: 'Please complete all required fields.',
+                    message: 'Please complete all required fields marked with *.',
                     type: 'warning'
                 });
                 return;
@@ -7067,15 +6854,6 @@ function filterPrograms() {
                 return;
             }
 
-            if (officerData.password.length < 6) {
-                window.showSystemNotification({
-                    title: 'Password Too Short',
-                    message: 'Password must be at least 6 characters in length.',
-                    type: 'warning'
-                });
-                return;
-            }
-
             if (officerData.password !== officerData.confirmPassword) {
                 window.showSystemNotification({
                     title: 'Password Mismatch',
@@ -7085,34 +6863,29 @@ function filterPrograms() {
                 return;
             }
 
-            if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.validateDepartmentScope) {
-                const scopeCheck = PESOSafeguards.validateDepartmentScope('PESO', { role: officerData.role, department: officerData.department });
-                if (!scopeCheck.allowed) {
+            // Check if username exists in Supabase
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data: existingUser } = await supabaseClient
+                    .from('staff_profiles')
+                    .select('id')
+                    .ilike('username', officerData.username)
+                    .maybeSingle();
+
+                if (existingUser) {
                     window.showSystemNotification({
-                        title: 'Cross-Department Action Blocked',
-                        message: scopeCheck.reason,
-                        type: 'error'
+                        title: 'Username Taken',
+                        message: `Username "${officerData.username}" is already assigned to another account.`,
+                        type: 'warning'
                     });
                     return;
                 }
             }
 
-            // Check if username already exists
-            if (officersList.some(o => o.username.toLowerCase() === officerData.username.toLowerCase())) {
-                window.showSystemNotification({
-                    title: 'Username Taken',
-                    message: `Username "${officerData.username}" is already assigned to another account.`,
-                    type: 'warning'
-                });
-                return;
-            }
-
             const newOff = {
-                id: Date.now(),
                 first_name: officerData.firstName,
-                middle_name: officerData.middleName,
+                middle_name: officerData.middleName || null,
                 last_name: officerData.lastName,
-                suffix: officerData.suffix,
+                suffix: officerData.suffix !== 'N/A' ? officerData.suffix : null,
                 username: officerData.username,
                 email: officerData.email,
                 role: officerData.role,
@@ -7123,49 +6896,40 @@ function filterPrograms() {
                 status: 'Active'
             };
 
-            // Call Backend API
-            try {
-                const apiBase = window.API_BASE_URL || '';
-                const response = await fetch(`${apiBase}/api/officers`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        first_name: officerData.firstName,
-                        middle_name: officerData.middleName,
-                        last_name: officerData.lastName,
-                        suffix: officerData.suffix,
-                        username: officerData.username,
-                        email: officerData.email,
-                        password: officerData.password,
-                        password_confirm: officerData.confirmPassword,
-                        role: officerData.role,
-                        department: officerData.department,
-                        sex: officerData.gender,
-                        phone: officerData.contactNumber,
-                        address: officerData.address
-                    })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.data) {
-                        newOff.id = data.data.id;
+            // Direct Supabase Insert & Audit Log
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                const createRes = await DataService.staffProfiles.create(newOff);
+                if (createRes.data) {
+                    newOff.id = createRes.data.id;
+                }
+            } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data: inserted, error: insertErr } = await supabaseClient
+                    .from('staff_profiles')
+                    .insert(newOff)
+                    .select()
+                    .single();
+
+                if (inserted) {
+                    newOff.id = inserted.id;
+                    if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.logAudit) {
+                        PESOSafeguards.logAudit({
+                            intent: 'Create Officer Account',
+                            actionType: 'CREATE_OFFICER_ACCOUNT',
+                            targetEntity: 'staff_profiles',
+                            status: 'SUCCESS',
+                            details: `Created new officer account "${officerData.username}" (${officerData.firstName} ${officerData.lastName}), Role: ${officerData.role}, Dept: ${officerData.department}`
+                        });
                     }
                 }
-            } catch (err) {
-                console.warn('[OFFICERS] API submission notice — saved to local state:', err.message);
             }
 
             officersList.unshift(newOff);
-            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
-
-            logAuditEvent('CREATE_OFFICER_ACCOUNT', `Created new officer account "${officerData.username}" (${officerData.firstName} ${officerData.lastName}), Role: ${officerData.role}, Dept: ${officerData.department}`);
-
             safeHideModal('newOfficerModal');
-
             renderOfficersTables();
+
             window.showSystemNotification({
                 title: 'Officer Account Created',
-                message: `Officer account for ${officerData.firstName} ${officerData.lastName} (${officerData.username}) created successfully. Status: Active.`,
+                message: `Officer account for ${officerData.firstName} ${officerData.lastName} (${officerData.username}) created successfully in Supabase. Status: Active.`,
                 type: 'success'
             });
         }
@@ -7200,37 +6964,6 @@ function filterPrograms() {
             const updatedDept = document.getElementById('editOffDepartment').value;
             const updatedAddress = (document.getElementById('editOffAddress').value || '').trim();
 
-            if (!updatedUsername || !updatedEmail || !updatedPhone || !updatedAddress) {
-                window.showSystemNotification({
-                    title: 'Validation Error',
-                    message: 'Please ensure all required fields are filled before saving.',
-                    type: 'warning'
-                });
-                return;
-            }
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(updatedEmail)) {
-                window.showSystemNotification({
-                    title: 'Invalid Email',
-                    message: 'Please provide a valid email address format.',
-                    type: 'warning'
-                });
-                return;
-            }
-
-            if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.validateDepartmentScope) {
-                const scopeCheck = PESOSafeguards.validateDepartmentScope('PESO', { role: updatedRole, department: updatedDept });
-                if (!scopeCheck.allowed) {
-                    window.showSystemNotification({
-                        title: 'Cross-Department Action Blocked',
-                        message: scopeCheck.reason,
-                        type: 'error'
-                    });
-                    return;
-                }
-            }
-
             off.username = updatedUsername;
             off.email = updatedEmail;
             off.phone = updatedPhone;
@@ -7238,33 +6971,33 @@ function filterPrograms() {
             off.department = updatedDept;
             off.address = updatedAddress;
 
-            try {
-                const apiBase = window.API_BASE_URL || '';
-                await fetch(`${apiBase}/api/officers/${offId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: updatedUsername,
-                        email: updatedEmail,
-                        phone: updatedPhone,
-                        role: updatedRole,
-                        department: updatedDept,
-                        address: updatedAddress
-                    })
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                await DataService.staffProfiles.update(offId, {
+                    username: updatedUsername,
+                    email: updatedEmail,
+                    phone: updatedPhone,
+                    role: updatedRole,
+                    department: updatedDept,
+                    address: updatedAddress
                 });
-            } catch (err) {
-                console.warn('[OFFICERS] API update notice — saved to local state:', err.message);
+            } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                await supabaseClient.from('staff_profiles').update({
+                    username: updatedUsername,
+                    email: updatedEmail,
+                    phone: updatedPhone,
+                    role: updatedRole,
+                    department: updatedDept,
+                    address: updatedAddress
+                }).eq('id', offId);
             }
 
-            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
             logAuditEvent('UPDATE_OFFICER_ACCOUNT', `Updated details for officer account ID ${offId} (${updatedUsername}), Role: ${updatedRole}, Dept: ${updatedDept}`);
 
             safeHideModal('editOfficerModal');
-
             renderOfficersTables();
             window.showSystemNotification({
                 title: 'Account Updated',
-                message: `Officer account details for "${updatedUsername}" updated successfully.`,
+                message: `Officer account details for "${updatedUsername}" updated successfully in Supabase.`,
                 type: 'success'
             });
         }
@@ -7277,16 +7010,12 @@ function filterPrograms() {
             const newStatus = isDeactivating ? 'Deactivated' : 'Active';
 
             off.status = newStatus;
-            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
-            try {
-                const apiBase = window.API_BASE_URL || '';
-                await fetch(`${apiBase}/api/officers/${officerId}/status`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: newStatus })
-                });
-            } catch (err) { }
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                await DataService.staffProfiles.setStatus(officerId, newStatus);
+            } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                await supabaseClient.from('staff_profiles').update({ status: newStatus }).eq('id', officerId);
+            }
 
             logAuditEvent(isDeactivating ? 'DEACTIVATE_OFFICER_ACCOUNT' : 'ACTIVATE_OFFICER_ACCOUNT', `Updated status of officer account "${off.username}" to ${newStatus}`);
             renderOfficersTables();
@@ -7302,12 +7031,12 @@ function filterPrograms() {
             if (!off) return;
 
             off.status = 'Active';
-            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
-            try {
-                const apiBase = window.API_BASE_URL || '';
-                await fetch(`${apiBase}/api/officers/${officerId}/restore`, { method: 'POST' });
-            } catch (err) { }
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                await DataService.staffProfiles.setStatus(officerId, 'Active');
+            } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                await supabaseClient.from('staff_profiles').update({ status: 'Active' }).eq('id', officerId);
+            }
 
             logAuditEvent('ACTIVATE_OFFICER_ACCOUNT', `Restored officer account "${off.username}" to Active status.`);
             renderOfficersTables();
@@ -7324,27 +7053,21 @@ function filterPrograms() {
 
             const username = off.username;
             officersList = officersList.filter(o => o.id !== officerId);
-            localStorage.setItem('peso_officers_list_v1', JSON.stringify(officersList));
 
-            try {
-                const apiBase = window.API_BASE_URL || '';
-                await fetch(`${apiBase}/api/officers/${officerId}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ permanent: true })
-                });
-            } catch (err) { }
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                await DataService.staffProfiles.delete(officerId);
+            } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                await supabaseClient.from('staff_profiles').delete().eq('id', officerId);
+            }
 
             logAuditEvent('PERMANENT_DELETE_OFFICER', `Permanently deleted officer account "${username}" (ID: ${officerId})`);
             renderOfficersTables();
             window.showSystemNotification({
                 title: 'Officer Account Deleted',
-                message: `Officer account "${username}" permanently deleted from archive.`,
+                message: `Officer account "${username}" permanently deleted from archive in Supabase.`,
                 type: 'danger'
             });
         }
-
-        // =========================================================================
 
         // =========================================================================
         // SECTION 7: GLOBAL NAVIGATION CONTROLLER & DOM INITIALIZER

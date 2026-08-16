@@ -176,6 +176,26 @@
                 sessionStorage.setItem('beneficiaryName', fullName);
                 if (userProfile.qr_code) sessionStorage.setItem('beneficiaryQrCode', userProfile.qr_code);
 
+                // Audit Log
+                if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.logAudit) {
+                    PESOSafeguards.logAudit({
+                        userId: userProfile.qr_code || String(userProfile.id),
+                        userRole: 'BENEFICIARY',
+                        intent: 'Beneficiary Login Success',
+                        actionType: 'LOGIN_SUCCESS',
+                        targetEntity: 'Authentication Engine',
+                        status: 'AUTHENTICATED',
+                        details: `Beneficiary "${userProfile.username}" (${userProfile.qr_code || userProfile.id}) logged in successfully.`
+                    });
+                } else if (typeof supabaseClient !== 'undefined' && supabaseClient && userProfile.qr_code) {
+                    supabaseClient.from('audit_logs').insert({
+                        beneficiary_qr: userProfile.qr_code,
+                        action: 'SUCCESS:LOGIN_SUCCESS',
+                        entity_type: 'Authentication Engine',
+                        details: `Beneficiary "${userProfile.username}" (${userProfile.qr_code}) logged in successfully.`
+                    }).then(() => {});
+                }
+
                 const dict = (window.LoginSupport && window.LoginSupport.translations && window.LoginSupport.translations[lang]) || (window.translations && window.translations[lang]) || {};
                 if (successAlert) {
                     const successMsgEl = successAlert.querySelector('#successMessage');

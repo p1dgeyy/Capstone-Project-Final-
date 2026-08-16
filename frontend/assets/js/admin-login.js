@@ -143,19 +143,6 @@
         if (step3) step3.classList.remove('d-none');
     };
 
-    // Known Staff Roster Reference
-    const knownStaffAccounts = {
-        'peso-admin': { email: 'peso.admin@koronadal.gov.ph', role: 'PESO Admin', firstName: 'John', lastName: 'Doe', department: 'PESO' },
-        'peso-officer': { email: 'peso.officer@koronadal.gov.ph', role: 'PESO Officer', firstName: 'Jane', lastName: 'Smith', department: 'PESO' },
-        'bing': { email: 'chanchanman@gmail.com', role: 'PESO Officer', firstName: 'Chandler', lastName: 'Bing', department: 'PESO' },
-        'peso-officer-02': { email: 'maria.fernandez@koronadal.gov.ph', role: 'PESO Officer', firstName: 'Maria', lastName: 'Fernandez', department: 'PESO' },
-        'peso-officer-03': { email: 'mark.gonzales@koronadal.gov.ph', role: 'PESO Officer', firstName: 'Mark', lastName: 'Gonzales', department: 'PESO' },
-        'evaluator': { email: 'evaluator@koronadal.gov.ph', role: 'Evaluator', firstName: 'Edward', lastName: 'Davis', department: 'PESO' },
-        'peso-staff-01': { email: 'staff.marquez@koronadal.gov.ph', role: 'Staff', firstName: 'Patricia', lastName: 'Marquez', department: 'PESO' },
-        'cswdo-admin': { email: 'cswdo.admin@koronadal.gov.ph', role: 'CSWDO Admin', firstName: 'Robert', lastName: 'Johnson', department: 'CSWDO' },
-        'cswdo-officer': { email: 'cswdo.officer@koronadal.gov.ph', role: 'CSWDO Officer', firstName: 'Mary', lastName: 'Williams', department: 'CSWDO' }
-    };
-
     // Staff Login Form Submission Handler
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -212,8 +199,18 @@
                         } catch (e) { }
 
                         if (!targetEmail) {
-                            const lower = identifier.toLowerCase();
-                            targetEmail = knownStaffAccounts[lower] ? knownStaffAccounts[lower].email : `${identifier}@koronadal.gov.ph`;
+                            try {
+                                const { data: staffMatch } = await supabaseClient
+                                    .from('staff_profiles')
+                                    .select('email')
+                                    .ilike('username', identifier)
+                                    .maybeSingle();
+                                if (staffMatch && staffMatch.email) targetEmail = staffMatch.email;
+                            } catch (e) { }
+                        }
+
+                        if (!targetEmail) {
+                            targetEmail = `${identifier}@koronadal.gov.ph`;
                         }
                     }
 
@@ -233,18 +230,32 @@
                             if (staffData) profile = staffData;
                         } catch (e) { }
 
+                        // If not linked yet, match by email and link auth_id
+                        if (!profile && authData.user.email) {
+                            try {
+                                const { data: staffByEmail } = await supabaseClient
+                                    .from('staff_profiles')
+                                    .select('*')
+                                    .eq('email', authData.user.email)
+                                    .maybeSingle();
+                                if (staffByEmail) {
+                                    profile = staffByEmail;
+                                    supabaseClient.from('staff_profiles').update({ auth_id: authData.user.id }).eq('id', staffByEmail.id).then(() => {});
+                                }
+                            } catch (e) { }
+                        }
+
                         if (!profile) {
                             const meta = authData.user.user_metadata || {};
-                            const known = knownStaffAccounts[identifier.toLowerCase()] || {};
                             profile = {
                                 id: authData.user.id,
                                 auth_id: authData.user.id,
-                                username: meta.username || known.username || identifier,
-                                role: meta.role || known.role || 'PESO Admin',
-                                first_name: meta.first_name || known.firstName || 'Administrator',
-                                last_name: meta.last_name || known.lastName || '',
+                                username: meta.username || identifier,
+                                role: meta.role || (targetEmail.includes('admin') ? 'PESO Admin' : 'PESO Officer'),
+                                first_name: meta.first_name || 'Staff',
+                                last_name: meta.last_name || 'Member',
                                 email: authData.user.email,
-                                department: known.department || 'PESO',
+                                department: meta.department || 'PESO',
                                 status: 'Active'
                             };
                         }
