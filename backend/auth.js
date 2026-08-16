@@ -28,12 +28,32 @@ const _resetTokens = new Map();
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
+function getRedirectUrlForRole(role) {
+    switch (role) {
+        case 'Beneficiary':
+            return 'beneficiary.html';
+        case 'PESO Admin':
+            return 'peso_admin.html';
+        case 'CSWDO Admin':
+            return 'cswdo_admin.html';
+        case 'PESO Officer':
+            return 'peso_officer.html';
+        case 'CSWDO Officer':
+            return 'cswdo_officer.html';
+        case 'Evaluator':
+        case 'Staff':
+            return 'evaluator.html';
+        default:
+            return 'index.html';
+    }
+}
+
 /**
  * POST /api/auth/login
  * Authenticates user credentials, enforces lockout, returns JWT or 2FA OTP challenge
  */
 router.post('/login', async (req, res) => {
-    const { username, email, password, require2Fa, twoFactor } = req.body;
+    const { username, email, password, require2Fa, twoFactor, portal } = req.body;
     const identifier = (username || email || '').trim();
     const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
 
@@ -58,6 +78,50 @@ router.post('/login', async (req, res) => {
             status: 'BLOCKED',
             actionReason: 'User not found in system',
             details: `Failed login attempt for non-existent identifier: ${identifier}`,
+            clientIp
+        });
+
+        return res.status(401).json({
+            success: false,
+            error: 'Authentication Failed',
+            message: 'Invalid username/email or password.'
+        });
+    }
+
+    // Enforce Portal-Role Separation Restrictions
+    const cleanPortal = (portal || '').trim().toLowerCase();
+    if (cleanPortal === 'beneficiary' && user.role !== 'Beneficiary') {
+        trackIpFailedAttempt(clientIp, user.username);
+        logAudit({
+            userId: user.username,
+            userRole: user.role,
+            actionType: 'LOGIN_PORTAL_RESTRICTION',
+            targetEntity: 'Authentication System',
+            targetId: user.id,
+            status: 'BLOCKED',
+            actionReason: 'Staff/Admin attempted to log in via Beneficiary portal',
+            details: `Login blocked for ${user.role} "${user.username}" on Beneficiary Login portal. Staff/Admins must use admin_login.html.`,
+            clientIp
+        });
+
+        return res.status(401).json({
+            success: false,
+            error: 'Authentication Failed',
+            message: 'Invalid username/email or password.'
+        });
+    }
+
+    if ((cleanPortal === 'admin' || cleanPortal === 'staff') && user.role === 'Beneficiary') {
+        trackIpFailedAttempt(clientIp, user.username);
+        logAudit({
+            userId: user.username,
+            userRole: user.role,
+            actionType: 'LOGIN_PORTAL_RESTRICTION',
+            targetEntity: 'Authentication System',
+            targetId: user.id,
+            status: 'BLOCKED',
+            actionReason: 'Beneficiary attempted to log in via Staff/Admin portal',
+            details: `Login blocked for Beneficiary "${user.username}" on Staff/Admin Login portal. Beneficiaries must use official_login.html.`,
             clientIp
         });
 
@@ -196,6 +260,7 @@ router.post('/login', async (req, res) => {
                 requestId: otpRecord.requestId,
                 maskedRecipient: delivery.maskedDestination,
                 expiresInSeconds: otpRecord.expiresInSeconds,
+                redirectUrl: getRedirectUrlForRole(user.role),
                 message: `Credentials verified. Enter the 6-digit verification code sent to ${delivery.maskedDestination}.`
             });
         } catch (otpErr) {
@@ -222,6 +287,7 @@ router.post('/login', async (req, res) => {
 
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
+    const redirectUrl = getRedirectUrlForRole(user.role);
 
     // Establish persistent Express Session
     if (req.session) {
@@ -249,6 +315,7 @@ router.post('/login', async (req, res) => {
         message: 'Login successful.',
         accessToken,
         refreshToken,
+        redirectUrl,
         expiresIn: 15 * 60, // 15 minutes (seconds)
         user: {
             id: user.id,

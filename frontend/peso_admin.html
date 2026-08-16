@@ -3912,7 +3912,57 @@
         };
         // Pre-loaded Programs
 
-function showAuditLogsModal() { safeOpenModal('auditLogsModal'); }
+async function showAuditLogsModal() {
+            const tbody = document.getElementById('auditLogsModalTableBody');
+            if (tbody) {
+                let logs = [];
+                try {
+                    const localLogs = JSON.parse(localStorage.getItem('peso_immutable_audit_logs') || '[]');
+                    logs = localLogs;
+                } catch (e) { }
+
+                try {
+                    const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
+                    if (apiBase) {
+                        const headers = (typeof SessionManager !== 'undefined' && SessionManager.authHeaders) ? SessionManager.authHeaders() : { 'Content-Type': 'application/json' };
+                        const res = await fetch(`${apiBase}/api/audit-logs`, { headers });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+                                logs = data.data;
+                            }
+                        }
+                    }
+                } catch (apiErr) { }
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No audit logs recorded yet.</td></tr>';
+                } else {
+                    tbody.innerHTML = logs.map(l => {
+                        let badgeClass = 'bg-secondary';
+                        const action = (l.actionType || l.action || '').toUpperCase();
+                        if (action.includes('SUCCESS')) badgeClass = 'bg-success';
+                        else if (action.includes('FAIL') || action.includes('BLOCKED') || action.includes('DENIED')) badgeClass = 'bg-danger';
+                        else if (action.includes('LOCK')) badgeClass = 'bg-warning text-dark';
+                        else if (action.includes('CREATE') || action.includes('REGISTER')) badgeClass = 'bg-primary';
+                        else if (action.includes('UPDATE')) badgeClass = 'bg-info text-dark';
+
+                        const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
+                        return `
+                            <tr>
+                                <td><span class="text-muted">${escapeHtml(time)}</span></td>
+                                <td><span class="badge bg-light text-dark border">${escapeHtml(l.userRole || l.adminCredentials || 'System')}</span></td>
+                                <td><span class="badge ${badgeClass}">${escapeHtml(action)}</span></td>
+                                <td><span class="fw-semibold text-secondary">${escapeHtml(l.targetEntity || l.target || 'General')}</span></td>
+                                <td><div class="small text-truncate" style="max-width: 320px;" title="${escapeHtml(l.details || l.actionReason || '')}">${escapeHtml(l.details || l.actionReason || '—')}</div></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+            safeOpenModal('auditLogsModal');
+        }
+
         function logAuditEvent(actionType, details) {
             try {
                 const logs = JSON.parse(localStorage.getItem('peso_immutable_audit_logs') || '[]');
@@ -3927,8 +3977,6 @@ function showAuditLogsModal() { safeOpenModal('auditLogsModal'); }
                 localStorage.setItem('peso_immutable_audit_logs', JSON.stringify(logs));
             } catch (e) { }
         }
-
-        // =========================================================================
 
 function maskContactNumber(phone) {
             if (!phone) return '09XX-***-XXXX';

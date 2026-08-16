@@ -31,7 +31,12 @@
 
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const { 
+    getUsers,
+    findUserById,
+    findUserByIdentifier,
+    addUser,
     getInterviews, 
     findInterviewById, 
     getInterviewsByOfficer,
@@ -49,7 +54,7 @@ const {
     addInterview,
     getAttendanceRecords 
 } = require('../data/seedData');
-const { requireAuth, requireStaff, maskContactNumber } = require('../middleware/auth');
+const { requireAuth, requireStaff, requireAdmin, maskContactNumber } = require('../middleware/auth');
 const { logAudit } = require('../utils/auditLogger');
 
 /**
@@ -957,6 +962,309 @@ router.post('/interview/schedule', (req, res) => {
         success: true,
         message: `Interview "${newInterview.interview_id}" scheduled successfully for ${newInterview.beneficiary_name}.`,
         data: formatInterviewOutput(newInterview)
+    });
+});
+
+// =============================================================================
+// PESO OFFICER ACCOUNT PROVISIONING & MANAGEMENT ENDPOINTS (ADMIN ONLY)
+// =============================================================================
+
+/**
+ * GET /api/officers
+ * Fetch all registered PESO officers
+ */
+router.get('/officers', (req, res) => {
+    const list = getUsers().filter(u => 
+        (u.department === 'PESO' || !u.department || u.role.includes('PESO')) &&
+        u.department !== 'CSWDO' && 
+        !u.role.includes('CSWDO') &&
+        u.role !== 'Beneficiary'
+    );
+
+    const formatted = list.map(o => ({
+        id: o.id,
+        first_name: o.first_name,
+        middle_name: o.middle_name || '',
+        last_name: o.last_name,
+        suffix: o.suffix || '',
+        full_name: `${o.first_name} ${o.middle_name ? o.middle_name + ' ' : ''}${o.last_name}${o.suffix ? ' ' + o.suffix : ''}`.trim(),
+        username: o.username,
+        email: o.email,
+        role: o.role,
+        department: o.department || 'PESO',
+        sex: o.sex || 'Male',
+        phone: maskContactNumber(o.phone),
+        address: o.address || 'City of Koronadal',
+        status: o.status || 'Active',
+        created_at: o.created_at,
+        updated_at: o.updated_at
+    }));
+
+    res.json({
+        success: true,
+        count: formatted.length,
+        data: formatted
+    });
+});
+
+/**
+ * POST /api/officers
+ * Admin provisions a new PESO officer account with bcrypt password hashing
+ */
+router.post('/officers', async (req, res) => {
+    const {
+        first_name,
+        middle_name,
+        last_name,
+        suffix,
+        username,
+        email,
+        password,
+        role,
+        department,
+        sex,
+        phone,
+        address
+    } = req.body;
+
+    const adminUser = req.user?.username || 'PESO Admin';
+    const adminRole = req.user?.role || 'PESO Admin';
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    if (!first_name || !last_name || !username || !email || !password) {
+        return res.status(400).json({
+            success: false,
+            error: 'Validation Error',
+            message: 'First Name, Last Name, Username, Email, and Password are required.'
+        });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check duplicate username or email
+    const existing = findUserByIdentifier(cleanUsername) || findUserByIdentifier(cleanEmail);
+    if (existing) {
+        return res.status(409).json({
+            success: false,
+            error: 'Duplicate Account',
+            message: `An account with username "${cleanUsername}" or email "${cleanEmail}" already exists.`
+        });
+    }
+
+    // Hash password with bcrypt (salt rounds: 10)
+    const password_hash = await bcrypt.hash(password, 10);
+
+    const newOfficer = addUser({
+        first_name: first_name.trim(),
+        middle_name: (middle_name || '').trim(),
+        last_name: last_name.trim(),
+        suffix: suffix || '',
+        username: cleanUsername,
+        email: cleanEmail,
+        password_hash,
+        role: role || 'PESO Officer',
+        department: department || 'PESO',
+        sex: sex || 'Male',
+        phone: (phone || '').trim(),
+        address: (address || 'City of Koronadal').trim(),
+        status: 'Active'
+    });
+
+    logAudit({
+        userId: adminUser,
+        userRole: adminRole,
+        actionType: 'CREATE_PESO_OFFICER',
+        targetEntity: 'Officer Account Management',
+        targetId: newOfficer.id,
+        status: 'SUCCESS',
+        actionReason: 'Administrative creation of new PESO Officer account',
+        details: `Admin "${adminUser}" created officer account "${newOfficer.username}" (${newOfficer.first_name} ${newOfficer.last_name}). Role: ${newOfficer.role}, Dept: ${newOfficer.department}.`,
+        clientIp
+    });
+
+    res.status(201).json({
+        success: true,
+        message: `Officer account "${newOfficer.username}" created successfully.`,
+        data: {
+            id: newOfficer.id,
+            username: newOfficer.username,
+            email: newOfficer.email,
+            full_name: `${newOfficer.first_name} ${newOfficer.last_name}`,
+            role: newOfficer.role,
+            department: newOfficer.department,
+            status: newOfficer.status
+        }
+    });
+});
+
+/**
+ * PUT /api/officers/:id
+ * Admin updates an existing officer account
+ */
+router.put('/officers/:id', async (req, res) => {
+    const officerId = Number(req.params.id);
+    const officer = findUserById(officerId);
+    const adminUser = req.user?.username || 'PESO Admin';
+    const adminRole = req.user?.role || 'PESO Admin';
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    if (!officer) {
+        return res.status(404).json({
+            success: false,
+            error: 'Not Found',
+            message: `Officer with ID "${officerId}" not found.`
+        });
+    }
+
+    const {
+        first_name,
+        middle_name,
+        last_name,
+        suffix,
+        email,
+        role,
+        sex,
+        phone,
+        address,
+        status,
+        password
+    } = req.body;
+
+    if (first_name) officer.first_name = first_name.trim();
+    if (middle_name !== undefined) officer.middle_name = middle_name.trim();
+    if (last_name) officer.last_name = last_name.trim();
+    if (suffix !== undefined) officer.suffix = suffix;
+    if (email) officer.email = email.trim().toLowerCase();
+    if (role) officer.role = role;
+    if (sex) officer.sex = sex;
+    if (phone) officer.phone = phone.trim();
+    if (address) officer.address = address.trim();
+    if (status) officer.status = status;
+    if (password) {
+        officer.password_hash = await bcrypt.hash(password, 10);
+    }
+    officer.updated_at = new Date().toISOString();
+
+    logAudit({
+        userId: adminUser,
+        userRole: adminRole,
+        actionType: 'UPDATE_PESO_OFFICER',
+        targetEntity: 'Officer Account Management',
+        targetId: officer.id,
+        status: 'SUCCESS',
+        actionReason: 'Administrator updated officer details',
+        details: `Admin "${adminUser}" updated details for officer "${officer.username}" (ID: ${officer.id}).`,
+        clientIp
+    });
+
+    res.json({
+        success: true,
+        message: `Officer "${officer.username}" updated successfully.`,
+        data: {
+            id: officer.id,
+            username: officer.username,
+            email: officer.email,
+            full_name: `${officer.first_name} ${officer.last_name}`,
+            role: officer.role,
+            department: officer.department,
+            status: officer.status
+        }
+    });
+});
+
+/**
+ * PATCH /api/officers/:id/status
+ * Quick toggle status (Active / Deactivated)
+ */
+router.patch('/officers/:id/status', (req, res) => {
+    const officerId = Number(req.params.id);
+    const officer = findUserById(officerId);
+    const adminUser = req.user?.username || 'PESO Admin';
+    const adminRole = req.user?.role || 'PESO Admin';
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    if (!officer) {
+        return res.status(404).json({
+            success: false,
+            error: 'Not Found',
+            message: `Officer with ID "${officerId}" not found.`
+        });
+    }
+
+    const newStatus = officer.status === 'Active' ? 'Deactivated' : 'Active';
+    officer.status = newStatus;
+    officer.updated_at = new Date().toISOString();
+
+    logAudit({
+        userId: adminUser,
+        userRole: adminRole,
+        actionType: newStatus === 'Active' ? 'ACTIVATE_OFFICER' : 'DEACTIVATE_OFFICER',
+        targetEntity: 'Officer Account Management',
+        targetId: officer.id,
+        status: 'SUCCESS',
+        actionReason: `Toggled officer status to ${newStatus}`,
+        details: `Admin "${adminUser}" set status of officer "${officer.username}" to ${newStatus}.`,
+        clientIp
+    });
+
+    res.json({
+        success: true,
+        message: `Officer "${officer.username}" status updated to ${newStatus}.`,
+        data: {
+            id: officer.id,
+            username: officer.username,
+            status: officer.status
+        }
+    });
+});
+
+/**
+ * DELETE /api/officers/:id
+ * Permanent deletion of officer from system
+ */
+router.delete('/officers/:id', (req, res) => {
+    const officerId = Number(req.params.id);
+    const users = getUsers();
+    const idx = users.findIndex(u => u.id === officerId);
+    const adminUser = req.user?.username || 'PESO Admin';
+    const adminRole = req.user?.role || 'PESO Admin';
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    if (idx === -1) {
+        return res.status(404).json({
+            success: false,
+            error: 'Not Found',
+            message: `Officer with ID "${officerId}" not found.`
+        });
+    }
+
+    const officer = users[idx];
+    if (officer.role === 'PESO Admin' || officer.username === 'peso-admin') {
+        return res.status(403).json({
+            success: false,
+            error: 'Protected Account',
+            message: 'Primary Administrator account cannot be deleted.'
+        });
+    }
+
+    users.splice(idx, 1);
+
+    logAudit({
+        userId: adminUser,
+        userRole: adminRole,
+        actionType: 'DELETE_OFFICER_PERMANENT',
+        targetEntity: 'Officer Account Management',
+        targetId: officerId,
+        status: 'SUCCESS',
+        actionReason: 'Permanent deletion of officer account',
+        details: `Admin "${adminUser}" permanently deleted officer "${officer.username}".`,
+        clientIp
+    });
+
+    res.json({
+        success: true,
+        message: `Officer "${officer.username}" deleted successfully.`
     });
 });
 
