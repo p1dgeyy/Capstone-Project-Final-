@@ -247,6 +247,27 @@ const _users = [
         last_login_at: '2026-08-11T14:30:00.000Z',
         created_at: '2026-02-15T08:00:00.000Z',
         updated_at: '2026-08-11T14:30:00.000Z'
+    },
+    {
+        id: 12,
+        username: 'bing',
+        email: 'chanchanman@gmail.com',
+        password_hash: DEFAULT_HASH,
+        first_name: 'Chandler',
+        middle_name: 'M.',
+        last_name: 'Bing',
+        suffix: '',
+        role: 'PESO Officer',
+        department: 'PESO',
+        phone: '0949-888-5342',
+        sex: 'Male',
+        address: 'Barangay Zone IV, Koronadal City',
+        status: 'Active',
+        failed_login_attempts: 0,
+        lockout_until: null,
+        last_login_at: '2026-08-12T10:00:00.000Z',
+        created_at: '2026-02-15T08:00:00.000Z',
+        updated_at: '2026-08-12T10:00:00.000Z'
     }
 ];
 
