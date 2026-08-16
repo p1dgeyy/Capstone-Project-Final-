@@ -1156,13 +1156,13 @@
                             <i class="bi bi-file-earmark-check-fill"></i> <span data-translate="applications_review_title">Welfare Assistance Verification</span>
                         </h5>
                         <div class="d-flex gap-2 no-print">
-                            <select class="form-select form-select-sm" id="filterAssistanceType" onchange="renderApplicationsTable()" style="max-width: 200px;">
+                            <select  class="form-select form-select-sm" id="filterAssistanceType" onchange="renderApplicationsTable()" style="max-width: 200px;" aria-label="Assistance Type">
                                 <option value="">All Assistance Types</option>
                                 <option value="Medical Assistance">Medical Assistance</option>
                                 <option value="Burial Assistance">Burial Assistance</option>
                                 <option value="Financial Assistance">Financial Assistance</option>
                             </select>
-                            <select class="form-select form-select-sm" id="filterApplicationStatus" onchange="renderApplicationsTable()" style="max-width: 150px;">
+                            <select  class="form-select form-select-sm" id="filterApplicationStatus" onchange="renderApplicationsTable()" style="max-width: 150px;" aria-label="Application Status">
                                 <option value="">All Statuses</option>
                                 <option value="Pending">Pending</option>
                                 <option value="Approved">Approved</option>
@@ -1258,7 +1258,7 @@
                                 <div class="mb-3">
                                     <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Auto-Notify Beneficiaries</label>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="schedNotifyAuto" checked>
+                                        <input  class="form-check-input" type="checkbox" id="schedNotifyAuto" checked aria-label="Sched Notify Auto">
                                         <label class="form-check-label text-muted" style="font-size: 0.85rem;">Send SMS/Email alerts immediately</label>
                                     </div>
                                 </div>
@@ -1367,11 +1367,11 @@
                                     <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Transmission Channel</label>
                                     <div class="d-flex gap-3">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="channelSMS" checked>
+                                            <input  class="form-check-input" type="checkbox" id="channelSMS" checked aria-label="Channel S M S">
                                             <label class="form-check-label" style="font-size: 0.88rem;">SMS (Text Message)</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="channelEmail" checked>
+                                            <input  class="form-check-input" type="checkbox" id="channelEmail" checked aria-label="Channel Email">
                                             <label class="form-check-label" style="font-size: 0.88rem;">Email Official</label>
                                         </div>
                                     </div>
@@ -2858,21 +2858,25 @@
                 
                 // --- Send Officer Evaluation to Supabase ---
                 const targetDbId = app.dbId || parseInt(id.replace(/[^0-9]/g, '')) || 1;
-                const officerUserId = sessionStorage.getItem('userId') || '4';
+                const rawOfficerId = sessionStorage.getItem('userId');
+                const officerUserId = rawOfficerId && !isNaN(parseInt(rawOfficerId)) ? parseInt(rawOfficerId) : null;
 
                 if (supabaseClient) {
-                    supabaseClient.from('applications').update({
+                    const updatePayload = {
                         status: status === 'Approved' ? 'Officer Approved' : (status === 'Denied' ? 'Officer Denied' : 'Pending'),
                         officer_decision: status === 'Approved' ? 'Approved' : (status === 'Denied' ? 'Denied' : 'Pending Requirements'),
-                        officer_id: parseInt(officerUserId),
                         officer_notes: remarks,
                         officer_action_at: new Date().toISOString()
-                    }).eq('id', targetDbId).then(({ error }) => {
+                    };
+                    if (officerUserId && officerUserId > 0) {
+                        updatePayload.officer_id = officerUserId;
+                    }
+                    supabaseClient.from('applications').update(updatePayload).eq('id', targetDbId).then(({ error }) => {
                         if (error) console.warn('Supabase evaluate error:', error.message);
                         else console.log('[CSWDO OFFICER] Evaluated application on Supabase.');
                     });
                 }
-
+                
                 // Trigger Simulated Notification to Beneficiary
                 triggerAssistanceNotification(app, status, amount, remarks);
 

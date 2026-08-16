@@ -87,14 +87,15 @@ if (typeof window.PESOSafeguards === 'undefined') {
    */
   function getNormalizedRole(userRole) {
     let rawRole = userRole;
+    if (!rawRole && typeof AuthGuard !== 'undefined' && AuthGuard.getProfile) {
+      const p = AuthGuard.getProfile();
+      if (p && p.role) rawRole = p.role;
+    }
     if (!rawRole && typeof SessionManager !== 'undefined' && SessionManager.getRole) {
       rawRole = SessionManager.getRole();
     }
     if (!rawRole) {
-      try {
-        const sess = JSON.parse(localStorage.getItem('peso_session') || '{}');
-        rawRole = sess.role;
-      } catch(e) {}
+      rawRole = sessionStorage.getItem('userRole');
     }
     // Check page title / filename fallback
     if (!rawRole && typeof window !== 'undefined') {
@@ -377,16 +378,32 @@ if (typeof window.PESOSafeguards === 'undefined') {
     }
 
     // 2. Transmit to Supabase audit_logs table asynchronously
-    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-      supabaseClient.from('audit_logs').insert({
-        user_id: userId,
+    if (typeof DataService !== 'undefined' && DataService.auditLogs) {
+      DataService.auditLogs.log({
+        staffUserId: typeof userId === 'number' ? userId : parseInt(sessionStorage.getItem('userId')) || null,
+        beneficiaryQr: typeof userId === 'string' && userId.startsWith('QR-') ? userId : (sessionStorage.getItem('beneficiaryQrCode') || null),
         action: `${auditRecord.status}:${auditRecord.actionType}`,
-        entity_type: auditRecord.targetEntity,
-        entity_id: auditRecord.id,
+        entityType: auditRecord.targetEntity,
         details: `[Role: ${userRole}] ${auditRecord.intent} - ${auditRecord.details}`
-      }).then(({ error }) => {
-        if (error) console.warn('[PESOSafeguards] Supabase audit insert fallback:', error.message);
       });
+    } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      const payload = {
+        action: `${auditRecord.status}:${auditRecord.actionType}`,
+        entity_type: auditRecord.targetEntity || 'general',
+        details: `[Role: ${userRole}] ${auditRecord.intent} - ${auditRecord.details}`
+      };
+      const staffId = typeof userId === 'number' ? userId : parseInt(sessionStorage.getItem('userId')) || null;
+      const benQr = typeof userId === 'string' && userId.startsWith('QR-') ? userId : (sessionStorage.getItem('beneficiaryQrCode') || null);
+      if (staffId && !benQr) {
+        payload.staff_user_id = staffId;
+      } else if (benQr) {
+        payload.beneficiary_qr = benQr;
+      }
+      if (payload.staff_user_id || payload.beneficiary_qr) {
+        supabaseClient.from('audit_logs').insert(payload).then(({ error }) => {
+          if (error) console.warn('[PESOSafeguards] Supabase audit insert fallback:', error.message);
+        });
+      }
     }
 
     return auditRecord;

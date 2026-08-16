@@ -190,7 +190,11 @@
         const progRes = await DataService.programs.getAll({ status: 'Active' });
         if (progRes.data) {
           state.programs = progRes.data;
+          window.allBeneficiaryPrograms = progRes.data;
           populateProgramsDropdown();
+          if (typeof window.renderBeneficiaryPrograms === 'function') {
+            window.renderBeneficiaryPrograms();
+          }
         }
       }
     } catch (err) {
