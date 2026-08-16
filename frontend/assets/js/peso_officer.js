@@ -8,7 +8,10 @@
 
   // Initial State Management
   const state = {
-    beneficiaries: [],
+    beneficiaries: JSON.parse(localStorage.getItem('peso_officer_beneficiaries')) || [
+      { id: 101, first_name: 'Maria', last_name: 'Santos', phone: '0917-111-2233', barangay: 'Poblacion', category: 'Individual', status: 'Active', qr_code: 'QR-BEN-101' },
+      { id: 102, first_name: 'Juan', last_name: 'Dela Cruz', phone: '0918-222-3344', barangay: 'Zone I', category: 'Group', status: 'Active', qr_code: 'QR-BEN-102' }
+    ],
     applications: JSON.parse(localStorage.getItem('peso_officer_applications')) || [
       { id: 201, applicant_name: 'Maria Santos', program_code: 'TUPAD', date_applied: '2026-07-20', status: 'Pending', verification_status: 'Verified', batch_number: 'Batch 1' },
       { id: 202, applicant_name: 'Juan Dela Cruz', program_code: 'SPES', date_applied: '2026-07-22', status: 'Approved', verification_status: 'Verified', batch_number: 'Batch 2' }
@@ -22,41 +25,9 @@
 
   // Helper Functions
   function saveState() {
+    localStorage.setItem('peso_officer_beneficiaries', JSON.stringify(state.beneficiaries));
     localStorage.setItem('peso_officer_applications', JSON.stringify(state.applications));
     localStorage.setItem('peso_officer_interviews', JSON.stringify(state.interviews));
-  }
-
-  // Load beneficiaries from Supabase (replaces hardcoded/localStorage data)
-  async function loadBeneficiariesFromSupabase() {
-    if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
-    try {
-      const { data, error } = await supabaseClient
-        .from('beneficiaries')
-        .select('qr_code, first_name, middle_name, last_name, phone, email, address, sex, age, status')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      if (data && data.length > 0) {
-        state.beneficiaries = data.map(row => {
-          const addressParts = (row.address || '').split(',');
-          const barangayGuess = addressParts.length > 1
-            ? addressParts[addressParts.length - 1].trim()
-            : (addressParts[0] || '').trim();
-          return {
-            id: row.qr_code || 0,
-            first_name: row.first_name || '',
-            last_name: row.last_name || '',
-            phone: row.phone || '',
-            barangay: barangayGuess,
-            category: 'Individual',
-            status: row.status || 'Active',
-            qr_code: row.qr_code || ''
-          };
-        });
-        console.log(`[PESO_OFFICER_JS] Loaded ${state.beneficiaries.length} beneficiaries from Supabase.`);
-      }
-    } catch (e) {
-      console.warn('[PESO_OFFICER_JS] Could not load beneficiaries from Supabase:', e?.message || e);
-    }
   }
 
   function getBadgeClass(status) {
@@ -127,7 +98,7 @@
   }
 
   // REQ070: Beneficiary Intake Form & Automatic QR Code Generation
-  async function submitBeneficiaryIntake(event) {
+  function submitBeneficiaryIntake(event) {
     if (event) event.preventDefault();
 
     const firstName = document.getElementById('intakeFirstName')?.value || '';
@@ -141,9 +112,10 @@
       return;
     }
 
-    const qrVal = `QR-BEN-${Date.now().toString(36).toUpperCase()}`;
+    const newId = Date.now();
+    const qrVal = `QR-BEN-${newId}`;
     const newBen = {
-      id: Date.now(),
+      id: newId,
       first_name: firstName,
       last_name: lastName,
       phone: phone,
@@ -157,45 +129,16 @@
     saveState();
     renderBeneficiariesTable();
 
-    // Async sync to Supabase via Auth signup (triggers auto-insert into beneficiaries table)
+    // Async sync to Supabase
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-      const intakeEmail = document.getElementById('intakeEmail')?.value || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@placeholder.local`;
-      const tempPassword = `PESO_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const username = `${firstName.toLowerCase().replace(/\s+/g, '')}.${lastName.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 100)}`;
-
-      supabaseClient.auth.signUp({
-        email: intakeEmail,
-        password: tempPassword,
-        options: {
-          data: {
-            role: 'beneficiary',
-            username: username,
-            first_name: firstName,
-            last_name: lastName,
-            age: 0
-          }
-        }
-      }).then(({ data, error }) => {
-        if (error) {
-          console.warn('[PESO_OFFICER] Supabase signup sync error:', error.message);
-          return;
-        }
-        const authId = data?.user?.id;
-        if (authId) {
-          // Update the auto-created beneficiary row with phone/address
-          supabaseClient.from('beneficiaries').update({
-            phone: phone,
-            address: barangay,
-            status: 'Active'
-          }).eq('auth_id', authId)
-            .then(({ error: upErr }) => { if (upErr) console.warn('[PESO_OFFICER] Profile update warning:', upErr.message); });
-        }
-      }).catch(e => console.warn('[PESO_OFFICER] Supabase signup offline fallback:', e.message));
+      supabaseClient.from('beneficiaries').insert(newBen)
+        .then(({ error }) => { if (error) console.warn('[PESO_OFFICER] Supabase sync error:', error.message); })
+        .catch(e => console.warn('[PESO_OFFICER] Supabase sync offline fallback:', e.message));
     }
 
     alert(`Beneficiary intake completed successfully! Generated QR Code: ${qrVal}`);
     window.closeModal('beneficiaryIntakeModal');
-    window.showBeneficiaryQR(newBen.id);
+    window.showBeneficiaryQR(newId);
   }
 
   // REQ071-REQ072: QR Code Viewer & Scanner Integration
@@ -443,8 +386,52 @@
 
   // DOMContentLoaded Auto Initialization
   document.addEventListener('DOMContentLoaded', async function () {
-    // Load real beneficiary data from Supabase before rendering
-    await loadBeneficiariesFromSupabase();
+    if (typeof DataService !== 'undefined') {
+      try {
+        const benRes = await DataService.beneficiaries.getAll();
+        if (benRes.data && benRes.data.length > 0) {
+          state.beneficiaries = benRes.data.map(b => ({
+            id: b.id,
+            first_name: b.first_name,
+            last_name: b.last_name,
+            phone: b.contact_number || '09XX-***-XXXX',
+            barangay: b.barangay || 'Poblacion',
+            category: 'Individual',
+            status: b.status || 'Active',
+            qr_code: b.qr_code || `QR-BEN-${b.id}`
+          }));
+        }
+
+        const appRes = await DataService.applications.getAll({ agency: 'PESO' });
+        if (appRes.data && appRes.data.length > 0) {
+          state.applications = appRes.data.map(a => ({
+            id: a.id,
+            applicant_name: a.beneficiary ? `${a.beneficiary.first_name} ${a.beneficiary.last_name}` : 'Applicant',
+            program_code: (a.program && a.program.code) || 'TUPAD',
+            date_applied: a.created_at ? a.created_at.substring(0, 10) : '2026-08-01',
+            status: a.status || 'Pending',
+            verification_status: 'Verified',
+            batch_number: a.batch_number || 'Batch 1'
+          }));
+        }
+
+        const schedRes = await DataService.interviews.getAll({ agency: 'PESO' });
+        if (schedRes.data && schedRes.data.length > 0) {
+          state.interviews = schedRes.data.map(i => ({
+            id: i.id,
+            beneficiary_name: i.beneficiary ? `${i.beneficiary.first_name} ${i.beneficiary.last_name}` : 'Beneficiary',
+            date: i.scheduled_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : '2026-08-08'),
+            time: '09:00 AM',
+            attendance: i.attendance_status || (i.status === 'Completed' ? 'Present' : 'Pending'),
+            outcome: i.status === 'Completed' ? 'Completed' : 'Pending',
+            remarks: i.notes || ''
+          }));
+        }
+      } catch (err) {
+        console.warn('[PESO_OFFICER_JS] DataService load notice:', err.message);
+      }
+    }
+
     renderBeneficiariesTable();
     renderApplicationsTable();
     renderInterviewsTable();

@@ -1,143 +1,338 @@
 /**
  * Beneficiary Portal Frontend Controller Module
- * Handles REQ220–REQ241 (Registration, Assistance Intake, Document Tracking, Training, Distribution Releases, Centralized Notifications)
+ * City Government of Koronadal — PESO & CSWDO Portals
+ * 
+ * Direct Supabase Data Layer integration:
+ * - Real-time profile loading via AuthGuard & DataService
+ * - Applications intake, tracking & dynamic status boards
+ * - Centralized notifications feed & read status
+ * - Interview schedules, capacity training & distribution tracking
+ * - Data Privacy compliance: sensitive details masked in views
  */
 
 (function () {
   'use strict';
 
-  // Initial Beneficiary Portal State
+  // Active Beneficiary State
   const state = {
-    user: JSON.parse(localStorage.getItem('peso_beneficiary_user')) || {
-      id: 101,
-      name: 'Maria Santos',
-      email: 'maria.santos@example.com',
-      phone: '0917-111-2233',
-      barangay: 'Poblacion',
-      status: 'Active'
-    },
-    applications: JSON.parse(localStorage.getItem('peso_beneficiary_applications')) || [
-      { id: 'APP-2026-001', type: 'Livelihood Assistance', program: 'TUPAD', date: '2026-07-15', status: 'Approved', remarks: 'Eligible for batch release' },
-      { id: 'APP-2026-002', type: 'Educational / SPES', program: 'SPES', date: '2026-07-20', status: 'Under Review', remarks: 'Document verification in progress' }
-    ],
-    documents: JSON.parse(localStorage.getItem('peso_beneficiary_documents')) || [
-      { id: 'DOC-01', name: 'Barangay Clearance Certificate', type: 'Barangay Clearance', status: 'Approved', date_uploaded: '2026-07-15' },
-      { id: 'DOC-02', name: 'Valid Government Issued ID', type: 'Valid ID', status: 'Approved', date_uploaded: '2026-07-15' },
-      { id: 'DOC-03', name: 'Project Proposal / Business Plan', type: 'Business Plan', status: 'Under Review', date_uploaded: '2026-07-20' }
-    ],
-    trainings: JSON.parse(localStorage.getItem('peso_beneficiary_trainings')) || [
-      { id: 'TRN-101', title: 'Financial Literacy & Bookkeeping Orientation', date: '2026-08-05', venue: 'Koronadal Gymnasium', status: 'Enrolled', certificate: 'CERT-2026-881' }
-    ],
-    releases: JSON.parse(localStorage.getItem('peso_beneficiary_releases')) || [
-      { id: 'REL-501', assistance: 'Emergency Wages (TUPAD Batch 1)', date: '2026-08-10', time: '09:00 AM', location: 'City Hall Auditorium', status: 'Scheduled' }
-    ],
-    notifications: JSON.parse(localStorage.getItem('peso_beneficiary_notifications')) || [
-      { id: 1, title: 'Document Verified', message: 'Your Barangay Clearance Certificate has been verified by PESO Officer.', date: '2026-07-25', isRead: false },
-      { id: 2, title: 'Interview Scheduled', message: 'You are scheduled for a brief verification call on July 30, 2026 at 09:00 AM.', date: '2026-07-26', isRead: false }
-    ]
+    user: null,
+    applications: [],
+    documents: [],
+    trainings: [],
+    releases: [],
+    notifications: [],
+    programs: []
   };
-
-  function saveBeneficiaryState() {
-    localStorage.setItem('peso_beneficiary_applications', JSON.stringify(state.applications));
-    localStorage.setItem('peso_beneficiary_documents', JSON.stringify(state.documents));
-    localStorage.setItem('peso_beneficiary_notifications', JSON.stringify(state.notifications));
-  }
 
   function getStatusBadge(status) {
     switch (status) {
       case 'Approved':
+      case 'Officer Approved':
+      case 'Released':
+      case 'Completed':
       case 'Verified':
       case 'Active':
       case 'Scheduled':
         return '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>' + status + '</span>';
       case 'Under Review':
       case 'Pending':
+      case 'Pending Requirements':
+      case 'Interview Scheduled':
+      case 'Training Scheduled':
       case 'Enrolled':
         return '<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>' + status + '</span>';
       case 'Denied':
+      case 'Officer Denied':
       case 'Rejected':
+      case 'Deactivated':
         return '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>' + status + '</span>';
       default:
-        return '<span class="badge bg-secondary">' + status + '</span>';
+        return '<span class="badge bg-secondary">' + (status || 'Pending') + '</span>';
     }
   }
 
-  // REQ224: Summary Overview Cards
-  function renderDashboardOverview() {
-    const totalAppEl = document.getElementById('benStatTotalApps');
-    const approvedEl = document.getElementById('benStatApprovedApps');
-    const pendingEl = document.getElementById('benStatPendingApps');
+  // Load Beneficiary Profile from AuthGuard / Supabase
+  async function loadBeneficiaryProfile() {
+    let profile = null;
+    if (typeof AuthGuard !== 'undefined' && AuthGuard.getProfile) {
+      profile = AuthGuard.getProfile();
+    }
 
-    if (totalAppEl) totalAppEl.textContent = state.applications.length;
-    if (approvedEl) approvedEl.textContent = state.applications.filter(a => a.status === 'Approved').length;
-    if (pendingEl) pendingEl.textContent = state.applications.filter(a => a.status === 'Under Review' || a.status === 'Pending').length;
+    if (!profile && typeof AuthGuard !== 'undefined' && AuthGuard.fetchUserProfile) {
+      profile = await AuthGuard.fetchUserProfile();
+    }
+
+    if (!profile && typeof DataService !== 'undefined') {
+      const username = sessionStorage.getItem('username') || sessionStorage.getItem('beneficiaryUsername');
+      if (username) {
+        const res = await DataService.beneficiaries.getByUsername(username);
+        if (res.data) profile = res.data;
+      }
+    }
+
+    if (profile) {
+      state.user = {
+        qr_code: profile.qr_code || profile.id,
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        fullName: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username || 'Beneficiary',
+        username: profile.username || 'beneficiary',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        address: profile.address || 'Koronadal City',
+        status: profile.status || 'Active'
+      };
+    } else {
+      // Fallback display profile
+      state.user = {
+        qr_code: sessionStorage.getItem('beneficiaryQrCode') || 'QR-BEN-ACTIVE',
+        first_name: 'Beneficiary',
+        last_name: 'Applicant',
+        fullName: sessionStorage.getItem('beneficiaryName') || 'Beneficiary Applicant',
+        username: sessionStorage.getItem('beneficiaryUsername') || 'beneficiary',
+        email: '',
+        phone: '',
+        address: 'City of Koronadal',
+        status: 'Active'
+      };
+    }
+
+    // Update Header / Welcome Elements
+    const welcomeEl = document.getElementById('welcomeUser');
+    if (welcomeEl) welcomeEl.textContent = `Welcome, ${state.user.fullName}!`;
+
+    const subTitleEl = document.getElementById('sidebarSubtitle');
+    if (subTitleEl) subTitleEl.textContent = state.user.fullName;
+
+    const qrCodeDisplayEl = document.getElementById('sidebarQrPreview');
+    if (qrCodeDisplayEl) qrCodeDisplayEl.textContent = state.user.qr_code;
+  }
+
+  // Fetch all beneficiary-related data from Supabase
+  async function fetchBeneficiaryData() {
+    if (!state.user || !state.user.qr_code) return;
+    const qr = state.user.qr_code;
+
+    try {
+      // 1. Fetch Applications
+      if (typeof DataService !== 'undefined' && DataService.applications) {
+        const appsRes = await DataService.applications.getByBeneficiary(qr);
+        if (appsRes.data) {
+          state.applications = appsRes.data.map(app => ({
+            id: app.application_number || `APP-${app.id}`,
+            dbId: app.id,
+            type: app.program?.name || 'Assistance Program',
+            program: app.program?.code || 'PESO',
+            program_id: app.program_id,
+            date: app.date_applied || (app.created_at ? app.created_at.split('T')[0] : '2026-08-01'),
+            status: app.status || 'Pending',
+            progress: app.progress_percent || (app.status === 'Approved' ? 100 : (app.status === 'Under Review' ? 50 : 25)),
+            remarks: app.officer_notes || app.remarks || 'Application on record.'
+          }));
+        }
+      }
+
+      // 2. Fetch Notifications
+      if (typeof DataService !== 'undefined' && DataService.notifications) {
+        const notifRes = await DataService.notifications.getByBeneficiary(qr);
+        if (notifRes.data) {
+          state.notifications = notifRes.data.map(n => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            date: n.created_at ? new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent',
+            isRead: n.is_read || false
+          }));
+        }
+      }
+
+      // 3. Fetch Interview Schedules
+      if (typeof DataService !== 'undefined' && DataService.interviews) {
+        const intRes = await DataService.interviews.getByBeneficiary(qr);
+        if (intRes.data) {
+          state.trainings = intRes.data.map(i => ({
+            id: `SCH-${i.id}`,
+            dbId: i.id,
+            title: `${i.program?.name || 'Assistance Program'} Interview / Assessment`,
+            program_code: i.program?.code || 'PESO',
+            date: i.interview_date,
+            time: i.interview_time || '09:00 AM',
+            venue: i.venue_location || 'PESO Office, City Hall Complex',
+            status: i.status || 'Scheduled',
+            attendance: i.attendance_status || 'Unmarked',
+            trainer: i.officer ? `${i.officer.first_name} ${i.officer.last_name}` : 'PESO Officer',
+            certificate: `CERT-${new Date().getFullYear()}-${i.id}`
+          }));
+        }
+      }
+
+      // 4. Fetch Approved Assistance & Distributions
+      if (typeof DataService !== 'undefined' && DataService.approvedAssistance) {
+        const astRes = await DataService.approvedAssistance.getByBeneficiary(qr);
+        if (astRes.data) {
+          state.releases = astRes.data.map(a => ({
+            id: `AST-${a.id}`,
+            dbId: a.id,
+            assistance: `${a.assistance_type} (${a.quantity_amount})`,
+            program: a.program?.name || 'Assistance Grant',
+            date: a.approval_date || new Date().toISOString().split('T')[0],
+            time: '08:00 AM - 05:00 PM',
+            location: 'PESO Disbursement & Distribution Desk',
+            status: 'Active',
+            value: a.quantity_amount,
+            type: a.assistance_type
+          }));
+        }
+      }
+
+      // 5. Fetch Available Active Programs for Application Dropdown
+      if (typeof DataService !== 'undefined' && DataService.programs) {
+        const progRes = await DataService.programs.getAll({ status: 'Active' });
+        if (progRes.data) {
+          state.programs = progRes.data;
+          populateProgramsDropdown();
+        }
+      }
+    } catch (err) {
+      console.warn('[BENEFICIARY] Data fetch notice:', err.message);
+    }
+
+    renderDashboardOverview();
+  }
+
+  function populateProgramsDropdown() {
+    const selectEl = document.getElementById('requestCategorySelect');
+    if (!selectEl) return;
+    if (state.programs.length > 0) {
+      selectEl.innerHTML = '<option value="">Select Assistance Program...</option>' +
+        state.programs.map(p => `<option value="${p.id}" data-name="${p.name}" data-code="${p.code}">${p.name} (${p.code})</option>`).join('');
+    }
+  }
+
+  // Summary Overview Cards Rendering
+  function renderDashboardOverview() {
+    const totalAppEl = document.getElementById('benStatTotalApps') || document.getElementById('statTotalApps');
+    const approvedEl = document.getElementById('benStatApprovedApps') || document.getElementById('statApproved');
+    const pendingEl = document.getElementById('benStatPendingApps') || document.getElementById('statPending');
+    const scheduledEl = document.getElementById('statScheduled');
+    const notifCountEl = document.getElementById('statNotifications');
+
+    const totalCount = state.applications.length;
+    const approvedCount = state.applications.filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Released' || a.status === 'Completed').length;
+    const pendingCount = state.applications.filter(a => a.status === 'Pending' || a.status === 'Under Review' || a.status === 'Pending Requirements' || a.status === 'Interview Scheduled').length;
+    const scheduledCount = state.trainings.filter(t => t.status === 'Scheduled' || t.status === 'Active').length;
+    const unreadNotifs = state.notifications.filter(n => !n.isRead).length;
+
+    if (totalAppEl) totalAppEl.textContent = totalCount;
+    if (approvedEl) approvedEl.textContent = approvedCount;
+    if (pendingEl) pendingEl.textContent = pendingCount;
+    if (scheduledEl) scheduledEl.textContent = scheduledCount;
+    if (notifCountEl) notifCountEl.textContent = state.notifications.length;
 
     renderApplicationsTable();
+    renderRecentApplicationsTable();
     renderDocumentStatusBoard();
     renderTrainingsList();
     renderDistributionReleases();
     renderNotificationsFeed();
   }
 
-  // REQ225-REQ229: Dynamic Assistance Request Intake Form
-  function submitAssistanceRequest(event) {
+  // Dynamic Assistance Request Intake Submission directly to Supabase
+  async function submitAssistanceRequest(event) {
     if (event) event.preventDefault();
 
     const categorySelect = document.getElementById('requestCategorySelect');
     const remarksInput = document.getElementById('requestNotesInput');
+    const amountInput = document.getElementById('requestAmountInput');
 
-    const category = categorySelect ? categorySelect.value : 'Livelihood Assistance';
+    const programIdVal = categorySelect ? categorySelect.value : null;
     const notes = remarksInput ? remarksInput.value.trim() : '';
+    const amountRequested = amountInput ? parseFloat(amountInput.value) || 0 : 0;
 
-    const newAppId = 'APP-2026-' + String(Date.now()).slice(-3);
-    const newApp = {
-      id: newAppId,
-      type: category,
-      program: category.includes('Livelihood') ? 'Pangkabuhayan / TUPAD' : 'PESO Grant',
-      date: new Date().toISOString().substring(0, 10),
-      status: 'Under Review',
-      remarks: notes || 'New request submitted by beneficiary'
+    let programId = parseInt(programIdVal);
+    let selectedProgramName = 'Assistance Program';
+
+    if (!programId && state.programs.length > 0) {
+      programId = state.programs[0].id;
+      selectedProgramName = state.programs[0].name;
+    } else if (categorySelect && categorySelect.selectedIndex > 0) {
+      const opt = categorySelect.options[categorySelect.selectedIndex];
+      selectedProgramName = opt.getAttribute('data-name') || opt.text;
+    }
+
+    if (!programId) {
+      alert('Please select a valid assistance program before submitting.');
+      return;
+    }
+
+    const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newAppPayload = {
+      application_number: appNumber,
+      beneficiary_qr: state.user.qr_code,
+      program_id: programId,
+      date_applied: new Date().toISOString().split('T')[0],
+      status: 'Pending',
+      progress_percent: 15,
+      remarks: notes || 'New application request submitted by beneficiary.',
+      amount_requested: amountRequested,
+      documents_json: JSON.stringify([
+        { name: 'Government ID', status: 'Submitted', date: new Date().toISOString().split('T')[0] },
+        { name: 'Barangay Certificate', status: 'Submitted', date: new Date().toISOString().split('T')[0] }
+      ])
     };
 
-    state.applications.unshift(newApp);
-    saveBeneficiaryState();
+    if (typeof DataService !== 'undefined' && DataService.applications) {
+      const res = await DataService.applications.create(newAppPayload);
+      if (res.error) {
+        alert('Submission notice: ' + (res.error.message || 'Could not save application. Please try again.'));
+        return;
+      }
+    }
 
-    alert('Your assistance request (' + newAppId + ') has been submitted successfully! Application is currently Under Review by PESO Officers.');
+    alert(`Your assistance request (${appNumber}) for ${selectedProgramName} has been submitted successfully!\n\nStatus: Pending PESO Officer evaluation.`);
 
     if (window.closeModal) window.closeModal('requestIntakeModal');
-    renderDashboardOverview();
+    if (remarksInput) remarksInput.value = '';
+
+    await fetchBeneficiaryData();
   }
 
-  // REQ230-REQ235: Document Status Board
+  // Document Status Board
   function renderDocumentStatusBoard() {
     const container = document.getElementById('benDocumentStatusBoard');
     if (!container) return;
 
-    if (state.documents.length === 0) {
-      container.innerHTML = '<div class="text-center p-3 text-muted">No submitted requirement documents found.</div>';
+    if (state.applications.length === 0) {
+      container.innerHTML = '<div class="text-center p-3 text-muted">No submitted requirement documents on file.</div>';
       return;
     }
 
-    container.innerHTML = state.documents.map(doc => `
-      <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+    container.innerHTML = state.applications.map(app => `
+      <div class="list-group-item d-flex justify-content-between align-items-center p-3 mb-2 rounded border">
         <div>
-          <div class="fw-bold text-dark"><i class="bi bi-file-earmark-check text-primary me-2"></i>${doc.name}</div>
-          <small class="text-muted">Type: ${doc.type} • Uploaded: ${doc.date_uploaded}</small>
+          <div class="fw-bold text-dark"><i class="bi bi-file-earmark-check text-primary me-2"></i>${app.type} Application Documents</div>
+          <small class="text-muted">Application: <strong>${app.id}</strong> • Submitted: ${app.date}</small>
         </div>
-        <div>${getStatusBadge(doc.status)}</div>
+        <div>${getStatusBadge(app.status)}</div>
       </div>
     `).join('');
   }
 
-  // REQ224: Applications Table Rendering
+  // Applications Table Rendering
   function renderApplicationsTable() {
-    const tbody = document.getElementById('benApplicationsTableBody');
+    const tbody = document.getElementById('benApplicationsTableBody') || document.getElementById('applicationsTableBody');
     if (!tbody) return;
+
+    if (state.applications.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No applications submitted yet. Click "Apply for Assistance" to begin.</td></tr>`;
+      return;
+    }
 
     tbody.innerHTML = state.applications.map(a => `
       <tr>
-        <td class="fw-bold">${a.id}</td>
-        <td class="fw-semibold text-dark">${a.type}</td>
+        <td class="fw-bold text-dark">${a.id}</td>
+        <td class="fw-semibold">${a.type}</td>
         <td><span class="badge bg-secondary-subtle text-dark border">${a.program}</span></td>
         <td>${a.date}</td>
         <td>${getStatusBadge(a.status)}</td>
@@ -146,21 +341,52 @@
     `).join('');
   }
 
-  // REQ236-REQ238: Training & Capacity Building
+  function renderRecentApplicationsTable() {
+    const recentBody = document.getElementById('recentApplicationsBody');
+    if (!recentBody) return;
+
+    if (state.applications.length === 0) {
+      recentBody.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-muted">No active assistance applications on record.</td></tr>`;
+      return;
+    }
+
+    recentBody.innerHTML = state.applications.slice(0, 5).map(a => `
+      <tr>
+        <td class="fw-bold">${a.id}</td>
+        <td><strong>${a.type}</strong></td>
+        <td><span class="office-badge ${a.program.includes('CSWDO') ? 'cswdo' : 'peso'}">${a.program}</span></td>
+        <td>${a.date}</td>
+        <td>
+          <div class="progress" style="height: 14px; background-color: #E2E8F0; border-radius: 7px; width: 110px;">
+            <div class="progress-bar ${a.status === 'Approved' ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${a.progress}%; border-radius: 7px; font-size: 0.7rem; font-weight: bold; line-height: 14px;">${a.progress}%</div>
+          </div>
+        </td>
+        <td>${getStatusBadge(a.status)}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Training & Capacity Building Sessions
   function renderTrainingsList() {
-    const container = document.getElementById('benTrainingsContainer');
+    const container = document.getElementById('benTrainingsContainer') || document.getElementById('enrolledTrainingsContainer');
     if (!container) return;
 
+    if (state.trainings.length === 0) {
+      container.innerHTML = '<div class="card p-3 text-center text-muted small">No scheduled interview or training appointments assigned.</div>';
+      return;
+    }
+
     container.innerHTML = state.trainings.map(t => `
-      <div class="card border-0 shadow-sm mb-3">
+      <div class="card border shadow-sm mb-3 rounded-3">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
-            <h6 class="fw-bold text-dark mb-1"><i class="bi bi-award-fill text-warning me-2"></i>${t.title}</h6>
-            <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${t.date} • <i class="bi bi-geo-alt me-1"></i>${t.venue}</small>
+            <h6 class="fw-bold text-dark mb-1"><i class="bi bi-calendar2-check-fill text-primary me-2"></i>${t.title}</h6>
+            <small class="text-muted"><i class="bi bi-clock me-1"></i>${t.date} @ ${t.time} • <i class="bi bi-geo-alt me-1"></i>${t.venue}</small>
           </div>
           <div>
+            <span class="badge ${t.attendance === 'Present' ? 'bg-success' : 'bg-info text-dark'} me-2">${t.attendance !== 'Unmarked' ? t.attendance : t.status}</span>
             <button class="btn btn-sm btn-outline-primary" onclick="window.viewCompletionCertificate('${t.certificate}')">
-              <i class="bi bi-patch-check-fill me-1"></i>View Certificate
+              <i class="bi bi-award me-1"></i>Certificate
             </button>
           </div>
         </div>
@@ -169,20 +395,42 @@
   }
 
   function viewCompletionCertificate(certId) {
-    alert('Certificate of Completion (' + (certId || 'CERT-2026-881') + ') verified for ' + state.user.name + '. Standard printable PDF generation active.');
+    const certCode = certId || `CERT-${new Date().getFullYear()}-881`;
+    const benName = state.user ? state.user.fullName : 'Beneficiary Applicant';
+
+    const certNameEl = document.getElementById('certBeneficiaryName');
+    if (certNameEl) certNameEl.textContent = benName.toUpperCase();
+
+    const certModalEl = document.getElementById('certificateModal');
+    if (certModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+      const modal = bootstrap.Modal.getOrCreateInstance(certModalEl);
+      modal.show();
+    } else {
+      alert(`Certificate of Completion (#${certCode}) verified for ${benName}.\nIssued by Public Employment Service Office (PESO) - City Government of Koronadal.`);
+    }
   }
 
-  // REQ239-REQ240: Distribution Release Schedules
+  // Distribution & Assistance Releases
   function renderDistributionReleases() {
-    const container = document.getElementById('benReleasesContainer');
+    const container = document.getElementById('benReleasesContainer') || document.getElementById('beneficiaryUpcomingDistribution');
     if (!container) return;
 
+    if (state.releases.length === 0) {
+      container.innerHTML = `
+        <div class="card p-3 text-center text-muted mb-4 small bg-light">
+          <i class="bi bi-box-seam fs-3 d-block mb-1 text-secondary"></i>
+          No upcoming scheduled assistance distributions or grant disbursements.
+        </div>
+      `;
+      return;
+    }
+
     container.innerHTML = state.releases.map(r => `
-      <div class="alert alert-success border-success-subtle p-3 mb-2">
+      <div class="alert alert-success border-success-subtle p-3 mb-2 rounded-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <strong class="d-block text-dark"><i class="bi bi-box-seam-fill me-2 text-success"></i>${r.assistance}</strong>
-            <small class="text-muted"><i class="bi bi-clock me-1"></i>${r.date} @ ${r.time} • <i class="bi bi-building me-1"></i>${r.location}</small>
+            <small class="text-muted"><i class="bi bi-clock me-1"></i>Scheduled: ${r.date} (${r.time}) • <i class="bi bi-building me-1"></i>${r.location}</small>
           </div>
           <span class="badge bg-success">${r.status}</span>
         </div>
@@ -190,12 +438,12 @@
     `).join('');
   }
 
-  // REQ241: Centralized Notifications Feed
+  // Centralized Notifications Feed
   function renderNotificationsFeed() {
-    const container = document.getElementById('benNotificationsFeed');
+    const container = document.getElementById('benNotificationsFeed') || document.getElementById('notifDropdownList');
     const badge = document.getElementById('benUnreadNotifBadge');
-
     const unreadCount = state.notifications.filter(n => !n.isRead).length;
+
     if (badge) {
       badge.textContent = unreadCount;
       badge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
@@ -203,8 +451,13 @@
 
     if (!container) return;
 
+    if (state.notifications.length === 0) {
+      container.innerHTML = '<div class="p-3 text-center text-muted small">No notifications at this time.</div>';
+      return;
+    }
+
     container.innerHTML = state.notifications.map(n => `
-      <div class="list-group-item p-3 ${n.isRead ? 'bg-light' : 'bg-white border-start border-primary border-3'}">
+      <div class="list-group-item p-3 mb-1 rounded ${n.isRead ? 'bg-light' : 'bg-white border-start border-primary border-3'}" style="cursor: pointer;" onclick="window.markBeneficiaryNotificationRead(${n.id})">
         <div class="d-flex justify-content-between align-items-center mb-1">
           <strong class="text-dark"><i class="bi bi-bell-fill text-primary me-2"></i>${n.title}</strong>
           <small class="text-muted">${n.date}</small>
@@ -214,51 +467,38 @@
     `).join('');
   }
 
-  function resetBeneficiaryPortal() {
-    localStorage.removeItem('peso_beneficiary_user');
-    localStorage.removeItem('peso_beneficiary_applications');
-    localStorage.removeItem('peso_beneficiary_documents');
-    localStorage.removeItem('peso_beneficiary_trainings');
-    localStorage.removeItem('peso_beneficiary_releases');
-    localStorage.removeItem('peso_beneficiary_notifications');
-    sessionStorage.removeItem('beneficiaryLoggedIn');
-    sessionStorage.removeItem('beneficiaryUsername');
-    sessionStorage.removeItem('beneficiaryName');
-    sessionStorage.removeItem('userId');
-    sessionStorage.removeItem('sessionToken');
-    sessionStorage.removeItem('userRole');
+  async function markBeneficiaryNotificationRead(id) {
+    if (typeof DataService !== 'undefined' && DataService.notifications) {
+      await DataService.notifications.markAsRead(id);
+    }
+    const notif = state.notifications.find(n => n.id === id);
+    if (notif) notif.isRead = true;
+    renderNotificationsFeed();
+  }
 
-    state.applications = [
-      { id: 'APP-2026-001', type: 'Livelihood Assistance', program: 'TUPAD', date: '2026-07-15', status: 'Approved', remarks: 'Eligible for batch release' },
-      { id: 'APP-2026-002', type: 'Educational / SPES', program: 'SPES', date: '2026-07-20', status: 'Under Review', remarks: 'Document verification in progress' }
-    ];
-    state.documents = [
-      { id: 'DOC-01', name: 'Barangay Clearance Certificate', type: 'Barangay Clearance', status: 'Approved', date_uploaded: '2026-07-15' },
-      { id: 'DOC-02', name: 'Valid Government Issued ID', type: 'Valid ID', status: 'Approved', date_uploaded: '2026-07-15' },
-      { id: 'DOC-03', name: 'Project Proposal / Business Plan', type: 'Business Plan', status: 'Under Review', date_uploaded: '2026-07-20' }
-    ];
-    state.notifications = [
-      { id: 1, title: 'Document Verified', message: 'Your Barangay Clearance Certificate has been verified by PESO Officer.', date: '2026-07-25', isRead: false },
-      { id: 2, title: 'Interview Scheduled', message: 'You are scheduled for a brief verification call on July 30, 2026 at 09:00 AM.', date: '2026-07-26', isRead: false }
-    ];
-
-    saveBeneficiaryState();
-    renderDashboardOverview();
-    console.log('[BENEFICIARY-PORTAL] Reset complete.');
+  async function markAllBeneficiaryNotificationsRead() {
+    if (state.user && typeof DataService !== 'undefined' && DataService.notifications) {
+      await DataService.notifications.markAllAsRead({ beneficiary_qr: state.user.qr_code });
+    }
+    state.notifications.forEach(n => n.isRead = true);
+    renderNotificationsFeed();
   }
 
   // Global Scope Exports
   window.submitAssistanceRequest = submitAssistanceRequest;
   window.viewCompletionCertificate = viewCompletionCertificate;
   window.renderDashboardOverview = renderDashboardOverview;
-  window.resetBeneficiaryPortal = resetBeneficiaryPortal;
+  window.fetchBeneficiaryData = fetchBeneficiaryData;
+  window.markBeneficiaryNotificationRead = markBeneficiaryNotificationRead;
+  window.markAllRead = markAllBeneficiaryNotificationsRead;
 
-  document.addEventListener('DOMContentLoaded', function () {
-    renderDashboardOverview();
+  // Initialize on DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', async function () {
+    await loadBeneficiaryProfile();
+    await fetchBeneficiaryData();
 
     const requestForm = document.getElementById('assistanceRequestForm');
     if (requestForm) requestForm.addEventListener('submit', submitAssistanceRequest);
   });
 
 })();
-

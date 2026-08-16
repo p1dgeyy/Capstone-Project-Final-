@@ -10,10 +10,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js Dependency -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Core Helper Scripts -->
+    <!-- Core Helper Scripts & Overlay Styles -->
+    <link rel="stylesheet" href="assets/css/unified-overlays.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/supabase-data.js"></script>
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/system-notifications.js"></script>
     <script src="assets/js/peso-safeguards.js"></script>
+    <script src="assets/js/unified-overlay-controller.js"></script>
     <script src="assets/js/session-manager.js"></script>
     <script src="assets/js/auth-guard.js"></script>
 
@@ -1466,12 +1471,12 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Approved Amount (₱)</label>
+                    <label for="approveAmountInput" class="form-label fw-bold">Approved Amount (₱)</label>
                     <input type="number" id="approveAmountInput" class="form-control" placeholder="15000">
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Administrator Approval Remarks</label>
+                    <label for="approveRemarksInput" class="form-label fw-bold">Administrator Approval Remarks</label>
                     <textarea id="approveRemarksInput" class="form-control" rows="3" placeholder="Approved under regular social welfare assistance guidelines."></textarea>
                 </div>
             </div>
@@ -1501,7 +1506,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Disapproval Reason (Mandatory Audit Requirement) <span class="text-danger">*</span></label>
+                    <label for="denyReasonInput" class="form-label fw-bold">Disapproval Reason (Mandatory Audit Requirement) <span class="text-danger">*</span></label>
                     <textarea id="denyReasonInput" class="form-control" rows="3" placeholder="Specify why the applicant did not qualify..."></textarea>
                 </div>
             </div>
@@ -1532,7 +1537,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Disbursement Notes / Check Voucher No.</label>
+                    <label for="releaseNotesInput" class="form-label fw-bold">Disbursement Notes / Check Voucher No.</label>
                     <input type="text" id="releaseNotesInput" class="form-control" placeholder="e.g. CV-2026-0808-01 (Treasurer Check)">
                 </div>
             </div>
@@ -1559,19 +1564,19 @@
                     <!-- Name Row -->
                     <div class="row g-2 mb-3">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">First Name <span class="text-danger">*</span></label>
+                            <label for="newOffFirstName" class="form-label fw-bold small">First Name <span class="text-danger">*</span></label>
                             <input type="text" id="newOffFirstName" class="form-control form-control-sm" placeholder="e.g. Maria" required>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Middle Name</label>
+                            <label for="newOffMiddleName" class="form-label fw-bold small">Middle Name</label>
                             <input type="text" id="newOffMiddleName" class="form-control form-control-sm" placeholder="e.g. Santos">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Last Name <span class="text-danger">*</span></label>
+                            <label for="newOffLastName" class="form-label fw-bold small">Last Name <span class="text-danger">*</span></label>
                             <input type="text" id="newOffLastName" class="form-control form-control-sm" placeholder="e.g. Dela Cruz" required>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small">Suffix</label>
+                            <label for="newOffSuffix" class="form-label fw-bold small">Suffix</label>
                             <select id="newOffSuffix" class="form-select form-select-sm">
                                 <option value="N/A">N/A</option>
                                 <option value="Jr.">Jr.</option>
@@ -1585,15 +1590,15 @@
                     <!-- Credentials Row -->
                     <div class="row g-2 mb-3">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">Username (Unique) <span class="text-danger">*</span></label>
+                            <label for="newOffUsername" class="form-label fw-bold small">Username (Unique) <span class="text-danger">*</span></label>
                             <input type="text" id="newOffUsername" class="form-control form-control-sm" placeholder="e.g. cswdo-maria" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">Password (Min 8 chars, letters+numbers) <span class="text-danger">*</span></label>
+                            <label for="newOffPassword" class="form-label fw-bold small">Password (Min 8 chars, letters+numbers) <span class="text-danger">*</span></label>
                             <input type="password" id="newOffPassword" class="form-control form-control-sm" placeholder="••••••••" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">Confirm Password <span class="text-danger">*</span></label>
+                            <label for="newOffConfirmPassword" class="form-label fw-bold small">Confirm Password <span class="text-danger">*</span></label>
                             <input type="password" id="newOffConfirmPassword" class="form-control form-control-sm" placeholder="••••••••" required>
                         </div>
                     </div>
@@ -1601,18 +1606,18 @@
                     <!-- Email, Role, Department -->
                     <div class="row g-2 mb-3">
                         <div class="col-md-5">
-                            <label class="form-label fw-bold small">Official Email Address <span class="text-danger">*</span></label>
+                            <label for="newOffEmail" class="form-label fw-bold small">Official Email Address <span class="text-danger">*</span></label>
                             <input type="email" id="newOffEmail" class="form-control form-control-sm" placeholder="officer@koronadal.gov.ph" required>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Assigned Role <span class="text-danger">*</span></label>
+                            <label for="newOffRole" class="form-label fw-bold small">Assigned Role <span class="text-danger">*</span></label>
                             <select id="newOffRole" class="form-select form-select-sm" required>
                                 <option value="CSWDO Officer">CSWDO Officer</option>
                                 <option value="CSWDO Admin">CSWDO Admin</option>
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">Assistance Department <span class="text-danger">*</span></label>
+                            <label for="newOffDepartment" class="form-label fw-bold small">Assistance Department <span class="text-danger">*</span></label>
                             <select id="newOffDepartment" class="form-select form-select-sm" required>
                                 <option value="Medical">Medical Assistance</option>
                                 <option value="Financial">Financial Assistance</option>
@@ -1624,18 +1629,18 @@
                     <!-- Gender, Contact, Address -->
                     <div class="row g-2 mb-3">
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Gender</label>
+                            <label for="newOffGender" class="form-label fw-bold small">Gender</label>
                             <select id="newOffGender" class="form-select form-select-sm">
                                 <option value="Female">Female</option>
                                 <option value="Male">Male</option>
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">Contact Number</label>
+                            <label for="newOffContact" class="form-label fw-bold small">Contact Number</label>
                             <input type="text" id="newOffContact" class="form-control form-control-sm" placeholder="0917-123-4567">
                         </div>
                         <div class="col-md-5">
-                            <label class="form-label fw-bold small">Assigned Office / Station Address</label>
+                            <label for="newOffAddress" class="form-label fw-bold small">Assigned Office / Station Address</label>
                             <input type="text" id="newOffAddress" class="form-control form-control-sm" placeholder="CSWDO Annex, Koronadal City">
                         </div>
                     </div>
@@ -1676,19 +1681,19 @@
                     <h6 class="fw-bold text-primary mb-2 small text-uppercase"><i class="bi bi-person-lines-fill me-1"></i> Personal Information</h6>
                     <div class="row g-2 mb-3">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">First Name <span class="text-danger">*</span></label>
+                            <label for="editOffFirstName" class="form-label fw-bold small">First Name <span class="text-danger">*</span></label>
                             <input type="text" id="editOffFirstName" class="form-control form-control-sm" required>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Middle Name</label>
+                            <label for="editOffMiddleName" class="form-label fw-bold small">Middle Name</label>
                             <input type="text" id="editOffMiddleName" class="form-control form-control-sm">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Last Name <span class="text-danger">*</span></label>
+                            <label for="editOffLastName" class="form-label fw-bold small">Last Name <span class="text-danger">*</span></label>
                             <input type="text" id="editOffLastName" class="form-control form-control-sm" required>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small">Suffix</label>
+                            <label for="editOffSuffix" class="form-label fw-bold small">Suffix</label>
                             <select id="editOffSuffix" class="form-select form-select-sm">
                                 <option value="N/A">N/A</option>
                                 <option value="Jr.">Jr.</option>
@@ -1703,22 +1708,22 @@
                     <h6 class="fw-bold text-primary mb-2 small text-uppercase"><i class="bi bi-briefcase-fill me-1"></i> Assigned Role & Department</h6>
                     <div class="row g-2 mb-3">
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Username</label>
+                            <label for="editOffUsername" class="form-label fw-bold small">Username</label>
                             <input type="text" id="editOffUsername" class="form-control form-control-sm bg-light" readonly>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">Official Email Address <span class="text-danger">*</span></label>
+                            <label for="editOffEmail" class="form-label fw-bold small">Official Email Address <span class="text-danger">*</span></label>
                             <input type="email" id="editOffEmail" class="form-control form-control-sm" required>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small">Role</label>
+                            <label for="editOffRole" class="form-label fw-bold small">Role</label>
                             <select id="editOffRole" class="form-select form-select-sm">
                                 <option value="CSWDO Officer">CSWDO Officer</option>
                                 <option value="CSWDO Admin">CSWDO Admin</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Department</label>
+                            <label for="editOffDepartment" class="form-label fw-bold small">Department</label>
                             <select id="editOffDepartment" class="form-select form-select-sm">
                                 <option value="Medical">Medical Assistance</option>
                                 <option value="Financial">Financial Assistance</option>
@@ -1731,31 +1736,31 @@
                     <h6 class="fw-bold text-primary mb-2 small text-uppercase"><i class="bi bi-shield-lock-fill me-1"></i> Contact & Security Status</h6>
                     <div class="row g-2 mb-3">
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Gender</label>
+                            <label for="editOffGender" class="form-label fw-bold small">Gender</label>
                             <select id="editOffGender" class="form-select form-select-sm">
                                 <option value="Female">Female</option>
                                 <option value="Male">Male</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Contact Number</label>
+                            <label for="editOffContact" class="form-label fw-bold small">Contact Number</label>
                             <input type="text" id="editOffContact" class="form-control form-control-sm">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Account Status</label>
+                            <label for="editOffStatus" class="form-label fw-bold small">Account Status</label>
                             <select id="editOffStatus" class="form-select form-select-sm">
                                 <option value="Active">Active</option>
                                 <option value="Deactivated">Deactivated</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small">Reset Password</label>
+                            <label for="editOffPassword" class="form-label fw-bold small">Reset Password</label>
                             <input type="password" id="editOffPassword" class="form-control form-control-sm" placeholder="Leave blank to keep">
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Office / Station Address</label>
+                        <label for="editOffAddress" class="form-label fw-bold small">Office / Station Address</label>
                         <input type="text" id="editOffAddress" class="form-control form-control-sm">
                     </div>
 
@@ -1787,7 +1792,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">Permanent Deletion Reason (Mandatory Audit Requirement) <span class="text-danger">*</span></label>
+                    <label for="deleteOfficerReason" class="form-label fw-bold small">Permanent Deletion Reason (Mandatory Audit Requirement) <span class="text-danger">*</span></label>
                     <textarea id="deleteOfficerReason" class="form-control" rows="3" placeholder="Specify official reason (e.g. Personnel resignation, account consolidation, administrative purging)..." required></textarea>
                 </div>
             </div>
@@ -1807,28 +1812,6 @@
         let statusChartInstance = null;
         let trendChartInstance = null;
         let selectedAppId = null;
-
-        // Authoritative current-admin profile, fetched from Supabase (staff_profiles)
-        let _currentStaffProfile = null;
-        async function getCurrentStaffProfile() {
-            if (_currentStaffProfile) return _currentStaffProfile;
-            try {
-                const { data: userData } = await supabaseClient.auth.getUser();
-                const user = userData?.user;
-                if (!user) return null;
-                const { data: profile, error } = await supabaseClient
-                    .from('staff_profiles')
-                    .select('id, first_name, last_name, role')
-                    .eq('auth_id', user.id)
-                    .maybeSingle();
-                if (error || !profile) return null;
-                _currentStaffProfile = profile;
-                return profile;
-            } catch (err) {
-                console.error('[CSWDO] getCurrentStaffProfile failed:', err?.message || err);
-                return null;
-            }
-        }
 
         // Colors mapping
         const STATUS_COLORS = {
@@ -1938,49 +1921,30 @@
         // 1. Fetch Summary Count Cards
         async function fetchSummaryMetrics() {
             try {
-                const { data, error } = await supabaseClient
-                    .from('applications')
-                    .select('status', { count: 'exact' });
-                if (error) throw error;
-
-                const counts = { total: data.length, pending: 0, approved: 0, completed: 0 };
-                data.forEach(a => {
-                    if (['Pending', 'Pending Requirements', 'Under Review'].includes(a.status)) counts.pending++;
-                    if (['Approved', 'Released'].includes(a.status)) counts.approved++;
-                    if (a.status === 'Completed') counts.completed++;
-                });
-
-                document.getElementById('statTotalApps').textContent = counts.total;
-                document.getElementById('statPendingApps').textContent = counts.pending;
-                document.getElementById('statApprovedApps').textContent = counts.approved;
-                document.getElementById('statCompletedApps').textContent = counts.completed;
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/dashboard/summary');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const d = json.data;
+                    document.getElementById('statTotalApps').textContent = d.total_applications || 0;
+                    document.getElementById('statPendingApps').textContent = d.pending_applications || 0;
+                    document.getElementById('statApprovedApps').textContent = d.approved_applications || 0;
+                    document.getElementById('statCompletedApps').textContent = d.completed_applications || 0;
+                }
             } catch (e) {
-                console.warn('[CSWDO] Summary metrics fetch failed:', e?.message || e);
+                console.warn('Backend summary error, using fallback');
             }
         }
 
         // 2. Fetch Status Breakdown & Render Chart.js Donut
         async function fetchStatusBreakdown() {
             try {
-                const { data, error } = await supabaseClient.from('applications').select('status');
-                if (error) throw error;
-
-                const STATUS_COLORS = {
-                    'Pending': '#F59E0B', 'Pending Requirements': '#F59E0B', 'Under Review': '#3B82F6',
-                    'Approved': '#10B981', 'Released': '#0EA5E9', 'Completed': '#6366F1',
-                    'Denied': '#EF4444', 'Rejected': '#EF4444'
-                };
-                const tally = {};
-                data.forEach(a => { tally[a.status] = (tally[a.status] || 0) + 1; });
-
-                const labels = Object.keys(tally);
-                renderStatusChart({
-                    labels,
-                    data: labels.map(l => tally[l]),
-                    colors: labels.map(l => STATUS_COLORS[l] || '#94A3B8')
-                });
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/dashboard/status-breakdown');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    renderStatusChart(json.data);
+                }
             } catch (e) {
-                console.warn('[CSWDO] Status breakdown fetch failed:', e?.message || e);
+                console.warn('Status breakdown fetch failed');
             }
         }
 
@@ -2042,29 +2006,13 @@
         // 3. Fetch Monthly Trend & Render Chart.js Bar / Line
         async function fetchMonthlyTrend() {
             try {
-                const year = new Date().getFullYear();
-                const { data, error } = await supabaseClient
-                    .from('applications')
-                    .select('date_applied, programs:program_id ( code, name )')
-                    .gte('date_applied', `${year}-01-01`)
-                    .lte('date_applied', `${year}-12-31`);
-                if (error) throw error;
-
-                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                const byProgram = { medical: Array(12).fill(0), financial: Array(12).fill(0), burial: Array(12).fill(0) };
-
-                (data || []).forEach(row => {
-                    const m = new Date(row.date_applied).getMonth();
-                    const code = (row.programs?.code || '').toUpperCase();
-                    const name = (row.programs?.name || '').toLowerCase();
-                    if (code === 'MED' || name.includes('medical')) byProgram.medical[m]++;
-                    else if (code === 'FIN' || name.includes('financial')) byProgram.financial[m]++;
-                    else if (code === 'BUR' || name.includes('burial')) byProgram.burial[m]++;
-                });
-
-                renderMonthlyTrendChart({ months, by_program: byProgram });
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/dashboard/monthly-trend?year=2026');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    renderMonthlyTrendChart(json.data);
+                }
             } catch (e) {
-                console.warn('[CSWDO] Monthly trend fetch failed:', e?.message || e);
+                console.warn('Monthly trend fetch failed');
             }
         }
 
@@ -2116,228 +2064,163 @@
         }
 
         // 4. Fetch Fund Utilization & Render Progress Bars
-        const FUND_DISPLAY_META = {
-            'MEDICAL': { icon: 'bi-heart-pulse-fill', color: '#E63946', description: 'Medical assistance for indigent residents.' },
-            'FINANCIAL': { icon: 'bi-cash-coin', color: '#2EC4B6', description: 'Financial assistance grants for qualified beneficiaries.' },
-            'BURIAL': { icon: 'bi-flower2', color: '#6C5B7B', description: 'Burial assistance for bereaved families.' }
-        };
-
         async function fetchFundUtilization() {
             try {
-                const { data, error } = await supabaseClient.from('funds').select('*').order('program');
-                if (error) throw error;
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/dashboard/fund-utilization');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const f = json.data;
+                    document.getElementById('fundTotalBudget').textContent = '₱' + Number(f.total_allocated_budget).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                    document.getElementById('fundTotalReleased').textContent = '₱' + Number(f.total_amount_released).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                    document.getElementById('fundRemainingBalance').textContent = '₱' + Number(f.remaining_balance).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                    document.getElementById('fundOverallPercent').textContent = f.overall_percentage_utilization + '%';
 
-                const totalBudget = data.reduce((s, f) => s + Number(f.allocated_budget), 0);
-                const totalReleased = data.reduce((s, f) => s + Number(f.released_amount), 0);
-                const remaining = totalBudget - totalReleased;
-                const overallPct = totalBudget > 0 ? Math.round((totalReleased / totalBudget) * 100) : 0;
+                    // Render per-program progress bars
+                    const container = document.getElementById('programProgressBarsContainer');
+                    const progGrid = document.getElementById('programsGridContainer');
+                    const reportBody = document.getElementById('reportsFundTableBody');
+                    
+                    if (container) container.innerHTML = '';
+                    if (progGrid) progGrid.innerHTML = '';
+                    if (reportBody) reportBody.innerHTML = '';
 
-                document.getElementById('fundTotalBudget').textContent = '₱' + totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2 });
-                document.getElementById('fundTotalReleased').textContent = '₱' + totalReleased.toLocaleString('en-US', { minimumFractionDigits: 2 });
-                document.getElementById('fundRemainingBalance').textContent = '₱' + remaining.toLocaleString('en-US', { minimumFractionDigits: 2 });
-                document.getElementById('fundOverallPercent').textContent = overallPct + '%';
+                    f.programs.forEach(prog => {
+                        const pct = prog.percentage_utilized || 0;
+                        let barColor = '#10B981';
+                        if (pct > 80) barColor = '#EF4444';
+                        else if (pct > 50) barColor = '#F59E0B';
 
-                const container = document.getElementById('programProgressBarsContainer');
-                const progGrid = document.getElementById('programsGridContainer');
-                const reportBody = document.getElementById('reportsFundTableBody');
-
-                if (container) container.innerHTML = '';
-                if (progGrid) progGrid.innerHTML = '';
-                if (reportBody) reportBody.innerHTML = '';
-
-                data.forEach(f => {
-                    const meta = FUND_DISPLAY_META[f.program_code] || { icon: 'bi-folder', color: 'var(--primary)', description: '' };
-                    const pct = Number(f.allocated_budget) > 0 ? Math.round((Number(f.released_amount) / Number(f.allocated_budget)) * 100) : 0;
-                    let barColor = '#10B981';
-                    if (pct > 80) barColor = '#EF4444';
-                    else if (pct > 50) barColor = '#F59E0B';
-
-                    const prog = {
-                        program: f.program, code: f.program_code,
-                        allocated_budget: f.allocated_budget, released_amount: f.released_amount,
-                        remaining_balance: f.remaining_balance, description: meta.description,
-                        icon: meta.icon, color: meta.color
-                    };
-
-                    if (container) {
-                        container.innerHTML += `
-                            <div class="program-progress-card">
-                                <div class="progress-header">
-                                    <div class="progress-title">
-                                        <i class="bi ${prog.icon}" style="color: ${prog.color}"></i>
-                                        <span>${prog.program}</span>
-                                    </div>
-                                    <div class="progress-stats">
-                                        <span class="text-muted">₱${Number(prog.released_amount).toLocaleString()} / ₱${Number(prog.allocated_budget).toLocaleString()}</span>
-                                        <strong class="ms-2" style="color: ${barColor}">${pct}%</strong>
-                                    </div>
-                                </div>
-                                <div class="progress-custom">
-                                    <div class="progress-bar-custom" style="width: ${pct}%; background-color: ${barColor}"></div>
-                                </div>
-                                <div class="d-flex justify-content-between mt-2 small text-muted">
-                                    <span>Remaining Balance: <strong>₱${Number(prog.remaining_balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
-                                    <span>Allocated Budget</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-
-                    if (progGrid) {
-                        progGrid.innerHTML += `
-                            <div class="col-md-4">
-                                <div class="content-card h-100 mb-0">
-                                    <div class="d-flex align-items-center gap-3 mb-3">
-                                        <div class="stat-icon-box" style="background: ${prog.color}20; color: ${prog.color};">
-                                            <i class="bi ${prog.icon}"></i>
+                        if (container) {
+                            container.innerHTML += `
+                                <div class="program-progress-card">
+                                    <div class="progress-header">
+                                        <div class="progress-title">
+                                            <i class="bi ${prog.icon || 'bi-folder'}" style="color: ${prog.color || 'var(--primary)'}"></i>
+                                            <span>${prog.program}</span>
                                         </div>
-                                        <div>
-                                            <h6 class="fw-bold mb-0">${prog.program}</h6>
-                                            <small class="text-muted">${prog.code}</small>
+                                        <div class="progress-stats">
+                                            <span class="text-muted">₱${Number(prog.released_amount).toLocaleString()} / ₱${Number(prog.allocated_budget).toLocaleString()}</span>
+                                            <strong class="ms-2" style="color: ${barColor}">${pct}%</strong>
                                         </div>
                                     </div>
-                                    <p class="text-muted small">${prog.description}</p>
-                                    <hr>
-                                    <div class="d-flex justify-content-between mb-1 small">
-                                        <span>Allocated Budget:</span>
-                                        <strong>₱${Number(prog.allocated_budget).toLocaleString()}</strong>
+                                    <div class="progress-custom">
+                                        <div class="progress-bar-custom" style="width: ${pct}%; background-color: ${barColor}"></div>
                                     </div>
-                                    <div class="d-flex justify-content-between mb-1 small">
-                                        <span>Released Amount:</span>
-                                        <strong class="text-success">₱${Number(prog.released_amount).toLocaleString()}</strong>
+                                    <div class="d-flex justify-content-between mt-2 small text-muted">
+                                        <span>Remaining Balance: <strong>₱${Number(prog.remaining_balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
+                                        <span>Allocated Budget</span>
                                     </div>
-                                    <div class="d-flex justify-content-between mb-3 small">
-                                        <span>Remaining Balance:</span>
-                                        <strong class="text-info">₱${Number(prog.remaining_balance).toLocaleString()}</strong>
-                                    </div>
-                                    <div class="progress-custom mb-2">
-                                        <div class="progress-bar-custom" style="width: ${pct}%; background: ${barColor};"></div>
-                                    </div>
-                                    <div class="text-end small font-weight-bold text-muted">${pct}% utilized</div>
                                 </div>
-                            </div>
-                        `;
-                    }
+                            `;
+                        }
 
-                    if (reportBody) {
-                        reportBody.innerHTML += `
-                            <tr>
-                                <td><strong>${prog.program}</strong> (${prog.code})</td>
-                                <td>₱${Number(prog.allocated_budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                <td class="text-success fw-bold">₱${Number(prog.released_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                <td class="text-info fw-bold">₱${Number(prog.remaining_balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                <td><span class="badge" style="background:${barColor}22; color:${barColor};">${pct}%</span></td>
-                                <td><span class="badge bg-success">Active Ordinance</span></td>
-                            </tr>
-                        `;
-                    }
-                });
+                        if (progGrid) {
+                            progGrid.innerHTML += `
+                                <div class="col-md-4">
+                                    <div class="content-card h-100 mb-0">
+                                        <div class="d-flex align-items-center gap-3 mb-3">
+                                            <div class="stat-icon-box" style="background: ${prog.color}20; color: ${prog.color};">
+                                                <i class="bi ${prog.icon}"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-bold mb-0">${prog.program}</h6>
+                                                <small class="text-muted">${prog.code}</small>
+                                            </div>
+                                        </div>
+                                        <p class="text-muted small">${prog.description}</p>
+                                        <hr>
+                                        <div class="d-flex justify-content-between mb-1 small">
+                                            <span>Allocated Budget:</span>
+                                            <strong>₱${Number(prog.allocated_budget).toLocaleString()}</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1 small">
+                                            <span>Released Amount:</span>
+                                            <strong class="text-success">₱${Number(prog.released_amount).toLocaleString()}</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-3 small">
+                                            <span>Remaining Balance:</span>
+                                            <strong class="text-info">₱${Number(prog.remaining_balance).toLocaleString()}</strong>
+                                        </div>
+                                        <div class="progress-custom mb-2">
+                                            <div class="progress-bar-custom" style="width: ${pct}%; background: ${barColor};"></div>
+                                        </div>
+                                        <div class="text-end small font-weight-bold text-muted">${pct}% utilized</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        if (reportBody) {
+                            reportBody.innerHTML += `
+                                <tr>
+                                    <td><strong>${prog.program}</strong> (${prog.code})</td>
+                                    <td>₱${Number(prog.allocated_budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                    <td class="text-success fw-bold">₱${Number(prog.released_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                    <td class="text-info fw-bold">₱${Number(prog.remaining_balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                    <td><span class="badge" style="background:${barColor}22; color:${barColor};">${pct}%</span></td>
+                                    <td><span class="badge bg-success">Active Ordinance</span></td>
+                                </tr>
+                            `;
+                        }
+                    });
+                }
             } catch (e) {
-                console.warn('[CSWDO] Fund utilization fetch failed:', e?.message || e);
+                console.warn('Fund utilization fetch failed');
             }
         }
 
         // 5. Fetch Recent Activities Feed
         async function loadRecentActivity() {
             try {
-                const { data, error } = await supabaseClient
-                    .from('activity_log')
-                    .select('*')
-                    .order('timestamp', { ascending: false })
-                    .limit(6);
-                if (error) throw error;
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/dashboard/recent-activity?limit=6');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const container = document.getElementById('activityFeedContainer');
+                    if (!container) return;
+                    container.innerHTML = '';
 
-                const container = document.getElementById('activityFeedContainer');
-                if (!container) return;
-                container.innerHTML = '';
+                    json.data.forEach(act => {
+                        let iconClass = 'bi-bell-fill text-warning bg-warning-subtle';
+                        if (act.action === 'APPLICATION_APPROVED') iconClass = 'bi-check-circle-fill text-success bg-success-subtle';
+                        else if (act.action === 'FUNDS_RELEASED') iconClass = 'bi-cash-stack text-info bg-info-subtle';
+                        else if (act.action === 'APPLICATION_DENIED') iconClass = 'bi-x-circle-fill text-danger bg-danger-subtle';
+                        else if (act.action === 'APPLICATION_SUBMITTED') iconClass = 'bi-file-earmark-plus-fill text-primary bg-primary-subtle';
 
-                (data || []).forEach(act => {
-                    let iconClass = 'bi-bell-fill text-warning bg-warning-subtle';
-                    if (act.action === 'APPLICATION_APPROVED') iconClass = 'bi-check-circle-fill text-success bg-success-subtle';
-                    else if (act.action === 'FUNDS_RELEASED') iconClass = 'bi-cash-stack text-info bg-info-subtle';
-                    else if (act.action === 'APPLICATION_DENIED') iconClass = 'bi-x-circle-fill text-danger bg-danger-subtle';
-                    else if (act.action === 'APPLICATION_SUBMITTED') iconClass = 'bi-file-earmark-plus-fill text-primary bg-primary-subtle';
+                        const timeFormatted = new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' });
 
-                    const timeFormatted = new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' });
-
-                    container.innerHTML += `
-                        <li class="activity-feed-item">
-                            <div class="activity-icon ${iconClass}">
-                                <i class="bi ${iconClass.split(' ')[0]}"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-header">
-                                    <span class="activity-title">${act.action_title || act.action}</span>
-                                    <span class="activity-time">${timeFormatted}</span>
+                        container.innerHTML += `
+                            <li class="activity-feed-item">
+                                <div class="activity-icon ${iconClass}">
+                                    <i class="bi ${iconClass.split(' ')[0]}"></i>
                                 </div>
-                                <p class="activity-details">${act.details || ''}</p>
-                                ${act.application_id ? `<button class="btn btn-sm btn-link p-0 text-decoration-none mt-1" onclick="openDetailsModal('${act.application_id}')"><i class="bi bi-box-arrow-up-right"></i> View Application Details</button>` : ''}
-                            </div>
-                        </li>
-                    `;
-                });
-
-                if ((data || []).length === 0) {
-                    container.innerHTML = `<li class="text-muted small py-3 text-center">No recent activity yet.</li>`;
+                                <div class="activity-content">
+                                    <div class="activity-header">
+                                        <span class="activity-title">${act.action_title || act.action}</span>
+                                        <span class="activity-time">${timeFormatted}</span>
+                                    </div>
+                                    <p class="activity-details">${act.details}</p>
+                                    ${act.application_id ? `<button class="btn btn-sm btn-link p-0 text-decoration-none mt-1" onclick="openDetailsModal('${act.application_id}')"><i class="bi bi-box-arrow-up-right"></i> View Application Details</button>` : ''}
+                                </div>
+                            </li>
+                        `;
+                    });
                 }
             } catch (e) {
-                console.warn('[CSWDO] Recent activity fetch failed:', e?.message || e);
-            }
-        }
-
-        // Writes an activity_log row — call this after approve/deny/release actions
-        async function logActivity(action, actionTitle, applicationId, beneficiaryName, program, details) {
-            try {
-                const profile = await getCurrentStaffProfile();
-                await supabaseClient.from('activity_log').insert({
-                    action, action_title: actionTitle, application_id: applicationId,
-                    beneficiary_name: beneficiaryName, program,
-                    admin_id: profile ? String(profile.id) : 'unknown',
-                    details, status: 'SUCCESS'
-                });
-            } catch (e) {
-                console.warn('[CSWDO] Failed to log activity:', e?.message || e);
+                console.warn('Recent activity fetch failed');
             }
         }
 
         // 6. Fetch Applications List & Table Rendering
         async function loadApplications() {
             try {
-                const { data, error } = await supabaseClient
-                    .from('applications')
-                    .select(`
-                        id, application_number, status, date_applied, amount_requested, amount_approved,
-                        remarks, officer_notes, documents_json,
-                        beneficiaries:beneficiary_qr ( qr_code, first_name, last_name, phone, address ),
-                        programs:program_id ( name, code )
-                    `)
-                    .order('date_applied', { ascending: false });
-                if (error) throw error;
-
-                allApplications = (data || []).map(row => {
-                    const ben = row.beneficiaries || {};
-                    const prog = row.programs || {};
-                    return {
-                        id: row.application_number || `APP-${row.id}`,
-                        dbId: row.id,
-                        beneficiary_id: ben.qr_code || '',
-                        beneficiary_name: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Unknown',
-                        contact_number: ben.phone || '',
-                        address: ben.address || '',
-                        barangay: (ben.address || '').split(',').pop().trim(),
-                        type: prog.name || '',
-                        submission_date: row.date_applied,
-                        amount_requested: row.amount_requested || 0,
-                        amount_approved: row.amount_approved || null,
-                        status: row.status,
-                        purpose: row.remarks || '',
-                        evaluator_notes: row.officer_notes || '',
-                        requirements_submitted: row.documents_json ? Object.keys(row.documents_json) : []
-                    };
-                });
-                renderApplicationsTable(allApplications);
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/applications');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    allApplications = json.data;
+                    renderApplicationsTable(allApplications);
+                }
             } catch (e) {
-                console.warn('[CSWDO] Applications load failed:', e?.message || e);
+                console.warn('Applications load failed');
             }
         }
 
@@ -2447,37 +2330,37 @@
         // STRICTLY VIEW-ONLY DETAILS MODAL
         // =======================================================
         async function openDetailsModal(appId) {
-            const app = allApplications.find(a => a.id === appId);
-            if (!app) {
-                alert('Application not found.');
-                return;
-            }
             try {
-                document.getElementById('modalAppId').textContent = app.id;
-                document.getElementById('modalBenName').textContent = app.beneficiary_name;
-                document.getElementById('modalBenId').textContent = app.beneficiary_id;
-                document.getElementById('modalContact').textContent = app.contact_number; // Masked
-                document.getElementById('modalAddress').textContent = app.address;
-                document.getElementById('modalType').textContent = app.type;
-                document.getElementById('modalDate').textContent = app.submission_date;
-                document.getElementById('modalRequested').textContent = '₱' + Number(app.amount_requested).toLocaleString('en-US', { minimumFractionDigits: 2 });
-                document.getElementById('modalPurpose').textContent = app.purpose || 'No purpose recorded.';
-                document.getElementById('modalEvaluatorNotes').textContent = app.evaluator_notes || 'No evaluator notes.';
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/applications/${appId}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const app = json.data;
+                    document.getElementById('modalAppId').textContent = app.id;
+                    document.getElementById('modalBenName').textContent = app.beneficiary_name;
+                    document.getElementById('modalBenId').textContent = app.beneficiary_id;
+                    document.getElementById('modalContact').textContent = app.contact_number; // Masked
+                    document.getElementById('modalAddress').textContent = app.address;
+                    document.getElementById('modalType').textContent = app.type;
+                    document.getElementById('modalDate').textContent = app.submission_date;
+                    document.getElementById('modalRequested').textContent = '₱' + Number(app.amount_requested).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                    document.getElementById('modalPurpose').textContent = app.purpose || 'No purpose recorded.';
+                    document.getElementById('modalEvaluatorNotes').textContent = app.evaluator_notes || 'No evaluator notes.';
+                    
+                    const badgeClass = getStatusBadgeClass(app.status);
+                    document.getElementById('modalStatusBadge').innerHTML = `<span class="status-badge ${badgeClass}">${app.status}</span>`;
 
-                const badgeClass = getStatusBadgeClass(app.status);
-                document.getElementById('modalStatusBadge').innerHTML = `<span class="status-badge ${badgeClass}">${app.status}</span>`;
+                    const reqList = document.getElementById('modalRequirementsList');
+                    reqList.innerHTML = '';
+                    if (app.requirements_submitted && app.requirements_submitted.length > 0) {
+                        app.requirements_submitted.forEach(doc => {
+                            reqList.innerHTML += `<li class="list-group-item small py-2 d-flex align-items-center gap-2"><i class="bi bi-file-earmark-check-fill text-success"></i> ${doc}</li>`;
+                        });
+                    } else {
+                        reqList.innerHTML = `<li class="list-group-item small text-muted">No documents uploaded.</li>`;
+                    }
 
-                const reqList = document.getElementById('modalRequirementsList');
-                reqList.innerHTML = '';
-                if (app.requirements_submitted && app.requirements_submitted.length > 0) {
-                    app.requirements_submitted.forEach(doc => {
-                        reqList.innerHTML += `<li class="list-group-item small py-2 d-flex align-items-center gap-2"><i class="bi bi-file-earmark-check-fill text-success"></i> ${doc}</li>`;
-                    });
-                } else {
-                    reqList.innerHTML = `<li class="list-group-item small text-muted">No documents uploaded.</li>`;
+                    document.getElementById('viewDetailsModal').classList.add('show');
                 }
-
-                document.getElementById('viewDetailsModal').classList.add('show');
             } catch (e) {
                 alert('Error loading application details');
             }
@@ -2512,31 +2395,29 @@
 
         async function executeApproveApplication() {
             if (!selectedAppId) return;
-            const app = allApplications.find(a => a.id === selectedAppId);
-            if (!app) return;
             const amount = document.getElementById('approveAmountInput').value;
             const remarks = document.getElementById('approveRemarksInput').value;
 
             try {
-                const profile = await getCurrentStaffProfile();
-                const { error } = await supabaseClient
-                    .from('applications')
-                    .update({ status: 'Approved', amount_approved: amount, admin_notes: remarks, admin_id: profile?.id || null })
-                    .eq('id', app.dbId);
-                if (error) throw error;
-
-                await logActivity('APPLICATION_APPROVED', 'Application Approved', app.id, app.beneficiary_name, app.type, remarks);
-
-                closeApproveModal();
-                if (typeof showSystemNotification === 'function') {
-                    showSystemNotification('Application Approved', `Application ${selectedAppId} has been approved successfully.`, 'success');
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/applications/${selectedAppId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approved_amount: amount, remarks })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    closeApproveModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Application Approved', `Application ${selectedAppId} has been approved successfully.`, 'success');
+                    } else {
+                        alert(`Application ${selectedAppId} approved successfully!`);
+                    }
+                    refreshDashboardData();
                 } else {
-                    alert(`Application ${selectedAppId} approved successfully!`);
+                    alert(json.message || 'Approval failed');
                 }
-                refreshDashboardData();
             } catch (e) {
-                console.error('[CSWDO] Approve failed:', e?.message || e);
-                alert('Error during approval: ' + (e?.message || 'unknown error'));
+                alert('Server error during approval');
             }
         }
 
@@ -2562,8 +2443,6 @@
 
         async function executeDenyApplication() {
             if (!selectedAppId) return;
-            const app = allApplications.find(a => a.id === selectedAppId);
-            if (!app) return;
             const reason = document.getElementById('denyReasonInput').value.trim();
             if (!reason) {
                 alert('Disapproval justification reason is mandatory for audit compliance.');
@@ -2571,25 +2450,25 @@
             }
 
             try {
-                const profile = await getCurrentStaffProfile();
-                const { error } = await supabaseClient
-                    .from('applications')
-                    .update({ status: 'Denied', admin_notes: reason, admin_id: profile?.id || null })
-                    .eq('id', app.dbId);
-                if (error) throw error;
-
-                await logActivity('APPLICATION_DENIED', 'Application Disapproved', app.id, app.beneficiary_name, app.type, reason);
-
-                closeDenyModal();
-                if (typeof showSystemNotification === 'function') {
-                    showSystemNotification('Application Disapproved', `Application ${selectedAppId} has been disapproved.`, 'warning');
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/applications/${selectedAppId}/deny`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    closeDenyModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Application Disapproved', `Application ${selectedAppId} has been disapproved.`, 'warning');
+                    } else {
+                        alert(`Application ${selectedAppId} disapproved.`);
+                    }
+                    refreshDashboardData();
                 } else {
-                    alert(`Application ${selectedAppId} disapproved.`);
+                    alert(json.message || 'Disapproval failed');
                 }
-                refreshDashboardData();
             } catch (e) {
-                console.error('[CSWDO] Deny failed:', e?.message || e);
-                alert('Error during disapproval: ' + (e?.message || 'unknown error'));
+                alert('Server error during disapproval');
             }
         }
 
@@ -2616,55 +2495,28 @@
 
         async function executeReleaseFunds() {
             if (!selectedAppId) return;
-            const app = allApplications.find(a => a.id === selectedAppId);
-            if (!app) return;
             const notes = document.getElementById('releaseNotesInput').value;
-            const releaseAmount = Number(app.amount_approved || app.amount_requested || 0);
 
             try {
-                const profile = await getCurrentStaffProfile();
-                const { data: appRow, error: fetchErr } = await supabaseClient
-                    .from('applications')
-                    .select('program_id, programs:program_id ( code )')
-                    .eq('id', app.dbId)
-                    .single();
-                if (fetchErr) throw fetchErr;
-
-                const { error } = await supabaseClient
-                    .from('applications')
-                    .update({ status: 'Released', admin_notes: notes, admin_id: profile?.id || null })
-                    .eq('id', app.dbId);
-                if (error) throw error;
-
-                // Best-effort: increment the matching fund's released_amount.
-                // If no matching fund row exists for this program's code, the
-                // application status still updates — this just skips the
-                // budget-tracking side rather than blocking the release.
-                const progCode = appRow?.programs?.code;
-                if (progCode && releaseAmount > 0) {
-                    const { data: fundRow } = await supabaseClient
-                        .from('funds').select('id, released_amount').eq('program_code', progCode).maybeSingle();
-                    if (fundRow) {
-                        await supabaseClient.from('funds')
-                            .update({ released_amount: Number(fundRow.released_amount) + releaseAmount, updated_at: new Date().toISOString() })
-                            .eq('id', fundRow.id);
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/applications/${selectedAppId}/release`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    closeReleaseModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Funds Released', `Grant voucher for ${selectedAppId} successfully disbursed.`, 'success');
                     } else {
-                        console.warn(`[CSWDO] No funds row for program_code "${progCode}" — release recorded on the application, but fund balance wasn't adjusted.`);
+                        alert(`Funds released for ${selectedAppId}!`);
                     }
-                }
-
-                await logActivity('FUNDS_RELEASED', 'Funds Released', app.id, app.beneficiary_name, app.type, notes);
-
-                closeReleaseModal();
-                if (typeof showSystemNotification === 'function') {
-                    showSystemNotification('Funds Released', `Grant voucher for ${selectedAppId} successfully disbursed.`, 'success');
+                    refreshDashboardData();
                 } else {
-                    alert(`Funds released for ${selectedAppId}!`);
+                    alert(json.message || 'Release failed');
                 }
-                refreshDashboardData();
             } catch (e) {
-                console.error('[CSWDO] Release failed:', e?.message || e);
-                alert('Error during fund release: ' + (e?.message || 'unknown error'));
+                alert('Server error during fund release');
             }
         }
 
@@ -2676,39 +2528,20 @@
 
         async function loadOfficersData() {
             try {
-                const { data, error } = await supabaseClient
-                    .from('staff_profiles')
-                    .select('id, first_name, middle_name, last_name, suffix, username, email, role, department, sex, phone, address, status')
-                    .in('role', ['CSWDO Admin', 'CSWDO Officer'])
-                    .order('first_name');
-                if (error) throw error;
-
-                allOfficers = (data || []).map(o => ({
-                    id: o.id,
-                    first_name: o.first_name,
-                    middle_name: o.middle_name,
-                    last_name: o.last_name,
-                    suffix: o.suffix,
-                    full_name: `${o.first_name} ${o.last_name}`.trim(),
-                    username: o.username,
-                    email: o.email,
-                    role: o.role,
-                    department: o.department || 'CSWDO',
-                    gender: o.sex,
-                    contact_number: o.phone,
-                    address: o.address,
-                    status: o.status
-                }));
-
-                document.getElementById('activeOfficersCount').textContent = allOfficers.filter(o => o.status === 'Active').length;
-                document.getElementById('archivedOfficersCount').textContent = allOfficers.filter(o => o.status === 'Deactivated').length;
-                renderActiveOfficersTable(allOfficers.filter(o => o.status === 'Active'));
-                renderArchivedOfficersTable(allOfficers.filter(o => o.status === 'Deactivated'));
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/officers');
+                const json = await res.json();
+                if (json.success && Array.isArray(json.data)) {
+                    allOfficers = json.data;
+                    document.getElementById('activeOfficersCount').textContent = json.active_count || allOfficers.filter(o => o.status === 'Active').length;
+                    document.getElementById('archivedOfficersCount').textContent = json.archived_count || allOfficers.filter(o => o.status === 'Deactivated').length;
+                    renderActiveOfficersTable(allOfficers.filter(o => o.status === 'Active'));
+                    renderArchivedOfficersTable(allOfficers.filter(o => o.status === 'Deactivated'));
+                }
             } catch (err) {
-                console.error('[CSWDO] Error loading officers:', err?.message || err);
+                console.error('[CSWDO] Error loading officers:', err);
                 const activeTbody = document.getElementById('activeOfficersTableBody');
                 if (activeTbody) {
-                    activeTbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Failed to load officer accounts from the database.</td></tr>`;
+                    activeTbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Failed to connect to officers API.</td></tr>`;
                 }
             }
         }
@@ -2880,24 +2713,41 @@
             }
 
             try {
-                const { data, error } = await supabaseClient.rpc('admin_create_officer', {
-                    p_first_name: first_name, p_middle_name: middle_name, p_last_name: last_name, p_suffix: suffix,
-                    p_username: username, p_password: password, p_email: email, p_role: role,
-                    p_department: department, p_sex: gender, p_phone: contact_number, p_address: address
+                const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/officers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name,
+                        middle_name,
+                        last_name,
+                        suffix,
+                        username,
+                        password,
+                        confirm_password,
+                        email,
+                        role,
+                        gender,
+                        department,
+                        contact_number,
+                        address
+                    })
                 });
 
-                if (error) throw error;
-
-                closeNewOfficerModal();
-                if (typeof showSystemNotification === 'function') {
-                    showSystemNotification('Officer Account Created', `Account "${username}" created successfully.`, 'success');
+                const json = await res.json();
+                if (json.success) {
+                    closeNewOfficerModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Officer Account Created', `Account "${username}" created. Login credentials automatically dispatched via email to ${email}.`, 'success');
+                    } else {
+                        alert(`Officer account "${username}" created successfully!\n\nAutomated Email Notification: Official credentials sent to ${email}.`);
+                    }
+                    loadOfficersData();
                 } else {
-                    alert(`Officer account "${username}" created successfully!`);
+                    alert(json.message || json.error || 'Failed to create officer account');
                 }
-                loadOfficersData();
             } catch (err) {
-                console.error('[CSWDO] Error creating officer:', err?.message || err);
-                alert(err?.message || 'Failed to create officer account.');
+                console.error('[CSWDO] Error creating officer:', err);
+                alert('Network or server error during officer creation.');
             }
         }
 
@@ -2905,31 +2755,33 @@
         // VIEW & EDIT OFFICER DETAILS MODAL
         // =======================================================
         async function openOfficerDetailsModal(id) {
-            const o = allOfficers.find(x => x.id === id);
-            if (!o) {
-                alert('Officer not found');
-                return;
-            }
             try {
-                document.getElementById('editOffId').value = o.id;
-                document.getElementById('editOffFirstName').value = o.first_name || '';
-                document.getElementById('editOffMiddleName').value = o.middle_name || '';
-                document.getElementById('editOffLastName').value = o.last_name || '';
-                document.getElementById('editOffSuffix').value = o.suffix || 'N/A';
-                document.getElementById('editOffUsername').value = o.username || '';
-                document.getElementById('editOffEmail').value = o.email || '';
-                document.getElementById('editOffRole').value = o.role || 'CSWDO Officer';
-                document.getElementById('editOffDepartment').value = o.department || 'Medical';
-                document.getElementById('editOffGender').value = o.gender || 'Female';
-                document.getElementById('editOffContact').value = o.contact_number || '';
-                document.getElementById('editOffAddress').value = o.address || '';
-                document.getElementById('editOffStatus').value = o.status || 'Active';
-                document.getElementById('editOffPassword').value = '';
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${id}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const o = json.data;
+                    document.getElementById('editOffId').value = o.id;
+                    document.getElementById('editOffFirstName').value = o.first_name || '';
+                    document.getElementById('editOffMiddleName').value = o.middle_name || '';
+                    document.getElementById('editOffLastName').value = o.last_name || '';
+                    document.getElementById('editOffSuffix').value = o.suffix || 'N/A';
+                    document.getElementById('editOffUsername').value = o.username || '';
+                    document.getElementById('editOffEmail').value = o.email || '';
+                    document.getElementById('editOffRole').value = o.role || 'CSWDO Officer';
+                    document.getElementById('editOffDepartment').value = o.department || 'Medical';
+                    document.getElementById('editOffGender').value = o.gender || 'Female';
+                    document.getElementById('editOffContact').value = o.contact_number || '';
+                    document.getElementById('editOffAddress').value = o.address || '';
+                    document.getElementById('editOffStatus').value = o.status || 'Active';
+                    document.getElementById('editOffPassword').value = '';
 
-                document.getElementById('officerDetailsModal').classList.add('show');
+                    document.getElementById('officerDetailsModal').classList.add('show');
+                } else {
+                    alert(json.message || 'Officer not found');
+                }
             } catch (err) {
                 console.error('[CSWDO] Error loading officer details:', err);
-                alert('Could not display officer details.');
+                alert('Could not fetch officer details.');
             }
         }
 
@@ -2963,25 +2815,40 @@
             }
 
             try {
-                const { data, error } = await supabaseClient.rpc('admin_update_officer', {
-                    p_staff_id: Number(id), p_first_name: first_name, p_middle_name: middle_name,
-                    p_last_name: last_name, p_suffix: suffix, p_email: email, p_role: role,
-                    p_department: department, p_sex: gender, p_phone: contact_number,
-                    p_address: address, p_status: status, p_new_password: password || null
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name,
+                        middle_name,
+                        last_name,
+                        suffix,
+                        email,
+                        role,
+                        department,
+                        gender,
+                        contact_number,
+                        address,
+                        status,
+                        password: password || undefined
+                    })
                 });
 
-                if (error) throw error;
-
-                closeOfficerDetailsModal();
-                if (typeof showSystemNotification === 'function') {
-                    showSystemNotification('Officer Profile Updated', `Changes for officer "${data[0]?.username}" saved successfully.`, 'success');
+                const json = await res.json();
+                if (json.success) {
+                    closeOfficerDetailsModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Officer Profile Updated', `Changes for officer "${json.data.username}" saved successfully.`, 'success');
+                    } else {
+                        alert(`Officer "${json.data.username}" details saved successfully!`);
+                    }
+                    loadOfficersData();
                 } else {
-                    alert(`Officer "${data[0]?.username}" details saved successfully!`);
+                    alert(json.message || 'Failed to update officer profile');
                 }
-                loadOfficersData();
             } catch (err) {
-                console.error('[CSWDO] Error updating officer:', err?.message || err);
-                alert(err?.message || 'Failed to update officer profile.');
+                console.error('[CSWDO] Error updating officer:', err);
+                alert('Server error during update.');
             }
         }
 
@@ -2990,18 +2857,23 @@
         // =======================================================
         async function toggleOfficerStatus(id) {
             try {
-                const { data, error } = await supabaseClient.rpc('admin_toggle_officer_status', { p_staff_id: Number(id) });
-                if (error) throw error;
-
-                const row = data[0];
-                const statusText = row.status;
-                if (typeof showSystemNotification === 'function') {
-                    showSystemNotification('Status Toggled', `Officer "${row.username}" is now ${statusText}. ${statusText === 'Deactivated' ? 'Moved to Archive Section.' : 'Restored to Active list.'}`, statusText === 'Active' ? 'success' : 'warning');
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const json = await res.json();
+                if (json.success) {
+                    const statusText = json.data.status;
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Status Toggled', `Officer "${json.data.username}" is now ${statusText}. ${json.is_archived ? 'Moved to Archive Section.' : 'Restored to Active list.'}`, statusText === 'Active' ? 'success' : 'warning');
+                    }
+                    loadOfficersData();
+                } else {
+                    alert(json.message || 'Status toggle failed');
                 }
-                loadOfficersData();
             } catch (err) {
-                console.error('[CSWDO] Error toggling status:', err?.message || err);
-                alert(err?.message || 'Status toggle failed.');
+                console.error('[CSWDO] Error toggling status:', err);
+                alert('Network error during status toggle.');
             }
         }
 
@@ -3030,51 +2902,32 @@
             }
 
             try {
-                const { error } = await supabaseClient.rpc('admin_delete_officer_permanently', {
-                    p_staff_id: Number(selectedOfficerId), p_reason: reason
+                const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${selectedOfficerId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
                 });
-                if (error) throw error;
 
-                closePermanentDeleteModal();
-                if (typeof showSystemNotification === 'function') {
-                    showSystemNotification('Account Purged', `Officer account permanently deleted from system archive.`, 'danger');
+                const json = await res.json();
+                if (json.success) {
+                    closePermanentDeleteModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Account Purged', `Officer account permanently deleted from system archive.`, 'danger');
+                    } else {
+                        alert('Officer account permanently deleted from archive.');
+                    }
+                    loadOfficersData();
                 } else {
-                    alert('Officer account permanently deleted from archive.');
+                    alert(json.message || 'Permanent deletion failed');
                 }
-                loadOfficersData();
             } catch (err) {
-                console.error('[CSWDO] Error deleting officer permanently:', err?.message || err);
-                alert(err?.message || 'Permanent deletion failed.');
+                console.error('[CSWDO] Error deleting officer permanently:', err);
+                alert('Server error during permanent delete.');
             }
         }
 
-        async function exportAuditReport() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('audit_logs')
-                    .select('created_at, action, entity_type, entity_id, details, staff_profiles:staff_user_id ( first_name, last_name )')
-                    .order('created_at', { ascending: false })
-                    .limit(1000);
-                if (error) throw error;
-
-                const rows = [['Date', 'Action', 'Entity Type', 'Entity ID', 'Actor', 'Details']];
-                (data || []).forEach(r => {
-                    const actor = r.staff_profiles ? `${r.staff_profiles.first_name} ${r.staff_profiles.last_name}` : 'Beneficiary';
-                    rows.push([r.created_at, r.action, r.entity_type, r.entity_id, actor, (r.details || '').replace(/"/g, '""')]);
-                });
-
-                const csv = rows.map(row => row.map(cell => `"${cell ?? ''}"`).join(',')).join('\n');
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `audit-log-export-${new Date().toISOString().split('T')[0]}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-            } catch (err) {
-                console.error('[CSWDO] Audit export failed:', err?.message || err);
-                alert('Could not export audit log: ' + (err?.message || 'unknown error'));
-            }
+        function exportAuditReport() {
+            window.location.href = (API_CONFIG.BASE_URL || '') + '/api/audit-logs/export';
         }
 
         function logoutAdmin() {

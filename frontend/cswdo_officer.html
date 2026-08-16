@@ -7,306 +7,327 @@
     <!-- CSS Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js Dependency -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- API Configuration: set content to your deployed backend URL (no trailing slash) -->
-    
+    <!-- Core Helper Scripts & Overlay Styles -->
+    <link rel="stylesheet" href="assets/css/unified-overlays.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase-config.js"></script>
-    <script src="assets/js/auth-guard.js"></script>
+    <script src="assets/js/supabase-data.js"></script>
+    <script src="assets/js/api-config.js"></script>
+    <script src="assets/js/peso-safeguards.js"></script>
     <script src="assets/js/system-notifications.js"></script>
+    <script src="assets/js/unified-overlay-controller.js"></script>
+    <script src="assets/js/session-manager.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <style>
         :root {
-            --primary-pink: #F0B6C6;
-            --primary-dark: #B88A9A;
-            --primary-light: #F7D2DE;
-            --primary-lighter: #FFEFF5;
-            --secondary: #6C5B7B;
-            --accent: #355C7D;
-            --success: #4CAF50;
-            --warning: #FF9800;
-            --danger: #FF9800;
-            --info: #B88A9A;
-            --light-bg: #fbf6f8;
-            --sidebar-width: 260px;
+            --primary: #0284C7;
+            --primary-hover: #0369A1;
+            --primary-light: #E0F2FE;
+            --dark-navy: #0F172A;
+            --sidebar-width: 270px;
             --header-height: 70px;
-            --border-color: #F7D2DE;
+            --bg-light: #F8FAFC;
+            --card-border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            font-weight: 400;
-            background-color: #fbf6f8;
+            background-color: var(--bg-light);
+            color: #1E293B;
             overflow-x: hidden;
-            color: #333;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-weight: 700 !important;
         }
 
         /* Dark Mode Theme */
         body.dark-mode {
-            background-color: #2F2B2E;
-            color: #f3eff2;
+            background-color: #0F172A;
+            color: #F8FAFC;
         }
         body.dark-mode .sidebar {
-            background-color: #1E1B1D;
-            border-right-color: #3e383c;
-        }
-        body.dark-mode .main-content {
-            background-color: #2F2B2E;
+            background-color: #1E293B;
+            border-right-color: #334155;
         }
         body.dark-mode .header-top {
-            background-color: #1E1B1D;
-            border-bottom-color: #3e383c;
-            color: #f3eff2;
+            background-color: #1E293B;
+            border-bottom-color: #334155;
+            color: #F8FAFC;
         }
+        body.dark-mode .card,
         body.dark-mode .stat-card,
-        body.dark-mode .content-card {
-            background-color: #1E1B1D;
-            border-color: #3e383c;
-            color: #f3eff2;
+        body.dark-mode .content-card,
+        body.dark-mode .custom-modal-dialog {
+            background-color: #1E293B;
+            border-color: #334155;
+            color: #F8FAFC;
         }
         body.dark-mode .table {
-            color: #f3eff2;
+            color: #F8FAFC;
         }
-        body.dark-mode .table th {
-            background-color: #2c272a;
-            color: #f3eff2;
+        body.dark-mode .table th,
+        body.dark-mode .custom-table th {
+            background-color: #0F172A;
+            color: #94A3B8;
         }
-        body.dark-mode .table td {
-            border-bottom-color: #3e383c;
+        body.dark-mode .table td,
+        body.dark-mode .custom-table td {
+            border-bottom-color: #334155;
+            color: #F8FAFC;
+        }
+        body.dark-mode .modal-content {
+            background-color: #1E293B;
+            color: #F8FAFC;
+            border-color: #334155;
         }
         body.dark-mode .form-control,
         body.dark-mode .form-select {
-            background-color: #2c272a;
-            border-color: #3e383c;
-            color: #f3eff2;
+            background-color: #0F172A;
+            border-color: #334155;
+            color: #F8FAFC;
         }
-        body.dark-mode .form-control:focus,
-        body.dark-mode .form-select:focus {
-            background-color: #2c272a;
-            border-color: var(--primary-pink);
-        }
-        body.dark-mode .custom-modal-dialog {
-            background-color: #1E1B1D;
-            color: #f3eff2;
-            border: 1px solid #3e383c;
-        }
-        body.dark-mode .custom-modal-header,
-        body.dark-mode .custom-modal-footer {
-            border-color: #3e383c;
+        body.dark-mode .user-profile-badge {
+            background-color: #0F172A;
+            color: #F8FAFC;
         }
         body.dark-mode .list-group-item {
-            background-color: #2c272a;
-            color: #f3eff2;
-            border-color: #3e383c;
+            background-color: #1E293B;
+            border-color: #334155;
+            color: #F8FAFC;
         }
 
-        /* Sidebar Navigation */
         .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
             width: var(--sidebar-width);
-            background-color: var(--primary-lighter);
-            border-right: 1px solid var(--border-color);
-            z-index: 1000;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: #FFFFFF;
+            border-right: 1px solid var(--card-border);
+            z-index: 100;
             transition: all 0.3s ease;
-        }
-        
-        .sidebar-header {
-            height: var(--header-height);
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            padding: 0 20px;
-            border-bottom: 1px solid var(--border-color);
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary-pink));
-            color: #fff;
         }
 
+        .sidebar-brand,
+        .sidebar-header {
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-bottom: 1px solid var(--card-border);
+            background: transparent;
+            color: inherit;
+        }
+
+        .sidebar-brand-text h5,
         .sidebar-title {
             font-size: 1.1rem;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            color: var(--primary);
+            margin: 0;
         }
 
+        .sidebar-brand-text p,
         .sidebar-subtitle {
             font-size: 0.75rem;
-            opacity: 0.85;
-            margin-bottom: 0;
+            color: #64748B;
+            margin: 0;
         }
 
+        .sidebar-menu,
         .sidebar-nav {
+            padding: 16px 12px;
             list-style: none;
-            padding: 15px 0;
-            margin: 0;
+            flex-grow: 1;
             overflow-y: auto;
-            max-height: calc(100vh - var(--header-height));
+            margin: 0;
         }
 
         .sidebar-nav-item {
-            padding: 2px 15px;
+            list-style: none;
+            padding: 2px 0;
         }
 
-        .sidebar-nav-link {
-            display: flex;
-            align-items: center;
-            padding: 10px 15px;
-            color: var(--primary-dark);
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        body.dark-mode .sidebar-nav-link {
-            color: var(--primary-light);
-        }
-
-        .sidebar-nav-link:hover,
-        .sidebar-nav-link.active {
-            background-color: var(--primary-pink);
-            color: white;
-        }
-
-        body.dark-mode .sidebar-nav-link:hover,
-        body.dark-mode .sidebar-nav-link.active {
-            background-color: var(--primary-pink) !important;
-            color: #fff !important;
-        }
-
-        .sidebar-nav-link i {
-            margin-right: 12px;
-            font-size: 1.1rem;
+        .sidebar-menu .nav-header,
+        .sidebar-heading {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94A3B8;
+            margin: 16px 12px 8px;
         }
 
         .sidebar-divider {
             height: 1px;
-            background-color: var(--border-color);
-            margin: 10px 15px;
+            background-color: var(--card-border);
+            margin: 12px 10px;
         }
 
         body.dark-mode .sidebar-divider {
-            background-color: #2c2c2c;
+            background-color: #334155;
         }
 
-        /* Main Workspace Container */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            min-height: 100vh;
-            background-color: #f9f7f8;
-            transition: all 0.3s ease;
+        .sidebar-menu .nav-link,
+        .sidebar-nav-link,
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            color: #64748B;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
         }
 
-        /* Header Navigation Top */
+        .sidebar-menu .nav-link:hover,
+        .sidebar-menu .nav-link.active,
+        .sidebar-nav-link:hover,
+        .sidebar-nav-link.active,
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .sidebar-menu .nav-link i,
+        .sidebar-nav-link i {
+            font-size: 1.1rem;
+        }
+
         .header-top {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: var(--sidebar-width);
             height: var(--header-height);
-            background-color: #fff;
-            border-bottom: 1px solid var(--border-color);
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--card-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 30px;
-            position: sticky;
-            top: 0;
-            z-index: 999;
+            padding: 0 28px;
+            z-index: 99;
         }
 
-        .header-title-section h2 {
-            font-size: 1.3rem;
+        .header-title-section h2,
+        .page-title {
+            font-size: 1.25rem;
             font-weight: 700;
-            color: var(--primary-dark);
-            margin-bottom: 2px;
-        }
-
-        body.dark-mode .header-title-section h2 {
-            color: var(--primary-light);
+            margin: 0;
         }
 
         .header-title-section p {
             font-size: 0.8rem;
-            color: #777;
-            margin-bottom: 0;
+            color: #64748B;
+            margin: 0;
         }
 
         .header-controls {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 14px;
         }
 
         .header-btn {
             background: none;
-            border: none;
-            color: #555;
-            font-size: 1.2rem;
+            border: 1px solid var(--card-border);
+            color: #1E293B;
+            font-size: 1.1rem;
             cursor: pointer;
-            padding: 6px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
-            transition: background-color 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        body.dark-mode .header-btn {
-            color: var(--primary-light);
+            transition: all 0.2s ease;
         }
 
         .header-btn:hover {
-            background-color: var(--primary-lighter);
-        }
-
-        body.dark-mode .header-btn:hover {
-            background-color: #2c1a1e;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            border-color: var(--primary);
         }
 
         .user-profile-badge {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 5px 12px;
-            background-color: var(--primary-lighter);
+            gap: 8px;
+            padding: 6px 14px;
+            background-color: var(--primary-light);
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 600;
-            color: var(--primary-dark);
+            color: var(--primary);
         }
 
-        body.dark-mode .user-profile-badge {
-            background-color: #2c1a1e;
-            color: #f3eff2;
+        .search-box {
+            position: relative;
+            width: 320px;
         }
 
-        /* Workspace Grid & Modules */
+        .search-box input {
+            padding-left: 38px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            font-size: 0.9rem;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94A3B8;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--header-height);
+            padding: 28px;
+            min-height: calc(100vh - var(--header-height));
+        }
+
         .workspace-panel {
-            padding: 30px;
+            padding: 0;
         }
 
+        .page-header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Module page toggling */
         .module-page {
             display: none;
         }
 
         .module-page.active {
             display: block;
-            animation: fadeIn 0.4s ease;
+            animation: fadeIn 0.3s ease;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -315,34 +336,42 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 28px;
         }
 
         .stat-card {
-            background-color: var(--primary-lighter);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
             padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             display: flex;
             align-items: center;
             gap: 15px;
-            box-shadow: 0 2px 4px rgba(184, 92, 122, 0.03);
         }
 
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        }
+
+        .stat-icon,
         .stat-icon-wrapper {
-            width: 50px;
-            height: 50px;
+            width: 48px;
+            height: 48px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
+            flex-shrink: 0;
         }
 
-        .stat-icon-wrapper.total { background-color: rgba(233, 30, 99, 0.12); color: var(--primary-pink); }
-        .stat-icon-wrapper.pending { background-color: rgba(255, 193, 7, 0.12); color: #b58900; }
-        .stat-icon-wrapper.approved { background-color: rgba(40, 167, 69, 0.12); color: #28a745; }
-        .stat-icon-wrapper.disbursed { background-color: rgba(23, 162, 184, 0.12); color: #17a2b8; }
+        .stat-icon-wrapper.total { background-color: var(--primary-light); color: var(--primary); }
+        .stat-icon-wrapper.pending { background-color: rgba(245, 158, 11, 0.12); color: var(--warning); }
+        .stat-icon-wrapper.approved { background-color: rgba(16, 185, 129, 0.12); color: var(--success); }
+        .stat-icon-wrapper.disbursed { background-color: rgba(59, 130, 246, 0.12); color: var(--info); }
 
         .stat-info {
             display: flex;
@@ -350,31 +379,28 @@
         }
 
         .stat-value {
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             font-weight: 700;
+            line-height: 1.1;
             margin-bottom: 2px;
-            line-height: 1.2;
         }
 
         .stat-label {
-            font-size: 0.8rem;
-            color: #777;
+            font-size: 0.82rem;
+            color: #64748B;
             text-transform: uppercase;
+            font-weight: 600;
             letter-spacing: 0.5px;
-        }
-
-        body.dark-mode .stat-label {
-            color: #aaa;
         }
 
         /* Content Cards & Modules */
         .content-card {
-            background-color: var(--primary-lighter);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
             padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 4px rgba(184, 92, 122, 0.02);
+            margin-bottom: 28px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .card-header-custom {
@@ -382,18 +408,14 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--card-border);
             padding-bottom: 15px;
-        }
-
-        body.dark-mode .card-header-custom {
-            border-bottom-color: #2c2c2c;
         }
 
         .card-header-title {
             font-size: 1.1rem;
             font-weight: 700;
-            color: var(--primary-dark);
+            color: #1E293B;
             margin-bottom: 0;
             display: flex;
             align-items: center;
@@ -401,24 +423,33 @@
         }
 
         body.dark-mode .card-header-title {
-            color: var(--primary-light);
+            color: #F8FAFC;
         }
 
         /* Badges & Tables styling */
         .status-badge {
             font-size: 0.75rem;
-            font-weight: 600;
-            padding: 4px 8px;
-            border-radius: 12px;
-            display: inline-block;
+            font-weight: 700;
+            padding: 5px 11px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
 
-        .status-badge.active { background-color: rgba(40, 167, 69, 0.12); color: #28a745; }
-        .status-badge.pending { background-color: rgba(255, 193, 7, 0.12); color: #b58900; }
-        .status-badge.approved { background-color: rgba(23, 162, 184, 0.12); color: #17a2b8; }
-        .status-badge.completed { background-color: rgba(233, 30, 99, 0.15); color: var(--primary-dark); }
-        .status-badge.denied { background-color: rgba(220, 53, 69, 0.12); color: #dc3545; }
-        .status-badge.deactivated { background-color: rgba(108, 117, 125, 0.12); color: #6c757d; }
+        .status-badge.active,
+        .status-badge.approved { background-color: rgba(16, 185, 129, 0.15); color: #047857; }
+        .status-badge.pending { background-color: rgba(245, 158, 11, 0.15); color: #B45309; }
+        .status-badge.completed { background-color: rgba(59, 130, 246, 0.15); color: #1D4ED8; }
+        .status-badge.denied { background-color: rgba(239, 68, 68, 0.15); color: #B91C1C; }
+        .status-badge.deactivated { background-color: rgba(108, 117, 125, 0.15); color: #495057; }
+
+        body.dark-mode .status-badge.pending { color: #FCD34D; }
+        body.dark-mode .status-badge.approved, body.dark-mode .status-badge.active { color: #6EE7B7; }
+        body.dark-mode .status-badge.completed { color: #93C5FD; }
+        body.dark-mode .status-badge.denied { color: #FCA5A5; }
 
         .table-responsive {
             margin-top: 10px;
@@ -426,68 +457,71 @@
 
         .custom-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
         }
 
         .custom-table th {
-            font-size: 0.85rem;
+            background-color: var(--bg-light);
+            color: #64748B;
             font-weight: 600;
-            color: #555;
-            background-color: var(--primary-lighter);
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 2px solid var(--border-color);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--card-border);
         }
 
         .custom-table td {
-            font-size: 0.88rem;
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 14px 18px;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--card-border);
             vertical-align: middle;
         }
 
         .custom-table tbody tr:hover {
-            background-color: rgba(233, 30, 99, 0.02);
+            background-color: var(--primary-light);
         }
 
         /* Buttons matching the theme */
         .btn-theme {
-            background-color: var(--primary-pink);
+            background-color: var(--primary);
             color: #fff;
             border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 500;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 600;
             font-size: 0.88rem;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
             gap: 8px;
         }
 
         .btn-theme:hover {
-            background-color: var(--primary-dark);
+            background-color: var(--primary-hover);
             color: #fff;
+            transform: translateY(-1px);
         }
 
         .btn-theme-outline {
-            background: none;
-            border: 1.5px solid var(--primary-pink);
-            color: var(--primary-pink);
-            padding: 7px 15px;
-            border-radius: 6px;
-            font-weight: 500;
+            background: transparent;
+            border: 1.5px solid var(--primary);
+            color: var(--primary);
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-weight: 600;
             font-size: 0.88rem;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
             gap: 8px;
         }
 
         .btn-theme-outline:hover {
-            background-color: var(--primary-lighter);
-            color: var(--primary-dark);
-            border-color: var(--primary-dark);
+            background-color: var(--primary-light);
+            color: var(--primary-hover);
+            border-color: var(--primary-hover);
         }
 
         /* Modals and forms */
@@ -515,30 +549,30 @@
             right: 0;
             bottom: 0;
             background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(3px);
             z-index: -1;
         }
 
         .custom-modal-dialog {
-            background-color: var(--primary-lighter);
-            border-radius: 12px;
+            background-color: #FFFFFF;
+            border-radius: 14px;
             max-width: 600px;
             width: 100%;
             max-height: 90vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            animation: modalSlide 0.3s ease;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: zoomIn 0.25s ease;
         }
 
-        @keyframes modalSlide {
-            from { transform: translateY(-30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        @keyframes zoomIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
         .custom-modal-header {
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--card-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -546,7 +580,7 @@
 
         .custom-modal-title {
             font-weight: 700;
-            color: var(--primary-dark);
+            color: var(--primary);
             margin: 0;
             font-size: 1.15rem;
         }
@@ -558,7 +592,7 @@
 
         .custom-modal-footer {
             padding: 16px 24px;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid var(--card-border);
             display: flex;
             justify-content: flex-end;
             gap: 12px;
@@ -577,6 +611,59 @@
             color: #333;
         }
 
+        .doc-thumbnail {
+            width: 100%;
+            height: 100px;
+            border: 1.5px dashed #CBD5E1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #F8FAFC;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .doc-thumbnail:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .photo-box {
+            width: 130px;
+            height: 130px;
+            border: 2px dashed #CBD5E1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #F8FAFC;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .photo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .upload-drag-area {
+            border: 2px dashed #CBD5E1;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            background: #F8FAFC;
+            cursor: pointer;
+        }
+
+        /* Status Badges */
+        .badge-approved { background-color: #10B981; color: white; }
+        .badge-denied { background-color: #EF4444; color: white; }
+        .badge-pending { background-color: #F59E0B; color: white; }
+
         /* Mobile Menu Toggle */
         .menu-toggle {
             display: none;
@@ -584,50 +671,7 @@
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: var(--primary-dark);
-        }
-
-        /* Print Layout Optimization */
-        @media print {
-            .sidebar, .header-top, .btn-theme, .btn-theme-outline, .header-controls, .no-print {
-                display: none !important;
-            }
-            .main-content {
-                margin-left: 0 !important;
-                background-color: #fff !important;
-            }
-            .workspace-panel {
-                padding: 0 !important;
-            }
-            .content-card {
-                border: none !important;
-                box-shadow: none !important;
-                padding: 0 !important;
-            }
-            .custom-table th {
-                background-color: #f0f0f0 !important;
-                color: #000 !important;
-                border-bottom: 2px solid #000 !important;
-            }
-            .custom-table td {
-                border-bottom: 1px solid #ddd !important;
-            }
-        }
-
-        /* Responsive breakpoints */
-        @media (max-width: 991px) {
-            .sidebar {
-                left: calc(-1 * var(--sidebar-width));
-            }
-            .sidebar.active {
-                left: 0;
-            }
-            .main-content {
-                margin-left: 0;
-            }
-            .menu-toggle {
-                display: block;
-            }
+            color: var(--primary);
         }
 
         /* Web Notification Styling */
@@ -645,9 +689,9 @@
 
         .web-notification {
             background: #fff;
-            border-left: 5px solid var(--primary-pink);
+            border-left: 5px solid var(--primary);
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             padding: 16px;
             display: flex;
             align-items: flex-start;
@@ -655,7 +699,7 @@
             transform: translateX(120%);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s;
             opacity: 0;
-            color: #333;
+            color: #1E293B;
         }
 
         .web-notification.show {
@@ -676,12 +720,11 @@
             font-weight: 700;
             margin-bottom: 4px;
             font-size: 0.9rem;
-            color: var(--text-dark, #2c2528);
         }
 
         .web-notification-message {
             font-size: 0.8rem;
-            color: #666;
+            color: #64748B;
             margin: 0;
         }
 
@@ -690,60 +733,25 @@
             border: none;
             font-size: 1.1rem;
             cursor: pointer;
-            color: #bbb;
+            color: #94A3B8;
             padding: 0;
             line-height: 1;
             margin-left: auto;
         }
 
-        .web-notification-close:hover {
-            color: #666;
-        }
+        .web-notification.success { border-left-color: var(--success); }
+        .web-notification.success .web-notification-icon { color: var(--success); }
+        .web-notification.error { border-left-color: var(--danger); }
+        .web-notification.error .web-notification-icon { color: var(--danger); }
+        .web-notification.warning { border-left-color: var(--warning); }
+        .web-notification.warning .web-notification-icon { color: var(--warning); }
+        .web-notification.info { border-left-color: var(--info); }
+        .web-notification.info .web-notification-icon { color: var(--info); }
 
-        /* Specific Notification Types */
-        .web-notification.success {
-            border-left-color: var(--success, #4CAF50);
-        }
-        .web-notification.success .web-notification-icon {
-            color: var(--success, #4CAF50);
-        }
-
-        .web-notification.error {
-            border-left-color: #f44336;
-        }
-        .web-notification.error .web-notification-icon {
-            color: #f44336;
-        }
-
-        .web-notification.warning {
-            border-left-color: var(--warning, #FF9800);
-        }
-        .web-notification.warning .web-notification-icon {
-            color: var(--warning, #FF9800);
-        }
-
-        .web-notification.info {
-            border-left-color: var(--accent, #355C7D);
-        }
-        .web-notification.info .web-notification-icon {
-            color: var(--accent, #355C7D);
-        }
-
-        /* Dark Mode Web Notification */
         body.dark-mode .web-notification {
-            background: #1e181b;
-            border-color: #3e383c;
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-        }
-        body.dark-mode .web-notification-title {
-            color: #fff;
-        }
-        body.dark-mode .web-notification-message {
-            color: #b5a4a7;
-        }
-        body.dark-mode .web-notification-close:hover {
-            color: #fff;
+            background: #1E293B;
+            border-color: #334155;
+            color: #F8FAFC;
         }
 
         /* Slide-out Notification Drawer */
@@ -753,14 +761,14 @@
             right: -380px;
             width: 380px;
             height: 100vh;
-            background: var(--primary-lighter);
+            background: #FFFFFF;
             box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
             z-index: 2005;
             transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            border-left: 1px solid var(--border-color);
+            border-left: 1px solid var(--card-border);
             display: flex;
             flex-direction: column;
-            color: #333;
+            color: #1E293B;
         }
 
         .notification-drawer.active {
@@ -769,12 +777,12 @@
 
         .notification-drawer-header {
             padding: 20px;
-            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-pink) 100%);
+            background: var(--primary);
             color: white;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--card-border);
         }
 
         .notification-drawer-title {
@@ -815,7 +823,7 @@
 
         .notification-item {
             background: white;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--card-border);
             border-radius: 10px;
             padding: 15px;
             transition: all 0.2s ease;
@@ -824,12 +832,12 @@
 
         .notification-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(184, 92, 122, 0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .notification-item.unread {
-            border-left: 4px solid var(--primary-pink);
-            background: #fffcfd;
+            border-left: 4px solid var(--primary);
+            background: var(--primary-light);
         }
 
         .notification-item-header {
@@ -842,18 +850,18 @@
         .notification-item-title {
             font-weight: 700;
             font-size: 0.9rem;
-            color: var(--primary-dark);
+            color: var(--primary);
             margin: 0;
         }
 
         .notification-item-time {
             font-size: 0.72rem;
-            color: #999;
+            color: #94A3B8;
         }
 
         .notification-item-body {
             font-size: 0.82rem;
-            color: #555;
+            color: #64748B;
             margin: 0;
             line-height: 1.4;
         }
@@ -869,22 +877,14 @@
             margin-top: 8px;
         }
 
-        .notification-badge-item.alert {
-            background-color: var(--accent);
-        }
-
-        .notification-badge-item.update {
-            background-color: var(--secondary);
-        }
-
-        .notification-badge-item.approval {
-            background-color: var(--success);
-        }
+        .notification-badge-item.alert { background-color: var(--warning); }
+        .notification-badge-item.update { background-color: var(--info); }
+        .notification-badge-item.approval { background-color: var(--success); }
 
         .notification-drawer-footer {
             padding: 15px 20px;
-            border-top: 1px solid var(--border-color);
-            background: #fdfafb;
+            border-top: 1px solid var(--card-border);
+            background: var(--bg-light);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -893,7 +893,7 @@
         .notification-drawer-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(30, 20, 25, 0.3);
+            background: rgba(15, 23, 42, 0.3);
             backdrop-filter: blur(2px);
             z-index: 2004;
             display: none;
@@ -903,41 +903,53 @@
             display: block;
         }
 
-        /* Dark Mode overrides for Notification Drawer */
         body.dark-mode .notification-drawer {
-            background-color: #1E1B1D !important;
-            border-left-color: var(--border-color) !important;
-            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.4) !important;
-            color: #f3eff2 !important;
+            background-color: #1E293B !important;
+            border-left-color: #334155 !important;
+            color: #F8FAFC !important;
         }
 
         body.dark-mode .notification-item {
-            background-color: #25181e !important;
-            border-color: var(--border-color) !important;
-            color: #fff !important;
-        }
-
-        body.dark-mode .notification-item:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-            background-color: #2c1a22 !important;
+            background-color: #1E293B !important;
+            border-color: #334155 !important;
+            color: #F8FAFC !important;
         }
 
         body.dark-mode .notification-item.unread {
-            background-color: #2e1a22 !important;
-            border-left-color: var(--primary-pink) !important;
-        }
-
-        body.dark-mode .notification-item-title {
-            color: var(--primary-pink) !important;
-        }
-
-        body.dark-mode .notification-item-body {
-            color: #e5e5e5 !important;
+            background-color: #0F172A !important;
+            border-left-color: var(--primary) !important;
         }
 
         body.dark-mode .notification-drawer-footer {
-            background-color: #1E1B1D !important;
-            border-top-color: var(--border-color) !important;
+            background-color: #1E293B !important;
+            border-top-color: #334155 !important;
+        }
+
+        /* Responsive breakpoints */
+        @media (max-width: 991px) {
+            .sidebar {
+                left: calc(-1 * var(--sidebar-width));
+            }
+            .sidebar.active {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .header-top {
+                left: 0;
+            }
+            .menu-toggle {
+                display: block;
+            }
+        }
+
+        /* Print Layout Optimization */
+        @media print {
+            body * { visibility: hidden; }
+            #printableAssistanceReport, #printableAssistanceReport *,
+            #printableQrCardFrame, #printableQrCardFrame * { visibility: visible; }
+            #printableAssistanceReport, #printableQrCardFrame { position: absolute; left: 0; top: 0; width: 100%; }
         }
     </style>
 </head>
@@ -1223,11 +1235,11 @@
                             </div>
                             <form id="scheduleForm" onsubmit="saveSchedule(event)">
                                 <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Event Title</label>
+                                    <label for="schedTitle" class="form-label" style="font-size: 0.9rem; font-weight: 500;">Event Title</label>
                                     <input type="text" class="form-control" id="schedTitle" placeholder="e.g. Medical Screening, Interview" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Event Type</label>
+                                    <label for="schedType" class="form-label" style="font-size: 0.9rem; font-weight: 500;">Event Type</label>
                                     <select class="form-select" id="schedType" required>
                                         <option value="">Select event type...</option>
                                         <option value="Interview">Interview & Assessment</option>
@@ -1236,11 +1248,11 @@
                                     </select>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Date & Time</label>
+                                    <label for="schedDateTime" class="form-label" style="font-size: 0.9rem; font-weight: 500;">Date & Time</label>
                                     <input type="datetime-local" class="form-control" id="schedDateTime" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Venue / Location</label>
+                                    <label for="schedLocation" class="form-label" style="font-size: 0.9rem; font-weight: 500;">Venue / Location</label>
                                     <input type="text" class="form-control" id="schedLocation" placeholder="e.g. CSWDO Conf. Room, City Gym" required>
                                 </div>
                                 <div class="mb-3">
@@ -1340,7 +1352,7 @@
                             </div>
                             <form id="notificationForm" onsubmit="sendNotification(event)">
                                 <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Recipient Group</label>
+                                    <label for="notifRecipientGroup" class="form-label" style="font-size: 0.9rem; font-weight: 500;">Recipient Group</label>
                                     <select class="form-select" id="notifRecipientGroup" required>
                                         <option value="">Select recipients...</option>
                                         <option value="All Beneficiaries">All CSWDO Beneficiaries</option>
@@ -1365,11 +1377,11 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Message Subject</label>
+                                    <label for="notifSubject" class="form-label" style="font-size: 0.9rem; font-weight: 500;">Message Subject</label>
                                     <input type="text" class="form-control" id="notifSubject" placeholder="e.g. Schedule of Payout Release" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.9rem; font-weight: 500;">Notification Body</label>
+                                    <label for="notifMessage" class="form-label" style="font-size: 0.9rem; font-weight: 500;">Notification Body</label>
                                     <textarea class="form-control" id="notifMessage" rows="5" placeholder="Write your message here... Beneficiaries will automatically receive this transmission." required></textarea>
                                 </div>
                                 <button type="submit" class="btn-theme w-100 py-2 justify-content-center">
@@ -1450,7 +1462,7 @@
                     <form id="reportFilterForm" onsubmit="generateReport(event)">
                         <div class="row">
                             <div class="col-md-3 mb-3">
-                                <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Select Report Category</label>
+                                <label for="reportCategory" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Select Report Category</label>
                                 <select class="form-select" id="reportCategory" required>
                                     <option value="summary">Assistance Applications Summary</option>
                                     <option value="funds">Fund Utilization Ledger</option>
@@ -1460,7 +1472,7 @@
                                 </select>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Assistance Type Filter</label>
+                                <label for="reportType" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Assistance Type Filter</label>
                                 <select class="form-select" id="reportType">
                                     <option value="">All Assistance Programs</option>
                                     <option value="Medical Assistance">Medical Assistance</option>
@@ -1469,11 +1481,11 @@
                                 </select>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Date Range (From)</label>
+                                <label for="reportDateFrom" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Date Range (From)</label>
                                 <input type="date" class="form-control" id="reportDateFrom">
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Date Range (To)</label>
+                                <label for="reportDateTo" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Date Range (To)</label>
                                 <input type="date" class="form-control" id="reportDateTo">
                             </div>
                         </div>
@@ -1527,19 +1539,19 @@
             <form id="assignmentForm" onsubmit="handleAssignmentSubmit(event)">
                 <div class="custom-modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Select Eligible Applicant</label>
+                        <label for="assignApplicantSelect" class="form-label">Select Eligible Applicant</label>
                         <select class="form-select" id="assignApplicantSelect" required>
                             <!-- Options rendered dynamically -->
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">CSWDO Assistance Program</label>
+                        <label for="assignProgramSelect" class="form-label">CSWDO Assistance Program</label>
                         <select class="form-select" id="assignProgramSelect" required>
                             <!-- Options rendered dynamically -->
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Verified Contact Number (DPA Compliant Masking Applied)</label>
+                        <label for="assignContactInput" class="form-label">Verified Contact Number (DPA Compliant Masking Applied)</label>
                         <input type="text" class="form-control" id="assignContactInput" value="+63 9** **** *234" disabled>
                     </div>
                 </div>
@@ -1610,7 +1622,7 @@
                 <form id="evaluationForm" onsubmit="processEvaluation(event)">
                     <input type="hidden" id="reviewAppId">
                     <div class="mb-3">
-                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Review Decision / Status</label>
+                        <label for="reviewStatusSelect" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Review Decision / Status</label>
                         <select class="form-select" id="reviewStatusSelect" onchange="toggleApprovedAmount()" required>
                             <option value="">Select action...</option>
                             <option value="Approved">Approve Application</option>
@@ -1619,13 +1631,13 @@
                     </div>
                     
                     <div class="mb-3 d-none" id="approvedAmountWrapper">
-                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Approved Financial Grant Value (₱)</label>
+                        <label for="reviewApprovedAmount" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Approved Financial Grant Value (₱)</label>
                         <input type="text" class="form-control" id="reviewApprovedAmount" placeholder="e.g. 5,000.00">
                         <small class="text-muted">Maximum limit governed by program budget allocation.</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Verification Audit Remarks</label>
+                        <label for="reviewRemarks" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Verification Audit Remarks</label>
                         <textarea class="form-control" id="reviewRemarks" rows="2" placeholder="Write remarks, e.g. 'Satisfies indigency parameters', 'Invalid documentation'" required></textarea>
                     </div>
 
@@ -1663,11 +1675,11 @@
                     </div>
                     <hr>
                     <div class="mb-3">
-                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Release Date</label>
+                        <label for="disburseReleaseDate" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Release Date</label>
                         <input type="date" class="form-control" id="disburseReleaseDate" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Disbursement Log Comments</label>
+                        <label for="disburseComments" class="form-label" style="font-size: 0.85rem; font-weight: 500;">Disbursement Log Comments</label>
                         <textarea class="form-control" id="disburseComments" rows="2" placeholder="e.g. Signed cash voucher copy uploaded, Transferred direct to bank" required></textarea>
                     </div>
                 </div>
@@ -1690,7 +1702,7 @@
             <form id="budgetForm" onsubmit="saveBudgetAdjustment(event)">
                 <div class="custom-modal-body">
                     <div class="mb-3">
-                        <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Assistance Program</label>
+                        <label for="budgetProgramSelect" class="form-label" style="font-size: 0.88rem; font-weight: 500;">Assistance Program</label>
                         <select class="form-select" id="budgetProgramSelect" required>
                             <option value="">Select program...</option>
                             <option value="Medical">Medical Assistance</option>
@@ -1699,18 +1711,18 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Adjustment Action Type</label>
+                        <label for="budgetActionSelect" class="form-label" style="font-size: 0.88rem; font-weight: 500;">Adjustment Action Type</label>
                         <select class="form-select" id="budgetActionSelect" required>
                             <option value="add">Increase Allocated Budget</option>
                             <option value="subtract">Decrease Allocated Budget</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Financial Value (₱)</label>
+                        <label for="budgetValue" class="form-label" style="font-size: 0.88rem; font-weight: 500;">Financial Value (₱)</label>
                         <input type="text" class="form-control" id="budgetValue" placeholder="e.g. 100,000.00" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" style="font-size: 0.88rem; font-weight: 500;">Allocation Remarks</label>
+                        <label for="budgetRemarks" class="form-label" style="font-size: 0.88rem; font-weight: 500;">Allocation Remarks</label>
                         <textarea class="form-control" id="budgetRemarks" rows="2" placeholder="e.g. Supplemental city budget release" required></textarea>
                     </div>
                 </div>
@@ -1965,15 +1977,15 @@
                 localStorage.setItem('cswdo_activities', JSON.stringify(defaultActivities));
             }
 
-            // Default Beneficiaries Integration (load from PESO if exists, or use default)
-            if (!localStorage.getItem('peso_beneficiaries')) {
+            // CSWDO Social & Medical Assistance Beneficiaries Roster (Strictly CSWDO Isolated)
+            if (!localStorage.getItem('cswdo_beneficiaries')) {
                 const defaultBeneficiaries = [
                     { id: "B1", name: "Maria Garcia", contact: "+639123456789", barangay: "Poblacion", status: "Active" },
                     { id: "B2", name: "Pedro Santos", contact: "+639987654321", barangay: "San Isidro", status: "Active" },
                     { id: "B3", name: "Ana Reyes", contact: "+639345678901", barangay: "Mambucal", status: "Active" },
                     { id: "B4", name: "Roberto Cruz", contact: "+639456789012", barangay: "Concepcion", status: "Active" }
                 ];
-                localStorage.setItem('peso_beneficiaries', JSON.stringify(defaultBeneficiaries));
+                localStorage.setItem('cswdo_beneficiaries', JSON.stringify(defaultBeneficiaries));
             }
 
             // Default Program Assignments for CSWDO
@@ -2587,7 +2599,7 @@
         // ==============================================
         function renderAssignmentsTable() {
             const assignments = JSON.parse(localStorage.getItem('cswdo_assignments')) || [];
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
             const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
             const tbody = document.getElementById('assignmentsTableBody');
             if (!tbody) return;
@@ -2618,7 +2630,7 @@
         }
 
         function openAddAssignmentModal() {
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
             const programs = JSON.parse(localStorage.getItem('cswdo_programs')).filter(p => p.status === 'Active') || [];
 
             const benSelect = document.getElementById('assignApplicantSelect');
@@ -2676,7 +2688,7 @@
             assignments.push(newAs);
             localStorage.setItem('cswdo_assignments', JSON.stringify(assignments));
 
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
             const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
             const bName = (beneficiaries.find(b => b.id === benId) || {}).name;
             const pCode = (programs.find(p => p.id === progId) || {}).code;
@@ -2873,7 +2885,7 @@
 
         // Auto Notify Beneficiary
         function triggerAssistanceNotification(app, status, amount, remarks) {
-            const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+            const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
             const beneficiary = beneficiaries.find(b => b.id === app.beneficiaryId);
             const contact = beneficiary ? beneficiary.contact : '+639********';
             const name = beneficiary ? beneficiary.name : app.beneficiaryName;
@@ -3328,11 +3340,11 @@
                         localStorage.setItem('cswdo_officers', JSON.stringify(officers));
                     }
                 } else {
-                    const officers = JSON.parse(localStorage.getItem('peso_officers')) || [];
+                    const officers = JSON.parse(localStorage.getItem('cswdo_officers')) || [];
                     const offIndex = officers.findIndex(o => o.username.toLowerCase() === username.toLowerCase() || o.email.toLowerCase() === username.toLowerCase());
                     if (offIndex !== -1) {
                         officers[offIndex].password = 'password123';
-                        localStorage.setItem('peso_officers', JSON.stringify(officers));
+                        localStorage.setItem('cswdo_officers', JSON.stringify(officers));
                     }
                 }
 
@@ -3479,7 +3491,7 @@
                 renderDiv.innerHTML = html;
 
             } else if (category === 'demographics') {
-                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
                 
                 let barangayMap = {};
                 beneficiaries.forEach(b => {
@@ -3516,7 +3528,7 @@
                 renderDiv.innerHTML = html;
 
             } else if (category === 'barangay') {
-                const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
                 
                 let bMap = {};
                 beneficiaries.forEach(b => {
@@ -3673,7 +3685,7 @@
             if (benSelect) {
                 benSelect.addEventListener('change', function() {
                     const benId = this.value;
-                    const beneficiaries = JSON.parse(localStorage.getItem('peso_beneficiaries')) || [];
+                    const beneficiaries = JSON.parse(localStorage.getItem('cswdo_beneficiaries')) || [];
                     const ben = beneficiaries.find(b => b.id === benId);
                     const contactInput = document.getElementById('assignContactInput');
                     if (contactInput) {
@@ -3779,7 +3791,7 @@
         }
 
         function updateNotificationBadge() {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             const unreadCount = notifications.filter(n => !n.read).length;
             const badge = document.getElementById('notificationBadge');
             
@@ -3794,7 +3806,7 @@
         }
 
         function renderNotifications() {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             const container = document.getElementById('notificationListContainer');
             if (!container) return;
             container.innerHTML = '';
@@ -3843,19 +3855,19 @@
         }
 
         function markNotificationAsRead(id) {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             const idx = notifications.findIndex(n => n.id === id);
             if (idx !== -1) {
                 notifications[idx].read = true;
-                localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+                localStorage.setItem('cswdo_notifications', JSON.stringify(notifications));
                 renderNotifications();
             }
         }
 
         function markAllNotificationsRead() {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             notifications.forEach(n => n.read = true);
-            localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+            localStorage.setItem('cswdo_notifications', JSON.stringify(notifications));
             renderNotifications();
         }
 
@@ -3867,12 +3879,12 @@
         };
 
         function clearAllNotifications() {
-            localStorage.setItem('peso_notifications', JSON.stringify([]));
+            localStorage.setItem('cswdo_notifications', JSON.stringify([]));
             renderNotifications();
         }
 
         function pushNotification(title, message, category = 'alert') {
-            const notifications = JSON.parse(localStorage.getItem('peso_notifications')) || [];
+            const notifications = JSON.parse(localStorage.getItem('cswdo_notifications')) || [];
             const newNotif = {
                 id: 'N' + Date.now(),
                 title,
@@ -3882,7 +3894,7 @@
                 read: false
             };
             notifications.unshift(newNotif);
-            localStorage.setItem('peso_notifications', JSON.stringify(notifications));
+            localStorage.setItem('cswdo_notifications', JSON.stringify(notifications));
             
             // Trigger browser in-app notification toast as well
             if (typeof showWebNotification === 'function') {
