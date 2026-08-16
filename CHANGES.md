@@ -85,3 +85,14 @@ So `submitIntakeApplication` and `submitAssistanceRecord` do the safe, correct t
 ### Also fixed while in here
 - `formatCurrency` in `beneficiary.html` — called when rendering upcoming distributions, never defined, would have thrown.
 
+
+## Needs-fixing branch — real root cause found for the "dims, no box appears" bug
+This turned out to be an actual HTML structure bug, not a JS/logic issue at all, and it's unrelated to the earlier double-modal-trigger fix.
+
+`beneficiaryProfileModal` was missing 3 closing `</div>` tags (`.modal-body`'s close was there, but `.modal-content`, `.modal-dialog`, and the outer `.modal` wrapper were not). Because of that, every modal defined afterward in the document — `reviewCaseFileModal`, `docPreviewModal`, `restrictionWarningModal`, `uploadOrdinanceModal`, `ordinanceReferenceModal` (Budget Overview), `auditLogsModal`, `newOfficerModal`, and `editOfficerModal` — got accidentally nested *inside* `beneficiaryProfileModal` in the actual DOM, instead of being independent siblings.
+
+`beneficiaryProfileModal` sits at `display: none` until it's explicitly shown. Since all of those other modals became its descendants, they stayed invisible even when Bootstrap correctly added `.show` and `display: block` to each of them individually — a CSS `display: none` on an ancestor always hides its descendants regardless of their own display value. The backdrop (added directly to `<body>`, unaffected by this nesting) still showed normally, which is exactly the "dims but no box appears" symptom — and it explains why it hit Upload Ordinance, Budget Overview, Review Case File, Create Officer, and Edit Officer all at once: they're all downstream of the same one broken tag.
+
+Fixed by adding the 3 missing closing tags in the right place. Verified the entire file's `<div>` tags are now fully balanced (0 unclosed) and all 12 modals are correctly structured as independent top-level elements.
+
+This kind of bug can't be caught by a JS linter/syntax check (the JS was always valid) — it only shows up by actually parsing the HTML tag structure, which is why earlier passes that checked JS syntax and function references didn't catch it.
