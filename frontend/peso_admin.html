@@ -1358,6 +1358,9 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL: REVIEW SUBMITTED LIVELIHOOD CASE FILE -->
     <div class="modal fade" id="reviewCaseFileModal" tabindex="-1" aria-hidden="true">
@@ -2047,15 +2050,31 @@
             renderBatchesTable();
         }
 
-        function renderBatchesTable() {
+        function renderBatchesTable(listToRender) {
             const tbody = document.getElementById('batchesTableBody');
             tbody.innerHTML = '';
-            const batches = PROGRAM_BATCHES[selectedProgramId] || [{ batch_id: 1011, batch_num: 'Batch 2026-A', date: '2026-03-15', trainer: 'Hon. Mark Gonzales', enrolled: 15, total: 15 }];
+            const batches = listToRender || PROGRAM_BATCHES[selectedProgramId] || [{ batch_id: 1011, batch_num: 'Batch 2026-A', date: '2026-03-15', trainer: 'Hon. Mark Gonzales', enrolled: 15, total: 15 }];
+            if (batches.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No batches match your search.</td></tr>';
+                return;
+            }
             batches.forEach(b => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${escapeHtml(b.batch_num)}</td><td>${escapeHtml(b.date)}</td><td>${escapeHtml(b.trainer)}</td><td class="text-center">${b.enrolled} / ${b.total}</td><td class="text-center">${b.total - b.enrolled} slots</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" onclick="showLevel3Beneficiaries(${b.batch_id}, '${escapeHtml(b.batch_num)}')">View Beneficiaries →</button></td>`;
                 tbody.appendChild(tr);
             });
+        }
+
+        function filterBatches() {
+            const searchTerm = (document.getElementById('batchSearchInput')?.value || '').trim().toLowerCase();
+            const full = PROGRAM_BATCHES[selectedProgramId] || [{ batch_id: 1011, batch_num: 'Batch 2026-A', date: '2026-03-15', trainer: 'Hon. Mark Gonzales', enrolled: 15, total: 15 }];
+            const filtered = full.filter(b =>
+                !searchTerm ||
+                (b.batch_num || '').toLowerCase().includes(searchTerm) ||
+                (b.date || '').toLowerCase().includes(searchTerm) ||
+                (b.trainer || '').toLowerCase().includes(searchTerm)
+            );
+            renderBatchesTable(filtered);
         }
 
         function showLevel3Beneficiaries(batchId, batchNum) {
@@ -2066,15 +2085,26 @@
             renderBeneficiariesTable();
         }
 
-        function renderBeneficiariesTable() {
+        function renderBeneficiariesTable(listToRender) {
             const tbody = document.getElementById('beneficiariesTableBody');
             tbody.innerHTML = '';
-            const list = BATCH_BENEFICIARIES[selectedBatchId] || [{ id: 6, full_name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved' }];
+            const list = listToRender || BATCH_BENEFICIARIES[selectedBatchId] || [{ id: 6, full_name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved' }];
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No beneficiaries match your search.</td></tr>';
+                return;
+            }
             list.forEach(ben => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${escapeHtml(ben.full_name)}</td><td><span class="masked-phone">${maskContactNumber(ben.phone)}</span></td><td><span class="badge bg-success-subtle text-success">${escapeHtml(ben.checklist_status)}</span></td><td><span class="badge bg-primary">${escapeHtml(ben.assignment_status)}</span></td><td class="text-end"><button class="btn btn-sm btn-info text-white" onclick="openBeneficiaryProfileModal(${ben.id})">View Profile 👁️</button></td>`;
                 tbody.appendChild(tr);
             });
+        }
+
+        function filterBeneficiaries() {
+            const searchTerm = (document.getElementById('benSearchInput')?.value || '').trim().toLowerCase();
+            const full = BATCH_BENEFICIARIES[selectedBatchId] || [{ id: 6, full_name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved' }];
+            const filtered = full.filter(ben => !searchTerm || (ben.full_name || '').toLowerCase().includes(searchTerm));
+            renderBeneficiariesTable(filtered);
         }
 
         function openBeneficiaryProfileModal(benId) {
