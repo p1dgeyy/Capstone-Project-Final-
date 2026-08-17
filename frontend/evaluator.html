@@ -4912,8 +4912,12 @@ function closeExportDropdowns() {
 
 // Close export dropdowns when clicking outside
 document.addEventListener('click', function(event) {
-    if (!event.target.closest('.export-btn-group')) {
-        closeExportDropdowns();
+    try {
+        if (event && event.target && typeof event.target.closest === 'function' && !event.target.closest('.export-btn-group')) {
+            closeExportDropdowns();
+        }
+    } catch (e) {
+        console.warn('[Evaluator] Click listener warning:', e);
     }
 });
 
@@ -4960,7 +4964,7 @@ window.quickActionNewApplication = function() {
 
 window.quickActionViewReports = function() {
     alert('Opening Reports module...');
-    var reportLink = document.querySelector('[data-module=\"reports\"]');
+    var reportLink = document.querySelector('[data-module="reports"]');
     if (reportLink) {
         reportLink.click();
     }
@@ -4968,12 +4972,15 @@ window.quickActionViewReports = function() {
 
 /* Initialize on document load */
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize pagination display
-    if (document.getElementById('currentPage')) {
-        document.getElementById('currentPage').textContent = currentPage;
-    }
-    if (document.getElementById('totalPages')) {
-        document.getElementById('totalPages').textContent = totalPages;
+    try {
+        if (document.getElementById('currentPage')) {
+            document.getElementById('currentPage').textContent = currentPage;
+        }
+        if (document.getElementById('totalPages')) {
+            document.getElementById('totalPages').textContent = totalPages;
+        }
+    } catch (e) {
+        console.warn('[Evaluator] DOMContentLoaded pagination init error:', e);
     }
 });
 

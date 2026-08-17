@@ -678,54 +678,63 @@ if (typeof window.PESOSafeguards === 'undefined') {
   // Auto-attach DOM event listeners for automatic form & command safeguards
   if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
-      document.body.addEventListener('submit', (evt) => {
-        const form = evt.target;
-        if (!form || form.tagName !== 'FORM') return;
+      try {
+        if (!document.body) return;
+        document.body.addEventListener('submit', (evt) => {
+          try {
+            const form = evt.target;
+            if (!form || form.tagName !== 'FORM') return;
 
-        // 1. Inspect text inputs for destructive commands
-        const inputs = Array.from(form.querySelectorAll('input[type="text"], textarea'));
-        for (const input of inputs) {
-          const val = input.value || '';
-          const match = inspectDestructiveCommand(val);
-          if (match) {
-            evt.preventDefault();
-            evt.stopPropagation();
-            const reason = `Blocked destructive SQL/System command (${match.name}) in form input.`;
-            logAudit({ intent: 'Form Submit Security Interception', actionType: 'DESTRUCTIVE_COMMAND', status: 'BLOCKED', details: reason });
-            if (typeof window.showSystemNotification === 'function') {
-              window.showSystemNotification({
-                title: 'Security Safeguard Blocked Action',
-                message: reason,
-                type: 'error'
-              });
-            } else {
-              alert(reason);
+            // 1. Inspect text inputs for destructive commands
+            const inputs = Array.from(form.querySelectorAll('input[type="text"], textarea'));
+            for (const input of inputs) {
+              const val = input.value || '';
+              const match = inspectDestructiveCommand(val);
+              if (match) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                const reason = `Blocked destructive SQL/System command (${match.name}) in form input.`;
+                logAudit({ intent: 'Form Submit Security Interception', actionType: 'DESTRUCTIVE_COMMAND', status: 'BLOCKED', details: reason });
+                if (typeof window.showSystemNotification === 'function') {
+                  window.showSystemNotification({
+                    title: 'Security Safeguard Blocked Action',
+                    message: reason,
+                    type: 'error'
+                  });
+                } else {
+                  alert(reason);
+                }
+                return false;
+              }
             }
-            return false;
-          }
-        }
 
-        // 2. Check scheduling forms for past-date violation
-        const dateInput = form.querySelector('input[type="date"], input[type="datetime-local"]');
-        if (dateInput && dateInput.value) {
-          const dateCheck = checkScheduleDateValidity(dateInput.value);
-          if (!dateCheck.valid) {
-            evt.preventDefault();
-            evt.stopPropagation();
-            logAudit({ intent: 'Schedule Date Interception', actionType: 'PAST_DATE_BLOCK', status: 'BLOCKED', details: dateCheck.reason });
-            if (typeof window.showSystemNotification === 'function') {
-              window.showSystemNotification({
-                title: 'Invalid Schedule Date',
-                message: dateCheck.reason,
-                type: 'warning'
-              });
-            } else {
-              alert(dateCheck.reason);
+            // 2. Check scheduling forms for past-date violation
+            const dateInput = form.querySelector('input[type="date"], input[type="datetime-local"]');
+            if (dateInput && dateInput.value) {
+              const dateCheck = checkScheduleDateValidity(dateInput.value);
+              if (!dateCheck.valid) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                logAudit({ intent: 'Schedule Date Interception', actionType: 'PAST_DATE_BLOCK', status: 'BLOCKED', details: dateCheck.reason });
+                if (typeof window.showSystemNotification === 'function') {
+                  window.showSystemNotification({
+                    title: 'Invalid Schedule Date',
+                    message: dateCheck.reason,
+                    type: 'warning'
+                  });
+                } else {
+                  alert(dateCheck.reason);
+                }
+                return false;
+              }
             }
-            return false;
+          } catch (err) {
+            console.warn('[PESOSafeguards] submit safeguard error (continuing safely):', err);
           }
-        }
-      }, true);
+        }, true);
+      } catch (domErr) {
+        console.warn('[PESOSafeguards] DOMContentLoaded init warning:', domErr);
+      }
     });
   }
 

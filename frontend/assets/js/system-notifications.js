@@ -240,47 +240,71 @@
     const confirmBtn = overlay.querySelector('.sn-confirm-btn');
     const cancelBtn = overlay.querySelector('.sn-cancel-btn');
 
-    confirmBtn.focus();
+    if (confirmBtn && typeof confirmBtn.focus === 'function') {
+      try { confirmBtn.focus(); } catch (e) {}
+    }
 
     function close() {
-      if (overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay);
+      try {
+        if (overlay && overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+        document.removeEventListener('keydown', onKeydown);
+        if (window.UnifiedOverlayController && typeof window.UnifiedOverlayController.syncBodyScrollLock === 'function') {
+          window.UnifiedOverlayController.syncBodyScrollLock();
+        }
+      } catch (e) {
+        console.warn('[SystemNotifications] close error:', e);
       }
-      document.removeEventListener('keydown', onKeydown);
     }
 
     function onKeydown(e) {
-      if (e.key === 'Escape') {
-        close();
-        if (onCancel) onCancel();
+      try {
+        if (e.key === 'Escape') {
+          close();
+          if (onCancel) onCancel();
+        }
+      } catch (err) {
+        console.warn('[SystemNotifications] onKeydown error:', err);
       }
     }
     document.addEventListener('keydown', onKeydown);
 
-    // Clicking the dark backdrop itself (not the card) dismisses the dialog,
-    // same as clicking Cancel — a safety net in case the card ever renders
-    // somewhere the person can't see or reach (e.g. an unusually long message
-    // on a short viewport).
+    // Clicking the dark backdrop itself (not the card) dismisses the dialog
     overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) {
-        close();
-        if (onCancel) onCancel();
+      try {
+        if (e.target === overlay) {
+          close();
+          if (onCancel) onCancel();
+        }
+      } catch (err) {
+        console.warn('[SystemNotifications] overlay click error:', err);
       }
     });
 
-    confirmBtn.addEventListener('click', function () {
-      close();
-      if (onRetry) {
-        onRetry();
-      } else if (onConfirm) {
-        onConfirm();
-      }
-    });
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', function () {
+        try {
+          close();
+          if (onRetry) {
+            onRetry();
+          } else if (onConfirm) {
+            onConfirm();
+          }
+        } catch (err) {
+          console.error('[SystemNotifications] confirm callback error:', err);
+        }
+      });
+    }
 
     if (cancelBtn) {
       cancelBtn.addEventListener('click', function () {
-        close();
-        if (onCancel) onCancel();
+        try {
+          close();
+          if (onCancel) onCancel();
+        } catch (err) {
+          console.error('[SystemNotifications] cancel callback error:', err);
+        }
       });
     }
   };

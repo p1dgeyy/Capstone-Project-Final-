@@ -3716,17 +3716,25 @@
         // Close modals on outside click
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', function(e) {
-                if (this.id === 'dashboardPrivacyModal') return;
-                if (e.target === this) closeModal(this.id);
+                try {
+                    if (this.id === 'dashboardPrivacyModal') return;
+                    if (e.target === this) closeModal(this.id);
+                } catch (err) {
+                    console.warn('[Beneficiary] Modal overlay click error:', err);
+                }
             });
         });
 
         // Close notifications dropdown when clicking outside
         document.addEventListener('click', function(e) {
-            const notifBtn = document.querySelector('.notification-bell');
-            const dropdown = document.getElementById('notifDropdown');
-            if (dropdown && notifBtn && !notifBtn.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.remove('show');
+            try {
+                const notifBtn = document.querySelector('.notification-bell');
+                const dropdown = document.getElementById('notifDropdown');
+                if (dropdown && notifBtn && typeof notifBtn.contains === 'function' && !notifBtn.contains(e.target) && typeof dropdown.contains === 'function' && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            } catch (err) {
+                console.warn('[Beneficiary] Click outside dropdown error:', err);
             }
         });
 
@@ -4010,178 +4018,207 @@
 
         // Initialize notifications dropdown and load dynamic beneficiary statistics
         document.addEventListener('DOMContentLoaded', function() {
-            // Check active beneficiary profile
-            let username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
-            let fullName = sessionStorage.getItem('beneficiaryName') || 'Maria Santos';
-            
-            // Get stats profile
-            let profile = userStats[username] || userStats['maria_santos'];
-
-            // Update welcome name banner
-            const welcomeBanner = document.getElementById('welcomeUser');
-            if (welcomeBanner) {
-                welcomeBanner.textContent = 'Welcome, ' + fullName + '!';
-            }
-
-            // Update sidebar subtitle
-            const sidebarSubtitle = document.getElementById('sidebarSubtitle');
-            if (sidebarSubtitle) {
-                sidebarSubtitle.textContent = profile.fullName;
-            }
-
-            // Update QR Modal name as well
-            const qrName = document.querySelector('#qrModal h4');
-            if (qrName) {
-                qrName.textContent = profile.fullName;
-            }
-
-            // Update statistics indicators
-            const statPending = document.getElementById('statPending');
-            const statApproved = document.getElementById('statApproved');
-            const statScheduled = document.getElementById('statScheduled');
-            const statNotifications = document.getElementById('statNotifications');
-
-            if (statPending) statPending.textContent = profile.pending;
-            if (statApproved) statApproved.textContent = profile.approved;
-            if (statScheduled) statScheduled.textContent = profile.scheduled;
-            if (statNotifications) statNotifications.textContent = profile.notifications;
-
-            // Update lists and content in dashboard dynamically
-            const recentBody = document.getElementById('recentApplicationsBody');
-            if (recentBody) recentBody.innerHTML = profile.applicationsHtml;
-
-            const noticesList = document.querySelector('#dashboard .card');
-            if (noticesList && noticesList.querySelector('.notif-item')) {
-                noticesList.innerHTML = profile.notificationsHtml;
-            }
-
-            const distributionPanel = document.querySelector('#dashboard .distribution-card');
-            if (distributionPanel) {
-                distributionPanel.innerHTML = profile.distributionHtml;
-            }
-
-            // Prefill Profile Modal
-            const profileNameInput = document.getElementById('profileName');
-            if (profileNameInput) {
-                profileNameInput.value = profile.fullName;
-            }
-
-            // Setup Data Privacy modal behavior on first login with scroll requirement
-            const isPrivacyAccepted = sessionStorage.getItem('privacyAccepted_' + username);
-            const dashboardPrivacyModal = document.getElementById('dashboardPrivacyModal');
-            const dashboardAgreeCheck = document.getElementById('dashboardAgreeCheck');
-            const dashboardUnderstandBtn = document.getElementById('dashboardUnderstandBtn');
-            const privacyModalBody = document.getElementById('privacyModalBody');
-            const scrollNotice = document.getElementById('scrollNotice');
-
-            function checkPrivacyScroll() {
-                if (window.hasReadTerms) return;
-                const threshold = 15; // px tolerance for scroll accuracy
-                const scrolledToBottom = privacyModalBody.scrollHeight - privacyModalBody.scrollTop - privacyModalBody.clientHeight <= threshold;
-                if (scrolledToBottom) {
-                    window.hasReadTerms = true;
-                    dashboardAgreeCheck.disabled = false;
-                    
-                    // Update scroll notice appearance
-                    scrollNotice.classList.add('completed');
-                    const lang = localStorage.getItem('lang') || 'en';
-                    scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
-                    
-                    privacyModalBody.removeEventListener('scroll', checkPrivacyScroll);
-                }
-            }
-
-            function initPrivacyScrollCheck() {
-                const lang = localStorage.getItem('lang') || 'en';
-                if (window.hasReadTerms) {
-                    dashboardAgreeCheck.disabled = false;
-                    scrollNotice.classList.add('completed');
-                    scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
-                    return;
-                }
+            try {
+                // Check active beneficiary profile
+                let username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
+                let fullName = sessionStorage.getItem('beneficiaryName') || 'Maria Santos';
                 
-                if (privacyModalBody.scrollHeight <= privacyModalBody.clientHeight) {
-                    window.hasReadTerms = true;
-                    dashboardAgreeCheck.disabled = false;
-                    scrollNotice.classList.add('completed');
-                    scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
-                } else {
-                    dashboardAgreeCheck.disabled = true;
-                    dashboardUnderstandBtn.disabled = true;
-                    dashboardAgreeCheck.checked = false;
-                    
-                    scrollNotice.classList.remove('completed');
-                    scrollNotice.innerHTML = translations[lang]['scroll_notice_pending'];
-                    
-                    privacyModalBody.removeEventListener('scroll', checkPrivacyScroll);
-                    privacyModalBody.addEventListener('scroll', checkPrivacyScroll);
-                    checkPrivacyScroll();
+                // Get stats profile
+                let profile = userStats[username] || userStats['maria_santos'] || {};
+
+                // Update welcome name banner
+                const welcomeBanner = document.getElementById('welcomeUser');
+                if (welcomeBanner) {
+                    welcomeBanner.textContent = 'Welcome, ' + fullName + '!';
                 }
-            }
 
-            if (dashboardPrivacyModal && isPrivacyAccepted !== 'true') {
-                dashboardPrivacyModal.classList.add('active');
-                document.body.style.overflow = 'hidden'; // lock scroll
-                initPrivacyScrollCheck();
-
-                dashboardAgreeCheck.addEventListener('change', function() {
-                    dashboardUnderstandBtn.disabled = !this.checked || !window.hasReadTerms;
-                });
-
-                dashboardUnderstandBtn.addEventListener('click', function() {
-                    if (dashboardAgreeCheck.checked && window.hasReadTerms) {
-                        sessionStorage.setItem('privacyAccepted_' + username, 'true');
-                        dashboardPrivacyModal.classList.remove('active');
-                        document.body.style.overflow = ''; // unlock scroll
-                    }
-                });
-                
-                // Re-evaluate on window resize
-                window.addEventListener('resize', () => {
-                    if (dashboardPrivacyModal.classList.contains('active')) {
-                        initPrivacyScrollCheck();
-                    }
-                });
-            }
-
-            // Notification dropdown rendering
-            if (!document.getElementById('notifDropdown')) {
-                const dropdown = document.createElement('div');
-                dropdown.id = 'notifDropdown';
-                dropdown.className = 'notif-dropdown';
-                dropdown.innerHTML = `
-                    <div class="notif-header">
-                        <span class="notif-header-title">Notifications</span>
-                        <button class="mark-read-btn" onclick="markAllRead()">Mark all read</button>
-                    </div>
-                    <div id="notifDropdownList">
-                        ${profile.dropdownNotifHtml}
-                    </div>
-                `;
-                const notifWrapper = document.querySelector('.notif-wrapper');
-                if (notifWrapper) {
-                    notifWrapper.appendChild(dropdown);
-                } else {
-                    const mobileHeader = document.querySelector('.mobile-header');
-                    if (mobileHeader) mobileHeader.appendChild(dropdown);
+                // Update sidebar subtitle
+                const sidebarSubtitle = document.getElementById('sidebarSubtitle');
+                if (sidebarSubtitle && profile.fullName) {
+                    sidebarSubtitle.textContent = profile.fullName;
                 }
+
+                // Update QR Modal name as well
+                const qrName = document.querySelector('#qrModal h4');
+                if (qrName && profile.fullName) {
+                    qrName.textContent = profile.fullName;
+                }
+
+                // Update statistics indicators
+                const statPending = document.getElementById('statPending');
+                const statApproved = document.getElementById('statApproved');
+                const statScheduled = document.getElementById('statScheduled');
+                const statNotifications = document.getElementById('statNotifications');
+
+                if (statPending && profile.pending !== undefined) statPending.textContent = profile.pending;
+                if (statApproved && profile.approved !== undefined) statApproved.textContent = profile.approved;
+                if (statScheduled && profile.scheduled !== undefined) statScheduled.textContent = profile.scheduled;
+                if (statNotifications && profile.notifications !== undefined) statNotifications.textContent = profile.notifications;
+
+                // Update lists and content in dashboard dynamically
+                const recentBody = document.getElementById('recentApplicationsBody');
+                if (recentBody && profile.applicationsHtml) recentBody.innerHTML = profile.applicationsHtml;
+
+                const noticesList = document.querySelector('#dashboard .card');
+                if (noticesList && noticesList.querySelector('.notif-item') && profile.notificationsHtml) {
+                    noticesList.innerHTML = profile.notificationsHtml;
+                }
+
+                const distributionPanel = document.querySelector('#dashboard .distribution-card');
+                if (distributionPanel && profile.distributionHtml) {
+                    distributionPanel.innerHTML = profile.distributionHtml;
+                }
+
+                // Prefill Profile Modal
+                const profileNameInput = document.getElementById('profileName');
+                if (profileNameInput && profile.fullName) {
+                    profileNameInput.value = profile.fullName;
+                }
+
+                // Setup Data Privacy modal behavior on first login with scroll requirement
+                const isPrivacyAccepted = sessionStorage.getItem('privacyAccepted_' + username);
+                const dashboardPrivacyModal = document.getElementById('dashboardPrivacyModal');
+                const dashboardAgreeCheck = document.getElementById('dashboardAgreeCheck');
+                const dashboardUnderstandBtn = document.getElementById('dashboardUnderstandBtn');
+                const privacyModalBody = document.getElementById('privacyModalBody');
+                const scrollNotice = document.getElementById('scrollNotice');
+
+                function checkPrivacyScroll() {
+                    try {
+                        if (window.hasReadTerms || !privacyModalBody) return;
+                        const threshold = 15; // px tolerance for scroll accuracy
+                        const scrolledToBottom = privacyModalBody.scrollHeight - privacyModalBody.scrollTop - privacyModalBody.clientHeight <= threshold;
+                        if (scrolledToBottom) {
+                            window.hasReadTerms = true;
+                            if (dashboardAgreeCheck) dashboardAgreeCheck.disabled = false;
+                            
+                            // Update scroll notice appearance
+                            if (scrollNotice) {
+                                scrollNotice.classList.add('completed');
+                                const lang = localStorage.getItem('lang') || 'en';
+                                if (translations && translations[lang]) {
+                                    scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
+                                }
+                            }
+                            
+                            privacyModalBody.removeEventListener('scroll', checkPrivacyScroll);
+                        }
+                    } catch (e) {}
+                }
+
+                function initPrivacyScrollCheck() {
+                    try {
+                        if (!privacyModalBody) return;
+                        const lang = localStorage.getItem('lang') || 'en';
+                        if (window.hasReadTerms) {
+                            if (dashboardAgreeCheck) dashboardAgreeCheck.disabled = false;
+                            if (scrollNotice && translations && translations[lang]) {
+                                scrollNotice.classList.add('completed');
+                                scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
+                            }
+                            return;
+                        }
+                        
+                        if (privacyModalBody.scrollHeight <= privacyModalBody.clientHeight) {
+                            window.hasReadTerms = true;
+                            if (dashboardAgreeCheck) dashboardAgreeCheck.disabled = false;
+                            if (scrollNotice && translations && translations[lang]) {
+                                scrollNotice.classList.add('completed');
+                                scrollNotice.innerHTML = translations[lang]['scroll_notice_done'];
+                            }
+                        } else {
+                            if (dashboardAgreeCheck) {
+                                dashboardAgreeCheck.disabled = true;
+                                dashboardAgreeCheck.checked = false;
+                            }
+                            if (dashboardUnderstandBtn) dashboardUnderstandBtn.disabled = true;
+                            
+                            if (scrollNotice && translations && translations[lang]) {
+                                scrollNotice.classList.remove('completed');
+                                scrollNotice.innerHTML = translations[lang]['scroll_notice_pending'];
+                            }
+                            
+                            privacyModalBody.removeEventListener('scroll', checkPrivacyScroll);
+                            privacyModalBody.addEventListener('scroll', checkPrivacyScroll);
+                            checkPrivacyScroll();
+                        }
+                    } catch (e) {}
+                }
+
+                if (dashboardPrivacyModal && isPrivacyAccepted !== 'true') {
+                    dashboardPrivacyModal.classList.add('active');
+                    document.body.style.overflow = 'hidden'; // lock scroll
+                    initPrivacyScrollCheck();
+
+                    if (dashboardAgreeCheck) {
+                        dashboardAgreeCheck.addEventListener('change', function() {
+                            if (dashboardUnderstandBtn) {
+                                dashboardUnderstandBtn.disabled = !this.checked || !window.hasReadTerms;
+                            }
+                        });
+                    }
+
+                    if (dashboardUnderstandBtn) {
+                        dashboardUnderstandBtn.addEventListener('click', function() {
+                            if (dashboardAgreeCheck && dashboardAgreeCheck.checked && window.hasReadTerms) {
+                                sessionStorage.setItem('privacyAccepted_' + username, 'true');
+                                dashboardPrivacyModal.classList.remove('active');
+                                document.body.style.overflow = ''; // unlock scroll
+                            }
+                        });
+                    }
+                    
+                    // Re-evaluate on window resize
+                    window.addEventListener('resize', () => {
+                        try {
+                            if (dashboardPrivacyModal && dashboardPrivacyModal.classList.contains('active')) {
+                                initPrivacyScrollCheck();
+                            }
+                        } catch (e) {}
+                    });
+                }
+
+                // Notification dropdown rendering
+                if (!document.getElementById('notifDropdown') && profile.dropdownNotifHtml) {
+                    const dropdown = document.createElement('div');
+                    dropdown.id = 'notifDropdown';
+                    dropdown.className = 'notif-dropdown';
+                    dropdown.innerHTML = `
+                        <div class="notif-header">
+                            <span class="notif-header-title">Notifications</span>
+                            <button class="mark-read-btn" onclick="markAllRead()">Mark all read</button>
+                        </div>
+                        <div id="notifDropdownList">
+                            ${profile.dropdownNotifHtml}
+                        </div>
+                    `;
+                    const notifWrapper = document.querySelector('.notif-wrapper');
+                    if (notifWrapper) {
+                        notifWrapper.appendChild(dropdown);
+                    } else {
+                        const mobileHeader = document.querySelector('.mobile-header');
+                        if (mobileHeader) mobileHeader.appendChild(dropdown);
+                    }
+                }
+
+                // Render Applications Page dynamically on page load
+                if (typeof renderApplicationsTab === 'function') renderApplicationsTab(profile);
+
+                // Restore saved preferences
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                if (typeof applyTheme === 'function') applyTheme(savedTheme);
+
+                const savedLang = localStorage.getItem('lang') || 'en';
+                if (typeof applyLanguage === 'function') applyLanguage(savedLang);
+
+                // Seed rendering on load
+                if (typeof renderBeneficiaryPrograms === 'function') renderBeneficiaryPrograms();
+                if (typeof loadBeneficiarySchedules === 'function') loadBeneficiarySchedules(username);
+                if (typeof renderBeneficiaryTrainingHistory === 'function') renderBeneficiaryTrainingHistory(username);
+                if (typeof renderBeneficiaryAssistance === 'function') renderBeneficiaryAssistance(username);
+            } catch (initErr) {
+                console.warn('[Beneficiary] DOMContentLoaded init warning:', initErr);
             }
-
-            // Render Applications Page dynamically on page load
-            renderApplicationsTab(profile);
-
-            // Restore saved preferences
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-
-            const savedLang = localStorage.getItem('lang') || 'en';
-            applyLanguage(savedLang);
-
-            // Seed rendering on load
-            renderBeneficiaryPrograms();
-            loadBeneficiarySchedules(username);
-            renderBeneficiaryTrainingHistory(username);
-            renderBeneficiaryAssistance(username);
         });
 
         function loadBeneficiarySchedules(username) {

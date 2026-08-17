@@ -58,6 +58,8 @@ const AuthGuard = (() => {
 
   let _currentUserProfile = null;
   let _authStateListener = null;
+  let _lastFetchTime = 0;
+  const FETCH_THROTTLE_MS = 5000;
 
   function getCurrentPage() {
     try {
@@ -85,12 +87,14 @@ const AuthGuard = (() => {
   }
 
   /**
-   * Fetch the current user's profile from Supabase.
-   * Seamlessly checks staff_profiles by auth_id & email, beneficiaries table,
-   * Supabase user_metadata, and active session storage to guarantee no authenticated
-   * user is prematurely redirected to login.
+   * Fetch the current user's profile from Supabase with guard clauses
    */
   async function fetchUserProfile() {
+    const now = Date.now();
+    if (_currentUserProfile && (now - _lastFetchTime < FETCH_THROTTLE_MS)) {
+      return _currentUserProfile;
+    }
+
     const storedRole = sessionStorage.getItem('userRole');
     const storedUsername = sessionStorage.getItem('username');
     const storedId = sessionStorage.getItem('userId');
@@ -109,6 +113,7 @@ const AuthGuard = (() => {
           status: 'Active'
         };
         _currentUserProfile = profile;
+        _lastFetchTime = now;
         return profile;
       }
       return null;
@@ -130,6 +135,7 @@ const AuthGuard = (() => {
             status: 'Active'
           };
           _currentUserProfile = profile;
+          _lastFetchTime = now;
           return profile;
         }
         return null;
@@ -195,11 +201,8 @@ const AuthGuard = (() => {
             profile = { ...benByEmail, role: 'Beneficiary', id: benByEmail.qr_code };
             supabaseClient.from('beneficiaries').update({ auth_id: user.id }).eq('id', benByEmail.id).then(() => {});
           }
-        } catch (e) {}
-      }
-
-      // 5. Construct dynamic profile from user metadata, known patterns, or sessionStorage
-      if (!profile) {
+      // 5. Fallback to user_metadata or derived profile
+      if (!profile && user) {
         const meta = user.user_metadata || {};
         let derivedRole = meta.role || storedRole;
         let derivedDept = meta.department || storedDept || 'PESO';
@@ -242,9 +245,11 @@ const AuthGuard = (() => {
       }
 
       _currentUserProfile = profile;
+      _lastFetchTime = now;
       return profile;
     } catch (err) {
       console.warn('[AUTH_GUARD] Error fetching profile (handled safely):', err?.message || err);
+      _lastFetchTime = now;
       if (storedRole) {
         const fallback = {
           id: storedId || '1',
@@ -258,6 +263,8 @@ const AuthGuard = (() => {
         _currentUserProfile = fallback;
         return fallback;
       }
+      return null;
+    }
       return null;
     }
   }
@@ -449,53 +456,70 @@ document.addEventListener('DOMContentLoaded', () => {
 // -----------------------------------------------------------------------------
 (function () {
   function isModalGenuinelyOpen() {
-    // Bootstrap's real "open" signature is the .show class AND an inline
-    // display:block style set by its own JS. Checking both (not just the
-    // class) avoids ever mistaking an unrelated component that happens to
-    // reuse the .show utility class for an actually-open modal.
-    const candidates = document.querySelectorAll('.modal.show');
-    for (const el of candidates) {
-      if (el.style.display === 'block') return true;
+    try {
+      if (document.querySelector('.sn-overlay')) return true;
+      if (document.querySelector('.custom-modal-backdrop.show, .custom-modal.show')) return true;
+
+      const candidates = document.querySelectorAll('.modal.show');
+      for (const el of candidates) {
+        if (el.style.display === 'block' || window.getComputedStyle(el).display !== 'none') {
+          return true;
+        }
+      }
+    } catch (e) {
+      return false;
     }
     return false;
   }
 
   function cleanupOrphanedModalBackdrops() {
-    if (typeof document === 'undefined' || !document.body) return;
-    if (isModalGenuinelyOpen()) return;
+    try {
+      if (typeof document === 'undefined' || !document.body) return;
+      if (isModalGenuinelyOpen()) return;
 
-    const backdrops = document.querySelectorAll('.modal-backdrop');
-    if (backdrops.length > 0) {
-      console.warn(`[AUTH_GUARD] Removed ${backdrops.length} orphaned .modal-backdrop element(s) with no open modal above them.`);
-      backdrops.forEach(el => el.remove());
-    }
-    if (document.body && document.body.classList && document.body.classList.contains('modal-open')) {
-      console.warn('[AUTH_GUARD] Cleared a stuck modal-open state on <body>.');
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('padding-right');
+      const backdrops = document.querySelectorAll('.modal-backdrop, .custom-modal-backdrop:not(.show)');
+      if (backdrops.length > 0) {
+        backdrops.forEach(el => {
+          try {
+            if (!el.classList.contains('show') || !document.querySelector('.modal.show, .custom-modal.show')) {
+              el.remove();
+            }
+          } catch (e) {}
+        });
+      }
+      if (document.body && document.body.classList && document.body.classList.contains('modal-open')) {
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      }
+    } catch (err) {
+      console.warn('[AUTH_GUARD] Backdrop cleanup warning (handled safely):', err);
     }
   }
 
-  // Run after every modal fully closes (the normal case — this is nearly
-  // always a no-op, just confirming cleanup happened correctly).
-  document.addEventListener('hidden.bs.modal', cleanupOrphanedModalBackdrops);
+  // Run after every modal fully closes
+  document.addEventListener('hidden.bs.modal', () => {
+    try { cleanupOrphanedModalBackdrops(); } catch (e) {}
+  });
 
-  // Also sweep shortly after any click, to catch the specific double-trigger
-  // race condition where a backdrop gets orphaned without a clean
-  // hidden.bs.modal event ever firing.
+  // Also sweep shortly after any click, to catch orphaned backdrops
   document.addEventListener('click', () => {
-    setTimeout(cleanupOrphanedModalBackdrops, 400);
+    try {
+      setTimeout(cleanupOrphanedModalBackdrops, 400);
+    } catch (e) {}
   }, true);
 
-  // And a fast periodic safety sweep in case neither of the above catches it,
-  // so any stuck state self-heals within ~1.5s instead of persisting.
-  setInterval(cleanupOrphanedModalBackdrops, 1500);
+  // Periodic safety sweep
+  setInterval(() => {
+    try { cleanupOrphanedModalBackdrops(); } catch (e) {}
+  }, 1500);
 
   // Run safely once the DOM is ready (or immediately if already parsed)
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', cleanupOrphanedModalBackdrops);
+    document.addEventListener('DOMContentLoaded', () => {
+      try { cleanupOrphanedModalBackdrops(); } catch (e) {}
+    });
   } else {
-    cleanupOrphanedModalBackdrops();
+    try { cleanupOrphanedModalBackdrops(); } catch (e) {}
   }
 })();

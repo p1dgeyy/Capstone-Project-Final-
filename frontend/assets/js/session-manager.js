@@ -19,7 +19,11 @@ const SessionManager = (() => {
   // Cache for the user's profile data
   let _cachedProfile = null;
   let _verifyTimer = null;
+  let _isVerifying = false;
+  let _failedVerifyCooldownUntil = 0;
+  let _lastVerifySuccessTime = 0;
   const VERIFY_INTERVAL_MS = 60 * 1000; // 60 seconds
+  const FAIL_COOLDOWN_MS = 10 * 1000;   // 10 seconds cooldown on failure
 
   /**
    * Save session data after a successful login.
@@ -27,10 +31,13 @@ const SessionManager = (() => {
    * profile data locally for quick access by dashboard scripts.
    */
   function save(userId, sessionToken, role) {
-    sessionStorage.setItem('userId', userId);
-    sessionStorage.setItem('userRole', role);
-    // sessionToken is managed by Supabase internally — we store it for backward compat
-    sessionStorage.setItem('sessionToken', sessionToken || 'supabase-managed');
+    try {
+      sessionStorage.setItem('userId', userId);
+      sessionStorage.setItem('userRole', role);
+      sessionStorage.setItem('sessionToken', sessionToken || 'supabase-managed');
+    } catch (e) {
+      console.warn('[SessionManager] Could not save session storage:', e);
+    }
   }
 
   /**
@@ -51,21 +58,33 @@ const SessionManager = (() => {
    * Get the session token (synchronous — from cache/sessionStorage)
    */
   function getToken() {
-    return sessionStorage.getItem('sessionToken') || null;
+    try {
+      return sessionStorage.getItem('sessionToken') || null;
+    } catch (e) {
+      return null;
+    }
   }
 
   /**
    * Get the current user ID (profile ID from staff_profiles or qr_code from beneficiaries)
    */
   function getUserId() {
-    return sessionStorage.getItem('userId') || null;
+    try {
+      return sessionStorage.getItem('userId') || null;
+    } catch (e) {
+      return null;
+    }
   }
 
   /**
    * Get the current user role
    */
   function getRole() {
-    return sessionStorage.getItem('userRole') || null;
+    try {
+      return sessionStorage.getItem('userRole') || null;
+    } catch (e) {
+      return null;
+    }
   }
 
   /**
@@ -81,9 +100,15 @@ const SessionManager = (() => {
    * Clear all session data
    */
   function clear() {
-    sessionStorage.removeItem('userId');
-    sessionStorage.removeItem('sessionToken');
-    sessionStorage.removeItem('userRole');
+    try {
+      sessionStorage.removeItem('userId');
+      sessionStorage.removeItem('sessionToken');
+      sessionStorage.removeItem('userRole');
+      sessionStorage.removeItem('jwtAccessToken');
+      sessionStorage.removeItem('username');
+      sessionStorage.removeItem('userFullName');
+      sessionStorage.removeItem('department');
+    } catch (e) { }
     _cachedProfile = null;
     if (_verifyTimer) {
       clearInterval(_verifyTimer);
@@ -106,7 +131,7 @@ const SessionManager = (() => {
 
     // Clear everything client-side
     clear();
-    sessionStorage.clear();
+    try { sessionStorage.clear(); } catch (e) { }
 
     // Redirect to login
     window.location.href = redirectUrl || 'official_login.html';
@@ -117,60 +142,81 @@ const SessionManager = (() => {
    */
   function forceLogout(message) {
     clear();
-    sessionStorage.clear();
-    sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
+    try {
+      sessionStorage.clear();
+      sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
+    } catch (e) { }
     window.location.href = 'official_login.html';
   }
 
   /**
-   * Verify the current session is still valid via Supabase
+   * Verify the current session is still valid via Supabase with guard clauses
    */
   async function verify() {
-    if (!supabaseClient) {
-      console.warn('[SessionManager] Supabase client not available, skipping verification.');
+    // 1. Concurrency Guard: Avoid overlapping verification calls
+    if (_isVerifying) return true;
+
+    // 2. Failure Backoff Guard: Don't hammer Supabase if in cooldown
+    const now = Date.now();
+    if (now < _failedVerifyCooldownUntil) {
       return true;
     }
 
+    // 3. Client Availability Guard
+    if (!supabaseClient) {
+      return true;
+    }
+
+    _isVerifying = true;
     try {
-      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      const { data: sessionData, error } = await supabaseClient.auth.getSession();
+      const session = sessionData?.session;
 
       if (error || !session) {
-        console.warn('[SessionManager] No valid session found.');
+        console.warn('[SessionManager] No valid active Supabase session found.');
+        _failedVerifyCooldownUntil = Date.now() + FAIL_COOLDOWN_MS;
         forceLogout('Your session has expired. Please log in again.');
         return false;
       }
 
       // Session is valid — update cached data
-      const { data: { user } } = await supabaseClient.auth.getUser();
+      _lastVerifySuccessTime = Date.now();
+      const { data: userData } = await supabaseClient.auth.getUser();
+      const user = userData?.user;
       if (user) {
         // Try staff_profiles first
         let profile = null;
-        const { data: staffProfile } = await supabaseClient
-          .from('staff_profiles')
-          .select('id, role, status, first_name, last_name')
-          .eq('auth_id', user.id)
-          .single();
-
-        if (staffProfile) {
-          profile = staffProfile;
-        } else {
-          // Try beneficiaries table
-          const { data: benProfile } = await supabaseClient
-            .from('beneficiaries')
-            .select('qr_code, status, first_name, last_name')
+        try {
+          const { data: staffProfile } = await supabaseClient
+            .from('staff_profiles')
+            .select('id, role, status, first_name, last_name')
             .eq('auth_id', user.id)
-            .single();
+            .maybeSingle();
 
-          if (benProfile) {
-            profile = { id: benProfile.qr_code, role: 'Beneficiary', status: benProfile.status, first_name: benProfile.first_name, last_name: benProfile.last_name };
+          if (staffProfile) {
+            profile = staffProfile;
+          } else {
+            // Try beneficiaries table
+            const { data: benProfile } = await supabaseClient
+              .from('beneficiaries')
+              .select('qr_code, status, first_name, last_name')
+              .eq('auth_id', user.id)
+              .maybeSingle();
+
+            if (benProfile) {
+              profile = { id: benProfile.qr_code, role: 'Beneficiary', status: benProfile.status, first_name: benProfile.first_name, last_name: benProfile.last_name };
+            }
           }
+        } catch (dbErr) {
+          console.warn('[SessionManager] Profile query warning:', dbErr);
         }
 
         if (profile) {
           _cachedProfile = profile;
-          // Update sessionStorage for backward compat
-          sessionStorage.setItem('userId', profile.id);
-          sessionStorage.setItem('userRole', profile.role);
+          try {
+            sessionStorage.setItem('userId', profile.id);
+            sessionStorage.setItem('userRole', profile.role);
+          } catch (e) { }
 
           // Check if account was deactivated
           if (profile.status === 'Deactivated' || profile.status === 'Inactive') {
@@ -183,9 +229,11 @@ const SessionManager = (() => {
 
       return true;
     } catch (e) {
-      console.warn('[SessionManager] Session verification failed:', e.message);
-      // Network error — keep session active (offline tolerance)
+      console.warn('[SessionManager] Session verification failed (offline tolerance applied):', e.message);
+      _failedVerifyCooldownUntil = Date.now() + FAIL_COOLDOWN_MS;
       return true;
+    } finally {
+      _isVerifying = false;
     }
   }
 
@@ -193,7 +241,7 @@ const SessionManager = (() => {
    * Start periodic session verification (call on protected pages)
    */
   function startPeriodicVerification() {
-    // Verify immediately on page load
+    // Verify on page load
     verify();
 
     // Then verify at regular intervals

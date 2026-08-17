@@ -2033,63 +2033,77 @@
         // INITIALIZATION & TAB SWITCHING
         // ---------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
-            if (document.getElementById('officerNameDisplay')) {
-                document.getElementById('officerNameDisplay').textContent = currentOfficerUser.fullName || 'PESO Officer';
+            try {
+                if (document.getElementById('officerNameDisplay')) {
+                    document.getElementById('officerNameDisplay').textContent = currentOfficerUser.fullName || 'PESO Officer';
+                }
+                
+                const datePicker = document.getElementById('scheduleDatePickerInput');
+                if (datePicker) datePicker.value = currentScheduleDate;
+                updateScheduleDateHeaderDisplay();
+
+                renderBeneficiaryTable();
+                renderEvaluationQueueTable();
+                renderBatchesCards();
+                renderLivelihoodMasterTable();
+                if (typeof renderAssistanceRecordsTable === 'function') renderAssistanceRecordsTable();
+                renderDailySchedules();
+                if (typeof renderAuditLogs === 'function') renderAuditLogs();
+
+                document.addEventListener('keydown', handleKeyboardNavigation);
+            } catch (err) {
+                console.warn('[PESO Officer] DOMContentLoaded init warning:', err);
             }
-            
-            const datePicker = document.getElementById('scheduleDatePickerInput');
-            if (datePicker) datePicker.value = currentScheduleDate;
-            updateScheduleDateHeaderDisplay();
-
-            renderBeneficiaryTable();
-            renderEvaluationQueueTable();
-            renderBatchesCards();
-            renderLivelihoodMasterTable();
-            if (typeof renderAssistanceRecordsTable === 'function') renderAssistanceRecordsTable();
-            renderDailySchedules();
-            if (typeof renderAuditLogs === 'function') renderAuditLogs();
-
-            document.addEventListener('keydown', handleKeyboardNavigation);
         });
 
         function switchTab(tabId) {
-            document.querySelectorAll('.tab-section').forEach(el => el.classList.add('d-none'));
-            document.querySelectorAll('.sidebar-menu .nav-link').forEach(el => el.classList.remove('active'));
-            
-            const targetSection = document.getElementById(`tab-${tabId}`);
-            if (targetSection) targetSection.classList.remove('d-none');
+            try {
+                document.querySelectorAll('.tab-section').forEach(el => el.classList.add('d-none'));
+                document.querySelectorAll('.sidebar-menu .nav-link').forEach(el => el.classList.remove('active'));
+                
+                const targetSection = document.getElementById(`tab-${tabId}`);
+                if (targetSection) targetSection.classList.remove('d-none');
 
-            const links = document.querySelectorAll('.sidebar-menu .nav-link');
-            links.forEach(l => {
-                if (l.getAttribute('onclick') && l.getAttribute('onclick').includes(tabId)) {
-                    l.classList.add('active');
+                const links = document.querySelectorAll('.sidebar-menu .nav-link');
+                links.forEach(l => {
+                    if (l.getAttribute('onclick') && l.getAttribute('onclick').includes(tabId)) {
+                        l.classList.add('active');
+                    }
+                });
+
+                if (tabId === 'daily-schedules') {
+                    renderDailySchedules();
+                } else if (tabId === 'officer-roster') {
+                    loadOfficerTeam();
                 }
-            });
-
-            if (tabId === 'daily-schedules') {
-                renderDailySchedules();
-            } else if (tabId === 'officer-roster') {
-                loadOfficerTeam();
+            } catch (e) {
+                console.warn('[PESO Officer] switchTab error:', e);
             }
         }
 
         function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
+            try {
+                document.body.classList.toggle('dark-mode');
+            } catch (e) {}
         }
 
         function handleKeyboardNavigation(e) {
-            const tag = e.target.tagName.toLowerCase();
-            if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+            try {
+                const tag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : '';
+                if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                navigateScheduleDate(-1);
-            } else if (e.key === 'ArrowRight') {
-                e.preventDefault();
-                navigateScheduleDate(1);
-            } else if (e.key === 't' || e.key === 'T') {
-                e.preventDefault();
-                navigateScheduleDate(0);
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    navigateScheduleDate(-1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    navigateScheduleDate(1);
+                } else if (e.key === 't' || e.key === 'T') {
+                    e.preventDefault();
+                    navigateScheduleDate(0);
+                }
+            } catch (err) {
+                console.warn('[PESO Officer] handleKeyboardNavigation error:', err);
             }
         }
 

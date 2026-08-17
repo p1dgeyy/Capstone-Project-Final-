@@ -80,12 +80,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Setup Lifecycle Logging for all existing Modals in DOM
-    document.querySelectorAll('.modal').forEach(setupModalLifecycleListeners);
+    try {
+        document.querySelectorAll('.modal').forEach(setupModalLifecycleListeners);
+    } catch (e) {
+        console.warn('[PESO Admin] Modal lifecycle setup warning:', e);
+    }
 
     // 3. Explicit Event Listeners for Primary Admin Action Buttons (Prevents Dead Buttons)
     const bindBtn = (id, fn) => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('click', fn);
+        try {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', (e) => {
+                try { fn(e); } catch (err) { console.error(`[PESO Admin Button Error #${id}]:`, err); }
+            });
+        } catch (e) {
+            console.warn(`[PESO Admin] Could not bind #${id}:`, e);
+        }
     };
 
     bindBtn('createNewOfficerBtn', () => openNewOfficerModal());
@@ -93,15 +103,19 @@ document.addEventListener('DOMContentLoaded', () => {
     bindBtn('adminBtnViewCalendar', () => setAdminScheduleViewMode('calendar'));
     bindBtn('adminBtnViewList', () => setAdminScheduleViewMode('list'));
 
-    // 4. Document-Level Unified Click Delegation for Dynamic Action Buttons
+    // 4. Document-Level Unified Click Delegation for Dynamic Action Buttons (Defensive)
     document.addEventListener('click', function (e) {
-        const target = e.target.closest('[data-modal-target], [data-admin-action]');
-        if (!target) return;
+        try {
+            const target = e.target && typeof e.target.closest === 'function' ? e.target.closest('[data-modal-target], [data-admin-action]') : null;
+            if (!target) return;
 
-        const modalTarget = target.getAttribute('data-modal-target');
-        if (modalTarget) {
-            e.preventDefault();
-            safeOpenModal(modalTarget);
+            const modalTarget = target.getAttribute('data-modal-target');
+            if (modalTarget) {
+                e.preventDefault();
+                safeOpenModal(modalTarget);
+            }
+        } catch (err) {
+            console.warn('[PESO Admin] Click delegation error (handled safely):', err);
         }
     });
 

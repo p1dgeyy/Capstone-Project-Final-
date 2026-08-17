@@ -1825,56 +1825,68 @@
 
         // Initialize portal on DOM Ready
         document.addEventListener('DOMContentLoaded', () => {
-            initAdminProfile();
-            refreshDashboardData();
-            loadApplications();
-            loadOfficersData();
+            try {
+                initAdminProfile();
+                refreshDashboardData();
+                loadApplications();
+                loadOfficersData();
+            } catch (err) {
+                console.warn('[CSWDO Admin] DOMContentLoaded init warning:', err);
+            }
         });
 
         // Initialize Admin session info
         function initAdminProfile() {
-            const username = sessionStorage.getItem('username') || localStorage.getItem('username') || 'cswdo-admin';
-            const fullName = sessionStorage.getItem('userFullName') || 'Robert Johnson';
-            
-            const nameEl = document.getElementById('sidebarAdminName');
-            const avatarEl = document.getElementById('sidebarAvatar');
-            if (nameEl) nameEl.textContent = fullName;
-            if (avatarEl) {
-                const initials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                avatarEl.textContent = initials || 'CA';
-            }
+            try {
+                const username = sessionStorage.getItem('username') || localStorage.getItem('username') || 'cswdo-admin';
+                const fullName = sessionStorage.getItem('userFullName') || 'Robert Johnson';
+                
+                const nameEl = document.getElementById('sidebarAdminName');
+                const avatarEl = document.getElementById('sidebarAvatar');
+                if (nameEl) nameEl.textContent = fullName;
+                if (avatarEl) {
+                    const initials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                    avatarEl.textContent = initials || 'CA';
+                }
 
-            const sName = document.getElementById('settingsFullName');
-            const sUser = document.getElementById('settingsUsername');
-            if (sName) sName.textContent = fullName + ' (CSWDO Admin)';
-            if (sUser) sUser.textContent = username;
+                const sName = document.getElementById('settingsFullName');
+                const sUser = document.getElementById('settingsUsername');
+                if (sName) sName.textContent = fullName + ' (CSWDO Admin)';
+                if (sUser) sUser.textContent = username;
+            } catch (e) {}
         }
 
         // Switch Sidebar Tab Modules
         function switchModule(moduleId, linkEl) {
-            document.querySelectorAll('.portal-module').forEach(m => m.classList.remove('active'));
-            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            try {
+                document.querySelectorAll('.portal-module').forEach(m => m.classList.remove('active'));
+                document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
 
-            const target = document.getElementById(moduleId);
-            if (target) target.classList.add('active');
-            if (linkEl) linkEl.classList.add('active');
+                const target = document.getElementById(moduleId);
+                if (target) target.classList.add('active');
+                if (linkEl) linkEl.classList.add('active');
 
-            const titles = {
-                'dashboardModule': 'Assistance Programs Overview',
-                'applicationsModule': 'Assistance Applications Registry',
-                'officersModule': 'CSWDO Officer Accounts Management',
-                'programsModule': 'Assistance Programs & Budget telemetry',
-                'reportsModule': 'Reports & Audit Compliance',
-                'settingsModule': 'Portal Settings & Security Policies'
-            };
-            document.getElementById('pageTitle').textContent = titles[moduleId] || 'CSWDO Administrator Portal';
+                const titles = {
+                    'dashboardModule': 'Assistance Programs Overview',
+                    'applicationsModule': 'Assistance Applications Registry',
+                    'officersModule': 'CSWDO Officer Accounts Management',
+                    'programsModule': 'Assistance Programs & Budget telemetry',
+                    'reportsModule': 'Reports & Audit Compliance',
+                    'settingsModule': 'Portal Settings & Security Policies'
+                };
+                const pageTitle = document.getElementById('pageTitle');
+                if (pageTitle) pageTitle.textContent = titles[moduleId] || 'CSWDO Administrator Portal';
 
-            if (moduleId === 'officersModule') {
-                loadOfficersData();
+                if (moduleId === 'officersModule') {
+                    loadOfficersData();
+                }
+
+                // Close mobile sidebar if open
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) sidebar.classList.remove('mobile-open');
+            } catch (e) {
+                console.warn('[CSWDO Admin] switchModule error:', e);
             }
-
-            // Close mobile sidebar if open
-            document.getElementById('sidebar').classList.remove('mobile-open');
         }
 
         function toggleMobileSidebar() {
