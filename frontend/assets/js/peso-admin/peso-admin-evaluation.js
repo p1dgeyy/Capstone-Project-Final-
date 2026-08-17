@@ -530,3 +530,16 @@ async function executeEvalDecision(decision) {
         type: decision === 'Approved' ? 'success' : (decision === 'Denied' ? 'error' : 'warning')
     });
 }
+
+window.openDocPreview = openDocPreview;
+window.previewDocument = openDocPreview;
+window.zoomPreviewDoc = zoomPreviewDoc;
+window.resetPreviewDocZoom = resetPreviewDocZoom;
+window.handlePrintOrDownloadPreviewDoc = handlePrintOrDownloadPreviewDoc;
+window.openReviewCaseFileModal = openReviewCaseFileModal;
+window.executeEvalDecision = executeEvalDecision;
+window.openEvalLevel2Batches = openEvalLevel2Batches;
+window.openEvalLevel3Apps = openEvalLevel3Apps;
+window.showEvalLevel1 = showEvalLevel1;
+window.showEvalLevel2 = showEvalLevel2;
+

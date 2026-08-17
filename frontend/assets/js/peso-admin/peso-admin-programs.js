@@ -720,3 +720,54 @@ function activateProgram(progId) {
 function permanentlyDeleteProgram(progId) {
     openProgramActionModal('delete', progId);
 }
+
+function exportProgramsCsv() {
+    let csv = 'ID,Program Code,Program Title,Category,Allocated Budget (PHP),Beneficiaries Enrolled,Total Slots,Target Beneficiaries,Assistance Type,Status,Ordinance\n';
+    const list = Array.isArray(programsList) ? programsList : [];
+    list.forEach(p => {
+        const row = [
+            p.id,
+            `"${(p.code || '').replace(/"/g, '""')}"`,
+            `"${(p.name || '').replace(/"/g, '""')}"`,
+            `"${(p.category || '').replace(/"/g, '""')}"`,
+            Number(p.budget || 0).toFixed(2),
+            Number(p.beneficiaries_count || 0),
+            Number(p.total_slots || 50),
+            `"${(p.target_beneficiaries || '').replace(/"/g, '""')}"`,
+            `"${(p.assistance_type || '').replace(/"/g, '""')}"`,
+            `"${(p.status || 'Active').replace(/"/g, '""')}"`,
+            `"${(p.ordinance || 'Ordinance No. 6').replace(/"/g, '""')}"`
+        ];
+        csv += row.join(',') + '\n';
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `PESO_Programs_Summary_${new Date().toISOString().substring(0, 10)}.csv`;
+    link.click();
+
+    const adminId = sessionStorage.getItem('userId') || '1';
+    logAuditEvent('EXPORT_PROGRAMS_CSV', `PESO Admin [ID:${adminId}] exported Programs Summary CSV (${list.length} programs)`);
+    window.showSystemNotification({ title: 'Export Complete', message: 'Programs summary CSV downloaded successfully.', type: 'info' });
+}
+
+window.filterPrograms = filterPrograms;
+window.openCreateProgramModal = openCreateProgramModal;
+window.handleCreateProgramSubmit = handleCreateProgramSubmit;
+window.openProgramDetailsViewModal = openProgramDetailsViewModal;
+window.openProgramEditModal = openProgramEditModal;
+window.handleSaveProgramUpdates = handleSaveProgramUpdates;
+window.handleProgramToggle = handleProgramToggle;
+window.openProgramActionModal = openProgramActionModal;
+window.handleProgramActionConfirm = handleProgramActionConfirm;
+window.openUploadOrdinanceModal = openUploadOrdinanceModal;
+window.handleOrdinanceFileSelect = handleOrdinanceFileSelect;
+window.handleUploadOrdinance = handleUploadOrdinance;
+window.showOrdinanceReferenceModal = showOrdinanceReferenceModal;
+window.renderArchiveTable = renderArchiveTable;
+window.activateProgram = activateProgram;
+window.permanentlyDeleteProgram = permanentlyDeleteProgram;
+window.exportProgramsCsv = exportProgramsCsv;
+
+

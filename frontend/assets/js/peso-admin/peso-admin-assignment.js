@@ -294,3 +294,13 @@ function exportBeneficiariesCSV() {
     logAuditEvent('EXPORT_BENEFICIARIES_CSV', `PESO Admin [ID:${adminId}] exported Beneficiary Roster CSV for Batch ${selectedBatchId || 1011}`);
     window.showSystemNotification({ title: 'Export Complete', message: 'Beneficiary roster CSV downloaded successfully.', type: 'info' });
 }
+
+window.filterAssignPrograms = filterAssignPrograms;
+window.filterBatches = filterBatches;
+window.filterBeneficiaries = filterBeneficiaries;
+window.showLevel1Programs = showLevel1Programs;
+window.showLevel2Batches = showLevel2Batches;
+window.showLevel3Beneficiaries = showLevel3Beneficiaries;
+window.openBeneficiaryProfileModal = openBeneficiaryProfileModal;
+window.exportBeneficiariesCSV = exportBeneficiariesCSV;
+

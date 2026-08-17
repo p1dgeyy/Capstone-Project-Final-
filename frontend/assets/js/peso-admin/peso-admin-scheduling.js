@@ -1338,3 +1338,23 @@ function openEligibleRecipientsModal(progCode, batchNum) {
     safeOpenModal('eligibleRecipientsModal');
     logAuditEvent('VIEW_ELIGIBLE_RECIPIENTS_ROSTER', `Inspected auto-pulled training records roster for Certificate Distribution (${progCode} - ${batchNum})`);
 }
+
+function scrollToSchedulingArchive() {
+    const archiveBox = document.getElementById('schedulingArchiveCard') || document.getElementById('schedulingArchiveTableBody');
+    if (archiveBox) {
+        archiveBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.showSystemNotification({
+            title: 'Scheduling Archive Box',
+            message: 'Viewing completed and cancelled schedule records.',
+            type: 'info'
+        });
+    }
+}
+window.scrollToSchedulingArchive = scrollToSchedulingArchive;
+window.exportCombinedLguReport = exportCombinedLguReport;
+window.exportSchedulingCSV = exportSchedulingCSV;
+window.exportSchedulingPDF = exportSchedulingPDF;
+window.exportArchiveCSV = exportArchiveCSV;
+window.jumpToCalendarToday = jumpToCalendarToday;
+window.openEligibleRecipientsModal = openEligibleRecipientsModal;
+
