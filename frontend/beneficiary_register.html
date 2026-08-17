@@ -819,6 +819,19 @@
         // Registration State Store
         let currentStep = 1;
         let registrationData = {};
+
+        // Supabase's phone auth (updateUser/verifyOtp) requires E.164 format
+        // (e.g. +639171234567). The registration form collects PH-style local
+        // numbers (e.g. 09171234567) since that's what beneficiaries actually
+        // type — this converts between the two. Display/masking elsewhere in
+        // this file continues to use the raw local-format string as entered.
+        function toE164PH(localPhone) {
+            const digits = (localPhone || '').replace(/\D/g, '');
+            if (digits.startsWith('63') && digits.length === 12) return '+' + digits;
+            if (digits.startsWith('0') && digits.length === 11) return '+63' + digits.slice(1);
+            if (digits.length === 10) return '+63' + digits; // e.g. "9171234567" with no leading 0
+            return '+' + digits; // best-effort fallback
+        }
         let emailExpiryInterval = null;
         let emailResendInterval = null;
         let phoneExpiryInterval = null;
@@ -1281,9 +1294,6 @@
 
                 if (verifyError) throw new Error(verifyError.message || 'Invalid or expired email verification code.');
 
-                // Note: SMS/phone verification is temporarily bypassed until an
-                // SMS provider is configured in Supabase Auth settings. The
-                // account is fully created and email-verified at this point.
                 const user = verifyData.user || {};
 
                 if (typeof SessionManager !== 'undefined' && verifyData.session) {
@@ -1294,27 +1304,29 @@
                         department: registrationData.program_sector && registrationData.program_sector.includes('CSWDO') ? 'CSWDO' : 'PESO'
                     });
                 }
-                sessionStorage.setItem('beneficiaryLoggedIn', 'true');
-                sessionStorage.setItem('beneficiaryUsername', registrationData.username);
-                sessionStorage.setItem('beneficiaryName', `${registrationData.first_name} ${registrationData.last_name}`);
                 if (verifyData.session) sessionStorage.setItem('jwtAccessToken', verifyData.session.access_token);
 
-                // Populate Summary Card
-                document.getElementById('summaryFullName').textContent = `${registrationData.first_name} ${registrationData.middle_name ? registrationData.middle_name + ' ' : ''}${registrationData.last_name} ${registrationData.suffix || ''}`.trim();
-                document.getElementById('summaryUsername').textContent = registrationData.username;
-                document.getElementById('summaryEmail').textContent = registrationData.email;
-                document.getElementById('summaryPhone').textContent = registrationData.phone_number;
-                document.getElementById('summarySector').textContent = registrationData.program_sector;
+                // 2. Now that the user has a valid session (from the email
+                //    verification above), send them a phone OTP. This uses
+                //    Supabase's native updateUser({phone}) call, which links
+                //    the phone to THIS SAME account (rather than creating a
+                //    separate identity the way signInWithOtp({phone}) would)
+                //    and triggers our Send SMS Hook -> Semaphore to actually
+                //    deliver it.
+                const phoneE164 = toE164PH(registrationData.phone_number);
+                const { error: phoneOtpError } = await supabaseClient.auth.updateUser({ phone: phoneE164 });
+                if (phoneOtpError) {
+                    throw new Error('Email verified, but the phone OTP could not be sent: ' + phoneOtpError.message);
+                }
 
                 window.showSystemNotification({
-                    title: 'Registration Completed!',
-                    message: 'Email verified and account created successfully! Welcome to the PESO & CSWDO Portal.',
+                    title: 'Email Verified',
+                    message: 'Now let\'s verify your phone number — a 6-digit OTP was just sent via SMS.',
                     type: 'success'
                 });
 
-                // Advance directly to the Finalization screen (phone/SMS
-                // verification is postponed until an SMS provider is set up)
-                goToStep(4);
+                // Advance to Step 3 (Phone OTP verification)
+                goToStep(3);
 
             } catch (err) {
                 console.error('[EMAIL VERIFY ERROR]:', err);
@@ -1367,16 +1379,13 @@
 
         async function resendPhoneOtpCode() {
             try {
-                const phone = registrationData.phone_number;
-                if (typeof OTPAuth !== 'undefined' && OTPAuth.sendSmsOtp) {
-                    await OTPAuth.sendSmsOtp(phone);
-                } else {
-                    await fetch('/send-sms-otp', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ phone_number: phone })
-                    });
+                if (!supabaseClient) {
+                    throw new Error('Supabase client not initialized.');
                 }
+                const phoneE164 = toE164PH(registrationData.phone_number);
+                const { error } = await supabaseClient.auth.updateUser({ phone: phoneE164 });
+                if (error) throw new Error(error.message);
+
                 window.showSystemNotification({
                     title: 'OTP Resent',
                     message: 'A new 6-digit OTP code has been sent via SMS.',
@@ -1418,58 +1427,51 @@
             spinner.classList.remove('d-none');
 
             try {
-                // 1. Verify 6-digit Phone OTP
-                if (typeof OTPAuth !== 'undefined' && OTPAuth.verifySmsOtp) {
-                    await OTPAuth.verifySmsOtp(registrationData.phone_number, otp);
-                } else {
-                    const res = await fetch('/verify-sms-otp', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ phone_number: registrationData.phone_number, otp })
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.message || 'Invalid or expired phone OTP.');
+                if (!supabaseClient) {
+                    throw new Error('Supabase client not initialized.');
                 }
 
-                // 2. Finalize Registration and obtain JWT Session
-                let finalizeRes;
-                if (typeof OTPAuth !== 'undefined' && OTPAuth.finalizeRegistration) {
-                    finalizeRes = await OTPAuth.finalizeRegistration(registrationData.email, registrationData.phone_number);
-                } else {
-                    const res = await fetch('/finalize-registration', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: registrationData.email, phone_number: registrationData.phone_number })
-                    });
-                    finalizeRes = await res.json();
-                    if (!res.ok) throw new Error(finalizeRes.message || 'Could not finalize registration.');
-                }
+                // 1. Verify the 6-digit phone OTP against the SAME account
+                //    (type: 'phone_change' — this confirms a phone number
+                //    being added to an already-authenticated user, as
+                //    opposed to type: 'sms' which is for phone-based sign-in
+                //    of a new/separate identity).
+                const phoneE164 = toE164PH(registrationData.phone_number);
+                const { data: verifyData, error: verifyError } = await supabaseClient.auth.verifyOtp({
+                    phone: phoneE164,
+                    token: otp,
+                    type: 'phone_change'
+                });
 
-                // Save session credentials
-                const user = finalizeRes.user || registrationData;
-                if (typeof SessionManager !== 'undefined' && finalizeRes.token) {
-                    SessionManager.save(user.id || 'BEN-NEW', finalizeRes.token, 'Beneficiary', {
-                        username: user.username,
-                        fullName: user.full_name || `${registrationData.first_name} ${registrationData.last_name}`,
-                        email: user.email,
-                        department: registrationData.program_sector.includes('CSWDO') ? 'CSWDO' : 'PESO'
+                if (verifyError) throw new Error(verifyError.message || 'Invalid or expired phone OTP.');
+
+                const user = verifyData.user || {};
+
+                // 2. Registration is now fully complete — save the (refreshed)
+                //    session and finish local sign-in state.
+                if (typeof SessionManager !== 'undefined' && verifyData.session) {
+                    SessionManager.save(registrationData.auth_id || user.id, verifyData.session.access_token, 'Beneficiary', {
+                        username: registrationData.username,
+                        fullName: `${registrationData.first_name} ${registrationData.last_name}`,
+                        email: registrationData.email,
+                        department: registrationData.program_sector && registrationData.program_sector.includes('CSWDO') ? 'CSWDO' : 'PESO'
                     });
                 }
                 sessionStorage.setItem('beneficiaryLoggedIn', 'true');
-                sessionStorage.setItem('beneficiaryUsername', user.username || registrationData.username);
-                sessionStorage.setItem('beneficiaryName', user.full_name || `${registrationData.first_name} ${registrationData.last_name}`);
-                if (finalizeRes.token) sessionStorage.setItem('jwtAccessToken', finalizeRes.token);
+                sessionStorage.setItem('beneficiaryUsername', registrationData.username);
+                sessionStorage.setItem('beneficiaryName', `${registrationData.first_name} ${registrationData.last_name}`);
+                if (verifyData.session) sessionStorage.setItem('jwtAccessToken', verifyData.session.access_token);
 
                 // Populate Summary Card
                 document.getElementById('summaryFullName').textContent = `${registrationData.first_name} ${registrationData.middle_name ? registrationData.middle_name + ' ' : ''}${registrationData.last_name} ${registrationData.suffix || ''}`.trim();
-                document.getElementById('summaryUsername').textContent = user.username || registrationData.username;
-                document.getElementById('summaryEmail').textContent = user.email || registrationData.email;
-                document.getElementById('summaryPhone').textContent = user.phone_number || registrationData.phone_number;
+                document.getElementById('summaryUsername').textContent = registrationData.username;
+                document.getElementById('summaryEmail').textContent = registrationData.email;
+                document.getElementById('summaryPhone').textContent = registrationData.phone_number;
                 document.getElementById('summarySector').textContent = registrationData.program_sector;
 
                 window.showSystemNotification({
                     title: 'Registration Completed!',
-                    message: 'Account fully verified! Welcome to the PESO & CSWDO Portal.',
+                    message: 'Phone verified and account fully created! Welcome to the PESO & CSWDO Portal.',
                     type: 'success'
                 });
 
