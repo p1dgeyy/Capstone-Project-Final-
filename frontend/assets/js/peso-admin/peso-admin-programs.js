@@ -1,6 +1,7 @@
 /**
  * PESO Admin Portal - Program Management Module (Tab 1) & Archive Controller
  * Module: Programs (peso-admin-programs.js)
+ * Implements: Program CRUD, Budget Allocation, Ordinance Verification, Deactivation Restrictions & Archive
  */
 
 let programsList = [];
@@ -15,12 +16,12 @@ async function initProgramsData() {
             if (res.data && Array.isArray(res.data)) {
                 programsList = res.data.map(p => ({
                     id: p.id,
-                    code: p.code,
-                    name: p.name,
+                    code: p.code || 'PROG',
+                    name: p.name || 'Program Title',
                     category: p.category || 'Livelihood Programs',
-                    budget: p.budget || 500000.00,
-                    beneficiaries_count: p.beneficiaries_count || 0,
-                    total_slots: p.total_slots || 50,
+                    budget: Number(p.budget) || 500000.00,
+                    beneficiaries_count: Number(p.beneficiaries_count) || 0,
+                    total_slots: Number(p.total_slots) || 50,
                     target_beneficiaries: p.target_beneficiaries || 'Beneficiaries & Jobseekers',
                     assistance_type: p.assistance_type || 'Livelihood Assistance',
                     description: p.description || '',
@@ -28,7 +29,9 @@ async function initProgramsData() {
                     limitations: p.limitations || 'Standard LGU guidelines apply.',
                     restrictions: p.restrictions || 'One grant per household.',
                     ordinance: p.ordinance || 'Appropriation Ordinance No. 6, Series of 2025',
-                    status: p.status || 'Active'
+                    status: p.status || 'Active',
+                    created_at: p.created_at || new Date().toISOString(),
+                    updated_at: p.updated_at || new Date().toISOString()
                 }));
                 renderDashboardTables();
                 return;
@@ -41,9 +44,28 @@ async function initProgramsData() {
     renderDashboardTables();
 }
 
+function renderDashboardTables() {
+    filterPrograms();
+    renderArchiveTable();
+    updateProgramMetrics();
+}
+
+function updateProgramMetrics() {
+    const list = Array.isArray(programsList) ? programsList : [];
+    const active = list.filter(p => p.status === 'Active');
+    const totalBudget = active.reduce((acc, curr) => acc + (Number(curr.budget) || 0), 0);
+    const totalEnrolled = active.reduce((acc, curr) => acc + (Number(curr.beneficiaries_count) || 0), 0);
+    const deactivated = list.filter(p => p.status !== 'Active');
+
+    if (document.getElementById('statTotalPrograms')) document.getElementById('statTotalPrograms').textContent = active.length;
+    if (document.getElementById('statTotalBudget')) document.getElementById('statTotalBudget').textContent = '₱' + totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    if (document.getElementById('statEnrolledBeneficiaries')) document.getElementById('statEnrolledBeneficiaries').textContent = totalEnrolled;
+    if (document.getElementById('statArchivedPrograms')) document.getElementById('statArchivedPrograms').textContent = deactivated.length;
+}
+
 function filterPrograms() {
     const searchInput = document.getElementById('searchInput');
-    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const search = (searchInput ? searchInput.value : '').toLowerCase().trim();
     const catSelect = document.getElementById('categoryFilter');
     const cat = catSelect ? catSelect.value : 'ALL';
     const statusSelect = document.getElementById('statusFilter');
@@ -52,43 +74,64 @@ function filterPrograms() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const filtered = programsList.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(search) || p.code.toLowerCase().includes(search);
+    const safeList = Array.isArray(programsList) ? programsList : [];
+    const filtered = safeList.filter(p => {
+        if (!p) return false;
+        const matchesSearch = !search || (p.name && p.name.toLowerCase().includes(search)) || (p.code && p.code.toLowerCase().includes(search));
         const matchesCat = (cat === 'ALL') || (p.category === cat);
         const matchesStatus = (status === 'ALL') || (status === 'Active' && p.status === 'Active') || (status === 'Inactive' && p.status !== 'Active');
         return matchesSearch && matchesCat && matchesStatus;
     });
 
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No programs found matching criteria.</td></tr>';
+        return;
+    }
+
     filtered.forEach(prog => {
         const tr = document.createElement('tr');
         const isDeactivated = prog.status !== 'Active';
+        const budgetFormatted = '₱' + Number(prog.budget || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+        const enrolledCount = Number(prog.beneficiaries_count || 0);
+
         tr.innerHTML = `
-            <td><div class="fw-bold text-dark">${escapeHtml(prog.name)}</div><span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(prog.code)}</span></td>
-            <td><span class="badge badge-category badge-emp">${escapeHtml(prog.category)}</span><div class="small text-muted mt-1">${escapeHtml(prog.assistance_type || '')}</div></td>
-            <td><div class="fw-bold text-success">₱${Number(prog.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></td>
-            <td><span class="badge bg-light text-dark border"><i class="bi bi-people-fill text-primary me-1"></i>${prog.beneficiaries_count || 0} enrolled</span></td>
-            <td><div class="text-truncate" style="max-width: 200px;">${escapeHtml(prog.limitations || 'None')}</div></td>
+            <td>
+                <div class="fw-bold text-dark">${escapeHtml(prog.name || '')}</div>
+                <span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(prog.code || '')}</span>
+            </td>
+            <td>
+                <span class="badge badge-category badge-emp">${escapeHtml(prog.category || 'Livelihood Programs')}</span>
+                <div class="small text-muted mt-1">${escapeHtml(prog.assistance_type || '')}</div>
+            </td>
+            <td><div class="fw-bold text-success">${budgetFormatted}</div></td>
+            <td><span class="badge bg-light text-dark border"><i class="bi bi-people-fill text-primary me-1"></i>${enrolledCount} enrolled</span></td>
+            <td><div class="text-truncate" style="max-width: 200px;" title="${escapeHtml(prog.limitations || 'None')}">${escapeHtml(prog.limitations || 'None')}</div></td>
             <td><small class="fw-semibold text-secondary">${escapeHtml(prog.ordinance || 'Ordinance No. 6')}</small></td>
             <td class="text-center">
-                <div class="form-check form-switch d-inline-block">
-                    <input class="form-check-input" type="checkbox" role="switch" ${!isDeactivated ? 'checked' : ''} onchange="handleProgramToggle(event, ${prog.id})" aria-label="Toggle Status">
+                <div class="form-check form-switch d-inline-block" title="Toggle status (Active / Deactivated)">
+                    <input class="form-check-input" type="checkbox" role="switch" ${!isDeactivated ? 'checked' : ''} onchange="handleProgramToggle(event, ${prog.id})" aria-label="Toggle Status for ${escapeHtml(prog.code)}">
                 </div>
             </td>
             <td class="text-end">
-                <button class="btn btn-sm btn-outline-info me-1" onclick="openProgramDetailsViewModal(${prog.id})">
-                    <i class="bi bi-eye-fill"></i> Details
-                </button>
-                <button class="btn btn-sm btn-outline-warning" onclick="openProgramEditModal(${prog.id})">
-                    <i class="bi bi-pencil-square"></i> Edit
-                </button>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-info" onclick="openProgramDetailsViewModal(${prog.id})" title="View Details (Read-Only)">
+                        <i class="bi bi-eye-fill"></i>
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="openProgramEditModal(${prog.id})" title="Edit Program Details">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                    ${!isDeactivated ? `
+                    <button class="btn btn-outline-secondary" onclick="openProgramActionModal('deactivate', ${prog.id})" title="Deactivate Program">
+                        <i class="bi bi-archive-fill"></i>
+                    </button>` : `
+                    <button class="btn btn-outline-success" onclick="openProgramActionModal('activate', ${prog.id})" title="Reactivate Program">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>`}
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
     });
-
-    if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No programs found matching filters.</td></tr>';
-    }
 }
 
 // --- CREATE NEW PROGRAM MODAL & HANDLER (RBAC: ADMIN ONLY) ---
@@ -103,36 +146,37 @@ function openCreateProgramModal() {
         dtInput.value = now.toISOString().slice(0, 16);
     }
 
-    logAuditEvent('OPEN_CREATE_PROGRAM_FORM', 'Admin opened Create New Livelihood Program form');
+    const adminId = sessionStorage.getItem('userId') || '1';
+    logAuditEvent('OPEN_CREATE_PROGRAM_FORM', `PESO Admin [ID: ${adminId}] opened Create New Livelihood Program form`);
     safeOpenModal('createProgramModal');
 }
 
 async function handleCreateProgramSubmit(e) {
     e.preventDefault();
 
-    const name = document.getElementById('newProgName').value.trim();
-    const code = document.getElementById('newProgCode').value.trim().toUpperCase();
-    const category = document.getElementById('newProgCategory').value;
-    const budget = Number(document.getElementById('newProgBudget').value) || 0;
-    const description = document.getElementById('newProgDesc').value.trim();
-    const target = document.getElementById('newProgTarget').value.trim();
-    const assistanceType = document.getElementById('newProgAssistance').value;
-    const criteria = (document.getElementById('newProgEligibility') ? document.getElementById('newProgEligibility').value : '').trim() || 'Resident of Koronadal City';
-    const limitations = (document.getElementById('newProgLimitations') ? document.getElementById('newProgLimitations').value : '').trim() || 'Standard LGU guidelines apply.';
+    const name = (document.getElementById('newProgName')?.value || '').trim();
+    const code = (document.getElementById('newProgCode')?.value || '').trim().toUpperCase();
+    const category = document.getElementById('newProgCategory')?.value || 'Livelihood Programs';
+    const budget = Number(document.getElementById('newProgBudget')?.value) || 0;
+    const description = (document.getElementById('newProgDesc')?.value || '').trim();
+    const target = (document.getElementById('newProgTarget')?.value || '').trim();
+    const assistanceType = document.getElementById('newProgAssistance')?.value || 'Livelihood Assistance';
+    const criteria = (document.getElementById('newProgEligibility')?.value || '').trim() || 'Resident of Koronadal City';
+    const limitations = (document.getElementById('newProgLimitations')?.value || '').trim() || 'Standard LGU guidelines apply.';
 
     if (!name || !code || !budget || !description) {
         window.showSystemNotification({
             title: 'Validation Error',
-            message: 'Please complete all required fields.',
+            message: 'Please complete all required fields marked with *.',
             type: 'warning'
         });
         return;
     }
 
-    if (programsList.some(p => p.code.toUpperCase() === code)) {
+    if (programsList.some(p => p.code && p.code.toUpperCase() === code)) {
         window.showSystemNotification({
             title: 'Program Code Exists',
-            message: `A program with code "${code}" already exists.`,
+            message: `A program with code "${code}" already exists in the system.`,
             type: 'warning'
         });
         return;
@@ -155,7 +199,8 @@ async function handleCreateProgramSubmit(e) {
         restrictions: 'One grant per household.',
         ordinance: 'Appropriation Ordinance No. 6, Series of 2025',
         status: 'Active',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
     };
 
     if (typeof DataService !== 'undefined' && DataService.programs) {
@@ -168,28 +213,46 @@ async function handleCreateProgramSubmit(e) {
                 budget: budget,
                 description: description
             });
-            if (res.data && res.data.id) {
+
+            if (res && res.error) {
+                window.showSystemNotification({
+                    title: 'Creation Failed',
+                    message: res.error.message || 'Failed to create program in Supabase database.',
+                    type: 'error'
+                });
+                return;
+            }
+
+            if (res && res.data && res.data.id) {
                 newProg.id = res.data.id;
             }
         } catch (err) {
-            console.warn('[PROGRAMS] Supabase insert warning:', err);
+            console.error('[PROGRAMS] Supabase insert error:', err);
+            window.showSystemNotification({
+                title: 'Database Error',
+                message: 'Failed to communicate with Supabase. Program creation aborted.',
+                type: 'error'
+            });
+            return;
         }
     }
 
     programsList.unshift(newProg);
-    logAuditEvent('CREATE_PROGRAM', `Created new program "${code}" (${name}) with budget ₱${budget.toLocaleString()}. Category: ${category}`);
+    const adminId = sessionStorage.getItem('userId') || '1';
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('CREATE_PROGRAM', `PESO Admin [ID:${adminId}, ${adminUser}] created new program "${code}" (${name}) with budget ₱${budget.toLocaleString()}. Category: ${category}`);
 
     safeHideModal('createProgramModal');
     renderDashboardTables();
 
     window.showSystemNotification({
         title: 'Program Created',
-        message: `Program ${code} (${name}) created successfully.`,
+        message: `Program ${code} (${name}) created successfully in Supabase.`,
         type: 'success'
     });
 }
 
-// --- DETAILS BUTTON: STRICTLY READ-ONLY PROGRAM DETAILS MODAL (RULE 1) ---
+// --- DETAILS BUTTON: STRICTLY READ-ONLY PROGRAM DETAILS MODAL (USER RULE 1) ---
 function openProgramDetailsViewModal(progId) {
     if (!Array.isArray(programsList)) programsList = [];
     const prog = programsList.find(p => p && p.id === progId);
@@ -223,7 +286,8 @@ function openProgramDetailsViewModal(progId) {
     }
 
     safeOpenModal('programDetailsViewModal');
-    logAuditEvent('VIEW_PROGRAM_DETAILS', `Opened read-only program details reference for ${prog.code || progId} (${prog.name || ''})`);
+    const adminId = sessionStorage.getItem('userId') || '1';
+    logAuditEvent('VIEW_PROGRAM_DETAILS', `PESO Admin [ID:${adminId}] opened read-only program details reference for ${prog.code || progId} (${prog.name || ''})`);
 }
 
 // --- EDIT BUTTON: EDITABLE PROGRAM FORM MODAL (WITH AUDIT LOGGING) ---
@@ -274,6 +338,32 @@ async function handleSaveProgramUpdates(e) {
     const updatedEligibility = (document.getElementById('editProgEligibility')?.value || '').trim();
     const updatedLimitations = (document.getElementById('editProgLimitations')?.value || '').trim();
 
+    if (typeof DataService !== 'undefined' && DataService.programs) {
+        try {
+            const updateRes = await DataService.programs.update(progId, {
+                name: updatedName,
+                description: updatedDesc
+            });
+
+            if (updateRes && updateRes.error) {
+                window.showSystemNotification({
+                    title: 'Update Error',
+                    message: updateRes.error.message || 'Failed to update program in Supabase.',
+                    type: 'error'
+                });
+                return;
+            }
+        } catch (err) {
+            console.error('[PROGRAMS] Supabase update error:', err);
+            window.showSystemNotification({
+                title: 'Database Error',
+                message: 'Failed to communicate with Supabase. Update aborted.',
+                type: 'error'
+            });
+            return;
+        }
+    }
+
     prog.name = updatedName;
     prog.budget = updatedBudget;
     prog.assistance_type = updatedAssistance;
@@ -283,90 +373,304 @@ async function handleSaveProgramUpdates(e) {
     prog.limitations = updatedLimitations;
     prog.updated_at = new Date().toISOString();
 
-    if (typeof DataService !== 'undefined' && DataService.programs) {
-        try {
-            await DataService.programs.update(progId, {
-                name: updatedName,
-                description: updatedDesc
-            });
-        } catch (err) {
-            console.warn('[PROGRAMS] Supabase update notice:', err);
-        }
-    }
-
-    logAuditEvent('UPDATE_PROGRAM', `Updated program details for ${prog.code} (${updatedName}). Budget: ₱${updatedBudget.toLocaleString()}`);
+    const adminId = sessionStorage.getItem('userId') || '1';
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('UPDATE_PROGRAM', `PESO Admin [ID:${adminId}, ${adminUser}] updated program details for ${prog.code} (${updatedName}). Budget: ₱${updatedBudget.toLocaleString()}`);
 
     safeHideModal('programEditModal');
     renderDashboardTables();
 
     window.showSystemNotification({
         title: 'Program Updated',
-        message: `Program ${prog.code} was updated successfully.`,
+        message: `Program ${prog.code} was updated successfully in Supabase.`,
         type: 'success'
     });
 }
 
-// --- PROGRAM STATUS TOGGLE (DEACTIVATION RESTRICTION GUARD) ---
-async function handleProgramToggle(event, progId) {
+// --- PROGRAM STATUS TOGGLE (DEACTIVATION RESTRICTION GUARD & CONFIRMATION MODAL) ---
+function handleProgramToggle(event, progId) {
     const prog = programsList.find(p => p.id === progId);
     if (!prog) return;
 
     const isDeactivating = !event.target.checked;
 
-    // RULE: Programs with active beneficiaries cannot be deactivated
-    if (isDeactivating && (prog.beneficiaries_count > 0)) {
+    if (isDeactivating) {
+        // Revert toggle switch visually until confirmation
         event.preventDefault();
-        event.target.checked = true; // Revert toggle switch
+        event.target.checked = true;
+
+        // RULE: Programs with active beneficiaries cannot be deactivated
+        if (prog.beneficiaries_count > 0) {
+            const warningEl = document.getElementById('restrictionWarningText');
+            if (warningEl) {
+                warningEl.textContent = `Cannot deactivate program "${prog.code}". This program currently has ${prog.beneficiaries_count} active enrolled beneficiaries. Assignments must be completed or transferred before deactivation.`;
+            }
+            safeOpenModal('restrictionWarningModal');
+
+            window.showSystemNotification({
+                title: 'Deactivation Blocked',
+                message: `Deactivation Restriction: Program "${prog.code}" has ${prog.beneficiaries_count} active beneficiaries.`,
+                type: 'danger'
+            });
+
+            const adminId = sessionStorage.getItem('userId') || '1';
+            logAuditEvent('BLOCKED_PROGRAM_DEACTIVATION', `PESO Admin [ID:${adminId}] attempted to deactivate ${prog.code} with ${prog.beneficiaries_count} active beneficiaries.`);
+            return;
+        }
+
+        // Open confirmation modal for safe deactivation
+        openProgramActionModal('deactivate', progId);
+    } else {
+        // Reactivate
+        event.preventDefault();
+        event.target.checked = false;
+        openProgramActionModal('activate', progId);
+    }
+}
+
+// --- PROGRAM SENSITIVE ACTION MODAL (DEACTIVATE, ARCHIVE, RESTORE, DELETE) ---
+function openProgramActionModal(actionType, progId) {
+    const prog = programsList.find(p => p.id === progId);
+    if (!prog) return;
+
+    const normType = String(actionType || '').toLowerCase();
+    document.getElementById('progActionTargetId').value = progId;
+    document.getElementById('progActionType').value = normType;
+    document.getElementById('progActionReasonInput').value = '';
+
+    const header = document.getElementById('progActionConfirmHeader');
+    const icon = document.getElementById('progActionConfirmIcon');
+    const title = document.getElementById('progActionConfirmTitle');
+    const banner = document.getElementById('progActionIconBanner');
+    const alertBox = document.getElementById('progActionAlertBox');
+    const submitBtn = document.getElementById('progActionSubmitBtn');
+
+    if (normType === 'deactivate') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-danger text-white';
+        if (icon) icon.className = 'bi bi-pause-circle-fill fs-4';
+        if (title) title.textContent = 'Deactivate Livelihood Program';
+        if (banner) banner.innerHTML = `<div class="text-danger mb-2"><i class="bi bi-pause-circle-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Deactivate "${escapeHtml(prog.code)} - ${escapeHtml(prog.name)}"?</h5><p class="text-muted small mb-0">Program will be suspended from new beneficiary intake and moved to the archive view.</p>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-info-circle-fill me-1 text-danger"></i> <strong>Compliance Rule:</strong> Deactivated programs have 0 active beneficiaries and can be reactivated anytime.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-danger fw-bold px-4';
+            submitBtn.textContent = 'Confirm Deactivation';
+        }
+    } else if (normType === 'archive') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-secondary text-white';
+        if (icon) icon.className = 'bi bi-archive-fill fs-4';
+        if (title) title.textContent = 'Archive Livelihood Program';
+        if (banner) banner.innerHTML = `<div class="text-secondary mb-2"><i class="bi bi-archive-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Archive "${escapeHtml(prog.code)}"?</h5><p class="text-muted small mb-0">Program is placed in read-only archive status for reporting and historical audit.</p>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-shield-lock-fill me-1 text-secondary"></i> <strong>Notice:</strong> Program records remain intact in database.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-secondary fw-bold px-4';
+            submitBtn.textContent = 'Confirm Archive';
+        }
+    } else if (normType === 'activate' || normType === 'restore') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-success text-white';
+        if (icon) icon.className = 'bi bi-arrow-counterclockwise fs-4';
+        if (title) title.textContent = 'Restore Program to Active Roster';
+        if (banner) banner.innerHTML = `<div class="text-success mb-2"><i class="bi bi-shield-check" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Restore "${escapeHtml(prog.code)}"?</h5><p class="text-muted small mb-0">Program will regain Active status and open for beneficiary assignment quotas.</p>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-check-circle-fill me-1 text-success"></i> <strong>Notice:</strong> Program budget and allocations will be re-enabled.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-success fw-bold px-4';
+            submitBtn.textContent = 'Restore to Active';
+        }
+    } else if (normType === 'delete') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-danger text-white';
+        if (icon) icon.className = 'bi bi-trash-fill fs-4';
+        if (title) title.textContent = 'Permanently Delete Program';
+        if (banner) banner.innerHTML = `<div class="text-danger mb-2"><i class="bi bi-exclamation-octagon-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-danger mb-1">Critical Permanent Deletion Warning</h5><p class="text-muted small mb-0">Program "${escapeHtml(prog.code)} - ${escapeHtml(prog.name)}" will be permanently erased from database.</p>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1 text-danger"></i> <strong>Warning:</strong> Action is irreversible. Mandatory justification reason will be permanently archived in system audit logs.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-danger fw-bold px-4';
+            submitBtn.textContent = 'Permanently Delete';
+        }
+    }
+
+    safeOpenModal('programActionConfirmModal');
+}
+
+async function handleProgramActionConfirm(e) {
+    e.preventDefault();
+
+    const progId = Number(document.getElementById('progActionTargetId')?.value);
+    const actionType = String(document.getElementById('progActionType')?.value || '').toLowerCase();
+    const actionReason = (document.getElementById('progActionReasonInput')?.value || '').trim();
+
+    if (!actionReason) {
         window.showSystemNotification({
-            title: 'Deactivation Blocked',
-            message: `Deactivation Restriction: Program "${prog.code}" has ${prog.beneficiaries_count} active beneficiaries. Assignments must be completed or transferred before deactivation.`,
-            type: 'danger'
+            title: 'Action Reason Required',
+            message: 'Please provide a clear justification before confirming this program action.',
+            type: 'warning'
         });
-        logAuditEvent('BLOCKED_PROGRAM_DEACTIVATION', `Attempted to deactivate ${prog.code} with ${prog.beneficiaries_count} active beneficiaries.`);
         return;
     }
 
-    const newStatus = isDeactivating ? 'Inactive' : 'Active';
-    prog.status = newStatus;
-    prog.updated_at = new Date().toISOString();
+    const prog = programsList.find(p => p.id === progId);
+    if (!prog) return;
 
-    if (typeof DataService !== 'undefined' && DataService.programs) {
-        try {
-            await DataService.programs.update(progId, { status: newStatus });
-        } catch (err) { }
+    const adminId = sessionStorage.getItem('userId') || '1';
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+
+    if (actionType === 'deactivate') {
+        // Enforce active beneficiary restriction
+        if (prog.beneficiaries_count > 0) {
+            safeHideModal('programActionConfirmModal');
+            safeOpenModal('restrictionWarningModal');
+            return;
+        }
+
+        if (typeof DataService !== 'undefined' && DataService.programs) {
+            try {
+                const res = await DataService.programs.update(progId, { status: 'Inactive' });
+                if (res && res.error) {
+                    window.showSystemNotification({ title: 'Error', message: res.error.message || 'Failed to deactivate program in Supabase.', type: 'error' });
+                    return;
+                }
+            } catch (err) {
+                window.showSystemNotification({ title: 'Database Error', message: 'Failed to communicate with Supabase.', type: 'error' });
+                return;
+            }
+        }
+
+        prog.status = 'Inactive';
+        prog.updated_at = new Date().toISOString();
+        logAuditEvent('DEACTIVATE_PROGRAM', `PESO Admin [ID:${adminId}, ${adminUser}] deactivated program "${prog.code}". Justification: ${actionReason}`);
+        window.showSystemNotification({ title: 'Program Deactivated', message: `Program "${prog.code}" status set to Inactive and moved to Archive.`, type: 'warning' });
+
+    } else if (actionType === 'archive') {
+        if (typeof DataService !== 'undefined' && DataService.programs) {
+            try {
+                const res = await DataService.programs.update(progId, { status: 'Archived' });
+                if (res && res.error) {
+                    window.showSystemNotification({ title: 'Error', message: res.error.message || 'Failed to archive in Supabase.', type: 'error' });
+                    return;
+                }
+            } catch (err) {
+                window.showSystemNotification({ title: 'Database Error', message: 'Failed to communicate with Supabase.', type: 'error' });
+                return;
+            }
+        }
+
+        prog.status = 'Archived';
+        prog.updated_at = new Date().toISOString();
+        logAuditEvent('ARCHIVE_PROGRAM', `PESO Admin [ID:${adminId}, ${adminUser}] archived program "${prog.code}". Justification: ${actionReason}`);
+        window.showSystemNotification({ title: 'Program Archived', message: `Program "${prog.code}" moved to Archive roster.`, type: 'info' });
+
+    } else if (actionType === 'activate' || actionType === 'restore') {
+        if (typeof DataService !== 'undefined' && DataService.programs) {
+            try {
+                const res = await DataService.programs.update(progId, { status: 'Active' });
+                if (res && res.error) {
+                    window.showSystemNotification({ title: 'Error', message: res.error.message || 'Failed to activate in Supabase.', type: 'error' });
+                    return;
+                }
+            } catch (err) {
+                window.showSystemNotification({ title: 'Database Error', message: 'Failed to communicate with Supabase.', type: 'error' });
+                return;
+            }
+        }
+
+        prog.status = 'Active';
+        prog.updated_at = new Date().toISOString();
+        logAuditEvent('ACTIVATE_PROGRAM', `PESO Admin [ID:${adminId}, ${adminUser}] restored program "${prog.code}" to Active status. Justification: ${actionReason}`);
+        window.showSystemNotification({ title: 'Program Restored', message: `Program "${prog.code}" is now Active.`, type: 'success' });
+
+    } else if (actionType === 'delete') {
+        if (typeof DataService !== 'undefined' && DataService.programs) {
+            try {
+                const res = await DataService.programs.delete(progId);
+                if (res && res.error) {
+                    window.showSystemNotification({ title: 'Error', message: res.error.message || 'Failed to delete from Supabase.', type: 'error' });
+                    return;
+                }
+            } catch (err) {
+                window.showSystemNotification({ title: 'Database Error', message: 'Failed to communicate with Supabase.', type: 'error' });
+                return;
+            }
+        }
+
+        programsList = programsList.filter(p => p.id !== progId);
+        logAuditEvent('PERMANENT_DELETE_PROGRAM', `PESO Admin [ID:${adminId}, ${adminUser}] permanently deleted program "${prog.code}" (${prog.name}). Justification: ${actionReason}`);
+        window.showSystemNotification({ title: 'Program Deleted', message: `Program "${prog.code}" permanently removed from system.`, type: 'danger' });
     }
 
-    logAuditEvent(isDeactivating ? 'DEACTIVATE_PROGRAM' : 'ACTIVATE_PROGRAM', `Program ${prog.code} status set to ${newStatus}`);
+    safeHideModal('programActionConfirmModal');
     renderDashboardTables();
-
-    window.showSystemNotification({
-        title: isDeactivating ? 'Program Deactivated' : 'Program Activated',
-        message: `Program ${prog.code} is now ${newStatus}.`,
-        type: isDeactivating ? 'warning' : 'success'
-    });
 }
 
-// --- ORDINANCE MODAL HANDLERS ---
+// --- ORDINANCE MODAL & LIVE PREVIEW HANDLERS ---
 function openUploadOrdinanceModal() {
     const form = document.getElementById('uploadOrdinanceForm');
     if (form) form.reset();
+    const previewBox = document.getElementById('ordFilePreviewContainer');
+    if (previewBox) previewBox.classList.add('d-none');
 
-    logAuditEvent('OPEN_UPLOAD_ORDINANCE_FORM', 'Opened Upload Ordinance form modal');
+    const adminId = sessionStorage.getItem('userId') || '1';
+    logAuditEvent('OPEN_UPLOAD_ORDINANCE_FORM', `PESO Admin [ID:${adminId}] opened Upload Ordinance form modal`);
     safeOpenModal('uploadOrdinanceModal');
+}
+
+function handleOrdinanceFileSelect(e) {
+    const file = e.target.files && e.target.files[0];
+    const previewContainer = document.getElementById('ordFilePreviewContainer');
+    const nameEl = document.getElementById('ordPreviewFileName');
+    const sizeEl = document.getElementById('ordPreviewFileSize');
+
+    if (!file) {
+        if (previewContainer) previewContainer.classList.add('d-none');
+        return;
+    }
+
+    if (nameEl) nameEl.textContent = file.name;
+    if (sizeEl) sizeEl.textContent = `File Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB • ${file.type || 'Document'}`;
+    if (previewContainer) previewContainer.classList.remove('d-none');
 }
 
 function handleUploadOrdinance(e) {
     e.preventDefault();
-    logAuditEvent('UPLOAD_ORDINANCE', 'Uploaded Appropriation Ordinance document');
+    const title = (document.getElementById('ordTitle')?.value || '').trim();
+    const year = (document.getElementById('ordYear')?.value || '2026').trim();
+    const total = Number(document.getElementById('ordTotal')?.value) || 13707882.00;
+    const file = document.getElementById('ordFile')?.files?.[0];
+
+    const adminId = sessionStorage.getItem('userId') || '1';
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('UPLOAD_ORDINANCE', `PESO Admin [ID:${adminId}, ${adminUser}] uploaded LGU Appropriation Ordinance "${title}" (Year: ${year}, Total: ₱${total.toLocaleString()}). File: ${file ? file.name : 'Ordinance_Doc.pdf'}`);
+
     safeHideModal('uploadOrdinanceModal');
     window.showSystemNotification({
         title: 'Ordinance Uploaded',
-        message: 'Appropriation Ordinance document uploaded and attached successfully.',
+        message: `Appropriation Ordinance "${title}" document uploaded and attached successfully.`,
         type: 'success'
     });
 }
 
 function showOrdinanceReferenceModal() {
+    const tbody = document.getElementById('ordinanceBreakdownTableBody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        const list = Array.isArray(programsList) && programsList.length > 0 ? programsList : [
+            { category: 'Emergency Employment', name: 'TUPAD Emergency Employment Assistance', code: 'TUPAD-2026', budget: 5000000.00 },
+            { category: 'Student Employment', name: 'Special Program for Employment of Students', code: 'SPES-2026', budget: 3500000.00 },
+            { category: 'Livelihood Programs', name: 'Pangkabuhayan Financial Assistance Scheme', code: 'PFAS-2026', budget: 3207882.00 },
+            { category: 'Internship Programs', name: 'City Koronadal Graduate Internship Placement', code: 'CKGIP-2026', budget: 2000000.00 }
+        ];
+
+        list.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="badge bg-light text-dark border">${escapeHtml(p.category || 'Livelihood')}</span></td>
+                <td><div class="fw-bold text-dark">${escapeHtml(p.name || '')}</div></td>
+                <td><span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(p.code || '')}</span></td>
+                <td class="text-end fw-bold text-success">₱${Number(p.budget || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    const adminId = sessionStorage.getItem('userId') || '1';
+    logAuditEvent('VIEW_ORDINANCE_REFERENCE', `PESO Admin [ID:${adminId}] opened LGU Appropriation Ordinance reference breakdown`);
     safeOpenModal('ordinanceReferenceModal');
 }
 
@@ -376,7 +680,7 @@ function renderArchiveTable(customList) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const list = customList || programsList.filter(p => p.status !== 'Active');
+    const list = customList || (Array.isArray(programsList) ? programsList.filter(p => p.status !== 'Active') : []);
     const badgeEl = document.getElementById('archiveSectionCountBadge');
     if (badgeEl) badgeEl.textContent = `${list.length} Deactivated Programs`;
 
@@ -389,11 +693,11 @@ function renderArchiveTable(customList) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <div class="fw-bold text-secondary text-decoration-line-through">${escapeHtml(prog.name)}</div>
-                <span class="badge bg-secondary-subtle text-secondary font-monospace">${escapeHtml(prog.code)}</span>
+                <div class="fw-bold text-secondary text-decoration-line-through">${escapeHtml(prog.name || '')}</div>
+                <span class="badge bg-secondary-subtle text-secondary font-monospace">${escapeHtml(prog.code || '')}</span>
             </td>
-            <td><span class="badge badge-category badge-other">${escapeHtml(prog.category)}</span></td>
-            <td><span class="text-muted fw-semibold">₱${Number(prog.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
+            <td><span class="badge badge-category badge-other">${escapeHtml(prog.category || 'Other')}</span></td>
+            <td><span class="text-muted fw-semibold">₱${Number(prog.budget || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
             <td><small class="text-muted">${escapeHtml(prog.target_beneficiaries || 'General')}</small></td>
             <td><small class="text-muted font-monospace">${prog.updated_at ? new Date(prog.updated_at).toLocaleDateString() : 'Recent'}</small></td>
             <td class="text-end">
@@ -409,53 +713,10 @@ function renderArchiveTable(customList) {
     });
 }
 
-async function activateProgram(progId) {
-    const prog = programsList.find(p => p.id === progId);
-    if (!prog) return;
-
-    prog.status = 'Active';
-    prog.updated_at = new Date().toISOString();
-
-    if (typeof DataService !== 'undefined' && DataService.programs) {
-        try {
-            await DataService.programs.update(progId, { status: 'Active' });
-        } catch (e) { }
-    }
-
-    logAuditEvent('RESTORE_PROGRAM', `Restored program ${prog.code} (${prog.name}) from archive to Active status.`);
-    renderDashboardTables();
-
-    window.showSystemNotification({
-        title: 'Program Restored',
-        message: `Program ${prog.code} is now Active.`,
-        type: 'success'
-    });
+function activateProgram(progId) {
+    openProgramActionModal('activate', progId);
 }
 
-async function permanentlyDeleteProgram(progId) {
-    const prog = programsList.find(p => p.id === progId);
-    if (!prog) return;
-
-    if (!confirm(`Critical Compliance Warning: Are you sure you want to permanently delete program "${prog.code} - ${prog.name}"? This action cannot be undone.`)) {
-        return;
-    }
-
-    const code = prog.code;
-    const name = prog.name;
-    programsList = programsList.filter(p => p.id !== progId);
-
-    if (typeof DataService !== 'undefined' && DataService.programs) {
-        try {
-            await DataService.programs.delete(progId);
-        } catch (e) { }
-    }
-
-    logAuditEvent('PERMANENT_DELETE_PROGRAM', `Admin permanently deleted program ${code} (${name}) from system.`);
-    renderDashboardTables();
-
-    window.showSystemNotification({
-        title: 'Program Deleted',
-        message: `Program ${code} permanently deleted from archive.`,
-        type: 'danger'
-    });
+function permanentlyDeleteProgram(progId) {
+    openProgramActionModal('delete', progId);
 }

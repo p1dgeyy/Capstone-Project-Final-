@@ -541,7 +541,7 @@ function openCreateScheduleSlotModal(defaultDate) {
 }
 window.openCreateActivityModal = openCreateScheduleSlotModal;
 
-function handleCreateScheduleSlotSubmit(e) {
+async function handleCreateScheduleSlotSubmit(e) {
     e.preventDefault();
 
     const progSelect = document.getElementById('actProgram');
@@ -638,8 +638,48 @@ function handleCreateScheduleSlotSubmit(e) {
         updated_at: new Date().toISOString()
     };
 
+    if (typeof DataService !== 'undefined' && DataService.interviews) {
+        try {
+            const prog = (Array.isArray(programsList) ? programsList : []).find(p => p.code === programCode);
+            const createRes = await DataService.interviews.create({
+                agency: 'PESO',
+                program_id: prog ? prog.id : null,
+                officer_id: officerId,
+                title: newSlot.title,
+                scheduled_date: slotDate,
+                scheduled_time: newSlot.start_datetime,
+                location: venue,
+                notes: remarks,
+                status: 'Active'
+            });
+
+            if (createRes && createRes.error) {
+                window.showSystemNotification({
+                    title: 'Creation Failed',
+                    message: createRes.error.message || 'Failed to create schedule slot in Supabase.',
+                    type: 'error'
+                });
+                return;
+            }
+
+            if (createRes && createRes.data && createRes.data.id) {
+                newSlot.id = createRes.data.id;
+            }
+        } catch (err) {
+            console.error('[SCHEDULING] Supabase interview create error:', err);
+            window.showSystemNotification({
+                title: 'Database Error',
+                message: 'Failed to communicate with Supabase. Slot creation aborted.',
+                type: 'error'
+            });
+            return;
+        }
+    }
+
     activitiesList.unshift(newSlot);
-    logAuditEvent('CREATE_PROGRAM_SCHEDULE_SLOT', `Admin created program slot ${newSlot.slot_id} for ${programCode} on ${slotDate} (${timeSlot}) at ${venue}. Assigned Officer: ${officerName}`);
+    const adminId = sessionStorage.getItem('userId') || '1';
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('CREATE_PROGRAM_SCHEDULE_SLOT', `PESO Admin [ID:${adminId}, ${adminUser}] created slot ${newSlot.slot_id} for ${programCode} on ${slotDate} (${timeSlot}) at ${venue}. Assigned Officer: ${officerName}`, 'interview_schedule');
 
     safeHideModal('createActivityModal');
     renderSchedulingModule();
@@ -829,7 +869,7 @@ function openEditSlotModal(slotId) {
 }
 window.openEditActivityModal = openEditSlotModal;
 
-function handleSaveSlotUpdates(e) {
+async function handleSaveSlotUpdates(e) {
     e.preventDefault();
     const actIdEl = document.getElementById('editActId');
     const actId = actIdEl ? Number(actIdEl.value) : null;
@@ -878,6 +918,36 @@ function handleSaveSlotUpdates(e) {
     }
 
     const previousOfficer = act.officer_name || act.assigned_officer_name;
+
+    if (typeof DataService !== 'undefined' && DataService.interviews) {
+        try {
+            const updateRes = await DataService.interviews.update(actId, {
+                officer_id: newOfficerId,
+                scheduled_date: newDate,
+                scheduled_time: `${newDate}T${newTime.split(' - ')[0] || '09:00'}`,
+                location: newVenue,
+                notes: newRemarks
+            });
+
+            if (updateRes && updateRes.error) {
+                window.showSystemNotification({
+                    title: 'Update Failed',
+                    message: updateRes.error.message || 'Failed to update schedule slot in Supabase.',
+                    type: 'error'
+                });
+                return;
+            }
+        } catch (err) {
+            console.error('[SCHEDULING] Supabase interview update error:', err);
+            window.showSystemNotification({
+                title: 'Database Error',
+                message: 'Failed to communicate with Supabase. Update aborted.',
+                type: 'error'
+            });
+            return;
+        }
+    }
+
     act.officer_id = newOfficerId;
     act.officer_name = newOfficerName;
     act.assigned_officer_id = newOfficerId;
@@ -890,14 +960,16 @@ function handleSaveSlotUpdates(e) {
     act.remarks = newRemarks;
     act.updated_at = new Date().toISOString();
 
-    logAuditEvent('REASSIGN_SLOT_OFFICER', `Admin updated slot ${act.slot_id || act.id}. Reassigned officer from "${previousOfficer}" to "${newOfficerName}". Scheduled for ${newDate} (${newTime}) at ${newVenue}`);
+    const adminId = sessionStorage.getItem('userId') || '1';
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('REASSIGN_SLOT_OFFICER', `PESO Admin [ID:${adminId}, ${adminUser}] updated slot ${act.slot_id || act.id}. Reassigned officer from "${previousOfficer}" to "${newOfficerName}". Scheduled for ${newDate} (${newTime}) at ${newVenue}`, 'interview_schedule');
 
     safeHideModal('editActivityModal');
     renderSchedulingModule();
 
     window.showSystemNotification({
         title: 'Slot Updated & Reassigned',
-        message: `Slot ${act.slot_id || act.id} reassigned to ${newOfficerName}.`,
+        message: `Slot ${act.slot_id || act.id} reassigned to ${newOfficerName} successfully in Supabase.`,
         type: 'success'
     });
 }
@@ -962,12 +1034,12 @@ function openCancelSlotModal(slotId) {
 }
 window.openCancelActivityModal = openCancelSlotModal;
 
-function handleConfirmSlotCancellation() {
-    const actId = Number(document.getElementById('cancelActId').value);
+async function handleConfirmSlotCancellation() {
+    const actId = Number(document.getElementById('cancelActId')?.value);
     const act = activitiesList.find(a => a.id === actId);
     if (!act) return;
 
-    const reason = document.getElementById('cancelActReason').value.trim();
+    const reason = (document.getElementById('cancelActReason')?.value || '').trim();
     if (!reason) {
         window.showSystemNotification({
             title: 'Cancellation Reason Required',
@@ -977,6 +1049,32 @@ function handleConfirmSlotCancellation() {
         return;
     }
 
+    if (typeof DataService !== 'undefined' && DataService.interviews) {
+        try {
+            const updateRes = await DataService.interviews.update(actId, {
+                status: 'Cancelled',
+                notes: reason
+            });
+
+            if (updateRes && updateRes.error) {
+                window.showSystemNotification({
+                    title: 'Cancellation Failed',
+                    message: updateRes.error.message || 'Failed to record cancellation in Supabase.',
+                    type: 'error'
+                });
+                return;
+            }
+        } catch (err) {
+            console.error('[SCHEDULING] Supabase interview cancellation error:', err);
+            window.showSystemNotification({
+                title: 'Database Error',
+                message: 'Failed to communicate with Supabase. Cancellation aborted.',
+                type: 'error'
+            });
+            return;
+        }
+    }
+
     act.slot_status = 'Cancelled';
     act.status = 'Cancelled';
     act.cancellation_reason = reason;
@@ -984,7 +1082,9 @@ function handleConfirmSlotCancellation() {
     act.cancelled_by = 'PESO Admin';
     act.updated_at = new Date().toISOString();
 
-    logAuditEvent('CANCEL_SCHEDULE_SLOT', `Cancelled slot ID ${act.slot_id || act.id} (${act.program_code}). Reason: "${reason}". Red label retained for compliance tracking.`);
+    const adminId = sessionStorage.getItem('userId') || '1';
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('CANCEL_SCHEDULE_SLOT', `PESO Admin [ID:${adminId}, ${adminUser}] cancelled slot ID ${act.slot_id || act.id} (${act.program_code}). Reason: "${reason}". Red label retained for compliance tracking.`, 'interview_schedule');
 
     safeHideModal('cancelActivityModal');
     renderSchedulingModule();
