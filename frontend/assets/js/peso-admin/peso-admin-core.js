@@ -337,11 +337,31 @@ async function showAuditLogsModal() {
     safeOpenModal('auditLogsModal');
 }
 
-function logAuditEvent(actionType, details) {
+function logAuditEvent(actionType, details, customEntityType) {
+    let resolvedEntityType = customEntityType || 'program_management';
+    let targetCategory = 'Program Management & Assignments';
+
+    const actUpper = String(actionType || '').toUpperCase();
+    if (actUpper.includes('USER') || actUpper.includes('OFFICER') || actUpper.includes('STAFF')) {
+        resolvedEntityType = 'staff_profile';
+        targetCategory = 'PESO Officer & User Management';
+    } else if (actUpper.includes('SCHEDULE') || actUpper.includes('ACTIVITY') || actUpper.includes('SLOT')) {
+        resolvedEntityType = 'interview_schedule';
+        targetCategory = 'Scheduling & Logistics';
+    } else if (actUpper.includes('EVAL') || actUpper.includes('CASE')) {
+        resolvedEntityType = 'application';
+        targetCategory = 'Application Evaluation';
+    }
+
+    const adminId = sessionStorage.getItem('userId') || '1';
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    const adminRole = sessionStorage.getItem('userRole') || 'PESO Admin';
+
     if (typeof DataService !== 'undefined' && DataService.auditLogs) {
         DataService.auditLogs.log({
+            staffUserId: parseInt(adminId, 10) || null,
             action: actionType,
-            entityType: 'program_management',
+            entityType: resolvedEntityType,
             details: details
         });
     }
@@ -350,9 +370,11 @@ function logAuditEvent(actionType, details) {
         logs.unshift({
             id: 'AUD-' + Date.now(),
             timestamp: new Date().toISOString(),
-            userRole: 'PESO Admin',
+            adminId: adminId,
+            adminUser: adminUser,
+            userRole: adminRole,
             actionType: actionType,
-            targetEntity: 'Program Management & Assignments',
+            targetEntity: targetCategory,
             details: details
         });
         if (logs.length > 200) logs.pop();

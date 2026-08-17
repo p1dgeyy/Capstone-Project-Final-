@@ -364,8 +364,70 @@ const DataService = (() => {
           return { error: { message: 'Cross-department violation: Cannot assign PESO role in CSWDO portal.' } };
         }
 
+        let authId = data.auth_id || null;
+
+        // If credentials are provided and no auth_id yet, attempt auth.signUp to create user in auth.users
+        if (!authId && client.auth && data.password && data.email) {
+          try {
+            const { data: authData, error: authErr } = await client.auth.signUp({
+              email: data.email,
+              password: data.password,
+              options: {
+                data: {
+                  username: data.username,
+                  role: data.role,
+                  first_name: data.first_name,
+                  last_name: data.last_name
+                }
+              }
+            });
+            if (!authErr && authData && authData.user) {
+              authId = authData.user.id;
+            }
+          } catch (e) {
+            console.warn('[DataService] Supabase auth.signUp note during staff creation:', e);
+          }
+        }
+
+        // If auth user was created, check if handle_new_user trigger already inserted the staff_profile
+        if (authId) {
+          try {
+            const { data: existingStaff } = await client
+              .from('staff_profiles')
+              .select('*')
+              .eq('auth_id', authId)
+              .maybeSingle();
+
+            if (existingStaff) {
+              const updatePayload = {
+                middle_name: data.middle_name || null,
+                suffix: data.suffix || null,
+                sex: data.sex || null,
+                phone: data.phone || null,
+                address: data.address || null,
+                department: data.department || data.agency || 'PESO',
+                status: data.status || 'Active'
+              };
+              const updateRes = await client.from('staff_profiles').update(updatePayload).eq('id', existingStaff.id).select().single();
+              if (!updateRes.error && updateRes.data) {
+                auditLogs.log({
+                  staffUserId: updateRes.data.id,
+                  action: 'CREATE_STAFF_ACCOUNT',
+                  entityType: 'staff_profile',
+                  entityId: updateRes.data.id,
+                  details: `Created staff account "${updateRes.data.username}" with role ${updateRes.data.role}`
+                });
+                return updateRes;
+              }
+              return { data: existingStaff };
+            }
+          } catch (e) {
+            console.warn('[DataService] Staff profile trigger check note:', e);
+          }
+        }
+
         const payload = {
-          auth_id: data.auth_id,
+          auth_id: authId,
           username: data.username,
           role: data.role,
           first_name: data.first_name,
@@ -429,6 +491,10 @@ const DataService = (() => {
         }
         return res;
       });
+    },
+
+    async setStatus(id, newStatus) {
+      return this.toggleStatus(id, newStatus);
     },
 
     async delete(id) {
