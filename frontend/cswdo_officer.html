@@ -1960,15 +1960,17 @@
                     if (DataService.staffProfiles) {
                         const { data: staffData } = await DataService.staffProfiles.getAll({ agency: 'CSWDO' });
                         if (staffData && Array.isArray(staffData)) {
-                            const mappedStaff = staffData.map(s => ({
-                                id: String(s.id),
-                                name: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
-                                username: s.username || '',
-                                email: s.email || '',
-                                role: s.role || 'CSWDO Officer',
-                                status: s.status || 'Active',
-                                dateCreated: (s.created_at ? s.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10))
-                            }));
+                            const mappedStaff = staffData
+                                .filter(s => ['CSWDO Admin', 'CSWDO Officer'].includes(s.role) && (s.department || '').toUpperCase() !== 'PESO')
+                                .map(s => ({
+                                    id: String(s.id),
+                                    name: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+                                    username: s.username || '',
+                                    email: s.email || '',
+                                    role: s.role || 'CSWDO Officer',
+                                    status: s.status || 'Active',
+                                    dateCreated: (s.created_at ? s.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10))
+                                }));
                             localStorage.setItem('cswdo_officers', JSON.stringify(mappedStaff));
                         }
                     }
@@ -3208,7 +3210,9 @@
         }
 
         function renderResetsTable() {
-            const requests = JSON.parse(localStorage.getItem('password_reset_requests')) || [];
+            const rawRequests = JSON.parse(localStorage.getItem('password_reset_requests')) || [];
+            // Strictly exclude PESO requests
+            const requests = rawRequests.filter(r => (r.department || 'CSWDO').toUpperCase() !== 'PESO');
             const tbody = document.getElementById('resetsTableBody');
             tbody.innerHTML = '';
 

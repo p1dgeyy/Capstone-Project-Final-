@@ -303,13 +303,15 @@ if (typeof window.PESOSafeguards === 'undefined') {
     const normVenue = (venue || '').trim().toLowerCase();
     const normDept = (department || '').trim().toLowerCase();
 
-    // Fallback load from local storage if list not provided
+    // Fallback load from local storage if list not provided — strictly scoped by department
     let list = Array.isArray(existingSchedules) ? existingSchedules : [];
     if (list.length === 0) {
       try {
-        const pesoSched = JSON.parse(localStorage.getItem('peso_schedules') || '[]');
-        const cswdoSched = JSON.parse(localStorage.getItem('cswdo_schedules') || '[]');
-        list = [...pesoSched, ...cswdoSched];
+        if (normDept.includes('cswdo')) {
+          list = JSON.parse(localStorage.getItem('cswdo_schedules') || '[]');
+        } else {
+          list = JSON.parse(localStorage.getItem('peso_schedules') || '[]');
+        }
       } catch (e) {}
     }
 

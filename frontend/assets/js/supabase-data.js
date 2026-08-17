@@ -308,6 +308,14 @@ const DataService = (() => {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
         let query = client.from('staff_profiles').select('*').order('created_at', { ascending: false });
+        
+        // Strict Agency/Department Record Segregation
+        if (filters.agency === 'PESO' || filters.department === 'PESO') {
+          query = query.in('role', ['PESO Admin', 'PESO Officer', 'Evaluator']);
+        } else if (filters.agency === 'CSWDO' || filters.department === 'CSWDO') {
+          query = query.in('role', ['CSWDO Admin', 'CSWDO Officer']);
+        }
+
         if (filters.role) {
           if (Array.isArray(filters.role)) {
             query = query.in('role', filters.role);
@@ -346,6 +354,16 @@ const DataService = (() => {
 
     async create(data) {
       return withRetry(async (client) => {
+        // Enforce strict agency role validation
+        const pesoRoles = ['PESO Admin', 'PESO Officer', 'Evaluator', 'Staff'];
+        const cswdoRoles = ['CSWDO Admin', 'CSWDO Officer'];
+        if (data.agency === 'PESO' && cswdoRoles.includes(data.role)) {
+          return { error: { message: 'Cross-department violation: Cannot assign CSWDO role in PESO portal.' } };
+        }
+        if (data.agency === 'CSWDO' && pesoRoles.includes(data.role)) {
+          return { error: { message: 'Cross-department violation: Cannot assign PESO role in CSWDO portal.' } };
+        }
+
         const payload = {
           auth_id: data.auth_id,
           username: data.username,

@@ -3483,6 +3483,30 @@
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Loading officer directory from server...</td></tr>';
             }
 
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                try {
+                    const res = await DataService.staffProfiles.getAll({ agency: 'PESO' });
+                    if (res.data && Array.isArray(res.data)) {
+                        officerRosterList = res.data
+                            .filter(o => !['CSWDO Admin', 'CSWDO Officer'].includes(o.role) && (o.department || 'PESO') !== 'CSWDO' && o.status === 'Active')
+                            .map(o => ({
+                                id: o.id,
+                                full_name: `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.username,
+                                username: o.username,
+                                email: o.email,
+                                role: o.role,
+                                department: o.department || 'PESO',
+                                phone: o.phone || '09XX-***-XXXX',
+                                status: o.status
+                            }));
+                        renderOfficerRosterTable(officerRosterList);
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('[Officer Roster] Supabase fetch notice:', err.message);
+                }
+            }
+
             try {
                 const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) || window.API_BASE_URL || '';
                 const headers = (typeof SessionManager !== 'undefined' && SessionManager.authHeaders) ? SessionManager.authHeaders() : { 'Content-Type': 'application/json' };
@@ -3490,7 +3514,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     if (result.success && Array.isArray(result.data)) {
-                        officerRosterList = result.data.filter(o => o.status === 'Active');
+                        officerRosterList = result.data.filter(o => !['CSWDO Admin', 'CSWDO Officer'].includes(o.role) && o.status === 'Active');
                         renderOfficerRosterTable(officerRosterList);
                         return;
                     }

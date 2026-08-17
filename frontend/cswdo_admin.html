@@ -2549,22 +2549,25 @@
                 try {
                     const res = await DataService.staffProfiles.getAll({ agency: 'CSWDO' });
                     if (res.data && Array.isArray(res.data)) {
-                        allOfficers = res.data.map(o => ({
-                            id: o.id,
-                            first_name: o.first_name || '',
-                            middle_name: o.middle_name || '',
-                            last_name: o.last_name || '',
-                            suffix: o.suffix || 'N/A',
-                            full_name: `${o.first_name || ''} ${o.last_name || ''}`.trim(),
-                            username: o.username || '',
-                            email: o.email || '',
-                            role: o.role || 'CSWDO Officer',
-                            department: o.department || 'CSWDO',
-                            gender: o.sex || 'Female',
-                            contact_number: o.phone || 'N/A',
-                            address: o.address || 'Koronadal City',
-                            status: (o.status === 'Deactivated' || o.status === 'Inactive') ? 'Deactivated' : 'Active'
-                        }));
+                        // Strict Segregation: Exclude all PESO accounts
+                        allOfficers = res.data
+                            .filter(o => !['PESO Admin', 'PESO Officer', 'Evaluator', 'Staff'].includes(o.role) && (o.department || '').toUpperCase() !== 'PESO')
+                            .map(o => ({
+                                id: o.id,
+                                first_name: o.first_name || '',
+                                middle_name: o.middle_name || '',
+                                last_name: o.last_name || '',
+                                suffix: o.suffix || 'N/A',
+                                full_name: `${o.first_name || ''} ${o.last_name || ''}`.trim(),
+                                username: o.username || '',
+                                email: o.email || '',
+                                role: o.role || 'CSWDO Officer',
+                                department: o.department || 'CSWDO',
+                                gender: o.sex || 'Female',
+                                contact_number: o.phone || 'N/A',
+                                address: o.address || 'Koronadal City',
+                                status: (o.status === 'Deactivated' || o.status === 'Inactive') ? 'Deactivated' : 'Active'
+                            }));
                         const activeList = allOfficers.filter(o => o.status === 'Active');
                         const archivedList = allOfficers.filter(o => o.status === 'Deactivated');
                         document.getElementById('activeOfficersCount').textContent = activeList.length;
@@ -2582,7 +2585,7 @@
                 const res = await fetch((API_CONFIG.BASE_URL || '') + '/api/admin/officers');
                 const json = await res.json();
                 if (json.success && Array.isArray(json.data)) {
-                    allOfficers = json.data;
+                    allOfficers = json.data.filter(o => !['PESO Admin', 'PESO Officer', 'Evaluator', 'Staff'].includes(o.role) && (o.department || '').toUpperCase() !== 'PESO');
                     document.getElementById('activeOfficersCount').textContent = json.active_count || allOfficers.filter(o => o.status === 'Active').length;
                     document.getElementById('archivedOfficersCount').textContent = json.archived_count || allOfficers.filter(o => o.status === 'Deactivated').length;
                     renderActiveOfficersTable(allOfficers.filter(o => o.status === 'Active'));
@@ -2608,41 +2611,34 @@
 
             tbody.innerHTML = officers.map(o => {
                 const deptBadges = {
-                    'Medical': 'bg-primary-subtle text-primary border border-primary-subtle',
-                    'Financial': 'bg-info-subtle text-info border border-info-subtle',
-                    'Burial': 'bg-secondary-subtle text-secondary border border-secondary-subtle'
+                    'Medical': 'bg-danger text-white',
+                    'Financial': 'bg-success text-white',
+                    'Burial': 'bg-dark text-white'
                 };
                 const badgeClass = deptBadges[o.department] || 'bg-light text-dark';
-                const initials = (o.first_name[0] || '') + (o.last_name[0] || '');
 
                 return `
                     <tr>
                         <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="avatar-circle-sm bg-primary text-white font-weight-bold" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
-                                    ${initials.toUpperCase()}
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-primary-subtle text-primary me-2 fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                    ${escapeHtml(o.first_name[0] || 'O')}${escapeHtml(o.last_name[0] || '')}
                                 </div>
                                 <div>
-                                    <div class="fw-bold">${o.full_name || (o.first_name + ' ' + o.last_name)}</div>
-                                    <small class="text-muted">${o.gender || 'Officer'}</small>
+                                    <div class="fw-semibold text-dark">${escapeHtml(o.full_name || o.username)}</div>
+                                    <small class="text-muted">${escapeHtml(o.username)}</small>
                                 </div>
                             </div>
                         </td>
-                        <td><span class="font-monospace text-muted small">${o.username}</span></td>
-                        <td><span class="small">${o.email}</span></td>
-                        <td><span class="badge bg-light text-dark border">${o.role}</span></td>
-                        <td><span class="badge ${badgeClass}">${o.department}</span></td>
-                        <td><span class="font-monospace text-primary small">${o.contact_number}</span></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i> Active</span></td>
-                        <td style="text-align: right;">
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-sm" onclick="openOfficerDetailsModal(${o.id})" title="View complete details and edit">
-                                    <i class="bi bi-pencil-square me-1"></i> Edit / Details
-                                </button>
-                                <button class="btn btn-outline-danger btn-sm" onclick="toggleOfficerStatus(${o.id})" title="Deactivate and move to Archive Section">
-                                    <i class="bi bi-toggle2-on text-success me-1"></i> Deactivate
-                                </button>
-                            </div>
+                        <td>${escapeHtml(o.email)}</td>
+                        <td><span class="badge ${o.role === 'CSWDO Admin' ? 'bg-primary' : 'bg-info'} text-white">${escapeHtml(o.role)}</span></td>
+                        <td><span class="badge ${badgeClass}">${escapeHtml(o.department)}</span></td>
+                        <td>${escapeHtml(maskContactNumber(o.contact_number))}</td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Active</span></td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary" onclick="openOfficerDetailsModal(${o.id})" title="Edit Officer Details">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -2654,70 +2650,58 @@
             if (!tbody) return;
 
             if (!officers || officers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted">No deactivated officer accounts in archive.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No deactivated officer accounts found.</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = officers.map(o => {
-                return `
-                    <tr style="background: rgba(239, 68, 68, 0.03);">
-                        <td>
-                            <div class="fw-bold text-muted">${o.full_name || (o.first_name + ' ' + o.last_name)}</div>
-                            <small class="text-danger"><i class="bi bi-lock-fill me-1"></i> Access Blocked</small>
-                        </td>
-                        <td><span class="font-monospace text-muted small">${o.username}</span></td>
-                        <td><span class="small text-muted">${o.email}</span></td>
-                        <td><span class="badge bg-light text-muted border">${o.role}</span></td>
-                        <td><span class="badge bg-light text-dark border">${o.department}</span></td>
-                        <td><span class="font-monospace text-muted small">${o.contact_number}</span></td>
-                        <td><span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i> Deactivated</span></td>
-                        <td style="text-align: right;">
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-success btn-sm" onclick="toggleOfficerStatus(${o.id})" title="Restore to Active list">
-                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Restore / Activate
-                                </button>
-                                <button class="btn btn-danger btn-sm" onclick="openPermanentDeleteModal(${o.id}, '${o.username}', '${o.first_name} ${o.last_name}')" title="Permanently delete from Archive Section">
-                                    <i class="bi bi-trash-fill me-1"></i> Permanent Delete
-                                </button>
+            tbody.innerHTML = officers.map(o => `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle bg-secondary-subtle text-secondary me-2 fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                ${escapeHtml(o.first_name[0] || 'O')}${escapeHtml(o.last_name[0] || '')}
                             </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                            <div>
+                                <div class="fw-semibold text-dark">${escapeHtml(o.full_name || o.username)}</div>
+                                <small class="text-muted">${escapeHtml(o.username)}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${escapeHtml(o.email)}</td>
+                    <td><span class="badge bg-secondary text-white">${escapeHtml(o.role)}</span></td>
+                    <td><span class="badge bg-light text-dark border">${escapeHtml(o.department)}</span></td>
+                    <td>${escapeHtml(maskContactNumber(o.contact_number))}</td>
+                    <td><span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-x-circle me-1"></i>Deactivated</span></td>
+                    <td class="text-end pe-3">
+                        <button class="btn btn-sm btn-outline-primary" onclick="openOfficerDetailsModal(${o.id})" title="View Details">
+                            <i class="bi bi-eye"></i> View
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
-        function filterOfficers() {
-            const query = (document.getElementById('officerSearchInput').value || '').toLowerCase().trim();
-            const dept = document.getElementById('officerDeptFilter').value;
-            const role = document.getElementById('officerRoleFilter').value;
-            const status = document.getElementById('officerStatusFilter').value;
+        function filterOfficersTable() {
+            const query = (document.getElementById('officerSearchInput') ? document.getElementById('officerSearchInput').value : '').toLowerCase().trim();
+            const dept = document.getElementById('officerDeptFilter') ? document.getElementById('officerDeptFilter').value : 'ALL';
+            const role = document.getElementById('officerRoleFilter') ? document.getElementById('officerRoleFilter').value : 'ALL';
 
-            let filtered = allOfficers.filter(o => {
-                const matchesQuery = !query || 
-                    o.first_name.toLowerCase().includes(query) ||
-                    o.last_name.toLowerCase().includes(query) ||
+            const filtered = allOfficers.filter(o => {
+                if (['PESO Admin', 'PESO Officer', 'Evaluator', 'Staff'].includes(o.role) || (o.department || '').toUpperCase() === 'PESO') {
+                    return false;
+                }
+                const matchesQuery = !query ||
                     (o.full_name && o.full_name.toLowerCase().includes(query)) ||
                     o.username.toLowerCase().includes(query) ||
                     o.email.toLowerCase().includes(query) ||
-                    o.department.toLowerCase().includes(query);
-
+                    (o.department && o.department.toLowerCase().includes(query));
                 const matchesDept = dept === 'ALL' || o.department === dept;
                 const matchesRole = role === 'ALL' || o.role === role;
-                const matchesStatus = status === 'ALL' || o.status === status;
-
-                return matchesQuery && matchesDept && matchesRole && matchesStatus;
+                return matchesQuery && matchesDept && matchesRole;
             });
 
-            if (status === 'ALL') {
-                renderActiveOfficersTable(filtered.filter(o => o.status === 'Active'));
-                renderArchivedOfficersTable(filtered.filter(o => o.status === 'Deactivated'));
-            } else if (status === 'Active') {
-                renderActiveOfficersTable(filtered);
-                renderArchivedOfficersTable([]);
-            } else if (status === 'Deactivated') {
-                renderActiveOfficersTable([]);
-                renderArchivedOfficersTable(filtered);
-            }
+            renderActiveOfficersTable(filtered.filter(o => o.status === 'Active'));
+            renderArchivedOfficersTable(filtered.filter(o => o.status === 'Deactivated'));
         }
 
         // =======================================================
@@ -2755,12 +2739,55 @@
                 return;
             }
 
+            // Strict Cross-Department Validation
+            const pesoRoles = ['PESO Admin', 'PESO Officer', 'Evaluator', 'Staff'];
+            if (pesoRoles.includes(role) || (department && department.toUpperCase() === 'PESO')) {
+                if (typeof showSystemNotification === 'function') {
+                    showSystemNotification('Cross-Department Action Blocked', 'Validation Error: Cannot create or assign PESO accounts within the CSWDO Admin portal.', 'error');
+                } else {
+                    alert('Validation Error: Cannot create or assign PESO accounts within the CSWDO Admin portal.');
+                }
+                return;
+            }
+
             // Strong password complexity check: min 8 chars, letters and numbers
             const hasLetter = /[a-zA-Z]/.test(password);
             const hasNumber = /[0-9]/.test(password);
             if (password.length < 8 || !hasLetter || !hasNumber) {
                 alert('Strong Password Policy Violation: Password must be at least 8 characters long and contain both letters and numbers.');
                 return;
+            }
+
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                try {
+                    const res = await DataService.staffProfiles.create({
+                        agency: 'CSWDO',
+                        first_name,
+                        middle_name,
+                        last_name,
+                        suffix: suffix !== 'N/A' ? suffix : null,
+                        username,
+                        email,
+                        role,
+                        department,
+                        sex: gender,
+                        phone: contact_number,
+                        address,
+                        status: 'Active'
+                    });
+                    if (res.data) {
+                        closeNewOfficerModal();
+                        if (typeof showSystemNotification === 'function') {
+                            showSystemNotification('Officer Account Created', `Account "${username}" created successfully.`, 'success');
+                        } else {
+                            alert(`Officer account "${username}" created successfully!`);
+                        }
+                        loadOfficersData();
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('[CSWDO] Supabase officer creation notice:', err);
+                }
             }
 
             try {
@@ -2788,7 +2815,7 @@
                 if (json.success) {
                     closeNewOfficerModal();
                     if (typeof showSystemNotification === 'function') {
-                        showSystemNotification('Officer Account Created', `Account "${username}" created. Login credentials automatically dispatched via email to ${email}.`, 'success');
+                        showSystemNotification('Officer Account Created', `Account "${username}" created successfully. Login credentials automatically dispatched via email to ${email}.`, 'success');
                     } else {
                         alert(`Officer account "${username}" created successfully!\n\nAutomated Email Notification: Official credentials sent to ${email}.`);
                     }
@@ -2806,6 +2833,27 @@
         // VIEW & EDIT OFFICER DETAILS MODAL
         // =======================================================
         async function openOfficerDetailsModal(id) {
+            const off = allOfficers.find(o => o.id === id);
+            if (off) {
+                document.getElementById('editOffId').value = off.id;
+                document.getElementById('editOffFirstName').value = off.first_name || '';
+                document.getElementById('editOffMiddleName').value = off.middle_name || '';
+                document.getElementById('editOffLastName').value = off.last_name || '';
+                document.getElementById('editOffSuffix').value = off.suffix || 'N/A';
+                document.getElementById('editOffUsername').value = off.username || '';
+                document.getElementById('editOffEmail').value = off.email || '';
+                document.getElementById('editOffRole').value = off.role || 'CSWDO Officer';
+                document.getElementById('editOffDepartment').value = off.department || 'Medical';
+                document.getElementById('editOffGender').value = off.gender || 'Female';
+                document.getElementById('editOffContact').value = off.contact_number || '';
+                document.getElementById('editOffAddress').value = off.address || '';
+                document.getElementById('editOffStatus').value = off.status || 'Active';
+                document.getElementById('editOffPassword').value = '';
+
+                document.getElementById('officerDetailsModal').classList.add('show');
+                return;
+            }
+
             try {
                 const res = await fetch((API_CONFIG.BASE_URL || '') + `/api/admin/officers/${id}`);
                 const json = await res.json();
@@ -2856,12 +2904,51 @@
             const status = document.getElementById('editOffStatus').value;
             const password = document.getElementById('editOffPassword').value;
 
+            // Strict Cross-Department Validation
+            const pesoRoles = ['PESO Admin', 'PESO Officer', 'Evaluator', 'Staff'];
+            if (pesoRoles.includes(role) || (department && department.toUpperCase() === 'PESO')) {
+                if (typeof showSystemNotification === 'function') {
+                    showSystemNotification('Cross-Department Action Blocked', 'Validation Error: Cannot assign PESO roles or departments within the CSWDO Admin portal.', 'error');
+                } else {
+                    alert('Validation Error: Cannot assign PESO roles or departments within the CSWDO Admin portal.');
+                }
+                return;
+            }
+
             if (password) {
                 const hasLetter = /[a-zA-Z]/.test(password);
                 const hasNumber = /[0-9]/.test(password);
                 if (password.length < 8 || !hasLetter || !hasNumber) {
                     alert('Password complexity error: New password must be at least 8 characters long and contain both letters and numbers.');
                     return;
+                }
+            }
+
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                try {
+                    await DataService.staffProfiles.update(id, {
+                        first_name,
+                        middle_name,
+                        last_name,
+                        suffix: suffix !== 'N/A' ? suffix : null,
+                        email,
+                        role,
+                        department,
+                        sex: gender,
+                        phone: contact_number,
+                        address,
+                        status
+                    });
+                    closeOfficerDetailsModal();
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Officer Profile Updated', `Changes for officer saved successfully.`, 'success');
+                    } else {
+                        alert(`Officer details saved successfully!`);
+                    }
+                    loadOfficersData();
+                    return;
+                } catch (err) {
+                    console.warn('[CSWDO] Supabase officer update notice:', err);
                 }
             }
 
@@ -2899,7 +2986,7 @@
                 }
             } catch (err) {
                 console.error('[CSWDO] Error updating officer:', err);
-                alert('Server error during update.');
+                alert('Network or server error during officer update.');
             }
         }
 

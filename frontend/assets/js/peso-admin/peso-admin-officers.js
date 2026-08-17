@@ -10,21 +10,24 @@ async function initOfficersData() {
         try {
             const res = await DataService.staffProfiles.getAll({ agency: 'PESO' });
             if (res.data && Array.isArray(res.data)) {
-                officersList = res.data.map(off => ({
-                    id: off.id,
-                    first_name: off.first_name || '',
-                    middle_name: off.middle_name || '',
-                    last_name: off.last_name || '',
-                    suffix: off.suffix || 'N/A',
-                    username: off.username || '',
-                    email: off.email || '',
-                    role: off.role || 'PESO Officer',
-                    department: off.department || 'PESO',
-                    phone: off.phone || off.contact_number || 'N/A',
-                    sex: off.sex || off.gender || 'Male',
-                    address: off.address || 'City of Koronadal',
-                    status: (off.status === 'Deactivated' || off.status === 'Inactive') ? 'Deactivated' : 'Active'
-                }));
+                // Strict Segregation: Exclude all CSWDO records
+                officersList = res.data
+                    .filter(off => !['CSWDO Admin', 'CSWDO Officer'].includes(off.role) && (off.department || 'PESO') !== 'CSWDO')
+                    .map(off => ({
+                        id: off.id,
+                        first_name: off.first_name || '',
+                        middle_name: off.middle_name || '',
+                        last_name: off.last_name || '',
+                        suffix: off.suffix || 'N/A',
+                        username: off.username || '',
+                        email: off.email || '',
+                        role: off.role || 'PESO Officer',
+                        department: off.department || 'PESO',
+                        phone: off.phone || off.contact_number || 'N/A',
+                        sex: off.sex || off.gender || 'Male',
+                        address: off.address || 'City of Koronadal',
+                        status: (off.status === 'Deactivated' || off.status === 'Inactive') ? 'Deactivated' : 'Active'
+                    }));
                 const adminOff = officersList.find(o => (o.username && o.username.toLowerCase() === 'peso-admin') || (o.email && o.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
                 if (adminOff) adminOff.status = 'Active';
                 if (document.getElementById('sectionOfficers') && !document.getElementById('sectionOfficers').classList.contains('d-none')) {
@@ -67,6 +70,11 @@ function renderOfficersTables() {
     const safeList = Array.isArray(officersList) ? officersList : [];
     const filtered = safeList.filter(off => {
         if (!off) return false;
+        // Strict Segregation
+        if (['CSWDO Admin', 'CSWDO Officer'].includes(off.role) || (off.department || '').toUpperCase() === 'CSWDO') {
+            return false;
+        }
+
         const fullName = `${off.first_name || ''} ${off.middle_name || ''} ${off.last_name || ''} ${off.suffix && off.suffix !== 'N/A' ? off.suffix : ''}`.toLowerCase();
         const matchesSearch = !search || fullName.includes(search) || (off.username || '').toLowerCase().includes(search) || (off.email || '').toLowerCase().includes(search);
         const matchesRole = roleFilter === 'ALL' || off.role === roleFilter;
@@ -211,6 +219,17 @@ async function handleCreateOfficerSubmit(e) {
         return;
     }
 
+    // Strict Cross-Department Validation
+    const cswdoRoles = ['CSWDO Admin', 'CSWDO Officer'];
+    if (cswdoRoles.includes(role) || (department && department.toUpperCase() === 'CSWDO')) {
+        window.showSystemNotification({
+            title: 'Cross-Department Action Blocked',
+            message: 'Validation Error: Cross-department assignment blocked. PESO portal only manages PESO officers.',
+            type: 'error'
+        });
+        return;
+    }
+
     if (officersList.some(o => o.username && o.username.toLowerCase() === username.toLowerCase())) {
         window.showSystemNotification({
             title: 'Username Taken',
@@ -223,6 +242,7 @@ async function handleCreateOfficerSubmit(e) {
     let createdId = Date.now();
     const newOff = {
         id: createdId,
+        agency: 'PESO',
         first_name: firstName,
         middle_name: middleName || null,
         last_name: lastName,
@@ -304,6 +324,17 @@ async function handleSaveOfficerUpdates(e) {
     const updatedRole = document.getElementById('editOffRole').value;
     const updatedDept = document.getElementById('editOffDepartment').value;
     const updatedAddress = (document.getElementById('editOffAddress').value || '').trim();
+
+    // Strict Cross-Department Validation
+    const cswdoRoles = ['CSWDO Admin', 'CSWDO Officer'];
+    if (cswdoRoles.includes(updatedRole) || (updatedDept && updatedDept.toUpperCase() === 'CSWDO')) {
+        window.showSystemNotification({
+            title: 'Cross-Department Action Blocked',
+            message: 'Validation Error: Cross-department assignment blocked. PESO portal only manages PESO officers.',
+            type: 'error'
+        });
+        return;
+    }
 
     off.username = updatedUsername;
     off.email = updatedEmail;

@@ -10,7 +10,8 @@ async function initUserManagementData() {
         try {
             const res = await DataService.staffProfiles.getAll({ agency: 'PESO' });
             if (res.data && Array.isArray(res.data)) {
-                usersList = res.data;
+                // Strict Segregation: Exclude any CSWDO accounts
+                usersList = res.data.filter(u => !['CSWDO Admin', 'CSWDO Officer'].includes(u.role) && (u.department || 'PESO') !== 'CSWDO');
                 const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
                 if (adminUser) {
                     adminUser.status = 'Active';
@@ -69,6 +70,11 @@ function filterUsers() {
     tbody.innerHTML = '';
 
     const filtered = usersList.filter(usr => {
+        // Enforce strict segregation in display filter
+        if (['CSWDO Admin', 'CSWDO Officer'].includes(usr.role) || (usr.department || '').toUpperCase() === 'CSWDO') {
+            return false;
+        }
+
         const fullName = `${usr.first_name || ''} ${usr.middle_name || ''} ${usr.last_name || ''} ${usr.suffix && usr.suffix !== 'N/A' ? usr.suffix : ''}`.toLowerCase();
         const matchesSearch = !search || fullName.includes(search) || (usr.username || '').toLowerCase().includes(search) || (usr.email || '').toLowerCase().includes(search) || (usr.department || '').toLowerCase().includes(search);
 
@@ -98,68 +104,58 @@ function filterUsers() {
         let statusBadgeHTML = '<span class="badge bg-success px-2.5 py-1"><i class="bi bi-check-circle-fill me-1"></i>Active</span>';
         if (usr.status === 'Locked') {
             statusBadgeHTML = `<span class="badge bg-danger px-2.5 py-1" title="Account locked due to 5 failed login attempts"><i class="bi bi-lock-fill me-1"></i>Locked (${usr.failed_attempts || 5})</span>`;
-        } else if (usr.status === 'Archived' || usr.status === 'Deactivated') {
-            statusBadgeHTML = '<span class="badge bg-secondary px-2.5 py-1"><i class="bi bi-archive-fill me-1"></i>Archived</span>';
+        } else if (usr.status === 'Deactivated' || usr.status === 'Inactive') {
+            statusBadgeHTML = '<span class="badge bg-secondary px-2.5 py-1"><i class="bi bi-x-circle-fill me-1"></i>Deactivated</span>';
+        } else if (usr.status === 'Archived') {
+            statusBadgeHTML = '<span class="badge bg-dark px-2.5 py-1"><i class="bi bi-archive-fill me-1"></i>Archived</span>';
         }
 
-        const lastLoginFormatted = usr.last_login ? new Date(usr.last_login).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never Logged In';
-
-        let actionButtonsHTML = `
-            <button class="btn btn-sm btn-outline-info me-1" onclick="openUserDetailsModal(${usr.id})" title="View Read-Only Details (Rule 1 Compliant)">
-                <i class="bi bi-eye-fill"></i> Details
-            </button>
-            <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditUserModal(${usr.id})" title="Edit User Profile & Role (Admin-Only)">
-                <i class="bi bi-pencil-square"></i> Edit
-            </button>
-        `;
-
-        if (usr.status === 'Locked') {
-            actionButtonsHTML += `
-                <button class="btn btn-sm btn-warning text-dark me-1" onclick="openUserActionModal('unlock', ${usr.id})" title="Unlock Account (Mandatory Action Reason)">
-                    <i class="bi bi-unlock-fill"></i> Unlock
-                </button>
-            `;
-        } else if (usr.status === 'Active') {
-            actionButtonsHTML += `
-                <button class="btn btn-sm btn-outline-secondary" onclick="openUserActionModal('archive', ${usr.id})" title="Archive Account (Mandatory Action Reason)">
-                    <i class="bi bi-archive"></i> Archive
-                </button>
-            `;
-        } else if (usr.status === 'Archived' || usr.status === 'Deactivated') {
-            actionButtonsHTML += `
-                <button class="btn btn-sm btn-success me-1" onclick="openUserActionModal('activate', ${usr.id})" title="Re-Activate User Account">
-                    <i class="bi bi-arrow-counterclockwise"></i> Activate
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="openUserActionModal('delete', ${usr.id})" title="Permanent Delete (Admin Only)">
-                    <i class="bi bi-trash-fill"></i>
-                </button>
-            `;
-        }
+        const isSuperAdmin = (usr.username && usr.username.toLowerCase() === 'peso-admin') || (usr.email && usr.email.toLowerCase() === 'peso.admin@koronadal.gov.ph');
 
         tr.innerHTML = `
+            <td class="ps-3"><input type="checkbox" class="form-check-input user-select-checkbox" data-user-id="${usr.id}"></td>
             <td>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="avatar-sm rounded-circle bg-light border d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
-                        <i class="bi bi-person-fill text-primary"></i>
+                <div class="d-flex align-items-center">
+                    <div class="avatar-circle bg-primary-subtle text-primary me-2 fw-semibold" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;">
+                        ${escapeHtml(usr.first_name[0] || 'U')}${escapeHtml(usr.last_name[0] || '')}
                     </div>
                     <div>
-                        <div class="fw-bold text-dark">${fullName}</div>
-                        <small class="text-muted"><i class="bi bi-gender-ambiguous me-1"></i>${escapeHtml(usr.sex || 'Male')}</small>
+                        <div class="fw-semibold text-dark">${fullName}</div>
+                        <small class="text-muted">${escapeHtml(usr.username || '')}</small>
                     </div>
                 </div>
             </td>
-            <td>
-                <span class="badge bg-light text-dark font-monospace border mb-1 d-inline-block">${escapeHtml(usr.username)}</span>
-                <div class="small text-muted text-truncate" style="max-width: 180px;">${escapeHtml(usr.email)}</div>
-            </td>
-            <td><span class="badge ${roleBadgeClass}">${escapeHtml(usr.role)}</span></td>
+            <td><span class="badge ${roleBadgeClass} px-2 py-1">${escapeHtml(usr.role || 'Staff')}</span></td>
             <td><span class="badge bg-light text-dark border">${escapeHtml(usr.department || 'PESO')}</span></td>
-            <td><span class="masked-phone">${maskedPhone}</span></td>
-            <td class="text-center">${statusBadgeHTML}</td>
-            <td><small class="text-muted font-monospace">${lastLoginFormatted}</small></td>
-            <td class="text-end">${actionButtonsHTML}</td>
+            <td>
+                <div class="small">${escapeHtml(usr.email || '')}</div>
+                <small class="text-muted"><i class="bi bi-shield-lock me-1"></i>${maskedPhone}</small>
+            </td>
+            <td>${statusBadgeHTML}</td>
+            <td><small class="text-muted">${escapeHtml(usr.created_at ? new Date(usr.created_at).toLocaleDateString() : '2026-01-15')}</small></td>
+            <td class="text-end pe-3">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" onclick="openUserDetailsModal(${usr.id})" title="View Details">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="openEditUserModal(${usr.id})" title="Edit User">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    ${usr.status === 'Locked' ? `
+                    <button class="btn btn-outline-warning" onclick="openUserActionModal('UNLOCK', ${usr.id})" title="Unlock Account">
+                        <i class="bi bi-unlock"></i>
+                    </button>` : ''}
+                    ${usr.status === 'Active' && !isSuperAdmin ? `
+                    <button class="btn btn-outline-danger" onclick="openUserActionModal('DEACTIVATE', ${usr.id})" title="Deactivate">
+                        <i class="bi bi-person-x"></i>
+                    </button>` : ''}
+                    ${(usr.status === 'Deactivated' || usr.status === 'Inactive') ? `
+                    <button class="btn btn-outline-success" onclick="openUserActionModal('ACTIVATE', ${usr.id})" title="Reactivate">
+                        <i class="bi bi-person-check"></i>
+                    </button>` : ''}
+                </div>
+            </td>
         `;
-
         tbody.appendChild(tr);
     });
 }
@@ -221,6 +217,17 @@ async function handleCreateUserSubmit(e) {
         return;
     }
 
+    // Strict Cross-Department Validation
+    const cswdoRoles = ['CSWDO Admin', 'CSWDO Officer'];
+    if (cswdoRoles.includes(role) || (department && department.toUpperCase() === 'CSWDO')) {
+        window.showSystemNotification({
+            title: 'Cross-Department Action Blocked',
+            message: 'Validation Error: Cannot create or assign CSWDO accounts within the PESO Admin portal.',
+            type: 'error'
+        });
+        return;
+    }
+
     if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.validateDepartmentScope) {
         const scopeCheck = PESOSafeguards.validateDepartmentScope('PESO', { role, department });
         if (!scopeCheck.allowed) {
@@ -246,6 +253,7 @@ async function handleCreateUserSubmit(e) {
     if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
         try {
             const res = await DataService.staffProfiles.create({
+                agency: 'PESO',
                 first_name: firstName,
                 middle_name: middleName,
                 last_name: lastName,
@@ -390,6 +398,17 @@ async function handleSaveUserUpdates(e) {
             title: 'Action Reason Required',
             message: 'Please provide a justification for this account modification.',
             type: 'warning'
+        });
+        return;
+    }
+
+    // Strict Cross-Department Validation
+    const cswdoRoles = ['CSWDO Admin', 'CSWDO Officer'];
+    if (cswdoRoles.includes(updatedRole) || (updatedDept && updatedDept.toUpperCase() === 'CSWDO')) {
+        window.showSystemNotification({
+            title: 'Cross-Department Action Blocked',
+            message: 'Validation Error: Cannot assign CSWDO roles or departments within the PESO Admin portal.',
+            type: 'error'
         });
         return;
     }

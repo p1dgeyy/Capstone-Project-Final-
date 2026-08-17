@@ -28,8 +28,7 @@ const AuthGuard = (() => {
   'use strict';
 
   // Map of pages to their allowed roles.
-  // NOTE: 'Evaluator' is no longer a standalone role — Officers (PESO/CSWDO)
-  // perform the evaluator function, so evaluator.html is allowed for Officers.
+  // Strict segregation: PESO portals only allow PESO roles, CSWDO portals only allow CSWDO roles.
   const PAGE_ROLE_MAP = {
     'beneficiary.html': ['Beneficiary'],
     'beneficiary_dashboard.html': ['Beneficiary'],
@@ -37,7 +36,7 @@ const AuthGuard = (() => {
     'peso_admin.html': ['PESO Admin'],
     'cswdo_officer.html': ['CSWDO Officer', 'CSWDO Admin'],
     'cswdo_admin.html': ['CSWDO Admin'],
-    'evaluator.html': ['PESO Officer', 'CSWDO Officer', 'PESO Admin', 'CSWDO Admin']
+    'evaluator.html': ['PESO Officer', 'PESO Admin', 'Evaluator']
   };
 
   // Role -> correct login portal. Used to bounce a user back to the RIGHT
@@ -382,6 +381,7 @@ const AuthGuard = (() => {
       'PESO Officer': 'peso_officer.html',
       'CSWDO Admin': 'cswdo_admin.html',
       'CSWDO Officer': 'cswdo_officer.html',
+      'Evaluator': 'evaluator.html',
       'Beneficiary': 'beneficiary.html'
     };
     return map[role] || null;
