@@ -22,19 +22,20 @@ function renderDashboardTables() {
 
 // Master Tab Navigation Controller
 function switchTab(tabName) {
-    const sections = ['Overview', 'Users', 'Scheduling', 'Evaluation', 'Assignment', 'Officers', 'Archive'];
+    const target = (tabName === 'officers') ? 'users' : tabName;
+    const sections = ['Overview', 'Users', 'Scheduling', 'Evaluation', 'Assignment', 'Archive'];
     sections.forEach(s => {
         const secEl = document.getElementById(`section${s}`);
         const tabEl = document.getElementById(`tabNav${s}`);
         if (secEl) {
-            if (s.toLowerCase() === tabName.toLowerCase()) {
+            if (s.toLowerCase() === target.toLowerCase()) {
                 secEl.classList.remove('d-none');
             } else {
                 secEl.classList.add('d-none');
             }
         }
         if (tabEl) {
-            if (s.toLowerCase() === tabName.toLowerCase()) {
+            if (s.toLowerCase() === target.toLowerCase()) {
                 tabEl.classList.add('active');
             } else {
                 tabEl.classList.remove('active');
@@ -42,25 +43,21 @@ function switchTab(tabName) {
         }
     });
 
-    if (tabName === 'overview') {
+    if (target === 'overview') {
         renderDashboardTables();
-    } else if (tabName === 'users') {
+    } else if (target === 'users') {
         renderUsersModule();
-    } else if (tabName === 'scheduling') {
+    } else if (target === 'scheduling') {
         renderSchedulingModule();
-    } else if (tabName === 'evaluation') {
+    } else if (target === 'evaluation') {
         renderEvalLevel1Programs();
-    } else if (tabName === 'assignment') {
+    } else if (target === 'assignment') {
         showLevel1Programs();
-    } else if (tabName === 'officers') {
-        initOfficersData();
-        fetchOfficersFromApi();
-        renderOfficersTables();
-    } else if (tabName === 'archive') {
+    } else if (target === 'archive') {
         renderArchiveTable();
     }
 
-    logAuditEvent('SWITCH_NAVIGATION_TAB', `Switched active navigation tab to "${tabName.toUpperCase()}"`);
+    logAuditEvent('SWITCH_NAVIGATION_TAB', `Switched active navigation tab to "${target.toUpperCase()}"`);
 }
 
 // Initial App Load Dispatcher & Unified Event Bindings
