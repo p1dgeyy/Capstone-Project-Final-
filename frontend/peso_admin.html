@@ -2114,91 +2114,190 @@
                     <div class="modal-body p-4">
                         <!-- Real-time Safeguard Validation Alert Box -->
                         <div id="createActivitySafeguardAlert"
-                            class="alert alert-warning py-2 mb-3 d-none align-items-center gap-2 small">
-                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                            class="alert alert-danger py-2 mb-3 d-none align-items-center gap-2 small">
+                            <i class="bi bi-exclamation-octagon-fill text-danger fs-5"></i>
                             <div id="createActivitySafeguardAlertMsg">Warning: Please check schedule details.</div>
                         </div>
 
-                        <div class="row g-3">
+                        <!-- 1. Schedule Label / Alarm Name -->
+                        <div class="card border-primary-subtle bg-light p-3 rounded-3 mb-3">
+                            <label for="actSlotLabel" class="form-label fw-bold text-primary mb-1">
+                                <i class="bi bi-tag-fill me-1"></i> Schedule Label / Alarm Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control form-control-lg fw-bold" id="actSlotLabel"
+                                placeholder="e.g. TUPAD: Batch 1 Community Orientation Session" required>
+                            <div class="text-muted small mt-1"><i class="bi bi-info-circle me-1"></i>Acts as the main reminder headline for Admins and Officers across notification channels.</div>
+                        </div>
+
+                        <!-- 2. Program Linkage & Officer Assignment -->
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label for="actProgram" class="form-label fw-semibold">Target Program Type <span
-                                        class="text-danger">*</span></label>
-                                <select class="form-select" id="actProgram" onchange="handleProgramSelectionChange()"
-                                    required>
-                                    <option value="TUPAD" data-code="TUPAD" selected>TUPAD (Emergency Employment
-                                        Assistance)</option>
-                                    <option value="SPES" data-code="SPES">SPES (Special Program for Employment of
-                                        Students)</option>
-                                    <option value="PFAS" data-code="PFAS">PFAS (Pangkabuhayan Assistance Special
-                                        Project)</option>
-                                    <option value="CKGIP" data-code="CKGIP">CKGIP (City of Koronadal Graduate
-                                        Internship)</option>
+                                <label for="actProgram" class="form-label fw-semibold">Target Program Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="actProgram" onchange="handleProgramSelectionChange()" required>
+                                    <option value="TUPAD" data-code="TUPAD" selected>TUPAD (Emergency Employment Assistance)</option>
+                                    <option value="SPES" data-code="SPES">SPES (Special Program for Employment of Students)</option>
+                                    <option value="PFAS" data-code="PFAS">PFAS (Pangkabuhayan Assistance Special Project)</option>
+                                    <option value="CKGIP" data-code="CKGIP">CKGIP (City of Koronadal Graduate Internship)</option>
                                 </select>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="actSubCategory" class="form-label fw-semibold">Program Sub-Category /
-                                    Project Name</label>
-                                <input type="text" class="form-control" id="actSubCategory"
-                                    placeholder="e.g. Community Beautification & Drainage Cleanup">
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="actBarangayCluster" class="form-label fw-semibold">Barangay Cluster
-                                    (Optional Metadata)</label>
-                                <select class="form-select" id="actBarangayCluster">
-                                    <option value="">-- Select Barangay Cluster --</option>
-                                    <option value="Cluster 1 - Poblacion Proper (Zones I, II, III, IV)">Cluster 1 -
-                                        Poblacion Proper (Zones I, II, III, IV)</option>
-                                    <option value="Cluster 2 - East Poblacion & Morales">Cluster 2 - East Poblacion &
-                                        Morales</option>
-                                    <option value="Cluster 3 - West Urban / General Paulino Santos">Cluster 3 - West
-                                        Urban / General Paulino Santos</option>
-                                    <option value="Cluster 4 - North Corridor (San Isidro, Concepcion)">Cluster 4 -
-                                        North Corridor (San Isidro, Concepcion)</option>
-                                    <option value="Cluster 5 - South Corridor (Saravia, Carpenter Hill)">Cluster 5 -
-                                        South Corridor (Saravia, Carpenter Hill)</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="actOfficer" class="form-label fw-semibold">Assigned PESO Officer <span
-                                        class="text-danger">*</span></label>
+                                <label for="actOfficer" class="form-label fw-semibold">Assigned PESO Officer <span class="text-danger">*</span></label>
                                 <select class="form-select" id="actOfficer" required>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="actSlotDate" class="form-label fw-semibold">Schedule Date <span
-                                        class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="actSlotDate" min="2026-08-01" required>
-                                <small class="text-muted" style="font-size: 0.75rem;"><i
-                                        class="bi bi-shield-lock me-1"></i>Past date restriction enforced</small>
+                                <label for="actSubCategory" class="form-label fw-semibold">Program Sub-Category / Project Name</label>
+                                <input type="text" class="form-control" id="actSubCategory"
+                                    placeholder="e.g. Community Beautification & Drainage Cleanup">
                             </div>
 
                             <div class="col-md-6">
-                                <label for="actTimeSlot" class="form-label fw-semibold">Time Slot Window <span
-                                        class="text-danger">*</span></label>
-                                <select class="form-select" id="actTimeSlot" required>
-                                    <option value="08:00 AM - 09:00 AM">08:00 AM - 09:00 AM</option>
-                                    <option value="09:00 AM - 10:00 AM" selected>09:00 AM - 10:00 AM</option>
-                                    <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
-                                    <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
-                                    <option value="01:00 PM - 02:00 PM">01:00 PM - 02:00 PM</option>
-                                    <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM</option>
-                                    <option value="03:00 PM - 04:00 PM">03:00 PM - 04:00 PM</option>
-                                    <option value="04:00 PM - 05:00 PM">04:00 PM - 05:00 PM</option>
-                                    <option value="08:00 AM - 12:00 PM (Batch Block)">08:00 AM - 12:00 PM (Batch Block)
-                                    </option>
-                                    <option value="01:00 PM - 05:00 PM (Batch Block)">01:00 PM - 05:00 PM (Batch Block)
-                                    </option>
+                                <label for="actBarangayCluster" class="form-label fw-semibold">Barangay Cluster (Optional Metadata)</label>
+                                <select class="form-select" id="actBarangayCluster">
+                                    <option value="">-- Select Barangay Cluster --</option>
+                                    <option value="Cluster 1 - Poblacion Proper (Zones I, II, III, IV)">Cluster 1 - Poblacion Proper (Zones I, II, III, IV)</option>
+                                    <option value="Cluster 2 - East Poblacion & Morales">Cluster 2 - East Poblacion & Morales</option>
+                                    <option value="Cluster 3 - West Urban / General Paulino Santos">Cluster 3 - West Urban / General Paulino Santos</option>
+                                    <option value="Cluster 4 - North Corridor (San Isidro, Concepcion)">Cluster 4 - North Corridor (San Isidro, Concepcion)</option>
+                                    <option value="Cluster 5 - South Corridor (Saravia, Carpenter Hill)">Cluster 5 - South Corridor (Saravia, Carpenter Hill)</option>
                                 </select>
                             </div>
+                        </div>
 
+                        <!-- 3. Smartphone-Style Wheel Time Picker -->
+                        <div class="form-sticky-header mb-2">
+                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-clock-history me-1.5"></i> 2. Smartphone Wheel Time Picker</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary fs-6 font-monospace" id="createSlotTimeWindowBadge">09:00 AM - 12:00 PM</span>
+                                <span class="badge bg-success font-monospace" id="createSlotDurationBadge">(3 Hours)</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <!-- Start Time Wheel -->
+                            <div class="col-md-6">
+                                <div class="wheel-picker-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold text-dark small"><i class="bi bi-play-circle-fill text-success me-1"></i>Start Time</span>
+                                        <span class="text-muted small">Scroll wheel to set</span>
+                                    </div>
+                                    <div class="wheel-picker-group">
+                                        <div class="wheel-column" id="startHourCol" title="Hour"></div>
+                                        <div class="wheel-separator">:</div>
+                                        <div class="wheel-column" id="startMinCol" title="Minute"></div>
+                                        <div class="wheel-column" id="startAmPmCol" title="AM / PM"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- End Time Wheel -->
+                            <div class="col-md-6">
+                                <div class="wheel-picker-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold text-dark small"><i class="bi bi-stop-circle-fill text-danger me-1"></i>End Time</span>
+                                        <span class="text-muted small">Scroll wheel to set</span>
+                                    </div>
+                                    <div class="wheel-picker-group">
+                                        <div class="wheel-column" id="endHourCol" title="Hour"></div>
+                                        <div class="wheel-separator">:</div>
+                                        <div class="wheel-column" id="endMinCol" title="Minute"></div>
+                                        <div class="wheel-column" id="endAmPmCol" title="AM / PM"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="actTimeSlot" value="09:00 AM - 12:00 PM">
+                        </div>
+
+                        <!-- 4. Date & Day Toggles (M T W T F S S) & Duration Control -->
+                        <div class="form-sticky-header mb-2">
+                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-calendar-range-fill me-1.5"></i> 3. Date, Day Toggles & Duration Controls</h6>
+                            <span class="scroll-guidance-hint"><i class="bi bi-arrow-repeat me-1"></i> Recurring Schedule Engine</span>
+                        </div>
+
+                        <div class="card border p-3 rounded-3 mb-3">
+                            <div class="row g-3 align-items-center mb-3">
+                                <div class="col-md-5">
+                                    <label for="actSlotDate" class="form-label fw-semibold mb-1">Start Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="actSlotDate" min="2026-08-01" onchange="updateRecurrencePreview()" required>
+                                    <small class="text-muted"><i class="bi bi-shield-lock me-1"></i>Past date restriction strictly enforced</small>
+                                </div>
+
+                                <div class="col-md-7">
+                                    <label class="form-label fw-semibold mb-1">Schedule Duration & Mode</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="recurrenceModeRadio" id="modeSingleRadio" value="single" onchange="setRecurrenceMode('single')">
+                                        <label class="btn btn-outline-primary fw-semibold btn-sm py-2" for="modeSingleRadio">Single Day</label>
+
+                                        <input type="radio" class="btn-check" name="recurrenceModeRadio" id="modeMultiRadio" value="multi_day" onchange="setRecurrenceMode('multi_day')">
+                                        <label class="btn btn-outline-primary fw-semibold btn-sm py-2" for="modeMultiRadio">Multi-Day</label>
+
+                                        <input type="radio" class="btn-check" name="recurrenceModeRadio" id="modeWeeklyRadio" value="weekly" checked onchange="setRecurrenceMode('weekly')">
+                                        <label class="btn btn-outline-primary fw-semibold btn-sm py-2" for="modeWeeklyRadio">Weekly Recurring</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Day Toggles (M T W T F S S) -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold mb-1.5 d-flex justify-content-between">
+                                    <span>Recurring Days of the Week:</span>
+                                    <span class="text-muted small">Toggle active days</span>
+                                </label>
+                                <div class="day-toggle-group">
+                                    <button type="button" class="day-toggle-btn" id="dayToggleBtn_1" onclick="toggleDayChip(1)" title="Monday">M</button>
+                                    <button type="button" class="day-toggle-btn" id="dayToggleBtn_2" onclick="toggleDayChip(2)" title="Tuesday">T</button>
+                                    <button type="button" class="day-toggle-btn" id="dayToggleBtn_3" onclick="toggleDayChip(3)" title="Wednesday">W</button>
+                                    <button type="button" class="day-toggle-btn" id="dayToggleBtn_4" onclick="toggleDayChip(4)" title="Thursday">T</button>
+                                    <button type="button" class="day-toggle-btn" id="dayToggleBtn_5" onclick="toggleDayChip(5)" title="Friday">F</button>
+                                    <button type="button" class="day-toggle-btn" id="dayToggleBtn_6" onclick="toggleDayChip(6)" title="Saturday">S</button>
+                                    <button type="button" class="day-toggle-btn" id="dayToggleBtn_0" onclick="toggleDayChip(0)" title="Sunday">S</button>
+                                </div>
+                            </div>
+
+                            <!-- Duration Weeks & Frequency -->
+                            <div class="row g-3">
+                                <div class="col-md-6" id="recurrenceWeeksContainer">
+                                    <label for="actRecurrenceWeeks" class="form-label fw-semibold mb-1">Number of Weeks</label>
+                                    <select class="form-select" id="actRecurrenceWeeks" onchange="updateRecurrencePreview()">
+                                        <option value="1">1 Week Training</option>
+                                        <option value="2">2 Weeks Training</option>
+                                        <option value="3">3 Weeks Training</option>
+                                        <option value="4" selected>4 Weeks Training (1 Month)</option>
+                                        <option value="6">6 Weeks Training</option>
+                                        <option value="8">8 Weeks Training (2 Months)</option>
+                                        <option value="12">12 Weeks Training (Quarter)</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6" id="recurrenceFreqContainer">
+                                    <label for="actRecurrenceFrequency" class="form-label fw-semibold mb-1">Repeat Frequency</label>
+                                    <select class="form-select" id="actRecurrenceFrequency" onchange="updateRecurrencePreview()">
+                                        <option value="1" selected>Every Week (Weekly)</option>
+                                        <option value="2">Every 2 Weeks (Bi-Weekly)</option>
+                                        <option value="4">Every 4 Weeks (Monthly)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Recurrence Schedule Preview Card -->
+                        <div class="recurrence-preview-card mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                <span class="fw-bold small text-dark"><i class="bi bi-calendar-check-fill text-success me-1"></i>Generated Schedule Summary</span>
+                                <span class="badge bg-success font-monospace" id="recurrenceSlotCountBadge">12 Slots Generated</span>
+                            </div>
+                            <div id="recurrenceDateListContainer" class="d-flex flex-wrap align-items-center">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- 5. Designated Venue & Admin Remarks -->
+                        <div class="row g-3 mb-3">
                             <div class="col-12">
-                                <label for="actLocation" class="form-label fw-semibold">Designated Venue / Location
-                                    <span class="text-danger">*</span></label>
+                                <label for="actLocation" class="form-label fw-semibold">Designated Venue / Location <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="actLocation" list="commonVenuesList"
                                     placeholder="e.g. PESO Main Office - Room A" required>
                                 <datalist id="commonVenuesList">
@@ -2214,18 +2313,58 @@
                             </div>
 
                             <div class="col-12">
-                                <label for="actRemarks" class="form-label fw-semibold">Admin Remarks / Instructions for
-                                    Assigned Officer</label>
+                                <label for="actRemarks" class="form-label fw-semibold">Admin Instructions / Operational Guidelines</label>
                                 <textarea class="form-control" id="actRemarks" rows="2"
-                                    placeholder="Optional notes (e.g. Target 25 displaced workers; ensure valid IDs & medical clearance)..."></textarea>
+                                    placeholder="Optional notes for assigned officer (e.g. Prepare attendance roster, verify valid IDs & training prerequisites)..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- 6. Alarm Lead Times & Multi-Tier Reminders -->
+                        <div class="form-sticky-header mb-2">
+                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-bell-fill me-1.5"></i> 4. Alarm Reminders & Lead Times</h6>
+                            <span class="scroll-guidance-hint"><i class="bi bi-shield-check me-1"></i> Multi-Level Alerting</span>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <div class="card p-2.5 border rounded-3 d-flex flex-row justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold small text-dark">24h Reminder</div>
+                                        <small class="text-muted">Day-Ahead Prep</small>
+                                    </div>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" id="slotAlarm24h" checked>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card p-2.5 border rounded-3 d-flex flex-row justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold small text-dark">1h Alert</div>
+                                        <small class="text-muted">Desk Readiness</small>
+                                    </div>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" id="slotAlarm1h" checked>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card p-2.5 border rounded-3 d-flex flex-row justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold small text-dark">10m Alarm</div>
+                                        <small class="text-muted">Imminent Chime</small>
+                                    </div>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" id="slotAlarm10m" checked>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm"
-                            id="scheduleActivitySubmitBtn">
+                        <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm" id="scheduleActivitySubmitBtn">
                             <i class="bi bi-calendar-check-fill me-1.5"></i> Create Slot & Dispatch to Officer
                         </button>
                     </div>
@@ -2400,70 +2539,55 @@
                     <div class="modal-body p-4">
                         <div class="alert alert-info py-2 mb-3 small d-flex align-items-center gap-2">
                             <i class="bi bi-shield-check text-info fs-5"></i>
-                            <div><strong>Officer Reassignment Flexibility:</strong> Admin can reassign officers prior to
-                                slot lock to balance workloads. Safeguards validate past dates and officer schedule
-                                conflicts.</div>
+                            <div><strong>Admin Slot Reassignment & Time Adjustments:</strong> Admin can update time windows, reassign officers, and modify alarm parameters prior to slot locking.</div>
                         </div>
 
-                        <div class="row g-3">
+                        <!-- Schedule Label / Title -->
+                        <div class="mb-3">
+                            <label for="editActTitleInput" class="form-label fw-bold text-primary mb-1">
+                                <i class="bi bi-tag-fill me-1"></i> Schedule Label / Title <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control fw-bold" id="editActTitleInput" required placeholder="Session Title...">
+                        </div>
+
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label for="editActProgramCode" class="form-label fw-semibold">Program Type (Fixed
-                                    Program Linkage)</label>
-                                <input type="text" class="form-control bg-light fw-bold" id="editActProgramCode"
-                                    readonly>
+                                <label for="editActProgramCode" class="form-label fw-semibold">Program Type (Fixed Linkage)</label>
+                                <input type="text" class="form-control bg-light fw-bold" id="editActProgramCode" readonly>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="editActOfficer" class="form-label fw-semibold">Assigned PESO Officer <span
-                                        class="text-danger">*</span></label>
+                                <label for="editActOfficer" class="form-label fw-semibold">Assigned PESO Officer <span class="text-danger">*</span></label>
                                 <select class="form-select" id="editActOfficer" required>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="editActDate" class="form-label fw-semibold">Schedule Date <span
-                                        class="text-danger">*</span></label>
+                                <label for="editActDate" class="form-label fw-semibold">Schedule Date <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" id="editActDate" min="2026-08-01" required>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="editActTimeSlot" class="form-label fw-semibold">Time Slot Window <span
-                                        class="text-danger">*</span></label>
-                                <select class="form-select" id="editActTimeSlot" required>
-                                    <option value="08:00 AM - 09:00 AM">08:00 AM - 09:00 AM</option>
-                                    <option value="09:00 AM - 10:00 AM">09:00 AM - 10:00 AM</option>
-                                    <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
-                                    <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
-                                    <option value="01:00 PM - 02:00 PM">01:00 PM - 02:00 PM</option>
-                                    <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM</option>
-                                    <option value="03:00 PM - 04:00 PM">03:00 PM - 04:00 PM</option>
-                                    <option value="04:00 PM - 05:00 PM">04:00 PM - 05:00 PM</option>
-                                    <option value="08:00 AM - 12:00 PM (Batch Block)">08:00 AM - 12:00 PM (Batch Block)
-                                    </option>
-                                    <option value="01:00 PM - 05:00 PM (Batch Block)">01:00 PM - 05:00 PM (Batch Block)
-                                    </option>
-                                </select>
+                                <label for="editActTimeSlot" class="form-label fw-semibold">Time Slot Window <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control fw-semibold" id="editActTimeSlot" placeholder="09:00 AM - 12:00 PM" required>
                             </div>
 
                             <div class="col-12">
-                                <label for="editActLocation" class="form-label fw-semibold">Location / Venue <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editActLocation" list="commonVenuesList"
-                                    required>
+                                <label for="editActLocation" class="form-label fw-semibold">Location / Venue <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editActLocation" list="commonVenuesList" required>
                             </div>
 
                             <div class="col-12">
-                                <label for="editActRemarks" class="form-label fw-semibold">Admin Remarks</label>
-                                <textarea class="form-control" id="editActRemarks" rows="2"></textarea>
+                                <label for="editActRemarks" class="form-label fw-semibold">Admin Operational Instructions</label>
+                                <textarea class="form-control" id="editActRemarks" rows="2" placeholder="Operational notes..."></textarea>
                             </div>
                         </div>
                     </div>
 
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4"><i
-                                class="bi bi-floppy-fill me-1"></i> Save Changes & Audit Log</button>
+                        <button type="submit" class="btn btn-warning fw-bold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Changes & Enforce</button>
                     </div>
                 </form>
             </div>

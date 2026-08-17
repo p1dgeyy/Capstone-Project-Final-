@@ -525,6 +525,343 @@ function resetSchedulingFilters() {
 }
 
 // --- CREATE SCHEDULE SLOT (PAST DATE & CONFLICT VALIDATION RESTRICTIONS) ---
+
+// =======================================================================
+// SMARTPHONE-STYLE WHEEL TIME PICKER & DAY TOGGLES RECURRENCE CONTROLLER
+// =======================================================================
+
+let selectedDayToggles = [1, 3, 5]; // Default: Mon, Wed, Fri (1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat, 0 = Sun)
+let currentRecurrenceMode = 'weekly'; // 'single', 'multi_day', 'weekly'
+let wheelPickerInstances = {};
+
+// Initialize Smartphone-Style Wheel Columns
+function initWheelPicker(prefix, defaultHour = 9, defaultMinute = 0, defaultAmPm = 'AM') {
+    const hourCol = document.getElementById(`${prefix}HourCol`);
+    const minCol = document.getElementById(`${prefix}MinCol`);
+    const ampmCol = document.getElementById(`${prefix}AmPmCol`);
+
+    if (!hourCol || !minCol || !ampmCol) return;
+
+    // 1. Populate Hours 01 - 12
+    hourCol.innerHTML = '';
+    for (let h = 1; h <= 12; h++) {
+        const hStr = String(h).padStart(2, '0');
+        const item = document.createElement('div');
+        item.className = `wheel-item ${h === defaultHour ? 'selected' : ''}`;
+        item.setAttribute('data-val', hStr);
+        item.textContent = hStr;
+        item.onclick = () => selectWheelItem(hourCol, item, prefix);
+        hourCol.appendChild(item);
+    }
+
+    // 2. Populate Minutes 00 - 55 (5-minute steps)
+    minCol.innerHTML = '';
+    for (let m = 0; m < 60; m += 5) {
+        const mStr = String(m).padStart(2, '0');
+        const item = document.createElement('div');
+        item.className = `wheel-item ${m === defaultMinute ? 'selected' : ''}`;
+        item.setAttribute('data-val', mStr);
+        item.textContent = mStr;
+        item.onclick = () => selectWheelItem(minCol, item, prefix);
+        minCol.appendChild(item);
+    }
+
+    // 3. Populate AM / PM
+    ampmCol.innerHTML = '';
+    ['AM', 'PM'].forEach(ampm => {
+        const item = document.createElement('div');
+        item.className = `wheel-item ${ampm === defaultAmPm ? 'selected' : ''}`;
+        item.setAttribute('data-val', ampm);
+        item.textContent = ampm;
+        item.onclick = () => selectWheelItem(ampmCol, item, prefix);
+        ampmCol.appendChild(item);
+    });
+
+    // Attach scroll snap sync
+    [hourCol, minCol, ampmCol].forEach(col => {
+        col.onscroll = () => handleWheelScroll(col, prefix);
+    });
+
+    // Initial positioning
+    setTimeout(() => {
+        scrollSelectedIntoView(hourCol);
+        scrollSelectedIntoView(minCol);
+        scrollSelectedIntoView(ampmCol);
+        updateLiveTimeDisplay();
+    }, 50);
+}
+
+function selectWheelItem(col, item, prefix) {
+    col.querySelectorAll('.wheel-item').forEach(i => i.classList.remove('selected'));
+    item.classList.add('selected');
+    scrollSelectedIntoView(col);
+    updateLiveTimeDisplay();
+}
+
+function scrollSelectedIntoView(col) {
+    const sel = col.querySelector('.wheel-item.selected');
+    if (sel) {
+        const targetScroll = sel.offsetTop - (col.clientHeight / 2) + (sel.clientHeight / 2);
+        col.scrollTo({ top: targetScroll, behavior: 'smooth' });
+    }
+}
+
+function handleWheelScroll(col, prefix) {
+    clearTimeout(col._scrollTimeout);
+    col._scrollTimeout = setTimeout(() => {
+        const center = col.scrollTop + (col.clientHeight / 2);
+        let closestItem = null;
+        let minDiff = Infinity;
+
+        col.querySelectorAll('.wheel-item').forEach(item => {
+            const itemCenter = item.offsetTop + (item.clientHeight / 2);
+            const diff = Math.abs(center - itemCenter);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestItem = item;
+            }
+        });
+
+        if (closestItem && !closestItem.classList.contains('selected')) {
+            col.querySelectorAll('.wheel-item').forEach(i => i.classList.remove('selected'));
+            closestItem.classList.add('selected');
+            updateLiveTimeDisplay();
+        }
+    }, 80);
+}
+
+function getWheelSelectedTime(prefix) {
+    const hourCol = document.getElementById(`${prefix}HourCol`);
+    const minCol = document.getElementById(`${prefix}MinCol`);
+    const ampmCol = document.getElementById(`${prefix}AmPmCol`);
+
+    const h = hourCol ? (hourCol.querySelector('.wheel-item.selected')?.getAttribute('data-val') || '09') : '09';
+    const m = minCol ? (minCol.querySelector('.wheel-item.selected')?.getAttribute('data-val') || '00') : '00';
+    const a = ampmCol ? (ampmCol.querySelector('.wheel-item.selected')?.getAttribute('data-val') || 'AM') : 'AM';
+
+    return `${h}:${m} ${a}`;
+}
+
+function setWheelTime(prefix, timeStr) {
+    if (!timeStr) return;
+    const parts = timeStr.trim().split(/[: ]+/);
+    if (parts.length < 3) return;
+    const h = String(parseInt(parts[0])).padStart(2, '0');
+    const m = String(parseInt(parts[1])).padStart(2, '0');
+    const a = parts[2].toUpperCase();
+
+    const hourCol = document.getElementById(`${prefix}HourCol`);
+    const minCol = document.getElementById(`${prefix}MinCol`);
+    const ampmCol = document.getElementById(`${prefix}AmPmCol`);
+
+    if (hourCol) {
+        hourCol.querySelectorAll('.wheel-item').forEach(i => {
+            i.classList.toggle('selected', i.getAttribute('data-val') === h);
+        });
+        scrollSelectedIntoView(hourCol);
+    }
+    if (minCol) {
+        minCol.querySelectorAll('.wheel-item').forEach(i => {
+            i.classList.toggle('selected', i.getAttribute('data-val') === m);
+        });
+        scrollSelectedIntoView(minCol);
+    }
+    if (ampmCol) {
+        ampmCol.querySelectorAll('.wheel-item').forEach(i => {
+            i.classList.toggle('selected', i.getAttribute('data-val') === a);
+        });
+        scrollSelectedIntoView(ampmCol);
+    }
+    updateLiveTimeDisplay();
+}
+
+function calculateTimeDuration(startTimeStr, endTimeStr) {
+    const parseMins = (tStr) => {
+        const p = tStr.split(/[: ]+/);
+        let h = parseInt(p[0]);
+        const m = parseInt(p[1]);
+        const ampm = p[2];
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        return h * 60 + m;
+    };
+
+    const startMins = parseMins(startTimeStr);
+    const endMins = parseMins(endTimeStr);
+    let diff = endMins - startMins;
+    if (diff <= 0) diff += 24 * 60; // next day wrap if applicable
+
+    const hours = Math.floor(diff / 60);
+    const mins = diff % 60;
+
+    if (hours > 0 && mins > 0) return `${hours} hr ${mins} mins`;
+    if (hours > 0) return `${hours} Hour${hours === 1 ? '' : 's'}`;
+    return `${mins} Mins`;
+}
+
+function updateLiveTimeDisplay() {
+    const start = getWheelSelectedTime('start');
+    const end = getWheelSelectedTime('end');
+    const duration = calculateTimeDuration(start, end);
+
+    const windowBadge = document.getElementById('createSlotTimeWindowBadge');
+    const durationBadge = document.getElementById('createSlotDurationBadge');
+    const hiddenTimeSlot = document.getElementById('actTimeSlot');
+
+    if (windowBadge) windowBadge.textContent = `${start} - ${end}`;
+    if (durationBadge) durationBadge.textContent = `(${duration})`;
+    if (hiddenTimeSlot) hiddenTimeSlot.value = `${start} - ${end}`;
+
+    updateRecurrencePreview();
+}
+
+// ---------------------------------------------------------------------
+// DAY TOGGLES & RECURRENCE ENGINE (M T W T F S S)
+// ---------------------------------------------------------------------
+
+function toggleDayChip(dayNum) {
+    const idx = selectedDayToggles.indexOf(dayNum);
+    if (idx > -1) {
+        if (selectedDayToggles.length > 1) { // keep at least 1 day selected
+            selectedDayToggles.splice(idx, 1);
+        }
+    } else {
+        selectedDayToggles.push(dayNum);
+        selectedDayToggles.sort((a, b) => a - b);
+    }
+    renderDayToggles();
+    updateRecurrencePreview();
+}
+
+function renderDayToggles() {
+    for (let d = 0; d < 7; d++) {
+        const btn = document.getElementById(`dayToggleBtn_${d}`);
+        if (btn) {
+            btn.classList.toggle('active', selectedDayToggles.includes(d));
+        }
+    }
+}
+
+function setRecurrenceMode(mode) {
+    currentRecurrenceMode = mode;
+    const weeksContainer = document.getElementById('recurrenceWeeksContainer');
+    const freqContainer = document.getElementById('recurrenceFreqContainer');
+
+    if (weeksContainer) weeksContainer.style.display = (mode === 'weekly') ? 'block' : 'none';
+    if (freqContainer) freqContainer.style.display = (mode === 'weekly') ? 'block' : 'none';
+
+    updateRecurrencePreview();
+}
+
+function calculateRecurringScheduleDates(startDateStr, selectedDays, mode, weeksCount = 4, frequency = 1) {
+    if (!startDateStr) return ['2026-08-10'];
+    const start = new Date(startDateStr + 'T00:00:00');
+    if (isNaN(start.getTime())) return ['2026-08-10'];
+
+    if (mode === 'single') {
+        return [startDateStr];
+    }
+
+    const dates = [];
+    const totalWeeks = Math.max(1, parseInt(weeksCount) || 1);
+    const stepWeeks = Math.max(1, parseInt(frequency) || 1);
+
+    for (let w = 0; w < totalWeeks; w += stepWeeks) {
+        for (let d = 0; d < 7; d++) {
+            if (selectedDays.includes(d)) {
+                // Calculate date for day d in week w
+                const currentWeekStart = new Date(start);
+                currentWeekStart.setDate(start.getDate() + (w * 7));
+                
+                // Align to target day of week
+                const startDay = currentWeekStart.getDay(); // 0 = Sun, 1 = Mon ...
+                const diffDays = d - startDay;
+                const targetDate = new Date(currentWeekStart);
+                targetDate.setDate(currentWeekStart.getDate() + diffDays);
+
+                // Only include dates on or after the chosen start date
+                if (targetDate >= start) {
+                    const yyyy = targetDate.getFullYear();
+                    const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(targetDate.getDate()).padStart(2, '0');
+                    const dateStr = `${yyyy}-${mm}-${dd}`;
+                    if (!dates.includes(dateStr)) {
+                        dates.push(dateStr);
+                    }
+                }
+            }
+        }
+    }
+
+    dates.sort();
+    return dates.length > 0 ? dates : [startDateStr];
+}
+
+function updateRecurrencePreview() {
+    const startDateInput = document.getElementById('actSlotDate');
+    const startDateStr = startDateInput ? startDateInput.value : '2026-08-10';
+    const weeksInput = document.getElementById('actRecurrenceWeeks');
+    const weeksCount = weeksInput ? parseInt(weeksInput.value) || 4 : 4;
+    const freqSelect = document.getElementById('actRecurrenceFrequency');
+    const freq = freqSelect ? parseInt(freqSelect.value) || 1 : 1;
+
+    const dates = calculateRecurringScheduleDates(startDateStr, selectedDayToggles, currentRecurrenceMode, weeksCount, freq);
+
+    const countBadge = document.getElementById('recurrenceSlotCountBadge');
+    const dateListEl = document.getElementById('recurrenceDateListContainer');
+    const durationBadge = document.getElementById('createSlotDurationBadge');
+
+    if (countBadge) {
+        countBadge.textContent = `${dates.length} Slot${dates.length === 1 ? '' : 's'} Generated`;
+    }
+
+    if (dateListEl) {
+        const previewDates = dates.slice(0, 8);
+        const moreCount = dates.length - previewDates.length;
+
+        dateListEl.innerHTML = previewDates.map(d => {
+            const dt = new Date(d + 'T00:00:00');
+            const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dt.getDay()];
+            return `<span class="date-pill-tag"><i class="bi bi-calendar-event me-1 text-primary"></i>${dayName} ${d}</span>`;
+        }).join('') + (moreCount > 0 ? `<span class="date-pill-tag bg-primary-subtle text-primary fw-bold">+${moreCount} more dates</span>` : '');
+    }
+}
+
+// Multi-Date Conflict Detection
+function detectMultiSlotConflicts(datesArray, timeSlot, officerId) {
+    if (!Array.isArray(datesArray) || !officerId || !Array.isArray(activitiesList)) {
+        return { hasConflict: false, conflicts: [] };
+    }
+
+    const conflicts = [];
+    datesArray.forEach(d => {
+        activitiesList.forEach(slot => {
+            if (!slot || slot.slot_status === 'Cancelled' || slot.status === 'Cancelled') return;
+            const slotDate = slot.date || (slot.start_datetime ? slot.start_datetime.substring(0, 10) : '');
+            const slotTime = slot.time || slot.schedule_time || '';
+            const slotOfficerId = slot.officer_id || slot.assigned_officer_id;
+
+            const isSameDate = (slotDate === d);
+            const isSameTime = (slotTime === timeSlot || slotTime.split(' - ')[0] === timeSlot.split(' - ')[0]);
+            const isSameOfficer = (slotOfficerId === officerId);
+
+            if (isSameDate && isSameTime && isSameOfficer) {
+                conflicts.push({
+                    date: d,
+                    time: slotTime,
+                    conflictingSlotId: slot.slot_id || slot.id,
+                    conflictingSlotTitle: slot.title || slot.program_name
+                });
+            }
+        });
+    });
+
+    return {
+        hasConflict: conflicts.length > 0,
+        conflicts: conflicts
+    };
+}
+
 function openCreateScheduleSlotModal(defaultDate) {
     const form = document.getElementById('createActivityForm');
     if (form) form.reset();
@@ -534,10 +871,24 @@ function openCreateScheduleSlotModal(defaultDate) {
         dateInput.value = defaultDate || '2026-08-10';
     }
 
+    const labelInput = document.getElementById('actSlotLabel');
+    if (labelInput) {
+        labelInput.value = 'TUPAD: Batch 1 Community Orientation Session';
+    }
+
     const alertBox = document.getElementById('createActivitySafeguardAlert');
     if (alertBox) alertBox.classList.add('d-none');
 
     populateSchedulingDropdowns();
+    renderDayToggles();
+
+    // Initialize Smartphone-Style Wheel Pickers
+    initWheelPicker('start', 9, 0, 'AM');
+    initWheelPicker('end', 12, 0, 'PM');
+
+    setRecurrenceMode('weekly');
+    updateRecurrencePreview();
+
     safeOpenModal('createActivityModal');
 }
 window.openCreateActivityModal = openCreateScheduleSlotModal;
@@ -548,11 +899,15 @@ async function handleCreateScheduleSlotSubmit(e) {
     const progSelect = document.getElementById('actProgram');
     const programCode = progSelect ? progSelect.value : 'TUPAD';
     const programName = progSelect && progSelect.selectedIndex >= 0 ? progSelect.options[progSelect.selectedIndex].text : 'TUPAD';
-    const subCategory = (document.getElementById('actSubCategory') ? document.getElementById('actSubCategory').value : '').trim();
+    const slotLabel = (document.getElementById('actSlotLabel') ? document.getElementById('actSlotLabel').value : '').trim() || `${programCode}: Assessment Session`;
+    const subCategory = (document.getElementById('actSubCategory') ? document.getElementById('actSubCategory').value : '').trim() || slotLabel;
     const barangayCluster = (document.getElementById('actBarangayCluster') ? document.getElementById('actBarangayCluster').value : '').trim();
 
-    const slotDate = document.getElementById('actSlotDate').value;
-    const timeSlot = document.getElementById('actTimeSlot').value;
+    const slotDate = document.getElementById('actSlotDate').value || '2026-08-10';
+    const startTime = getWheelSelectedTime('start');
+    const endTime = getWheelSelectedTime('end');
+    const timeSlot = `${startTime} - ${endTime}`;
+    const duration = calculateTimeDuration(startTime, endTime);
     const venue = document.getElementById('actLocation').value.trim();
 
     const offSelect = document.getElementById('actOfficer');
@@ -568,7 +923,7 @@ async function handleCreateScheduleSlotSubmit(e) {
         const alertBox = document.getElementById('createActivitySafeguardAlert');
         const alertMsg = document.getElementById('createActivitySafeguardAlertMsg');
         if (alertBox && alertMsg) {
-            alertMsg.textContent = 'Past Date Restriction: System blocks scheduling program slots on past dates.';
+            alertMsg.textContent = 'Past Date Restriction: System strictly blocks scheduling program slots on past dates.';
             alertBox.classList.remove('d-none');
         }
         window.showSystemNotification({
@@ -579,115 +934,114 @@ async function handleCreateScheduleSlotSubmit(e) {
         return;
     }
 
-    // RULE 2: CONFLICT VALIDATION RESTRICTION (Same officer, date, and overlapping time)
-    const hasConflict = activitiesList.some(a => {
-        const isSameOfficer = (a.officer_id === officerId || a.assigned_officer_id === officerId);
-        const isSameDate = (a.date === slotDate || (a.start_datetime || '').startsWith(slotDate));
-        const isSameTime = (a.time === timeSlot || a.schedule_time === timeSlot);
-        const isNotCancelled = a.slot_status !== 'Cancelled' && a.status !== 'Cancelled';
-        return isSameOfficer && isSameDate && isSameTime && isNotCancelled;
-    });
+    // Generate Recurring Dates Series
+    const weeksInput = document.getElementById('actRecurrenceWeeks');
+    const weeksCount = weeksInput ? parseInt(weeksInput.value) || 4 : 4;
+    const freqSelect = document.getElementById('actRecurrenceFrequency');
+    const freq = freqSelect ? parseInt(freqSelect.value) || 1 : 1;
+    const targetDates = calculateRecurringScheduleDates(slotDate, selectedDayToggles, currentRecurrenceMode, weeksCount, freq);
 
-    if (hasConflict) {
+    // RULE 2: MULTI-DATE CONFLICT DETECTION
+    const conflictResult = detectMultiSlotConflicts(targetDates, timeSlot, officerId);
+    if (conflictResult.hasConflict) {
         const alertBox = document.getElementById('createActivitySafeguardAlert');
         const alertMsg = document.getElementById('createActivitySafeguardAlertMsg');
+        const firstConflict = conflictResult.conflicts[0];
         if (alertBox && alertMsg) {
-            alertMsg.textContent = `Conflict Validation: ${officerName} already has an assigned slot at ${timeSlot} on ${slotDate}.`;
+            alertMsg.textContent = `Schedule Conflict Restriction: ${officerName} already has an assigned slot (${firstConflict.conflictingSlotId}) at ${firstConflict.time} on ${firstConflict.date}. Please pick another time slot or officer.`;
             alertBox.classList.remove('d-none');
         }
         window.showSystemNotification({
             title: 'Schedule Conflict Restriction',
-            message: `${officerName} is already booked at that time. Please pick another time or officer.`,
+            message: `${officerName} is already booked on ${firstConflict.date} (${firstConflict.time}).`,
             type: 'warning'
         });
         return;
     }
 
-    const newSlotId = 'SLOT-' + String(Date.now()).slice(-4);
-    const newSlot = {
-        id: Date.now(),
-        slot_id: newSlotId,
-        program_code: programCode,
-        program_name: programName,
-        program_sub_category: subCategory || 'General Program Activity',
-        barangay_cluster: barangayCluster || '',
-        title: `${programCode}: ${subCategory || programName}`,
-        category: 'Program Activity',
-        date: slotDate,
-        start_datetime: `${slotDate}T${timeSlot.split(' - ')[0] || '09:00'}`,
-        end_datetime: `${slotDate}T${timeSlot.split(' - ')[1] || '10:00'}`,
-        time: timeSlot,
-        schedule_time: timeSlot,
-        duration: '1 Hour',
-        venue: venue,
-        location: venue,
-        officer_id: officerId,
-        officer_name: officerName,
-        assigned_officer_id: officerId,
-        assigned_officer_name: `${officerName} (PESO Officer)`,
-        remarks: remarks,
-        slot_status: 'Active',
-        status: 'Active',
-        is_locked: false,
-        lock_status: 'Unlocked',
-        scheduling_mode: 'Unassigned',
-        beneficiary_name: '',
-        batch_name: '',
-        batch_count: 0,
-        created_at: new Date().toISOString(),
-        created_by: 'PESO Admin',
-        updated_at: new Date().toISOString()
-    };
+    // Create Slot Instances for all target recurring dates
+    const createdSlotIds = [];
+    for (let i = 0; i < targetDates.length; i++) {
+        const dateItem = targetDates[i];
+        const newSlotId = 'SLOT-' + String(Date.now() + i).slice(-4);
+        const slotInstance = {
+            id: Date.now() + i,
+            slot_id: newSlotId,
+            program_code: programCode,
+            program_name: programName,
+            program_sub_category: subCategory,
+            barangay_cluster: barangayCluster || '',
+            title: targetDates.length > 1 ? `${slotLabel} (Session ${i + 1}/${targetDates.length})` : slotLabel,
+            category: 'Program Activity',
+            date: dateItem,
+            start_datetime: `${dateItem}T${startTime.split(' ')[0]}`,
+            end_datetime: `${dateItem}T${endTime.split(' ')[0]}`,
+            time: timeSlot,
+            schedule_time: timeSlot,
+            duration: duration,
+            venue: venue,
+            location: venue,
+            officer_id: officerId,
+            officer_name: officerName,
+            assigned_officer_id: officerId,
+            assigned_officer_name: `${officerName} (PESO Officer)`,
+            remarks: remarks,
+            slot_status: 'Active',
+            status: 'Active',
+            is_locked: false,
+            lock_status: 'Unlocked',
+            scheduling_mode: 'Unassigned',
+            beneficiary_name: '',
+            batch_name: '',
+            batch_count: 0,
+            created_at: new Date().toISOString(),
+            created_by: 'PESO Admin',
+            updated_at: new Date().toISOString(),
+            alarm_config: {
+                enabled: true,
+                tiers: {
+                    tier_24h: { enabled: true, lead_minutes: 1440, triggered: false, acknowledged: false },
+                    tier_1h: { enabled: true, lead_minutes: 60, triggered: false, acknowledged: false },
+                    tier_10m: { enabled: true, lead_minutes: 10, triggered: false, acknowledged: false }
+                },
+                channels: { portal_banner: true, audio_chime: true, push_notification: true },
+                snooze: { is_snoozed: false, snooze_until: null, snoozed_by: null, snooze_count: 0 }
+            }
+        };
 
-    if (typeof DataService !== 'undefined' && DataService.interviews) {
-        try {
-            const prog = (Array.isArray(programsList) ? programsList : []).find(p => p.code === programCode);
-            const createRes = await DataService.interviews.create({
-                agency: 'PESO',
-                program_id: prog ? prog.id : null,
-                officer_id: officerId,
-                title: newSlot.title,
-                scheduled_date: slotDate,
-                scheduled_time: newSlot.start_datetime,
-                location: venue,
-                notes: remarks,
-                status: 'Active'
-            });
-
-            if (createRes && createRes.error) {
-                window.showSystemNotification({
-                    title: 'Creation Failed',
-                    message: createRes.error.message || 'Failed to create schedule slot in Supabase.',
-                    type: 'error'
+        if (typeof DataService !== 'undefined' && DataService.interviews) {
+            try {
+                const prog = (Array.isArray(programsList) ? programsList : []).find(p => p.code === programCode);
+                await DataService.interviews.create({
+                    agency: 'PESO',
+                    program_id: prog ? prog.id : null,
+                    officer_id: officerId,
+                    title: slotInstance.title,
+                    scheduled_date: dateItem,
+                    scheduled_time: slotInstance.start_datetime,
+                    location: venue,
+                    notes: remarks,
+                    status: 'Active'
                 });
-                return;
+            } catch (err) {
+                console.warn('[SCHEDULING] Database sync notice:', err);
             }
-
-            if (createRes && createRes.data && createRes.data.id) {
-                newSlot.id = createRes.data.id;
-            }
-        } catch (err) {
-            console.error('[SCHEDULING] Supabase interview create error:', err);
-            window.showSystemNotification({
-                title: 'Database Error',
-                message: 'Failed to communicate with Supabase. Slot creation aborted.',
-                type: 'error'
-            });
-            return;
         }
+
+        activitiesList.unshift(slotInstance);
+        createdSlotIds.push(newSlotId);
     }
 
-    activitiesList.unshift(newSlot);
     const adminId = sessionStorage.getItem('userId') || '1';
     const adminUser = sessionStorage.getItem('username') || 'peso-admin';
-    logAuditEvent('CREATE_PROGRAM_SCHEDULE_SLOT', `PESO Admin [ID:${adminId}, ${adminUser}] created slot ${newSlot.slot_id} for ${programCode} on ${slotDate} (${timeSlot}) at ${venue}. Assigned Officer: ${officerName}`, 'interview_schedule');
+    logAuditEvent('CREATE_RECURRING_SCHEDULE_SLOTS', `PESO Admin [${adminUser}] created ${targetDates.length} schedule slot(s) for ${programCode} spanning ${targetDates[0]} to ${targetDates[targetDates.length - 1]} (${timeSlot}) at ${venue}. Assigned Officer: ${officerName}`, 'interview_schedule');
 
     safeHideModal('createActivityModal');
     renderSchedulingModule();
 
     window.showSystemNotification({
-        title: 'Schedule Slot Created',
-        message: `Slot ${newSlot.slot_id} created with program linkage (${programCode}) and dispatched to ${officerName}.`,
+        title: `${targetDates.length} Schedule Slot(s) Created`,
+        message: `Successfully published ${targetDates.length} recurring session(s) dispatched to ${officerName}.`,
         type: 'success'
     });
 }
@@ -857,12 +1211,13 @@ function openEditSlotModal(slotId) {
     setVal('editActId', act.id);
     const badge = document.getElementById('editActIdBadge');
     if (badge) badge.textContent = act.slot_id || `ID: ${act.id}`;
+    setVal('editActTitleInput', act.title || act.program_name || 'Program Schedule Session');
     setVal('editActProgramCode', `${act.program_code || 'TUPAD'} - ${act.program_name || 'Program Linkage'}`);
 
     populateSchedulingDropdowns();
     setVal('editActOfficer', act.officer_id || act.assigned_officer_id || 1);
     setVal('editActDate', act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-10'));
-    setVal('editActTimeSlot', act.time || act.schedule_time || '09:00 AM - 10:00 AM');
+    setVal('editActTimeSlot', act.time || act.schedule_time || '09:00 AM - 12:00 PM');
     setVal('editActLocation', act.venue || act.location || 'PESO Main Office');
     setVal('editActRemarks', act.remarks || '');
 
@@ -889,6 +1244,7 @@ async function handleSaveSlotUpdates(e) {
         return;
     }
 
+    const newTitle = (document.getElementById('editActTitleInput') ? document.getElementById('editActTitleInput').value : '').trim() || act.title;
     const offSelect = document.getElementById('editActOfficer');
     const newOfficerId = Number(offSelect.value);
     const officer = (Array.isArray(officersList) ? officersList : usersList).find(o => o.id === newOfficerId);
@@ -959,6 +1315,7 @@ async function handleSaveSlotUpdates(e) {
     act.venue = newVenue;
     act.location = newVenue;
     act.remarks = newRemarks;
+    act.title = newTitle;
     act.updated_at = new Date().toISOString();
 
     const adminId = sessionStorage.getItem('userId') || '1';
@@ -1916,4 +2273,12 @@ window.exportSchedulingPDF = exportSchedulingPDF;
 window.exportArchiveCSV = exportArchiveCSV;
 window.jumpToCalendarToday = jumpToCalendarToday;
 window.openEligibleRecipientsModal = openEligibleRecipientsModal;
+
+window.initWheelPicker = initWheelPicker;
+window.getWheelSelectedTime = getWheelSelectedTime;
+window.setWheelTime = setWheelTime;
+window.toggleDayChip = toggleDayChip;
+window.setRecurrenceMode = setRecurrenceMode;
+window.updateRecurrencePreview = updateRecurrencePreview;
+
 
