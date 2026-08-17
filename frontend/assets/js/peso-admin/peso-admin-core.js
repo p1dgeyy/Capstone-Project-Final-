@@ -208,11 +208,23 @@ function maskContactNumber(phone) {
 }
 
 // --- SHARED UTILITIES & THEME ---
+function clearCachedAdminData() {
+    try {
+        localStorage.removeItem('peso_immutable_audit_logs');
+        localStorage.removeItem('peso_failed_attempts');
+        localStorage.removeItem('peso_lockout_until');
+        console.log('[PESO Admin] Cached site data cleared. Forcing fresh reload from Supabase.');
+    } catch (e) {
+        console.warn('[PESO Admin] Error clearing cached data:', e);
+    }
+}
+
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
 }
 
 function logoutAdmin() {
+    clearCachedAdminData();
     if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
         SessionManager.logout('admin_login.html');
     } else {
@@ -233,6 +245,7 @@ window.safeOpenModal = window.safeOpenModal || safeOpenModal;
 window.safeHideModal = window.safeHideModal || safeHideModal;
 window.safeCloseModal = window.safeCloseModal || safeCloseModal;
 window.logAuditEvent = window.logAuditEvent || logAuditEvent;
+window.clearCachedAdminData = clearCachedAdminData;
 // Expose the phone masker under the historically-checked name
 window.maskPhoneNumber = window.maskPhoneNumber || maskContactNumber;
 // Keep the original name available as well

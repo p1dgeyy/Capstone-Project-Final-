@@ -47,6 +47,9 @@
     document.addEventListener('DOMContentLoaded', () => {
         checkLockoutStatus();
 
+        // Clear any stale cached credentials/sessions on login portal load
+        ['userId', 'userRole', 'username', 'userFullName', 'department', 'jwtAccessToken', 'sessionToken'].forEach(k => sessionStorage.removeItem(k));
+
         // Reset form inputs so no credentials persist on page refresh
         const loginForm = document.getElementById('loginForm');
         if (loginForm) loginForm.reset();

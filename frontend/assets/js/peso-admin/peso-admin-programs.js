@@ -191,63 +191,88 @@ async function handleCreateProgramSubmit(e) {
 
 // --- DETAILS BUTTON: STRICTLY READ-ONLY PROGRAM DETAILS MODAL (RULE 1) ---
 function openProgramDetailsViewModal(progId) {
-    const prog = programsList.find(p => p.id === progId);
-    if (!prog) return;
+    if (!Array.isArray(programsList)) programsList = [];
+    const prog = programsList.find(p => p && p.id === progId);
+    if (!prog) {
+        console.warn('[PROGRAMS] Program not found for ID:', progId);
+        window.showSystemNotification({ title: 'Program Notice', message: 'Requested program details could not be loaded.', type: 'warning' });
+        return;
+    }
 
-    document.getElementById('viewProgName').textContent = prog.name;
-    document.getElementById('viewProgCode').textContent = prog.code;
-    document.getElementById('viewProgCategory').textContent = prog.category;
-    document.getElementById('viewProgBudget').textContent = '₱' + Number(prog.budget).toLocaleString('en-US', { minimumFractionDigits: 2 });
-    document.getElementById('viewProgBeneficiaries').textContent = `${prog.beneficiaries_count || 0} beneficiaries enrolled`;
-    document.getElementById('viewProgDesc').textContent = prog.description || 'N/A';
-    document.getElementById('viewProgTarget').textContent = prog.target_beneficiaries || 'N/A';
-    document.getElementById('viewProgAssistance').textContent = prog.assistance_type || 'N/A';
-    document.getElementById('viewProgEligibility').textContent = prog.eligibility_criteria || 'N/A';
-    document.getElementById('viewProgLimitations').textContent = prog.limitations || 'N/A';
-    document.getElementById('viewProgOrdinance').textContent = prog.ordinance || 'Appropriation Ordinance No. 6, Series of 2025';
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val || 'N/A';
+    };
+
+    setText('viewProgName', prog.name);
+    setText('viewProgCode', prog.code);
+    setText('viewProgCategory', prog.category);
+    setText('viewProgBudget', '₱' + Number(prog.budget || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }));
+    setText('viewProgBeneficiaries', `${prog.beneficiaries_count || 0} beneficiaries enrolled`);
+    setText('viewProgDesc', prog.description);
+    setText('viewProgTarget', prog.target_beneficiaries);
+    setText('viewProgAssistance', prog.assistance_type);
+    setText('viewProgEligibility', prog.eligibility_criteria);
+    setText('viewProgLimitations', prog.limitations);
+    setText('viewProgOrdinance', prog.ordinance || 'Appropriation Ordinance No. 6, Series of 2025');
 
     const statusBadge = document.getElementById('viewProgStatus');
     if (statusBadge) {
-        statusBadge.textContent = prog.status;
-        statusBadge.className = prog.status === 'Active' ? 'badge bg-success fs-6' : 'badge bg-secondary fs-6';
+        statusBadge.textContent = prog.status || 'Active';
+        statusBadge.className = (prog.status === 'Active') ? 'badge bg-success fs-6' : 'badge bg-secondary fs-6';
     }
 
     safeOpenModal('programDetailsViewModal');
-    logAuditEvent('VIEW_PROGRAM_DETAILS', `Opened read-only program details reference for ${prog.code} (${prog.name})`);
+    logAuditEvent('VIEW_PROGRAM_DETAILS', `Opened read-only program details reference for ${prog.code || progId} (${prog.name || ''})`);
 }
 
 // --- EDIT BUTTON: EDITABLE PROGRAM FORM MODAL (WITH AUDIT LOGGING) ---
 function openProgramEditModal(progId) {
-    const prog = programsList.find(p => p.id === progId);
-    if (!prog) return;
+    if (!Array.isArray(programsList)) programsList = [];
+    const prog = programsList.find(p => p && p.id === progId);
+    if (!prog) {
+        console.warn('[PROGRAMS] Program not found for ID:', progId);
+        window.showSystemNotification({ title: 'Program Notice', message: 'Program record not found.', type: 'warning' });
+        return;
+    }
 
-    document.getElementById('editProgId').value = prog.id;
-    document.getElementById('editModalCodeBadge').textContent = prog.code;
-    document.getElementById('editProgName').value = prog.name;
-    document.getElementById('editProgCode').value = prog.code;
-    document.getElementById('editProgBudget').value = prog.budget;
-    document.getElementById('editProgAssistance').value = prog.assistance_type || '';
-    document.getElementById('editProgDesc').value = prog.description || '';
-    document.getElementById('editProgTarget').value = prog.target_beneficiaries || '';
-    document.getElementById('editProgEligibility').value = prog.eligibility_criteria || '';
-    document.getElementById('editProgLimitations').value = prog.limitations || '';
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
+    setVal('editProgId', prog.id);
+    const badge = document.getElementById('editModalCodeBadge');
+    if (badge) badge.textContent = prog.code || '';
+    setVal('editProgName', prog.name);
+    setVal('editProgCode', prog.code);
+    setVal('editProgBudget', prog.budget || 0);
+    setVal('editProgAssistance', prog.assistance_type);
+    setVal('editProgDesc', prog.description);
+    setVal('editProgTarget', prog.target_beneficiaries);
+    setVal('editProgEligibility', prog.eligibility_criteria);
+    setVal('editProgLimitations', prog.limitations);
 
     safeOpenModal('programEditModal');
 }
 
 async function handleSaveProgramUpdates(e) {
     e.preventDefault();
-    const progId = Number(document.getElementById('editProgId').value);
-    const prog = programsList.find(p => p.id === progId);
-    if (!prog) return;
+    const editIdEl = document.getElementById('editProgId');
+    const progId = editIdEl ? Number(editIdEl.value) : null;
+    const prog = programsList.find(p => p && p.id === progId);
+    if (!prog) {
+        window.showSystemNotification({ title: 'Update Error', message: 'Program not found in current roster.', type: 'danger' });
+        return;
+    }
 
-    const updatedName = document.getElementById('editProgName').value.trim();
-    const updatedBudget = Number(document.getElementById('editProgBudget').value) || 0;
-    const updatedAssistance = document.getElementById('editProgAssistance').value.trim();
-    const updatedDesc = document.getElementById('editProgDesc').value.trim();
-    const updatedTarget = document.getElementById('editProgTarget').value.trim();
-    const updatedEligibility = document.getElementById('editProgEligibility').value.trim();
-    const updatedLimitations = document.getElementById('editProgLimitations').value.trim();
+    const updatedName = (document.getElementById('editProgName')?.value || '').trim();
+    const updatedBudget = Number(document.getElementById('editProgBudget')?.value) || 0;
+    const updatedAssistance = (document.getElementById('editProgAssistance')?.value || '').trim();
+    const updatedDesc = (document.getElementById('editProgDesc')?.value || '').trim();
+    const updatedTarget = (document.getElementById('editProgTarget')?.value || '').trim();
+    const updatedEligibility = (document.getElementById('editProgEligibility')?.value || '').trim();
+    const updatedLimitations = (document.getElementById('editProgLimitations')?.value || '').trim();
 
     prog.name = updatedName;
     prog.budget = updatedBudget;

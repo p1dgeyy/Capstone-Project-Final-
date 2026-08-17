@@ -299,48 +299,68 @@ async function handleCreateUserSubmit(e) {
 
 // Strictly Read-Only Details Modal (Compliant with User Rule 1)
 function openUserDetailsModal(userId) {
-    const usr = usersList.find(u => u.id === userId);
-    if (!usr) return;
+    if (!Array.isArray(usersList)) usersList = [];
+    const usr = usersList.find(u => u && u.id === userId);
+    if (!usr) {
+        console.warn('[USERS] User record not found for ID:', userId);
+        window.showSystemNotification({ title: 'User Notice', message: 'User details could not be retrieved.', type: 'warning' });
+        return;
+    }
 
-    const fullName = `${usr.first_name} ${usr.middle_name || ''} ${usr.last_name} ${usr.suffix && usr.suffix !== 'N/A' ? usr.suffix : ''}`.trim();
-    document.getElementById('viewUserFullName').textContent = fullName;
-    document.getElementById('viewUserUsername').textContent = usr.username;
-    document.getElementById('viewUserEmail').textContent = usr.email;
-    document.getElementById('viewUserRoleBadge').textContent = usr.role;
-    document.getElementById('viewUserDepartment').textContent = usr.department || 'PESO';
-    document.getElementById('viewUserPhone').textContent = maskContactNumber(usr.phone || '0917-000-0000');
-    document.getElementById('viewUserSex').textContent = usr.sex || 'Male';
-    document.getElementById('viewUserAddress').textContent = usr.address || 'City of Koronadal';
-    document.getElementById('viewUserFailedAttempts').textContent = `${usr.failed_attempts || 0} / 5 attempts`;
+    const fullName = `${usr.first_name || ''} ${usr.middle_name || ''} ${usr.last_name || ''} ${usr.suffix && usr.suffix !== 'N/A' ? usr.suffix : ''}`.trim() || usr.username || 'N/A';
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val || 'N/A';
+    };
+
+    setText('viewUserFullName', fullName);
+    setText('viewUserUsername', usr.username);
+    setText('viewUserEmail', usr.email);
+    setText('viewUserRoleBadge', usr.role);
+    setText('viewUserDepartment', usr.department || 'PESO');
+    setText('viewUserPhone', maskContactNumber(usr.phone || '0917-000-0000'));
+    setText('viewUserSex', usr.sex || 'Male');
+    setText('viewUserAddress', usr.address || 'City of Koronadal');
+    setText('viewUserFailedAttempts', `${usr.failed_attempts || 0} / 5 attempts`);
 
     const statusBadge = document.getElementById('viewUserStatusBadge');
     if (statusBadge) {
-        statusBadge.textContent = usr.status;
+        statusBadge.textContent = usr.status || 'Active';
         statusBadge.className = usr.status === 'Active' ? 'badge bg-success px-3 py-1.5' : (usr.status === 'Locked' ? 'badge bg-danger px-3 py-1.5' : 'badge bg-secondary px-3 py-1.5');
     }
 
-    document.getElementById('viewUserCreatedAt').textContent = usr.created_at ? new Date(usr.created_at).toLocaleString() : 'N/A';
-    document.getElementById('viewUserLastLogin').textContent = usr.last_login ? new Date(usr.last_login).toLocaleString() : 'Never logged in';
+    setText('viewUserCreatedAt', usr.created_at ? new Date(usr.created_at).toLocaleString() : 'N/A');
+    setText('viewUserLastLogin', usr.last_login ? new Date(usr.last_login).toLocaleString() : 'Never logged in');
 
     logAuditEvent('VIEW_USER_DETAILS', `Inspected read-only details for user ID ${usr.id} (${usr.username})`);
     safeOpenModal('userDetailsModal');
 }
 
 function openEditUserModal(userId) {
-    const usr = usersList.find(u => u.id === userId);
-    if (!usr) return;
+    if (!Array.isArray(usersList)) usersList = [];
+    const usr = usersList.find(u => u && u.id === userId);
+    if (!usr) {
+        console.warn('[USERS] User record not found for ID:', userId);
+        window.showSystemNotification({ title: 'User Notice', message: 'User record not found.', type: 'warning' });
+        return;
+    }
 
-    document.getElementById('editUsrId').value = usr.id;
-    document.getElementById('editUsrFullName').value = `${usr.first_name} ${usr.middle_name || ''} ${usr.last_name} ${usr.suffix && usr.suffix !== 'N/A' ? usr.suffix : ''}`.trim();
-    document.getElementById('editUsrUsername').value = usr.username;
-    document.getElementById('editUsrEmail').value = usr.email;
-    document.getElementById('editUsrPhone').value = usr.phone || '';
-    document.getElementById('editUsrRole').value = usr.role;
-    document.getElementById('editUsrDept').value = usr.department || 'PESO';
-    document.getElementById('editUsrStatus').value = usr.status || 'Active';
-    document.getElementById('editUsrAddress').value = usr.address || 'City of Koronadal';
-    document.getElementById('editUsrNewPassword').value = '';
-    document.getElementById('editUsrActionReason').value = '';
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
+    setVal('editUsrId', usr.id);
+    setVal('editUsrFullName', `${usr.first_name || ''} ${usr.middle_name || ''} ${usr.last_name || ''} ${usr.suffix && usr.suffix !== 'N/A' ? usr.suffix : ''}`.trim());
+    setVal('editUsrUsername', usr.username);
+    setVal('editUsrEmail', usr.email);
+    setVal('editUsrPhone', usr.phone);
+    setVal('editUsrRole', usr.role || 'PESO Officer');
+    setVal('editUsrDept', usr.department || 'PESO');
+    setVal('editUsrStatus', usr.status || 'Active');
+    setVal('editUsrAddress', usr.address || 'City of Koronadal');
+    setVal('editUsrNewPassword', '');
+    setVal('editUsrActionReason', '');
 
     safeOpenModal('editUserModal');
 }
@@ -348,18 +368,22 @@ function openEditUserModal(userId) {
 async function handleSaveUserUpdates(e) {
     e.preventDefault();
 
-    const userId = Number(document.getElementById('editUsrId').value);
-    const usr = usersList.find(u => u.id === userId);
-    if (!usr) return;
+    const editIdEl = document.getElementById('editUsrId');
+    const userId = editIdEl ? Number(editIdEl.value) : null;
+    const usr = usersList.find(u => u && u.id === userId);
+    if (!usr) {
+        window.showSystemNotification({ title: 'Update Notice', message: 'Target user account not found.', type: 'danger' });
+        return;
+    }
 
-    const updatedUsername = document.getElementById('editUsrUsername').value.trim();
-    const updatedEmail = document.getElementById('editUsrEmail').value.trim();
-    const updatedPhone = document.getElementById('editUsrPhone').value.trim();
-    const updatedRole = document.getElementById('editUsrRole').value;
-    const updatedDept = document.getElementById('editUsrDept').value;
-    const updatedStatus = document.getElementById('editUsrStatus').value;
-    const updatedAddress = document.getElementById('editUsrAddress').value.trim();
-    const actionReason = document.getElementById('editUsrActionReason').value.trim();
+    const updatedUsername = (document.getElementById('editUsrUsername')?.value || '').trim();
+    const updatedEmail = (document.getElementById('editUsrEmail')?.value || '').trim();
+    const updatedPhone = (document.getElementById('editUsrPhone')?.value || '').trim();
+    const updatedRole = document.getElementById('editUsrRole')?.value || 'PESO Officer';
+    const updatedDept = document.getElementById('editUsrDept')?.value || 'PESO';
+    const updatedStatus = document.getElementById('editUsrStatus')?.value || 'Active';
+    const updatedAddress = (document.getElementById('editUsrAddress')?.value || '').trim();
+    const actionReason = (document.getElementById('editUsrActionReason')?.value || '').trim();
 
     if (!actionReason) {
         window.showSystemNotification({

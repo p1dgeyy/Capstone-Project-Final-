@@ -288,19 +288,30 @@ function filterEvalLevel3Apps() {
 
 // --- LEVEL 4: REVIEW SUBMITTED LIVELIHOOD CASE FILE MODAL ---
 function openReviewCaseFileModal(appId) {
+    if (!Array.isArray(evalApplicationsList)) evalApplicationsList = [];
     activeReviewAppId = appId;
-    const app = evalApplicationsList.find(a => a.id === appId);
-    if (!app) return;
+    const app = evalApplicationsList.find(a => a && a.id === appId);
+    if (!app) {
+        console.warn('[EVALUATION] Application not found for ID:', appId);
+        window.showSystemNotification({ title: 'Evaluation Notice', message: 'Application case file not found.', type: 'warning' });
+        return;
+    }
 
-    document.getElementById('reviewApplicantName').textContent = app.applicant_name;
-    document.getElementById('reviewProgramBatchTag').textContent = `${app.program_code} — ${app.batch_num}`;
-    document.getElementById('reviewApplicantContact').textContent = maskContactNumber(app.phone);
-    document.getElementById('reviewApplicantAddress').textContent = app.address || 'Koronadal City';
-    document.getElementById('reviewApplicantCivilStatus').textContent = app.civil_status || 'Single';
-    document.getElementById('reviewApplicantSpouse').textContent = app.spouse_name || 'N/A';
-    document.getElementById('reviewApplicantChildren').textContent = app.children_info || 'None';
-    document.getElementById('reviewSubmissionDate').textContent = app.date_submitted;
-    document.getElementById('reviewActionAssessmentNotes').value = app.notes || '';
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val || 'N/A';
+    };
+
+    setText('reviewApplicantName', app.applicant_name);
+    setText('reviewProgramBatchTag', `${app.program_code || 'TUPAD'} — ${app.batch_num || 'Batch 1'}`);
+    setText('reviewApplicantContact', maskContactNumber(app.phone));
+    setText('reviewApplicantAddress', app.address || 'Koronadal City');
+    setText('reviewApplicantCivilStatus', app.civil_status || 'Single');
+    setText('reviewApplicantSpouse', app.spouse_name || 'N/A');
+    setText('reviewApplicantChildren', app.children_info || 'None');
+    setText('reviewSubmissionDate', app.date_submitted || '2026-08-01');
+    const notesInput = document.getElementById('reviewActionAssessmentNotes');
+    if (notesInput) notesInput.value = app.notes || '';
 
     const verifBadge = document.getElementById('reviewVerificationStatusBadge');
     if (verifBadge) {
@@ -313,23 +324,24 @@ function openReviewCaseFileModal(appId) {
     const docsTable = document.getElementById('reviewDocumentsTableBody');
     if (docsTable) {
         docsTable.innerHTML = '';
-        const docsList = app.docs || [
+        const docsList = Array.isArray(app.docs) ? app.docs : [
             { type: 'Valid ID', file_name: 'PhilID_Document.pdf', status: 'Verified' },
             { type: 'Barangay Clearance', file_name: 'Brgy_Clearance.pdf', status: 'Verified' },
             { type: 'Program Requirements', file_name: 'Business_Proposal.pdf', status: 'Verified' }
         ];
 
         docsList.forEach(doc => {
+            if (!doc) return;
             docsTable.innerHTML += `
                 <tr>
-                    <td><strong>${escapeHtml(doc.type)}</strong></td>
-                    <td><code>${escapeHtml(doc.file_name)}</code></td>
+                    <td><strong>${escapeHtml(doc.type || 'Document')}</strong></td>
+                    <td><code>${escapeHtml(doc.file_name || 'file.pdf')}</code></td>
                     <td class="text-center"><span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>${doc.status || 'Verified'}</span></td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-info me-1" onclick="previewDocument('${escapeHtml(doc.type)}', '${escapeHtml(doc.file_name)}')">
+                        <button class="btn btn-sm btn-outline-info me-1" onclick="previewDocument('${escapeHtml(doc.type || 'Doc')}', '${escapeHtml(doc.file_name || 'file.pdf')}')">
                             <i class="bi bi-eye"></i> Preview
                         </button>
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" onclick="window.showSystemNotification({ title: 'Download Notice', message: 'Downloading ${escapeHtml(doc.file_name)} compliance record...', type: 'info' })">
+                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" onclick="window.showSystemNotification({ title: 'Download Notice', message: 'Downloading ${escapeHtml(doc.file_name || 'file.pdf')} compliance record...', type: 'info' })">
                             <i class="bi bi-download"></i> Download
                         </a>
                     </td>
@@ -339,7 +351,7 @@ function openReviewCaseFileModal(appId) {
     }
 
     safeOpenModal('reviewCaseFileModal');
-    logAuditEvent('REVIEW_CASE_FILE', `Opened Case File Review Modal for Applicant: ${app.applicant_name} (App ID: ${app.id})`);
+    logAuditEvent('REVIEW_CASE_FILE', `Opened Case File Review Modal for Applicant: ${app.applicant_name || 'Applicant'} (App ID: ${app.id})`);
 }
 
 function previewDocument(docType, fileName) {

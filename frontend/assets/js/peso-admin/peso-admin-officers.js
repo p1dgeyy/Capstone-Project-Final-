@@ -262,27 +262,41 @@ async function handleCreateOfficerSubmit(e) {
 }
 
 function openEditOfficerModal(officerId) {
-    const off = officersList.find(o => o.id === officerId);
-    if (!off) return;
+    if (!Array.isArray(officersList)) officersList = [];
+    const off = officersList.find(o => o && o.id === officerId);
+    if (!off) {
+        console.warn('[OFFICERS] Officer record not found for ID:', officerId);
+        window.showSystemNotification({ title: 'Officer Notice', message: 'Officer details not found.', type: 'warning' });
+        return;
+    }
 
-    document.getElementById('editOffId').value = off.id;
-    document.getElementById('editOffFullName').value = `${off.first_name} ${off.middle_name || ''} ${off.last_name} ${off.suffix !== 'N/A' ? off.suffix : ''}`.trim();
-    document.getElementById('editOffUsername').value = off.username;
-    document.getElementById('editOffEmail').value = off.email;
-    document.getElementById('editOffPhone').value = off.phone || '';
-    document.getElementById('editOffRole').value = off.role;
-    document.getElementById('editOffDepartment').value = off.department || 'PESO';
-    document.getElementById('editOffAddress').value = off.address || 'City of Koronadal';
-    document.getElementById('editOffStatus').value = off.status;
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
+    setVal('editOffId', off.id);
+    setVal('editOffFullName', `${off.first_name || ''} ${off.middle_name || ''} ${off.last_name || ''} ${off.suffix && off.suffix !== 'N/A' ? off.suffix : ''}`.trim());
+    setVal('editOffUsername', off.username);
+    setVal('editOffEmail', off.email);
+    setVal('editOffPhone', off.phone);
+    setVal('editOffRole', off.role || 'PESO Officer');
+    setVal('editOffDepartment', off.department || 'PESO');
+    setVal('editOffAddress', off.address || 'City of Koronadal');
+    setVal('editOffStatus', off.status || 'Active');
 
     safeOpenModal('editOfficerModal');
 }
 
 async function handleSaveOfficerUpdates(e) {
     e.preventDefault();
-    const offId = Number(document.getElementById('editOffId').value);
-    const off = officersList.find(o => o.id === offId);
-    if (!off) return;
+    const offIdEl = document.getElementById('editOffId');
+    const offId = offIdEl ? Number(offIdEl.value) : null;
+    const off = officersList.find(o => o && o.id === offId);
+    if (!off) {
+        window.showSystemNotification({ title: 'Update Error', message: 'Target officer account not found.', type: 'danger' });
+        return;
+    }
 
     const updatedUsername = (document.getElementById('editOffUsername').value || '').trim();
     const updatedEmail = (document.getElementById('editOffEmail').value || '').trim();

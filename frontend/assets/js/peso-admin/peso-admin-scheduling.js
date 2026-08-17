@@ -654,24 +654,34 @@ window.handleCreateActivitySubmit = handleCreateScheduleSlotSubmit;
 
 // --- VIEW SLOT DETAILS MODAL (STRICTLY READ-ONLY, RULE 1) ---
 function openViewSlotDetailsModal(slotId) {
+    if (!Array.isArray(activitiesList)) activitiesList = [];
     activeViewingActivityId = slotId;
-    const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
-    if (!act) return;
+    const act = activitiesList.find(a => a && (a.id === slotId || a.slot_id === slotId));
+    if (!act) {
+        console.warn('[SCHEDULING] Slot details not found for ID:', slotId);
+        window.showSystemNotification({ title: 'Schedule Notice', message: 'Slot details could not be retrieved.', type: 'warning' });
+        return;
+    }
 
-    document.getElementById('viewActModalTitle').textContent = `Program Slot: ${act.slot_id || 'SLOT-' + act.id}`;
-    document.getElementById('viewActSlotIdBadge').textContent = act.slot_id || `SLOT-${act.id}`;
-    document.getElementById('viewActProgramBadge').textContent = act.program_code || 'TUPAD';
-    document.getElementById('viewActTitle').textContent = act.title || act.program_name || 'Program Schedule Session';
-    document.getElementById('viewActSubCategory').textContent = act.program_sub_category ? `Sub-category: ${act.program_sub_category}` : 'General Program Operations';
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val || 'N/A';
+    };
+
+    setText('viewActModalTitle', `Program Slot: ${act.slot_id || 'SLOT-' + act.id}`);
+    setText('viewActSlotIdBadge', act.slot_id || `SLOT-${act.id}`);
+    setText('viewActProgramBadge', act.program_code || 'TUPAD');
+    setText('viewActTitle', act.title || act.program_name || 'Program Schedule Session');
+    setText('viewActSubCategory', act.program_sub_category ? `Sub-category: ${act.program_sub_category}` : 'General Program Operations');
 
     const dateStr = act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-08');
     const timeStr = act.time || act.schedule_time || '09:00 AM - 10:00 AM';
-    document.getElementById('viewActDateTime').textContent = `${dateStr} • ${timeStr}`;
-    document.getElementById('viewActDuration').textContent = `Assigned Cluster: ${act.barangay_cluster || 'Citywide / General'}`;
+    setText('viewActDateTime', `${dateStr} • ${timeStr}`);
+    setText('viewActDuration', `Assigned Cluster: ${act.barangay_cluster || 'Citywide / General'}`);
 
-    document.getElementById('viewActLocation').textContent = act.venue || act.location || 'PESO Main Office';
-    document.getElementById('viewActCluster').textContent = act.remarks ? `Admin Remarks: "${act.remarks}"` : 'No special remarks entered.';
-    document.getElementById('viewActAssignedOfficer').textContent = act.officer_name || act.assigned_officer_name || 'Assigned Officer';
+    setText('viewActLocation', act.venue || act.location || 'PESO Main Office');
+    setText('viewActCluster', act.remarks ? `Admin Remarks: "${act.remarks}"` : 'No special remarks entered.');
+    setText('viewActAssignedOfficer', act.officer_name || act.assigned_officer_name || 'Assigned Officer');
 
     const isLocked = act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked';
     const isCancelled = act.slot_status === 'Cancelled' || act.status === 'Cancelled';
@@ -781,8 +791,13 @@ function triggerCancelFromView() {
 
 // --- EDIT PROGRAM SLOT (ADMIN ONLY) ---
 function openEditSlotModal(slotId) {
-    const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
-    if (!act) return;
+    if (!Array.isArray(activitiesList)) activitiesList = [];
+    const act = activitiesList.find(a => a && (a.id === slotId || a.slot_id === slotId));
+    if (!act) {
+        console.warn('[SCHEDULING] Slot not found for ID:', slotId);
+        window.showSystemNotification({ title: 'Schedule Notice', message: 'Slot details not found.', type: 'warning' });
+        return;
+    }
 
     if (act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked') {
         window.showSystemNotification({
@@ -793,16 +808,22 @@ function openEditSlotModal(slotId) {
         return;
     }
 
-    document.getElementById('editActId').value = act.id;
-    document.getElementById('editActIdBadge').textContent = act.slot_id || `ID: ${act.id}`;
-    document.getElementById('editActProgramCode').value = `${act.program_code} - ${act.program_name || 'Program Linkage'}`;
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
+    setVal('editActId', act.id);
+    const badge = document.getElementById('editActIdBadge');
+    if (badge) badge.textContent = act.slot_id || `ID: ${act.id}`;
+    setVal('editActProgramCode', `${act.program_code || 'TUPAD'} - ${act.program_name || 'Program Linkage'}`);
 
     populateSchedulingDropdowns();
-    document.getElementById('editActOfficer').value = act.officer_id || act.assigned_officer_id || 1;
-    document.getElementById('editActDate').value = act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-10');
-    document.getElementById('editActTimeSlot').value = act.time || act.schedule_time || '09:00 AM - 10:00 AM';
-    document.getElementById('editActLocation').value = act.venue || act.location || 'PESO Main Office';
-    document.getElementById('editActRemarks').value = act.remarks || '';
+    setVal('editActOfficer', act.officer_id || act.assigned_officer_id || 1);
+    setVal('editActDate', act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-10'));
+    setVal('editActTimeSlot', act.time || act.schedule_time || '09:00 AM - 10:00 AM');
+    setVal('editActLocation', act.venue || act.location || 'PESO Main Office');
+    setVal('editActRemarks', act.remarks || '');
 
     safeOpenModal('editActivityModal');
 }
@@ -810,9 +831,13 @@ window.openEditActivityModal = openEditSlotModal;
 
 function handleSaveSlotUpdates(e) {
     e.preventDefault();
-    const actId = Number(document.getElementById('editActId').value);
-    const act = activitiesList.find(a => a.id === actId);
-    if (!act) return;
+    const actIdEl = document.getElementById('editActId');
+    const actId = actIdEl ? Number(actIdEl.value) : null;
+    const act = activitiesList.find(a => a && a.id === actId);
+    if (!act) {
+        window.showSystemNotification({ title: 'Update Notice', message: 'Target schedule slot not found.', type: 'danger' });
+        return;
+    }
 
     if (act.is_locked || act.slot_status === 'Locked') {
         window.showSystemNotification({
