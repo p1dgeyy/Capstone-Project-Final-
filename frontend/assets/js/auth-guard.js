@@ -200,6 +200,9 @@ const AuthGuard = (() => {
             profile = { ...benByEmail, role: 'Beneficiary', id: benByEmail.qr_code };
             supabaseClient.from('beneficiaries').update({ auth_id: user.id }).eq('id', benByEmail.id).then(() => {});
           }
+        } catch (e) {}
+      }
+
       // 5. Fallback to user_metadata or derived profile
       if (!profile && user) {
         const meta = user.user_metadata || {};
@@ -262,8 +265,6 @@ const AuthGuard = (() => {
         _currentUserProfile = fallback;
         return fallback;
       }
-      return null;
-    }
       return null;
     }
   }

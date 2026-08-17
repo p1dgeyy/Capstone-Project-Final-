@@ -41,49 +41,210 @@ function setupModalLifecycleListeners(modalEl) {
     });
 }
 
+// Robust fallback Bootstrap Modal controller for offline / unbundled environments
+class FallbackBootstrapModal {
+    constructor(element, options = {}) {
+        this.element = typeof element === 'string' ? document.getElementById(element) : element;
+        this.options = options || {};
+        this.backdropEl = null;
+        this._isShown = false;
+        if (this.element) {
+            this.element._bsModalInstance = this;
+        }
+    }
+
+    show() {
+        if (!this.element) return;
+        if (this._isShown) return;
+        this._isShown = true;
+
+        setupModalLifecycleListeners(this.element);
+
+        // Dispatch standard show event
+        const showEvent = new CustomEvent('show.bs.modal', { bubbles: true, cancelable: true });
+        this.element.dispatchEvent(showEvent);
+        if (showEvent.defaultPrevented) {
+            this._isShown = false;
+            return;
+        }
+
+        // Apply display & accessibility attributes
+        this.element.classList.add('show');
+        this.element.style.display = 'block';
+        this.element.removeAttribute('aria-hidden');
+        this.element.setAttribute('aria-modal', 'true');
+        this.element.setAttribute('role', 'dialog');
+        document.body.classList.add('modal-open');
+
+        // Create Backdrop
+        if (!document.querySelector('.modal-backdrop')) {
+            this.backdropEl = document.createElement('div');
+            this.backdropEl.className = 'modal-backdrop fade show';
+            document.body.appendChild(this.backdropEl);
+
+            if (this.options.backdrop !== 'static') {
+                this.backdropEl.addEventListener('click', () => {
+                    this.hide();
+                });
+            }
+        }
+
+        // Handle Escape Key
+        this._escListener = (e) => {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                if (this.options.keyboard !== false && this.options.backdrop !== 'static') {
+                    this.hide();
+                }
+            }
+        };
+        document.addEventListener('keydown', this._escListener);
+
+        // Handle dismiss buttons
+        this._dismissListener = (e) => {
+            const btn = e.target.closest('[data-bs-dismiss="modal"]');
+            if (btn && this.element.contains(btn)) {
+                e.preventDefault();
+                this.hide();
+            }
+        };
+        this.element.addEventListener('click', this._dismissListener);
+
+        // Dispatch shown event
+        setTimeout(() => {
+            if (this._isShown && this.element) {
+                this.element.dispatchEvent(new CustomEvent('shown.bs.modal', { bubbles: true }));
+                const focusTarget = this.element.querySelector('[autofocus], input:not([type="hidden"]), select, textarea, button:not(.btn-close)') || this.element;
+                try { focusTarget.focus(); } catch (e) {}
+            }
+        }, 50);
+    }
+
+    hide() {
+        if (!this.element || !this._isShown) return;
+        this._isShown = false;
+
+        const hideEvent = new CustomEvent('hide.bs.modal', { bubbles: true, cancelable: true });
+        this.element.dispatchEvent(hideEvent);
+
+        this.element.classList.remove('show');
+        this.element.style.display = 'none';
+        this.element.setAttribute('aria-hidden', 'true');
+        this.element.removeAttribute('aria-modal');
+
+        if (this.backdropEl) {
+            this.backdropEl.remove();
+            this.backdropEl = null;
+        }
+        const existingBackdrop = document.querySelector('.modal-backdrop');
+        if (existingBackdrop && !document.querySelector('.modal.show')) {
+            existingBackdrop.remove();
+        }
+
+        if (this._escListener) {
+            document.removeEventListener('keydown', this._escListener);
+        }
+        if (this._dismissListener) {
+            this.element.removeEventListener('click', this._dismissListener);
+        }
+
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }
+
+        this.element.dispatchEvent(new CustomEvent('hidden.bs.modal', { bubbles: true }));
+    }
+
+    static getInstance(element) {
+        if (!element) return null;
+        return element._bsModalInstance || null;
+    }
+
+    static getOrCreateInstance(element, options = {}) {
+        if (!element) return null;
+        return element._bsModalInstance || new FallbackBootstrapModal(element, options);
+    }
+}
+
+// Polyfill window.bootstrap if not loaded from CDN
+if (typeof window.bootstrap === 'undefined') {
+    window.bootstrap = { Modal: FallbackBootstrapModal };
+} else if (!window.bootstrap.Modal) {
+    window.bootstrap.Modal = FallbackBootstrapModal;
+}
+
 function safeOpenModal(modalId, options = {}) {
     try {
-        const modalEl = document.getElementById(modalId);
+        const modalEl = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
         if (!modalEl) {
-            console.error(`[Modal Error] Target #${modalId} not found in DOM.`);
-            window.showSystemNotification({
-                title: 'Dialog Error',
-                message: `Target modal window (#${modalId}) could not be located.`,
-                type: 'danger'
-            });
+            console.warn(`[Modal Warning] Target #${modalId} not found in DOM.`);
             return null;
         }
 
         setupModalLifecycleListeners(modalEl);
 
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const instance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl, options);
-            instance.show();
-            return instance;
-        } else {
-            throw new Error('Bootstrap Modal library is not loaded');
+        // 1. Try Native / Polyfilled Bootstrap Modal
+        if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+            try {
+                const instance = window.bootstrap.Modal.getInstance(modalEl) || window.bootstrap.Modal.getOrCreateInstance(modalEl, options);
+                if (instance && typeof instance.show === 'function') {
+                    instance.show();
+                    return instance;
+                }
+            } catch (bsErr) {
+                console.warn(`[Modal Fallback] Bootstrap show failed on #${modalEl.id}:`, bsErr);
+            }
         }
+
+        // 2. Direct Fallback Modal
+        const fallback = FallbackBootstrapModal.getOrCreateInstance(modalEl, options);
+        fallback.show();
+        return fallback;
     } catch (err) {
-        console.error(`[Modal Error] Failed to open modal #${modalId}:`, err);
-        window.showSystemNotification({
-            title: 'Modal Launch Failure',
-            message: `Could not open #${modalId}: ${err.message}`,
-            type: 'danger'
-        });
+        console.warn(`[Modal Error] Failed to open modal #${modalId}:`, err);
         return null;
     }
 }
 
 function safeHideModal(modalId) {
     try {
-        const modalEl = document.getElementById(modalId);
+        const modalEl = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
         if (!modalEl) return;
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const instance = bootstrap.Modal.getInstance(modalEl);
-            if (instance) instance.hide();
+
+        // 1. Try Native Bootstrap Modal instance
+        if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+            try {
+                const instance = window.bootstrap.Modal.getInstance(modalEl);
+                if (instance && typeof instance.hide === 'function') {
+                    instance.hide();
+                }
+            } catch (e) {}
+        }
+
+        // 2. Try Fallback instance
+        const fallback = FallbackBootstrapModal.getInstance(modalEl);
+        if (fallback && typeof fallback.hide === 'function') {
+            fallback.hide();
+        }
+
+        // 3. Guaranteed DOM state restoration
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+        modalEl.removeAttribute('aria-modal');
+
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop && !document.querySelector('.modal.show')) {
+            backdrop.remove();
+        }
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
         }
     } catch (err) {
-        console.error(`[Modal Error] Failed to hide modal #${modalId}:`, err);
+        console.warn(`[Modal Error] Failed to hide modal #${modalId}:`, err);
     }
 }
 
@@ -94,13 +255,13 @@ function safeCloseModal(modalId) {
 // --- AUTOMATED BATCH TESTING TOOL FOR ALL MODALS ---
 window.runModalBatchTest = async function () {
     const modalIds = [
-        'programDetailsViewModal', 'programEditModal', 'createProgramModal',
-        'beneficiaryProfileModal', 'reviewCaseFileModal', 'docPreviewModal',
-        'restrictionWarningModal', 'uploadOrdinanceModal', 'ordinanceReferenceModal',
-        'auditLogsModal', 'newOfficerModal', 'editOfficerModal',
+        'createProgramModal', 'programDetailsViewModal', 'programEditModal',
+        'uploadOrdinanceModal', 'ordinanceReferenceModal', 'newUserModal',
+        'userDetailsModal', 'editUserModal', 'userActionConfirmModal',
         'createActivityModal', 'viewActivityDetailsModal', 'editActivityModal',
-        'cancelActivityModal', 'eligibleRecipientsModal', 'userDetailsModal',
-        'newUserModal', 'editUserModal', 'userActionConfirmModal'
+        'cancelActivityModal', 'eligibleRecipientsModal', 'reviewCaseFileModal',
+        'docPreviewModal', 'beneficiaryProfileModal', 'auditLogsModal',
+        'restrictionWarningModal'
     ];
 
     console.log(`[Batch Modal Test] Starting automated sequence on ${modalIds.length} modals...`);

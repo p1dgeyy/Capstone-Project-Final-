@@ -335,8 +335,12 @@ const OTPAuth = (() => {
                 if (typeof onVerify === 'function') {
                     await onVerify(otpCode);
                 }
-                const bsModal = bootstrap.Modal.getInstance(modalEl);
-                if (bsModal) bsModal.hide();
+                if (typeof window.safeHideModal === 'function') {
+                    window.safeHideModal(modalEl);
+                } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const bsModal = bootstrap.Modal.getInstance(modalEl);
+                    if (bsModal) bsModal.hide();
+                }
             } catch (err) {
                 alertTextEl.textContent = err.message || 'Invalid or expired code.';
                 alertEl.classList.remove('d-none');
@@ -364,9 +368,13 @@ const OTPAuth = (() => {
             }
         };
 
-        const modalInstance = new bootstrap.Modal(modalEl);
-        modalInstance.show();
-        setTimeout(() => digitInputs[0].focus(), 400);
+        if (typeof window.safeOpenModal === 'function') {
+            window.safeOpenModal(modalEl);
+        } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modalInstance.show();
+        }
+        setTimeout(() => digitInputs[0] && digitInputs[0].focus(), 400);
     }
 
     /**

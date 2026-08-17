@@ -478,8 +478,9 @@ function openUserActionModal(actionType, userId) {
     const usr = usersList.find(u => u.id === userId);
     if (!usr) return;
 
+    const normalizedType = String(actionType || '').toLowerCase();
     document.getElementById('userActionTargetId').value = userId;
-    document.getElementById('userActionType').value = actionType;
+    document.getElementById('userActionType').value = normalizedType;
     document.getElementById('userActionReasonInput').value = '';
 
     const header = document.getElementById('userActionConfirmHeader');
@@ -489,38 +490,56 @@ function openUserActionModal(actionType, userId) {
     const alertBox = document.getElementById('userActionAlertBox');
     const submitBtn = document.getElementById('userActionSubmitBtn');
 
-    if (actionType === 'unlock') {
-        header.className = 'modal-header rounded-top-4 py-3 bg-warning text-dark';
-        icon.className = 'bi bi-unlock-fill fs-4';
-        title.textContent = 'Unlock User Account';
-        banner.innerHTML = `<div class="text-warning mb-2"><i class="bi bi-unlock-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Unlock "${usr.username}"?</h5><p class="text-muted small">Reset failed attempt counter and restore active login permissions.</p>`;
-        alertBox.innerHTML = `<i class="bi bi-info-circle-fill me-1 text-warning"></i> <strong>Audit Requirement:</strong> Unlocking an account will reset the 5 failed attempts counter to 0 and record the admin identity.`;
-        submitBtn.className = 'btn btn-warning fw-bold px-4 text-dark';
-        submitBtn.textContent = 'Confirm Unlock';
-    } else if (actionType === 'archive') {
-        header.className = 'modal-header rounded-top-4 py-3 bg-secondary text-white';
-        icon.className = 'bi bi-archive-fill fs-4';
-        title.textContent = 'Archive User Account';
-        banner.innerHTML = `<div class="text-secondary mb-2"><i class="bi bi-archive-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Archive "${usr.username}"?</h5><p class="text-muted small">Account will be revoked from active roster and retained in read-only archive.</p>`;
-        alertBox.innerHTML = `<i class="bi bi-shield-lock-fill me-1 text-secondary"></i> <strong>Compliance Rule:</strong> Archived accounts cannot login. All historical audit records remain strictly preserved.`;
-        submitBtn.className = 'btn btn-secondary fw-bold px-4';
-        submitBtn.textContent = 'Confirm Archive';
-    } else if (actionType === 'activate') {
-        header.className = 'modal-header rounded-top-4 py-3 bg-success text-white';
-        icon.className = 'bi bi-arrow-counterclockwise fs-4';
-        title.textContent = 'Re-Activate User Account';
-        banner.innerHTML = `<div class="text-success mb-2"><i class="bi bi-shield-check" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Restore "${usr.username}" to Active Status?</h5>`;
-        alertBox.innerHTML = `<i class="bi bi-check-circle-fill me-1 text-success"></i> <strong>Notice:</strong> Account will regain system access according to assigned role permissions.`;
-        submitBtn.className = 'btn btn-success fw-bold px-4';
-        submitBtn.textContent = 'Confirm Activation';
-    } else if (actionType === 'delete') {
-        header.className = 'modal-header rounded-top-4 py-3 bg-danger text-white';
-        icon.className = 'bi bi-trash-fill fs-4';
-        title.textContent = 'Permanently Delete User Account';
-        banner.innerHTML = `<div class="text-danger mb-2"><i class="bi bi-exclamation-triangle-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-danger mb-1">Permanent Deletion Warning</h5><p class="text-muted small">User account "${usr.username}" will be permanently removed.</p>`;
-        alertBox.innerHTML = `<i class="bi bi-exclamation-octagon-fill me-1 text-danger"></i> <strong>Critical Warning:</strong> Permanent deletion cannot be undone. Action reason is required for compliance audit.`;
-        submitBtn.className = 'btn btn-danger fw-bold px-4';
-        submitBtn.textContent = 'Permanently Delete';
+    if (normalizedType === 'unlock') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-warning text-dark';
+        if (icon) icon.className = 'bi bi-unlock-fill fs-4';
+        if (title) title.textContent = 'Unlock User Account';
+        if (banner) banner.innerHTML = `<div class="text-warning mb-2"><i class="bi bi-unlock-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Unlock "${escapeHtml(usr.username)}"?</h5><p class="text-muted small">Reset failed attempt counter and restore active login permissions.</p>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-info-circle-fill me-1 text-warning"></i> <strong>Audit Requirement:</strong> Unlocking an account will reset the 5 failed attempts counter to 0 and record the admin identity.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-warning fw-bold px-4 text-dark';
+            submitBtn.textContent = 'Confirm Unlock';
+        }
+    } else if (normalizedType === 'deactivate') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-danger text-white';
+        if (icon) icon.className = 'bi bi-person-x-fill fs-4';
+        if (title) title.textContent = 'Deactivate User Account';
+        if (banner) banner.innerHTML = `<div class="text-danger mb-2"><i class="bi bi-person-x-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Deactivate "${escapeHtml(usr.username)}"?</h5><p class="text-muted small">User will be temporarily prevented from logging into the PESO portal.</p>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1 text-danger"></i> <strong>Compliance Rule:</strong> Deactivated accounts can be reactivated anytime by an authorized PESO Administrator.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-danger fw-bold px-4';
+            submitBtn.textContent = 'Confirm Deactivation';
+        }
+    } else if (normalizedType === 'archive') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-secondary text-white';
+        if (icon) icon.className = 'bi bi-archive-fill fs-4';
+        if (title) title.textContent = 'Archive User Account';
+        if (banner) banner.innerHTML = `<div class="text-secondary mb-2"><i class="bi bi-archive-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Archive "${escapeHtml(usr.username)}"?</h5><p class="text-muted small">Account will be revoked from active roster and retained in read-only archive.</p>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-shield-lock-fill me-1 text-secondary"></i> <strong>Compliance Rule:</strong> Archived accounts cannot login. All historical audit records remain strictly preserved.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-secondary fw-bold px-4';
+            submitBtn.textContent = 'Confirm Archive';
+        }
+    } else if (normalizedType === 'activate') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-success text-white';
+        if (icon) icon.className = 'bi bi-arrow-counterclockwise fs-4';
+        if (title) title.textContent = 'Re-Activate User Account';
+        if (banner) banner.innerHTML = `<div class="text-success mb-2"><i class="bi bi-shield-check" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-dark mb-1">Restore "${escapeHtml(usr.username)}" to Active Status?</h5>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-check-circle-fill me-1 text-success"></i> <strong>Notice:</strong> Account will regain system access according to assigned role permissions.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-success fw-bold px-4';
+            submitBtn.textContent = 'Confirm Activation';
+        }
+    } else if (normalizedType === 'delete') {
+        if (header) header.className = 'modal-header rounded-top-4 py-3 bg-danger text-white';
+        if (icon) icon.className = 'bi bi-trash-fill fs-4';
+        if (title) title.textContent = 'Permanently Delete User Account';
+        if (banner) banner.innerHTML = `<div class="text-danger mb-2"><i class="bi bi-exclamation-triangle-fill" style="font-size: 3.5rem;"></i></div><h5 class="fw-bold text-danger mb-1">Permanent Deletion Warning</h5><p class="text-muted small">User account "${escapeHtml(usr.username)}" will be permanently removed.</p>`;
+        if (alertBox) alertBox.innerHTML = `<i class="bi bi-exclamation-octagon-fill me-1 text-danger"></i> <strong>Critical Warning:</strong> Permanent deletion cannot be undone. Action reason is required for compliance audit.`;
+        if (submitBtn) {
+            submitBtn.className = 'btn btn-danger fw-bold px-4';
+            submitBtn.textContent = 'Permanently Delete';
+        }
     }
 
     safeOpenModal('userActionConfirmModal');
@@ -529,9 +548,9 @@ function openUserActionModal(actionType, userId) {
 async function handleUserActionConfirm(e) {
     e.preventDefault();
 
-    const userId = Number(document.getElementById('userActionTargetId').value);
-    const actionType = document.getElementById('userActionType').value;
-    const actionReason = document.getElementById('userActionReasonInput').value.trim();
+    const userId = Number(document.getElementById('userActionTargetId')?.value);
+    const actionType = String(document.getElementById('userActionType')?.value || '').toLowerCase();
+    const actionReason = (document.getElementById('userActionReasonInput')?.value || '').trim();
 
     if (!actionReason) {
         window.showSystemNotification({
@@ -553,6 +572,13 @@ async function handleUserActionConfirm(e) {
         }
         logAuditEvent('UNLOCK_USER_ACCOUNT', `Unlocked user ID ${userId} (${usr.username}). Reset failed attempts to 0. Reason: ${actionReason}`);
         window.showSystemNotification({ title: 'Account Unlocked', message: `User "${usr.username}" unlocked and restored to Active status.`, type: 'success' });
+    } else if (actionType === 'deactivate') {
+        usr.status = 'Deactivated';
+        if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+            try { await DataService.staffProfiles.toggleStatus(userId, 'Deactivated'); } catch (e) { }
+        }
+        logAuditEvent('DEACTIVATE_USER_ACCOUNT', `Deactivated user ID ${userId} (${usr.username}). Reason: ${actionReason}`);
+        window.showSystemNotification({ title: 'Account Deactivated', message: `User "${usr.username}" status set to Deactivated.`, type: 'warning' });
     } else if (actionType === 'archive') {
         usr.status = 'Archived';
         if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
@@ -573,7 +599,7 @@ async function handleUserActionConfirm(e) {
             try { await DataService.staffProfiles.delete(userId); } catch (e) { }
         }
         logAuditEvent('PERMANENT_DELETE_USER', `Permanently deleted user ID ${userId} (${usr.username}). Reason: ${actionReason}`);
-        window.showSystemNotification({ title: 'Account Permanently Deleted', message: `User record ID ${userId} removed.`, type: 'success' });
+        window.showSystemNotification({ title: 'Account Permanently Deleted', message: `User record ID ${userId} removed.`, type: 'danger' });
     }
 
     safeHideModal('userActionConfirmModal');

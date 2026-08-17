@@ -167,11 +167,14 @@ function renderActiveOfficersTable() {
 }
 
 function openNewOfficerModal() {
-    const form = document.getElementById('newOfficerForm');
-    if (form) form.reset();
-
-    logAuditEvent('OPEN_CREATE_OFFICER_FORM', 'Opened Create New Officer Account form modal');
-    safeOpenModal('newOfficerModal');
+    if (document.getElementById('newOfficerModal')) {
+        const form = document.getElementById('newOfficerForm');
+        if (form) form.reset();
+        logAuditEvent('OPEN_CREATE_OFFICER_FORM', 'Opened Create New Officer Account form modal');
+        safeOpenModal('newOfficerModal');
+    } else if (typeof openNewUserModal === 'function') {
+        openNewUserModal();
+    }
 }
 
 async function handleCreateOfficerSubmit(e) {
@@ -282,6 +285,12 @@ async function handleCreateOfficerSubmit(e) {
 }
 
 function openEditOfficerModal(officerId) {
+    if (!document.getElementById('editOfficerModal')) {
+        if (typeof openEditUserModal === 'function') {
+            return openEditUserModal(officerId);
+        }
+    }
+
     if (!Array.isArray(officersList)) officersList = [];
     const off = officersList.find(o => o && o.id === officerId);
     if (!off) {

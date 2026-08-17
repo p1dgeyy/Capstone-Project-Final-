@@ -306,13 +306,86 @@
     console.error('[UnifiedOverlayController] init error:', e);
   }
 
+  // Universal safe modal helpers
+  function safeOpenModal(modalId, options = {}) {
+    try {
+      const modalEl = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+      if (!modalEl) {
+        console.warn(`[OverlayController] Target #${modalId} not found in DOM.`);
+        return null;
+      }
+
+      if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+        try {
+          const inst = window.bootstrap.Modal.getInstance(modalEl) || window.bootstrap.Modal.getOrCreateInstance(modalEl, options);
+          if (inst && typeof inst.show === 'function') {
+            inst.show();
+            return inst;
+          }
+        } catch (e) {}
+      }
+
+      modalEl.classList.add('show');
+      modalEl.style.display = 'block';
+      modalEl.removeAttribute('aria-hidden');
+      modalEl.setAttribute('aria-modal', 'true');
+      modalEl.setAttribute('role', 'dialog');
+      syncBodyScrollLock();
+
+      if (!document.querySelector('.modal-backdrop')) {
+        const bd = document.createElement('div');
+        bd.className = 'modal-backdrop fade show';
+        document.body.appendChild(bd);
+      }
+      return modalEl;
+    } catch (err) {
+      console.warn(`[OverlayController] safeOpenModal error for #${modalId}:`, err);
+      return null;
+    }
+  }
+
+  function safeHideModal(modalId) {
+    try {
+      const modalEl = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+      if (!modalEl) return;
+
+      if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+        try {
+          const inst = window.bootstrap.Modal.getInstance(modalEl);
+          if (inst && typeof inst.hide === 'function') {
+            inst.hide();
+          }
+        } catch (e) {}
+      }
+
+      modalEl.classList.remove('show');
+      modalEl.style.display = 'none';
+      modalEl.setAttribute('aria-hidden', 'true');
+      modalEl.removeAttribute('aria-modal');
+
+      const backdrop = document.querySelector('.modal-backdrop');
+      if (backdrop && !document.querySelector('.modal.show')) {
+        backdrop.remove();
+      }
+      syncBodyScrollLock();
+    } catch (err) {
+      console.warn(`[OverlayController] safeHideModal error for #${modalId}:`, err);
+    }
+  }
+
   // Export API
+  window.safeOpenModal = window.safeOpenModal || safeOpenModal;
+  window.safeHideModal = window.safeHideModal || safeHideModal;
+  window.safeCloseModal = window.safeCloseModal || safeHideModal;
+
   window.UnifiedOverlayController = Object.freeze({
     closeTopmostModal,
     openCustomModal,
     closeCustomModal,
-    openModal: openCustomModal,
-    closeModal: closeCustomModal,
+    openModal: safeOpenModal,
+    closeModal: safeHideModal,
+    safeOpenModal,
+    safeHideModal,
     hasActiveModals,
     syncBodyScrollLock,
     initOverlayListeners

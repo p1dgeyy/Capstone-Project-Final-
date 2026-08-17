@@ -52,6 +52,19 @@
     }
   }
 
+  function maskPhone(phone) {
+    if (typeof window.maskPhoneNumber === 'function') return window.maskPhoneNumber(phone);
+    if (typeof window.maskContactNumber === 'function') return window.maskContactNumber(phone);
+    if (!phone) return '09XX-***-XXXX';
+    const clean = String(phone).replace(/[^0-9]/g, '');
+    if (clean.length >= 10) return `${clean.substring(0, 4)}-***-${clean.substring(clean.length - 4)}`;
+    return '09XX-***-XXXX';
+  }
+
+  function escapeHtml(str) {
+    return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+  }
+
   // REQ068-REQ073: Beneficiary Management & Table Rendering
   function renderBeneficiariesTable() {
     const tbody = document.getElementById('officerBeneficiaryTableBody');
@@ -77,11 +90,11 @@
     tbody.innerHTML = filtered.map(b => `
       <tr>
         <td class="fw-bold">#BEN-${b.id}</td>
-        <td class="fw-semibold text-dark">${b.first_name} ${b.last_name}</td>
-        <td>${b.phone}</td>
-        <td>${b.barangay}</td>
-        <td><span class="badge bg-secondary-subtle text-dark border">${b.category}</span></td>
-        <td><span class="badge ${getBadgeClass(b.status)}">${b.status}</span></td>
+        <td class="fw-semibold text-dark">${escapeHtml(b.first_name)} ${escapeHtml(b.last_name)}</td>
+        <td><span class="font-monospace text-muted">${escapeHtml(maskPhone(b.phone))}</span></td>
+        <td>${escapeHtml(b.barangay)}</td>
+        <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(b.category)}</span></td>
+        <td><span class="badge ${getBadgeClass(b.status)}">${escapeHtml(b.status)}</span></td>
         <td>
           <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="window.viewBeneficiaryProfile(${b.id})">
             <i class="bi bi-eye me-1"></i>View Profile
@@ -95,6 +108,10 @@
         </td>
       </tr>
     `).join('');
+  }
+
+  function escapeHtml(str) {
+    return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
   }
 
   // REQ070: Beneficiary Intake Form & Automatic QR Code Generation
