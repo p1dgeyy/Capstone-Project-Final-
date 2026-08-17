@@ -1317,6 +1317,104 @@
         </div>
     </div>
 
+    
+    <!-- OFFICER REAL-TIME ALARM ALERT POP-UP MODAL -->
+    <div class="modal fade" id="officerAlarmAlertModal" tabindex="-1" aria-labelledby="officerAlarmAlertTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-danger text-white py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-alarm-fill fs-3 text-warning"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="officerAlarmAlertTitle">🚨 Scheduled Session Reminder</h5>
+                            <span class="badge bg-warning text-dark mt-1" id="officerAlarmTierBadge"><i class="bi bi-clock-fill me-1"></i>10 Minutes Before Start</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="card border-primary-subtle bg-light p-3 rounded-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-primary font-monospace" id="officerAlarmProgBadge">TUPAD</span>
+                            <span class="badge bg-dark text-white font-monospace" id="officerAlarmSlotIdBadge">SLOT-001</span>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1" id="officerAlarmProgName">Emergency Employment Assessment Session</h6>
+                        <div class="text-primary fw-semibold small" id="officerAlarmDateTime">2026-08-08 • 09:00 AM - 10:00 AM</div>
+                    </div>
+
+                    <div class="row g-2 small mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Assigned Venue:</span>
+                            <div class="fw-bold text-dark text-truncate" id="officerAlarmVenue">PESO Main Office - Room A</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">Target Assignment:</span>
+                            <div class="fw-bold text-dark text-truncate" id="officerAlarmBeneficiary">Generoso Alcantara (0917-***-1122)</div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 small mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill text-warning fs-5"></i>
+                        <div>Please acknowledge this reminder. If an unforeseen operational delay occurred, request a snooze for Admin approval.</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-warning fw-semibold px-3" onclick="openOfficerSnoozeRequestModal()">
+                        <i class="bi bi-hourglass-split me-1"></i> Request Snooze / Delay
+                    </button>
+                    <button type="button" class="btn btn-success fw-bold px-4" onclick="acknowledgeOfficerAlarm()">
+                        <i class="bi bi-check2-circle me-1"></i> Acknowledge Alarm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OFFICER REQUEST SNOOZE / RESCHEDULE MODAL -->
+    <div class="modal fade" id="officerRequestSnoozeModal" tabindex="-1" aria-labelledby="officerSnoozeModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-warning text-dark rounded-top-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history fs-4"></i>
+                        <h5 class="modal-title fw-bold mb-0" id="officerSnoozeModalTitle">Submit Snooze / Reschedule Request</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="officerSnoozeRequestForm" onsubmit="handleOfficerSnoozeSubmit(event)">
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="bi bi-shield-lock-fill me-1"></i> <strong>Admin Approval Policy:</strong> Per PESO operating guidelines, schedule adjustments submitted by Officers must be reviewed and approved by an Administrator.
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="officerSnoozeDuration" class="form-label fw-semibold">Requested Delay Duration <span class="text-danger">*</span></label>
+                            <select class="form-select" id="officerSnoozeDuration" required>
+                                <option value="15" selected>15 Minutes Delay</option>
+                                <option value="30">30 Minutes Delay</option>
+                                <option value="45">45 Minutes Delay</option>
+                                <option value="60">1 Hour Delay</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="officerSnoozeReason" class="form-label fw-semibold">Mandatory Reason / Justification <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="officerSnoozeReason" rows="3" placeholder="Provide clear reason (e.g., beneficiary delayed in transit, ongoing interview extension)..." required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning fw-bold px-4"><i class="bi bi-send-fill me-1"></i> Submit to Admin Queue</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- REJECTION REMARKS MODAL -->
     <div class="modal fade" id="denyRemarksModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -3711,6 +3809,176 @@
             if (document.getElementById('officerRosterRoleFilter')) document.getElementById('officerRosterRoleFilter').value = '';
             renderOfficerRosterTable(officerRosterList);
         }
+
+        
+        // ---------------------------------------------------------------------
+        // OFFICER ALARM ENGINE & SENSORY NOTIFICATION RECEIVER
+        // ---------------------------------------------------------------------
+        let activeOfficerAlarmSlot = null;
+
+        function playOfficerAlarmChime(type = 'chime') {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+
+                if (type === 'imminent') {
+                    const osc1 = ctx.createOscillator();
+                    const osc2 = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(880, now);
+                    osc1.frequency.setValueAtTime(1046.50, now + 0.15);
+
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(440, now);
+
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc1.stop(now + 0.6);
+                    osc2.stop(now + 0.6);
+                } else {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.setValueAtTime(880, now + 0.2);
+
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.8);
+                }
+            } catch (e) {
+                console.warn('[OFFICER-ALARM] Audio notice:', e);
+            }
+        }
+
+        function triggerOfficerTestAlarm() {
+            const mockSlot = {
+                id: 102,
+                slot_id: 'SLOT-102',
+                program_code: 'PFAS',
+                title: 'PFAS: Livelihood Grant Evaluation & Interview',
+                date: '2026-08-08',
+                time: '01:30 PM - 03:00 PM',
+                venue: 'PESO Conference Room, City Hall',
+                beneficiary_name: 'Generoso Alcantara',
+                beneficiary_phone: '0917-***-1122'
+            };
+            openOfficerAlarmAlertModal(mockSlot, '10 Minutes Before Start (Imminent Session Alert)', true);
+        }
+
+        function openOfficerAlarmAlertModal(slot, tierLabel, isImminent = false) {
+            activeOfficerAlarmSlot = slot;
+            playOfficerAlarmChime(isImminent ? 'imminent' : 'chime');
+
+            const titleEl = document.getElementById('officerAlarmAlertTitle');
+            const badgeEl = document.getElementById('officerAlarmTierBadge');
+            const slotBadgeEl = document.getElementById('officerAlarmSlotIdBadge');
+            const progBadgeEl = document.getElementById('officerAlarmProgBadge');
+            const progNameEl = document.getElementById('officerAlarmProgName');
+            const timeEl = document.getElementById('officerAlarmDateTime');
+            const venueEl = document.getElementById('officerAlarmVenue');
+            const benEl = document.getElementById('officerAlarmBeneficiary');
+
+            if (titleEl) titleEl.textContent = isImminent ? '🚨 Imminent Scheduled Session' : '⏰ Schedule Session Reminder';
+            if (badgeEl) {
+                badgeEl.className = isImminent ? 'badge bg-danger px-3 py-1.5' : 'badge bg-warning text-dark px-3 py-1.5';
+                badgeEl.innerHTML = `<i class="bi bi-alarm-fill me-1"></i>${tierLabel}`;
+            }
+            if (slotBadgeEl) slotBadgeEl.textContent = slot.slot_id || `SLOT-${slot.id}`;
+            if (progBadgeEl) progBadgeEl.textContent = slot.program_code || 'PESO';
+            if (progNameEl) progNameEl.textContent = slot.title || slot.program_name;
+            if (timeEl) timeEl.textContent = `${slot.date || '2026-08-08'} • ${slot.time || '09:00 AM'}`;
+            if (venueEl) venueEl.textContent = slot.venue || slot.location || 'PESO Main Office';
+            if (benEl) benEl.textContent = slot.beneficiary_name ? `${slot.beneficiary_name} (${maskContactNumber(slot.beneficiary_phone || '0917-123-4567')})` : 'Unassigned Beneficiary';
+
+            new bootstrap.Modal(document.getElementById('officerAlarmAlertModal')).show();
+
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: `⏰ Schedule Reminder: ${slot.program_code || 'PESO'}`,
+                    message: `${tierLabel}: ${slot.title} at ${slot.venue || 'PESO Office'}.`,
+                    type: isImminent ? 'danger' : 'warning'
+                });
+            }
+        }
+
+        function acknowledgeOfficerAlarm() {
+            if (activeOfficerAlarmSlot) {
+                const officerUser = sessionStorage.getItem('username') || 'peso-officer';
+                logOfficerAction('ACKNOWLEDGE_ALARM', `Officer [${officerUser}] acknowledged reminder alarm for slot ${activeOfficerAlarmSlot.slot_id || activeOfficerAlarmSlot.id}.`);
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Alarm Acknowledged',
+                        message: 'Session readiness acknowledged successfully.',
+                        type: 'success'
+                    });
+                }
+            }
+            const modalEl = document.getElementById('officerAlarmAlertModal');
+            if (modalEl && bootstrap.Modal.getInstance(modalEl)) {
+                bootstrap.Modal.getInstance(modalEl).hide();
+            }
+        }
+
+        function openOfficerSnoozeRequestModal() {
+            const modalEl = document.getElementById('officerAlarmAlertModal');
+            if (modalEl && bootstrap.Modal.getInstance(modalEl)) {
+                bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            new bootstrap.Modal(document.getElementById('officerRequestSnoozeModal')).show();
+        }
+
+        function handleOfficerSnoozeSubmit(e) {
+            e.preventDefault();
+            const delayMins = Number(document.getElementById('officerSnoozeDuration').value) || 15;
+            const reason = document.getElementById('officerSnoozeReason').value.trim();
+            const officerUser = sessionStorage.getItem('username') || 'Jane Smith (PESO Officer)';
+
+            if (!reason) {
+                alert('Mandatory Reason Required: Please specify why a reschedule / snooze is needed.');
+                return;
+            }
+
+            logOfficerAction('REQUEST_SLOT_SNOOZE', `Officer [${officerUser}] requested ${delayMins}m delay for slot ${activeOfficerAlarmSlot?.slot_id || 'SLOT-001'}. Reason: "${reason}"`);
+
+            const modalEl = document.getElementById('officerRequestSnoozeModal');
+            if (modalEl && bootstrap.Modal.getInstance(modalEl)) {
+                bootstrap.Modal.getInstance(modalEl).hide();
+            }
+
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'Reschedule Request Dispatched',
+                    message: `Your ${delayMins}-minute delay request has been submitted to the Admin approval queue.`,
+                    type: 'info'
+                });
+            } else {
+                alert('Reschedule request submitted to Administrator.');
+            }
+        }
+
+        window.triggerOfficerTestAlarm = triggerOfficerTestAlarm;
+        window.openOfficerAlarmAlertModal = openOfficerAlarmAlertModal;
+        window.acknowledgeOfficerAlarm = acknowledgeOfficerAlarm;
+        window.openOfficerSnoozeRequestModal = openOfficerSnoozeRequestModal;
+        window.handleOfficerSnoozeSubmit = handleOfficerSnoozeSubmit;
 
         function logoutOfficer() {
             if (typeof SessionManager !== 'undefined' && SessionManager.logout) {

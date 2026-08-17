@@ -467,6 +467,15 @@
                         <button class="btn btn-outline-light fw-semibold px-3" onclick="jumpToCalendarToday()">
                             <i class="bi bi-calendar-day me-1"></i> Today
                         </button>
+                        <button class="btn btn-outline-light fw-semibold px-3" onclick="openAlarmSettingsModal()" title="Configure Multi-Tier Alarm & Notification Rules">
+                            <i class="bi bi-bell-fill text-warning me-1"></i> Alarm Rules
+                        </button>
+                        <button class="btn btn-outline-light fw-semibold px-3" onclick="openPendingRescheduleModal()" title="Review Officer Snooze & Reschedule Requests">
+                            <i class="bi bi-clock-history text-info me-1"></i> Reschedule Requests (<span id="pendingRescheduleCountBadge">0</span>)
+                        </button>
+                        <button class="btn btn-outline-light fw-semibold px-3" onclick="triggerTestAlarm()" title="Test Audio Chime & In-Portal Alarm Alert">
+                            <i class="bi bi-broadcast text-warning me-1"></i> Test Alarm
+                        </button>
                         <button class="btn btn-outline-light fw-semibold px-3" onclick="scrollToSchedulingArchive()">
                             <i class="bi bi-archive-fill me-1"></i> Archive Box (<span
                                 id="schedulingArchiveCountBadge">0</span>)
@@ -2503,6 +2512,277 @@
                     <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Keep Slot</button>
                     <button type="button" class="btn btn-danger fw-bold px-4" onclick="handleConfirmSlotCancellation()">
                         <i class="bi bi-x-circle-fill me-1"></i> Confirm Cancellation (🔴 Red Label)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- ALARM RULES & NOTIFICATION CONFIGURATION MODAL (ADMIN CONTROL) -->
+    <div class="modal fade" id="alarmSettingsModal" tabindex="-1" aria-labelledby="alarmSettingsModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-bell-fill text-warning fs-4"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="alarmSettingsModalTitle">Multi-Tier Alarm Rules & Notification Channels</h5>
+                            <small class="text-white-50">Admin defines reminder triggers and delivery channels for Admins and Officers.</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="alarmSettingsForm" onsubmit="handleSaveAlarmSettings(event)">
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info py-2.5 mb-3 small d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check text-info fs-5"></i>
+                            <div><strong>Proactive Reminder Policy:</strong> Configured alarm tiers automatically evaluate slot start times and trigger multi-sensory alerts (audio synthesis, in-portal pop-ups, and browser notifications).</div>
+                        </div>
+
+                        <div class="card border-0 bg-light p-3 rounded-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-power text-success me-1.5"></i>Master Alarm Engine Switch</h6>
+                                    <small class="text-muted">Enable or disable background ticker and slot evaluation system-wide.</small>
+                                </div>
+                                <div class="form-check form-switch fs-5 mb-0">
+                                    <input class="form-check-input" type="checkbox" id="alarmMasterSwitch" checked>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-layers-fill me-1"></i> Multi-Level Reminder Tiers</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="card h-100 border p-3 rounded-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-primary">Tier 1</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" id="alarm24hSwitch" checked>
+                                        </div>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">24 Hours Before</h6>
+                                    <small class="text-muted">Day-ahead reminder for logistics preparation and beneficiary batching.</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="card h-100 border p-3 rounded-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-warning text-dark">Tier 2</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" id="alarm1hSwitch" checked>
+                                        </div>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">1 Hour Before</h6>
+                                    <small class="text-muted">Prep alert for officer desk readiness and venue setup.</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="card h-100 border p-3 rounded-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-danger">Tier 3</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" id="alarm10mSwitch" checked>
+                                        </div>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">10 Mins Before</h6>
+                                    <small class="text-muted">Urgent audio chime alert for imminent session kickoff.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-broadcast me-1"></i> Delivery Channels & Sensory Alerts</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card border p-3 rounded-3 d-flex flex-row justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-volume-up-fill text-primary me-1.5"></i>Web Audio Synthesizer Chime</h6>
+                                        <small class="text-muted">Plays 2-tone melodic chime on alert.</small>
+                                    </div>
+                                    <div class="form-check form-switch fs-5 mb-0">
+                                        <input class="form-check-input" type="checkbox" id="alarmSoundSwitch" checked>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card border p-3 rounded-3 d-flex flex-row justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-window text-info me-1.5"></i>Browser Desktop Notification</h6>
+                                        <small class="text-muted">Dispatches system push notifications.</small>
+                                    </div>
+                                    <div class="form-check form-switch fs-5 mb-0">
+                                        <input class="form-check-input" type="checkbox" id="alarmPushSwitch">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-check2-circle me-1"></i> Save Rules & Enforce</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN DIRECT SNOOZE / DELAY MODAL -->
+    <div class="modal fade" id="snoozeSlotModal" tabindex="-1" aria-labelledby="snoozeSlotModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-warning text-dark rounded-top-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-alarm-fill fs-4 text-dark"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="snoozeSlotModalTitle">Snooze / Delay Schedule Slot</h5>
+                            <span class="badge bg-dark text-white font-monospace" id="snoozeSlotBadge">SLOT-001</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="snoozeSlotForm" onsubmit="handleAdminSnoozeSubmit(event)">
+                    <input type="hidden" id="snoozeSlotIdInput">
+                    <div class="modal-body p-4">
+                        <div class="card border-0 bg-light p-3 rounded-3 mb-3">
+                            <span class="text-muted small uppercase fw-bold">Slot Title & Schedule</span>
+                            <h6 class="fw-bold text-dark mb-1 mt-1" id="snoozeSlotTitle">-</h6>
+                            <div class="text-primary small fw-semibold" id="snoozeSlotCurrentTime">-</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="snoozeDurationSelect" class="form-label fw-semibold">Select Snooze / Delay Duration <span class="text-danger">*</span></label>
+                            <select class="form-select" id="snoozeDurationSelect" required>
+                                <option value="15" selected>15 Minutes Delay</option>
+                                <option value="30">30 Minutes Delay</option>
+                                <option value="45">45 Minutes Delay</option>
+                                <option value="60">1 Hour Delay</option>
+                                <option value="120">2 Hours Delay</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="snoozeReasonInput" class="form-label fw-semibold">Administrative Reason / Justification <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="snoozeReasonInput" rows="3" placeholder="Reason for delaying this session (e.g. Beneficiary transport delay, technical preparation)..." required></textarea>
+                            <small class="text-muted">Audit log records timestamp and admin identity.</small>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning fw-bold px-4"><i class="bi bi-alarm me-1"></i> Apply Snooze & Update Slot</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- OFFICER PENDING RESCHEDULE REQUESTS QUEUE MODAL (ADMIN REVIEW) -->
+    <div class="modal fade" id="pendingRescheduleRequestsModal" tabindex="-1" aria-labelledby="pendingRescheduleModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history text-info fs-4"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="pendingRescheduleModalTitle">Officer Reschedule & Snooze Request Queue</h5>
+                            <small class="text-white-50">Review and approve or reject schedule adjustment requests submitted by PESO Officers.</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2.5 mb-3 small d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-lock-fill text-info fs-5"></i>
+                        <div><strong>Accountability Guard:</strong> Officers cannot directly reschedule slots. All time adjustments require Admin review and approval with audit logging.</div>
+                    </div>
+
+                    <div class="table-responsive border rounded-3">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Slot ID</th>
+                                    <th>Slot & Assigned Officer</th>
+                                    <th>Time Adjustment</th>
+                                    <th>Delay</th>
+                                    <th>Officer Justification</th>
+                                    <th class="text-end">Admin Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingRescheduleTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                    <span class="text-muted small"><i class="bi bi-info-circle me-1"></i> Approved changes immediately update the live calendar.</span>
+                    <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Close Queue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE SLOT ALARM ALERT POP-UP MODAL (ADMIN & OFFICER ALARM DISPLAY) -->
+    <div class="modal fade" id="slotAlarmAlertModal" tabindex="-1" aria-labelledby="alarmAlertModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-danger text-white py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-alarm-fill fs-3 text-warning"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="alarmAlertModalTitle">🚨 Schedule Slot Alarm Alert</h5>
+                            <span class="badge bg-warning text-dark mt-1" id="alarmAlertTierBadge"><i class="bi bi-clock-fill me-1"></i>10 Minutes Before Start</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="card border-primary-subtle bg-light p-3 rounded-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-primary font-monospace" id="alarmAlertProgBadge">TUPAD</span>
+                            <span class="badge bg-dark text-white font-monospace" id="alarmAlertSlotIdBadge">SLOT-001</span>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1" id="alarmAlertProgName">-</h6>
+                        <div class="text-primary fw-semibold small" id="alarmAlertDateTime">-</div>
+                    </div>
+
+                    <div class="row g-2 small mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Venue / Room:</span>
+                            <div class="fw-bold text-dark text-truncate" id="alarmAlertVenue">-</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">Assigned Officer:</span>
+                            <div class="fw-bold text-dark text-truncate" id="alarmAlertOfficer">-</div>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <span class="text-muted">Operational Beneficiary Context:</span>
+                            <div class="fw-bold text-dark" id="alarmAlertBeneficiary">-</div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 small mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill text-warning fs-5"></i>
+                        <div>Action Required: Acknowledge alert to confirm readiness or apply a quick snooze if delayed.</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-warning fw-semibold px-3" onclick="safeHideModal('slotAlarmAlertModal'); openSnoozeSlotModal(activeAlarmAlertSlot ? activeAlarmAlertSlot.id : null)">
+                        <i class="bi bi-alarm me-1"></i> Snooze / Delay
+                    </button>
+                    <button type="button" class="btn btn-success fw-bold px-4" onclick="acknowledgeActiveAlarm()">
+                        <i class="bi bi-check2-circle me-1"></i> Acknowledge Alarm
                     </button>
                 </div>
             </div>

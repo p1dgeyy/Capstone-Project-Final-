@@ -17,6 +17,7 @@ const MONTH_NAMES = [
 
 async function initSchedulingData() {
     await initSchedulingModuleData();
+    if (typeof initAlarmEngine === 'function') initAlarmEngine();
 }
 
 async function initSchedulingModuleData() {
@@ -1167,6 +1168,564 @@ function resetArchiveFilters() {
     if (document.getElementById('archiveSchedStatusFilter')) document.getElementById('archiveSchedStatusFilter').value = 'ALL';
     renderSchedulingArchive();
 }
+
+
+// =======================================================================
+// DUAL-ROLE ALARM ENGINE & SNOOZE / CONFLICT MANAGEMENT
+// =======================================================================
+
+let globalAlarmSettings = {
+    masterEnabled: true,
+    tier24h: true,
+    tier1h: true,
+    tier10m: true,
+    soundEnabled: true,
+    browserPushEnabled: false,
+    autoSnoozeMins: 15
+};
+
+let pendingRescheduleRequests = [
+    {
+        id: 'REQ-2026-001',
+        slot_id: 'SLOT-102',
+        slot_title: 'PFAS: Livelihood Grant Evaluation & Interview',
+        program_code: 'PFAS',
+        officer_name: 'Jane Smith',
+        beneficiary_name: 'Generoso Alcantara',
+        current_time: '01:30 PM - 03:00 PM',
+        requested_delay_mins: 30,
+        requested_new_time: '02:00 PM - 03:30 PM',
+        reason: 'Beneficiary encountered transport delay from Barangay Morales.',
+        requested_at: '2026-08-08T08:30:00Z',
+        status: 'Pending'
+    }
+];
+
+let alarmTickerInterval = null;
+let activeAlarmAlertSlot = null;
+
+// Web Audio API Synthesizer (Two-tone Chime, zero external file dependency)
+function playAlarmChime(type = 'chime') {
+    if (!globalAlarmSettings.soundEnabled) return;
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        if (type === 'imminent') {
+            // Urgent 10-minute alert chime
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(880, now);
+            osc1.frequency.setValueAtTime(1046.50, now + 0.15);
+
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(440, now);
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + 0.6);
+            osc2.stop(now + 0.6);
+        } else {
+            // Gentle 24h / 1h reminder chime
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, now); // D5
+            osc.frequency.setValueAtTime(880, now + 0.2); // A5
+
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.8);
+        }
+    } catch (e) {
+        console.warn('[ALARM-ENGINE] Audio synth notice:', e);
+    }
+}
+
+// Start Alarm Ticker
+function initAlarmEngine() {
+    if (alarmTickerInterval) clearInterval(alarmTickerInterval);
+    alarmTickerInterval = setInterval(checkScheduleAlarms, 20000);
+    // Initial check
+    setTimeout(checkScheduleAlarms, 2000);
+    updatePendingRescheduleBadge();
+}
+
+// Check schedule slots against reminder tiers
+function checkScheduleAlarms() {
+    if (!globalAlarmSettings.masterEnabled || !Array.isArray(activitiesList)) return;
+
+    const now = new Date();
+    activitiesList.forEach(slot => {
+        if (!slot || slot.slot_status === 'Cancelled' || slot.status === 'Cancelled' || slot.slot_status === 'Completed') return;
+        
+        const slotConfig = slot.alarm_config || {
+            enabled: true,
+            tiers: {
+                tier_24h: { enabled: true, lead_minutes: 1440, triggered: false, acknowledged: false },
+                tier_1h: { enabled: true, lead_minutes: 60, triggered: false, acknowledged: false },
+                tier_10m: { enabled: true, lead_minutes: 10, triggered: false, acknowledged: false }
+            }
+        };
+
+        if (!slotConfig.enabled) return;
+
+        const slotDateTimeStr = slot.start_datetime || (slot.date ? `${slot.date}T${(slot.time || '09:00').split(' - ')[0].replace(' AM', '').replace(' PM', '')}` : null);
+        if (!slotDateTimeStr) return;
+
+        const slotDate = new Date(slotDateTimeStr);
+        if (isNaN(slotDate.getTime())) return;
+
+        const diffMinutes = Math.round((slotDate.getTime() - now.getTime()) / (1000 * 60));
+
+        // 1. 24h Tier (1410m to 1470m)
+        if (globalAlarmSettings.tier24h && slotConfig.tiers && slotConfig.tiers.tier_24h && slotConfig.tiers.tier_24h.enabled && !slotConfig.tiers.tier_24h.triggered) {
+            if (diffMinutes <= 1440 && diffMinutes > 120) {
+                triggerSlotAlarm(slot, 'tier_24h', '24 Hours Before Start (Day-Ahead Preparation)');
+            }
+        }
+
+        // 2. 1h Tier (50m to 70m)
+        if (globalAlarmSettings.tier1h && slotConfig.tiers && slotConfig.tiers.tier_1h && slotConfig.tiers.tier_1h.enabled && !slotConfig.tiers.tier_1h.triggered) {
+            if (diffMinutes <= 60 && diffMinutes > 15) {
+                triggerSlotAlarm(slot, 'tier_1h', '1 Hour Before Start (Preparation & Readiness)');
+            }
+        }
+
+        // 3. 10m Tier (1m to 15m)
+        if (globalAlarmSettings.tier10m && slotConfig.tiers && slotConfig.tiers.tier_10m && slotConfig.tiers.tier_10m.enabled && !slotConfig.tiers.tier_10m.triggered) {
+            if (diffMinutes <= 10 && diffMinutes >= 0) {
+                triggerSlotAlarm(slot, 'tier_10m', '10 Minutes Before Start (Imminent Session Alert)', true);
+            }
+        }
+    });
+}
+
+// Trigger Slot Alarm
+function triggerSlotAlarm(slot, tierKey, tierLabel, isImminent = false) {
+    if (!slot.alarm_config) {
+        slot.alarm_config = {
+            enabled: true,
+            tiers: {
+                tier_24h: { enabled: true, lead_minutes: 1440, triggered: false, acknowledged: false },
+                tier_1h: { enabled: true, lead_minutes: 60, triggered: false, acknowledged: false },
+                tier_10m: { enabled: true, lead_minutes: 10, triggered: false, acknowledged: false }
+            }
+        };
+    }
+
+    if (slot.alarm_config.tiers && slot.alarm_config.tiers[tierKey]) {
+        slot.alarm_config.tiers[tierKey].triggered = true;
+    }
+
+    playAlarmChime(isImminent ? 'imminent' : 'chime');
+
+    // Desktop Push Notification
+    if (globalAlarmSettings.browserPushEnabled && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+            new Notification(`PESO Schedule Alarm: ${slot.program_code} Slot`, {
+                body: `${tierLabel} - ${slot.title} on ${slot.date} (${slot.time}). Assigned: ${slot.officer_name || 'Officer'}`,
+                icon: 'assets/images/peso-logo.png'
+            });
+        } catch (e) {
+            console.warn('[PUSH-NOTIFICATION] Push dispatch notice:', e);
+        }
+    }
+
+    // System Toast
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({
+            title: `⏰ Schedule Reminder: ${slot.program_code}`,
+            message: `${tierLabel}: ${slot.title} at ${slot.venue} (${slot.time}).`,
+            type: isImminent ? 'danger' : 'warning'
+        });
+    }
+
+    // Log Audit Trail
+    const adminUser = sessionStorage.getItem('username') || 'PESO System';
+    logAuditEvent('TRIGGER_SLOT_ALARM', `Alarm triggered for slot ${slot.slot_id || slot.id} (${slot.program_code}) at tier [${tierLabel}]. Assigned Officer: ${slot.officer_name}`, 'interview_schedule');
+
+    // Open Interactive Alert Modal
+    openSlotAlarmAlertModal(slot, tierLabel, isImminent);
+}
+
+// Open Interactive Slot Alarm Alert Modal
+function openSlotAlarmAlertModal(slot, tierLabel, isImminent = false) {
+    activeAlarmAlertSlot = slot;
+    const titleEl = document.getElementById('alarmAlertModalTitle');
+    const badgeEl = document.getElementById('alarmAlertTierBadge');
+    const slotBadgeEl = document.getElementById('alarmAlertSlotIdBadge');
+    const progBadgeEl = document.getElementById('alarmAlertProgBadge');
+    const progNameEl = document.getElementById('alarmAlertProgName');
+    const timeEl = document.getElementById('alarmAlertDateTime');
+    const venueEl = document.getElementById('alarmAlertVenue');
+    const officerEl = document.getElementById('alarmAlertOfficer');
+    const benEl = document.getElementById('alarmAlertBeneficiary');
+
+    if (titleEl) titleEl.textContent = isImminent ? '🚨 Imminent Schedule Session Alert' : '⏰ Scheduled Slot Reminder';
+    if (badgeEl) {
+        badgeEl.className = isImminent ? 'badge bg-danger px-3 py-1.5' : 'badge bg-warning text-dark px-3 py-1.5';
+        badgeEl.innerHTML = `<i class="bi bi-alarm-fill me-1"></i>${tierLabel}`;
+    }
+    if (slotBadgeEl) slotBadgeEl.textContent = slot.slot_id || `SLOT-${slot.id}`;
+    if (progBadgeEl) progBadgeEl.textContent = slot.program_code || 'PESO';
+    if (progNameEl) progNameEl.textContent = slot.title || slot.program_name;
+    if (timeEl) timeEl.textContent = `${slot.date || '2026-08-08'} • ${slot.time || slot.schedule_time}`;
+    if (venueEl) venueEl.textContent = slot.venue || slot.location || 'PESO Main Office';
+    if (officerEl) officerEl.textContent = slot.officer_name || slot.assigned_officer_name || 'Assigned Officer';
+    if (benEl) {
+        if (slot.scheduling_mode === 'Individual' && slot.beneficiary_name) {
+            benEl.textContent = `${slot.beneficiary_name} (Masked: ${maskContactNumber(slot.beneficiary_phone || '0917-123-4567')})`;
+        } else if (slot.scheduling_mode === 'Batch' && slot.batch_name) {
+            benEl.textContent = `${slot.batch_name} (${slot.batch_count || 25} Beneficiaries)`;
+        } else {
+            benEl.textContent = 'Unassigned Beneficiary (Awaiting Officer)';
+        }
+    }
+
+    safeOpenModal('slotAlarmAlertModal');
+}
+
+// Acknowledge Alarm
+function acknowledgeActiveAlarm() {
+    if (activeAlarmAlertSlot) {
+        const slot = activeAlarmAlertSlot;
+        const role = sessionStorage.getItem('userRole') || 'PESO Admin';
+        const user = sessionStorage.getItem('username') || 'peso-admin';
+        logAuditEvent('ACKNOWLEDGE_SLOT_ALARM', `User [${user}, ${role}] acknowledged alarm for slot ${slot.slot_id || slot.id} (${slot.program_code}).`, 'interview_schedule');
+        
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({
+                title: 'Alarm Acknowledged',
+                message: `Reminder acknowledged for slot ${slot.slot_id || slot.id}.`,
+                type: 'success'
+            });
+        }
+    }
+    safeHideModal('slotAlarmAlertModal');
+}
+
+// Test Alarm Function
+function triggerTestAlarm() {
+    const sampleSlot = (Array.isArray(activitiesList) && activitiesList.length > 0)
+        ? activitiesList[0]
+        : {
+            id: 999,
+            slot_id: 'SLOT-TEST',
+            program_code: 'TUPAD',
+            program_name: 'Emergency Employment Assistance Program',
+            title: 'TUPAD: Batch 1 Community Orientation Session',
+            date: '2026-08-08',
+            time: '09:00 AM - 12:00 PM',
+            venue: 'City Gymnasium, Koronadal City',
+            officer_name: 'Jane Smith',
+            scheduling_mode: 'Batch',
+            batch_name: 'Batch 1 - Central Koronadal',
+            batch_count: 35
+        };
+
+    triggerSlotAlarm(sampleSlot, 'tier_10m', 'TEST ALARM (10m Imminent Session Simulation)', true);
+}
+
+// Conflict Detection Helper
+function detectScheduleConflicts(targetSlot, slotList = activitiesList) {
+    if (!targetSlot || !Array.isArray(slotList)) return { hasConflict: false, conflicts: [] };
+
+    const targetDate = targetSlot.date || (targetSlot.start_datetime ? targetSlot.start_datetime.substring(0, 10) : '');
+    const targetTime = targetSlot.time || targetSlot.schedule_time || '';
+    const targetOfficerId = targetSlot.officer_id || targetSlot.assigned_officer_id;
+    const targetId = targetSlot.id;
+
+    const conflicts = slotList.filter(s => {
+        if (!s || s.id === targetId) return false;
+        if (s.slot_status === 'Cancelled' || s.status === 'Cancelled') return false;
+
+        const isSameDate = (s.date === targetDate || (s.start_datetime || '').startsWith(targetDate));
+        const isSameTime = (s.time === targetTime || s.schedule_time === targetTime);
+        const isSameOfficer = targetOfficerId && (s.officer_id === targetOfficerId || s.assigned_officer_id === targetOfficerId);
+
+        return isSameDate && isSameTime && isSameOfficer;
+    });
+
+    return {
+        hasConflict: conflicts.length > 0,
+        conflicts: conflicts
+    };
+}
+
+// Open Snooze Slot Modal (Admin direct snooze)
+function openSnoozeSlotModal(slotId) {
+    if (!Array.isArray(activitiesList)) activitiesList = [];
+    const act = activitiesList.find(a => a && (a.id === slotId || a.slot_id === slotId));
+    if (!act) {
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({ title: 'Snooze Notice', message: 'Slot details not found.', type: 'warning' });
+        }
+        return;
+    }
+
+    const idInput = document.getElementById('snoozeSlotIdInput');
+    const badgeEl = document.getElementById('snoozeSlotBadge');
+    const titleEl = document.getElementById('snoozeSlotTitle');
+    const currentEl = document.getElementById('snoozeSlotCurrentTime');
+    const reasonInput = document.getElementById('snoozeReasonInput');
+
+    if (idInput) idInput.value = act.id;
+    if (badgeEl) badgeEl.textContent = act.slot_id || `SLOT-${act.id}`;
+    if (titleEl) titleEl.textContent = act.title || act.program_name;
+    if (currentEl) currentEl.textContent = `${act.date} • ${act.time || act.schedule_time}`;
+    if (reasonInput) reasonInput.value = '';
+
+    safeHideModal('slotAlarmAlertModal');
+    safeHideModal('viewActivityDetailsModal');
+    safeOpenModal('snoozeSlotModal');
+}
+
+// Handle Admin Snooze Submission
+function handleAdminSnoozeSubmit(e) {
+    e.preventDefault();
+    const idInput = document.getElementById('snoozeSlotIdInput');
+    const slotId = idInput ? Number(idInput.value) : null;
+    const act = activitiesList.find(a => a && a.id === slotId);
+
+    if (!act) {
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({ title: 'Error', message: 'Target slot not found.', type: 'danger' });
+        }
+        return;
+    }
+
+    const durationSelect = document.getElementById('snoozeDurationSelect');
+    const delayMins = durationSelect ? Number(durationSelect.value) : 15;
+    const reason = (document.getElementById('snoozeReasonInput') ? document.getElementById('snoozeReasonInput').value : '').trim() || 'Operational delay / Officer request';
+
+    // Apply snooze
+    if (!act.alarm_config) {
+        act.alarm_config = {
+            enabled: true,
+            tiers: {
+                tier_24h: { enabled: true, lead_minutes: 1440, triggered: false, acknowledged: false },
+                tier_1h: { enabled: true, lead_minutes: 60, triggered: false, acknowledged: false },
+                tier_10m: { enabled: true, lead_minutes: 10, triggered: false, acknowledged: false }
+            },
+            snooze: { is_snoozed: false, snooze_until: null, snoozed_by: null, snooze_count: 0 }
+        };
+    }
+
+    act.alarm_config.snooze = {
+        is_snoozed: true,
+        snooze_until: new Date(Date.now() + delayMins * 60000).toISOString(),
+        snoozed_by: sessionStorage.getItem('username') || 'PESO Admin',
+        snooze_count: (act.alarm_config.snooze?.snooze_count || 0) + 1,
+        reason: reason
+    };
+
+    // Update time label with snooze indicator
+    act.time = `${act.time.split(' (Snoozed')[0]} (Snoozed +${delayMins}m)`;
+    act.schedule_time = act.time;
+
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('SNOOZE_SCHEDULE_SLOT', `Admin [${adminUser}] snoozed slot ${act.slot_id || act.id} by ${delayMins} minutes. Reason: "${reason}".`, 'interview_schedule');
+
+    safeHideModal('snoozeSlotModal');
+    renderSchedulingModule();
+
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({
+            title: 'Slot Snoozed Successfully',
+            message: `Slot ${act.slot_id || act.id} delayed by ${delayMins} minutes.`,
+            type: 'info'
+        });
+    }
+}
+
+// Global Alarm Settings Modal
+function openAlarmSettingsModal() {
+    const swMaster = document.getElementById('alarmMasterSwitch');
+    const sw24h = document.getElementById('alarm24hSwitch');
+    const sw1h = document.getElementById('alarm1hSwitch');
+    const sw10m = document.getElementById('alarm10mSwitch');
+    const swSound = document.getElementById('alarmSoundSwitch');
+    const swPush = document.getElementById('alarmPushSwitch');
+
+    if (swMaster) swMaster.checked = globalAlarmSettings.masterEnabled;
+    if (sw24h) sw24h.checked = globalAlarmSettings.tier24h;
+    if (sw1h) sw1h.checked = globalAlarmSettings.tier1h;
+    if (sw10m) sw10m.checked = globalAlarmSettings.tier10m;
+    if (swSound) swSound.checked = globalAlarmSettings.soundEnabled;
+    if (swPush) swPush.checked = globalAlarmSettings.browserPushEnabled;
+
+    safeOpenModal('alarmSettingsModal');
+}
+
+function handleSaveAlarmSettings(e) {
+    e.preventDefault();
+    globalAlarmSettings.masterEnabled = document.getElementById('alarmMasterSwitch') ? document.getElementById('alarmMasterSwitch').checked : true;
+    globalAlarmSettings.tier24h = document.getElementById('alarm24hSwitch') ? document.getElementById('alarm24hSwitch').checked : true;
+    globalAlarmSettings.tier1h = document.getElementById('alarm1hSwitch') ? document.getElementById('alarm1hSwitch').checked : true;
+    globalAlarmSettings.tier10m = document.getElementById('alarm10mSwitch') ? document.getElementById('alarm10mSwitch').checked : true;
+    globalAlarmSettings.soundEnabled = document.getElementById('alarmSoundSwitch') ? document.getElementById('alarmSoundSwitch').checked : true;
+    globalAlarmSettings.browserPushEnabled = document.getElementById('alarmPushSwitch') ? document.getElementById('alarmPushSwitch').checked : false;
+
+    if (globalAlarmSettings.browserPushEnabled && 'Notification' in window && Notification.permission !== 'granted') {
+        Notification.requestPermission();
+    }
+
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('CONFIG_ALARM_TIERS', `Admin [${adminUser}] updated global alarm rules (24h: ${globalAlarmSettings.tier24h}, 1h: ${globalAlarmSettings.tier1h}, 10m: ${globalAlarmSettings.tier10m}, Sound: ${globalAlarmSettings.soundEnabled}, Push: ${globalAlarmSettings.browserPushEnabled}).`, 'interview_schedule');
+
+    safeHideModal('alarmSettingsModal');
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({
+            title: 'Alarm Rules Saved',
+            message: 'Global multi-tier reminder settings updated.',
+            type: 'success'
+        });
+    }
+}
+
+// Pending Reschedule Requests Queue Management
+function updatePendingRescheduleBadge() {
+    const badge = document.getElementById('pendingRescheduleCountBadge');
+    if (badge) {
+        const count = pendingRescheduleRequests.filter(r => r.status === 'Pending').length;
+        badge.textContent = count;
+        badge.className = count > 0 ? 'badge bg-danger text-white ms-1' : 'badge bg-secondary-subtle text-dark ms-1';
+    }
+}
+
+function openPendingRescheduleModal() {
+    const tbody = document.getElementById('pendingRescheduleTableBody');
+    if (!tbody) return;
+
+    const pending = pendingRescheduleRequests.filter(r => r.status === 'Pending');
+    if (pending.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4 text-muted">
+                    <i class="bi bi-check-circle fs-3 d-block mb-1 text-success"></i>
+                    No pending reschedule or snooze requests from officers.
+                </td>
+            </tr>
+        `;
+    } else {
+        tbody.innerHTML = pending.map(req => `
+            <tr>
+                <td><span class="badge bg-primary-subtle text-primary font-monospace">${escapeHtml(req.slot_id)}</span></td>
+                <td>
+                    <div class="fw-bold text-dark">${escapeHtml(req.slot_title)}</div>
+                    <small class="text-muted">${escapeHtml(req.officer_name)} • Beneficiary: ${escapeHtml(req.beneficiary_name || 'N/A')}</small>
+                </td>
+                <td>
+                    <div class="text-muted small">Current: ${escapeHtml(req.current_time)}</div>
+                    <div class="text-primary fw-bold small">Proposed: ${escapeHtml(req.requested_new_time)}</div>
+                </td>
+                <td><span class="badge bg-warning text-dark">+${req.requested_delay_mins} Mins</span></td>
+                <td><small class="text-dark fst-italic">"${escapeHtml(req.reason)}"</small></td>
+                <td class="text-end text-nowrap">
+                    <button class="btn btn-sm btn-success me-1" onclick="approveRescheduleRequest('${req.id}')" title="Approve Request">
+                        <i class="bi bi-check-lg"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="rejectRescheduleRequest('${req.id}')" title="Reject Request">
+                        <i class="bi bi-x-lg"></i> Reject
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    safeOpenModal('pendingRescheduleRequestsModal');
+}
+
+function approveRescheduleRequest(reqId) {
+    const reqIndex = pendingRescheduleRequests.findIndex(r => r.id === reqId);
+    if (reqIndex === -1) return;
+
+    const req = pendingRescheduleRequests[reqIndex];
+    req.status = 'Approved';
+
+    // Update target slot
+    const slot = activitiesList.find(s => s && (s.id === req.slot_id || s.slot_id === req.slot_id));
+    if (slot) {
+        slot.time = req.requested_new_time;
+        slot.schedule_time = req.requested_new_time;
+        if (!slot.alarm_config) slot.alarm_config = { enabled: true, tiers: {}, snooze: {} };
+        slot.alarm_config.snooze = {
+            is_snoozed: true,
+            snoozed_by: req.officer_name,
+            reason: req.reason,
+            approved_by: sessionStorage.getItem('username') || 'PESO Admin'
+        };
+    }
+
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('APPROVE_RESCHEDULE_REQUEST', `Admin [${adminUser}] approved reschedule request for slot ${req.slot_id}. New time: ${req.requested_new_time}. Reason: "${req.reason}"`, 'interview_schedule');
+
+    updatePendingRescheduleBadge();
+    openPendingRescheduleModal();
+    renderSchedulingModule();
+
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({
+            title: 'Reschedule Approved',
+            message: `Slot ${req.slot_id} shifted to ${req.requested_new_time}.`,
+            type: 'success'
+        });
+    }
+}
+
+function rejectRescheduleRequest(reqId) {
+    const reqIndex = pendingRescheduleRequests.findIndex(r => r.id === reqId);
+    if (reqIndex === -1) return;
+
+    const req = pendingRescheduleRequests[reqIndex];
+    req.status = 'Rejected';
+
+    const adminUser = sessionStorage.getItem('username') || 'peso-admin';
+    logAuditEvent('REJECT_RESCHEDULE_REQUEST', `Admin [${adminUser}] rejected reschedule request for slot ${req.slot_id} submitted by ${req.officer_name}.`, 'interview_schedule');
+
+    updatePendingRescheduleBadge();
+    openPendingRescheduleModal();
+
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({
+            title: 'Reschedule Rejected',
+            message: `Request for slot ${req.slot_id} was rejected.`,
+            type: 'info'
+        });
+    }
+}
+
+// Window Exports for Alarm Engine
+window.openAlarmSettingsModal = openAlarmSettingsModal;
+window.handleSaveAlarmSettings = handleSaveAlarmSettings;
+window.openSnoozeSlotModal = openSnoozeSlotModal;
+window.handleAdminSnoozeSubmit = handleAdminSnoozeSubmit;
+window.openPendingRescheduleModal = openPendingRescheduleModal;
+window.approveRescheduleRequest = approveRescheduleRequest;
+window.rejectRescheduleRequest = rejectRescheduleRequest;
+window.triggerTestAlarm = triggerTestAlarm;
+window.acknowledgeActiveAlarm = acknowledgeActiveAlarm;
+window.playAlarmChime = playAlarmChime;
+window.initAlarmEngine = initAlarmEngine;
 
 function scrollToSchedulingArchive() {
     const archiveEl = document.getElementById('schedulingArchiveBox');
