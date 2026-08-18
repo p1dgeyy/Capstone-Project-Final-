@@ -233,12 +233,174 @@
     if (scheduledEl) scheduledEl.textContent = scheduledCount;
     if (notifCountEl) notifCountEl.textContent = state.notifications.length;
 
+    renderQrPassCard();
+    renderLiveTransactionStepper();
     renderApplicationsTable();
     renderRecentApplicationsTable();
     renderDocumentStatusBoard();
     renderTrainingsList();
     renderDistributionReleases();
     renderNotificationsFeed();
+  }
+
+  // Dynamic QR Code Rendering for Beneficiary Pass Card & Modal
+  function renderQrPassCard() {
+    if (!state.user || !state.user.qr_code) return;
+    const qrText = state.user.qr_code;
+
+    const qrBadge = document.getElementById('benCardQrBadge');
+    const benName = document.getElementById('benCardFullName');
+    const statusBadge = document.getElementById('benCardStatusBadge');
+    const canvasBox = document.getElementById('benQrCanvasBox');
+
+    if (qrBadge) qrBadge.textContent = qrText;
+    if (benName) benName.textContent = state.user.fullName;
+    if (statusBadge) statusBadge.textContent = state.user.status || 'Active';
+
+    if (canvasBox && typeof QRCode !== 'undefined') {
+      canvasBox.innerHTML = '';
+      new QRCode(canvasBox, {
+        text: qrText,
+        width: 140,
+        height: 140,
+        colorDark: "#0F172A",
+        colorLight: "#FFFFFF",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    const modalName = document.getElementById('modalBenName');
+    const modalQr = document.getElementById('modalBenQrCode');
+    const modalCanvas = document.getElementById('modalQrCanvasBox');
+
+    if (modalName) modalName.textContent = state.user.fullName;
+    if (modalQr) modalQr.textContent = qrText;
+    if (modalCanvas && typeof QRCode !== 'undefined') {
+      modalCanvas.innerHTML = '';
+      new QRCode(modalCanvas, {
+        text: qrText,
+        width: 180,
+        height: 180,
+        colorDark: "#0F172A",
+        colorLight: "#FFFFFF",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+  }
+
+  function openQrSlipModal() {
+    renderQrPassCard();
+    const modalEl = document.getElementById('qrSlipModal');
+    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
+  }
+
+  // Render 5-Stage Live Transaction Stepper
+  function renderLiveTransactionStepper() {
+    const trackerEl = document.getElementById('liveStageTracker');
+    if (!trackerEl) return;
+
+    const latestApp = state.applications.length > 0 ? state.applications[0] : null;
+    const appIdEl = document.getElementById('liveTrackingAppId');
+    const bannerTitle = document.getElementById('liveCheckpointTitle');
+    const bannerNotes = document.getElementById('liveCheckpointNotes');
+    const bannerTime = document.getElementById('liveCheckpointTime');
+
+    if (!latestApp) {
+      if (appIdEl) appIdEl.textContent = 'NO ACTIVE TRANSACTION';
+      if (bannerTitle) bannerTitle.textContent = 'Account Ready For Assistance Application';
+      if (bannerNotes) bannerNotes.textContent = 'Click "Apply for Assistance" to submit your intake form to PESO or CSWDO.';
+      if (bannerTime) bannerTime.textContent = 'Standby';
+      resetStepperState(1);
+      return;
+    }
+
+    if (appIdEl) appIdEl.textContent = latestApp.id;
+
+    // Determine current milestone stage based on latest app status and notifications
+    let activeStage = 1;
+    const status = (latestApp.status || '').toLowerCase();
+
+    if (status.includes('completed') || status.includes('released')) {
+      activeStage = 5;
+    } else if (status.includes('approved') || status.includes('officer approved')) {
+      activeStage = 4;
+    } else if (status.includes('interview') || status.includes('training')) {
+      activeStage = 3;
+    } else if (status.includes('under review') || status.includes('pending requirements')) {
+      activeStage = 2;
+    } else {
+      activeStage = 1;
+    }
+
+    // Update step UI classes
+    for (let i = 1; i <= 5; i++) {
+      const stepEl = document.getElementById(`step-${i}`);
+      const timeEl = document.getElementById(`step-${i}-time`);
+      if (!stepEl) continue;
+
+      if (i < activeStage) {
+        stepEl.className = 'stage-step completed';
+        if (timeEl) timeEl.textContent = 'Completed';
+      } else if (i === activeStage) {
+        stepEl.className = 'stage-step active';
+        if (timeEl) timeEl.textContent = 'In Progress';
+      } else {
+        stepEl.className = 'stage-step';
+        if (timeEl) timeEl.textContent = 'Pending';
+      }
+    }
+
+    // Latest notification/checkpoint banner
+    const latestNotif = state.notifications.length > 0 ? state.notifications[0] : null;
+    if (latestNotif) {
+      if (bannerTitle) bannerTitle.textContent = latestNotif.title;
+      if (bannerNotes) bannerNotes.textContent = latestNotif.message;
+      if (bannerTime) bannerTime.textContent = latestNotif.date;
+    } else {
+      if (bannerTitle) bannerTitle.textContent = `Status: ${latestApp.status}`;
+      if (bannerNotes) bannerNotes.textContent = latestApp.remarks || 'Transaction is active and being processed.';
+      if (bannerTime) bannerTime.textContent = latestApp.date || 'Recent';
+    }
+  }
+
+  function resetStepperState(stage) {
+    for (let i = 1; i <= 5; i++) {
+      const stepEl = document.getElementById(`step-${i}`);
+      if (stepEl) stepEl.className = (i === stage ? 'stage-step active' : 'stage-step');
+    }
+  }
+
+  // Setup Realtime Postgres Subscription with Supabase
+  let realtimeChannel = null;
+  function setupRealtimeTracking() {
+    if (!state.user || !state.user.qr_code || typeof DataService === 'undefined' || !DataService.realtime) return;
+
+    if (realtimeChannel) {
+      DataService.realtime.unsubscribe(realtimeChannel);
+    }
+
+    const qr = state.user.qr_code;
+    const client = DataService.getClient();
+    if (!client || typeof client.channel !== 'function') return;
+
+    try {
+      realtimeChannel = client.channel(`tracking_${qr}_${Date.now()}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `beneficiary_qr=eq.${qr}` }, async (payload) => {
+          console.log('[REALTIME TRACKER] Notification event received:', payload);
+          await fetchBeneficiaryData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'applications', filter: `beneficiary_qr=eq.${qr}` }, async (payload) => {
+          console.log('[REALTIME TRACKER] Application status changed:', payload);
+          await fetchBeneficiaryData();
+        })
+        .subscribe();
+      console.log('[REALTIME TRACKER] Subscribed to live Supabase tracking stream for', qr);
+    } catch (e) {
+      console.warn('[REALTIME TRACKER] Subscription notice:', e);
+    }
   }
 
   // Dynamic Assistance Request Intake Submission directly to Supabase
@@ -495,11 +657,13 @@
   window.fetchBeneficiaryData = fetchBeneficiaryData;
   window.markBeneficiaryNotificationRead = markBeneficiaryNotificationRead;
   window.markAllRead = markAllBeneficiaryNotificationsRead;
+  window.openQrSlipModal = openQrSlipModal;
 
   // Initialize on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', async function () {
     await loadBeneficiaryProfile();
     await fetchBeneficiaryData();
+    setupRealtimeTracking();
 
     const requestForm = document.getElementById('assistanceRequestForm');
     if (requestForm) requestForm.addEventListener('submit', submitAssistanceRequest);

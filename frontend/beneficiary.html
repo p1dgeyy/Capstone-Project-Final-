@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="assets/js/supabase-config.js"></script>
     <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/session-manager.js"></script>
@@ -1892,6 +1893,85 @@
             <div class="hero-banner">
                 <h1 id="welcomeUser">Welcome, Maria!</h1>
                 <p data-translate="hero_description">Track your applications and stay updated with your assistance programs.</p>
+            </div>
+
+            <!-- Digital QR Tracking Pass & Live Transaction Milestone Tracker -->
+            <div class="row g-4 mb-4">
+                <!-- QR Code Tracking Pass Card -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-white position-relative overflow-hidden" style="border: 1px solid var(--rose-light) !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-dark px-3 py-1 font-monospace" id="benCardQrBadge">QR-BEN-ACTIVE</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle" id="benCardStatusBadge">Verified</span>
+                        </div>
+                        <div class="text-center py-2">
+                            <div id="benQrCanvasBox" class="p-2 bg-white d-inline-block rounded-3 shadow-sm border mb-2">
+                                <!-- Dynamic QR Code Rendered Here -->
+                            </div>
+                            <h6 class="fw-bold text-dark mb-0 mt-2" id="benCardFullName">Maria Dela Cruz</h6>
+                            <small class="text-muted d-block">Koronadal City Resident ID</small>
+                        </div>
+                        <div class="mt-3 pt-3 border-top d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-dark rounded-pill w-100 fw-semibold" onclick="window.openQrSlipModal()">
+                                <i class="bi bi-printer me-1"></i> Print / Save Pass
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Transaction Milestone Stepper -->
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Live Transaction Tracking</h5>
+                                <small class="text-muted">Real-time status updates from City Hall officer scans</small>
+                            </div>
+                            <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill font-monospace" id="liveTrackingAppId">APP-2026-ACTIVE</span>
+                        </div>
+
+                        <!-- 5-Stage Stepper -->
+                        <div class="stage-tracker" id="liveStageTracker">
+                            <div class="stage-step active" id="step-1">
+                                <div class="stage-icon"><i class="bi bi-file-earmark-plus"></i></div>
+                                <div class="stage-label">1. Intake Filed</div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;" id="step-1-time">Received</small>
+                            </div>
+                            <div class="stage-step" id="step-2">
+                                <div class="stage-icon"><i class="bi bi-file-earmark-check"></i></div>
+                                <div class="stage-label">2. Doc Review</div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;" id="step-2-time">Pending</small>
+                            </div>
+                            <div class="stage-step" id="step-3">
+                                <div class="stage-icon"><i class="bi bi-person-video3"></i></div>
+                                <div class="stage-label">3. Interview</div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;" id="step-3-time">Pending</small>
+                            </div>
+                            <div class="stage-step" id="step-4">
+                                <div class="stage-icon"><i class="bi bi-patch-check"></i></div>
+                                <div class="stage-label">4. Approved</div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;" id="step-4-time">Pending</small>
+                            </div>
+                            <div class="stage-step" id="step-5">
+                                <div class="stage-icon"><i class="bi bi-cash-coin"></i></div>
+                                <div class="stage-label">5. Disbursed</div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;" id="step-5-time">Pending</small>
+                            </div>
+                        </div>
+
+                        <!-- Live Status Banner / Last Officer Scan Note -->
+                        <div class="p-3 rounded-3 bg-light border d-flex align-items-center justify-content-between mt-auto" id="liveCheckpointBanner">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
+                                <div>
+                                    <strong class="text-dark small d-block" id="liveCheckpointTitle">Application on record in Supabase</strong>
+                                    <span class="text-muted" style="font-size: 0.8rem;" id="liveCheckpointNotes">Present your QR Code at the receiving desk for instant officer intake.</span>
+                                </div>
+                            </div>
+                            <small class="text-muted text-end font-monospace" id="liveCheckpointTime">Just now</small>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Quick Access Grid -->
@@ -4984,6 +5064,39 @@
                             <i class="bi bi-printer me-1"></i> Print / Save PDF Certificate
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Download / Print Official QR Pass Modal -->
+    <div class="modal fade" id="qrSlipModal" tabindex="-1" aria-labelledby="qrSlipModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-dark text-white py-3 px-4">
+                    <h5 class="modal-title fw-bold fs-6" id="qrSlipModalLabel"><i class="bi bi-qr-code me-2"></i>Official QR Transaction Pass</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-white" id="qrSlipPrintArea">
+                    <div class="border rounded-4 p-4 text-center" style="border: 2px dashed #CBD5E1 !important; background: #FAFAFA;">
+                        <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                            <img src="assets/koronadalseal.png" alt="Seal" style="width: 44px; height: 44px;">
+                            <div class="text-start">
+                                <div class="fw-bold text-dark small">CITY GOVERNMENT OF KORONADAL</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">PESO & CSWDO Assistance Portal</div>
+                            </div>
+                        </div>
+                        <hr class="my-2 opacity-25">
+                        <div id="modalQrCanvasBox" class="p-3 bg-white d-inline-block rounded-3 shadow-sm border my-2"></div>
+                        <h5 class="fw-bold text-dark mb-0" id="modalBenName">Maria Dela Cruz</h5>
+                        <div class="badge bg-dark font-monospace fs-6 px-3 py-1 my-2" id="modalBenQrCode">QR-BEN-XXXX</div>
+                        <p class="text-muted small mb-0 px-3">Present this digital QR pass or printed slip to PESO/CSWDO officers during intake, interviews, and assistance release to track your transaction.</p>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-4 fw-semibold shadow-sm" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i> Print / Save PDF
+                    </button>
                 </div>
             </div>
         </div>

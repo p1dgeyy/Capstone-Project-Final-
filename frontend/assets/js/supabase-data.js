@@ -1304,6 +1304,109 @@ const DataService = (() => {
     }
   };
 
+  // =========================================================================
+  // 14. TRACKING & QR SCAN MILESTONES DOMAIN (100% Real-Time Supabase)
+  // =========================================================================
+  const tracking = {
+    // Record a scan milestone checkpoint at any office station directly into Supabase
+    async recordScanMilestone(qrCode, { stage, title, notes, officerId, officerName, agency = 'PESO', newStatus = null }) {
+      return withRetry(async (client) => {
+        // 1. Verify beneficiary exists in Supabase
+        const benRes = await client.from('beneficiaries').select('*').eq('qr_code', qrCode).maybeSingle();
+        if (!benRes.data) {
+          return { data: null, error: new Error(`Beneficiary not found for QR code: ${qrCode}`) };
+        }
+        const beneficiary = benRes.data;
+
+        // 2. Find active or latest application for this beneficiary
+        const appRes = await client
+          .from('applications')
+          .select(`*, program:programs!program_id(*)`)
+          .eq('beneficiary_qr', qrCode)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        let updatedApp = null;
+        if (appRes.data && newStatus) {
+          let progressPercent = 20;
+          if (newStatus === 'Under Review' || newStatus === 'Pending Requirements') progressPercent = 40;
+          if (newStatus === 'Interview Scheduled' || newStatus === 'Training Scheduled') progressPercent = 60;
+          if (newStatus === 'Officer Approved' || newStatus === 'Approved') progressPercent = 80;
+          if (newStatus === 'Completed' || newStatus === 'Released') progressPercent = 100;
+
+          const updatePayload = {
+            status: newStatus,
+            progress_percent: progressPercent,
+            officer_notes: notes || `Checkpoint reached: ${stage}`,
+            updated_at: new Date().toISOString()
+          };
+          if (officerId) updatePayload.officer_id = officerId;
+
+          const patchRes = await client.from('applications').update(updatePayload).eq('id', appRes.data.id).select(`*, program:programs!program_id(*)`).single();
+          if (patchRes.data) updatedApp = patchRes.data;
+        }
+
+        // 3. Insert real-time notification for beneficiary into Supabase
+        const notifTitle = title || `Transaction Update: ${stage}`;
+        const notifMessage = notes || `Your assistance transaction was scanned at the ${agency} ${stage} checkpoint by ${officerName || 'an officer'}.`;
+        
+        await client.from('notifications').insert({
+          beneficiary_qr: qrCode,
+          title: notifTitle,
+          message: notifMessage,
+          is_read: false,
+          created_at: new Date().toISOString()
+        });
+
+        // 4. Record Immutable Audit Log in Supabase
+        await client.from('audit_logs').insert({
+          staff_user_id: officerId || null,
+          beneficiary_qr: qrCode,
+          action: 'QR_SCAN_CHECKPOINT',
+          entity_type: 'application',
+          entity_id: appRes.data ? appRes.data.id : null,
+          details: `QR Code ${qrCode} scanned at checkpoint [${stage}] by ${officerName || 'Officer'}. Notes: ${notes || 'None'}`
+        });
+
+        return {
+          data: {
+            success: true,
+            beneficiary,
+            application: updatedApp || appRes.data,
+            checkpoint: stage,
+            scannedAt: new Date().toISOString()
+          },
+          error: null
+        };
+      });
+    },
+
+    // Get live chronological tracking history directly from Supabase
+    async getTimelineHistory(qrCode) {
+      return withRetry(async (client) => {
+        const [appRes, notifRes, auditRes, interviewRes, assistRes] = await Promise.all([
+          client.from('applications').select(`*, program:programs!program_id(*)`).eq('beneficiary_qr', qrCode).order('created_at', { ascending: false }),
+          client.from('notifications').select('*').eq('beneficiary_qr', qrCode).order('created_at', { ascending: false }),
+          client.from('audit_logs').select('*').eq('beneficiary_qr', qrCode).order('created_at', { ascending: false }),
+          client.from('interview_schedules').select(`*, program:programs!program_id(*)`).eq('beneficiary_qr', qrCode).order('interview_date', { ascending: false }),
+          client.from('approved_assistance').select(`*, program:programs!program_id(*)`).eq('beneficiary_qr', qrCode).order('approval_date', { ascending: false })
+        ]);
+
+        return {
+          data: {
+            applications: appRes.data || [],
+            notifications: notifRes.data || [],
+            auditLogs: auditRes.data || [],
+            interviews: interviewRes.data || [],
+            assistance: assistRes.data || []
+          },
+          error: null
+        };
+      });
+    }
+  };
+
   return Object.freeze({
     getClient,
     withRetry,
@@ -1322,7 +1425,8 @@ const DataService = (() => {
     auditLogs,
     activityLog,
     batches,
-    realtime
+    realtime,
+    tracking
   });
 })();
 

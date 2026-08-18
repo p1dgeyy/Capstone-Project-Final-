@@ -7,12 +7,21 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Supabase JS Client -->
+    <!-- Supabase JS Client & QR Scanner -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="assets/js/supabase-config.js"></script>
     <script src="assets/js/supabase-data.js"></script>
+    <script src="assets/js/qr-scanner-controller.js"></script>
     <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/session-manager.js"></script>
+    <script>
+        window.openQrScannerModal = function() {
+            if (typeof QrScannerController !== 'undefined') {
+                QrScannerController.openScanner();
+            }
+        };
+    </script>
     <style>
         :root {
             --primary-pink: #D77FA1;
@@ -1272,7 +1281,10 @@
                 <input  type="text" placeholder="Search beneficiaries, programs..." id="globalSearch" aria-label="Search beneficiaries, programs">
             </div>
             <div class="header-right">
-                <div class="header-actions">
+                <div class="header-actions d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold text-nowrap d-flex align-items-center gap-1 shadow-sm" onclick="openQrScannerModal()">
+                        <i class="bi bi-qr-code-scan"></i> Scan QR
+                    </button>
                     <button class="header-icon-btn" title="Notifications">
                         <i class="bi bi-bell"></i>
                         <span class="notification-badge">5</span>
@@ -1294,6 +1306,9 @@
             <section class="module-page active" id="module-dashboard">
                 <!-- Quick Action Buttons -->
                 <div class="quick-actions-bar">
+                    <button class="quick-action-btn" onclick="openQrScannerModal()" title="Scan Beneficiary QR Code" style="background: var(--accent); color: white;">
+                        <i class="bi bi-qr-code-scan"></i> Scan QR Code
+                    </button>
                     <button class="quick-action-btn" onclick="quickActionAddBeneficiary()" title="Add a new beneficiary to the system">
                         <i class="bi bi-plus-lg"></i> Add Beneficiary
                     </button>
