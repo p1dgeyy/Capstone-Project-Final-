@@ -13,7 +13,8 @@ function renderDashboardTables() {
     if (document.getElementById('statArchivedPrograms')) document.getElementById('statArchivedPrograms').textContent = archList.length;
     if (document.getElementById('archiveTabBadge')) document.getElementById('archiveTabBadge').textContent = archList.length;
     if (document.getElementById('archiveSectionCountBadge')) document.getElementById('archiveSectionCountBadge').textContent = `${archList.length} Deactivated Programs`;
-    if (document.getElementById('statTotalBudget')) document.getElementById('statTotalBudget').textContent = '₱' + totalBudget.toLocaleString();
+    if (document.getElementById('statTotalBudget')) document.getElementById('statTotalBudget').textContent = '₱' + totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    if (document.getElementById('ordinanceTotalAppropriation')) document.getElementById('ordinanceTotalAppropriation').textContent = '₱' + totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 });
 
     filterPrograms();
     renderAssignProgramsTable();

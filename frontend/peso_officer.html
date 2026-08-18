@@ -370,25 +370,25 @@
                 <div class="col-md-3">
                     <div class="stat-card d-flex align-items-center gap-3">
                         <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div>
-                        <div><h3 class="mb-0 fw-bold" id="statPendingEval">3</h3><span class="text-muted small">Pending Evaluations</span></div>
+                        <div><h3 class="mb-0 fw-bold" id="statPendingEval">0</h3><span class="text-muted small">Pending Evaluations</span></div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card d-flex align-items-center gap-3">
                         <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check-circle"></i></div>
-                        <div><h3 class="mb-0 fw-bold" id="statApprovedEval">8</h3><span class="text-muted small">Approved Applications</span></div>
+                        <div><h3 class="mb-0 fw-bold" id="statApprovedEval">0</h3><span class="text-muted small">Approved Applications</span></div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card d-flex align-items-center gap-3">
                         <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-people"></i></div>
-                        <div><h3 class="mb-0 fw-bold" id="statAssignedBen">142</h3><span class="text-muted small">Assigned Beneficiaries</span></div>
+                        <div><h3 class="mb-0 fw-bold" id="statAssignedBen">0</h3><span class="text-muted small">Assigned Beneficiaries</span></div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card d-flex align-items-center gap-3">
                         <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-cash-stack"></i></div>
-                        <div><h3 class="mb-0 fw-bold">₱3.85M</h3><span class="text-muted small">Disbursed Funds</span></div>
+                        <div><h3 class="mb-0 fw-bold" id="statDisbursedFunds">₱0.00</h3><span class="text-muted small">Disbursed Funds</span></div>
                     </div>
                 </div>
             </div>
@@ -399,7 +399,7 @@
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                             <h5 class="mb-0 fw-bold"><i class="bi bi-cash-coin text-primary me-2"></i>Fund Allocation & Distribution</h5>
-                            <span class="badge bg-primary-subtle text-primary">Budget: ₱5.5M</span>
+                            <span class="badge bg-primary-subtle text-primary" id="dashTotalBudgetBadge">Budget: ₱0.00</span>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
@@ -412,10 +412,8 @@
                                             <th>Remaining</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <tr><td class="fw-semibold">TUPAD (Emergency Employment)</td><td>₱2,000,000</td><td class="text-danger">₱1,500,000</td><td class="text-success">₱500,000</td></tr>
-                                        <tr><td class="fw-semibold">CKGIP (City Internship)</td><td>₱1,000,000</td><td class="text-danger">₱750,000</td><td class="text-success">₱250,000</td></tr>
-                                        <tr><td class="fw-semibold">PFAS (Pangkabuhayan Assistance)</td><td>₱1,500,000</td><td class="text-danger">₱1,100,000</td><td class="text-success">₱400,000</td></tr>
+                                    <tbody id="dashFundDistributionTableBody">
+                                        <tr><td colspan="4" class="text-center py-3 text-muted">Loading live fund distribution...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -430,10 +428,10 @@
                         </div>
                         <div class="card-body">
                             <div class="row text-center g-3 mb-3">
-                                <div class="col-6"><div class="p-3 bg-light rounded border"><h4 class="fw-bold text-primary mb-0">18</h4><small class="text-muted">Scheduled</small></div></div>
-                                <div class="col-6"><div class="p-3 bg-light rounded border"><h4 class="fw-bold text-success mb-0">45</h4><small class="text-muted">Completed</small></div></div>
-                                <div class="col-6"><div class="p-3 bg-light rounded border"><h4 class="fw-bold text-warning mb-0">12</h4><small class="text-muted">Pending</small></div></div>
-                                <div class="col-6"><div class="p-3 bg-light rounded border"><h4 class="fw-bold text-danger mb-0">4</h4><small class="text-muted">Missed</small></div></div>
+                                <div class="col-6"><div class="p-3 bg-light rounded border"><h4 class="fw-bold text-primary mb-0" id="dashSchedCount">0</h4><small class="text-muted">Scheduled</small></div></div>
+                                <div class="col-6"><div class="p-3 bg-light rounded border"><h4 class="fw-bold text-success mb-0" id="dashCompletedCount">0</h4><small class="text-muted">Completed</small></div></div>
+                                <div class="col-6"><div class="p-3 bg-light rounded border"><h4 class="fw-bold text-warning mb-0" id="dashPendingSchedCount">0</h4><small class="text-muted">Pending</small></div></div>
+                                <div class="col-6"><div class="p-3 bg-light rounded border"><h4 class="fw-bold text-danger mb-0" id="dashMissedCount">0</h4><small class="text-muted">Missed</small></div></div>
                             </div>
                         </div>
                     </div>
@@ -1845,6 +1843,15 @@
                     }));
                 }
 
+                // 5. Programs for Dashboard Budget & Spent Metrics
+                let programsData = [];
+                if (DataService.programs) {
+                    const progRes = await DataService.programs.getAll({ agency: 'PESO' });
+                    if (progRes && Array.isArray(progRes.data)) {
+                        programsData = progRes.data;
+                    }
+                }
+
                 // Render views
                 renderBeneficiaryTable();
                 renderEvaluationQueueTable();
@@ -1852,9 +1859,104 @@
                 renderLivelihoodMasterTable();
                 renderDailySchedules();
                 loadOfficerTeam();
+                updateDashboardOverviewMetrics(programsData, (appRes && appRes.data) || []);
             } catch (err) {
                 console.warn('[PESO Officer] loadAllOfficerData notice:', err);
             }
+        }
+
+        // ---------------------------------------------------------------------
+        // DASHBOARD OVERVIEW METRICS CONTROLLER (LIVE SUPABASE DATA)
+        // ---------------------------------------------------------------------
+        function updateDashboardOverviewMetrics(programsData, applicationsData) {
+            // 1. Pending evaluations count
+            const pendingCount = evaluationList.filter(a => a.status === 'Pending').length;
+            if (document.getElementById('statPendingEval')) {
+                document.getElementById('statPendingEval').textContent = pendingCount;
+            }
+
+            // 2. Approved applications count
+            const approvedCount = evaluationList.filter(a => a.status === 'Approved').length;
+            if (document.getElementById('statApprovedEval')) {
+                document.getElementById('statApprovedEval').textContent = approvedCount;
+            }
+
+            // 3. Assigned Beneficiaries count
+            const assignedCount = beneficiariesList.length;
+            if (document.getElementById('statAssignedBen')) {
+                document.getElementById('statAssignedBen').textContent = assignedCount;
+            }
+
+            // 4. Disbursed / Approved Funds
+            let totalDisbursed = 0;
+            if (Array.isArray(applicationsData)) {
+                totalDisbursed = applicationsData
+                    .filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed')
+                    .reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
+            }
+            if (document.getElementById('statDisbursedFunds')) {
+                if (totalDisbursed >= 1000000) {
+                    document.getElementById('statDisbursedFunds').textContent = `₱${(totalDisbursed / 1000000).toFixed(2)}M`;
+                } else if (totalDisbursed > 0) {
+                    document.getElementById('statDisbursedFunds').textContent = `₱${totalDisbursed.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+                } else {
+                    document.getElementById('statDisbursedFunds').textContent = '₱0.00';
+                }
+            }
+
+            // 5. Fund Allocation & Distribution Table
+            const tbody = document.getElementById('dashFundDistributionTableBody');
+            const totalBudgetBadge = document.getElementById('dashTotalBudgetBadge');
+
+            if (tbody && Array.isArray(programsData)) {
+                let totalAllocated = 0;
+                const rowsHtml = programsData.map(prog => {
+                    const progCode = prog.code || '';
+                    const progName = prog.name || progCode;
+                    const allocated = Number(prog.budget) || Number(prog.budget_allocated) || 0;
+                    totalAllocated += allocated;
+
+                    const progApps = Array.isArray(applicationsData)
+                        ? applicationsData.filter(a => (a.program_id === prog.id || (a.program && a.program.code === progCode)) && (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed'))
+                        : [];
+                    const spent = progApps.reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
+                    const remaining = Math.max(0, allocated - spent);
+
+                    return `
+                        <tr>
+                            <td class="fw-semibold">${escapeHtml(progCode)} (${escapeHtml(progName)})</td>
+                            <td>₱${allocated.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
+                            <td class="text-danger">₱${spent.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
+                            <td class="text-success">₱${remaining.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                if (programsData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No programs registered in database.</td></tr>';
+                } else {
+                    tbody.innerHTML = rowsHtml;
+                }
+
+                if (totalBudgetBadge) {
+                    if (totalAllocated >= 1000000) {
+                        totalBudgetBadge.textContent = `Budget: ₱${(totalAllocated / 1000000).toFixed(1)}M`;
+                    } else {
+                        totalBudgetBadge.textContent = `Budget: ₱${totalAllocated.toLocaleString('en-PH')}`;
+                    }
+                }
+            }
+
+            // 6. Interview Activity Summary
+            const totalSched = dailySchedulesList.length;
+            const completedSched = dailySchedulesList.filter(s => s.status === 'Completed' || s.attendance === 'Present').length;
+            const pendingSched = dailySchedulesList.filter(s => s.status === 'Pending' || s.attendance === 'Unmarked').length;
+            const missedSched = dailySchedulesList.filter(s => s.status === 'Missed' || s.attendance === 'Absent').length;
+
+            if (document.getElementById('dashSchedCount')) document.getElementById('dashSchedCount').textContent = totalSched;
+            if (document.getElementById('dashCompletedCount')) document.getElementById('dashCompletedCount').textContent = completedSched;
+            if (document.getElementById('dashPendingSchedCount')) document.getElementById('dashPendingSchedCount').textContent = pendingSched;
+            if (document.getElementById('dashMissedCount')) document.getElementById('dashMissedCount').textContent = missedSched;
         }
 
         // ---------------------------------------------------------------------
