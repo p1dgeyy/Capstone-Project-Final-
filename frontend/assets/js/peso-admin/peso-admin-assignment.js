@@ -1,11 +1,12 @@
 /**
  * PESO Admin Portal - Program Assignment Module (Tab 5)
  * Module: Assignment (peso-admin-assignment.js)
- * Implements: 3-Level Quota Tracking, Read-only Beneficiary Roster, Masked Contact Compliance
  */
 
 let selectedProgramId = null;
 let selectedBatchId = null;
+let liveAssignmentBatches = [];
+let liveAssignmentBeneficiaries = [];
 
 function filterAssignPrograms() {
     const search = (document.getElementById('assignProgSearch')?.value || '').toLowerCase().trim();
@@ -22,14 +23,51 @@ function filterAssignPrograms() {
     renderAssignProgramsTable(filtered);
 }
 
-function filterBatches() {
+async function loadBatchesForProgram(progId) {
+    liveAssignmentBatches = [];
+    if (typeof DataService !== 'undefined') {
+        try {
+            // Check batches table
+            const bRes = await DataService.batches.getAll({ program_id: progId });
+            if (bRes.data && Array.isArray(bRes.data) && bRes.data.length > 0) {
+                liveAssignmentBatches = bRes.data.map(b => ({
+                    batch_id: b.id,
+                    batch_num: b.name || `Batch #${b.id}`,
+                    date: b.created_at ? b.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10),
+                    trainer: 'PESO Operations Unit',
+                    enrolled: Array.isArray(b.applications) ? b.applications.length : 0,
+                    total: b.capacity || 50
+                }));
+            } else {
+                // Fallback: derive from applications list
+                const progApps = evalApplicationsList.filter(a => a.program_id === progId);
+                const batchMap = {};
+                progApps.forEach(a => {
+                    const bKey = a.batch_num || (a.batch_id ? `Batch #${a.batch_id}` : 'General Intake');
+                    const bId = a.batch_id || 1;
+                    if (!batchMap[bKey]) {
+                        batchMap[bKey] = {
+                            batch_id: bId,
+                            batch_num: bKey,
+                            date: a.date_submitted || new Date().toISOString().substring(0, 10),
+                            trainer: 'PESO Operations Unit',
+                            enrolled: 0,
+                            total: 50
+                        };
+                    }
+                    batchMap[bKey].enrolled += 1;
+                });
+                liveAssignmentBatches = Object.values(batchMap);
+            }
+        } catch (e) {
+            console.warn('[ASSIGNMENT] Error loading batches:', e);
+        }
+    }
+}
+
+async function filterBatches() {
     const search = (document.getElementById('batchSearchInput')?.value || '').toLowerCase().trim();
-    const batches = PROGRAM_BATCHES[selectedProgramId] || [
-        { batch_id: (selectedProgramId || 1) * 10 + 1, batch_num: 'Batch 2026-A (Cohort 1)', date: '2026-03-15', trainer: 'PESO Operations Team', enrolled: 15, total: 25 },
-        { batch_id: (selectedProgramId || 1) * 10 + 2, batch_num: 'Batch 2026-B (Cohort 2)', date: '2026-04-10', trainer: 'PESO Livelihood Bureau', enrolled: 12, total: 25 }
-    ];
-    const filtered = batches.filter(b => {
-        if (!b) return false;
+    const filtered = liveAssignmentBatches.filter(b => {
         return !search || (b.batch_num && b.batch_num.toLowerCase().includes(search)) || (b.trainer && b.trainer.toLowerCase().includes(search)) || (b.date && b.date.toLowerCase().includes(search));
     });
     renderBatchesTable(filtered);
@@ -37,13 +75,7 @@ function filterBatches() {
 
 function filterBeneficiaries() {
     const search = (document.getElementById('benSearchInput')?.value || '').toLowerCase().trim();
-    const list = BATCH_BENEFICIARIES[selectedBatchId] || [
-        { id: 601, full_name: 'Juan Santos Dela Cruz', phone: '0917-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved', address: 'Barangay Zone IV, Koronadal City' },
-        { id: 602, full_name: 'Maria Clara De Los Reyes', phone: '0918-222-3333', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved', address: 'Barangay GPS, Koronadal City' },
-        { id: 603, full_name: 'Roberto Gomez Hernandez', phone: '0919-333-4444', checklist_status: '3/4 In Progress', assignment_status: 'Enrolled', address: 'Barangay Morales, Koronadal City' }
-    ];
-    const filtered = list.filter(b => {
-        if (!b) return false;
+    const filtered = liveAssignmentBeneficiaries.filter(b => {
         return !search || (b.full_name && b.full_name.toLowerCase().includes(search)) || (b.phone && b.phone.includes(search)) || (b.address && b.address.toLowerCase().includes(search));
     });
     renderBeneficiariesTable(filtered);
@@ -54,14 +86,9 @@ function handleProgramSelectionChange() {
     const subCatInput = document.getElementById('actSubCategory');
     if (!progSelect || !subCatInput) return;
     const val = progSelect.value;
-    const defaults = {
-        'TUPAD': 'Emergency Community Employment Assistance',
-        'SPES': 'Special Program for Employment of Students - Summer Cohort',
-        'PFAS': 'Pangkabuhayan Assistance Livelihood Project',
-        'CKGIP': 'City Graduate Internship Workplace Placement'
-    };
-    if (!subCatInput.value || Object.values(defaults).includes(subCatInput.value)) {
-        subCatInput.value = defaults[val] || '';
+    const prog = Array.isArray(programsList) ? programsList.find(p => p.code === val || p.id == val) : null;
+    if (prog && prog.description) {
+        subCatInput.value = prog.description;
     }
 }
 
@@ -81,30 +108,26 @@ function renderAssignProgramsTable(customList) {
     if (!tbody) return;
     tbody.innerHTML = '';
     if (!Array.isArray(list) || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No programs match current filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No programs match current filters.</td></tr>';
         return;
     }
     list.forEach(prog => {
-        const total = Number(prog.total_slots) || 50;
-        const enrolled = Number(prog.beneficiaries_count) || 0;
-        const rem = Math.max(0, total - enrolled);
+        const total = prog.total_slots || 50;
+        const rem = Math.max(0, total - (prog.beneficiaries_count || 0));
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>
-                <div class="fw-bold text-dark">${escapeHtml(prog.name || '')}</div>
-                <span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(prog.code || '')}</span>
-            </td>
-            <td><span class="badge badge-category badge-emp">${escapeHtml(prog.category || 'Livelihood')}</span></td>
+            <td><div class="fw-bold text-dark">${escapeHtml(prog.name)}</div><span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(prog.code)}</span></td>
+            <td><span class="badge badge-category badge-emp">${escapeHtml(prog.category)}</span></td>
             <td class="text-center fw-semibold">${total}</td>
-            <td class="text-center"><span class="badge bg-success-subtle text-success border border-success">${rem} slots available</span></td>
-            <td class="text-center"><span class="badge ${prog.status === 'Active' ? 'bg-success' : 'bg-secondary'} px-3 py-1">${prog.status || 'Active'}</span></td>
-            <td class="text-end"><button class="btn btn-primary btn-sm fw-semibold" onclick="showLevel2Batches(${prog.id})">View Batches <i class="bi bi-chevron-right ms-1"></i></button></td>
+            <td class="text-center"><span class="badge bg-success-subtle text-success">${rem} slots available</span></td>
+            <td class="text-center"><span class="badge ${prog.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${prog.status}</span></td>
+            <td class="text-end"><button class="btn btn-primary btn-sm fw-semibold" onclick="showLevel2Batches(${prog.id})">View Batches →</button></td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-function showLevel2Batches(progId) {
+async function showLevel2Batches(progId) {
     if (progId) selectedProgramId = progId;
     const prog = programsList.find(p => p.id === selectedProgramId);
     const l1 = document.getElementById('assignmentLevel1');
@@ -115,41 +138,36 @@ function showLevel2Batches(progId) {
     if (l3) l3.classList.add('d-none');
 
     const titleEl = document.getElementById('batchProgTitle');
-    if (titleEl) titleEl.textContent = `${prog ? prog.name : 'Program'} Batches`;
-    renderBatchesTable();
+    if (titleEl) titleEl.textContent = `${prog ? prog.name : ''} Batches`;
 
-    const adminId = sessionStorage.getItem('userId') || '1';
-    logAuditEvent('ASSIGNMENT_VIEW_BATCHES', `PESO Admin [ID:${adminId}] inspected assignment batches for Program: ${prog ? prog.code : selectedProgramId}`);
+    await loadBatchesForProgram(selectedProgramId);
+    renderBatchesTable();
 }
 
 function renderBatchesTable(customList) {
     const tbody = document.getElementById('batchesTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    const batches = customList || (PROGRAM_BATCHES[selectedProgramId] || [
-        { batch_id: (selectedProgramId || 1) * 10 + 1, batch_num: 'Batch 2026-A (Cohort 1)', date: '2026-03-15', trainer: 'PESO Operations Team', enrolled: 15, total: 25 },
-        { batch_id: (selectedProgramId || 1) * 10 + 2, batch_num: 'Batch 2026-B (Cohort 2)', date: '2026-04-10', trainer: 'PESO Livelihood Bureau', enrolled: 12, total: 25 }
-    ]);
-    if (batches.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No batches match current filter.</td></tr>';
+    const batches = customList || liveAssignmentBatches;
+    if (!batches || batches.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No batches recorded for this program.</td></tr>';
         return;
     }
     batches.forEach(b => {
-        const remSlots = Math.max(0, b.total - b.enrolled);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><div class="fw-bold text-dark">${escapeHtml(b.batch_num || '')}</div></td>
-            <td><small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${escapeHtml(b.date || '2026-03-15')}</small></td>
+            <td><div class="fw-bold text-dark">${escapeHtml(b.batch_num)}</div></td>
+            <td><small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${escapeHtml(b.date || '')}</small></td>
             <td>${escapeHtml(b.trainer || 'PESO Team')}</td>
             <td class="text-center fw-semibold">${b.enrolled} / ${b.total}</td>
-            <td class="text-center"><span class="badge bg-info-subtle text-primary border">${remSlots} slots remaining</span></td>
-            <td class="text-end"><button class="btn btn-outline-primary btn-sm fw-semibold" onclick="showLevel3Beneficiaries(${b.batch_id}, '${escapeHtml(b.batch_num || '')}')">View Beneficiaries <i class="bi bi-chevron-right ms-1"></i></button></td>
+            <td class="text-center"><span class="badge bg-info-subtle text-primary">${Math.max(0, b.total - b.enrolled)} slots</span></td>
+            <td class="text-end"><button class="btn btn-outline-primary btn-sm fw-semibold" onclick="showLevel3Beneficiaries(${b.batch_id}, '${escapeHtml(b.batch_num)}')">View Beneficiaries →</button></td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-function showLevel3Beneficiaries(batchId, batchNum) {
+async function showLevel3Beneficiaries(batchId, batchNum) {
     if (batchId) selectedBatchId = batchId;
     const l1 = document.getElementById('assignmentLevel1');
     const l2 = document.getElementById('assignmentLevel2');
@@ -159,41 +177,49 @@ function showLevel3Beneficiaries(batchId, batchNum) {
     if (l3) l3.classList.remove('d-none');
 
     const titleEl = document.getElementById('benBatchTitle');
-    if (titleEl) titleEl.textContent = `Beneficiaries Roster — ${batchNum || `Batch ${batchId}`}`;
-    renderBeneficiariesTable();
+    if (titleEl) titleEl.textContent = `Beneficiaries Roster — ${batchNum}`;
 
-    const adminId = sessionStorage.getItem('userId') || '1';
-    logAuditEvent('ASSIGNMENT_VIEW_BENEFICIARIES', `PESO Admin [ID:${adminId}] inspected beneficiary roster for Batch: ${batchNum || batchId}`);
+    // Load actual applicants / beneficiaries for this batch
+    const matchingApps = evalApplicationsList.filter(a =>
+        a.program_id === selectedProgramId && (a.batch_id === batchId || a.batch_num === batchNum || !batchId)
+    );
+
+    liveAssignmentBeneficiaries = matchingApps.map(a => ({
+        id: a.id,
+        app_id: a.id,
+        beneficiary_qr: a.beneficiary_qr,
+        full_name: a.applicant_name,
+        phone: a.phone,
+        address: a.address,
+        civil_status: a.civil_status,
+        spouse: a.spouse_name,
+        children: a.children_info,
+        program_code: a.program_code,
+        checklist_status: a.verification_status === 'Verified' ? 'Complete' : 'Pending Verification',
+        assignment_status: a.evaluation_status === 'Approved' ? 'Assigned & Approved' : a.evaluation_status,
+        docs: a.docs || []
+    }));
+
+    renderBeneficiariesTable();
 }
 
 function renderBeneficiariesTable(customList) {
     const tbody = document.getElementById('beneficiariesTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    const list = customList || (BATCH_BENEFICIARIES[selectedBatchId] || [
-        { id: 601, full_name: 'Juan Santos Dela Cruz', phone: '0917-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved', address: 'Barangay Zone IV, Koronadal City' },
-        { id: 602, full_name: 'Maria Clara De Los Reyes', phone: '0918-222-3333', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved', address: 'Barangay GPS, Koronadal City' },
-        { id: 603, full_name: 'Roberto Gomez Hernandez', phone: '0919-333-4444', checklist_status: '3/4 In Progress', assignment_status: 'Enrolled', address: 'Barangay Morales, Koronadal City' }
-    ]);
-    if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No beneficiaries match current search.</td></tr>';
+    const list = customList || liveAssignmentBeneficiaries;
+    if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No beneficiaries enrolled in this batch yet.</td></tr>';
         return;
     }
     list.forEach(ben => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>
-                <div class="fw-bold text-dark">${escapeHtml(ben.full_name || 'Beneficiary')}</div>
-                <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(ben.address || 'Koronadal City')}</small>
-            </td>
+            <td><div class="fw-bold text-dark">${escapeHtml(ben.full_name)}</div></td>
             <td><span class="masked-phone">${maskContactNumber(ben.phone)}</span></td>
-            <td><span class="badge bg-success-subtle text-success border border-success">${escapeHtml(ben.checklist_status || 'Complete')}</span></td>
-            <td><span class="badge bg-primary px-2.5 py-1">${escapeHtml(ben.assignment_status || 'Assigned')}</span></td>
-            <td class="text-end">
-                <button class="btn btn-sm btn-outline-info fw-semibold" onclick="openBeneficiaryProfileModal(${ben.id})">
-                    <i class="bi bi-eye-fill me-1"></i> View Profile (Read-Only)
-                </button>
-            </td>
+            <td><span class="badge ${ben.checklist_status === 'Complete' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'}">${escapeHtml(ben.checklist_status)}</span></td>
+            <td><span class="badge ${ben.assignment_status === 'Assigned & Approved' ? 'bg-primary' : 'bg-secondary'}">${escapeHtml(ben.assignment_status)}</span></td>
+            <td class="text-end"><button class="btn btn-sm btn-outline-info" onclick="openBeneficiaryProfileModal(${ben.id})"><i class="bi bi-eye-fill me-1"></i>View Profile</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -201,106 +227,41 @@ function renderBeneficiariesTable(customList) {
 
 // Strictly Read-Only Beneficiary Profile Modal (Rule 1 & Data Privacy Rule 4)
 function openBeneficiaryProfileModal(benId) {
-    const fallbackBen = {
-        full_name: 'Juan Santos Dela Cruz',
-        phone: '0917-111-2222',
-        address: 'Barangay Zone IV, Koronadal City',
-        age: 29,
-        sex: 'Male',
-        civil_status: 'Single',
-        birthday: '1997-04-12',
-        children: 0,
-        spouse: 'N/A',
-        valid_id: 'PhilID (National ID)',
-        business_type: 'Community Retail Store',
-        program_component: 'Livelihood Assistance',
-        business_status: 'Operational',
-        proposed_business: 'Dela Cruz General Merchandise',
-        amount_needed: '₱35,000.00',
-        employment_status: 'Underemployed',
-        seminars: 'Basic Financial Literacy & Entrepreneurship 101',
-        checklist_status: '4/4 Complete',
-        assignment_status: 'Assigned & Approved',
-        docs: ['Beneficiary_PhilID.pdf', 'Barangay_Clearance.pdf', 'Livelihood_Proposal.pdf']
-    };
+    const ben = liveAssignmentBeneficiaries.find(b => b.id === benId) || evalApplicationsList.find(a => a.id === benId);
+    if (!ben) {
+        window.showSystemNotification({ title: 'Profile Notice', message: 'Beneficiary profile data not found.', type: 'warning' });
+        return;
+    }
 
-    const setText = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val || 'N/A';
-    };
+    const fullName = ben.full_name || ben.applicant_name || 'Applicant';
+    const phone = ben.phone || '';
+    const address = ben.address || 'Koronadal City';
 
-    setText('benProfileName', fallbackBen.full_name);
-    setText('pFullName', fallbackBen.full_name);
-    setText('pContact', maskContactNumber(fallbackBen.phone));
-    setText('pAddress', fallbackBen.address);
-    setText('pAge', fallbackBen.age);
-    setText('pSex', fallbackBen.sex);
-    setText('pCivilStatus', fallbackBen.civil_status);
-    setText('pBirthday', fallbackBen.birthday);
-    setText('pChildren', fallbackBen.children);
-    setText('pSpouse', fallbackBen.spouse);
-    setText('pValidId', fallbackBen.valid_id);
-    setText('pBusinessType', fallbackBen.business_type);
-    setText('pProgramComponent', fallbackBen.program_component);
-    setText('pBusinessStatus', fallbackBen.business_status);
-    setText('pAmountNeeded', fallbackBen.amount_needed);
-    setText('pProposedBusiness', fallbackBen.proposed_business);
-    setText('pEmploymentStatus', fallbackBen.employment_status);
-    setText('pSeminars', fallbackBen.seminars);
-    setText('pChecklist', fallbackBen.checklist_status);
-    setText('pAssignmentStatus', fallbackBen.assignment_status);
-
-    const docsContainer = document.getElementById('pDocsList');
-    if (docsContainer) {
-        docsContainer.innerHTML = '';
-        fallbackBen.docs.forEach(doc => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'btn btn-sm btn-outline-primary me-2 mb-1';
-            btn.innerHTML = `<i class="bi bi-file-earmark-pdf me-1 text-danger"></i>${escapeHtml(doc)}`;
-            btn.onclick = () => {
-                if (typeof openDocPreview === 'function') {
-                    openDocPreview('Beneficiary Requirement Document', doc);
-                }
-            };
-            docsContainer.appendChild(btn);
-        });
+    if (document.getElementById('benProfileName')) document.getElementById('benProfileName').textContent = fullName;
+    if (document.getElementById('pFullName')) document.getElementById('pFullName').textContent = fullName;
+    if (document.getElementById('pContact')) document.getElementById('pContact').textContent = maskContactNumber(phone);
+    if (document.getElementById('pAddress')) document.getElementById('pAddress').textContent = address;
+    if (document.getElementById('pAge')) document.getElementById('pAge').textContent = ben.age || 'N/A';
+    if (document.getElementById('pSex')) document.getElementById('pSex').textContent = ben.sex || 'N/A';
+    if (document.getElementById('pCivilStatus')) document.getElementById('pCivilStatus').textContent = ben.civil_status || 'Single';
+    if (document.getElementById('pBirthday')) document.getElementById('pBirthday').textContent = ben.birthday || 'N/A';
+    if (document.getElementById('pChildren')) document.getElementById('pChildren').textContent = ben.children || ben.children_info || 'None';
+    if (document.getElementById('pSpouse')) document.getElementById('pSpouse').textContent = ben.spouse || ben.spouse_name || 'N/A';
+    if (document.getElementById('pValidId')) document.getElementById('pValidId').textContent = (ben.docs && ben.docs[0] && ben.docs[0].type) || 'Valid ID';
+    if (document.getElementById('pBusinessType')) document.getElementById('pBusinessType').textContent = ben.program_code || 'Livelihood';
+    if (document.getElementById('pProgramComponent')) document.getElementById('pProgramComponent').textContent = ben.program_name || 'PESO Assistance';
+    if (document.getElementById('pBusinessStatus')) document.getElementById('pBusinessStatus').textContent = ben.evaluation_status || ben.assignment_status || 'Enrolled';
+    if (document.getElementById('pAmountNeeded')) document.getElementById('pAmountNeeded').textContent = ben.amount_approved ? `₱${Number(ben.amount_approved).toLocaleString()}` : 'Standard Allocation';
+    if (document.getElementById('pProposedBusiness')) document.getElementById('pProposedBusiness').textContent = ben.program_code || 'Livelihood Assistance';
+    if (document.getElementById('pEmploymentStatus')) document.getElementById('pEmploymentStatus').textContent = 'Beneficiary Applicant';
+    if (document.getElementById('pSeminars')) document.getElementById('pSeminars').textContent = 'Pre-employment Orientation';
+    if (document.getElementById('pChecklist')) document.getElementById('pChecklist').textContent = ben.checklist_status || 'Verified';
+    if (document.getElementById('pAssignmentStatus')) document.getElementById('pAssignmentStatus').textContent = ben.assignment_status || 'Enrolled';
+    if (document.getElementById('pDocsList')) {
+        const docs = Array.isArray(ben.docs) && ben.docs.length > 0 ? ben.docs : [{ file_name: 'Verified_ID.pdf' }];
+        document.getElementById('pDocsList').innerHTML = docs.map(d => `<span class="badge bg-secondary me-1">${escapeHtml(d.file_name || d.type || 'Doc')}</span>`).join('');
     }
 
     safeOpenModal('beneficiaryProfileModal');
-    const adminId = sessionStorage.getItem('userId') || '1';
-    logAuditEvent('VIEW_BENEFICIARY_PROFILE', `PESO Admin [ID:${adminId}] viewed read-only profile for beneficiary: ${fallbackBen.full_name} (ID: ${benId})`);
+    logAuditEvent('VIEW_BENEFICIARY_PROFILE', `Viewed read-only profile for beneficiary ${fullName}`);
 }
-
-function exportBeneficiariesCSV() {
-    let csv = 'ID,Full Name,Phone (Masked),Address,Checklist Status,Assignment Status\n';
-    const list = BATCH_BENEFICIARIES[selectedBatchId] || [
-        { id: 601, full_name: 'Juan Santos Dela Cruz', phone: '0917-111-2222', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved', address: 'Barangay Zone IV, Koronadal City' },
-        { id: 602, full_name: 'Maria Clara De Los Reyes', phone: '0918-222-3333', checklist_status: '4/4 Complete', assignment_status: 'Assigned & Approved', address: 'Barangay GPS, Koronadal City' },
-        { id: 603, full_name: 'Roberto Gomez Hernandez', phone: '0919-333-4444', checklist_status: '3/4 In Progress', assignment_status: 'Enrolled', address: 'Barangay Morales, Koronadal City' }
-    ];
-
-    list.forEach(b => {
-        csv += `${b.id},"${b.full_name}","${maskContactNumber(b.phone)}","${b.address}","${b.checklist_status}","${b.assignment_status}"\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `PESO_Beneficiaries_Batch_${selectedBatchId || 1011}_${new Date().toISOString().substring(0, 10)}.csv`;
-    link.click();
-
-    const adminId = sessionStorage.getItem('userId') || '1';
-    logAuditEvent('EXPORT_BENEFICIARIES_CSV', `PESO Admin [ID:${adminId}] exported Beneficiary Roster CSV for Batch ${selectedBatchId || 1011}`);
-    window.showSystemNotification({ title: 'Export Complete', message: 'Beneficiary roster CSV downloaded successfully.', type: 'info' });
-}
-
-window.filterAssignPrograms = filterAssignPrograms;
-window.filterBatches = filterBatches;
-window.filterBeneficiaries = filterBeneficiaries;
-window.showLevel1Programs = showLevel1Programs;
-window.showLevel2Batches = showLevel2Batches;
-window.showLevel3Beneficiaries = showLevel3Beneficiaries;
-window.openBeneficiaryProfileModal = openBeneficiaryProfileModal;
-window.exportBeneficiariesCSV = exportBeneficiariesCSV;
-

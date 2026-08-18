@@ -8,26 +8,15 @@
 
   // Initial State Management
   const state = {
-    beneficiaries: JSON.parse(localStorage.getItem('peso_officer_beneficiaries')) || [
-      { id: 101, first_name: 'Maria', last_name: 'Santos', phone: '0917-111-2233', barangay: 'Poblacion', category: 'Individual', status: 'Active', qr_code: 'QR-BEN-101' },
-      { id: 102, first_name: 'Juan', last_name: 'Dela Cruz', phone: '0918-222-3344', barangay: 'Zone I', category: 'Group', status: 'Active', qr_code: 'QR-BEN-102' }
-    ],
-    applications: JSON.parse(localStorage.getItem('peso_officer_applications')) || [
-      { id: 201, applicant_name: 'Maria Santos', program_code: 'TUPAD', date_applied: '2026-07-20', status: 'Pending', verification_status: 'Verified', batch_number: 'Batch 1' },
-      { id: 202, applicant_name: 'Juan Dela Cruz', program_code: 'SPES', date_applied: '2026-07-22', status: 'Approved', verification_status: 'Verified', batch_number: 'Batch 2' }
-    ],
-    interviews: JSON.parse(localStorage.getItem('peso_officer_interviews')) || [
-      { id: 301, beneficiary_name: 'Maria Santos', date: '2026-07-30', time: '09:00 AM', attendance: 'Present', outcome: 'Completed', remarks: 'Orientation attended' },
-      { id: 302, beneficiary_name: 'Juan Dela Cruz', date: '2026-07-30', time: '10:30 AM', attendance: 'Pending', outcome: 'Pending', remarks: 'Awaiting call' }
-    ],
+    beneficiaries: [],
+    applications: [],
+    interviews: [],
     html5QrScanner: null
   };
 
   // Helper Functions
   function saveState() {
-    localStorage.setItem('peso_officer_beneficiaries', JSON.stringify(state.beneficiaries));
-    localStorage.setItem('peso_officer_applications', JSON.stringify(state.applications));
-    localStorage.setItem('peso_officer_interviews', JSON.stringify(state.interviews));
+    // state is directly synchronized with Supabase DataService
   }
 
   function getBadgeClass(status) {
@@ -401,49 +390,43 @@
   window.dispatchSMSNotification = dispatchSMSNotification;
   window.generateOfficerReport = generateOfficerReport;
 
-  // DOMContentLoaded Auto Initialization
-  document.addEventListener('DOMContentLoaded', async function () {
+  // Data Loading & Real-time Integration
+  async function loadOfficerEngineData() {
     if (typeof DataService !== 'undefined') {
       try {
         const benRes = await DataService.beneficiaries.getAll();
-        if (benRes.data && benRes.data.length > 0) {
-          state.beneficiaries = benRes.data.map(b => ({
-            id: b.id,
-            first_name: b.first_name,
-            last_name: b.last_name,
-            phone: b.contact_number || '09XX-***-XXXX',
-            barangay: b.barangay || 'Poblacion',
-            category: 'Individual',
-            status: b.status || 'Active',
-            qr_code: b.qr_code || `QR-BEN-${b.id}`
-          }));
-        }
+        state.beneficiaries = (benRes && Array.isArray(benRes.data)) ? benRes.data.map(b => ({
+          id: b.id,
+          first_name: b.first_name || '',
+          last_name: b.last_name || '',
+          phone: b.phone || b.contact_number || '09XX-***-XXXX',
+          barangay: b.address ? (b.address.split(',')[0] || 'Poblacion') : 'Poblacion',
+          category: 'Individual',
+          status: b.status || 'Active',
+          qr_code: b.qr_code || `QR-BEN-${b.id}`
+        })) : [];
 
         const appRes = await DataService.applications.getAll({ agency: 'PESO' });
-        if (appRes.data && appRes.data.length > 0) {
-          state.applications = appRes.data.map(a => ({
-            id: a.id,
-            applicant_name: a.beneficiary ? `${a.beneficiary.first_name} ${a.beneficiary.last_name}` : 'Applicant',
-            program_code: (a.program && a.program.code) || 'TUPAD',
-            date_applied: a.created_at ? a.created_at.substring(0, 10) : '2026-08-01',
-            status: a.status || 'Pending',
-            verification_status: 'Verified',
-            batch_number: a.batch_number || 'Batch 1'
-          }));
-        }
+        state.applications = (appRes && Array.isArray(appRes.data)) ? appRes.data.map(a => ({
+          id: a.id,
+          applicant_name: a.beneficiary ? `${a.beneficiary.first_name || ''} ${a.beneficiary.last_name || ''}`.trim() : (a.application_number || 'Applicant'),
+          program_code: (a.program && a.program.code) || 'PESO',
+          date_applied: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+          status: a.status || 'Pending',
+          verification_status: 'Verified',
+          batch_number: a.batch ? a.batch.name : (a.batch_id ? `Batch #${a.batch_id}` : 'Unassigned')
+        })) : [];
 
         const schedRes = await DataService.interviews.getAll({ agency: 'PESO' });
-        if (schedRes.data && schedRes.data.length > 0) {
-          state.interviews = schedRes.data.map(i => ({
-            id: i.id,
-            beneficiary_name: i.beneficiary ? `${i.beneficiary.first_name} ${i.beneficiary.last_name}` : 'Beneficiary',
-            date: i.scheduled_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : '2026-08-08'),
-            time: '09:00 AM',
-            attendance: i.attendance_status || (i.status === 'Completed' ? 'Present' : 'Pending'),
-            outcome: i.status === 'Completed' ? 'Completed' : 'Pending',
-            remarks: i.notes || ''
-          }));
-        }
+        state.interviews = (schedRes && Array.isArray(schedRes.data)) ? schedRes.data.map(i => ({
+          id: i.id,
+          beneficiary_name: i.beneficiary ? `${i.beneficiary.first_name || ''} ${i.beneficiary.last_name || ''}`.trim() : (i.title || 'Beneficiary'),
+          date: i.interview_date || i.scheduled_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+          time: i.interview_time || '09:00 AM',
+          attendance: i.attendance_status || (i.status === 'Completed' ? 'Present' : 'Pending'),
+          outcome: i.status === 'Completed' ? 'Completed' : 'Pending',
+          remarks: i.remarks || i.notes || ''
+        })) : [];
       } catch (err) {
         console.warn('[PESO_OFFICER_JS] DataService load notice:', err.message);
       }
@@ -452,6 +435,19 @@
     renderBeneficiariesTable();
     renderApplicationsTable();
     renderInterviewsTable();
+  }
+
+  // DOMContentLoaded Auto Initialization
+  document.addEventListener('DOMContentLoaded', async function () {
+    await loadOfficerEngineData();
+
+    // Attach Real-time Change Listener
+    if (typeof DataService !== 'undefined' && DataService.realtime) {
+      DataService.realtime.subscribeMulti(['beneficiaries', 'applications', 'interview_schedules', 'batches'], (payload) => {
+        console.log('[PESO Officer Engine Realtime Event]:', payload.table, payload.eventType);
+        loadOfficerEngineData();
+      });
+    }
 
     // Bind event listeners if elements exist
     const intakeForm = document.getElementById('beneficiaryIntakeForm');

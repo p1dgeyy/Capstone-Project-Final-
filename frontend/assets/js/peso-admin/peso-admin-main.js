@@ -116,5 +116,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    console.log('[PESO Admin Portal] Unified event bindings & modal safety system initialized.');
+    // 5. Initialize Realtime Subscriptions for PESO Admin Portal
+    try {
+        if (typeof DataService !== 'undefined' && DataService.realtime) {
+            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches'], (payload) => {
+                console.log('[PESO Admin Realtime Event]:', payload.table, payload.eventType);
+                if (payload.table === 'programs') {
+                    initProgramsData();
+                } else if (payload.table === 'applications') {
+                    initEvalModuleData();
+                    initProgramsData();
+                } else if (payload.table === 'interview_schedules') {
+                    initSchedulingData();
+                } else if (payload.table === 'staff_profiles') {
+                    initUserManagementData();
+                    initOfficersData();
+                } else if (payload.table === 'batches') {
+                    initEvalModuleData();
+                }
+            });
+        }
+    } catch (rtErr) {
+        console.warn('[PESO Admin Realtime Init Notice]:', rtErr);
+    }
+
+    console.log('[PESO Admin Portal] Unified event bindings, live data & realtime system initialized.');
 });
+

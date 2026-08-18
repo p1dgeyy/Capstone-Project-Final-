@@ -364,70 +364,8 @@ const DataService = (() => {
           return { error: { message: 'Cross-department violation: Cannot assign PESO role in CSWDO portal.' } };
         }
 
-        let authId = data.auth_id || null;
-
-        // If credentials are provided and no auth_id yet, attempt auth.signUp to create user in auth.users
-        if (!authId && client.auth && data.password && data.email) {
-          try {
-            const { data: authData, error: authErr } = await client.auth.signUp({
-              email: data.email,
-              password: data.password,
-              options: {
-                data: {
-                  username: data.username,
-                  role: data.role,
-                  first_name: data.first_name,
-                  last_name: data.last_name
-                }
-              }
-            });
-            if (!authErr && authData && authData.user) {
-              authId = authData.user.id;
-            }
-          } catch (e) {
-            console.warn('[DataService] Supabase auth.signUp note during staff creation:', e);
-          }
-        }
-
-        // If auth user was created, check if handle_new_user trigger already inserted the staff_profile
-        if (authId) {
-          try {
-            const { data: existingStaff } = await client
-              .from('staff_profiles')
-              .select('*')
-              .eq('auth_id', authId)
-              .maybeSingle();
-
-            if (existingStaff) {
-              const updatePayload = {
-                middle_name: data.middle_name || null,
-                suffix: data.suffix || null,
-                sex: data.sex || null,
-                phone: data.phone || null,
-                address: data.address || null,
-                department: data.department || data.agency || 'PESO',
-                status: data.status || 'Active'
-              };
-              const updateRes = await client.from('staff_profiles').update(updatePayload).eq('id', existingStaff.id).select().single();
-              if (!updateRes.error && updateRes.data) {
-                auditLogs.log({
-                  staffUserId: updateRes.data.id,
-                  action: 'CREATE_STAFF_ACCOUNT',
-                  entityType: 'staff_profile',
-                  entityId: updateRes.data.id,
-                  details: `Created staff account "${updateRes.data.username}" with role ${updateRes.data.role}`
-                });
-                return updateRes;
-              }
-              return { data: existingStaff };
-            }
-          } catch (e) {
-            console.warn('[DataService] Staff profile trigger check note:', e);
-          }
-        }
-
         const payload = {
-          auth_id: authId,
+          auth_id: data.auth_id,
           username: data.username,
           role: data.role,
           first_name: data.first_name,
@@ -491,10 +429,6 @@ const DataService = (() => {
         }
         return res;
       });
-    },
-
-    async setStatus(id, newStatus) {
-      return this.toggleStatus(id, newStatus);
     },
 
     async delete(id) {
@@ -1264,20 +1198,45 @@ const DataService = (() => {
   const batches = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
-        let query = client.from('batches').select('*').order('created_at', { ascending: false });
+        let query = client.from('batches').select(`
+          *,
+          program:programs!program_id(*),
+          applications:applications(id, beneficiary_qr, status, amount_approved)
+        `).order('created_at', { ascending: false });
         if (filters.program_code) {
           query = query.eq('program_code', filters.program_code);
         }
+        if (filters.program_id) {
+          query = query.eq('program_id', filters.program_id);
+        }
         return await query;
+      });
+    },
+
+    async getById(id) {
+      return withRetry(async (client) => {
+        return await client.from('batches').select(`
+          *,
+          program:programs!program_id(*),
+          applications:applications(
+            id,
+            application_number,
+            status,
+            date_applied,
+            amount_approved,
+            beneficiary:beneficiaries!beneficiary_qr(*)
+          )
+        `).eq('id', id).maybeSingle();
       });
     },
 
     async create(data) {
       return withRetry(async (client) => {
         const payload = {
-          name: data.name,
-          program_code: data.program_code,
-          capacity: data.capacity || 50,
+          name: data.name || data.batch_num,
+          program_id: data.program_id || null,
+          program_code: data.program_code || null,
+          capacity: data.capacity || data.total || 50,
           created_by: data.created_by || null
         };
         return await client.from('batches').insert(payload).select().single();
@@ -1288,6 +1247,60 @@ const DataService = (() => {
       return withRetry(async (client) => {
         return await client.from('applications').update({ batch_id: batchId }).eq('id', applicationId);
       });
+    }
+  };
+
+  // =========================================================================
+  // 11. REALTIME SUBSCRIPTIONS
+  // =========================================================================
+  const realtime = {
+    subscribe(table, onEvent, filter) {
+      try {
+        const client = getClient();
+        if (!client || typeof client.channel !== 'function') return null;
+        const channelName = `rt_${table}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const opts = { event: '*', schema: 'public', table: table };
+        if (filter) opts.filter = filter;
+        const channel = client
+          .channel(channelName)
+          .on('postgres_changes', opts, (payload) => {
+            if (typeof onEvent === 'function') onEvent(payload);
+          })
+          .subscribe();
+        return channel;
+      } catch (err) {
+        console.warn(`[REALTIME] Failed to subscribe to ${table}:`, err);
+        return null;
+      }
+    },
+
+    subscribeMulti(tables, onEvent) {
+      try {
+        const client = getClient();
+        if (!client || typeof client.channel !== 'function') return null;
+        const channelName = `rt_multi_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        let channel = client.channel(channelName);
+        tables.forEach((tbl) => {
+          channel = channel.on('postgres_changes', { event: '*', schema: 'public', table: tbl }, (payload) => {
+            if (typeof onEvent === 'function') onEvent({ table: tbl, ...payload });
+          });
+        });
+        return channel.subscribe();
+      } catch (err) {
+        console.warn('[REALTIME] Failed to subscribe to multiple tables:', err);
+        return null;
+      }
+    },
+
+    unsubscribe(channel) {
+      try {
+        const client = getClient();
+        if (client && channel) {
+          client.removeChannel(channel);
+        }
+      } catch (err) {
+        console.warn('[REALTIME] Unsubscribe error:', err);
+      }
     }
   };
 
@@ -1308,7 +1321,8 @@ const DataService = (() => {
     funds,
     auditLogs,
     activityLog,
-    batches
+    batches,
+    realtime
   });
 })();
 
