@@ -2,7 +2,7 @@
  * =========================================================================
  * CITY OF KORONADAL - BENEFICIARY LOGIN CONTROLLER (beneficiary-login.js)
  * Handles Password Reset Verification, Supabase Auth Authentication,
- * Session Initialization & Beneficiary Dashboard Routing.
+ * Seamless Login with EITHER Username OR Email, Session Initialization & Routing.
  * =========================================================================
  */
 
@@ -27,8 +27,26 @@
                     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying...';
                 }
 
+                let targetEmail = identifier.includes('@') ? identifier : null;
+                if (!targetEmail && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    try {
+                        const { data: benRecord } = await supabaseClient
+                            .from('beneficiaries')
+                            .select('email')
+                            .or(`username.ilike.${identifier},qr_code.ilike.${identifier}`)
+                            .maybeSingle();
+                        if (benRecord && benRecord.email) {
+                            targetEmail = benRecord.email;
+                        }
+                    } catch (err) {
+                        console.warn('[RESET] Beneficiary lookup error:', err);
+                    }
+                }
+                if (!targetEmail) {
+                    targetEmail = identifier.includes('@') ? identifier : `${identifier}@beneficiary.local`;
+                }
+
                 const resetToken = 'BEN-RST-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                const targetEmail = identifier.includes('@') ? identifier : `${identifier}@beneficiary.local`;
 
                 const badge = document.getElementById('forgotUserEmailBadge');
                 const display = document.getElementById('verificationLinkDisplay');
@@ -80,13 +98,13 @@
         if (step3) step3.classList.remove('d-none');
     };
 
-    // Beneficiary Login Form Submission Handler
+    // Beneficiary Login Form Submission Handler (Supports Username OR Email)
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            const email = (document.getElementById('username')?.value || '').trim();
+            const identifier = (document.getElementById('username')?.value || '').trim();
             const password = document.getElementById('password')?.value || '';
             const errorAlert = document.getElementById('errorAlert');
             const successAlert = document.getElementById('successAlert');
@@ -108,26 +126,100 @@
                 let userProfile = null;
                 let accessToken = null;
 
-                // Step 1: Direct Supabase Authentication
+                // Step 1: Direct Supabase Authentication (Resolving Username OR Email)
                 if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    const { data: resolvedEmail, error: resolveError } = await supabaseClient
-                        .rpc('resolve_login_email', { p_identifier: email, p_portal: 'beneficiary' });
+                    let targetEmail = null;
+                    let resolvedBenFromDb = null;
 
-                    const loginTarget = (!resolveError && resolvedEmail) ? resolvedEmail : (email.includes('@') ? email : `${email}@beneficiary.local`);
-
-                    const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-                        email: loginTarget,
-                        password: password
-                    });
-
-                    if (!authError && authData && authData.user) {
-                        const { data: profile, error: profileError } = await supabaseClient
+                    // 1. Check beneficiaries table by username, email, or qr_code
+                    try {
+                        const { data: benRecord } = await supabaseClient
                             .from('beneficiaries')
-                            .select('id, qr_code, username, first_name, last_name, email, status, contact_number')
-                            .eq('auth_id', authData.user.id)
+                            .select('*')
+                            .or(`username.ilike.${identifier},email.ilike.${identifier},qr_code.ilike.${identifier}`)
                             .maybeSingle();
 
-                        if (!profileError && profile) {
+                        if (benRecord) {
+                            resolvedBenFromDb = benRecord;
+                            if (benRecord.email) {
+                                targetEmail = benRecord.email;
+                            }
+                        }
+                    } catch (lookupErr) {
+                        console.warn('[LOGIN] Beneficiary database lookup notice:', lookupErr);
+                    }
+
+                    // 2. Try RPC resolve_login_email if available
+                    if (!targetEmail) {
+                        try {
+                            const { data: rpcEmail } = await supabaseClient
+                                .rpc('resolve_login_email', { p_identifier: identifier, p_portal: 'beneficiary' });
+                            if (rpcEmail) targetEmail = rpcEmail;
+                        } catch (rpcErr) { }
+                    }
+
+                    // 3. Build candidate list to try with Supabase Auth
+                    const candidateEmails = [];
+                    if (targetEmail) candidateEmails.push(targetEmail);
+                    if (identifier.includes('@')) candidateEmails.push(identifier);
+                    candidateEmails.push(`${identifier}@beneficiary.local`);
+                    const uniqueCandidates = [...new Set(candidateEmails.filter(Boolean))];
+
+                    let authData = null;
+                    let authError = null;
+
+                    for (const candidate of uniqueCandidates) {
+                        const res = await supabaseClient.auth.signInWithPassword({
+                            email: candidate,
+                            password: password
+                        });
+
+                        if (!res.error && res.data && res.data.user) {
+                            authData = res.data;
+                            authError = null;
+                            break;
+                        } else {
+                            authError = res.error;
+                        }
+                    }
+
+                    if (!authError && authData && authData.user) {
+                        let profile = resolvedBenFromDb;
+
+                        if (!profile) {
+                            const { data: profByAuth } = await supabaseClient
+                                .from('beneficiaries')
+                                .select('*')
+                                .eq('auth_id', authData.user.id)
+                                .maybeSingle();
+                            if (profByAuth) profile = profByAuth;
+                        }
+
+                        if (!profile && authData.user.email) {
+                            const { data: profByEmail } = await supabaseClient
+                                .from('beneficiaries')
+                                .select('*')
+                                .eq('email', authData.user.email)
+                                .maybeSingle();
+                            if (profByEmail) {
+                                profile = profByEmail;
+                                supabaseClient.from('beneficiaries').update({ auth_id: authData.user.id }).eq('id', profByEmail.id).then(() => {});
+                            }
+                        }
+
+                        if (!profile && identifier) {
+                            const { data: profByUsername } = await supabaseClient
+                                .from('beneficiaries')
+                                .select('*')
+                                .ilike('username', identifier)
+                                .maybeSingle();
+                            if (profByUsername) {
+                                profile = profByUsername;
+                                supabaseClient.from('beneficiaries').update({ auth_id: authData.user.id }).eq('id', profByUsername.id).then(() => {});
+                            }
+                        }
+
+                        if (profile) {
                             profile.role = 'Beneficiary';
                             authSuccess = true;
                             userProfile = profile;
@@ -138,7 +230,7 @@
                             userProfile = {
                                 id: authData.user.id,
                                 qr_code: `QR-${authData.user.id.substring(0, 8).toUpperCase()}`,
-                                username: meta.username || email,
+                                username: meta.username || identifier,
                                 first_name: meta.first_name || 'Beneficiary',
                                 last_name: meta.last_name || '',
                                 email: authData.user.email,

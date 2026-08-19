@@ -191,39 +191,62 @@
                 let userProfile = null;
                 let accessToken = null;
 
-                // Step 1: Direct Supabase Auth Verification
+                // Step 1: Direct Supabase Auth Verification (Username OR Email)
                 if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    let targetEmail = identifier.includes('@') ? identifier : null;
+                    let targetEmail = null;
+                    let resolvedStaffFromDb = null;
+                    const cleanIdentifier = identifier.trim();
 
+                    // 1. Check staff_profiles table by username or email
+                    try {
+                        const { data: staffMatch } = await supabaseClient
+                            .from('staff_profiles')
+                            .select('*')
+                            .or(`username.ilike.${cleanIdentifier},email.ilike.${cleanIdentifier}`)
+                            .maybeSingle();
+                        if (staffMatch) {
+                            resolvedStaffFromDb = staffMatch;
+                            if (staffMatch.email) targetEmail = staffMatch.email;
+                        }
+                    } catch (lookupErr) {
+                        console.warn('[ADMIN_LOGIN] Staff profile lookup notice:', lookupErr);
+                    }
+
+                    // 2. Try RPC resolve_login_email if available
                     if (!targetEmail) {
                         try {
-                            const { data: rpcEmail } = await supabaseClient.rpc('resolve_login_email', { p_identifier: identifier, p_portal: 'staff' });
+                            const { data: rpcEmail } = await supabaseClient
+                                .rpc('resolve_login_email', { p_identifier: cleanIdentifier, p_portal: 'staff' });
                             if (rpcEmail) targetEmail = rpcEmail;
                         } catch (e) { }
+                    }
 
-                        if (!targetEmail) {
-                            try {
-                                const { data: staffMatch } = await supabaseClient
-                                    .from('staff_profiles')
-                                    .select('email')
-                                    .ilike('username', identifier)
-                                    .maybeSingle();
-                                if (staffMatch && staffMatch.email) targetEmail = staffMatch.email;
-                            } catch (e) { }
-                        }
+                    // 3. Candidate emails list
+                    const candidateEmails = [];
+                    if (targetEmail) candidateEmails.push(targetEmail);
+                    if (cleanIdentifier.includes('@')) candidateEmails.push(cleanIdentifier);
+                    candidateEmails.push(`${cleanIdentifier}@koronadal.gov.ph`);
+                    const uniqueCandidates = [...new Set(candidateEmails.filter(Boolean))];
 
-                        if (!targetEmail) {
-                            targetEmail = `${identifier}@koronadal.gov.ph`;
+                    let authData = null;
+                    let authError = null;
+
+                    for (const candidate of uniqueCandidates) {
+                        const res = await supabaseClient.auth.signInWithPassword({
+                            email: candidate,
+                            password: password
+                        });
+                        if (!res.error && res.data && res.data.user) {
+                            authData = res.data;
+                            authError = null;
+                            break;
+                        } else {
+                            authError = res.error;
                         }
                     }
 
-                    const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-                        email: targetEmail,
-                        password: password
-                    });
-
                     if (!authError && authData && authData.user) {
-                        let profile = null;
+                        let profile = resolvedStaffFromDb;
                         try {
                             const { data: staffData } = await supabaseClient
                                 .from('staff_profiles')

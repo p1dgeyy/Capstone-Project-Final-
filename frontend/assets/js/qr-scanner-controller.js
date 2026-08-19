@@ -2,12 +2,13 @@
  * Universal QR Scanner & Transaction Tracking Controller
  * City Government of Koronadal — PESO & CSWDO Portals
  * 
- * 100% Real-Time Supabase Integration:
- * - Live Camera Scanning (via html5-qrcode CDN)
- * - Hardware USB Barcode Scanner support
- * - Manual QR Code Search Fallback
- * - Real-time Beneficiary & Application Lookup
- * - One-Click Milestone Actions with Auto-Notification Dispatch
+ * 100% Real-Time Supabase & PDF Specification Alignment:
+ * - Live Camera Scanning (via html5-qrcode CDN) with Viewfinder
+ * - Hardware USB Barcode Scanner & Manual QR Code Search
+ * - Clear, Instant CANCEL button to abort scanning anytime
+ * - Real-time Complete Beneficiary Profile, Document & Application Lookup
+ * - One-Click Milestone Station Tracking & Auto-Notification Dispatch
+ * - Direct Routing to Full Profile, Evaluation Review & Intake Pre-fill
  */
 
 const QrScannerController = (() => {
@@ -16,27 +17,44 @@ const QrScannerController = (() => {
   let html5QrCode = null;
   let isScanning = false;
   let currentOfficer = null;
+  let activeScannedData = null;
+
+  // Mask contact number in compliance with Data Privacy Act
+  function maskPhone(phone) {
+    if (!phone) return '09XX-***-XXXX';
+    const str = String(phone).trim().replace(/[^0-9+]/g, '');
+    if (str.length >= 10) {
+      return `${str.substring(0, 4)}-***-${str.substring(str.length - 4)}`;
+    }
+    return '09XX-***-XXXX';
+  }
 
   // Initialize and inject scanner modal markup if not present
   function initScannerUI() {
-    if (document.getElementById('universalQrScannerModal')) return;
+    let existingModal = document.getElementById('universalQrScannerModal');
+    if (existingModal) return;
 
     const modalHtml = `
     <!-- Universal QR Scanner Modal -->
-    <div class="modal fade" id="universalQrScannerModal" tabindex="-1" aria-labelledby="universalQrScannerModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal fade" id="universalQrScannerModal" tabindex="-1" aria-labelledby="universalQrScannerModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
-          <div class="modal-header bg-dark text-white py-3 px-4">
-            <div class="d-flex align-items-center gap-2">
-              <span class="badge bg-primary p-2 rounded-circle"><i class="bi bi-qr-code-scan fs-5"></i></span>
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+          
+          <!-- Modal Header -->
+          <div class="modal-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              <span class="badge bg-primary p-2 rounded-3 shadow-sm"><i class="bi bi-qr-code-scan fs-5 text-white"></i></span>
               <div>
-                <h5 class="modal-title fw-bold mb-0" id="universalQrScannerModalLabel">Beneficiary QR Tracking Scanner</h5>
-                <small class="text-white-50">Scan beneficiary QR code to track milestone & notify beneficiary</small>
+                <h5 class="modal-title fw-bold mb-0" id="universalQrScannerModalLabel">Beneficiary QR Tracking & Verification</h5>
+                <small class="text-white-50">Instant profile retrieval, document verification & milestone tracking</small>
               </div>
             </div>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="QrScannerController.stopCamera()"></button>
+            <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3 py-1 fw-semibold" onclick="QrScannerController.closeScanner()" aria-label="Cancel">
+              <i class="bi bi-x-lg me-1"></i> Cancel
+            </button>
           </div>
 
+          <!-- Modal Body -->
           <div class="modal-body p-4 bg-light">
             <!-- Tabs: Camera vs Manual Input -->
             <ul class="nav nav-pills nav-fill mb-3 p-1 bg-white rounded-pill shadow-sm" id="scannerTabs" role="tablist">
@@ -56,91 +74,141 @@ const QrScannerController = (() => {
               <!-- Camera Scanner Pane -->
               <div class="tab-pane fade show active" id="cameraScanPane" role="tabpanel">
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-3">
-                  <div class="card-body p-0 position-relative bg-black" style="min-height: 280px; display: flex; align-items: center; justify-content: center;">
+                  <div class="card-body p-0 position-relative bg-black" style="min-height: 290px; display: flex; align-items: center; justify-content: center;">
                     <div id="qr-camera-reader" style="width: 100%; max-width: 480px;"></div>
                     <div id="scannerPlaceholder" class="text-center p-4 text-white">
                       <i class="bi bi-camera fs-1 text-primary mb-2 d-block"></i>
-                      <p class="mb-3 text-white-50">Camera scanner is standby</p>
-                      <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" onclick="QrScannerController.startCamera()">
-                        <i class="bi bi-play-circle me-1"></i> Start Camera Stream
-                      </button>
+                      <p class="mb-3 text-white-50">Camera scanner is on standby</p>
+                      <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" onclick="QrScannerController.startCamera()">
+                          <i class="bi bi-play-circle me-1"></i> Start Camera Stream
+                        </button>
+                        <button type="button" class="btn btn-outline-light rounded-pill px-3 fw-semibold" onclick="QrScannerController.closeScanner()">
+                          <i class="bi bi-x-circle me-1"></i> Cancel
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center px-1">
-                  <span class="text-muted small"><i class="bi bi-shield-check text-success me-1"></i> Point at beneficiary's digital QR or printed pass</span>
-                  <button type="button" id="btnStopCam" class="btn btn-sm btn-outline-danger rounded-pill px-3" style="display:none;" onclick="QrScannerController.stopCamera()">
-                    <i class="bi bi-stop-circle me-1"></i> Stop Camera
-                  </button>
+                  <span class="text-muted small"><i class="bi bi-shield-check text-success me-1"></i> Point camera at beneficiary's digital QR or printed pass</span>
+                  <div class="d-flex gap-2">
+                    <button type="button" id="btnStopCam" class="btn btn-sm btn-outline-warning rounded-pill px-3" style="display:none;" onclick="QrScannerController.stopCamera()">
+                      <i class="bi bi-pause-circle me-1"></i> Pause Camera
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="QrScannerController.closeScanner()">
+                      <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <!-- Manual / USB Barcode Pane -->
               <div class="tab-pane fade" id="manualScanPane" role="tabpanel">
                 <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-3">
-                  <label class="form-label fw-bold text-dark mb-1">Enter QR Code Identifier</label>
-                  <p class="text-muted small mb-3">Scan with a USB handheld barcode gun or enter the Beneficiary QR Code (e.g. <code>QR-BEN-A3F8B201</code>).</p>
+                  <label class="form-label fw-bold text-dark mb-1">Enter QR Code Identifier or Beneficiary ID</label>
+                  <p class="text-muted small mb-3">Scan with a USB handheld barcode gun or enter the Beneficiary QR Code (e.g. <code>QR-BEN-A3F8B201</code> or <code>BEN-2026-001</code>).</p>
                   <div class="input-group input-group-lg mb-3">
                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-qr-code text-primary"></i></span>
-                    <input type="text" id="manualQrInput" class="form-control border-start-0 text-uppercase fw-bold" placeholder="QR-BEN-XXXXXXXX" autofocus autocomplete="off">
-                    <button class="btn btn-primary px-4 fw-semibold" type="button" onclick="QrScannerController.handleManualSubmit()">
+                    <input type="text" id="manualQrInput" class="form-control border-start-0 text-uppercase fw-bold" placeholder="e.g. QR-BEN-XXXXXXXX" autofocus autocomplete="off">
+                    <button class="btn btn-primary px-4 fw-semibold" type="button" id="btnManualLookup" onclick="QrScannerController.handleManualSubmit()">
                       <i class="bi bi-search me-1"></i> Lookup
                     </button>
+                    <button class="btn btn-outline-secondary px-3 fw-semibold" type="button" onclick="QrScannerController.closeScanner()">
+                      <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
                   </div>
-                  <div class="d-flex gap-2">
+                  <div class="d-flex gap-2 flex-wrap">
                     <span class="badge bg-secondary-subtle text-secondary border">Auto-enter on Barcode Scan</span>
                     <span class="badge bg-info-subtle text-info border">Direct Supabase Query</span>
+                    <span class="badge bg-success-subtle text-success border">Instant Profile & Document Retrieval</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Scanned Result & Milestone Action Panel -->
+            <!-- Scanned Result & Detailed Profile View Panel -->
             <div id="scanResultContainer" class="mt-4" style="display: none;">
               <div class="card border-0 shadow-sm rounded-4 overflow-hidden border-top border-4 border-success bg-white">
                 <div class="card-body p-4">
-                  <div class="d-flex justify-content-between align-items-start mb-3">
+                  
+                  <!-- Profile Header -->
+                  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                     <div class="d-flex align-items-center gap-3">
-                      <div class="avatar-box bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 54px; height: 54px;" id="scannedBenAvatar">
+                      <div class="avatar-box bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold fs-3" style="width: 58px; height: 58px;" id="scannedBenAvatar">
                         B
                       </div>
                       <div>
-                        <h5 class="fw-bold text-dark mb-0" id="scannedBenName">Beneficiary Name</h5>
-                        <div class="d-flex align-items-center gap-2 mt-1">
+                        <h5 class="fw-bold text-dark mb-1" id="scannedBenName">Beneficiary Name</h5>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
                           <span class="badge bg-dark font-monospace" id="scannedBenQr">QR-BEN-XXXX</span>
-                          <span class="badge bg-success-subtle text-success" id="scannedBenStatus">Active Profile</span>
+                          <span class="badge bg-success-subtle text-success border border-success-subtle" id="scannedBenStatus">Active Account</span>
+                          <span class="badge bg-info-subtle text-info border border-info-subtle" id="scannedBenSexAge">Sex / Age</span>
                         </div>
                       </div>
                     </div>
-                    <span class="badge bg-primary px-3 py-2 rounded-pill" id="scannedActiveProgram">Assistance Program</span>
+                    <span class="badge bg-primary px-3 py-2 rounded-pill fs-6" id="scannedActiveProgram">Assistance Program</span>
                   </div>
 
                   <hr class="my-3 text-muted opacity-25">
 
-                  <!-- Live Application Snapshot -->
-                  <div class="row g-3 mb-4">
-                    <div class="col-sm-6">
-                      <div class="p-3 rounded-3 bg-light">
-                        <small class="text-muted d-block mb-1">Latest Application No.</small>
-                        <span class="fw-bold text-dark" id="scannedAppNumber">N/A</span>
+                  <!-- Personal & Address Snapshot -->
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-4 col-sm-6">
+                      <div class="p-3 rounded-3 bg-light border-0">
+                        <small class="text-muted d-block mb-1"><i class="bi bi-geo-alt me-1"></i> Address</small>
+                        <span class="fw-semibold text-dark small" id="scannedBenAddress">Purok, Barangay, Koronadal City</span>
                       </div>
                     </div>
-                    <div class="col-sm-6">
-                      <div class="p-3 rounded-3 bg-light">
-                        <small class="text-muted d-block mb-1">Current Application Status</small>
-                        <span class="badge bg-warning text-dark" id="scannedAppStatus">Pending</span>
+                    <div class="col-md-4 col-sm-6">
+                      <div class="p-3 rounded-3 bg-light border-0">
+                        <small class="text-muted d-block mb-1"><i class="bi bi-telephone me-1"></i> Contact (DPA Masked)</small>
+                        <span class="fw-semibold text-dark small" id="scannedBenPhone">09XX-***-XXXX</span>
+                      </div>
+                    </div>
+                    <div class="col-md-4 col-sm-12">
+                      <div class="p-3 rounded-3 bg-light border-0">
+                        <small class="text-muted d-block mb-1"><i class="bi bi-card-heading me-1"></i> Valid ID on File</small>
+                        <span class="fw-semibold text-dark small" id="scannedBenIdType">Government ID</span>
                       </div>
                     </div>
                   </div>
 
+                  <!-- Live Application Snapshot -->
+                  <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                      <div class="p-3 rounded-3 bg-light border">
+                        <small class="text-muted d-block mb-1"><i class="bi bi-file-earmark-text me-1"></i> Application Reference</small>
+                        <span class="fw-bold text-dark" id="scannedAppNumber">N/A</span>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="p-3 rounded-3 bg-light border">
+                        <small class="text-muted d-block mb-1"><i class="bi bi-clock-history me-1"></i> Current Application Status</small>
+                        <span class="badge bg-warning text-dark fs-6" id="scannedAppStatus">Pending</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Documents Compliance Verification -->
+                  <div class="p-3 rounded-4 bg-white border mb-3">
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-folder-check text-primary me-1"></i> Submitted Documents Compliance</h6>
+                    <div class="d-flex gap-2 flex-wrap small" id="scannedDocBadges">
+                      <span class="badge bg-success-subtle text-success border"><i class="bi bi-check-circle me-1"></i> Barangay Clearance</span>
+                      <span class="badge bg-success-subtle text-success border"><i class="bi bi-check-circle me-1"></i> Valid ID Upload</span>
+                      <span class="badge bg-success-subtle text-success border"><i class="bi bi-check-circle me-1"></i> Letter of Intent / Request</span>
+                      <span class="badge bg-info-subtle text-info border"><i class="bi bi-image me-1"></i> 2x2 Photo</span>
+                    </div>
+                  </div>
+
                   <!-- Milestone Checkpoint Action Form -->
-                  <div class="p-3 rounded-4 bg-light border">
-                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-send-check text-primary me-1"></i> Record Checkpoint & Notify Beneficiary</h6>
-                    <p class="text-muted small mb-3">Selecting a checkpoint logs the physical transaction scan and automatically updates the beneficiary's real-time portal feed.</p>
+                  <div class="p-3 rounded-4 bg-light border mb-3">
+                    <h6 class="fw-bold text-dark mb-1"><i class="bi bi-send-check text-primary me-1"></i> Record Service Station Milestone & Auto-Notify</h6>
+                    <p class="text-muted small mb-3">Logs the scan checkpoint in the tracking timeline and dispatches a real-time notification to the beneficiary's portal & SMS.</p>
 
                     <div class="row g-2 mb-3">
                       <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Service Milestone / Station</label>
+                        <label class="form-label small fw-semibold mb-1">Service Station / Milestone</label>
                         <select class="form-select form-select-sm" id="scannedMilestoneSelect">
                           <option value="Desk Intake Logged" data-status="Under Review">1. Desk Intake & Application Received</option>
                           <option value="Documents Pre-validated" data-status="Under Review">2. Document Evaluation & Verification</option>
@@ -149,26 +217,36 @@ const QrScannerController = (() => {
                         </select>
                       </div>
                       <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Officer Notes / Update Message</label>
+                        <label class="form-label small fw-semibold mb-1">Officer Notes / Update Message</label>
                         <input type="text" class="form-control form-select-sm" id="scannedMilestoneNotes" placeholder="e.g. Scanned at City Hall intake desk. Next: Evaluation">
                       </div>
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                       <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="QrScannerController.resetScanResult()">
-                        Scan Another
+                        <i class="bi bi-arrow-repeat me-1"></i> Scan Another Beneficiary
                       </button>
                       <button type="button" id="btnCommitMilestone" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold shadow-sm" onclick="QrScannerController.commitMilestone()">
-                        <i class="bi bi-check2-circle me-1"></i> Update Milestone & Notify
+                        <i class="bi bi-check2-circle me-1"></i> Save Checkpoint & Notify
                       </button>
                     </div>
                   </div>
+
                 </div>
               </div>
             </div>
             <!-- End Result Panel -->
 
           </div>
+
+          <!-- Modal Footer with Cancel Button -->
+          <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between align-items-center">
+            <span class="text-muted small"><i class="bi bi-info-circle text-primary me-1"></i> Koronadal City QR Tracking System</span>
+            <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold shadow-sm" onclick="QrScannerController.closeScanner()">
+              <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
@@ -186,6 +264,14 @@ const QrScannerController = (() => {
           e.preventDefault();
           QrScannerController.handleManualSubmit();
         }
+      });
+    }
+
+    // Bind modal hidden event to ensure camera stop
+    const modalEl = document.getElementById('universalQrScannerModal');
+    if (modalEl) {
+      modalEl.addEventListener('hidden.bs.modal', () => {
+        QrScannerController.stopCamera();
       });
     }
   }
@@ -214,10 +300,44 @@ const QrScannerController = (() => {
     if (modalEl && typeof bootstrap !== 'undefined') {
       const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.show();
+      
       // Auto start camera if camera tab is active
       const cameraTabBtn = document.getElementById('cameraTabBtn');
       if (cameraTabBtn && cameraTabBtn.classList.contains('active')) {
         startCamera();
+      }
+    }
+  }
+
+  // Close the scanner modal cleanly and stop camera
+  function closeScanner() {
+    stopCamera();
+    resetScanResult();
+
+    const modalEl = document.getElementById('universalQrScannerModal');
+    if (modalEl) {
+      if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+          modal.hide();
+        }
+      }
+      modalEl.classList.remove('show');
+      modalEl.style.display = 'none';
+      document.body.classList.remove('modal-open');
+      const backdrops = document.querySelectorAll('.modal-backdrop');
+      backdrops.forEach(b => b.remove());
+    }
+
+    // Also close any legacy qrScannerModal if present
+    const legacyModal = document.getElementById('qrScannerModal');
+    if (legacyModal) {
+      if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const legacyInstance = bootstrap.Modal.getInstance(legacyModal);
+        if (legacyInstance) legacyInstance.hide();
+      }
+      if (typeof window.closeModal === 'function') {
+        window.closeModal('qrScannerModal');
       }
     }
   }
@@ -252,7 +372,7 @@ const QrScannerController = (() => {
           handleScanSuccess(decodedText);
         },
         (errorMessage) => {
-          // ignore scan frame errors
+          // ignore frame scan errors
         }
       );
       isScanning = true;
@@ -260,7 +380,14 @@ const QrScannerController = (() => {
       console.warn('[QR_SCANNER] Camera start failed:', err);
       if (placeholder) {
         placeholder.style.display = 'block';
-        placeholder.innerHTML = `<i class="bi bi-camera-video-off fs-1 text-danger mb-2 d-block"></i><p class="text-danger small mb-2">${err.message || 'Camera access denied or unavailable'}</p><button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="document.getElementById('manualTabBtn').click()">Use Manual / USB Input</button>`;
+        placeholder.innerHTML = `
+          <i class="bi bi-camera-video-off fs-1 text-danger mb-2 d-block"></i>
+          <p class="text-danger small mb-2">${err.message || 'Camera access denied or unavailable'}</p>
+          <div class="d-flex justify-content-center gap-2">
+            <button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="document.getElementById('manualTabBtn').click()">Use Manual / USB Input</button>
+            <button class="btn btn-sm btn-secondary rounded-pill px-3" onclick="QrScannerController.closeScanner()">Cancel</button>
+          </div>
+        `;
       }
       if (stopBtn) stopBtn.style.display = 'none';
       isScanning = false;
@@ -289,31 +416,29 @@ const QrScannerController = (() => {
     if (!input) return;
     const code = input.value.trim().toUpperCase();
     if (!code) {
-      alert('Please enter a valid QR code identifier (e.g. QR-BEN-XXXXXXXX)');
+      alert('Please enter a valid QR code identifier (e.g. QR-BEN-XXXXXXXX or BEN-2026-001)');
       return;
     }
     await handleScanSuccess(code);
   }
 
   // On QR Code Recognized
-  let activeScannedData = null;
-
   async function handleScanSuccess(decodedText) {
     let cleanCode = decodedText.trim();
 
     // Support JSON payloads if encoded as JSON
     try {
       const parsed = JSON.parse(cleanCode);
-      if (parsed.qr || parsed.ref || parsed.uid) {
-        cleanCode = parsed.qr || parsed.ref || parsed.uid;
+      if (parsed.qr || parsed.ref || parsed.uid || parsed.id) {
+        cleanCode = parsed.qr || parsed.ref || parsed.uid || parsed.id;
       }
     } catch (e) {
-      // Plain text string e.g. QR-BEN-A3F8B201
+      // Plain text string
     }
 
     cleanCode = cleanCode.toUpperCase();
 
-    // Beep sound feedback
+    // Audio feedback
     playScanBeep();
 
     // Query Supabase directly
@@ -322,40 +447,54 @@ const QrScannerController = (() => {
       return;
     }
 
-    const btnSubmit = document.getElementById('manualQrInput');
-    if (btnSubmit) btnSubmit.disabled = true;
+    const btnSubmit = document.getElementById('btnManualLookup');
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Searching...';
+    }
 
     try {
+      let ben = null;
       const benRes = await DataService.beneficiaries.getByQr(cleanCode);
-      if (!benRes || !benRes.data) {
-        alert(`No beneficiary record found in Supabase for code: ${cleanCode}`);
-        if (btnSubmit) btnSubmit.disabled = false;
+      if (benRes && benRes.data) {
+        ben = benRes.data;
+      } else {
+        // Try looking up by username or ID
+        const allBens = await DataService.beneficiaries.getAll({ search: cleanCode });
+        if (allBens && allBens.data && allBens.data.length > 0) {
+          ben = allBens.data[0];
+        }
+      }
+
+      if (!ben) {
+        alert(`No beneficiary record found in database for identifier: ${cleanCode}`);
         return;
       }
 
-      const ben = benRes.data;
-
-      // Fetch active applications
-      const appsRes = await DataService.applications.getByBeneficiary(cleanCode);
+      // Fetch active applications for this beneficiary
+      const appsRes = await DataService.applications.getByBeneficiary(ben.qr_code || cleanCode);
       const apps = appsRes && appsRes.data ? appsRes.data : [];
       const latestApp = apps.length > 0 ? apps[0] : null;
 
       activeScannedData = {
         beneficiary: ben,
         application: latestApp,
-        qrCode: cleanCode
+        qrCode: ben.qr_code || cleanCode
       };
 
       // Populate Result UI
       renderScannedProfile(ben, latestApp);
 
-      // Stop camera once recognized to save battery
+      // Stop camera once recognized
       stopCamera();
     } catch (err) {
       console.error('[QR_SCANNER] Lookup error:', err);
       alert(`Lookup failed: ${err.message}`);
     } finally {
-      if (btnSubmit) btnSubmit.disabled = false;
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="bi bi-search me-1"></i> Lookup';
+      }
     }
   }
 
@@ -368,17 +507,27 @@ const QrScannerController = (() => {
     const appNumEl = document.getElementById('scannedAppNumber');
     const appStatusEl = document.getElementById('scannedAppStatus');
     const notesInput = document.getElementById('scannedMilestoneNotes');
+    const sexAgeEl = document.getElementById('scannedBenSexAge');
+    const addressEl = document.getElementById('scannedBenAddress');
+    const phoneEl = document.getElementById('scannedBenPhone');
+    const idTypeEl = document.getElementById('scannedBenIdType');
 
-    if (nameEl) nameEl.textContent = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || ben.username;
-    if (qrEl) qrEl.textContent = ben.qr_code;
-    if (avatarEl) avatarEl.textContent = (ben.first_name ? ben.first_name.charAt(0) : 'B').toUpperCase();
+    const fullName = `${ben.first_name || ''} ${ben.middle_name ? ben.middle_name + ' ' : ''}${ben.last_name || ''}${ben.suffix ? ' ' + ben.suffix : ''}`.trim() || ben.username;
     
+    if (nameEl) nameEl.textContent = fullName;
+    if (qrEl) qrEl.textContent = ben.qr_code || 'QR-BEN-AUTO';
+    if (avatarEl) avatarEl.textContent = (ben.first_name ? ben.first_name.charAt(0) : 'B').toUpperCase();
+    if (sexAgeEl) sexAgeEl.textContent = `${ben.sex || 'N/A'}, ${ben.age ? ben.age + ' yrs' : 'Age N/A'}`;
+    if (addressEl) addressEl.textContent = ben.address || 'Koronadal City';
+    if (phoneEl) phoneEl.textContent = maskPhone(ben.phone || ben.contact_number);
+    if (idTypeEl) idTypeEl.textContent = ben.id_type || 'Government Valid ID';
+
     if (app) {
       if (progEl) progEl.textContent = app.program?.name || app.program?.code || 'Active Application';
       if (appNumEl) appNumEl.textContent = app.application_number || `APP-${app.id}`;
       if (appStatusEl) {
         appStatusEl.textContent = app.status || 'Pending';
-        appStatusEl.className = 'badge ' + (app.status === 'Approved' || app.status === 'Completed' ? 'bg-success' : 'bg-warning text-dark');
+        appStatusEl.className = 'badge ' + (app.status === 'Approved' || app.status === 'Completed' || app.status === 'Released' ? 'bg-success' : (app.status === 'Denied' ? 'bg-danger' : 'bg-warning text-dark'));
       }
     } else {
       if (progEl) progEl.textContent = 'No Active Application';
@@ -446,11 +595,7 @@ const QrScannerController = (() => {
       alert(`Milestone successfully recorded!\n\nBeneficiary (${activeScannedData.qrCode}) has been automatically notified in real-time.`);
 
       // Close modal
-      const modalEl = document.getElementById('universalQrScannerModal');
-      if (modalEl && typeof bootstrap !== 'undefined') {
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
-      }
+      closeScanner();
 
       // Refresh any officer table if callback is registered
       if (typeof window.refreshOfficerData === 'function') {
@@ -462,7 +607,7 @@ const QrScannerController = (() => {
     } finally {
       if (btnCommit) {
         btnCommit.disabled = false;
-        btnCommit.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Update Milestone & Notify';
+        btnCommit.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Save Checkpoint & Notify';
       }
     }
   }
@@ -474,7 +619,7 @@ const QrScannerController = (() => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.value = 880; // A5 note
+      osc.frequency.value = 880;
       gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
       osc.connect(gain);
@@ -482,12 +627,13 @@ const QrScannerController = (() => {
       osc.start();
       osc.stop(audioCtx.currentTime + 0.15);
     } catch (e) {
-      // Audio context might be restricted before user gesture
+      // Audio context may be restricted before user gesture
     }
   }
 
   return {
     openScanner,
+    closeScanner,
     startCamera,
     stopCamera,
     handleManualSubmit,
