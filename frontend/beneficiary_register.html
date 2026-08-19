@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/google-auth.js"></script>
     <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/session-manager.js"></script>
     <script src="assets/js/otp-auth.js"></script>
@@ -370,6 +371,25 @@
             <!-- STEP 1: CREATE ACCOUNT FORM -->
             <!-- ============================================================== -->
             <div id="step1View">
+                <!-- Google Fast Verification Option -->
+                <div class="p-3 mb-4 rounded-4 bg-light border text-center">
+                    <p class="small text-muted mb-2"><i class="bi bi-shield-check text-primary me-1"></i> Register with Google to verify your email instantly without manual code entry:</p>
+                    <button type="button" class="btn btn-google-auth w-100 py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" onclick="GoogleAuth.signInWithGoogle({ portal: 'beneficiary', role: 'Beneficiary', redirectTo: 'beneficiary_register.html?step=1&google=1' })" style="background:#FFFFFF; color:#3c4043; border:1px solid #dadce0; border-radius:24px; font-weight:600;">
+                        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="width: 20px; height: 20px;">
+                          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        </svg>
+                        <span>Sign up & Verify with Google</span>
+                    </button>
+                    <div class="d-flex align-items-center my-3">
+                        <hr class="flex-grow-1 text-muted opacity-25">
+                        <span class="px-3 text-muted small fw-semibold">OR COMPLETE FORM MANUALLY</span>
+                        <hr class="flex-grow-1 text-muted opacity-25">
+                    </div>
+                </div>
+
                 <form id="step1Form" onsubmit="handleStep1Submit(event)">
 
                     <!-- 1. PERSONAL INFORMATION -->
@@ -636,62 +656,43 @@
             </div>
 
             <!-- ============================================================== -->
-            <!-- STEP 2: VERIFY EMAIL (4-DIGIT CODE) -->
+            <!-- STEP 2: GOOGLE OAUTH EMAIL & IDENTITY VERIFICATION -->
             <!-- ============================================================== -->
             <div id="step2View" class="d-none text-center py-3">
                 <div class="avatar-circle mx-auto mb-3"
                     style="width: 72px; height: 72px; background: var(--primary-light); color: var(--step-purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px;">
-                    <i class="bi bi-envelope-check-fill"></i>
+                    <i class="bi bi-google"></i>
                 </div>
 
-                <h3 class="fw-bold text-dark mb-1">Verify Your Email Address</h3>
-                <p class="text-muted mb-2">We sent a 6-digit verification code to:</p>
+                <h3 class="fw-bold text-dark mb-1">Verify Email via Google OAuth</h3>
+                <p class="text-muted mb-2">Authenticate with Google to verify your email address securely:</p>
                 <div class="badge bg-light text-primary border px-3 py-2 fs-6 fw-bold mb-3" id="displayMaskedEmail">
                     user@email.com</div>
 
-                <div class="alert alert-info py-2 px-3 small mx-auto" style="max-width: 480px;">
-                    <i class="bi bi-clock-history me-1"></i> Enter this code within <strong>5 minutes</strong>. Check
-                    your inbox or spam folder.
+                <div class="alert alert-info py-2 px-3 small mx-auto text-start" style="max-width: 480px;">
+                    <i class="bi bi-shield-lock-fill me-1 text-primary"></i> <strong>Official Authentication:</strong> Your email and account identity are verified directly via Google's secure OAuth 2.0 service.
                 </div>
 
                 <div class="alert alert-danger py-2 px-3 small mx-auto d-none" style="max-width: 480px;"
                     id="emailVerifyAlert">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="emailVerifyAlertMsg">Invalid
-                        code.</span>
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="emailVerifyAlertMsg">Authentication error.</span>
                 </div>
 
-                <!-- 6-DIGIT SEGMENTED CODE INPUTS -->
-                <div class="code-box-container" id="emailCodeBoxes">
-                    <input  type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
-                        id="emailDigit1" aria-label="Email Digit1">
-                    <input  type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
-                        id="emailDigit2" aria-label="Email Digit2">
-                    <input  type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
-                        id="emailDigit3" aria-label="Email Digit3">
-                    <input  type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
-                        id="emailDigit4" aria-label="Email Digit4">
-                    <input  type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
-                        id="emailDigit5" aria-label="Email Digit5">
-                    <input  type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric"
-                        id="emailDigit6" aria-label="Email Digit6">
-                </div>
-
-                <!-- RESEND & EXPIRY TIMER -->
-                <div class="d-flex justify-content-between align-items-center small text-muted mx-auto mb-4 px-2"
-                    style="max-width: 480px;">
-                    <span>Expires in: <strong class="text-danger" id="emailExpiryTimer">05:00</strong></span>
-                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-purple fw-semibold"
-                        id="btnResendEmail" onclick="resendEmailVerificationCode()" disabled>
-                        Resend Email Code <span id="emailResendCooldown">(60s)</span>
+                <!-- GOOGLE OAUTH VERIFICATION ACTION -->
+                <div class="mx-auto my-4" style="max-width: 480px;">
+                    <button type="button" class="btn btn-google-auth w-100 py-3 mb-3 d-flex align-items-center justify-content-center gap-2 shadow-sm" id="btnVerifyWithGoogle" onclick="handleGoogleEmailVerification()" style="background:#FFFFFF; color:#3c4043; border:1px solid #dadce0; border-radius:28px; font-weight:600; font-size:16px;">
+                        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="width: 22px; height: 22px;">
+                          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        </svg>
+                        <span>Verify & Continue with Google</span>
                     </button>
-                </div>
 
-                <!-- ACTION BUTTONS -->
-                <div class="mx-auto" style="max-width: 480px;">
-                    <button type="button" class="btn btn-purple w-100 py-3 mb-3" id="btnConfirmEmailCode"
-                        onclick="handleVerifyEmailCode()">
+                    <button type="button" class="btn btn-purple w-100 py-3 mb-3" id="btnConfirmEmailCode" onclick="handleConfirmedGoogleEmail()">
                         <span class="spinner-border spinner-border-sm me-2 d-none" id="emailVerifySpinner"></span>
-                        <i class="bi bi-shield-check me-1"></i> Verify Email Code
+                        <i class="bi bi-check-circle-fill me-1"></i> Proceed to Phone Verification
                     </button>
 
                     <button type="button" class="btn btn-outline-secondary w-100 py-2 small" onclick="goToStep(1)">
@@ -1118,70 +1119,39 @@
                 btnSubmit.disabled = true;
                 spinner.classList.remove('d-none');
 
-                // 1. Create the Supabase Auth account. The on_auth_user_created
-                //    trigger auto-provisions a matching row in `beneficiaries`,
-                //    and Supabase dispatches its own 6-digit verification code
-                //    to the user's email (via the connected Resend SMTP).
-                if (!supabaseClient) {
-                    throw new Error('Supabase client not initialized.');
+                // Validate uploaded documents format and size
+                const fileValidId = document.getElementById('fileValidId')?.files[0];
+                const fileBrgy = document.getElementById('fileBrgyClearance')?.files[0];
+                if (fileValidId) {
+                    const check = validateUploadedDocument(fileValidId);
+                    if (!check.valid) throw new Error(`Valid ID: ${check.error}`);
+                }
+                if (fileBrgy) {
+                    const check = validateUploadedDocument(fileBrgy);
+                    if (!check.valid) throw new Error(`Barangay Clearance: ${check.error}`);
                 }
 
-                const { data: authResult, error: authError } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: {
-                            role: 'Beneficiary',
-                            username: username,
-                            first_name: fn,
-                            last_name: ln,
-                            age: age ? parseInt(age, 10) : 0
-                        }
-                    }
-                });
-
-                if (authError) throw new Error(authError.message);
-                if (!authResult.user) throw new Error('Registration failed. Please try again.');
-
-                registrationData.auth_id = authResult.user.id;
-
-                // 2. Fill in the remaining profile fields that the auto-provision
-                //    trigger doesn't set (it only covers the core identity fields).
-                const { error: profileError } = await supabaseClient
-                    .from('beneficiaries')
-                    .update({
-                        middle_name: mn || null,
-                        suffix: suffix || null,
-                        date_of_birth: bdate || null,
-                        sex: sex || null,
-                        marital_status: civilStatus || null,
-                        phone: phone || null,
-                        address: [purok, barangay, 'City of Koronadal'].filter(Boolean).join(', ')
-                    })
-                    .eq('auth_id', authResult.user.id);
-
-                if (profileError) {
-                    console.warn('[REGISTRATION] Profile detail update warning:', profileError.message);
-                }
+                // Save registration state
+                sessionStorage.setItem('pending_reg_data', JSON.stringify(registrationData));
 
                 // Update masked displays
-                document.getElementById('displayMaskedEmail').textContent = email.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+                document.getElementById('displayMaskedEmail').textContent = email;
                 document.getElementById('displayMaskedPhone').textContent = phone.replace(/(\d{4})(\d{3})(\d{4})/, '$1-***-$3');
 
                 window.showSystemNotification({
-                    title: 'Account Created',
-                    message: 'Step 1 complete! A 6-digit verification code was sent to your email.',
+                    title: 'Details Recorded',
+                    message: 'Step 1 complete! Please verify your email with Google OAuth.',
                     type: 'success'
                 });
 
-                // Advance to Step 2
+                // Advance to Step 2 (Google OAuth Email Verification)
                 goToStep(2);
 
             } catch (err) {
                 console.error('[REGISTRATION STEP 1 ERROR]:', err);
                 window.showSystemNotification({
-                    title: 'Registration Error',
-                    message: err.message || 'Could not proceed with registration. Please try again.',
+                    title: 'Registration Notice',
+                    message: err.message || 'Could not proceed with registration. Please check your inputs.',
                     type: 'error'
                 });
             } finally {
@@ -1190,151 +1160,86 @@
             }
         }
 
-        // -------------------------------------------------------------
-        // STEP 2: VERIFY EMAIL CODE (4-DIGIT)
-        // -------------------------------------------------------------
-        function startEmailTimers() {
-            // Expiry countdown (5 min)
-            if (emailExpiryInterval) clearInterval(emailExpiryInterval);
-            let expirySecs = 300;
-            const timerEl = document.getElementById('emailExpiryTimer');
+        // Validate uploaded document file size & MIME type
+        function validateUploadedDocument(file) {
+            if (!file) return { valid: false, error: 'No file selected.' };
+            const allowed = ['.pdf', '.jpg', '.jpeg', '.png', '.docx'];
+            const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+            const maxSize = 5 * 1024 * 1024; // 5MB
 
-            emailExpiryInterval = setInterval(() => {
-                const mins = Math.floor(expirySecs / 60).toString().padStart(2, '0');
-                const secs = (expirySecs % 60).toString().padStart(2, '0');
-                timerEl.textContent = `${mins}:${secs}`;
-                if (expirySecs <= 0) {
-                    clearInterval(emailExpiryInterval);
-                    timerEl.textContent = 'Expired';
-                }
-                expirySecs--;
-            }, 1000);
-
-            // Resend Cooldown (60s)
-            if (emailResendInterval) clearInterval(emailResendInterval);
-            let cooldown = 60;
-            const btnResend = document.getElementById('btnResendEmail');
-            const cooldownEl = document.getElementById('emailResendCooldown');
-            btnResend.disabled = true;
-
-            emailResendInterval = setInterval(() => {
-                cooldown--;
-                if (cooldown <= 0) {
-                    clearInterval(emailResendInterval);
-                    btnResend.disabled = false;
-                    cooldownEl.textContent = '';
-                } else {
-                    cooldownEl.textContent = `(${cooldown}s)`;
-                }
-            }, 1000);
+            if (!allowed.includes(ext)) {
+                return { valid: false, error: `Invalid file format (${ext}). Allowed: PDF, JPG, PNG, DOCX.` };
+            }
+            if (file.size > maxSize) {
+                return { valid: false, error: `File exceeds 5MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB).` };
+            }
+            return { valid: true };
         }
 
-        async function resendEmailVerificationCode() {
+        // -------------------------------------------------------------
+        // STEP 2: GOOGLE OAUTH EMAIL & IDENTITY VERIFICATION
+        // -------------------------------------------------------------
+        async function handleGoogleEmailVerification() {
+            const btn = document.getElementById('btnVerifyWithGoogle');
+            if (btn) btn.disabled = true;
+
             try {
-                const email = registrationData.email;
-                if (!supabaseClient) {
-                    throw new Error('Supabase client not initialized.');
+                if (typeof GoogleAuth === 'undefined') {
+                    throw new Error('Google Authentication controller not loaded.');
                 }
-                const { error: resendError } = await supabaseClient.auth.resend({
-                    type: 'signup',
-                    email: email
+
+                await GoogleAuth.signInWithGoogle({
+                    portal: 'beneficiary',
+                    role: 'Beneficiary',
+                    redirectTo: 'beneficiary_register.html?step=3&verified=google',
+                    extraData: registrationData
                 });
-                if (resendError) throw new Error(resendError.message);
-                window.showSystemNotification({
-                    title: 'Code Resent',
-                    message: 'A new 6-digit verification code has been dispatched to your email.',
-                    type: 'info'
-                });
-                startEmailTimers();
-                setupSegmentedInputs('emailCodeBoxes', 6);
             } catch (err) {
-                window.showSystemNotification({
-                    title: 'Resend Failed',
-                    message: err.message || 'Could not resend email code.',
-                    type: 'error'
-                });
+                console.error('[GOOGLE_VERIFY_ERROR]:', err);
+                const alertEl = document.getElementById('emailVerifyAlert');
+                const alertMsg = document.getElementById('emailVerifyAlertMsg');
+                if (alertMsg) alertMsg.textContent = err.message || 'Could not initiate Google verification.';
+                if (alertEl) alertEl.classList.remove('d-none');
+            } finally {
+                if (btn) btn.disabled = false;
             }
         }
 
-        async function handleVerifyEmailCode() {
-            const d1 = document.getElementById('emailDigit1').value;
-            const d2 = document.getElementById('emailDigit2').value;
-            const d3 = document.getElementById('emailDigit3').value;
-            const d4 = document.getElementById('emailDigit4').value;
-            const d5 = document.getElementById('emailDigit5').value;
-            const d6 = document.getElementById('emailDigit6').value;
-            const code = `${d1}${d2}${d3}${d4}${d5}${d6}`.trim();
-
-            const alertEl = document.getElementById('emailVerifyAlert');
-            const alertMsg = document.getElementById('emailVerifyAlertMsg');
+        async function handleConfirmedGoogleEmail() {
             const btnConfirm = document.getElementById('btnConfirmEmailCode');
             const spinner = document.getElementById('emailVerifySpinner');
-
-            if (code.length !== 6) {
-                alertMsg.textContent = 'Please enter all 6 digits of your email verification code.';
-                alertEl.classList.remove('d-none');
-                return;
-            }
-
-            alertEl.classList.add('d-none');
             btnConfirm.disabled = true;
-            spinner.classList.remove('d-none');
+            if (spinner) spinner.classList.remove('d-none');
 
             try {
-                if (!supabaseClient) {
-                    throw new Error('Supabase client not initialized.');
-                }
-
-                // 1. Verify the 6-digit email code issued by Supabase Auth
-                const { data: verifyData, error: verifyError } = await supabaseClient.auth.verifyOtp({
-                    email: registrationData.email,
-                    token: code,
-                    type: 'signup'
-                });
-
-                if (verifyError) throw new Error(verifyError.message || 'Invalid or expired email verification code.');
-
-                const user = verifyData.user || {};
-
-                if (typeof SessionManager !== 'undefined' && verifyData.session) {
-                    SessionManager.save(registrationData.auth_id || user.id, verifyData.session.access_token, 'Beneficiary', {
-                        username: registrationData.username,
-                        fullName: `${registrationData.first_name} ${registrationData.last_name}`,
-                        email: registrationData.email,
-                        department: registrationData.program_sector && registrationData.program_sector.includes('CSWDO') ? 'CSWDO' : 'PESO'
-                    });
-                }
-                if (verifyData.session) sessionStorage.setItem('jwtAccessToken', verifyData.session.access_token);
-
-                // 2. Now that the user has a valid session (from the email
-                //    verification above), send them a phone OTP. This uses
-                //    Supabase's native updateUser({phone}) call, which links
-                //    the phone to THIS SAME account (rather than creating a
-                //    separate identity the way signInWithOtp({phone}) would)
-                //    and triggers our Send SMS Hook -> Semaphore to actually
-                //    deliver it.
-                const phoneE164 = toE164PH(registrationData.phone_number);
-                const { error: phoneOtpError } = await supabaseClient.auth.updateUser({ phone: phoneE164 });
-                if (phoneOtpError) {
-                    throw new Error('Email verified, but the phone OTP could not be sent: ' + phoneOtpError.message);
+                // Ensure Supabase user profile is provisioned / linked
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session && session.user) {
+                        registrationData.auth_id = session.user.id;
+                        if (!registrationData.email) registrationData.email = session.user.email;
+                    }
                 }
 
                 window.showSystemNotification({
                     title: 'Email Verified',
-                    message: 'Now let\'s verify your phone number — a 6-digit OTP was just sent via SMS.',
+                    message: 'Email successfully verified! Proceeding to SMS OTP.',
                     type: 'success'
                 });
 
-                // Advance to Step 3 (Phone OTP verification)
+                // Advance to Step 3 (Phone OTP)
                 goToStep(3);
-
+                startPhoneTimers();
+                setupSegmentedInputs('phoneOtpBoxes', 6);
             } catch (err) {
-                console.error('[EMAIL VERIFY ERROR]:', err);
-                alertMsg.textContent = err.message || 'Invalid or expired code.';
-                alertEl.classList.remove('d-none');
+                console.error('[EMAIL CONFIRM ERROR]:', err);
+                const alertEl = document.getElementById('emailVerifyAlert');
+                const alertMsg = document.getElementById('emailVerifyAlertMsg');
+                if (alertMsg) alertMsg.textContent = err.message || 'Please verify with Google first.';
+                if (alertEl) alertEl.classList.remove('d-none');
             } finally {
                 btnConfirm.disabled = false;
-                spinner.classList.add('d-none');
+                if (spinner) spinner.classList.add('d-none');
             }
         }
 
@@ -1487,6 +1392,36 @@
                 spinner.classList.add('d-none');
             }
         }
+
+        // On Page Load: Detect Google OAuth return and prefill/advance
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const stepParam = urlParams.get('step');
+            const isGoogleVerified = urlParams.get('verified') === 'google' || urlParams.get('google') === '1';
+
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session && session.user) {
+                    const savedPending = sessionStorage.getItem('pending_reg_data') || sessionStorage.getItem('oauth_pending_registration');
+                    if (savedPending) {
+                        try { registrationData = JSON.parse(savedPending); } catch(e) {}
+                    }
+                    if (!registrationData.email) registrationData.email = session.user.email;
+                    if (!registrationData.auth_id) registrationData.auth_id = session.user.id;
+
+                    if (stepParam === '3' || isGoogleVerified) {
+                        goToStep(3);
+                        startPhoneTimers();
+                        setupSegmentedInputs('phoneOtpBoxes', 6);
+                    } else if (urlParams.get('google') === '1') {
+                        const meta = session.user.user_metadata || {};
+                        if (meta.given_name && document.getElementById('regFirstName')) document.getElementById('regFirstName').value = meta.given_name;
+                        if (meta.family_name && document.getElementById('regLastName')) document.getElementById('regLastName').value = meta.family_name;
+                        if (session.user.email && document.getElementById('regEmail')) document.getElementById('regEmail').value = session.user.email;
+                    }
+                }
+            }
+        });
     </script>
 </body>
 
