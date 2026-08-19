@@ -98,3 +98,33 @@ The database uses **PostgreSQL** via Supabase with the following core tables:
 - `notifications` — SMS/notification dispatch logs
 
 All tables have **Row Level Security (RLS)** enabled.
+
+---
+
+## 💻 Running the Localhost Server (Testing)
+
+You can run the localhost server using either of the methods below:
+
+### Option 1: Quick Start with Node.js (Zero-Setup)
+1. Double-click `start-server.bat` (on Windows), or run:
+   ```bash
+   npm start
+   # or
+   npm run dev
+   # or
+   node server.js
+   ```
+2. Open your browser at **[http://localhost:3000](http://localhost:3000)**.
+
+### Option 2: Containerized with Docker (Nginx)
+1. Ensure Docker Desktop is running.
+2. Launch the container using Docker Compose:
+   ```bash
+   docker compose up -d
+   ```
+3. Open your browser at **[http://localhost:3000](http://localhost:3000)**.
+4. To stop the container:
+   ```bash
+   docker compose down
+   ```
+
