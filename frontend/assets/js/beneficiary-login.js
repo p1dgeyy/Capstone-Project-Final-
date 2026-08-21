@@ -315,4 +315,242 @@
         });
     }
 
+    // =========================================================================
+    // FORGOT PASSWORD / GMAIL OTP PASSWORD RESET ENGINE
+    // =========================================================================
+    let activeResetEmail = '';
+    let resetExpiryInterval = null;
+    let resetResendInterval = null;
+
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const modal = document.getElementById('resetModal');
+            if (modal) {
+                modal.classList.add('active');
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                document.getElementById('forgotStep1').classList.remove('d-none');
+                document.getElementById('forgotStep2').classList.add('d-none');
+                document.getElementById('forgotStep3').classList.add('d-none');
+                setTimeout(() => document.getElementById('forgotIdentifier')?.focus(), 300);
+            }
+        });
+    }
+
+    const closeResetBtn = document.getElementById('closeResetBtn');
+    if (closeResetBtn) {
+        closeResetBtn.addEventListener('click', () => {
+            const modal = document.getElementById('resetModal');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            }
+        });
+    }
+
+    window.handleSendResetOtp = async function (e) {
+        e.preventDefault();
+        const identifier = document.getElementById('forgotIdentifier').value.trim();
+        const btn = document.getElementById('btnSendResetOtp');
+
+        if (!identifier) return;
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking account...';
+
+            const res = await OTPAuth.sendPasswordResetOtp(identifier);
+            activeResetEmail = res.email;
+
+            document.getElementById('forgotUserEmailBadge').textContent = res.maskedRecipient;
+            document.getElementById('forgotStep1').classList.add('d-none');
+            document.getElementById('forgotStep2').classList.remove('d-none');
+            document.getElementById('forgotStep3').classList.add('d-none');
+
+            startResetTimers();
+            setupResetInputs();
+
+        } catch (err) {
+            window.showSystemNotification({
+                title: 'Password Reset Notice',
+                message: err.message || 'Could not dispatch password reset code.',
+                type: 'error'
+            });
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Send Verification Code';
+        }
+    };
+
+    function startResetTimers() {
+        if (resetExpiryInterval) clearInterval(resetExpiryInterval);
+        let expirySecs = 300;
+        const timerEl = document.getElementById('resetExpiryTimer');
+
+        resetExpiryInterval = setInterval(() => {
+            const mins = Math.floor(expirySecs / 60).toString().padStart(2, '0');
+            const secs = (expirySecs % 60).toString().padStart(2, '0');
+            timerEl.textContent = `${mins}:${secs}`;
+            if (expirySecs <= 0) {
+                clearInterval(resetExpiryInterval);
+                timerEl.textContent = 'Expired';
+            }
+            expirySecs--;
+        }, 1000);
+
+        if (resetResendInterval) clearInterval(resetResendInterval);
+        let cooldown = 60;
+        const btnResend = document.getElementById('btnResendResetOtp');
+        const cooldownEl = document.getElementById('resetResendCooldown');
+        btnResend.disabled = true;
+
+        resetResendInterval = setInterval(() => {
+            cooldown--;
+            if (cooldown <= 0) {
+                clearInterval(resetResendInterval);
+                btnResend.disabled = false;
+                cooldownEl.textContent = '';
+            } else {
+                cooldownEl.textContent = `(${cooldown}s)`;
+            }
+        }, 1000);
+    }
+
+    function setupResetInputs() {
+        const inputs = [
+            document.getElementById('resetDigit1'),
+            document.getElementById('resetDigit2'),
+            document.getElementById('resetDigit3'),
+            document.getElementById('resetDigit4')
+        ];
+        inputs.forEach((input, idx) => {
+            if (!input) return;
+            input.value = '';
+            input.oninput = () => {
+                input.value = input.value.replace(/[^0-9]/g, '');
+                if (input.value.length === 1 && idx < inputs.length - 1) {
+                    inputs[idx + 1].focus();
+                }
+            };
+            input.onkeydown = (e) => {
+                if (e.key === 'Backspace' && !input.value && idx > 0) {
+                    inputs[idx - 1].focus();
+                }
+            };
+        });
+        setTimeout(() => inputs[0] && inputs[0].focus(), 300);
+    }
+
+    window.handleResendResetOtp = async function () {
+        try {
+            await OTPAuth.sendPasswordResetOtp(activeResetEmail);
+            startResetTimers();
+            setupResetInputs();
+        } catch (err) {
+            window.showSystemNotification({
+                title: 'Resend Failed',
+                message: err.message || 'Could not resend reset code.',
+                type: 'error'
+            });
+        }
+    };
+
+    window.handleVerifyResetOtp = async function () {
+        const d1 = document.getElementById('resetDigit1').value;
+        const d2 = document.getElementById('resetDigit2').value;
+        const d3 = document.getElementById('resetDigit3').value;
+        const d4 = document.getElementById('resetDigit4').value;
+        const code = `${d1}${d2}${d3}${d4}`.trim();
+
+        const alertEl = document.getElementById('resetOtpAlert');
+        const alertMsg = document.getElementById('resetOtpAlertMsg');
+
+        if (code.length !== 4) {
+            alertMsg.textContent = 'Please enter all 4 digits of the code.';
+            alertEl.classList.remove('d-none');
+            return;
+        }
+
+        alertEl.classList.add('d-none');
+
+        try {
+            await OTPAuth.verifyPasswordResetOtp(activeResetEmail, code);
+
+            document.getElementById('forgotStep1').classList.add('d-none');
+            document.getElementById('forgotStep2').classList.add('d-none');
+            document.getElementById('forgotStep3').classList.remove('d-none');
+            setTimeout(() => document.getElementById('newResetPassword')?.focus(), 300);
+
+        } catch (err) {
+            alertMsg.textContent = err.message || 'Invalid or expired verification code.';
+            alertEl.classList.remove('d-none');
+        }
+    };
+
+    window.handleCommitNewPassword = async function (e) {
+        e.preventDefault();
+        const p1 = document.getElementById('newResetPassword').value;
+        const p2 = document.getElementById('confirmResetPassword').value;
+        const btn = document.getElementById('btnUpdatePassword');
+
+        if (p1 !== p2) {
+            window.showSystemNotification({
+                title: 'Password Mismatch',
+                message: 'New password and confirmation do not match.',
+                type: 'error'
+            });
+            return;
+        }
+
+        if (p1.length < 8) {
+            window.showSystemNotification({
+                title: 'Weak Password',
+                message: 'Password must be at least 8 characters long.',
+                type: 'error'
+            });
+            return;
+        }
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating password...';
+
+            await OTPAuth.resetBeneficiaryPassword(activeResetEmail, p1);
+
+            window.showSystemNotification({
+                title: 'Password Reset Successful',
+                message: 'Your password has been updated in the database! You can now log in.',
+                type: 'success',
+                duration: 6000
+            });
+
+            // Close modal
+            const modal = document.getElementById('resetModal');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            }
+
+            // Fill username in login form
+            const usernameInput = document.getElementById('username');
+            if (usernameInput) usernameInput.value = activeResetEmail;
+            document.getElementById('password')?.focus();
+
+        } catch (err) {
+            window.showSystemNotification({
+                title: 'Reset Error',
+                message: err.message || 'Failed to update password in database.',
+                type: 'error'
+            });
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Save New Password';
+        }
+    };
+
 })();
+

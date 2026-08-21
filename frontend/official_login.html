@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beneficiary Portal Login - City of Koronadal</title>
+    <title>City of Koronadal - PESO & CSWDO Portal</title>
 
     <!-- Dependencies: Bootstrap CSS & Icons, Google Fonts -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -22,6 +22,7 @@
     <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/system-notifications.js"></script>
     <script src="assets/js/session-manager.js"></script>
+    <script src="assets/js/otp-auth.js"></script>
     <script src="assets/js/portal-login-support.js"></script>
 </head>
 
@@ -73,16 +74,18 @@
                 <div class="seal-container">
                     <img src="assets/koronadalseal.png" alt="Koronadal City Seal">
                 </div>
-                <h2 class="portal-title" data-translate="peso_cswdo_portal">PESO & CSWDO Portal</h2>
+                <h2 class="portal-title" data-translate="peso_cswdo_portal">City of Koronadal - PESO & CSWDO Portal</h2>
                 <span class="portal-subtitle" data-translate="sub_title">City Livelihood & Social Welfare Assistance System</span>
             </div>
 
             <nav class="support-nav">
+                <a href="privacy.html" class="nav-link-custom">Privacy Policy</a>
+                <span class="nav-separator">•</span>
+                <a href="terms.html" class="nav-link-custom">Terms of Service</a>
+                <span class="nav-separator">•</span>
                 <a href="#" id="faqLink" class="nav-link-custom" data-translate="faq">FAQ</a>
                 <span class="nav-separator">•</span>
                 <a href="#" id="kbLink" class="nav-link-custom" data-translate="kb">Knowledgebase</a>
-                <span class="nav-separator">•</span>
-                <a href="#" id="privacyLink" class="nav-link-custom" data-translate="data_privacy">Data Privacy</a>
             </nav>
 
             <div class="login-card">
@@ -296,35 +299,51 @@
             </div>
             <div class="custom-modal-body">
                 <div id="forgotStep1">
-                    <p class="text-muted small mb-3">Enter your registered username or email to receive a password reset link.</p>
-                    <form id="forgotPasswordForm">
+                    <p class="text-muted small mb-3">Enter your registered Gmail address or username to receive a 4-digit verification code.</p>
+                    <form id="forgotPasswordForm" onsubmit="handleSendResetOtp(event)">
                         <div class="form-group mb-3">
-                            <label class="form-label" for="forgotIdentifier">Username or Email</label>
-                            <input type="text" class="form-control" id="forgotIdentifier" placeholder="Enter username or email" required aria-label="Username or Email">
+                            <label class="form-label" for="forgotIdentifier">Username or Gmail</label>
+                            <input type="text" class="form-control" id="forgotIdentifier" placeholder="e.g. juan@gmail.com or juan.delacruz" required aria-label="Username or Email">
                         </div>
-                        <button type="submit" class="btn-login" id="btnSendVerification">
-                            <i class="bi bi-send-fill me-1"></i> Send Verification Link
+                        <button type="submit" class="btn-login" id="btnSendResetOtp">
+                            <i class="bi bi-send-fill me-1"></i> Send Verification Code
                         </button>
                     </form>
                 </div>
 
                 <div id="forgotStep2" class="d-none text-center py-2">
-                    <div class="text-success mb-2"><i class="bi bi-check-circle-fill" style="font-size: 2.5rem;"></i></div>
-                    <h5 class="fw-bold text-dark">Verification Dispatched</h5>
-                    <p class="text-muted small">A reset link has been dispatched for: <strong id="forgotUserEmailBadge">user@email.com</strong></p>
-                    <div class="p-2 bg-light border rounded mb-3 small font-monospace text-break" id="verificationLinkDisplay"></div>
-                    <input type="hidden" id="verifiedResetToken">
-                    <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="copyVerificationLink()">
-                        <i class="bi bi-clipboard me-1"></i> Copy Link
-                    </button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="proceedToPasswordResetForm()">
-                        Proceed to Reset <i class="bi bi-arrow-right ms-1"></i>
+                    <div class="avatar-circle mx-auto mb-2" style="width: 50px; height: 50px; background: #EDE9FE; color: #6D28D9; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Enter 4-Digit Code</h5>
+                    <p class="text-muted small mb-2">We sent a verification code to: <strong id="forgotUserEmailBadge">user@gmail.com</strong></p>
+                    
+                    <div class="alert alert-danger py-2 px-3 small d-none mb-3" id="resetOtpAlert">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="resetOtpAlertMsg">Invalid code.</span>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-2 mb-3" id="resetOtpBoxes">
+                        <input type="text" class="form-control text-center fw-bold fs-4 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit1" style="width: 46px; height: 50px; border-radius: 8px;">
+                        <input type="text" class="form-control text-center fw-bold fs-4 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit2" style="width: 46px; height: 50px; border-radius: 8px;">
+                        <input type="text" class="form-control text-center fw-bold fs-4 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit3" style="width: 46px; height: 50px; border-radius: 8px;">
+                        <input type="text" class="form-control text-center fw-bold fs-4 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit4" style="width: 46px; height: 50px; border-radius: 8px;">
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center small text-muted mb-3 px-2">
+                        <span>Expires in: <strong class="text-danger" id="resetExpiryTimer">05:00</strong></span>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="btnResendResetOtp" onclick="handleResendResetOtp()" disabled>
+                            Resend Code <span id="resetResendCooldown">(60s)</span>
+                        </button>
+                    </div>
+
+                    <button type="button" class="btn-login w-100" id="btnVerifyResetOtp" onclick="handleVerifyResetOtp()">
+                        <i class="bi bi-check-circle-fill me-1"></i> Verify Code & Continue
                     </button>
                 </div>
 
                 <div id="forgotStep3" class="d-none">
-                    <p class="text-muted small mb-3">Enter your new secure password (minimum 8 characters, letters & numbers).</p>
-                    <form id="resetCompleteForm">
+                    <p class="text-muted small mb-3">Create a new secure password (minimum 8 characters, with uppercase, lowercase, number, and special character).</p>
+                    <form id="resetCompleteForm" onsubmit="handleCommitNewPassword(event)">
                         <div class="form-group mb-3">
                             <label class="form-label" for="newResetPassword">New Password</label>
                             <input type="password" class="form-control" id="newResetPassword" placeholder="Enter new password" required minlength="8" aria-label="New Password">
@@ -334,7 +353,7 @@
                             <input type="password" class="form-control" id="confirmResetPassword" placeholder="Confirm new password" required minlength="8" aria-label="Confirm New Password">
                         </div>
                         <button type="submit" class="btn-login" id="btnUpdatePassword">
-                            <i class="bi bi-check2-circle me-1"></i> Update Password & Re-enable Account
+                            <i class="bi bi-check2-circle me-1"></i> Save New Password
                         </button>
                     </form>
                 </div>

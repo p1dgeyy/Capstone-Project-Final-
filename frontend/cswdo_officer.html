@@ -18,6 +18,7 @@
     <script src="assets/js/supabase-data.js"></script>
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/peso-safeguards.js"></script>
+    <script src="assets/js/otp-auth.js"></script>
     <script src="assets/js/system-notifications.js"></script>
     <script src="assets/js/unified-overlay-controller.js"></script>
     <script src="assets/js/qr-scanner-controller.js"></script>
@@ -1690,6 +1691,208 @@
                     <button type="submit" class="btn-theme">Apply Allocation</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ADD BENEFICIARY MODAL WITH DUAL OTP VERIFICATION (CSWDO INTAKE) -->
+    <div class="custom-modal" id="addBeneficiaryModal">
+        <div class="custom-modal-backdrop" onclick="closeAddBenModal()"></div>
+        <div class="custom-modal-dialog" style="max-width: 800px;">
+            <div class="custom-modal-header bg-primary text-white">
+                <h5 class="custom-modal-title text-white">
+                    <i class="bi bi-person-plus-fill me-2"></i>Add New Beneficiary (CSWDO Intake Desk)
+                </h5>
+                <button type="button" class="btn-modal-close text-white" onclick="closeAddBenModal()">&times;</button>
+            </div>
+            <div class="custom-modal-body p-4">
+                <!-- PHASE 1: INTAKE FORM -->
+                <div id="addBenFormView">
+                    <form id="addBeneficiaryForm" onsubmit="handleCswdoSubmitAddBen(event)">
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-lines-fill me-1"></i>1. Personal Profile</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="cswdoBenFn" required placeholder="e.g. Elena">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Middle Name</label>
+                                <input type="text" class="form-control" id="cswdoBenMn" placeholder="e.g. Santos">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="cswdoBenLn" required placeholder="e.g. Garcia">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Suffix</label>
+                                <input type="text" class="form-control" id="cswdoBenSuffix" placeholder="Jr., Sr., III">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Date of Birth <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="cswdoBenDob" required onchange="autoCalcCswdoAge()">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold small">Age</label>
+                                <input type="text" class="form-control bg-light" id="cswdoBenAge" readonly placeholder="Auto">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Sex <span class="text-danger">*</span></label>
+                                <select class="form-select" id="cswdoBenSex" required>
+                                    <option value="">Select Sex</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Male">Male</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Civil Status <span class="text-danger">*</span></label>
+                                <select class="form-select" id="cswdoBenCivil" required>
+                                    <option value="Single">Single</option>
+                                    <option value="Married">Married</option>
+                                    <option value="Widowed">Widowed</option>
+                                    <option value="Separated">Separated</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Name of Spouse</label>
+                                <input type="text" class="form-control" id="cswdoBenSpouse" placeholder="Spouse full name if applicable">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Number of Children</label>
+                                <input type="number" class="form-control" id="cswdoBenChildren" value="0" min="0">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-geo-alt-fill me-1"></i>2. Address Information</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Purok (Free Text) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="cswdoBenPurok" required placeholder="e.g. Purok San Jose">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Barangay (27 Predefined) <span class="text-danger">*</span></label>
+                                <select class="form-select" id="cswdoBenBarangay" required>
+                                    <option value="">-- Select Barangay --</option>
+                                    <option value="Assumption">Assumption</option>
+                                    <option value="Avanceña">Avanceña</option>
+                                    <option value="Cacub">Cacub</option>
+                                    <option value="Caloocan">Caloocan</option>
+                                    <option value="Carpenter Hill">Carpenter Hill</option>
+                                    <option value="Concepcion">Concepcion</option>
+                                    <option value="Esperanza">Esperanza</option>
+                                    <option value="General Paulino Santos">General Paulino Santos</option>
+                                    <option value="Mabini">Mabini</option>
+                                    <option value="Magsaysay">Magsaysay</option>
+                                    <option value="Mambucal">Mambucal</option>
+                                    <option value="Morales">Morales</option>
+                                    <option value="Namnama">Namnama</option>
+                                    <option value="New Pangasinan">New Pangasinan</option>
+                                    <option value="Paraiso">Paraiso</option>
+                                    <option value="Rotonda">Rotonda</option>
+                                    <option value="San Isidro">San Isidro</option>
+                                    <option value="San Roque">San Roque</option>
+                                    <option value="San Jose">San Jose</option>
+                                    <option value="Sta. Cruz">Sta. Cruz</option>
+                                    <option value="Sto. Niño">Sto. Niño</option>
+                                    <option value="Saravia">Saravia</option>
+                                    <option value="Topland">Topland</option>
+                                    <option value="Zone 1">Zone 1</option>
+                                    <option value="Zone 2">Zone 2</option>
+                                    <option value="Zone 3">Zone 3</option>
+                                    <option value="Zone 4">Zone 4</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">City / Municipality</label>
+                                <input type="text" class="form-control bg-light" value="City of Koronadal" readonly>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-shield-lock-fill me-1"></i>3. Contact & Verification Targets</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Contact Number (SMS OTP Target) <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="cswdoBenPhone" required placeholder="e.g. 09171234567">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Email Address (Gmail Only) <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="cswdoBenEmail" required placeholder="e.g. applicant@gmail.com">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-card-checklist me-1"></i>4. Assistance Program & Documents</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold small">CSWDO Assistance Category <span class="text-danger">*</span></label>
+                                <select class="form-select" id="cswdoBenProgram" required>
+                                    <option value="Medical Assistance" selected>Medical Assistance (Hospitalization / Medicine / Lab)</option>
+                                    <option value="Financial Assistance">Financial Assistance (AICS Emergency Grant)</option>
+                                    <option value="Burial Assistance">Burial Assistance (Funeral & Memorial Support)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Mandatory Valid ID <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="cswdoBenValidId" accept="image/*,.pdf" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Certificate of Indigency <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="cswdoBenBrgy" accept="image/*,.pdf" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Medical / Funeral Reqs</label>
+                                <input type="file" class="form-control" id="cswdoBenReqs" accept="image/*,.pdf,.docx">
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddBenModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary fw-bold" id="btnCswdoProceedToDualVerify">
+                                <span>Proceed to Dual OTP Verification <i class="bi bi-arrow-right ms-1"></i></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- PHASE 2: DUAL OTP VERIFICATION (EMAIL + SMS) -->
+                <div id="addBenVerifyView" class="d-none text-center py-2">
+                    <div class="avatar-circle mx-auto mb-2" style="width: 56px; height: 56px; background: #E0F2FE; color: #0284C7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Dual Identity Verification</h5>
+                    <p class="text-muted small mb-3">Verification codes dispatched to beneficiary's Gmail & Phone.</p>
+
+                    <!-- Step A: Email 4-Digit Code -->
+                    <div class="card p-3 mb-3 bg-light border text-start">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark small"><i class="bi bi-envelope-fill text-primary me-1"></i> 1. Email Verification Code (4-Digit)</span>
+                            <span class="badge bg-secondary font-monospace" id="cswdoMaskedEmail">***@gmail.com</span>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control fw-bold font-monospace" id="cswdoBenEmailOtp" placeholder="Enter 4-digit code" maxlength="4" style="letter-spacing: 4px;">
+                            <button class="btn btn-outline-primary btn-sm" type="button" onclick="resendCswdoEmailOtp()">Resend</button>
+                        </div>
+                    </div>
+
+                    <!-- Step B: SMS 6-Digit OTP -->
+                    <div class="card p-3 mb-3 bg-light border text-start">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark small"><i class="bi bi-phone-fill text-success me-1"></i> 2. SMS OTP Code (6-Digit)</span>
+                            <span class="badge bg-secondary font-monospace" id="cswdoMaskedPhone">09XX-***-XXXX</span>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control fw-bold font-monospace" id="cswdoBenSmsOtp" placeholder="Enter 6-digit SMS OTP" maxlength="6" style="letter-spacing: 4px;">
+                            <button class="btn btn-outline-success btn-sm" type="button" onclick="resendCswdoSmsOtp()">Resend</button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-secondary" onclick="backToCswdoBenForm()">
+                            <i class="bi bi-arrow-left me-1"></i> Edit Form Details
+                        </button>
+                        <button type="button" class="btn btn-success fw-bold px-4" id="btnFinalizeCswdoBen" onclick="finalizeCswdoBeneficiaryCreation()">
+                            <i class="bi bi-check-circle-fill me-1"></i> Verify & Save Beneficiary Record
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -3842,6 +4045,199 @@
             
             updateNotificationBadge();
             renderNotifications();
+        }
+
+        // ==============================================
+        // CSWDO ADD BENEFICIARY WITH DUAL OTP VERIFICATION (EMAIL + SMS)
+        // ==============================================
+        let pendingCswdoBenData = null;
+
+        function autoCalcCswdoAge() {
+            const dob = document.getElementById('cswdoBenDob')?.value;
+            if (!dob) return;
+            const b = new Date(dob);
+            const ageDiff = Date.now() - b.getTime();
+            const ageDate = new Date(ageDiff);
+            const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+            if (document.getElementById('cswdoBenAge')) {
+                document.getElementById('cswdoBenAge').value = isNaN(age) ? '' : age;
+            }
+        }
+
+        function openAddBeneficiaryModal() {
+            const form = document.getElementById('addBeneficiaryForm');
+            if (form) form.reset();
+            pendingCswdoBenData = null;
+            document.getElementById('addBenFormView')?.classList.remove('d-none');
+            document.getElementById('addBenVerifyView')?.classList.add('d-none');
+            const modal = document.getElementById('addBeneficiaryModal');
+            if (modal) {
+                modal.classList.add('active');
+                modal.classList.add('show');
+            }
+        }
+
+        function closeAddBenModal() {
+            const modal = document.getElementById('addBeneficiaryModal');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.classList.remove('show');
+            }
+        }
+
+        async function handleCswdoSubmitAddBen(e) {
+            e.preventDefault();
+
+            const fn = document.getElementById('cswdoBenFn').value.trim();
+            const mn = document.getElementById('cswdoBenMn').value.trim();
+            const ln = document.getElementById('cswdoBenLn').value.trim();
+            const suffix = document.getElementById('cswdoBenSuffix').value.trim();
+            const dob = document.getElementById('cswdoBenDob').value;
+            const age = document.getElementById('cswdoBenAge').value;
+            const sex = document.getElementById('cswdoBenSex').value;
+            const civil = document.getElementById('cswdoBenCivil').value;
+            const spouse = document.getElementById('cswdoBenSpouse').value.trim();
+            const children = document.getElementById('cswdoBenChildren').value;
+            const purok = document.getElementById('cswdoBenPurok').value.trim();
+            const barangay = document.getElementById('cswdoBenBarangay').value;
+            const phone = document.getElementById('cswdoBenPhone').value.trim();
+            const email = document.getElementById('cswdoBenEmail').value.trim().toLowerCase();
+            const program = document.getElementById('cswdoBenProgram').value;
+
+            if (!email.endsWith('@gmail.com')) {
+                alert('Invalid Email: Beneficiary email must be a valid Gmail (@gmail.com) address.');
+                document.getElementById('cswdoBenEmail')?.focus();
+                return;
+            }
+
+            pendingCswdoBenData = {
+                first_name: fn,
+                middle_name: mn,
+                last_name: ln,
+                suffix: suffix,
+                date_of_birth: dob,
+                age: age,
+                sex: sex,
+                marital_status: civil,
+                spouse_name: spouse,
+                number_of_children: children,
+                purok: purok,
+                barangay: barangay,
+                address: `${purok}, ${barangay}, City of Koronadal`,
+                phone: phone,
+                email: email,
+                username: `${fn.toLowerCase().replace(/\s+/g, '')}.${ln.toLowerCase().replace(/\s+/g, '')}${Math.floor(10 + Math.random() * 90)}`,
+                program: program,
+                department: 'CSWDO'
+            };
+
+            const btn = document.getElementById('btnCswdoProceedToDualVerify');
+            if (btn) btn.disabled = true;
+
+            try {
+                if (typeof OTPAuth !== 'undefined') {
+                    await OTPAuth.sendEmailCode(email);
+                    await OTPAuth.sendSmsOtp(phone);
+                }
+
+                document.getElementById('cswdoMaskedEmail').textContent = typeof OTPAuth !== 'undefined' ? OTPAuth.maskEmail(email) : email;
+                document.getElementById('cswdoMaskedPhone').textContent = typeof OTPAuth !== 'undefined' ? OTPAuth.maskPhone(phone) : phone;
+
+                document.getElementById('addBenFormView')?.classList.add('d-none');
+                document.getElementById('addBenVerifyView')?.classList.remove('d-none');
+
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Verification Codes Dispatched',
+                        message: `Sent 4-digit code to ${email} and 6-digit OTP to ${phone}.`,
+                        type: 'info'
+                    });
+                }
+            } catch (err) {
+                alert(err.message || 'Could not dispatch verification codes.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function resendCswdoEmailOtp() {
+            if (!pendingCswdoBenData) return;
+            try {
+                await OTPAuth.sendEmailCode(pendingCswdoBenData.email);
+            } catch (e) {
+                alert(e.message || 'Failed to resend email code.');
+            }
+        }
+
+        async function resendCswdoSmsOtp() {
+            if (!pendingCswdoBenData) return;
+            try {
+                await OTPAuth.sendSmsOtp(pendingCswdoBenData.phone);
+            } catch (e) {
+                alert(e.message || 'Failed to resend SMS OTP.');
+            }
+        }
+
+        function backToCswdoBenForm() {
+            document.getElementById('addBenFormView')?.classList.remove('d-none');
+            document.getElementById('addBenVerifyView')?.classList.add('d-none');
+        }
+
+        async function finalizeCswdoBeneficiaryCreation() {
+            const emailCode = document.getElementById('cswdoBenEmailOtp')?.value.trim();
+            const smsOtp = document.getElementById('cswdoBenSmsOtp')?.value.trim();
+            const btn = document.getElementById('btnFinalizeCswdoBen');
+
+            if (!emailCode || emailCode.length !== 4) {
+                alert('Please enter the 4-digit Gmail verification code.');
+                document.getElementById('cswdoBenEmailOtp')?.focus();
+                return;
+            }
+
+            if (!smsOtp || smsOtp.length !== 6) {
+                alert('Please enter the 6-digit SMS OTP code.');
+                document.getElementById('cswdoBenSmsOtp')?.focus();
+                return;
+            }
+
+            if (btn) btn.disabled = true;
+
+            try {
+                await OTPAuth.verifyEmailCode(pendingCswdoBenData.email, emailCode);
+                await OTPAuth.verifySmsOtp(pendingCswdoBenData.phone, smsOtp);
+
+                const uniqueQr = `QR-BEN-${Math.floor(100000 + Math.random() * 900000)}`;
+                const payload = {
+                    ...pendingCswdoBenData,
+                    qr_code: uniqueQr,
+                    status: 'Active',
+                    terms_agreed: true,
+                    data_consent: true
+                };
+
+                if (typeof DataService !== 'undefined' && DataService.beneficiaries) {
+                    await DataService.beneficiaries.create(payload);
+                }
+
+                closeAddBenModal();
+
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Beneficiary Registered!',
+                        message: `Successfully verified and added ${payload.first_name} ${payload.last_name} (${uniqueQr}) to CSWDO records.`,
+                        type: 'success'
+                    });
+                } else {
+                    alert(`Beneficiary ${payload.first_name} ${payload.last_name} successfully registered with QR: ${uniqueQr}`);
+                }
+
+                if (typeof loadAllApplications === 'function') loadAllApplications();
+
+            } catch (err) {
+                alert(err.message || 'Verification failed. Please check the entered codes.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
         }
 
         // Ask for notification permission on load
