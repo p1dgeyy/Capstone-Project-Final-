@@ -81,7 +81,7 @@ const OTPAuth = (() => {
     }
 
     /**
-     * 1. Send 4-Digit Email Verification Code (Restricted to Gmail)
+     * 1. Send 8-Digit Email Verification Code (Restricted to Gmail)
      */
     async function sendEmailCode(email) {
         const cleanEmail = String(email || '').trim().toLowerCase();
@@ -90,14 +90,14 @@ const OTPAuth = (() => {
             throw new Error('Email registration is restricted to Gmail (@gmail.com) only.');
         }
 
-        const code = generateNumericCode(4);
+        const code = generateNumericCode(8);
         const codeHash = await hashCode(code);
         const expiresAt = Date.now() + EXPIRY_MS;
 
         const store = _getOtpStore();
         store[`email_${cleanEmail}`] = {
             hash: codeHash,
-            code: code, // Retained for demonstration / fallback inspection
+            code: code,
             expiresAt: expiresAt,
             channel: 'EMAIL',
             email: cleanEmail
@@ -118,13 +118,13 @@ const OTPAuth = (() => {
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
                 title: 'Gmail Verification Code Sent',
-                message: `Your 4-digit verification code is: [ ${code} ]. (Expires in 5 minutes).`,
+                message: `Your 8-digit verification code is: [ ${code} ]. (Expires in 5 minutes).`,
                 type: 'info',
                 duration: 9000
             });
         }
 
-        console.log(`[OTPAuth] 4-digit Email code for ${cleanEmail}: ${code}`);
+        console.log(`[OTPAuth] 8-digit Email code for ${cleanEmail}: ${code}`);
         return {
             success: true,
             maskedRecipient: maskEmail(cleanEmail),
@@ -134,14 +134,14 @@ const OTPAuth = (() => {
     }
 
     /**
-     * Verify 4-Digit Email Code
+     * Verify Email Code
      */
     async function verifyEmailCode(email, enteredCode) {
         const cleanEmail = String(email || '').trim().toLowerCase();
         const code = String(enteredCode || '').trim();
 
         if (!cleanEmail || !code) {
-            throw new Error('Please enter the 4-digit verification code.');
+            throw new Error('Email and verification code are required.');
         }
 
         const store = _getOtpStore();
@@ -159,26 +159,24 @@ const OTPAuth = (() => {
 
         const inputHash = await hashCode(code);
         if (inputHash !== record.hash && code !== record.code) {
-            throw new Error('Invalid verification code. Please check your Gmail and try again.');
+            throw new Error('Invalid verification code. Please check and try again.');
         }
 
-        // Verified successfully
-        record.verified = true;
-        record.verifiedAt = Date.now();
-        store[`email_${cleanEmail}`] = record;
+        // Verified successfully - cleanup record
+        delete store[`email_${cleanEmail}`];
         _saveOtpStore(store);
 
         return { success: true, verified: true, email: cleanEmail };
     }
 
     /**
-     * 2. Send 6-Digit SMS OTP Code
+     * 2. Send 8-Digit SMS OTP Code
      */
     async function sendSmsOtp(phoneNumber) {
         const cleanPhone = String(phoneNumber || '').trim();
         if (!cleanPhone) throw new Error('Contact number is required.');
 
-        const code = generateNumericCode(6);
+        const code = generateNumericCode(8);
         const codeHash = await hashCode(code);
         const expiresAt = Date.now() + EXPIRY_MS;
 
@@ -202,7 +200,7 @@ const OTPAuth = (() => {
             });
         }
 
-        console.log(`[OTPAuth] 6-digit SMS OTP for ${cleanPhone}: ${code}`);
+        console.log(`[OTPAuth] 8-digit SMS OTP for ${cleanPhone}: ${code}`);
         return {
             success: true,
             maskedRecipient: maskPhone(cleanPhone),
@@ -212,14 +210,14 @@ const OTPAuth = (() => {
     }
 
     /**
-     * Verify 6-Digit SMS OTP
+     * Verify SMS OTP
      */
     async function verifySmsOtp(phoneNumber, enteredOtp) {
         const cleanPhone = String(phoneNumber || '').trim();
         const otp = String(enteredOtp || '').trim();
 
         if (!cleanPhone || !otp) {
-            throw new Error('Please enter the 6-digit SMS OTP.');
+            throw new Error('Please enter the SMS OTP code.');
         }
 
         const store = _getOtpStore();
@@ -237,13 +235,10 @@ const OTPAuth = (() => {
 
         const inputHash = await hashCode(otp);
         if (inputHash !== record.hash && otp !== record.code) {
-            throw new Error('Invalid SMS OTP. Please enter the correct 6 digits.');
+            throw new Error('Invalid SMS OTP code. Please enter the correct digits.');
         }
 
-        // Verified successfully
-        record.verified = true;
-        record.verifiedAt = Date.now();
-        store[`phone_${cleanPhone}`] = record;
+        delete store[`phone_${cleanPhone}`];
         _saveOtpStore(store);
 
         return { success: true, verified: true, phone: cleanPhone };
@@ -288,7 +283,7 @@ const OTPAuth = (() => {
             throw new Error('No registered account found matching that username or email.');
         }
 
-        const code = generateNumericCode(4);
+        const code = generateNumericCode(8);
         const codeHash = await hashCode(code);
         const expiresAt = Date.now() + EXPIRY_MS;
 
@@ -306,7 +301,7 @@ const OTPAuth = (() => {
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
                 title: 'Password Reset OTP Sent',
-                message: `A 4-digit password reset code was sent to ${maskEmail(targetEmail)}: [ ${code} ]`,
+                message: `An 8-digit password reset code was sent to ${maskEmail(targetEmail)}: [ ${code} ]`,
                 type: 'info',
                 duration: 9000
             });

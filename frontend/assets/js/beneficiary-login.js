@@ -424,7 +424,11 @@
             document.getElementById('resetDigit1'),
             document.getElementById('resetDigit2'),
             document.getElementById('resetDigit3'),
-            document.getElementById('resetDigit4')
+            document.getElementById('resetDigit4'),
+            document.getElementById('resetDigit5'),
+            document.getElementById('resetDigit6'),
+            document.getElementById('resetDigit7'),
+            document.getElementById('resetDigit8')
         ];
         inputs.forEach((input, idx) => {
             if (!input) return;
@@ -439,6 +443,15 @@
                 if (e.key === 'Backspace' && !input.value && idx > 0) {
                     inputs[idx - 1].focus();
                 }
+            };
+            input.onpaste = (e) => {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 8);
+                text.split('').forEach((ch, i) => {
+                    if (inputs[i]) inputs[i].value = ch;
+                });
+                const next = Math.min(text.length, inputs.length - 1);
+                inputs[next].focus();
             };
         });
         setTimeout(() => inputs[0] && inputs[0].focus(), 300);
@@ -459,17 +472,17 @@
     };
 
     window.handleVerifyResetOtp = async function () {
-        const d1 = document.getElementById('resetDigit1').value;
-        const d2 = document.getElementById('resetDigit2').value;
-        const d3 = document.getElementById('resetDigit3').value;
-        const d4 = document.getElementById('resetDigit4').value;
-        const code = `${d1}${d2}${d3}${d4}`.trim();
+        let code = '';
+        for (let i = 1; i <= 8; i++) {
+            const el = document.getElementById(`resetDigit${i}`);
+            if (el && el.value) code += el.value.trim();
+        }
 
         const alertEl = document.getElementById('resetOtpAlert');
         const alertMsg = document.getElementById('resetOtpAlertMsg');
 
-        if (code.length !== 4) {
-            alertMsg.textContent = 'Please enter all 4 digits of the code.';
+        if (code.length < 6) {
+            alertMsg.textContent = 'Please enter your complete verification code.';
             alertEl.classList.remove('d-none');
             return;
         }
