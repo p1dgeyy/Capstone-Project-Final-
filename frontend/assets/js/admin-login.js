@@ -226,6 +226,10 @@
                     if (targetEmail) candidateEmails.push(targetEmail);
                     if (cleanIdentifier.includes('@')) candidateEmails.push(cleanIdentifier);
                     candidateEmails.push(`${cleanIdentifier}@koronadal.gov.ph`);
+                    candidateEmails.push(`${cleanIdentifier.toLowerCase()}@koronadal.gov.ph`);
+                    candidateEmails.push(`${cleanIdentifier}@peso.koronadal.gov.ph`);
+                    candidateEmails.push(`${cleanIdentifier}@cswdo.koronadal.gov.ph`);
+                    candidateEmails.push(`${cleanIdentifier}@gmail.com`);
                     const uniqueCandidates = [...new Set(candidateEmails.filter(Boolean))];
 
                     let authData = null;

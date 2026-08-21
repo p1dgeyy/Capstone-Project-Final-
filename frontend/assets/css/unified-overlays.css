@@ -231,8 +231,9 @@ body.modal-open {
 /* Standard Bootstrap Modal Alignment (PESO Admin & PESO Officer Portals) */
 .modal {
   z-index: var(--z-modal-dialog) !important;
-  padding-top: calc(var(--header-height, 70px) + 1rem) !important;
+  padding-top: calc(var(--header-height, 70px) + 0.5rem) !important;
   overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal:not(.show) {
@@ -246,13 +247,13 @@ body.modal-open {
 /* Multi-tier Header Spacing for PESO Admin Sub-tabs */
 .nav-tabs-custom ~ .modal,
 body:has(.nav-tabs-custom) .modal {
-  padding-top: calc(var(--header-height, 70px) + var(--header-tabs-height, 50px) + 1rem) !important;
+  padding-top: calc(var(--header-height, 70px) + var(--header-tabs-height, 50px) + 0.5rem) !important;
 }
 
 /* Modal Dialog Geometry & Visual Depth */
 .modal-dialog,
 .custom-modal-dialog {
-  margin: 0.5rem auto 2rem auto !important;
+  margin: 0.5rem auto 1.5rem auto !important;
   border-radius: var(--overlay-dialog-radius) !important;
   box-shadow: var(--overlay-dialog-shadow) !important;
   border: 1px solid rgba(226, 232, 240, 0.8) !important;
@@ -260,9 +261,10 @@ body:has(.nav-tabs-custom) .modal {
   overflow: hidden !important;
   transform: scale(0.96) translateY(-8px);
   transition: transform var(--overlay-transition-duration) var(--overlay-transition-curve), opacity var(--overlay-transition-duration) var(--overlay-transition-curve) !important;
-  max-height: calc(100vh - var(--header-height, 70px) - 2.5rem) !important;
-  display: flex;
-  flex-direction: column;
+  max-height: calc(100dvh - var(--header-height, 70px) - 1.5rem) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
   animation: modalDialogPopIn var(--overlay-transition-duration) var(--overlay-transition-curve) !important;
 }
 
@@ -291,7 +293,21 @@ body:has(.nav-tabs-custom) .modal {
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
-  max-height: calc(100vh - var(--header-height, 70px) - 2.5rem) !important;
+  max-height: calc(100dvh - var(--header-height, 70px) - 1.5rem) !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* Ensure forms nested in modals preserve the flex column layout for scrolling */
+.modal-content > form,
+.custom-modal-dialog > form,
+.modal-dialog form {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  max-height: 100% !important;
 }
 
 .modal-header,
@@ -303,14 +319,39 @@ body:has(.nav-tabs-custom) .modal {
   align-items: center !important;
   justify-content: space-between !important;
   flex-shrink: 0 !important;
+  z-index: 10;
 }
 
 .modal-body,
 .custom-modal-body {
   padding: 1.5rem !important;
   overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
-  flex-grow: 1 !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+}
+
+/* Custom Scrollbar for Modal Bodies */
+.modal-body::-webkit-scrollbar,
+.custom-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-body::-webkit-scrollbar-track,
+.custom-modal-body::-webkit-scrollbar-track {
+  background: #F1F5F9;
+  border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb,
+.custom-modal-body::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover,
+.custom-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }
 
 .modal-footer,
@@ -323,6 +364,7 @@ body:has(.nav-tabs-custom) .modal {
   justify-content: flex-end !important;
   gap: 0.75rem !important;
   flex-shrink: 0 !important;
+  z-index: 10;
 }
 
 /* ==========================================================================

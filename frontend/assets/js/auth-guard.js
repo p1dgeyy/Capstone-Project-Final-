@@ -231,7 +231,7 @@ const AuthGuard = (() => {
           }
         }
 
-        derivedRole = derivedRole || 'PESO Admin';
+        derivedRole = derivedRole || 'Beneficiary';
 
         profile = {
           id: user.id,

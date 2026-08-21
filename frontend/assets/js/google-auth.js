@@ -6,7 +6,8 @@
  * - Direct Google OAuth Authentication (`signInWithOAuth`)
  * - Automated OAuth Redirect & Session Detection
  * - Beneficiary Auto-Provisioning & Unique QR Code Generation
- * - Anti-Phishing, DPA (RA 10173) & Origin Verification Safeguards
+ * - Strict Staff Role Gate: Non-staff Google accounts are denied access
+ * - Safe URL Resolution & Origin Verification Safeguards
  * =========================================================================
  */
 
@@ -23,11 +24,14 @@ const GoogleAuth = (() => {
     return `QR-BEN-${hex}`;
   }
 
-  // Get safe, sanitized redirect URL constrained strictly to current origin
+  // Get safe, sanitized redirect URL constrained strictly to current origin and deployment path
   function getSafeRedirectUrl(targetPage = 'beneficiary.html') {
     const origin = window.location.origin;
     const path = window.location.pathname;
-    const baseDir = path.substring(0, path.lastIndexOf('/') + 1) || '/frontend/';
+    const lastSlash = path.lastIndexOf('/');
+    const baseDir = lastSlash >= 0 ? path.substring(0, lastSlash + 1) : '/';
+    
+    // If targetPage has query params, preserve them
     return `${origin}${baseDir}${targetPage}`;
   }
 
@@ -42,7 +46,7 @@ const GoogleAuth = (() => {
   async function signInWithGoogle(options = {}) {
     const portal = options.portal || 'beneficiary';
     const role = options.role || (portal === 'beneficiary' ? 'Beneficiary' : 'Staff');
-    const targetPage = options.redirectTo || (portal === 'beneficiary' ? 'beneficiary.html' : 'peso_officer.html');
+    const targetPage = options.redirectTo || (portal === 'beneficiary' ? 'beneficiary.html' : 'admin_login.html');
     const redirectUrl = getSafeRedirectUrl(targetPage);
 
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
@@ -81,7 +85,8 @@ const GoogleAuth = (() => {
 
   /**
    * Handle OAuth Return / Redirect on Page Load
-   * Detects returned Supabase session from Google, synchronizes profile in database, and initializes session.
+   * Detects returned Supabase session from Google, synchronizes profile in database,
+   * enforces role authorization guards, and initializes user session.
    */
   async function handleAuthRedirect() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) return null;
@@ -92,7 +97,10 @@ const GoogleAuth = (() => {
 
       const user = session.user;
       const meta = user.user_metadata || {};
-      const pendingPortal = sessionStorage.getItem('oauth_pending_portal') || 'beneficiary';
+      const curPath = window.location.pathname;
+      const isStaffPortalPage = curPath.includes('admin') || curPath.includes('officer') || curPath.includes('evaluator');
+      
+      const pendingPortal = sessionStorage.getItem('oauth_pending_portal') || (isStaffPortalPage ? 'staff' : 'beneficiary');
       const pendingRole = sessionStorage.getItem('oauth_pending_role') || (pendingPortal === 'beneficiary' ? 'Beneficiary' : 'Staff');
       const pendingRegStr = sessionStorage.getItem('oauth_pending_registration');
       let pendingReg = null;
@@ -103,125 +111,83 @@ const GoogleAuth = (() => {
       // Check if logged in via Google OAuth
       const isGoogleUser = user.app_metadata?.provider === 'google' || user.identities?.some(id => id.provider === 'google');
 
-      if (pendingPortal === 'beneficiary' || (!sessionStorage.getItem('userRole') && isGoogleUser)) {
-        // 1. Resolve or Create Beneficiary Profile
-        let profile = null;
-        const { data: existingBen } = await supabaseClient
-          .from('beneficiaries')
-          .select('*')
-          .or(`auth_id.eq.${user.id},email.ilike.${user.email}`)
-          .maybeSingle();
-
-        if (existingBen) {
-          profile = existingBen;
-          // Ensure auth_id is linked
-          if (!existingBen.auth_id) {
-            await supabaseClient
-              .from('beneficiaries')
-              .update({ auth_id: user.id })
-              .eq('id', existingBen.id);
-          }
-        } else {
-          // Auto-provision new beneficiary row
-          const qrCode = generateBeneficiaryQr();
-          const fullName = meta.full_name || meta.name || '';
-          const nameParts = fullName.split(' ');
-          const firstName = pendingReg?.first_name || meta.given_name || nameParts[0] || 'Beneficiary';
-          const lastName = pendingReg?.last_name || meta.family_name || (nameParts.slice(1).join(' ')) || '';
-          const username = pendingReg?.username || user.email.split('@')[0] + Math.floor(100 + Math.random() * 900);
-
-          const payload = {
-            qr_code: qrCode,
-            auth_id: user.id,
-            username: username,
-            first_name: firstName,
-            middle_name: pendingReg?.middle_name || null,
-            last_name: lastName,
-            suffix: pendingReg?.suffix || null,
-            email: user.email,
-            phone: pendingReg?.phone || null,
-            age: pendingReg?.age ? parseInt(pendingReg.age, 10) : 0,
-            date_of_birth: pendingReg?.date_of_birth || null,
-            sex: pendingReg?.sex || null,
-            marital_status: pendingReg?.marital_status || null,
-            address: pendingReg?.address || 'City of Koronadal',
-            id_type: pendingReg?.id_type || 'Google Verified Identity',
-            terms_agreed: true,
-            data_consent: true,
-            status: 'Active'
-          };
-
-          const { data: newBen, error: insertError } = await supabaseClient
-            .from('beneficiaries')
-            .insert(payload)
-            .select()
-            .single();
-
-          if (!insertError && newBen) {
-            profile = newBen;
-          } else {
-            console.warn('[GOOGLE_AUTH] Auto-provision insert warning:', insertError?.message);
-            profile = {
-              id: user.id,
-              auth_id: user.id,
-              qr_code: qrCode,
-              username: username,
-              first_name: firstName,
-              last_name: lastName,
-              email: user.email,
-              role: 'Beneficiary',
-              status: 'Active'
-            };
-          }
-        }
-
-        // Initialize Session Storage
-        const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username;
-        sessionStorage.setItem('jwtAccessToken', session.access_token);
-        sessionStorage.setItem('userRole', 'Beneficiary');
-        sessionStorage.setItem('username', profile.username);
-        sessionStorage.setItem('userId', String(profile.id));
-        sessionStorage.setItem('userFullName', fullName);
-        sessionStorage.setItem('beneficiaryLoggedIn', 'true');
-        sessionStorage.setItem('beneficiaryUsername', profile.username);
-        sessionStorage.setItem('beneficiaryName', fullName);
-        if (profile.qr_code) sessionStorage.setItem('beneficiaryQrCode', profile.qr_code);
-
-        // Clear transient oauth storage
-        sessionStorage.removeItem('oauth_pending_portal');
-        sessionStorage.removeItem('oauth_pending_role');
-        sessionStorage.removeItem('oauth_target_page');
-        sessionStorage.removeItem('oauth_pending_registration');
-
-        return { user, profile, role: 'Beneficiary', session };
-      } else {
-        // Staff Profile Handling
+      // -------------------------------------------------------------
+      // 1. STAFF PORTAL AUTHENTICATION & STRICT ROLE GATE
+      // -------------------------------------------------------------
+      if (pendingPortal === 'staff') {
         let staffProfile = null;
-        const { data: existingStaff } = await supabaseClient
-          .from('staff_profiles')
-          .select('*')
-          .or(`auth_id.eq.${user.id},email.ilike.${user.email}`)
-          .maybeSingle();
 
-        if (existingStaff) {
-          staffProfile = existingStaff;
-          if (!existingStaff.auth_id) {
-            await supabaseClient.from('staff_profiles').update({ auth_id: user.id }).eq('id', existingStaff.id);
+        try {
+          const { data: existingStaff, error: staffFetchErr } = await supabaseClient
+            .from('staff_profiles')
+            .select('*')
+            .or(`auth_id.eq.${user.id},email.ilike.${user.email}`)
+            .maybeSingle();
+
+          if (!staffFetchErr && existingStaff) {
+            staffProfile = existingStaff;
+            if (!existingStaff.auth_id) {
+              await supabaseClient.from('staff_profiles').update({ auth_id: user.id }).eq('id', existingStaff.id);
+            }
           }
-        } else {
-          staffProfile = {
-            id: user.id,
-            auth_id: user.id,
-            username: user.email.split('@')[0],
-            role: pendingRole || 'PESO Officer',
-            first_name: meta.given_name || 'Staff',
-            last_name: meta.family_name || 'Member',
-            email: user.email,
-            department: 'PESO',
-            status: 'Active'
-          };
+        } catch (dbErr) {
+          console.warn('[GOOGLE_AUTH] Staff database lookup error:', dbErr);
         }
 
+        // Validate Staff Authorization: Non-staff Google accounts are strictly REJECTED
+        const allowedStaffRoles = ['PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator'];
+        const isAuthorizedStaff = staffProfile && 
+          allowedStaffRoles.includes(staffProfile.role) && 
+          staffProfile.status === 'Active';
+
+        if (!isAuthorizedStaff) {
+          console.warn(`[GOOGLE_AUTH] Unauthorized Google staff login attempt by: ${user.email}`);
+
+          // Sign out immediately from Supabase to prevent dangling session
+          await supabaseClient.auth.signOut();
+
+          // Clear all stored sessions
+          ['userId', 'userRole', 'username', 'userFullName', 'department', 'jwtAccessToken', 'sessionToken', 'oauth_pending_portal', 'oauth_pending_role', 'oauth_target_page'].forEach(k => sessionStorage.removeItem(k));
+
+          // Clean URL hash tokens so user is not stuck in redirect loop
+          if (window.location.hash) {
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+          }
+
+          // Display prominent error alert
+          const errorAlert = document.getElementById('errorAlert');
+          const errorMessage = document.getElementById('errorMessage');
+          const errorMsgText = `Access Denied: Google account (${user.email}) is not registered as an authorized staff account. Only registered PESO and CSWDO staff may log in here.`;
+
+          if (errorMessage) errorMessage.textContent = errorMsgText;
+          if (errorAlert) errorAlert.style.display = 'block';
+
+          if (typeof SystemNotifications !== 'undefined' && SystemNotifications.show) {
+            SystemNotifications.show({
+              title: 'Staff Access Denied',
+              message: errorMsgText,
+              type: 'error',
+              duration: 8000
+            });
+          } else if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({
+              title: 'Staff Access Denied',
+              message: errorMsgText,
+              type: 'error'
+            });
+          } else if (!errorAlert) {
+            alert(errorMsgText);
+          }
+
+          // If on a protected dashboard, bounce back to admin login
+          if (!curPath.includes('admin_login.html')) {
+            setTimeout(() => { window.location.replace('admin_login.html'); }, 1500);
+          }
+
+          return { error: 'unauthorized_staff' };
+        }
+
+        // Authorized Staff Session Initialization
         const fullName = `${staffProfile.first_name || ''} ${staffProfile.last_name || ''}`.trim() || staffProfile.username;
         sessionStorage.setItem('jwtAccessToken', session.access_token);
         sessionStorage.setItem('userRole', staffProfile.role);
@@ -230,12 +196,162 @@ const GoogleAuth = (() => {
         sessionStorage.setItem('userFullName', fullName);
         sessionStorage.setItem('department', staffProfile.department || 'PESO');
 
+        if (typeof SessionManager !== 'undefined' && SessionManager.save) {
+          SessionManager.save(staffProfile.id, session.access_token, staffProfile.role);
+        }
+
+        // Clean transient OAuth storage
         sessionStorage.removeItem('oauth_pending_portal');
         sessionStorage.removeItem('oauth_pending_role');
         sessionStorage.removeItem('oauth_target_page');
 
+        // Clean URL hash
+        if (window.location.hash) {
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        }
+
+        // Route to designated dashboard if on login page
+        if (curPath.includes('login') || curPath.includes('index.html') || curPath.endsWith('/')) {
+          const roleLower = (staffProfile.role || '').toLowerCase();
+          let redirectUrl = 'peso_admin.html';
+
+          if (roleLower.includes('peso') && roleLower.includes('officer')) {
+            redirectUrl = 'peso_officer.html';
+          } else if (roleLower.includes('cswdo') && roleLower.includes('admin')) {
+            redirectUrl = 'cswdo_admin.html';
+          } else if (roleLower.includes('cswdo') && roleLower.includes('officer')) {
+            redirectUrl = 'cswdo_officer.html';
+          } else if (roleLower.includes('evaluator')) {
+            redirectUrl = 'evaluator.html';
+          }
+
+          window.location.replace(redirectUrl);
+        }
+
         return { user, profile: staffProfile, role: staffProfile.role, session };
       }
+
+      // -------------------------------------------------------------
+      // 2. BENEFICIARY PORTAL AUTHENTICATION & AUTO-PROVISIONING
+      // -------------------------------------------------------------
+      let profile = null;
+      try {
+        const { data: existingBen } = await supabaseClient
+          .from('beneficiaries')
+          .select('*')
+          .or(`auth_id.eq.${user.id},email.ilike.${user.email}`)
+          .maybeSingle();
+
+        if (existingBen) {
+          profile = existingBen;
+          if (!existingBen.auth_id) {
+            await supabaseClient
+              .from('beneficiaries')
+              .update({ auth_id: user.id })
+              .eq('id', existingBen.id);
+          }
+        }
+      } catch (benDbErr) {
+        console.warn('[GOOGLE_AUTH] Beneficiary DB lookup notice:', benDbErr);
+      }
+
+      if (!profile) {
+        // Auto-provision new beneficiary row
+        const qrCode = generateBeneficiaryQr();
+        const fullName = meta.full_name || meta.name || '';
+        const nameParts = fullName.split(' ');
+        const firstName = pendingReg?.first_name || meta.given_name || nameParts[0] || 'Beneficiary';
+        const lastName = pendingReg?.last_name || meta.family_name || (nameParts.slice(1).join(' ')) || '';
+        const username = pendingReg?.username || user.email.split('@')[0] + Math.floor(100 + Math.random() * 900);
+
+        const payload = {
+          qr_code: qrCode,
+          auth_id: user.id,
+          username: username,
+          first_name: firstName,
+          middle_name: pendingReg?.middle_name || null,
+          last_name: lastName,
+          suffix: pendingReg?.suffix || null,
+          email: user.email,
+          phone: pendingReg?.phone || null,
+          age: pendingReg?.age ? parseInt(pendingReg.age, 10) : 0,
+          date_of_birth: pendingReg?.date_of_birth || null,
+          sex: pendingReg?.sex || null,
+          marital_status: pendingReg?.marital_status || null,
+          address: pendingReg?.address || 'City of Koronadal',
+          id_type: pendingReg?.id_type || 'Google Verified Identity',
+          terms_agreed: true,
+          data_consent: true,
+          status: 'Active'
+        };
+
+        try {
+          const { data: newBen, error: insertError } = await supabaseClient
+            .from('beneficiaries')
+            .insert(payload)
+            .select()
+            .single();
+
+          if (!insertError && newBen) {
+            profile = newBen;
+          }
+        } catch (insErr) {
+          console.warn('[GOOGLE_AUTH] Auto-provision insert notice:', insErr);
+        }
+
+        if (!profile) {
+          profile = {
+            id: user.id,
+            auth_id: user.id,
+            qr_code: qrCode,
+            username: username,
+            first_name: firstName,
+            last_name: lastName,
+            email: user.email,
+            role: 'Beneficiary',
+            status: 'Active'
+          };
+        }
+      }
+
+      // Initialize Beneficiary Session Storage
+      const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username;
+      sessionStorage.setItem('jwtAccessToken', session.access_token);
+      sessionStorage.setItem('userRole', 'Beneficiary');
+      sessionStorage.setItem('username', profile.username);
+      sessionStorage.setItem('userId', String(profile.id));
+      sessionStorage.setItem('userFullName', fullName);
+      sessionStorage.setItem('beneficiaryLoggedIn', 'true');
+      sessionStorage.setItem('beneficiaryUsername', profile.username);
+      sessionStorage.setItem('beneficiaryName', fullName);
+      if (profile.qr_code) sessionStorage.setItem('beneficiaryQrCode', profile.qr_code);
+
+      if (typeof SessionManager !== 'undefined' && SessionManager.save) {
+        SessionManager.save(profile.id, session.access_token, 'Beneficiary', {
+          username: profile.username,
+          fullName: fullName,
+          email: profile.email
+        });
+      }
+
+      // Clear transient OAuth storage
+      sessionStorage.removeItem('oauth_pending_portal');
+      sessionStorage.removeItem('oauth_pending_role');
+      sessionStorage.removeItem('oauth_target_page');
+      sessionStorage.removeItem('oauth_pending_registration');
+
+      // Clean URL hash
+      if (window.location.hash) {
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      }
+
+      // If user landed on login page after Google OAuth, route them to beneficiary dashboard
+      if (curPath.includes('login') || curPath.includes('official_login.html')) {
+        window.location.replace('beneficiary.html');
+      }
+
+      return { user, profile, role: 'Beneficiary', session };
+
     } catch (err) {
       console.error('[GOOGLE_AUTH] Error processing OAuth redirect:', err);
       return null;

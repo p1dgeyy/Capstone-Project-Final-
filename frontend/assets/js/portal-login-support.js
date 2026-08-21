@@ -156,6 +156,7 @@
         const modal = document.getElementById(id);
         if (!modal) return;
         modal.classList.add('active');
+        modal.classList.add('show');
         document.body.style.overflow = 'hidden';
 
         if (id === 'privacyModal') {
@@ -167,6 +168,7 @@
         const modal = document.getElementById(id);
         if (!modal) return;
         modal.classList.remove('active');
+        modal.classList.remove('show');
         document.body.style.overflow = 'auto';
     }
 
@@ -182,7 +184,7 @@
 
         if (!privacyModalBody) return;
 
-        const threshold = 15;
+        const threshold = 25;
         const scrolledToBottom = (privacyModalBody.scrollHeight - privacyModalBody.scrollTop - privacyModalBody.clientHeight) <= threshold;
 
         if (scrolledToBottom) {
@@ -222,7 +224,7 @@
             return;
         }
 
-        if (privacyModalBody.scrollHeight <= privacyModalBody.clientHeight + 10) {
+        if (privacyModalBody.scrollHeight <= privacyModalBody.clientHeight + 15) {
             hasReadTerms = true;
             if (privacyAgreeCheck) privacyAgreeCheck.disabled = false;
             if (scrollNotice) {
@@ -255,11 +257,23 @@
         const savedLang = localStorage.getItem('lang') || 'en';
         applyLanguage(savedLang);
 
+        // Auto-show Privacy & Terms Modal on page open if not yet accepted in this session
+        const hasAgreedPrivacy = sessionStorage.getItem('privacyAgreed') === 'true';
+        const privacyModalEl = document.getElementById('privacyModal');
+        const closePrivacyBtn = document.getElementById('closePrivacyBtn');
+
+        if (!hasAgreedPrivacy && privacyModalEl) {
+            setTimeout(() => {
+                showModal('privacyModal');
+            }, 350);
+        } else if (hasAgreedPrivacy && closePrivacyBtn) {
+            closePrivacyBtn.classList.remove('d-none');
+        }
+
         // Privacy Modal Triggers
         const privacyLink = document.getElementById('privacyLink');
         if (privacyLink) privacyLink.addEventListener('click', (e) => { e.preventDefault(); showModal('privacyModal'); });
 
-        const closePrivacyBtn = document.getElementById('closePrivacyBtn');
         if (closePrivacyBtn) closePrivacyBtn.addEventListener('click', () => hideModal('privacyModal'));
 
         const privacyBackdrop = document.getElementById('privacyBackdrop');

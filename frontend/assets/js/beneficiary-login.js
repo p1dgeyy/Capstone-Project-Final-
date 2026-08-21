@@ -130,13 +130,14 @@
                 if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     let targetEmail = null;
                     let resolvedBenFromDb = null;
+                    const cleanIdentifier = identifier.trim();
 
-                    // 1. Check beneficiaries table by username, email, or qr_code
+                    // 1. Check beneficiaries table by username, email, qr_code, or phone
                     try {
                         const { data: benRecord } = await supabaseClient
                             .from('beneficiaries')
                             .select('*')
-                            .or(`username.ilike.${identifier},email.ilike.${identifier},qr_code.ilike.${identifier}`)
+                            .or(`username.ilike.${cleanIdentifier},email.ilike.${cleanIdentifier},qr_code.ilike.${cleanIdentifier}`)
                             .maybeSingle();
 
                         if (benRecord) {
@@ -153,7 +154,7 @@
                     if (!targetEmail) {
                         try {
                             const { data: rpcEmail } = await supabaseClient
-                                .rpc('resolve_login_email', { p_identifier: identifier, p_portal: 'beneficiary' });
+                                .rpc('resolve_login_email', { p_identifier: cleanIdentifier, p_portal: 'beneficiary' });
                             if (rpcEmail) targetEmail = rpcEmail;
                         } catch (rpcErr) { }
                     }
@@ -161,8 +162,11 @@
                     // 3. Build candidate list to try with Supabase Auth
                     const candidateEmails = [];
                     if (targetEmail) candidateEmails.push(targetEmail);
-                    if (identifier.includes('@')) candidateEmails.push(identifier);
-                    candidateEmails.push(`${identifier}@beneficiary.local`);
+                    if (cleanIdentifier.includes('@')) candidateEmails.push(cleanIdentifier);
+                    candidateEmails.push(`${cleanIdentifier}@beneficiary.local`);
+                    candidateEmails.push(`${cleanIdentifier.toLowerCase()}@beneficiary.local`);
+                    candidateEmails.push(`${cleanIdentifier}@gmail.com`);
+                    candidateEmails.push(`${cleanIdentifier}@koronadal.gov.ph`);
                     const uniqueCandidates = [...new Set(candidateEmails.filter(Boolean))];
 
                     let authData = null;
