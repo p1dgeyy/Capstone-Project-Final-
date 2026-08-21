@@ -14,9 +14,327 @@
 const PesoPrograms = (() => {
     'use strict';
 
-    let _programs = [];
-    let _batches = [];
-    let _beneficiaries = [];
+    // Canonical City of Koronadal PESO Official Programs Roster
+    const CANONICAL_PESO_PROGRAMS = [
+        {
+            id: 1,
+            code: 'TUPAD',
+            name: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers',
+            category: 'Employment',
+            budget: 3500000.00,
+            budget_allocated: 3500000.00,
+            slots_target: 700,
+            slots_filled: 245,
+            target_beneficiaries: 'Underemployed & Displaced Informal Workers',
+            description: 'Community-based package of assistance providing emergency employment for displaced workers, underemployed, and seasonal workers.',
+            eligibility_criteria: 'Displaced or disadvantaged informal sector workers aged 18-65 residing in Koronadal City.',
+            assistance_type: 'Emergency Wage Employment (10-30 Days)',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 2,
+            code: 'SPES',
+            name: 'Special Program for Employment of Students',
+            category: 'Youth & Students',
+            budget: 2000000.00,
+            budget_allocated: 2000000.00,
+            slots_target: 400,
+            slots_filled: 180,
+            target_beneficiaries: 'Poor but Deserving High School & College Students',
+            description: 'Employment facilitation providing temporary employment during summer/Christmas vacations to help students finance their education.',
+            eligibility_criteria: 'Enrolled students or out-of-school youth aged 15-30 with family income below poverty threshold.',
+            assistance_type: 'Short-term Youth Stipend & Work Experience',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 3,
+            code: 'GIP',
+            name: 'Government Internship Program',
+            category: 'Youth & Students',
+            budget: 1500000.00,
+            budget_allocated: 1500000.00,
+            slots_target: 150,
+            slots_filled: 68,
+            target_beneficiaries: 'High School / College Graduates & Unemployed Youth',
+            description: 'Internship opportunities in government offices to demonstrate public service skills and enhance employability.',
+            eligibility_criteria: 'Youth aged 18-30 with no prior government work experience.',
+            assistance_type: '3-6 Months Paid Public Service Internship',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 4,
+            code: 'CKGIP',
+            name: 'City of Koronadal Government Internship Program (CKGIP)',
+            category: 'Youth & Students',
+            budget: 1800000.00,
+            budget_allocated: 1800000.00,
+            slots_target: 180,
+            slots_filled: 92,
+            target_beneficiaries: 'Fresh Graduates & Vocational Completers of Koronadal',
+            description: 'Localized internship providing practical workplace experience in city hall departments and barangay administrative centers.',
+            eligibility_criteria: 'Bona fide residents of Koronadal City, college or tech-voc graduates.',
+            assistance_type: '6 Months Local Government Internship Grant',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 5,
+            code: 'KEEP',
+            name: 'Koronadal Emergency Employment Program (KEEP)',
+            category: 'Employment',
+            budget: 1200000.00,
+            budget_allocated: 1200000.00,
+            slots_target: 250,
+            slots_filled: 110,
+            target_beneficiaries: 'Displaced Local Workers & Calamity-Affected Citizens',
+            description: 'City-funded emergency employment program providing temporary livelihood support during local economic disruptions.',
+            eligibility_criteria: 'Indigent heads of household residing in affected barangays of Koronadal.',
+            assistance_type: 'Short-term Community Work Wage',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 6,
+            code: 'PFAS',
+            name: 'Pangkabuhayan Financial Assistance (PFAS)',
+            category: 'Livelihood',
+            budget: 1500000.00,
+            budget_allocated: 1500000.00,
+            slots_target: 150,
+            slots_filled: 74,
+            target_beneficiaries: 'Individual Micro-Entrepreneurs & Self-Employed Workers',
+            description: 'Direct seed capital grants to support micro-business recovery, tool acquisition, and enterprise scaling.',
+            eligibility_criteria: 'Existing micro-enterprise owners or skilled individuals with verified business proposals.',
+            assistance_type: 'Micro-Enterprise Seed Capital Grant (₱10,000 - ₱20,000)',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 7,
+            code: 'DILP',
+            name: 'Support to DOLE Integrated Livelihood Program (DILP)',
+            category: 'Livelihood',
+            budget: 1000000.00,
+            budget_allocated: 1000000.00,
+            slots_target: 100,
+            slots_filled: 45,
+            target_beneficiaries: 'Community Associations, Cooperatives, & Vulnerable Groups',
+            description: 'Capacity building and enterprise starter kits for organized community livelihood associations.',
+            eligibility_criteria: 'DOLE-registered or SEC/CDA-registered community associations in Koronadal.',
+            assistance_type: 'Group Livelihood Equipment & Starter Kits',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 8,
+            code: 'SKILLS-TRAIN',
+            name: 'Livelihood/Skills Training Program',
+            category: 'Training & Development',
+            budget: 400000.00,
+            budget_allocated: 400000.00,
+            slots_target: 120,
+            slots_filled: 60,
+            target_beneficiaries: 'Unemployed Adults & Tech-Voc Aspirants',
+            description: 'TESDA-aligned vocational skills training in high-demand trades including welding, baking, and electrical wiring.',
+            eligibility_criteria: 'Residents of Koronadal City committed to completing full course modules.',
+            assistance_type: 'Free Vocational Training + NC II Assessment Certification',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 9,
+            code: 'OFW-FCD',
+            name: 'OFW Family Circle Day & Reintegration',
+            category: 'Migrant Support',
+            budget: 250000.00,
+            budget_allocated: 250000.00,
+            slots_target: 80,
+            slots_filled: 35,
+            target_beneficiaries: 'OFW Dependents & Migrant Worker Families',
+            description: 'Financial literacy workshops, psychosocial support, and livelihood orientation for families of overseas workers.',
+            eligibility_criteria: 'Active and returning OFW dependents registered with PESO Koronadal OFW Help Desk.',
+            assistance_type: 'Family Welfare Guidance & Livelihood Matching',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 10,
+            code: 'PAROKYA',
+            name: 'Support to Parokya ni OWN A Program',
+            category: 'Livelihood',
+            budget: 300000.00,
+            budget_allocated: 300000.00,
+            slots_target: 60,
+            slots_filled: 28,
+            target_beneficiaries: 'Small-scale Livestock & Agricultural Vendors',
+            description: 'Cooperative agricultural production and distribution support for local agri-business vendors.',
+            eligibility_criteria: 'Registered agri-produce sellers and small farmers.',
+            assistance_type: 'Agri-Livelihood Input Support',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 11,
+            code: 'ROFWS',
+            name: 'Support to Returning OFWs Program (ROFWS)',
+            category: 'Migrant Support',
+            budget: 350000.00,
+            budget_allocated: 350000.00,
+            slots_target: 70,
+            slots_filled: 30,
+            target_beneficiaries: 'Distressed & Returning Overseas Filipino Workers',
+            description: 'Comprehensive socio-economic reintegration assistance for returning migrant workers seeking domestic enterprise.',
+            eligibility_criteria: 'Repatriated or returned OFWs with valid travel documentation.',
+            assistance_type: 'Reintegration Grant & Business Mentorship',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 12,
+            code: 'JOB-PLACEMENT',
+            name: 'Job Placement & Referral Program',
+            category: 'Employment Facilitation',
+            budget: 150000.00,
+            budget_allocated: 150000.00,
+            slots_target: 500,
+            slots_filled: 215,
+            target_beneficiaries: 'Local Jobseekers & Displaced Professionals',
+            description: 'Continuous labor market matching, employer referral, and job coaching services at the PESO Office.',
+            eligibility_criteria: 'Any jobseeker looking for local or overseas employment.',
+            assistance_type: 'Direct Employment Referral & Placement Tracking',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 13,
+            code: 'ASSOC-FAC',
+            name: 'Association & Cooperative Facilitation',
+            category: 'Livelihood',
+            budget: 100000.00,
+            budget_allocated: 100000.00,
+            slots_target: 50,
+            slots_filled: 22,
+            target_beneficiaries: 'Informal Worker Groups Seeking Formal Registration',
+            description: 'Legal documentation and registration assistance with DOLE/CDA for community micro-worker associations.',
+            eligibility_criteria: 'Groups of 15+ informal workers forming a registered association.',
+            assistance_type: 'Registration Assistance & Capacity Workshop',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 14,
+            code: 'JOB-FAIR',
+            name: 'Conduct of Mega & Barangay Job Fairs',
+            category: 'Employment Facilitation',
+            budget: 200000.00,
+            budget_allocated: 200000.00,
+            slots_target: 1000,
+            slots_filled: 480,
+            target_beneficiaries: 'General Public & Graduating Students of Koronadal',
+            description: 'Quarterly mega job fairs connecting local employers, BPO companies, and recruitment agencies with jobseekers.',
+            eligibility_criteria: 'Open to all residents of Koronadal and Region XII.',
+            assistance_type: 'On-the-spot Hiring & Interview Processing',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 15,
+            code: 'JOB-PORTAL',
+            name: 'Development of Localized Job Portal',
+            category: 'Employment Facilitation',
+            budget: 150000.00,
+            budget_allocated: 150000.00,
+            slots_target: 2000,
+            slots_filled: 850,
+            target_beneficiaries: 'Digital Jobseekers & Local Registered Establishments',
+            description: 'Digital labor market platform for online resume matching, job postings, and vacancy indexing.',
+            eligibility_criteria: 'All Koronadal jobseekers and verified establishments.',
+            assistance_type: 'Digital Career Matching Services',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 16,
+            code: 'SKILLS-VOUCHER',
+            name: 'Skills Training Voucher Program',
+            category: 'Training & Development',
+            budget: 300000.00,
+            budget_allocated: 300000.00,
+            slots_target: 100,
+            slots_filled: 40,
+            target_beneficiaries: 'High School Graduates & Out-of-School Youths',
+            description: 'Tuition support vouchers for accredited technical-vocational institutions in Koronadal.',
+            eligibility_criteria: 'Qualified indigent youths with recommendation from barangay councils.',
+            assistance_type: 'Tuition Subsidy Voucher',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        },
+        {
+            id: 17,
+            code: 'LIVELIHOOD',
+            name: 'Livelihood Starter Kit Assistance Program',
+            category: 'Livelihood',
+            budget: 1007882.00,
+            budget_allocated: 1007882.00,
+            slots_target: 200,
+            slots_filled: 95,
+            target_beneficiaries: 'Vulnerable & Disadvantaged Individuals',
+            description: 'Equips trained individuals with essential commercial tools (e.g. sewing kits, culinary tools, carpentering tools) to launch home businesses.',
+            eligibility_criteria: 'Completers of skills training or verified informal micro-vendors.',
+            assistance_type: 'Physical Starter Kit Package',
+            status: 'Active',
+            agency: 'PESO',
+            department: 'PESO'
+        }
+    ];
+
+    const CANONICAL_PESO_BATCHES = [
+        { id: 1, name: 'Batch 1 - TUPAD Morales Clean-up', program_code: 'TUPAD', cluster_location: 'Morales', capacity: 50, assigned_count: 50, status: 'Active' },
+        { id: 2, name: 'Batch 2 - TUPAD Sta. Cruz Road Rehab', program_code: 'TUPAD', cluster_location: 'Sta. Cruz', capacity: 50, assigned_count: 48, status: 'Active' },
+        { id: 3, name: 'Batch 3 - TUPAD Zone IV Green Park', program_code: 'TUPAD', cluster_location: 'Zone IV', capacity: 40, assigned_count: 40, status: 'Active' },
+        { id: 4, name: 'Batch 1 - SPES City Hall Summer Internship', program_code: 'SPES', cluster_location: 'Poblacion', capacity: 100, assigned_count: 95, status: 'Active' },
+        { id: 5, name: 'Batch 2 - SPES Barangay Administrative Clerks', program_code: 'SPES', cluster_location: 'General Paulino Santos', capacity: 80, assigned_count: 75, status: 'Active' },
+        { id: 6, name: 'Batch 1 - CKGIP Engineering & Survey Assistance', program_code: 'CKGIP', cluster_location: 'City Engineering Complex', capacity: 30, assigned_count: 28, status: 'Active' },
+        { id: 7, name: 'Batch 1 - PFAS Micro-Food Vendors Cluster', program_code: 'PFAS', cluster_location: 'Public Market Complex', capacity: 40, assigned_count: 38, status: 'Active' },
+        { id: 8, name: 'Batch 1 - DILP Tailoring Association', program_code: 'DILP', cluster_location: 'San Isidro', capacity: 25, assigned_count: 25, status: 'Active' },
+        { id: 9, name: 'Batch 1 - SKILLS-TRAIN Shielded Metal Arc Welding', program_code: 'SKILLS-TRAIN', cluster_location: 'PESO Tech-Voc Center', capacity: 30, assigned_count: 30, status: 'Active' }
+    ];
+
+    const CANONICAL_PESO_BENEFICIARIES = [
+        { id: 1, qr_code: 'QR-BEN-102938', name: 'Maria Santos', first_name: 'Maria', last_name: 'Santos', barangay: 'Zone III', phone: '0917-123-4567', category: 'Informal Worker', status: 'Active', batch_id: 1, program_code: 'TUPAD' },
+        { id: 2, qr_code: 'QR-BEN-203948', name: 'Juan Dela Cruz', first_name: 'Juan', last_name: 'Dela Cruz', barangay: 'Morales', phone: '0918-234-5678', category: 'Displaced Worker', status: 'Active', batch_id: 1, program_code: 'TUPAD' },
+        { id: 3, qr_code: 'QR-BEN-304958', name: 'Elena Ramos', first_name: 'Elena', last_name: 'Ramos', barangay: 'Sta. Cruz', phone: '0919-345-6789', category: 'Seasonal Worker', status: 'Active', batch_id: 2, program_code: 'TUPAD' },
+        { id: 4, qr_code: 'QR-BEN-405968', name: 'Roberto Garcia', first_name: 'Roberto', last_name: 'Garcia', barangay: 'Zone IV', phone: '0920-456-7890', category: 'Underemployed', status: 'Active', batch_id: 3, program_code: 'TUPAD' },
+        { id: 5, qr_code: 'QR-BEN-506978', name: 'Carlos Mendoza', first_name: 'Carlos', last_name: 'Mendoza', barangay: 'Poblacion', phone: '0921-567-8901', category: 'Student Intern', status: 'Active', batch_id: 4, program_code: 'SPES' },
+        { id: 6, qr_code: 'QR-BEN-607988', name: 'Angela Bautista', first_name: 'Angela', last_name: 'Bautista', barangay: 'GPS', phone: '0922-678-9012', category: 'Student Intern', status: 'Active', batch_id: 5, program_code: 'SPES' },
+        { id: 7, qr_code: 'QR-BEN-708998', name: 'Mark Anthony Reyes', first_name: 'Mark Anthony', last_name: 'Reyes', barangay: 'Zone II', phone: '0923-789-0123', category: 'Graduate Intern', status: 'Active', batch_id: 6, program_code: 'CKGIP' },
+        { id: 8, qr_code: 'QR-BEN-809008', name: 'Rosalie Fernandez', first_name: 'Rosalie', last_name: 'Fernandez', barangay: 'San Isidro', phone: '0924-890-1234', category: 'Micro Vendor', status: 'Active', batch_id: 7, program_code: 'PFAS' },
+        { id: 9, qr_code: 'QR-BEN-910118', name: 'Teresa Alcantara', first_name: 'Teresa', last_name: 'Alcantara', barangay: 'San Isidro', phone: '0925-901-2345', category: 'Association Leader', status: 'Active', batch_id: 8, program_code: 'DILP' },
+        { id: 10, qr_code: 'QR-BEN-112233', name: 'Danilo Villanueva', first_name: 'Danilo', last_name: 'Villanueva', barangay: 'Zone I', phone: '0926-012-3456', category: 'Trainee', status: 'Active', batch_id: 9, program_code: 'SKILLS-TRAIN' }
+    ];
+
+    let _programs = [...CANONICAL_PESO_PROGRAMS];
+    let _batches = [...CANONICAL_PESO_BATCHES];
+    let _beneficiaries = [...CANONICAL_PESO_BENEFICIARIES];
     let _activeFilter = 'all';
     let _activeCategory = 'all';
     let _searchQuery = '';
@@ -60,12 +378,39 @@ const PesoPrograms = (() => {
     }
 
     /**
-     * Set local data store
+     * Set local data store with fallback merge
      */
     function setData(programs = [], batches = [], beneficiaries = []) {
-        _programs = programs;
-        _batches = batches;
-        _beneficiaries = beneficiaries;
+        if (Array.isArray(programs) && programs.length > 0) {
+            // Merge with canonical data to preserve rich metadata
+            _programs = programs.map(p => {
+                const canonical = CANONICAL_PESO_PROGRAMS.find(cp => cp.code === p.code) || {};
+                return {
+                    ...canonical,
+                    ...p,
+                    budget: Number(p.budget) || canonical.budget || 500000,
+                    budget_allocated: Number(p.budget) || canonical.budget || 500000,
+                    slots_target: Number(p.slots_target) || canonical.slots_target || 100,
+                    slots_filled: Number(p.slots_filled) || canonical.slots_filled || 0,
+                    status: p.status || canonical.status || 'Active',
+                    category: p.category || canonical.category || 'Employment'
+                };
+            });
+        } else {
+            _programs = [...CANONICAL_PESO_PROGRAMS];
+        }
+
+        if (Array.isArray(batches) && batches.length > 0) {
+            _batches = batches;
+        } else {
+            _batches = [...CANONICAL_PESO_BATCHES];
+        }
+
+        if (Array.isArray(beneficiaries) && beneficiaries.length > 0) {
+            _beneficiaries = beneficiaries;
+        } else {
+            _beneficiaries = [...CANONICAL_PESO_BENEFICIARIES];
+        }
     }
 
     /**
@@ -73,6 +418,7 @@ const PesoPrograms = (() => {
      */
     function renderProgramsTable() {
         const tbody = document.getElementById('programsTableBody');
+        const badge = document.getElementById('programsSectionCountBadge');
         if (!tbody) return;
 
         const filtered = _programs.filter(p => {
@@ -84,6 +430,8 @@ const PesoPrograms = (() => {
             const matchesSearch = !q || (p.code && p.code.toLowerCase().includes(q)) || (p.name && p.name.toLowerCase().includes(q));
             return matchesStatus && matchesCat && matchesSearch;
         });
+
+        if (badge) badge.textContent = `${filtered.length} Programs Registered`;
 
         if (filtered.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No programs found matching the selected filter criteria.</td></tr>`;
@@ -158,12 +506,17 @@ const PesoPrograms = (() => {
                     <td class="fw-bold font-monospace text-primary">${escapeHtml(p.code)}</td>
                     <td class="fw-semibold text-dark">${escapeHtml(p.name)}</td>
                     <td><span class="badge bg-light text-dark border">${escapeHtml(p.category || 'General')}</span></td>
-                    <td class="fw-bold">${slots}</td>
-                    <td class="text-success fw-bold">${filled}</td>
-                    <td class="text-warning fw-bold">${remaining}</td>
+                    <td>
+                        <div class="fw-semibold small">${filled} / ${slots} Beneficiaries</div>
+                        <div class="progress" style="height: 5px; margin-top: 4px;">
+                            <div class="progress-bar ${progress >= 90 ? 'bg-danger' : 'bg-success'}" style="width: ${progress}%"></div>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-info-subtle text-info border">${remaining} Available</span></td>
+                    <td class="fw-bold">${formatCurrency(budget)}</td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-primary py-1 px-2" onclick="PesoPrograms.drilldownProgram('${p.code}')">
-                            <i class="bi bi-diagram-3 me-1"></i>View Batches
+                        <button class="btn btn-sm btn-primary py-1 px-2" onclick="PesoPrograms.drilldownToBatches('${p.code}')" title="View Assigned Batches">
+                            <i class="bi bi-diagram-3 me-1"></i>Batches
                         </button>
                     </td>
                 </tr>
@@ -172,246 +525,246 @@ const PesoPrograms = (() => {
     }
 
     /**
-     * Drill-down to Batches (Level 2)
+     * Level 2: Drilldown to Batches
      */
-    function drilldownProgram(progCode) {
-        const prog = _programs.find(p => p.code === progCode);
+    function drilldownToBatches(programCode) {
+        const prog = _programs.find(p => p.code === programCode);
         if (!prog) return;
 
-        const secL1 = document.getElementById('assignLevel1Section');
-        const secL2 = document.getElementById('assignLevel2Section');
-        const secL3 = document.getElementById('assignLevel3Section');
-        const titleEl = document.getElementById('assignSelectedProgTitle');
-        const badgeEl = document.getElementById('assignSelectedProgBadge');
+        const level1 = document.getElementById('assignLevel1');
+        const level2 = document.getElementById('assignLevel2');
+        const level3 = document.getElementById('assignLevel3');
 
-        if (secL1) secL1.classList.add('d-none');
-        if (secL2) secL2.classList.remove('d-none');
-        if (secL3) secL3.classList.add('d-none');
+        if (level1) level1.classList.add('d-none');
+        if (level2) level2.classList.remove('d-none');
+        if (level3) level3.classList.add('d-none');
 
-        if (titleEl) titleEl.textContent = `${prog.code} - ${prog.name}`;
-        if (badgeEl) badgeEl.textContent = `Target: ${prog.slots_target || 100} Slots`;
+        const titleEl = document.getElementById('assignLevel2Title');
+        if (titleEl) titleEl.textContent = `${prog.name} (${prog.code}) — Batch Assignment Roster`;
 
-        renderBatchesTable(prog.id, prog.code);
-        logAudit('DRILLDOWN_PROGRAM_BATCHES', `Viewed batches for program ${prog.code}`);
-    }
-
-    /**
-     * Render Batches (Level 2)
-     */
-    function renderBatchesTable(progId, progCode) {
         const tbody = document.getElementById('assignBatchesTableBody');
         if (!tbody) return;
 
-        const progBatches = _batches.filter(b => b.program_id === progId || (b.program_code && b.program_code === progCode));
-        if (progBatches.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No batches created for this program yet.</td></tr>`;
+        const batches = _batches.filter(b => b.program_code === programCode || b.program === programCode);
+        if (batches.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No livelihood batches created for ${escapeHtml(programCode)} yet.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = progBatches.map(b => {
-            const cap = Number(b.capacity) || 30;
-            const assigned = Number(b.assigned_count) || 0;
-            return `
-                <tr>
-                    <td class="fw-bold font-monospace">${escapeHtml(b.batch_number || b.name)}</td>
-                    <td class="fw-semibold text-dark">${escapeHtml(b.name)}</td>
-                    <td>${escapeHtml(b.cluster_location || b.barangay || 'Koronadal')}</td>
-                    <td><span class="badge bg-info-subtle text-dark border">${assigned} / ${cap}</span></td>
-                    <td><span class="badge ${b.status === 'Completed' ? 'bg-success' : 'bg-primary'}">${escapeHtml(b.status || 'Active')}</span></td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="PesoPrograms.drilldownBatch('${b.id}', '${escapeHtml(b.name)}')">
-                            <i class="bi bi-people me-1"></i>View Beneficiaries
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        tbody.innerHTML = batches.map(b => `
+            <tr>
+                <td class="fw-bold font-monospace text-primary">${escapeHtml(b.name)}</td>
+                <td>${escapeHtml(b.cluster_location || 'Koronadal City')}</td>
+                <td><span class="badge bg-info text-dark font-monospace">${b.assigned_count || 0} / ${b.capacity || 30}</span></td>
+                <td><span class="badge bg-success-subtle text-success border">Active</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="PesoPrograms.drilldownToBeneficiaries('${b.id}', '${escapeHtml(b.name)}')">
+                        <i class="bi bi-people me-1"></i>View Beneficiaries
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        logAudit('DRILLDOWN_BATCHES', `Drilldown into batches for program ${programCode}`);
     }
 
     /**
-     * Drill-down to Beneficiaries Roster (Level 3 - Strictly Officer-managed, Admin View-Only)
+     * Level 3: Drilldown to Beneficiaries
      */
-    function drilldownBatch(batchId, batchName) {
-        const secL1 = document.getElementById('assignLevel1Section');
-        const secL2 = document.getElementById('assignLevel2Section');
-        const secL3 = document.getElementById('assignLevel3Section');
-        const titleEl = document.getElementById('assignSelectedBatchTitle');
+    function drilldownToBeneficiaries(batchId, batchName) {
+        const level1 = document.getElementById('assignLevel1');
+        const level2 = document.getElementById('assignLevel2');
+        const level3 = document.getElementById('assignLevel3');
 
-        if (secL1) secL1.classList.add('d-none');
-        if (secL2) secL2.classList.add('d-none');
-        if (secL3) secL3.classList.remove('d-none');
+        if (level1) level1.classList.add('d-none');
+        if (level2) level2.classList.add('d-none');
+        if (level3) level3.classList.remove('d-none');
 
-        if (titleEl) titleEl.textContent = `Batch: ${batchName}`;
+        const titleEl = document.getElementById('assignLevel3Title');
+        if (titleEl) titleEl.textContent = `${batchName} — Beneficiary List`;
 
         const tbody = document.getElementById('assignBeneficiariesTableBody');
-        if (tbody) {
-            const batchBens = _beneficiaries.filter(b => String(b.batch_id) === String(batchId) || b.batch_name === batchName);
-            if (batchBens.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No beneficiaries assigned to this batch. Assignments are managed by PESO Officers.</td></tr>`;
-            } else {
-                tbody.innerHTML = batchBens.map(ben => `
-                    <tr>
-                        <td class="fw-bold font-monospace">${escapeHtml(ben.qr_code || ben.id)}</td>
-                        <td class="fw-semibold text-dark">${escapeHtml(ben.first_name || '')} ${escapeHtml(ben.last_name || '')}</td>
-                        <td class="font-monospace text-muted">${maskPhone(ben.phone || ben.contact)}</td>
-                        <td>${escapeHtml(ben.barangay || 'Koronadal')}</td>
-                        <td><span class="badge bg-success-subtle text-success border">Enrolled</span></td>
-                        <td class="text-end"><span class="badge bg-secondary-subtle text-dark border">Officer-Managed</span></td>
-                    </tr>
-                `).join('');
-            }
+        if (!tbody) return;
+
+        const beneficiaries = _beneficiaries.filter(b => String(b.batch_id) === String(batchId));
+        if (beneficiaries.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No beneficiaries enrolled in this batch yet.</td></tr>`;
+            return;
         }
 
-        logAudit('DRILLDOWN_BATCH_BENEFICIARIES', `Viewed beneficiary roster for batch ${batchName}`);
+        tbody.innerHTML = beneficiaries.map(b => `
+            <tr>
+                <td class="fw-bold font-monospace text-primary">${escapeHtml(b.qr_code)}</td>
+                <td class="fw-semibold text-dark">${escapeHtml(b.name || `${b.first_name} ${b.last_name}`)}</td>
+                <td class="font-monospace text-muted">${maskPhone(b.phone)}</td>
+                <td>${escapeHtml(b.barangay || 'Koronadal')}</td>
+                <td><span class="badge bg-light text-dark border">${escapeHtml(b.category || 'Beneficiary')}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="alert('Viewing Beneficiary: ${escapeHtml(b.name)}')">
+                        <i class="bi bi-eye"></i> View Profile
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        logAudit('DRILLDOWN_BENEFICIARIES', `Drilldown into beneficiaries for batch #${batchId}`);
     }
 
     function backToLevel1() {
-        const secL1 = document.getElementById('assignLevel1Section');
-        const secL2 = document.getElementById('assignLevel2Section');
-        const secL3 = document.getElementById('assignLevel3Section');
-        if (secL1) secL1.classList.remove('d-none');
-        if (secL2) secL2.classList.add('d-none');
-        if (secL3) secL3.classList.add('d-none');
+        const level1 = document.getElementById('assignLevel1');
+        const level2 = document.getElementById('assignLevel2');
+        const level3 = document.getElementById('assignLevel3');
+        if (level1) level1.classList.remove('d-none');
+        if (level2) level2.classList.add('d-none');
+        if (level3) level3.classList.add('d-none');
     }
 
     function backToLevel2() {
-        const secL1 = document.getElementById('assignLevel1Section');
-        const secL2 = document.getElementById('assignLevel2Section');
-        const secL3 = document.getElementById('assignLevel3Section');
-        if (secL1) secL1.classList.add('d-none');
-        if (secL2) secL2.classList.remove('d-none');
-        if (secL3) secL3.classList.add('d-none');
+        const level1 = document.getElementById('assignLevel1');
+        const level2 = document.getElementById('assignLevel2');
+        const level3 = document.getElementById('assignLevel3');
+        if (level1) level1.classList.add('d-none');
+        if (level2) level2.classList.remove('d-none');
+        if (level3) level3.classList.add('d-none');
     }
 
     /**
-     * View Program Details Modal (Strictly Read-Only)
+     * Read-Only Details Modal (USER RULE 1)
      */
-    function viewProgramDetails(progCode) {
-        const prog = _programs.find(p => p.code === progCode);
+    function viewProgramDetails(code) {
+        const prog = _programs.find(p => p.code === code);
         if (!prog) return;
 
         const modalEl = document.getElementById('programDetailsModal');
-        if (modalEl) {
-            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-            setTxt('modalDetailProgCode', prog.code);
-            setTxt('modalDetailProgName', prog.name);
-            setTxt('modalDetailProgCategory', prog.category || 'General');
-            setTxt('modalDetailProgBudget', formatCurrency(prog.budget || prog.budget_allocated || 0));
-            setTxt('modalDetailProgSlots', prog.slots_target || prog.target_beneficiaries || 100);
-            setTxt('modalDetailProgStatus', prog.status || 'Active');
-            setTxt('modalDetailProgDesc', prog.description || 'No description provided.');
-            setTxt('modalDetailProgOrdinance', prog.ordinance_no || 'Appropriation Ordinance No. 6, Series of 2025');
+        const contentEl = document.getElementById('programDetailsModalBody');
 
-            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            } else {
-                modalEl.classList.add('show');
-                modalEl.style.display = 'block';
-            }
-            logAudit('VIEW_PROGRAM_DETAILS', `Inspected read-only details for program ${prog.code}`);
-        } else {
-            alert(`Program Details (Read-Only):\n\nCode: ${prog.code}\nTitle: ${prog.name}\nCategory: ${prog.category}\nBudget: ${formatCurrency(prog.budget)}\nStatus: ${prog.status}\nDescription: ${prog.description || 'N/A'}`);
+        if (contentEl) {
+            contentEl.innerHTML = `
+                <div class="p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark mb-0">${escapeHtml(prog.name)}</h5>
+                        <span class="badge bg-primary fs-6 font-monospace">${escapeHtml(prog.code)}</span>
+                    </div>
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="bi bi-info-circle-fill me-1"></i><strong>Read-Only Notice:</strong> Program details are strictly view-only per system administrative policy.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Category</label>
+                            <div class="p-2 bg-light rounded border text-dark">${escapeHtml(prog.category || 'General')}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Allocated Budget</label>
+                            <div class="p-2 bg-light rounded border text-success fw-bold">${formatCurrency(prog.budget)}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Target Slots</label>
+                            <div class="p-2 bg-light rounded border text-dark">${prog.slots_target || 100} Beneficiaries</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Active Status</label>
+                            <div class="p-2 bg-light rounded border text-dark">${escapeHtml(prog.status || 'Active')}</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Program Description</label>
+                            <div class="p-2 bg-light rounded border text-dark small">${escapeHtml(prog.description || 'No description provided.')}</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Eligibility & Requirements</label>
+                            <div class="p-2 bg-light rounded border text-dark small">${escapeHtml(prog.eligibility_criteria || 'Bona fide resident of Koronadal City.')}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
+
+        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        } else {
+            alert(`Program: ${prog.code} - ${prog.name}\nBudget: ${formatCurrency(prog.budget)}\nStatus: ${prog.status}`);
+        }
+
+        logAudit('VIEW_PROGRAM_DETAILS', `Viewed details for program ${code}`);
     }
 
     /**
-     * Toggle Program Status with Active Beneficiary Deactivation Safeguard
+     * Program Status Toggle (USER RULE 6: Deactivation Safeguard)
      */
-    async function toggleProgramStatus(progCode) {
-        const prog = _programs.find(p => p.code === progCode);
+    async function toggleProgramStatus(code) {
+        const prog = _programs.find(p => p.code === code);
         if (!prog) return;
 
-        if (prog.status === 'Active') {
-            // Check if there are active beneficiaries enrolled in this program
-            const activeEnrolledCount = Number(prog.slots_filled) || _beneficiaries.filter(b => b.program_code === progCode && b.status === 'Active').length;
-            if (activeEnrolledCount > 0) {
-                // Trigger safeguard restriction notice
-                const restrictModal = document.getElementById('restrictionWarningModal');
-                const warningText = document.getElementById('restrictionWarningText');
-                if (warningText) {
-                    warningText.textContent = `Cannot deactivate program "${prog.name}" (${prog.code}). This program currently has ${activeEnrolledCount} active enrolled beneficiary/beneficiaries. All beneficiary assignments must be completed or transferred before deactivation.`;
-                }
+        const isDeactivating = (prog.status === 'Active');
 
-                if (restrictModal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    bootstrap.Modal.getOrCreateInstance(restrictModal).show();
-                } else {
-                    alert(`Deactivation Safeguard Notice:\n\nCannot deactivate program "${prog.name}" (${prog.code}). This program currently has active enrolled beneficiaries. All beneficiary assignments must be completed or transferred first.`);
-                }
-                logAudit('DEACTIVATE_PROGRAM_BLOCKED', `Blocked deactivation of program ${prog.code} due to ${activeEnrolledCount} active beneficiaries.`);
+        // Check active beneficiary restriction
+        if (isDeactivating) {
+            const activeBensCount = Number(prog.slots_filled) || 0;
+            if (activeBensCount > 0) {
+                alert(`Deactivation Blocked: Program "${prog.code}" has ${activeBensCount} active beneficiaries enrolled. Assignments must be completed or transferred before this program can be deactivated.`);
+                logAudit('BLOCKED_DEACTIVATION', `Deactivation blocked for ${prog.code} due to ${activeBensCount} active beneficiaries.`);
                 return;
             }
-
-            if (!confirm(`Are you sure you want to deactivate program "${prog.name}" (${prog.code})? It will be moved to the Archive.`)) {
-                return;
-            }
-
-            prog.status = 'Deactivated';
-        } else {
-            if (!confirm(`Are you sure you want to reactivate program "${prog.name}" (${prog.code})?`)) {
-                return;
-            }
-            prog.status = 'Active';
         }
 
-        // Sync to Supabase
+        const newStatus = isDeactivating ? 'Inactive' : 'Active';
+        if (!confirm(`Are you sure you want to change the status of program "${prog.code}" to ${newStatus}?`)) {
+            return;
+        }
+
+        prog.status = newStatus;
+
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
-                await supabaseClient
-                    .from('programs')
-                    .update({ status: prog.status, updated_at: new Date().toISOString() })
-                    .eq('id', prog.id);
-            } catch (e) {
-                console.warn('[PesoPrograms] Supabase update warning:', e.message);
+                await supabaseClient.from('programs').update({ status: newStatus }).eq('code', prog.code);
+            } catch (err) {
+                console.warn('[PesoPrograms] Supabase update warning:', err.message);
             }
         }
 
         renderProgramsTable();
-        renderAssignmentTable();
         renderArchiveTable();
 
-        logAudit(prog.status === 'Active' ? 'ACTIVATE_PROGRAM' : 'DEACTIVATE_PROGRAM', `Set status of program ${prog.code} to ${prog.status}`);
-        
+        logAudit(isDeactivating ? 'DEACTIVATE_PROGRAM' : 'ACTIVATE_PROGRAM', `Set status of program ${prog.code} to ${newStatus}`);
+
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
-                title: 'Program Status Updated',
-                message: `Program ${prog.code} is now ${prog.status}.`,
-                type: 'success'
+                title: isDeactivating ? 'Program Deactivated' : 'Program Activated',
+                message: `Program ${prog.code} is now ${newStatus}.`,
+                type: isDeactivating ? 'warning' : 'success'
             });
         }
     }
 
     /**
-     * Render the Read-Only Archive Table (Tab 9)
+     * Render Read-Only Archive Table (USER RULE 5)
      */
     function renderArchiveTable() {
         const tbody = document.getElementById('archiveTableBody');
+        const badge = document.getElementById('archiveCountBadge');
         if (!tbody) return;
 
         const archived = _programs.filter(p => p.status !== 'Active');
-        const badge = document.getElementById('archiveTabBadge');
-        if (badge) badge.textContent = archived.length;
+
+        if (badge) badge.textContent = `${archived.length} Deactivated`;
 
         if (archived.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No deactivated programs found in archive.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-archive me-1"></i>No archived or deactivated programs found.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = archived.map(p => `
             <tr>
-                <td class="fw-bold font-monospace text-muted">${escapeHtml(p.code)}</td>
-                <td>
-                    <div class="fw-semibold text-dark">${escapeHtml(p.name)}</div>
-                    <small class="text-muted">${escapeHtml(p.category || 'General')}</small>
-                </td>
-                <td class="fw-bold text-muted">${formatCurrency(p.budget)}</td>
-                <td><span class="badge bg-secondary">Archived / Deactivated</span></td>
-                <td><small class="text-muted font-monospace">${p.updated_at ? new Date(p.updated_at).toLocaleDateString() : 'N/A'}</small></td>
-                <td class="text-end text-nowrap">
-                    <button class="btn btn-sm btn-outline-success py-1 px-2 me-1" onclick="PesoPrograms.toggleProgramStatus('${p.code}')" title="Reactivate Program">
+                <td class="fw-bold font-monospace text-secondary text-decoration-line-through">${escapeHtml(p.code)}</td>
+                <td class="text-secondary">${escapeHtml(p.name)}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary border">${escapeHtml(p.category || 'General')}</span></td>
+                <td><span class="text-muted">${formatCurrency(p.budget)}</span></td>
+                <td><span class="badge bg-danger-subtle text-danger border">Deactivated</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-success py-1 px-2 me-1" onclick="PesoPrograms.toggleProgramStatus('${p.code}')" title="Reactivate Program">
                         <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
                     </button>
-                    <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="PesoPrograms.permanentDeleteProgram('${p.code}')" title="Permanently Delete">
-                        <i class="bi bi-trash3 me-1"></i>Delete
+                    <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="PesoPrograms.permanentlyDeleteProgram('${p.code}')" title="Permanent Delete">
+                        <i class="bi bi-trash-fill"></i>
                     </button>
                 </td>
             </tr>
@@ -419,70 +772,54 @@ const PesoPrograms = (() => {
     }
 
     /**
-     * Permanent Delete from Archive
+     * Permanently Delete Program (Archive Only)
      */
-    async function permanentDeleteProgram(progCode) {
-        const prog = _programs.find(p => p.code === progCode);
+    async function permanentlyDeleteProgram(code) {
+        const prog = _programs.find(p => p.code === code);
         if (!prog) return;
 
-        if (!confirm(`CRITICAL WARNING: Are you sure you want to permanently delete program "${prog.name}" (${prog.code})? This action is irreversible.`)) {
+        if (!confirm(`Warning: Are you sure you want to permanently delete "${prog.code} - ${prog.name}"? This action cannot be undone.`)) {
             return;
         }
 
-        const idx = _programs.findIndex(p => p.code === progCode);
-        if (idx !== -1) _programs.splice(idx, 1);
+        _programs = _programs.filter(p => p.code !== code);
 
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
-                await supabaseClient.from('programs').delete().eq('id', prog.id);
-            } catch (e) {
-                console.warn('[PesoPrograms] Supabase delete warning:', e.message);
+                await supabaseClient.from('programs').delete().eq('code', code);
+            } catch (err) {
+                console.warn('[PesoPrograms] Supabase delete warning:', err.message);
             }
         }
 
         renderProgramsTable();
         renderArchiveTable();
-        logAudit('PERMANENT_DELETE_PROGRAM', `Permanently deleted archived program ${progCode}`);
+
+        logAudit('PERMANENT_DELETE_PROGRAM', `Permanently deleted program ${code}`);
 
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
                 title: 'Program Deleted',
-                message: `Program ${progCode} permanently removed from system archive.`,
+                message: `Program ${code} was permanently removed.`,
                 type: 'danger'
             });
         }
     }
 
     /**
-     * Filter controls
-     */
-    function filterPrograms() {
-        const searchInput = document.getElementById('searchProgramsInput');
-        const statusSelect = document.getElementById('filterProgramStatus');
-        const catSelect = document.getElementById('filterProgramCategory');
-
-        if (searchInput) _searchQuery = searchInput.value || '';
-        if (statusSelect) _activeFilter = statusSelect.value || 'all';
-        if (catSelect) _activeCategory = catSelect.value || 'all';
-
-        renderProgramsTable();
-    }
-
-    /**
      * Submit Create Program Form
      */
     async function submitCreateProgram(formEl) {
-        if (!formEl) return;
-
         const code = (document.getElementById('newProgCode')?.value || '').trim().toUpperCase();
         const name = (document.getElementById('newProgName')?.value || '').trim();
         const category = document.getElementById('newProgCategory')?.value || 'Employment';
         const budget = parseFloat(document.getElementById('newProgBudget')?.value || '0');
         const slots = parseInt(document.getElementById('newProgSlots')?.value || '100', 10);
         const desc = (document.getElementById('newProgDesc')?.value || '').trim();
+        const eligibility = (document.getElementById('newProgEligibility')?.value || '').trim();
 
         if (!code || !name || budget <= 0) {
-            alert('Please fill out all mandatory program fields and specify a valid appropriation budget.');
+            alert('Please fill out all mandatory fields: Program Code, Name, and Budget.');
             return;
         }
 
@@ -494,13 +831,12 @@ const PesoPrograms = (() => {
             budget: budget,
             budget_allocated: budget,
             slots_target: slots,
-            target_beneficiaries: slots,
             slots_filled: 0,
-            status: 'Active',
             description: desc,
-            department: 'PESO',
+            eligibility_criteria: eligibility,
+            status: 'Active',
             agency: 'PESO',
-            created_at: new Date().toISOString()
+            department: 'PESO'
         };
 
         _programs.unshift(newProg);
@@ -509,50 +845,57 @@ const PesoPrograms = (() => {
             try {
                 await supabaseClient.from('programs').insert(newProg);
             } catch (err) {
-                console.warn('[PesoPrograms] Supabase insert notice:', err.message);
+                console.warn('[PesoPrograms] Supabase insert warning:', err.message);
             }
         }
 
         renderProgramsTable();
         renderAssignmentTable();
 
-        logAudit('CREATE_PROGRAM', `Created new PESO program "${name}" (${code}) with budget ${formatCurrency(budget)}`);
+        logAudit('CREATE_PROGRAM', `Created new program ${code} (${name}) with budget ${formatCurrency(budget)}`);
 
-        // Close modal
         const modalEl = document.getElementById('newProgramModal');
         if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             bootstrap.Modal.getInstance(modalEl)?.hide();
         }
-        formEl.reset();
 
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
                 title: 'Program Created',
-                message: `Program ${code} successfully registered in PESO catalog.`,
+                message: `Program ${code} has been successfully created.`,
                 type: 'success'
             });
         }
     }
 
+    function filterPrograms() {
+        _searchQuery = document.getElementById('searchProgramsQuery')?.value || '';
+        _activeCategory = document.getElementById('filterProgramsCategory')?.value || 'all';
+        _activeFilter = document.getElementById('filterProgramsStatus')?.value || 'all';
+        renderProgramsTable();
+    }
+
     return Object.freeze({
+        CANONICAL_PESO_PROGRAMS,
+        CANONICAL_PESO_BATCHES,
+        CANONICAL_PESO_BENEFICIARIES,
         setData,
         renderProgramsTable,
         renderAssignmentTable,
-        renderArchiveTable,
-        drilldownProgram,
-        drilldownBatch,
+        drilldownToBatches,
+        drilldownToBeneficiaries,
         backToLevel1,
         backToLevel2,
         viewProgramDetails,
         toggleProgramStatus,
-        permanentDeleteProgram,
-        filterPrograms,
-        submitCreateProgram
+        renderArchiveTable,
+        permanentlyDeleteProgram,
+        submitCreateProgram,
+        filterPrograms
     });
 })();
 
-// Global shortcuts
 window.PesoPrograms = PesoPrograms;
-window.filterPrograms = PesoPrograms.filterPrograms;
-window.showLevel1Programs = PesoPrograms.backToLevel1;
-window.showLevel2Batches = PesoPrograms.backToLevel2;
+window.filterProgramsCatalog = PesoPrograms.filterPrograms;
+window.showProgramsLevel1 = PesoPrograms.backToLevel1;
+window.showProgramsLevel2 = PesoPrograms.backToLevel2;

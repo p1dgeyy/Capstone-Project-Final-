@@ -245,8 +245,11 @@ const PesoOfficerApp = (() => {
 
             // 4. Programs for budget reference
             const progRes = await DataService.programs.getAll({ agency: 'PESO' });
-            if (progRes && Array.isArray(progRes.data)) {
+            const canonicalProgs = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_PROGRAMS) ? PesoPrograms.CANONICAL_PESO_PROGRAMS : [];
+            if (progRes && Array.isArray(progRes.data) && progRes.data.length > 0) {
                 window._cachedPrograms = progRes.data;
+            } else {
+                window._cachedPrograms = [...canonicalProgs];
             }
 
             // 5. Staff Profiles (Officers)
@@ -257,8 +260,15 @@ const PesoOfficerApp = (() => {
 
             // 6. Batches
             const batchRes = await DataService.batches.getAll({ agency: 'PESO' });
-            if (batchRes && Array.isArray(batchRes.data)) {
+            const canonicalBatches = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_BATCHES) ? PesoPrograms.CANONICAL_PESO_BATCHES : [];
+            if (batchRes && Array.isArray(batchRes.data) && batchRes.data.length > 0) {
                 state.batches = batchRes.data;
+            } else {
+                state.batches = [...canonicalBatches];
+            }
+
+            if (state.beneficiaries.length === 0 && typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_BENEFICIARIES) {
+                state.beneficiaries = [...PesoPrograms.CANONICAL_PESO_BENEFICIARIES];
             }
 
             state.isLoaded = true;

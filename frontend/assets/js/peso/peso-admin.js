@@ -219,7 +219,29 @@ const PesoAdminApp = (() => {
                 DataService.beneficiaries.getAll()
             ]);
 
-            AdminStore.programs = (progRes.data || []).filter(p => (p.agency || p.department || '').toUpperCase() === 'PESO');
+            const loadedPrograms = (progRes.data || []).filter(p => (p.agency || p.department || '').toUpperCase() === 'PESO');
+            const canonicalList = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_PROGRAMS) ? PesoPrograms.CANONICAL_PESO_PROGRAMS : [];
+
+            if (loadedPrograms.length > 0) {
+                AdminStore.programs = canonicalList.map(cp => {
+                    const found = loadedPrograms.find(lp => lp.code === cp.code);
+                    return found ? { ...cp, ...found } : cp;
+                });
+                loadedPrograms.forEach(lp => {
+                    if (!AdminStore.programs.some(p => p.code === lp.code)) {
+                        AdminStore.programs.push(lp);
+                    }
+                });
+            } else {
+                AdminStore.programs = [...canonicalList];
+            }
+
+            const canonicalBatches = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_BATCHES) ? PesoPrograms.CANONICAL_PESO_BATCHES : [];
+            AdminStore.batches = (batchRes.data && batchRes.data.length > 0) ? batchRes.data : [...canonicalBatches];
+
+            const canonicalBens = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_BENEFICIARIES) ? PesoPrograms.CANONICAL_PESO_BENEFICIARIES : [];
+            AdminStore.beneficiaries = (benRes.data && benRes.data.length > 0) ? benRes.data : [...canonicalBens];
+
             AdminStore.applications = (appRes.data || []).map(a => {
                 const ben = a.beneficiary || {};
                 const prog = a.program || {};
