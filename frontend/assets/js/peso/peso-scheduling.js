@@ -1,0 +1,430 @@
+/**
+ * PESO Scheduling & Training Management Module (peso-scheduling.js)
+ * City Government of Koronadal - Public Employment Service Office
+ * 
+ * Rules & Safeguards Enforced:
+ * 1. Past Date Restriction (Blocks scheduling on dates prior to today)
+ * 2. Conflict Validation Restriction (Prevents overlapping schedules for same venue/time)
+ * 3. Cancellation Restriction (Cancelled activities remain visible with red badges & audit logged)
+ * 4. Certificate Distribution Auto-Pull (Auto-pulls eligible recipients from Training Records)
+ * 5. Officer-Managed Beneficiary Restriction (Masked contacts, strictly officer-managed assignments)
+ * 6. Interactive Calendar & List Views
+ */
+
+const PesoScheduling = (() => {
+    'use strict';
+
+    let _schedules = [];
+    let _viewMode = 'list'; // 'list' | 'calendar'
+    let _calendarDate = new Date();
+    let _trainingRecords = [];
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function maskPhone(phone) {
+        if (!phone || phone === 'N/A' || phone === '-') return '09XX-***-XXXX';
+        const clean = String(phone).trim().replace(/[^0-9]/g, '');
+        if (clean.length >= 10) {
+            return `${clean.substring(0, 4)}-***-${clean.substring(clean.length - 4)}`;
+        }
+        return '09XX-***-XXXX';
+    }
+
+    function logAudit(actionType, details) {
+        if (typeof window.logAuditEvent === 'function') {
+            window.logAuditEvent(actionType, details);
+        } else if (typeof PESOSafeguards !== 'undefined' && PESOSafeguards.logAudit) {
+            PESOSafeguards.logAudit({
+                intent: actionType,
+                actionType: actionType,
+                targetEntity: 'Scheduling Management',
+                status: 'SUCCESS',
+                details: details
+            });
+        }
+    }
+
+    function setData(schedules = [], trainingRecords = []) {
+        _schedules = schedules;
+        _trainingRecords = trainingRecords;
+    }
+
+    /**
+     * Set View Mode (List vs. Calendar)
+     */
+    function setViewMode(mode) {
+        _viewMode = mode;
+        const btnCal = document.getElementById('adminBtnViewCalendar') || document.getElementById('btnSchedCalView');
+        const btnList = document.getElementById('adminBtnViewList') || document.getElementById('btnSchedListView');
+        const secCal = document.getElementById('schedCalendarViewSection');
+        const secList = document.getElementById('schedListViewSection');
+
+        if (mode === 'calendar') {
+            if (btnCal) { btnCal.classList.add('active', 'btn-primary'); btnCal.classList.remove('btn-outline-primary'); }
+            if (btnList) { btnList.classList.remove('active', 'btn-primary'); btnList.classList.add('btn-outline-primary'); }
+            if (secCal) secCal.classList.remove('d-none');
+            if (secList) secList.classList.add('d-none');
+            renderCalendar();
+        } else {
+            if (btnList) { btnList.classList.add('active', 'btn-primary'); btnList.classList.remove('btn-outline-primary'); }
+            if (btnCal) { btnCal.classList.remove('active', 'btn-primary'); btnCal.classList.add('btn-outline-primary'); }
+            if (secList) secList.classList.remove('d-none');
+            if (secCal) secCal.classList.add('d-none');
+            renderList();
+        }
+    }
+
+    /**
+     * Render the Scheduling List View
+     */
+    function renderList() {
+        const tbody = document.getElementById('adminSchedulingTableBody') || document.getElementById('officerDailySchedulesTableBody');
+        if (!tbody) return;
+
+        if (_schedules.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No scheduled interviews or activities recorded.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = _schedules.map(item => {
+            const isCancelled = item.status === 'Cancelled';
+            const isCompleted = item.status === 'Completed' || item.attendance === 'Present';
+            const isMissed = item.status === 'Missed' || item.attendance === 'Absent';
+            
+            let statusBadge = `<span class="badge bg-primary">Scheduled</span>`;
+            if (isCancelled) {
+                statusBadge = `<span class="badge bg-danger text-white"><i class="bi bi-x-circle-fill me-1"></i>Cancelled</span>`;
+            } else if (isCompleted) {
+                statusBadge = `<span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>`;
+            } else if (isMissed) {
+                statusBadge = `<span class="badge bg-danger"><i class="bi bi-dash-circle-fill me-1"></i>Missed</span>`;
+            }
+
+            const isCertActivity = (item.activity_type || item.title || '').toLowerCase().includes('certificate');
+            const certBadge = isCertActivity ? `<span class="badge bg-warning text-dark small ms-1"><i class="bi bi-award-fill me-1"></i>Cert Distribution</span>` : '';
+            const schedDate = item.interviewDate || item.date || item.scheduled_date || 'Today';
+            const schedTime = item.scheduleTime || item.time || item.interview_time || '09:00 AM';
+
+            return `
+                <tr class="${isCancelled ? 'table-danger-subtle opacity-75' : ''}">
+                    <td class="fw-bold font-monospace text-primary">#SCH-${escapeHtml(String(item.id || item.slot_id))}</td>
+                    <td>
+                        <div class="fw-semibold text-dark">${escapeHtml(item.beneficiaryName || item.beneficiary_name || item.title || 'General Schedule')} ${certBadge}</div>
+                        <small class="text-muted"><i class="bi bi-telephone me-1"></i>${maskPhone(item.beneficiaryPhone || item.phone)}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border font-monospace">${escapeHtml(item.programCode || item.program_code || 'PESO')}</span>
+                        <small class="d-block text-muted text-truncate" style="max-width: 140px;">${escapeHtml(item.venue || item.location || 'PESO Main Office')}</small>
+                    </td>
+                    <td>
+                        <div class="fw-semibold text-dark"><i class="bi bi-calendar-event me-1 text-primary"></i>${escapeHtml(schedDate)}</div>
+                        <small class="text-muted font-monospace"><i class="bi bi-clock me-1"></i>${escapeHtml(schedTime)}</small>
+                    </td>
+                    <td><span class="badge bg-light text-dark border">${escapeHtml(item.officerName || item.officer_name || 'PESO Officer')}</span></td>
+                    <td>${statusBadge}</td>
+                    <td class="text-end text-nowrap">
+                        ${!isCancelled && !isCompleted ? `
+                            <button class="btn btn-sm btn-outline-success py-1 px-2 me-1" onclick="PesoScheduling.markAttendance('${item.id}', 'Present')" title="Mark Present">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="PesoScheduling.cancelActivity('${item.id}')" title="Cancel Activity">
+                                <i class="bi bi-x-octagon me-1"></i>Cancel
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="PesoScheduling.viewScheduleDetails('${item.id}')" title="View Details (Read-Only)">
+                                <i class="bi bi-eye"></i> Details
+                            </button>
+                        `}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Render the Monthly Calendar View
+     */
+    function renderCalendar() {
+        const grid = document.getElementById('schedCalendarGrid');
+        const monthTitle = document.getElementById('schedCalendarMonthTitle');
+        if (!grid) return;
+
+        const year = _calendarDate.getFullYear();
+        const month = _calendarDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        if (monthTitle) {
+            monthTitle.textContent = _calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        }
+
+        let cellsHtml = '';
+        // Empty cells before start of month
+        for (let i = 0; i < firstDay; i++) {
+            cellsHtml += `<div class="calendar-day empty bg-light border p-2 text-muted" style="min-height: 80px;"></div>`;
+        }
+
+        const todayStr = new Date().toISOString().substring(0, 10);
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const daySchedules = _schedules.filter(s => {
+                const sDate = s.interviewDate || s.date || s.scheduled_date || '';
+                return sDate.startsWith(dateStr);
+            });
+
+            const isToday = dateStr === todayStr;
+            const isPast = new Date(dateStr) < new Date(todayStr);
+
+            cellsHtml += `
+                <div class="calendar-day border p-2 ${isToday ? 'bg-primary-subtle border-primary' : 'bg-white'} ${isPast ? 'text-muted' : ''}" style="min-height: 90px;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold ${isToday ? 'badge bg-primary' : 'text-dark'}">${day}</span>
+                        ${daySchedules.length > 0 ? `<span class="badge bg-info text-dark font-monospace">${daySchedules.length}</span>` : ''}
+                    </div>
+                    <div class="calendar-events overflow-hidden" style="max-height: 55px;">
+                        ${daySchedules.slice(0, 2).map(s => `
+                            <div class="badge ${s.status === 'Cancelled' ? 'bg-danger' : 'bg-light text-dark border'} d-block text-truncate text-start mb-1" style="font-size: 0.68rem;">
+                                ${escapeHtml(s.beneficiaryName || s.title || 'Interview')}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        grid.innerHTML = cellsHtml;
+    }
+
+    function prevMonth() {
+        _calendarDate.setMonth(_calendarDate.getMonth() - 1);
+        renderCalendar();
+    }
+
+    function nextMonth() {
+        _calendarDate.setMonth(_calendarDate.getMonth() + 1);
+        renderCalendar();
+    }
+
+    /**
+     * Submit Schedule Activity with Past-Date & Conflict Validations
+     */
+    async function submitScheduleActivity(formEl) {
+        if (!formEl) return;
+
+        const dateInput = document.getElementById('schedActivityDate')?.value || '';
+        const timeInput = document.getElementById('schedActivityTime')?.value || '09:00 AM';
+        const venueInput = document.getElementById('schedActivityVenue')?.value || 'PESO Main Office';
+        const officerInput = document.getElementById('schedActivityOfficer')?.value || 'PESO Officer';
+        const activityType = document.getElementById('schedActivityType')?.value || 'Interview Assessment';
+        const programCode = document.getElementById('schedActivityProgram')?.value || 'PESO';
+
+        // 1. Past-Date Restriction Guard
+        const todayStr = new Date().toISOString().substring(0, 10);
+        if (!dateInput || dateInput < todayStr) {
+            alert('Scheduling Restriction Error: Cannot schedule activities on past dates. Please select today or a future date.');
+            return;
+        }
+
+        // 2. Conflict Validation Restriction Guard
+        const hasConflict = _schedules.some(s => {
+            if (s.status === 'Cancelled') return false;
+            const sDate = s.interviewDate || s.date || s.scheduled_date || '';
+            const sTime = s.scheduleTime || s.time || s.interview_time || '';
+            const sVenue = s.venue || s.location || '';
+            return sDate === dateInput && sTime === timeInput && sVenue.toLowerCase() === venueInput.toLowerCase();
+        });
+
+        if (hasConflict) {
+            alert(`Scheduling Conflict Error: Another activity is already booked for venue "${venueInput}" at ${dateInput} ${timeInput}. Please choose a different time slot or location.`);
+            return;
+        }
+
+        // 3. Certificate Distribution Auto-Pull from Training Records
+        let recipientCount = 1;
+        let recipientNotes = '';
+        if (activityType === 'Certificate Distribution') {
+            const completedTrainees = _trainingRecords.filter(t => t.status === 'Completed' || t.training_completed);
+            recipientCount = Math.max(1, completedTrainees.length);
+            recipientNotes = `Auto-pulled ${recipientCount} eligible completed trainees from Training Records.`;
+        }
+
+        const newId = Date.now();
+        const newSched = {
+            id: newId,
+            slot_id: `SLOT-${newId}`,
+            title: activityType,
+            activity_type: activityType,
+            programCode: programCode,
+            program_code: programCode,
+            interviewDate: dateInput,
+            scheduled_date: dateInput,
+            date: dateInput,
+            scheduleTime: timeInput,
+            interview_time: timeInput,
+            time: timeInput,
+            venue: venueInput,
+            location: venueInput,
+            officerName: officerInput,
+            officer_name: officerInput,
+            beneficiaryName: activityType === 'Certificate Distribution' ? `Graduating Batch (${recipientCount} Trainees)` : 'Enrolled Applicant',
+            phone: '09XX-***-XXXX',
+            status: 'Scheduled',
+            remarks: recipientNotes,
+            department: 'PESO',
+            agency: 'PESO',
+            created_at: new Date().toISOString()
+        };
+
+        _schedules.unshift(newSched);
+
+        // Async sync to Supabase
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient.from('interview_schedules').insert({
+                    title: activityType,
+                    program_code: programCode,
+                    interview_date: dateInput,
+                    interview_time: timeInput,
+                    venue_location: venueInput,
+                    status: 'Scheduled',
+                    remarks: recipientNotes,
+                    agency: 'PESO'
+                });
+            } catch (err) {
+                console.warn('[PesoScheduling] Supabase insert warning:', err.message);
+            }
+        }
+
+        if (_viewMode === 'calendar') {
+            renderCalendar();
+        } else {
+            renderList();
+        }
+
+        logAudit('CREATE_SCHEDULE_ACTIVITY', `Scheduled "${activityType}" for ${dateInput} ${timeInput} at ${venueInput}`);
+
+        // Close modal
+        const modalEl = document.getElementById('scheduleActivityModal');
+        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            bootstrap.Modal.getInstance(modalEl)?.hide();
+        }
+        formEl.reset();
+
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({
+                title: 'Activity Scheduled',
+                message: `Successfully booked "${activityType}" on ${dateInput}. ${recipientNotes}`,
+                type: 'success'
+            });
+        }
+    }
+
+    /**
+     * Cancel Activity (Cancellation Restriction: Remains visible with red label & logged)
+     */
+    async function cancelActivity(schedId) {
+        const item = _schedules.find(s => String(s.id) === String(schedId) || String(s.slot_id) === String(schedId));
+        if (!item) return;
+
+        const reason = prompt(`Enter mandatory cancellation reason for activity #${schedId}:`);
+        if (reason === null) return;
+        if (!reason.trim()) {
+            alert('Cancellation Blocked: You must provide a valid cancellation reason for audit logging.');
+            return;
+        }
+
+        item.status = 'Cancelled';
+        item.cancellation_reason = reason;
+        item.cancelled_at = new Date().toISOString();
+
+        // Sync to Supabase
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient
+                    .from('interview_schedules')
+                    .update({ status: 'Cancelled', remarks: `Cancelled: ${reason}` })
+                    .eq('id', item.id);
+            } catch (e) {
+                console.warn('[PesoScheduling] Supabase update warning:', e.message);
+            }
+        }
+
+        if (_viewMode === 'calendar') {
+            renderCalendar();
+        } else {
+            renderList();
+        }
+
+        logAudit('CANCEL_SCHEDULE_ACTIVITY', `Cancelled schedule #${schedId}. Reason: ${reason}`);
+
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({
+                title: 'Activity Cancelled',
+                message: `Schedule #${schedId} has been marked as Cancelled (Red Tagged).`,
+                type: 'danger'
+            });
+        }
+    }
+
+    /**
+     * Mark Attendance
+     */
+    async function markAttendance(schedId, status) {
+        const item = _schedules.find(s => String(s.id) === String(schedId) || String(s.slot_id) === String(schedId));
+        if (!item) return;
+
+        item.attendance = status;
+        item.status = status === 'Present' ? 'Completed' : 'Missed';
+
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient
+                    .from('interview_schedules')
+                    .update({ attendance_status: status, status: item.status })
+                    .eq('id', item.id);
+            } catch (e) {
+                console.warn('[PesoScheduling] Supabase attendance warning:', e.message);
+            }
+        }
+
+        if (_viewMode === 'calendar') {
+            renderCalendar();
+        } else {
+            renderList();
+        }
+
+        logAudit('MARK_ATTENDANCE', `Marked attendance for schedule #${schedId} as ${status}`);
+    }
+
+    function viewScheduleDetails(schedId) {
+        const item = _schedules.find(s => String(s.id) === String(schedId) || String(s.slot_id) === String(schedId));
+        if (!item) return;
+        alert(`Schedule Details (Read-Only):\n\nID: #${item.id}\nTitle: ${item.title || item.beneficiaryName}\nProgram: ${item.programCode || 'PESO'}\nDate: ${item.interviewDate || item.date} at ${item.scheduleTime || item.time}\nVenue: ${item.venue || item.location}\nStatus: ${item.status}\nRemarks: ${item.remarks || 'None'}`);
+    }
+
+    return Object.freeze({
+        setData,
+        setViewMode,
+        renderList,
+        renderCalendar,
+        prevMonth,
+        nextMonth,
+        submitScheduleActivity,
+        cancelActivity,
+        markAttendance,
+        viewScheduleDetails
+    });
+})();
+
+// Global shortcuts
+window.PesoScheduling = PesoScheduling;
+window.setAdminScheduleViewMode = PesoScheduling.setViewMode;

@@ -32,11 +32,11 @@ const AuthGuard = (() => {
   const PAGE_ROLE_MAP = {
     'beneficiary.html': ['Beneficiary'],
     'beneficiary_dashboard.html': ['Beneficiary'],
-    'peso_officer.html': ['PESO Officer', 'PESO Admin'],
+    'peso_officer.html': ['PESO Officer'],
     'peso_admin.html': ['PESO Admin'],
-    'cswdo_officer.html': ['CSWDO Officer', 'CSWDO Admin'],
+    'cswdo_officer.html': ['CSWDO Officer'],
     'cswdo_admin.html': ['CSWDO Admin'],
-    'evaluator.html': ['PESO Officer', 'PESO Admin', 'Evaluator']
+    'evaluator.html': ['PESO Officer', 'CSWDO Officer', 'Evaluator']
   };
 
   // Role -> correct login portal. Used to bounce a user back to the RIGHT
@@ -75,11 +75,25 @@ const AuthGuard = (() => {
     return 'admin_login.html';
   }
 
+  function revealPageContent() {
+    try {
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.remove('auth-pending');
+        document.documentElement.classList.add('auth-verified');
+        if (document.body) {
+          document.body.classList.remove('auth-pending');
+          document.body.classList.add('auth-verified');
+        }
+      }
+    } catch (e) {
+      console.warn('[AUTH_GUARD] Error revealing page content:', e);
+    }
+  }
+
   function redirectToLogin(message) {
     try {
       if (message) sessionStorage.setItem('authGuardMessage', message);
     } catch (e) {
-      // sessionStorage may be unavailable (private browsing, etc.) — non-fatal
       console.warn('[AUTH_GUARD] Could not persist redirect message:', e.message);
     }
     window.location.href = getLoginPage();
@@ -282,10 +296,12 @@ const AuthGuard = (() => {
     }
 
     try {
-      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
       const session = sessionData?.session;
 
-      if (!session && !storedRole) {
+      if (sessionError || (!session && !storedRole)) {
+        // Clear invalid token cache
+        ['userId', 'userRole', 'username', 'userFullName', 'department', 'jwtAccessToken', 'sessionToken'].forEach(k => sessionStorage.removeItem(k));
         redirectToLogin('Please log in to continue.');
         return false;
       }
@@ -299,10 +315,6 @@ const AuthGuard = (() => {
 
       // Safeguard: the primary PESO admin account must never be locked out by
       // a stale/incorrect 'Deactivated' or 'Inactive' status in staff_profiles.
-      // This mirrors the same safeguard already applied on the login page
-      // (admin-login.js) — without it, a status flip in the database (e.g.
-      // from testing the Active/Inactive toggle) would sign this account
-      // straight back out immediately after a successful login.
       const isPrimaryAdmin =
         (profile.username && profile.username.toLowerCase() === 'peso-admin') ||
         (profile.email && (profile.email.toLowerCase() === 'peso.admin@gmail.com' || profile.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
@@ -358,6 +370,9 @@ const AuthGuard = (() => {
 
       const redirectPage = getRoleDashboard(userRole);
       if (redirectPage && redirectPage !== getCurrentPage()) {
+        try {
+          sessionStorage.setItem('authGuardMessage', `Cross-role access redirected. You are signed in as "${userRole}".`);
+        } catch (e) {}
         window.location.href = redirectPage;
       } else {
         redirectToLogin('You do not have permission to access this page.');
@@ -365,6 +380,8 @@ const AuthGuard = (() => {
       return false;
     }
 
+    // Role verified successfully -> reveal protected dashboard content
+    revealPageContent();
     return true;
   }
 
@@ -380,11 +397,12 @@ const AuthGuard = (() => {
       if (allowedRoles) {
         return await requireRole(allowedRoles);
       }
-      // Page not in the map — not a recognized protected page, do nothing
-      // (avoids accidentally locking out public pages like index.html)
+      // Page not in the map — public page, reveal immediately
+      revealPageContent();
       return true;
     } catch (err) {
       console.error('[AUTH_GUARD] autoGuard failed (handled safely):', err?.message || err);
+      revealPageContent();
       return false;
     }
   }
@@ -407,6 +425,7 @@ const AuthGuard = (() => {
       _authStateListener = supabaseClient.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_OUT') {
           _currentUserProfile = null;
+          ['userId', 'userRole', 'username', 'userFullName', 'department', 'jwtAccessToken', 'sessionToken'].forEach(k => sessionStorage.removeItem(k));
           redirectToLogin('You have been signed out.');
         }
       });
@@ -433,9 +452,37 @@ const AuthGuard = (() => {
     getRoleDashboard,
     fetchUserProfile,
     redirectToLogin,
+    revealPageContent,
     STAFF_ROLES,
     BENEFICIARY_ROLES
   });
+})();
+
+// Immediate auth shielding execution for protected pages to prevent flicker
+(function () {
+  try {
+    const path = window.location.pathname;
+    const page = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
+    const protectedPages = ['peso_admin.html', 'peso_officer.html', 'cswdo_admin.html', 'cswdo_officer.html', 'beneficiary.html', 'evaluator.html'];
+    if (protectedPages.includes(page)) {
+      document.documentElement.classList.add('auth-pending');
+      // Inject safety fallback style in head
+      const style = document.createElement('style');
+      style.id = 'auth-shield-style';
+      style.textContent = `
+        html.auth-pending body, html.auth-pending main, html.auth-pending .page-container {
+          visibility: hidden !important;
+          opacity: 0 !important;
+        }
+        html.auth-verified body, html.auth-verified main, html.auth-verified .page-container {
+          visibility: visible !important;
+          opacity: 1 !important;
+          transition: opacity 0.15s ease-in;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(style);
+    }
+  } catch (e) {}
 })();
 
 // -----------------------------------------------------------------------------
