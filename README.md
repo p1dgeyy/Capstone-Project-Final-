@@ -1,130 +1,146 @@
-# Capstone Project - PESO/CSWDO Portal & Dashboard System
+# City of Koronadal - Integrated PESO & CSWDO Livelihood and Social Welfare Portal System
 
-A modern portal and administrative dashboard system built for the City of Koronadal. This project features secure portal logins for beneficiaries, PESO administrators/officers, CSWDO administrators/officers, and evaluators.
+[![Vercel Deployment](https://img.shields.io/badge/Deployment-Vercel-black?style=flat&logo=vercel)](https://vercel.com)
+[![Backend: Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=flat&logo=supabase)](https://supabase.com)
+[![Architecture: Modular JS](https://img.shields.io/badge/Frontend-Modular%20JS%20Suite-F7DF1E?style=flat&logo=javascript)](https://developer.mozilla.org)
+[![Compliance: Data Privacy Act](https://img.shields.io/badge/Compliance-RA%2010173%20(Data%20Privacy)-blue?style=flat)](https://privacy.gov.ph)
 
-**Backend:** [Supabase](https://supabase.com) (PostgreSQL + Auth + RLS)
-**Frontend:** Vanilla HTML/CSS/JS deployed on Vercel
-**Auth:** Supabase Auth (email + password)
+A centralized, responsive, and secure administrative portal and dashboard system engineered for the **City Government of Koronadal**. The system manages social welfare services, employment facilitation, and livelihood programs across the **Public Employment Service Office (PESO)** and the **City Social Welfare and Development Office (CSWDO)**.
 
 ---
 
-## 📂 Project Structure
+## 🚀 Key Features & Architectural Upgrades
+
+### 1. Zero-Flicker Route Guard & Role-Based Access Control (RBAC)
+- **Zero Auth Flicker Shield:** CSS class injection (`html.auth-pending`) hides DOM elements at parse-time until Supabase session verification resolves, completely eliminating unauthorized layout flashes.
+- **Strict Role-Based Routing:**
+  - `peso_admin.html` strictly allows `PESO Admin`.
+  - `peso_officer.html` strictly allows `PESO Officer`.
+  - `cswdo_admin.html` strictly allows `CSWDO Admin`.
+  - `cswdo_officer.html` strictly allows `CSWDO Officer`.
+  - Cross-role attempts are intercepted and routed to the user's dedicated dashboard with status alerts.
+- **Dual-Storage Session Purge:** Centralized session invalidation via `session-manager.js` thoroughly clears `sessionStorage`, `localStorage`, and Supabase cached JWT tokens on logout or token expiry.
+
+### 2. Modular Domain-Driven Script Suite (`frontend/assets/js/peso/`)
+The PESO client architecture has been refactored from legacy monolithic scripts into decoupled, domain-specific modules:
+
+| Module | File | Core Responsibilities |
+| :--- | :--- | :--- |
+| **Authentication & Profile** | `peso-auth.js` | Session validation, role guardrails (`isAdmin`, `isOfficer`), and department isolation. |
+| **Live Metrics & Trends** | `peso-dashboard.js` | Real-time KPI computations, Chart.js trend visualizations, and immutable activity feed. |
+| **Programs & Assignments** | `peso-programs.js` | Program catalog, 3-level assignment drilldown, active beneficiary deactivation safeguard, and read-only archive with permanent delete. |
+| **Evaluations & Cases** | `peso-evaluations.js` | 3-level evaluation queue, strictly read-only case file inspection modal, document previews, and mandatory denial remarks validation. |
+| **Scheduling & Calendar** | `peso-scheduling.js` | Calendar/list views, past-date booking restriction, time-slot/venue conflict detection, cancelled activity red labels, and certificate recipient auto-pull. |
+| **Funds & Disbursals** | `peso-funds.js` | Live fund balances, budget progress bars, &ge;85% threshold alerts, admin-only disbursement authorization, and disbursement logs. |
+| **System Reports Engine** | `peso-reports.js` | Multi-module query builder, date-range filtering, UTF-8 BOM CSV exporter, printable official summary views, and export audit logging. |
+| **Officer Portal Controller** | `peso-officer.js` | Officer-managed beneficiary intake, email & SMS OTP verification, dynamic QR generation & printing, interview attendance, and livelihood batches. |
+| **Admin Master Controller** | `peso-admin.js` | 9-Tab master navigation switcher, safe modal controller with backdrop watchdog, officer directory RBAC, and immutable audit trail viewer. |
+
+### 3. Data Privacy & Compliance Safeguards
+- **Data Privacy Act (RA 10173):** Sensitive contact numbers are masked (e.g., `09XX-***-XXXX`) across all tables, modal inspection cards, and export views.
+- **Read-Only Inspection Modals:** All case files, schedule inspections, and ordinance references are strictly view-only.
+- **Active Beneficiary Deactivation Safeguard:** Programs with active beneficiaries block deactivation until beneficiaries are completed or transferred.
+- **Conflict Validation:** Blocks creating appointments in past dates and validates venue/time-slot overlapping conflicts.
+- **Dual OTP Intake:** Beneficiary registration includes Gmail verification code and SMS OTP verification before enrollment is finalized.
+- **Immutable Audit Trail:** All critical operations (Create, Update, Activate, Deactivate, Cancel, Archive, Delete, Disburse, Export) are logged with timestamp and user identity.
+
+---
+
+## 📂 Project Directory Structure
 
 ```
 Capstone-Project-Final-/
-├── frontend/                     # Front-end user-facing files & dashboards
-│   ├── assets/                   # Static assets & scripts
-│   │   ├── js/                   # Client JavaScript modules
-│   │   │   ├── supabase-config.js  # Supabase client initialization
-│   │   │   ├── auth-guard.js       # Route protection hook
-│   │   │   ├── session-manager.js  # Session management (Supabase Auth)
-│   │   │   ├── audit_nav.js
-│   │   │   ├── beneficiary.js
-│   │   │   ├── peso-safeguards.js
-│   │   │   ├── peso_officer.js
-│   │   │   └── system-notifications.js
-│   │   ├── city_of_koronadal.jpeg
-│   │   └── koronadalseal.png
-│   ├── index.html                # Main entry point (redirects to official_login)
-│   ├── official_login.html       # Portal Login for Beneficiaries
-│   ├── admin_login.html          # Portal Login for Admins & Staff
-│   ├── beneficiary.html          # Beneficiary Dashboard
-│   ├── beneficiary_register.html # Beneficiary Registration Form
-│   ├── peso_officer.html         # PESO Officer Dashboard
-│   ├── peso_admin.html           # PESO Admin Dashboard
-│   ├── cswdo_officer.html        # CSWDO Officer Dashboard
-│   ├── cswdo_admin.html          # CSWDO Admin Dashboard
-│   ├── evaluator.html            # Evaluator Dashboard
-│   └── vercel.json               # Vercel deployment routing configuration
+├── frontend/                          # Client-side web application
+│   ├── assets/                        # Static assets, CSS, images, and JavaScript
+│   │   ├── css/                       # Unified CSS styling & component stylesheets
+│   │   │   ├── unified-overlays.css   # Modals, toasts, and overlay styling
+│   │   │   ├── peso-admin.css         # PESO Admin layout and component styles
+│   │   │   └── portal-login.css       # Unified login styles
+│   │   ├── js/                        # Core system & client JavaScript modules
+│   │   │   ├── peso/                  # Modular PESO JavaScript Suite (NEW)
+│   │   │   │   ├── peso-auth.js       # Auth & role checking
+│   │   │   │   ├── peso-dashboard.js  # Dashboard KPIs & Chart.js visualizer
+│   │   │   │   ├── peso-programs.js   # Program catalog & assignment drilldown
+│   │   │   │   ├── peso-evaluations.js# Evaluation queue & read-only case modal
+│   │   │   │   ├── peso-scheduling.js # Calendar & scheduling conflict checker
+│   │   │   │   ├── peso-funds.js      # Budget tracker & disbursement guardrail
+│   │   │   │   ├── peso-reports.js    # Report generator & UTF-8 CSV exporter
+│   │   │   │   ├── peso-officer.js    # Officer portal master controller
+│   │   │   │   └── peso-admin.js      # Admin portal master controller
+│   │   │   ├── auth-guard.js          # Zero-flicker route guard & RBAC enforcement
+│   │   │   ├── session-manager.js     # Multi-storage session management
+│   │   │   ├── otp-auth.js            # Dual-factor Email & SMS OTP verification
+│   │   │   ├── qr-scanner-controller.js# Html5Qrcode camera scanner modal
+│   │   │   ├── system-notifications.js# Toast & system notification engine
+│   │   │   ├── supabase-config.js     # Supabase client initialization
+│   │   │   └── supabase-data.js       # DataService API & realtime manager
+│   │   └── city_of_koronadal.jpeg     # Official LGU assets
+│   ├── admin_login.html               # Staff & Administrator Login Portal
+│   ├── official_login.html            # Beneficiary Citizen Login Portal
+│   ├── peso_admin.html                # PESO Administrator Portal (9 Modules)
+│   ├── peso_officer.html              # PESO Officer Portal
+│   ├── cswdo_admin.html               # CSWDO Administrator Portal
+│   ├── cswdo_officer.html             # CSWDO Officer Portal
+│   ├── beneficiary.html               # Citizen Beneficiary Portal
+│   ├── index.html                     # Root redirector
+│   └── vercel.json                    # Vercel deployment routing configuration
 ├── database/
-│   └── supabase_schema.sql       # PostgreSQL schema + Row Level Security policies
-├── package.json                  # Project metadata & Supabase dependency
-└── README.md                     # Project documentation
+│   ├── supabase_schema.sql            # Core PostgreSQL schema & RLS policies
+│   └── seed_users.sql                 # Seed administrative and test accounts
+├── server.js                          # Local development HTTP server
+├── package.json                       # Project configuration & dependencies
+└── README.md                          # Comprehensive project documentation
 ```
 
 ---
 
-## 🔧 Setup & Environment Variables
+## 🔐 Portal Access Matrix
 
-### Supabase
-1. Create a Supabase project at [supabase.com](https://supabase.com).
-2. Run `database/supabase_schema.sql` in the Supabase SQL Editor to create all tables and RLS policies.
-3. Set these environment variables in **Vercel** (or your `.env` file):
-
-| Variable | Description |
-| :--- | :--- |
-| `VITE_SUPABASE_URL` | Your Supabase project URL (`https://xxxx.supabase.co`) |
-| `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous/public API key |
-
-> **Note:** These keys are used client-side. Security is enforced via Supabase **Row Level Security (RLS)** policies, not by hiding the anon key.
-
-### Vercel
-- The `frontend/` directory is deployed to Vercel.
-- `vercel.json` handles SPA-style routing (all paths → `index.html`).
+| Role | Access URL | Target Dashboard | Permitted Actions |
+| :--- | :--- | :--- | :--- |
+| **PESO Admin** | `/admin_login.html` | `peso_admin.html` | Program CRUD, Budget Allocation, Officer Accounts, Ordinance Uploads, System Reports. |
+| **PESO Officer** | `/admin_login.html` | `peso_officer.html` | Beneficiary Intake, OTP Verification, QR Issuance, Daily Interviews, Application Evaluation. |
+| **CSWDO Admin** | `/admin_login.html` | `cswdo_admin.html` | CSWDO Program & Case Management, Budget Adjustments, Reports. |
+| **CSWDO Officer** | `/admin_login.html` | `cswdo_officer.html` | Social Welfare Intake, Home Visits, Assistance Grants. |
+| **Beneficiary** | `/official_login.html` | `beneficiary.html` | View Assistance Status, Digital QR ID, Appointment Schedules. |
 
 ---
 
-## 🌐 Authentication
+## 🛠️ Local Development & Setup
 
-The system uses **Supabase Auth** for authentication:
+### Prerequisites
+- [Node.js](https://nodejs.org) (v18 or higher recommended)
+- A [Supabase](https://supabase.com) project with PostgreSQL database
 
-- **Login:** `supabaseClient.auth.signInWithPassword({ email, password })`
-- **Registration:** `supabaseClient.auth.signUp({ email, password, options: { data: { ... } } })`
-- **Session:** Managed by Supabase JS client; access tokens are stored automatically.
-- **Route Protection:** `auth-guard.js` checks for an active session and redirects unauthenticated users.
+### 1. Clone & Install
+```bash
+git clone https://github.com/p1dgeyy/Capstone-Project-Final-.git
+cd Capstone-Project-Final-
+npm install
+```
 
-### User Roles
-| Role | Portal | Dashboard |
-| :--- | :--- | :--- |
-| PESO Admin | `/admin_login` | `peso_admin.html` |
-| PESO Officer | `/admin_login` | `peso_officer.html` |
-| CSWDO Admin | `/admin_login` | `cswdo_admin.html` |
-| CSWDO Officer | `/admin_login` | `cswdo_officer.html` |
-| Evaluator | `/admin_login` | `evaluator.html` |
-| Beneficiary | `/official_login` | `beneficiary.html` |
+### 2. Configure Supabase Environment
+Update `frontend/assets/js/supabase-config.js` with your project URL and public anon key:
+```javascript
+window.SUPABASE_URL = "https://your-project.supabase.co";
+window.SUPABASE_ANON_KEY = "your-public-anon-key";
+```
 
----
+### 3. Run Locally
+```bash
+# Option A: Start with Node.js
+npm start
+# or
+node server.js
 
-## 🗄️ Database Schema
-
-The database uses **PostgreSQL** via Supabase with the following core tables:
-
-- `users_profile` — User accounts (linked to Supabase Auth via `auth_id`)
-- `programs` — PESO/CSWDO assistance programs
-- `applications` — Beneficiary applications with officer/admin evaluation workflow
-- `interview_schedules` — Interview scheduling with attendance tracking
-- `audit_logs` — System-wide audit trail
-- `approved_assistance` — Approved assistance records
-- `notifications` — SMS/notification dispatch logs
-
-All tables have **Row Level Security (RLS)** enabled.
+# Option B: Docker Container
+docker compose up -d
+```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
-## 💻 Running the Localhost Server (Testing)
-
-You can run the localhost server using either of the methods below:
-
-### Option 1: Quick Start with Node.js (Zero-Setup)
-1. Double-click `start-server.bat` (on Windows), or run:
-   ```bash
-   npm start
-   # or
-   npm run dev
-   # or
-   node server.js
-   ```
-2. Open your browser at **[http://localhost:3000](http://localhost:3000)**.
-
-### Option 2: Containerized with Docker (Nginx)
-1. Ensure Docker Desktop is running.
-2. Launch the container using Docker Compose:
-   ```bash
-   docker compose up -d
-   ```
-3. Open your browser at **[http://localhost:3000](http://localhost:3000)**.
-4. To stop the container:
-   ```bash
-   docker compose down
-   ```
-
+## 📜 Compliance & Quality Assurance
+- **Data Privacy Act of 2012 (RA 10173):** Contact information masking, secure role segregation, and immutable operational audit trail.
+- **Ordinance Alignment:** System tracks appropriation ordinances enacted by the Sangguniang Panlungsod of Koronadal.
+- **Zero Broken References:** All inline actions and submodules are linked through clean namespaced APIs.
