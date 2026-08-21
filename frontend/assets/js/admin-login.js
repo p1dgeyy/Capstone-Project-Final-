@@ -88,7 +88,7 @@
                 }
 
                 const resetToken = 'RST-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now();
-                const targetEmail = identifier.includes('@') ? identifier : `${identifier}@koronadal.gov.ph`;
+                const targetEmail = identifier.includes('@') ? identifier : `${identifier}@gmail.com`;
 
                 const badge = document.getElementById('forgotUserEmailBadge');
                 const display = document.getElementById('verificationLinkDisplay');
@@ -225,11 +225,10 @@
                     const candidateEmails = [];
                     if (targetEmail) candidateEmails.push(targetEmail);
                     if (cleanIdentifier.includes('@')) candidateEmails.push(cleanIdentifier);
+                    candidateEmails.push(`${cleanIdentifier}@gmail.com`);
+                    candidateEmails.push(`${cleanIdentifier.toLowerCase()}@gmail.com`);
                     candidateEmails.push(`${cleanIdentifier}@koronadal.gov.ph`);
                     candidateEmails.push(`${cleanIdentifier.toLowerCase()}@koronadal.gov.ph`);
-                    candidateEmails.push(`${cleanIdentifier}@peso.koronadal.gov.ph`);
-                    candidateEmails.push(`${cleanIdentifier}@cswdo.koronadal.gov.ph`);
-                    candidateEmails.push(`${cleanIdentifier}@gmail.com`);
                     const uniqueCandidates = [...new Set(candidateEmails.filter(Boolean))];
 
                     let authData = null;
@@ -314,7 +313,7 @@
                 localStorage.removeItem('peso_lockout_until');
 
                 // Ensure primary admin is always Active
-                if ((userProfile.username && userProfile.username.toLowerCase() === 'peso-admin') || (userProfile.email && userProfile.email.toLowerCase() === 'peso.admin@koronadal.gov.ph')) {
+                if ((userProfile.username && userProfile.username.toLowerCase() === 'peso-admin') || (userProfile.email && (userProfile.email.toLowerCase() === 'peso.admin@gmail.com' || userProfile.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'))) {
                     userProfile.status = 'Active';
                 }
 

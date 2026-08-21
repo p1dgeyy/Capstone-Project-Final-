@@ -120,20 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Initialize Realtime Subscriptions for PESO Admin Portal
     try {
         if (typeof DataService !== 'undefined' && DataService.realtime) {
-            DataService.realtime.subscribeMulti([
-                'programs',
-                'applications',
-                'interview_schedules',
-                'approved_assistance',
-                'staff_profiles',
-                'batches',
-                'notifications',
-                'audit_logs'
-            ], (payload) => {
+            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches'], (payload) => {
                 console.log('[PESO Admin Realtime Event]:', payload.table, payload.eventType);
                 if (payload.table === 'programs') {
                     initProgramsData();
-                } else if (payload.table === 'applications' || payload.table === 'approved_assistance') {
+                } else if (payload.table === 'applications') {
                     initEvalModuleData();
                     initProgramsData();
                 } else if (payload.table === 'interview_schedules') {

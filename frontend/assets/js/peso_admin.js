@@ -227,27 +227,27 @@
                 batchRes,
                 benRes
             ] = await Promise.all([
-                DataService.programs.getAll({ agency: 'PESO' }),
-                DataService.applications.getAll({ agency: 'PESO' }),
+                DataService.programs.getAll(),
+                DataService.applications.getAll(),
                 DataService.staffProfiles.getAll({ agency: 'PESO' }),
-                DataService.interviews.getAll({ agency: 'PESO' }),
-                DataService.funds.getAll({ agency: 'PESO' }),
-                DataService.approvedAssistance.getAll({ agency: 'PESO' }),
+                DataService.interviews.getAll(),
+                DataService.funds.getAll(),
+                DataService.approvedAssistance.getAll(),
                 supabaseClient.from('notifications').select('*').order('created_at', { ascending: false }).limit(50),
                 DataService.auditLogs.getAll({ limit: 50 }),
-                DataService.batches.getAll({ agency: 'PESO' }),
+                DataService.batches.getAll(),
                 DataService.beneficiaries.getAll()
             ]);
 
-            AdminStore.programs = (progRes.data || []).filter(p => (p.agency || '').toUpperCase() === 'PESO');
-            AdminStore.applications = (appRes.data || []).filter(a => (a.program?.agency || '').toUpperCase() === 'PESO');
-            AdminStore.officers = (staffRes.data || []).filter(s => !['CSWDO Admin', 'CSWDO Officer'].includes(s.role) && (s.department || 'PESO').toUpperCase() !== 'CSWDO');
-            AdminStore.schedules = (schedRes.data || []).filter(s => (s.program?.agency || '').toUpperCase() === 'PESO');
+            AdminStore.programs = progRes.data || [];
+            AdminStore.applications = appRes.data || [];
+            AdminStore.officers = (staffRes.data || []).filter(s => !['CSWDO Admin', 'CSWDO Officer'].includes(s.role));
+            AdminStore.schedules = schedRes.data || [];
             AdminStore.funds = fundsRes.data || [];
-            AdminStore.approvedAssistance = (assistRes.data || []).filter(a => (a.program?.agency || '').toUpperCase() === 'PESO');
+            AdminStore.approvedAssistance = assistRes.data || [];
             AdminStore.notifications = notifRes.data || [];
             AdminStore.auditLogs = auditRes.data || [];
-            AdminStore.batches = (batchRes.data || []).filter(b => (b.program?.agency || '').toUpperCase() === 'PESO');
+            AdminStore.batches = batchRes.data || [];
             AdminStore.beneficiaries = benRes.data || [];
 
             // Update Tab Badges
@@ -2120,25 +2120,12 @@
     }
 
     // Realtime Synchronization Listener
-    let rtDebounceTimer = null;
     function initRealtimeSync() {
         try {
             if (typeof DataService !== 'undefined' && DataService.realtime) {
-                DataService.realtime.subscribeMulti([
-                    'programs',
-                    'applications',
-                    'staff_profiles',
-                    'interview_schedules',
-                    'approved_assistance',
-                    'notifications',
-                    'audit_logs',
-                    'batches'
-                ], (payload) => {
+                DataService.realtime.subscribeMulti(['programs', 'applications', 'staff_profiles', 'interview_schedules', 'approved_assistance', 'notifications'], (payload) => {
                     console.log('[PESO Admin Realtime Event Received]:', payload.table, payload.eventType);
-                    clearTimeout(rtDebounceTimer);
-                    rtDebounceTimer = setTimeout(() => {
-                        refreshAllData().then(() => renderActiveTab());
-                    }, 100);
+                    refreshAllData().then(() => renderActiveTab());
                 });
             }
         } catch (e) {
@@ -2158,14 +2145,25 @@
         document.body.classList.add('dark-mode');
     }
 
-    function logoutAdmin() {
+    async function logoutAdmin() {
         if (confirm('Are you sure you want to sign out from the PESO Administrator Portal?')) {
-            if (typeof AuthGuard !== 'undefined' && AuthGuard.logout) {
-                AuthGuard.logout();
-            } else {
-                sessionStorage.clear();
-                window.location.href = 'admin_login.html';
+            try {
+                if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
+                    await SessionManager.logout('admin_login.html');
+                    return;
+                }
+                if (typeof AuthGuard !== 'undefined' && AuthGuard.logout) {
+                    await AuthGuard.logout('admin_login.html');
+                    return;
+                }
+                if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
+                    await supabaseClient.auth.signOut();
+                }
+            } catch (e) {
+                console.warn('[PESO_ADMIN] Logout note:', e);
             }
+            try { sessionStorage.clear(); } catch (e) {}
+            window.location.href = 'admin_login.html';
         }
     }
 

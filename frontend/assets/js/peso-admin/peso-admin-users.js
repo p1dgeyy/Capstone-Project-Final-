@@ -12,7 +12,7 @@ async function initUserManagementData() {
             if (res.data && Array.isArray(res.data)) {
                 // Strict Segregation: Exclude any CSWDO accounts
                 usersList = res.data.filter(u => !['CSWDO Admin', 'CSWDO Officer'].includes(u.role) && (u.department || 'PESO') !== 'CSWDO');
-                const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
+                const adminUser = usersList.find(u => (u.username && u.username.toLowerCase() === 'peso-admin') || (u.email && (u.email.toLowerCase() === 'peso.admin@gmail.com' || u.email.toLowerCase() === 'peso.admin@koronadal.gov.ph')));
                 if (adminUser) {
                     adminUser.status = 'Active';
                 }
@@ -110,7 +110,7 @@ function filterUsers() {
             statusBadgeHTML = '<span class="badge bg-dark px-2.5 py-1"><i class="bi bi-archive-fill me-1"></i>Archived</span>';
         }
 
-        const isSuperAdmin = (usr.username && usr.username.toLowerCase() === 'peso-admin') || (usr.email && usr.email.toLowerCase() === 'peso.admin@koronadal.gov.ph');
+        const isSuperAdmin = (usr.username && usr.username.toLowerCase() === 'peso-admin') || (usr.email && (usr.email.toLowerCase() === 'peso.admin@gmail.com' || usr.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
 
         tr.innerHTML = `
             <td class="ps-3"><input type="checkbox" class="form-check-input user-select-checkbox" data-user-id="${usr.id}"></td>

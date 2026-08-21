@@ -1222,7 +1222,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="detail-label">Official Email</label>
-                                <div class="detail-value" id="settingsEmail">cswdo.admin@koronadal.gov.ph</div>
+                                <div class="detail-value" id="settingsEmail">cswdo.admin@gmail.com</div>
                             </div>
                             <div class="mb-3">
                                 <label class="detail-label">Assigned Department</label>
@@ -1607,7 +1607,7 @@
                     <div class="row g-2 mb-3">
                         <div class="col-md-5">
                             <label for="newOffEmail" class="form-label fw-bold small">Official Email Address <span class="text-danger">*</span></label>
-                            <input type="email" id="newOffEmail" class="form-control form-control-sm" placeholder="officer@koronadal.gov.ph" required>
+                            <input type="email" id="newOffEmail" class="form-control form-control-sm" placeholder="officer@gmail.com" required>
                         </div>
                         <div class="col-md-3">
                             <label for="newOffRole" class="form-label fw-bold small">Assigned Role <span class="text-danger">*</span></label>
@@ -1823,33 +1823,13 @@
             'Denied': '#EF4444'
         };
 
-        // Initialize portal on DOM Ready & Attach Realtime Listener
-        let cswdoAdminRtDebounce = null;
+        // Initialize portal on DOM Ready
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 initAdminProfile();
                 refreshDashboardData();
                 loadApplications();
                 loadOfficersData();
-
-                if (typeof DataService !== 'undefined' && DataService.realtime) {
-                    DataService.realtime.subscribeMulti([
-                        'applications',
-                        'approved_assistance',
-                        'interview_schedules',
-                        'programs',
-                        'staff_profiles',
-                        'audit_logs'
-                    ], (payload) => {
-                        console.log('[CSWDO Admin Realtime Event]:', payload.table, payload.eventType);
-                        clearTimeout(cswdoAdminRtDebounce);
-                        cswdoAdminRtDebounce = setTimeout(() => {
-                            refreshDashboardData();
-                            loadApplications();
-                            loadOfficersData();
-                        }, 100);
-                    });
-                }
             } catch (err) {
                 console.warn('[CSWDO Admin] DOMContentLoaded init warning:', err);
             }

@@ -49,7 +49,7 @@ BEGIN
   SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
-    'peso.admin@koronadal.gov.ph',
+    'peso.admin@gmail.com',
     crypt(default_password, gen_salt('bf')),
     ts, ts, ts,
     '{"provider":"email","providers":["email"]}'::jsonb,
@@ -63,7 +63,7 @@ BEGIN
     'authenticated',
     'authenticated'
   WHERE NOT EXISTS (
-    SELECT 1 FROM auth.users WHERE email = 'peso.admin@koronadal.gov.ph'
+    SELECT 1 FROM auth.users WHERE email = 'peso.admin@gmail.com'
   );
 
   -- =========================================================================
@@ -78,7 +78,7 @@ BEGIN
   SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
-    'peso.officer@koronadal.gov.ph',
+    'peso.officer@gmail.com',
     crypt(default_password, gen_salt('bf')),
     ts, ts, ts,
     '{"provider":"email","providers":["email"]}'::jsonb,
@@ -92,7 +92,7 @@ BEGIN
     'authenticated',
     'authenticated'
   WHERE NOT EXISTS (
-    SELECT 1 FROM auth.users WHERE email = 'peso.officer@koronadal.gov.ph'
+    SELECT 1 FROM auth.users WHERE email = 'peso.officer@gmail.com'
   );
 
   -- =========================================================================
@@ -107,7 +107,7 @@ BEGIN
   SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
-    'cswdo.admin@koronadal.gov.ph',
+    'cswdo.admin@gmail.com',
     crypt(default_password, gen_salt('bf')),
     ts, ts, ts,
     '{"provider":"email","providers":["email"]}'::jsonb,
@@ -121,7 +121,7 @@ BEGIN
     'authenticated',
     'authenticated'
   WHERE NOT EXISTS (
-    SELECT 1 FROM auth.users WHERE email = 'cswdo.admin@koronadal.gov.ph'
+    SELECT 1 FROM auth.users WHERE email = 'cswdo.admin@gmail.com'
   );
 
   -- =========================================================================
@@ -136,7 +136,7 @@ BEGIN
   SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
-    'cswdo.officer@koronadal.gov.ph',
+    'cswdo.officer@gmail.com',
     crypt(default_password, gen_salt('bf')),
     ts, ts, ts,
     '{"provider":"email","providers":["email"]}'::jsonb,
@@ -150,7 +150,7 @@ BEGIN
     'authenticated',
     'authenticated'
   WHERE NOT EXISTS (
-    SELECT 1 FROM auth.users WHERE email = 'cswdo.officer@koronadal.gov.ph'
+    SELECT 1 FROM auth.users WHERE email = 'cswdo.officer@gmail.com'
   );
 
   -- =========================================================================
@@ -165,7 +165,7 @@ BEGIN
   SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
-    'evaluator@koronadal.gov.ph',
+    'evaluator@gmail.com',
     crypt(default_password, gen_salt('bf')),
     ts, ts, ts,
     '{"provider":"email","providers":["email"]}'::jsonb,
@@ -179,7 +179,7 @@ BEGIN
     'authenticated',
     'authenticated'
   WHERE NOT EXISTS (
-    SELECT 1 FROM auth.users WHERE email = 'evaluator@koronadal.gov.ph'
+    SELECT 1 FROM auth.users WHERE email = 'evaluator@gmail.com'
   );
 
   -- =========================================================================
@@ -195,7 +195,7 @@ BEGIN
   SELECT
     gen_random_uuid(),
     '00000000-0000-0000-0000-000000000000',
-    'beneficiary@koronadal.gov.ph',
+    'beneficiary@gmail.com',
     crypt(default_password, gen_salt('bf')),
     ts, ts, ts,
     '{"provider":"email","providers":["email"]}'::jsonb,
@@ -209,7 +209,7 @@ BEGIN
     'authenticated',
     'authenticated'
   WHERE NOT EXISTS (
-    SELECT 1 FROM auth.users WHERE email = 'beneficiary@koronadal.gov.ph'
+    SELECT 1 FROM auth.users WHERE email = 'beneficiary@gmail.com'
   );
 
   RAISE NOTICE '✅ All initial users created successfully!';

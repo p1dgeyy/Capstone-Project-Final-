@@ -91,6 +91,22 @@ const GoogleAuth = (() => {
   async function handleAuthRedirect() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) return null;
 
+    // Only process if returning from an active OAuth callback (hash tokens, code query, or pending flag)
+    const hasOAuthHash = window.location.hash && (
+      window.location.hash.includes('access_token=') ||
+      window.location.hash.includes('refresh_token=') ||
+      window.location.hash.includes('error=')
+    );
+    const hasOAuthQuery = window.location.search && (
+      window.location.search.includes('code=') ||
+      window.location.search.includes('error=')
+    );
+    const hasPendingPortal = sessionStorage.getItem('oauth_pending_portal');
+
+    if (!hasOAuthHash && !hasOAuthQuery && !hasPendingPortal) {
+      return null;
+    }
+
     try {
       const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
       if (sessionError || !session || !session.user) return null;

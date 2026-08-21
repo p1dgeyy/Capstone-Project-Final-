@@ -396,14 +396,6 @@
           console.log('[REALTIME TRACKER] Application status changed:', payload);
           await fetchBeneficiaryData();
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'interview_schedules', filter: `beneficiary_qr=eq.${qr}` }, async (payload) => {
-          console.log('[REALTIME TRACKER] Interview schedule updated:', payload);
-          await fetchBeneficiaryData();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'approved_assistance', filter: `beneficiary_qr=eq.${qr}` }, async (payload) => {
-          console.log('[REALTIME TRACKER] Approved assistance updated:', payload);
-          await fetchBeneficiaryData();
-        })
         .subscribe();
       console.log('[REALTIME TRACKER] Subscribed to live Supabase tracking stream for', qr);
     } catch (e) {

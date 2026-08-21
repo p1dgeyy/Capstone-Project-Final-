@@ -28,7 +28,7 @@ async function initOfficersData() {
                         address: off.address || 'City of Koronadal',
                         status: (off.status === 'Deactivated' || off.status === 'Inactive') ? 'Deactivated' : 'Active'
                     }));
-                const adminOff = officersList.find(o => (o.username && o.username.toLowerCase() === 'peso-admin') || (o.email && o.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
+                const adminOff = officersList.find(o => (o.username && o.username.toLowerCase() === 'peso-admin') || (o.email && (o.email.toLowerCase() === 'peso.admin@gmail.com' || o.email.toLowerCase() === 'peso.admin@koronadal.gov.ph')));
                 if (adminOff) adminOff.status = 'Active';
                 if (document.getElementById('sectionOfficers') && !document.getElementById('sectionOfficers').classList.contains('d-none')) {
                     renderOfficersTables();
@@ -207,7 +207,7 @@ async function handleCreateOfficerSubmit(e) {
     if (!emailRegex.test(email)) {
         window.showSystemNotification({
             title: 'Invalid Email Format',
-            message: 'Please provide a valid email address (e.g. officer@koronadal.gov.ph).',
+            message: 'Please provide a valid Gmail address (e.g. officer@gmail.com).',
             type: 'warning'
         });
         return;

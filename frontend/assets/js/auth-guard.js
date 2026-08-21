@@ -305,7 +305,7 @@ const AuthGuard = (() => {
       // straight back out immediately after a successful login.
       const isPrimaryAdmin =
         (profile.username && profile.username.toLowerCase() === 'peso-admin') ||
-        (profile.email && profile.email.toLowerCase() === 'peso.admin@koronadal.gov.ph');
+        (profile.email && (profile.email.toLowerCase() === 'peso.admin@gmail.com' || profile.email.toLowerCase() === 'peso.admin@koronadal.gov.ph'));
 
       if (isPrimaryAdmin && (profile.status === 'Deactivated' || profile.status === 'Inactive')) {
         console.warn('[AUTH_GUARD] Primary admin account had a non-Active status in the database; overriding to Active to prevent lockout.');
@@ -327,6 +327,19 @@ const AuthGuard = (() => {
       redirectToLogin('A system error occurred. Please log in again.');
       return false;
     }
+  }
+
+  /**
+   * Universal Logout helper
+   */
+  async function logout(redirectUrl) {
+    try {
+      if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
+        await supabaseClient.auth.signOut();
+      }
+    } catch (e) {}
+    try { sessionStorage.clear(); } catch (e) {}
+    window.location.href = redirectUrl || getLoginPage();
   }
 
   /**
@@ -413,6 +426,7 @@ const AuthGuard = (() => {
     requireAuth,
     requireRole,
     autoGuard,
+    logout,
     getProfile,
     getRole,
     getDisplayName,
