@@ -426,9 +426,7 @@
             document.getElementById('resetDigit3'),
             document.getElementById('resetDigit4'),
             document.getElementById('resetDigit5'),
-            document.getElementById('resetDigit6'),
-            document.getElementById('resetDigit7'),
-            document.getElementById('resetDigit8')
+            document.getElementById('resetDigit6')
         ];
         inputs.forEach((input, idx) => {
             if (!input) return;
@@ -446,7 +444,7 @@
             };
             input.onpaste = (e) => {
                 e.preventDefault();
-                const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 8);
+                const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
                 text.split('').forEach((ch, i) => {
                     if (inputs[i]) inputs[i].value = ch;
                 });
@@ -473,7 +471,7 @@
 
     window.handleVerifyResetOtp = async function () {
         let code = '';
-        for (let i = 1; i <= 8; i++) {
+        for (let i = 1; i <= 6; i++) {
             const el = document.getElementById(`resetDigit${i}`);
             if (el && el.value) code += el.value.trim();
         }
@@ -482,7 +480,7 @@
         const alertMsg = document.getElementById('resetOtpAlertMsg');
 
         if (code.length < 6) {
-            alertMsg.textContent = 'Please enter your complete verification code.';
+            alertMsg.textContent = 'Please enter your complete 6-digit verification code.';
             alertEl.classList.remove('d-none');
             return;
         }

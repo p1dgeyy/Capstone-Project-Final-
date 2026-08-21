@@ -677,7 +677,7 @@
                     <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="emailVerifyAlertMsg">Invalid code.</span>
                 </div>
 
-                <!-- 8-DIGIT SEGMENTED CODE INPUTS -->
+                <!-- 6-DIGIT SEGMENTED CODE INPUTS -->
                 <div class="code-box-container" id="emailCodeBoxes">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit1" aria-label="Email Digit 1">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit2" aria-label="Email Digit 2">
@@ -685,8 +685,6 @@
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit4" aria-label="Email Digit 4">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit5" aria-label="Email Digit 5">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit6" aria-label="Email Digit 6">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit7" aria-label="Email Digit 7">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit8" aria-label="Email Digit 8">
                 </div>
 
                 <!-- RESEND & EXPIRY TIMER -->
@@ -713,7 +711,7 @@
             </div>
 
             <!-- ============================================================== -->
-            <!-- STEP 3: VERIFY PHONE NUMBER (8-DIGIT OTP) -->
+            <!-- STEP 3: VERIFY PHONE NUMBER (6-DIGIT OTP) -->
             <!-- ============================================================== -->
             <div id="step3View" class="d-none text-center py-3">
                 <div class="avatar-circle mx-auto mb-3"
@@ -737,7 +735,7 @@
                         code.</span>
                 </div>
 
-                <!-- 8-DIGIT SEGMENTED CODE INPUTS -->
+                <!-- 6-DIGIT SEGMENTED CODE INPUTS -->
                 <div class="code-box-container" id="phoneOtpBoxes">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit1" aria-label="Phone Digit1">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit2" aria-label="Phone Digit2">
@@ -745,8 +743,6 @@
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit4" aria-label="Phone Digit4">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit5" aria-label="Phone Digit5">
                     <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit6" aria-label="Phone Digit6">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit7" aria-label="Phone Digit7">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit8" aria-label="Phone Digit8">
                 </div>
 
                 <!-- RESEND & EXPIRY TIMER -->
@@ -965,7 +961,7 @@
                 ind2.classList.add('active');
                 progress.style.width = '50%';
                 startEmailTimers();
-                setupSegmentedInputs('emailCodeBoxes', 8);
+                setupSegmentedInputs('emailCodeBoxes', 6);
             } else if (step === 3) {
                 document.getElementById('step3View').classList.remove('d-none');
                 ind1.classList.add('completed');
@@ -975,7 +971,7 @@
                 ind3.classList.add('active');
                 progress.style.width = '100%';
                 startPhoneTimers();
-                setupSegmentedInputs('phoneOtpBoxes', 8);
+                setupSegmentedInputs('phoneOtpBoxes', 6);
             } else if (step === 4) {
                 document.getElementById('finalizationView').classList.remove('d-none');
                 ind1.classList.add('completed');
@@ -991,7 +987,7 @@
         }
 
         // Setup segmented auto-advance boxes
-        function setupSegmentedInputs(containerId, count) {
+        function setupSegmentedInputs(containerId, count = 6) {
             const container = document.getElementById(containerId);
             if (!container) return;
             const inputs = container.querySelectorAll('.code-digit-box');
@@ -1107,7 +1103,7 @@
                 document.getElementById('displayMaskedEmail').textContent = email;
                 document.getElementById('displayMaskedPhone').textContent = OTPAuth.maskPhone(phone);
 
-                // Dispatch 4-Digit Email Code via OTPAuth
+                // Dispatch 6-Digit Email Code via OTPAuth
                 await OTPAuth.sendEmailCode(email);
 
                 // Advance to Step 2
@@ -1126,7 +1122,7 @@
         }
 
         // -------------------------------------------------------------
-        // STEP 2: 4-DIGIT EMAIL VERIFICATION
+        // STEP 2: 6-DIGIT EMAIL VERIFICATION
         // -------------------------------------------------------------
         function startEmailTimers() {
             if (emailExpiryInterval) clearInterval(emailExpiryInterval);
@@ -1166,7 +1162,7 @@
             try {
                 await OTPAuth.sendEmailCode(registrationData.email);
                 startEmailTimers();
-                setupSegmentedInputs('emailCodeBoxes', 4);
+                setupSegmentedInputs('emailCodeBoxes', 6);
             } catch (err) {
                 window.showSystemNotification({
                     title: 'Resend Failed',
@@ -1178,7 +1174,7 @@
 
         async function handleVerifyEmailCode() {
             let code = '';
-            for (let i = 1; i <= 8; i++) {
+            for (let i = 1; i <= 6; i++) {
                 const el = document.getElementById(`emailDigit${i}`);
                 if (el && el.value) code += el.value.trim();
             }
@@ -1189,7 +1185,7 @@
             const spinner = document.getElementById('emailVerifySpinner');
 
             if (code.length < 6) {
-                alertMsg.textContent = 'Please enter your complete Gmail verification code.';
+                alertMsg.textContent = 'Please enter your complete 6-digit Gmail verification code.';
                 alertEl.classList.remove('d-none');
                 return;
             }
@@ -1263,7 +1259,7 @@
             try {
                 await OTPAuth.sendSmsOtp(registrationData.phone_number);
                 startPhoneTimers();
-                setupSegmentedInputs('phoneOtpBoxes', 8);
+                setupSegmentedInputs('phoneOtpBoxes', 6);
             } catch (err) {
                 window.showSystemNotification({
                     title: 'Resend Failed',
@@ -1275,7 +1271,7 @@
 
         async function handleVerifyPhoneOtp() {
             let otp = '';
-            for (let i = 1; i <= 8; i++) {
+            for (let i = 1; i <= 6; i++) {
                 const el = document.getElementById(`phoneDigit${i}`);
                 if (el && el.value) otp += el.value.trim();
             }
@@ -1286,7 +1282,7 @@
             const spinner = document.getElementById('phoneVerifySpinner');
 
             if (otp.length < 6) {
-                alertMsg.textContent = 'Please enter your complete SMS OTP code.';
+                alertMsg.textContent = 'Please enter your complete 6-digit SMS OTP code.';
                 alertEl.classList.remove('d-none');
                 return;
             }
