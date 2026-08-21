@@ -24,7 +24,9 @@ async function initSchedulingModuleData() {
         try {
             const res = await DataService.interviews.getAll({ agency: 'PESO' });
             if (res.data && Array.isArray(res.data)) {
-                activitiesList = res.data.map(i => {
+                activitiesList = res.data
+                    .filter(i => !i.program || (i.program.agency || i.program.department || 'PESO').toUpperCase() === 'PESO')
+                    .map(i => {
                     const schedDate = i.interview_date || i.scheduled_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : new Date().toISOString().substring(0, 10));
                     const schedTime = i.interview_time || i.scheduled_time || '09:00 AM';
                     const officerFullName = i.officer ? `${i.officer.first_name || ''} ${i.officer.last_name || ''}`.trim() : 'Unassigned Officer';

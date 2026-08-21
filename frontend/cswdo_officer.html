@@ -2196,10 +2196,35 @@
             }
         }
 
-        // Trigger API fetch before initial page renders
+        // Trigger API fetch before initial page renders & Attach Realtime Listener
+        let cswdoOfficerRtDebounce = null;
         fetchCSWDOOfficerApiData().then(() => {
             if (document.getElementById('module-dashboard') && document.getElementById('module-dashboard').classList.contains('active')) {
                 loadDashboardStats();
+            }
+            if (typeof DataService !== 'undefined' && DataService.realtime) {
+                DataService.realtime.subscribeMulti([
+                    'applications',
+                    'interview_schedules',
+                    'approved_assistance',
+                    'beneficiaries',
+                    'programs',
+                    'staff_profiles',
+                    'notifications'
+                ], (payload) => {
+                    console.log('[CSWDO Officer Realtime Event]:', payload.table, payload.eventType);
+                    clearTimeout(cswdoOfficerRtDebounce);
+                    cswdoOfficerRtDebounce = setTimeout(async () => {
+                        await fetchCSWDOOfficerApiData();
+                        const activeModule = document.querySelector('.module-page.active')?.id || 'module-dashboard';
+                        if (activeModule === 'module-dashboard') loadDashboardStats();
+                        else if (activeModule === 'module-applications') renderApplicationsTable();
+                        else if (activeModule === 'module-assignments') renderAssignmentsTable();
+                        else if (activeModule === 'module-schedules') renderSchedulesTable();
+                        else if (activeModule === 'module-funds') renderFundsDashboard();
+                        else if (activeModule === 'module-notifications') renderBroadcastLogs();
+                    }, 100);
+                });
             }
         });
 

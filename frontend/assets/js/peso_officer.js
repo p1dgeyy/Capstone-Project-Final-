@@ -442,10 +442,23 @@
     await loadOfficerEngineData();
 
     // Attach Real-time Change Listener
+    let officerEngineRtDebounce = null;
     if (typeof DataService !== 'undefined' && DataService.realtime) {
-      DataService.realtime.subscribeMulti(['beneficiaries', 'applications', 'interview_schedules', 'batches'], (payload) => {
+      DataService.realtime.subscribeMulti([
+        'beneficiaries',
+        'applications',
+        'interview_schedules',
+        'approved_assistance',
+        'batches',
+        'programs',
+        'staff_profiles',
+        'notifications'
+      ], (payload) => {
         console.log('[PESO Officer Engine Realtime Event]:', payload.table, payload.eventType);
-        loadOfficerEngineData();
+        clearTimeout(officerEngineRtDebounce);
+        officerEngineRtDebounce = setTimeout(() => {
+          loadOfficerEngineData();
+        }, 100);
       });
     }
 

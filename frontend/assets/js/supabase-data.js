@@ -85,6 +85,38 @@ const DataService = (() => {
     return `QR-BEN-${hex}`;
   }
 
+  // Context-Aware Active Department Resolver
+  function getCurrentDepartmentContext() {
+    try {
+      if (typeof AuthGuard !== 'undefined' && AuthGuard.getProfile) {
+        const prof = AuthGuard.getProfile();
+        if (prof) {
+          if (prof.department && ['PESO', 'CSWDO'].includes(prof.department.toUpperCase())) {
+            return prof.department.toUpperCase();
+          }
+          if (prof.role) {
+            if (prof.role.includes('PESO') || prof.role === 'Evaluator') return 'PESO';
+            if (prof.role.includes('CSWDO')) return 'CSWDO';
+          }
+        }
+      }
+      const storedDept = sessionStorage.getItem('department') || localStorage.getItem('department');
+      if (storedDept && ['PESO', 'CSWDO'].includes(storedDept.toUpperCase())) return storedDept.toUpperCase();
+      const userRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole') || '';
+      if (userRole.includes('PESO') || userRole === 'Evaluator') return 'PESO';
+      if (userRole.includes('CSWDO')) return 'CSWDO';
+      
+      if (typeof window !== 'undefined' && window.location && window.location.pathname) {
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('peso')) return 'PESO';
+        if (path.includes('cswdo')) return 'CSWDO';
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  }
+
   // Unique application number generator
   function generateApplicationNumber(agency = 'PESO') {
     const year = new Date().getFullYear();
@@ -98,14 +130,19 @@ const DataService = (() => {
   const programs = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
+        const targetAgency = filters.agency || filters.department || getCurrentDepartmentContext();
         let query = client.from('programs').select('*').order('name', { ascending: true });
-        if (filters.agency) {
-          query = query.eq('agency', filters.agency);
+        if (targetAgency) {
+          query = query.eq('agency', targetAgency);
         }
         if (filters.status) {
           query = query.eq('status', filters.status);
         }
-        return await query;
+        const res = await query;
+        if (res.data && Array.isArray(res.data) && targetAgency) {
+          res.data = res.data.filter(p => (p.agency || '').toUpperCase() === targetAgency.toUpperCase());
+        }
+        return res;
       });
     },
 
@@ -307,12 +344,13 @@ const DataService = (() => {
   const staffProfiles = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
+        const targetAgency = filters.agency || filters.department || getCurrentDepartmentContext();
         let query = client.from('staff_profiles').select('*').order('created_at', { ascending: false });
         
         // Strict Agency/Department Record Segregation
-        if (filters.agency === 'PESO' || filters.department === 'PESO') {
-          query = query.in('role', ['PESO Admin', 'PESO Officer', 'Evaluator']);
-        } else if (filters.agency === 'CSWDO' || filters.department === 'CSWDO') {
+        if (targetAgency === 'PESO') {
+          query = query.in('role', ['PESO Admin', 'PESO Officer', 'Evaluator', 'Staff']);
+        } else if (targetAgency === 'CSWDO') {
           query = query.in('role', ['CSWDO Admin', 'CSWDO Officer']);
         }
 
@@ -330,7 +368,15 @@ const DataService = (() => {
           const s = `%${filters.search}%`;
           query = query.or(`first_name.ilike.${s},last_name.ilike.${s},username.ilike.${s},email.ilike.${s}`);
         }
-        return await query;
+        const res = await query;
+        if (res.data && Array.isArray(res.data) && targetAgency) {
+          if (targetAgency === 'PESO') {
+            res.data = res.data.filter(s => !['CSWDO Admin', 'CSWDO Officer'].includes(s.role) && (s.department || 'PESO').toUpperCase() !== 'CSWDO');
+          } else if (targetAgency === 'CSWDO') {
+            res.data = res.data.filter(s => ['CSWDO Admin', 'CSWDO Officer'].includes(s.role) && (s.department || '').toUpperCase() !== 'PESO');
+          }
+        }
+        return res;
       });
     },
 
@@ -454,16 +500,17 @@ const DataService = (() => {
   const applications = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
+        const targetAgency = filters.agency || filters.department || getCurrentDepartmentContext();
         let query = client.from('applications').select(`
           *,
           beneficiary:beneficiaries!beneficiary_qr(*),
-          program:programs!program_id(*),
+          program:programs!program_id${targetAgency ? '!inner' : ''}(*),
           officer:staff_profiles!officer_id(id, username, first_name, last_name),
           admin:staff_profiles!admin_id(id, username, first_name, last_name)
         `).order('created_at', { ascending: false });
 
-        if (filters.agency) {
-          query = query.eq('program.agency', filters.agency);
+        if (targetAgency) {
+          query = query.eq('program.agency', targetAgency);
         }
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
@@ -481,7 +528,15 @@ const DataService = (() => {
         if (filters.batch_id) {
           query = query.eq('batch_id', filters.batch_id);
         }
-        return await query;
+        const res = await query;
+        if (res.data && Array.isArray(res.data) && targetAgency) {
+          res.data = res.data.filter(a => {
+            const p = a.program;
+            if (!p) return false;
+            return (p.agency || p.department || '').toUpperCase() === targetAgency.toUpperCase();
+          });
+        }
+        return res;
       });
     },
 
@@ -724,15 +779,16 @@ const DataService = (() => {
   const interviews = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
+        const targetAgency = filters.agency || filters.department || getCurrentDepartmentContext();
         let query = client.from('interview_schedules').select(`
           *,
           beneficiary:beneficiaries!beneficiary_qr(*),
-          program:programs!program_id(*),
+          program:programs!program_id${targetAgency ? '!inner' : ''}(*),
           officer:staff_profiles!officer_id(id, username, first_name, last_name)
         `).order('interview_date', { ascending: true });
 
-        if (filters.agency) {
-          query = query.eq('program.agency', filters.agency);
+        if (targetAgency) {
+          query = query.eq('program.agency', targetAgency);
         }
         if (filters.officer_id) {
           query = query.eq('officer_id', filters.officer_id);
@@ -750,7 +806,15 @@ const DataService = (() => {
         if (filters.date) {
           query = query.eq('interview_date', filters.date);
         }
-        return await query;
+        const res = await query;
+        if (res.data && Array.isArray(res.data) && targetAgency) {
+          res.data = res.data.filter(i => {
+            const p = i.program;
+            if (!p) return false;
+            return (p.agency || p.department || '').toUpperCase() === targetAgency.toUpperCase();
+          });
+        }
+        return res;
       });
     },
 
@@ -995,20 +1059,32 @@ const DataService = (() => {
   const approvedAssistance = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
+        const targetAgency = filters.agency || filters.department || getCurrentDepartmentContext();
         let query = client.from('approved_assistance').select(`
           *,
           beneficiary:beneficiaries!beneficiary_qr(*),
-          program:programs!program_id(*),
+          program:programs!program_id${targetAgency ? '!inner' : ''}(*),
           officer:staff_profiles!officer_id(id, username, first_name, last_name)
         `).order('approval_date', { ascending: false });
 
+        if (targetAgency) {
+          query = query.eq('program.agency', targetAgency);
+        }
         if (filters.beneficiary_qr) {
           query = query.eq('beneficiary_qr', filters.beneficiary_qr);
         }
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
         }
-        return await query;
+        const res = await query;
+        if (res.data && Array.isArray(res.data) && targetAgency) {
+          res.data = res.data.filter(a => {
+            const p = a.program;
+            if (!p) return false;
+            return (p.agency || p.department || '').toUpperCase() === targetAgency.toUpperCase();
+          });
+        }
+        return res;
       });
     },
 
@@ -1053,9 +1129,21 @@ const DataService = (() => {
   // 8. FUNDS TRACKING DOMAIN (CSWDO & General)
   // =========================================================================
   const funds = {
-    async getAll() {
+    async getAll(filters = {}) {
       return withRetry(async (client) => {
-        return await client.from('funds').select('*').order('id', { ascending: true });
+        const targetAgency = filters.agency || filters.department || getCurrentDepartmentContext();
+        let query = client.from('funds').select('*').order('id', { ascending: true });
+        const res = await query;
+        if (res.data && Array.isArray(res.data) && targetAgency) {
+          if (targetAgency === 'PESO') {
+            const pesoCodes = ['TUPAD', 'SPES', 'GIP', 'SEED', 'YMES', 'DILP', 'STEP', 'DOLE-AKAP', 'CKGIP', 'KEEP'];
+            res.data = res.data.filter(f => pesoCodes.includes(f.program_code?.toUpperCase()) || (f.program_code && !['AICS', 'MED', 'FIN', 'BUR', 'SOC', 'PWD', 'SC', 'EAP', 'MEDICAL', 'FINANCIAL', 'BURIAL'].includes(f.program_code?.toUpperCase())));
+          } else if (targetAgency === 'CSWDO') {
+            const cswdoCodes = ['AICS', 'MED', 'FIN', 'BUR', 'SOC', 'PWD', 'SC', 'EAP', 'MEDICAL', 'FINANCIAL', 'BURIAL'];
+            res.data = res.data.filter(f => cswdoCodes.includes(f.program_code?.toUpperCase()));
+          }
+        }
+        return res;
       });
     },
 
@@ -1198,18 +1286,30 @@ const DataService = (() => {
   const batches = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
+        const targetAgency = filters.agency || filters.department || getCurrentDepartmentContext();
         let query = client.from('batches').select(`
           *,
-          program:programs!program_id(*),
+          program:programs!program_id${targetAgency ? '!inner' : ''}(*),
           applications:applications(id, beneficiary_qr, status, amount_approved)
         `).order('created_at', { ascending: false });
+        if (targetAgency) {
+          query = query.eq('program.agency', targetAgency);
+        }
         if (filters.program_code) {
           query = query.eq('program_code', filters.program_code);
         }
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
         }
-        return await query;
+        const res = await query;
+        if (res.data && Array.isArray(res.data) && targetAgency) {
+          res.data = res.data.filter(b => {
+            const p = b.program;
+            if (!p) return false;
+            return (p.agency || p.department || '').toUpperCase() === targetAgency.toUpperCase();
+          });
+        }
+        return res;
       });
     },
 

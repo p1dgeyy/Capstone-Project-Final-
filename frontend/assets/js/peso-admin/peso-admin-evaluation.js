@@ -13,7 +13,9 @@ async function initEvalModuleData() {
         try {
             const res = await DataService.applications.getAll({ agency: 'PESO' });
             if (res.data && Array.isArray(res.data)) {
-                evalApplicationsList = res.data.map(a => {
+                evalApplicationsList = res.data
+                    .filter(a => !a.program || (a.program.agency || a.program.department || 'PESO').toUpperCase() === 'PESO')
+                    .map(a => {
                     const ben = a.beneficiary || {};
                     const fullName = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || ben.username || 'Applicant';
                     const docsList = Array.isArray(a.documents_json) && a.documents_json.length > 0

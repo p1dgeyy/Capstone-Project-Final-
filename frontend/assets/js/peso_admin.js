@@ -227,27 +227,27 @@
                 batchRes,
                 benRes
             ] = await Promise.all([
-                DataService.programs.getAll(),
-                DataService.applications.getAll(),
+                DataService.programs.getAll({ agency: 'PESO' }),
+                DataService.applications.getAll({ agency: 'PESO' }),
                 DataService.staffProfiles.getAll({ agency: 'PESO' }),
-                DataService.interviews.getAll(),
-                DataService.funds.getAll(),
-                DataService.approvedAssistance.getAll(),
+                DataService.interviews.getAll({ agency: 'PESO' }),
+                DataService.funds.getAll({ agency: 'PESO' }),
+                DataService.approvedAssistance.getAll({ agency: 'PESO' }),
                 supabaseClient.from('notifications').select('*').order('created_at', { ascending: false }).limit(50),
                 DataService.auditLogs.getAll({ limit: 50 }),
-                DataService.batches.getAll(),
+                DataService.batches.getAll({ agency: 'PESO' }),
                 DataService.beneficiaries.getAll()
             ]);
 
-            AdminStore.programs = progRes.data || [];
-            AdminStore.applications = appRes.data || [];
-            AdminStore.officers = (staffRes.data || []).filter(s => !['CSWDO Admin', 'CSWDO Officer'].includes(s.role));
-            AdminStore.schedules = schedRes.data || [];
+            AdminStore.programs = (progRes.data || []).filter(p => (p.agency || '').toUpperCase() === 'PESO');
+            AdminStore.applications = (appRes.data || []).filter(a => (a.program?.agency || '').toUpperCase() === 'PESO');
+            AdminStore.officers = (staffRes.data || []).filter(s => !['CSWDO Admin', 'CSWDO Officer'].includes(s.role) && (s.department || 'PESO').toUpperCase() !== 'CSWDO');
+            AdminStore.schedules = (schedRes.data || []).filter(s => (s.program?.agency || '').toUpperCase() === 'PESO');
             AdminStore.funds = fundsRes.data || [];
-            AdminStore.approvedAssistance = assistRes.data || [];
+            AdminStore.approvedAssistance = (assistRes.data || []).filter(a => (a.program?.agency || '').toUpperCase() === 'PESO');
             AdminStore.notifications = notifRes.data || [];
             AdminStore.auditLogs = auditRes.data || [];
-            AdminStore.batches = batchRes.data || [];
+            AdminStore.batches = (batchRes.data || []).filter(b => (b.program?.agency || '').toUpperCase() === 'PESO');
             AdminStore.beneficiaries = benRes.data || [];
 
             // Update Tab Badges
@@ -2120,12 +2120,25 @@
     }
 
     // Realtime Synchronization Listener
+    let rtDebounceTimer = null;
     function initRealtimeSync() {
         try {
             if (typeof DataService !== 'undefined' && DataService.realtime) {
-                DataService.realtime.subscribeMulti(['programs', 'applications', 'staff_profiles', 'interview_schedules', 'approved_assistance', 'notifications'], (payload) => {
+                DataService.realtime.subscribeMulti([
+                    'programs',
+                    'applications',
+                    'staff_profiles',
+                    'interview_schedules',
+                    'approved_assistance',
+                    'notifications',
+                    'audit_logs',
+                    'batches'
+                ], (payload) => {
                     console.log('[PESO Admin Realtime Event Received]:', payload.table, payload.eventType);
-                    refreshAllData().then(() => renderActiveTab());
+                    clearTimeout(rtDebounceTimer);
+                    rtDebounceTimer = setTimeout(() => {
+                        refreshAllData().then(() => renderActiveTab());
+                    }, 100);
                 });
             }
         } catch (e) {

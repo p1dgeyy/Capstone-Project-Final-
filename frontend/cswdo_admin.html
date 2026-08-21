@@ -1823,13 +1823,33 @@
             'Denied': '#EF4444'
         };
 
-        // Initialize portal on DOM Ready
+        // Initialize portal on DOM Ready & Attach Realtime Listener
+        let cswdoAdminRtDebounce = null;
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 initAdminProfile();
                 refreshDashboardData();
                 loadApplications();
                 loadOfficersData();
+
+                if (typeof DataService !== 'undefined' && DataService.realtime) {
+                    DataService.realtime.subscribeMulti([
+                        'applications',
+                        'approved_assistance',
+                        'interview_schedules',
+                        'programs',
+                        'staff_profiles',
+                        'audit_logs'
+                    ], (payload) => {
+                        console.log('[CSWDO Admin Realtime Event]:', payload.table, payload.eventType);
+                        clearTimeout(cswdoAdminRtDebounce);
+                        cswdoAdminRtDebounce = setTimeout(() => {
+                            refreshDashboardData();
+                            loadApplications();
+                            loadOfficersData();
+                        }, 100);
+                    });
+                }
             } catch (err) {
                 console.warn('[CSWDO Admin] DOMContentLoaded init warning:', err);
             }

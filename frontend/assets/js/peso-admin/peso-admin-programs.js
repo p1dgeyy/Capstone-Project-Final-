@@ -25,7 +25,9 @@ async function initProgramsData() {
             }
 
             if (progRes && progRes.data && Array.isArray(progRes.data)) {
-                programsList = progRes.data.map(p => ({
+                programsList = progRes.data
+                    .filter(p => (p.agency || '').toUpperCase() === 'PESO')
+                    .map(p => ({
                     id: p.id,
                     code: p.code || 'PROG',
                     name: p.name || 'Program Title',

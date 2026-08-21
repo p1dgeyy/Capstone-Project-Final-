@@ -2065,7 +2065,7 @@
                 }
 
                 // 4. Batches
-                const bRes = await DataService.batches.getAll();
+                const bRes = await DataService.batches.getAll({ agency: 'PESO' });
                 if (bRes && Array.isArray(bRes.data)) {
                     batchesList = bRes.data.map(b => ({
                         id: `BAT-${b.id}`,
@@ -2083,7 +2083,7 @@
                 if (DataService.programs) {
                     const progRes = await DataService.programs.getAll({ agency: 'PESO' });
                     if (progRes && Array.isArray(progRes.data)) {
-                        programsData = progRes.data;
+                        programsData = progRes.data.filter(p => (p.agency || '').toUpperCase() === 'PESO');
                     }
                 }
 
@@ -2222,10 +2222,23 @@
                 await loadAllOfficerData();
 
                 // Realtime Subscriptions for PESO Officer
+                let officerRtDebounce = null;
                 if (typeof DataService !== 'undefined' && DataService.realtime) {
-                    DataService.realtime.subscribeMulti(['beneficiaries', 'applications', 'interview_schedules', 'batches', 'staff_profiles'], (payload) => {
+                    DataService.realtime.subscribeMulti([
+                        'beneficiaries',
+                        'applications',
+                        'interview_schedules',
+                        'approved_assistance',
+                        'batches',
+                        'programs',
+                        'staff_profiles',
+                        'notifications'
+                    ], (payload) => {
                         console.log('[PESO Officer Realtime Event]:', payload.table, payload.eventType);
-                        loadAllOfficerData();
+                        clearTimeout(officerRtDebounce);
+                        officerRtDebounce = setTimeout(() => {
+                            loadAllOfficerData();
+                        }, 100);
                     });
                 }
 
