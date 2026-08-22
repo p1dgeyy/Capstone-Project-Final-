@@ -417,21 +417,25 @@ const PesoPrograms = (() => {
      * Render the main programs catalog table (Tab 1 / Program Management)
      */
     function renderProgramsTable() {
-        const tbody = document.getElementById('programsTableBody');
-        const badge = document.getElementById('programsSectionCountBadge');
+        const tbody = document.getElementById('programsCatalogTableBody') || document.getElementById('programsTableBody');
+        const tabBadge = document.getElementById('programsTabBadge');
+        const sectionBadge = document.getElementById('programsSectionCountBadge');
         if (!tbody) return;
 
+        const activeCount = _programs.filter(p => p.status === 'Active').length;
+        if (tabBadge) tabBadge.textContent = activeCount;
+
         const filtered = _programs.filter(p => {
-            const matchesStatus = _activeFilter === 'all' 
+            const matchesStatus = _activeFilter === 'all' || _activeFilter === 'ALL'
                 ? p.status === 'Active' 
-                : (_activeFilter === 'Archived' ? p.status !== 'Active' : p.status === _activeFilter);
-            const matchesCat = _activeCategory === 'all' || p.category === _activeCategory;
+                : (_activeFilter === 'Archived' || _activeFilter === 'Inactive' ? p.status !== 'Active' : p.status === _activeFilter);
+            const matchesCat = _activeCategory === 'all' || _activeCategory === 'ALL' || p.category === _activeCategory;
             const q = _searchQuery.toLowerCase();
             const matchesSearch = !q || (p.code && p.code.toLowerCase().includes(q)) || (p.name && p.name.toLowerCase().includes(q));
             return matchesStatus && matchesCat && matchesSearch;
         });
 
-        if (badge) badge.textContent = `${filtered.length} Programs Registered`;
+        if (sectionBadge) sectionBadge.textContent = `${filtered.length} Programs Registered`;
 
         if (filtered.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No programs found matching the selected filter criteria.</td></tr>`;
@@ -447,12 +451,16 @@ const PesoPrograms = (() => {
 
             return `
                 <tr>
-                    <td class="fw-bold font-monospace text-primary">${escapeHtml(p.code)}</td>
+                    <td class="fw-bold font-monospace text-primary">
+                        <div class="d-flex align-items-center gap-1.5">
+                            <span>${escapeHtml(p.code)}</span>
+                        </div>
+                    </td>
                     <td>
                         <div class="fw-semibold text-dark">${escapeHtml(p.name)}</div>
-                        <small class="text-muted text-truncate d-block" style="max-width: 280px;">${escapeHtml(p.description || '')}</small>
+                        <span class="badge ${p.category === 'Livelihood' ? 'bg-success-subtle text-success border' : 'bg-primary-subtle text-primary border'} mt-1">${escapeHtml(p.category || 'Employment')}</span>
                     </td>
-                    <td><span class="badge ${p.category === 'Livelihood' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle'}">${escapeHtml(p.category || 'General')}</span></td>
+                    <td class="fw-bold text-dark">${formatCurrency(budget)}</td>
                     <td>
                         <div class="d-flex justify-content-between small mb-1">
                             <span class="fw-semibold">${filled} / ${slots}</span>
@@ -462,8 +470,10 @@ const PesoPrograms = (() => {
                             <div class="progress-bar ${progress >= 90 ? 'bg-danger' : 'bg-primary'}" role="progressbar" style="width: ${progress}%"></div>
                         </div>
                     </td>
-                    <td class="fw-bold text-dark">${formatCurrency(budget)}</td>
                     <td>
+                        <small class="text-muted text-truncate d-block" style="max-width: 220px;" title="${escapeHtml(p.description || '')}">${escapeHtml(p.description || 'LGU Employment Program')}</small>
+                    </td>
+                    <td class="text-center">
                         <span class="badge ${isDeactivated ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success border border-success-subtle'}">
                             <i class="bi ${isDeactivated ? 'bi-pause-circle me-1' : 'bi-check-circle me-1'}"></i>${escapeHtml(p.status || 'Active')}
                         </span>
@@ -471,6 +481,9 @@ const PesoPrograms = (() => {
                     <td class="text-end text-nowrap">
                         <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="PesoPrograms.viewProgramDetails('${p.code}')" title="View Details">
                             <i class="bi bi-eye me-1"></i>Details
+                        </button>
+                        <button class="btn btn-sm btn-primary py-1 px-2 me-1" onclick="PesoPrograms.drilldownToBatches('${p.code}')" title="View Batches">
+                            <i class="bi bi-diagram-3 me-1"></i>Batches
                         </button>
                         <button class="btn btn-sm ${isDeactivated ? 'btn-outline-success' : 'btn-outline-danger'} py-1 px-2" onclick="PesoPrograms.toggleProgramStatus('${p.code}')" title="${isDeactivated ? 'Activate Program' : 'Deactivate Program'}">
                             <i class="bi ${isDeactivated ? 'bi-play-fill me-1' : 'bi-pause-fill me-1'}"></i>${isDeactivated ? 'Activate' : 'Deactivate'}
@@ -485,43 +498,7 @@ const PesoPrograms = (() => {
      * Render the Multi-Level Assignment table in Admin Portal
      */
     function renderAssignmentTable() {
-        const tbody = document.getElementById('assignProgramsTableBody');
-        if (!tbody) return;
-
-        const activeProgs = _programs.filter(p => p.status === 'Active');
-        if (activeProgs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No active programs available for assignment monitoring.</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = activeProgs.map(p => {
-            const slots = Number(p.slots_target) || Number(p.target_beneficiaries) || 100;
-            const filled = Number(p.slots_filled) || 0;
-            const remaining = Math.max(0, slots - filled);
-            const budget = Number(p.budget) || Number(p.budget_allocated) || 0;
-            const progress = slots > 0 ? Math.min(100, Math.round((filled / slots) * 100)) : 0;
-
-            return `
-                <tr>
-                    <td class="fw-bold font-monospace text-primary">${escapeHtml(p.code)}</td>
-                    <td class="fw-semibold text-dark">${escapeHtml(p.name)}</td>
-                    <td><span class="badge bg-light text-dark border">${escapeHtml(p.category || 'General')}</span></td>
-                    <td>
-                        <div class="fw-semibold small">${filled} / ${slots} Beneficiaries</div>
-                        <div class="progress" style="height: 5px; margin-top: 4px;">
-                            <div class="progress-bar ${progress >= 90 ? 'bg-danger' : 'bg-success'}" style="width: ${progress}%"></div>
-                        </div>
-                    </td>
-                    <td><span class="badge bg-info-subtle text-info border">${remaining} Available</span></td>
-                    <td class="fw-bold">${formatCurrency(budget)}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-primary py-1 px-2" onclick="PesoPrograms.drilldownToBatches('${p.code}')" title="View Assigned Batches">
-                            <i class="bi bi-diagram-3 me-1"></i>Batches
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        renderProgramsTable();
     }
 
     /**
@@ -531,32 +508,40 @@ const PesoPrograms = (() => {
         const prog = _programs.find(p => p.code === programCode);
         if (!prog) return;
 
-        const level1 = document.getElementById('assignLevel1');
-        const level2 = document.getElementById('assignLevel2');
-        const level3 = document.getElementById('assignLevel3');
+        const level1 = document.getElementById('programsLevel1View') || document.getElementById('assignLevel1');
+        const level2 = document.getElementById('programsLevel2BatchesView') || document.getElementById('assignLevel2');
+        const level3 = document.getElementById('programsLevel3BeneficiariesView') || document.getElementById('assignLevel3');
 
         if (level1) level1.classList.add('d-none');
         if (level2) level2.classList.remove('d-none');
         if (level3) level3.classList.add('d-none');
 
-        const titleEl = document.getElementById('assignLevel2Title');
+        const codeBadge = document.getElementById('drilldownProgCodeBadge');
+        if (codeBadge) codeBadge.textContent = prog.code;
+
+        const titleEl = document.getElementById('drilldownProgTitle') || document.getElementById('assignLevel2Title');
         if (titleEl) titleEl.textContent = `${prog.name} (${prog.code}) — Batch Assignment Roster`;
 
-        const tbody = document.getElementById('assignBatchesTableBody');
+        const tbody = document.getElementById('drilldownBatchesTableBody') || document.getElementById('assignBatchesTableBody');
         if (!tbody) return;
 
         const batches = _batches.filter(b => b.program_code === programCode || b.program === programCode);
         if (batches.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No livelihood batches created for ${escapeHtml(programCode)} yet.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No livelihood batches created for ${escapeHtml(programCode)} yet.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = batches.map(b => `
             <tr>
-                <td class="fw-bold font-monospace text-primary">${escapeHtml(b.name)}</td>
-                <td>${escapeHtml(b.cluster_location || 'Koronadal City')}</td>
-                <td><span class="badge bg-info text-dark font-monospace">${b.assigned_count || 0} / ${b.capacity || 30}</span></td>
-                <td><span class="badge bg-success-subtle text-success border">Active</span></td>
+                <td>
+                    <div class="fw-bold text-dark font-monospace">${escapeHtml(b.name)}</div>
+                    <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(b.cluster_location || 'Koronadal City')}</small>
+                </td>
+                <td><span class="badge bg-light text-dark border">${b.capacity || 50} Slots</span></td>
+                <td>
+                    <span class="badge bg-primary-subtle text-primary font-monospace">${b.assigned_count || 0} Enrolled</span>
+                </td>
+                <td><small class="text-muted">2026-01-15</small></td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="PesoPrograms.drilldownToBeneficiaries('${b.id}', '${escapeHtml(b.name)}')">
                         <i class="bi bi-people me-1"></i>View Beneficiaries
@@ -572,18 +557,21 @@ const PesoPrograms = (() => {
      * Level 3: Drilldown to Beneficiaries
      */
     function drilldownToBeneficiaries(batchId, batchName) {
-        const level1 = document.getElementById('assignLevel1');
-        const level2 = document.getElementById('assignLevel2');
-        const level3 = document.getElementById('assignLevel3');
+        const level1 = document.getElementById('programsLevel1View') || document.getElementById('assignLevel1');
+        const level2 = document.getElementById('programsLevel2BatchesView') || document.getElementById('assignLevel2');
+        const level3 = document.getElementById('programsLevel3BeneficiariesView') || document.getElementById('assignLevel3');
 
         if (level1) level1.classList.add('d-none');
         if (level2) level2.classList.add('d-none');
         if (level3) level3.classList.remove('d-none');
 
-        const titleEl = document.getElementById('assignLevel3Title');
-        if (titleEl) titleEl.textContent = `${batchName} — Beneficiary List`;
+        const batchBadge = document.getElementById('drilldownBatchBadge');
+        if (batchBadge) batchBadge.textContent = `BATCH #${batchId}`;
 
-        const tbody = document.getElementById('assignBeneficiariesTableBody');
+        const titleEl = document.getElementById('drilldownBatchTitle') || document.getElementById('assignLevel3Title');
+        if (titleEl) titleEl.textContent = `${batchName} — Assigned Beneficiaries`;
+
+        const tbody = document.getElementById('drilldownBeneficiariesTableBody') || document.getElementById('assignBeneficiariesTableBody');
         if (!tbody) return;
 
         const beneficiaries = _beneficiaries.filter(b => String(b.batch_id) === String(batchId));
@@ -594,13 +582,16 @@ const PesoPrograms = (() => {
 
         tbody.innerHTML = beneficiaries.map(b => `
             <tr>
+                <td>
+                    <div class="fw-semibold text-dark">${escapeHtml(b.name || `${b.first_name} ${b.last_name}`)}</div>
+                    <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(b.barangay || 'Koronadal')}</small>
+                </td>
                 <td class="fw-bold font-monospace text-primary">${escapeHtml(b.qr_code)}</td>
-                <td class="fw-semibold text-dark">${escapeHtml(b.name || `${b.first_name} ${b.last_name}`)}</td>
                 <td class="font-monospace text-muted">${maskPhone(b.phone)}</td>
-                <td>${escapeHtml(b.barangay || 'Koronadal')}</td>
-                <td><span class="badge bg-light text-dark border">${escapeHtml(b.category || 'Beneficiary')}</span></td>
+                <td><small class="text-muted">2026-01-20</small></td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border">Active</span></td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="alert('Viewing Beneficiary: ${escapeHtml(b.name)}')">
+                    <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="alert('Beneficiary Profile: ${escapeHtml(b.name || `${b.first_name} ${b.last_name}`)}\\nQR: ${escapeHtml(b.qr_code)}\\nContact: ${maskPhone(b.phone)}\\nAddress: ${escapeHtml(b.barangay || 'Koronadal City')}')">
                         <i class="bi bi-eye"></i> View Profile
                     </button>
                 </td>
@@ -611,18 +602,18 @@ const PesoPrograms = (() => {
     }
 
     function backToLevel1() {
-        const level1 = document.getElementById('assignLevel1');
-        const level2 = document.getElementById('assignLevel2');
-        const level3 = document.getElementById('assignLevel3');
+        const level1 = document.getElementById('programsLevel1View') || document.getElementById('assignLevel1');
+        const level2 = document.getElementById('programsLevel2BatchesView') || document.getElementById('assignLevel2');
+        const level3 = document.getElementById('programsLevel3BeneficiariesView') || document.getElementById('assignLevel3');
         if (level1) level1.classList.remove('d-none');
         if (level2) level2.classList.add('d-none');
         if (level3) level3.classList.add('d-none');
     }
 
     function backToLevel2() {
-        const level1 = document.getElementById('assignLevel1');
-        const level2 = document.getElementById('assignLevel2');
-        const level3 = document.getElementById('assignLevel3');
+        const level1 = document.getElementById('programsLevel1View') || document.getElementById('assignLevel1');
+        const level2 = document.getElementById('programsLevel2BatchesView') || document.getElementById('assignLevel2');
+        const level3 = document.getElementById('programsLevel3BeneficiariesView') || document.getElementById('assignLevel3');
         if (level1) level1.classList.add('d-none');
         if (level2) level2.classList.remove('d-none');
         if (level3) level3.classList.add('d-none');
@@ -635,9 +626,7 @@ const PesoPrograms = (() => {
         const prog = _programs.find(p => p.code === code);
         if (!prog) return;
 
-        const modalEl = document.getElementById('programDetailsModal');
         const contentEl = document.getElementById('programDetailsModalBody');
-
         if (contentEl) {
             contentEl.innerHTML = `
                 <div class="p-3">
@@ -678,44 +667,46 @@ const PesoPrograms = (() => {
             `;
         }
 
-        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        if (typeof PesoAdminApp !== 'undefined' && PesoAdminApp.safeOpenModal) {
+            PesoAdminApp.safeOpenModal('programDetailsModal');
         } else {
-            alert(`Program: ${prog.code} - ${prog.name}\nBudget: ${formatCurrency(prog.budget)}\nStatus: ${prog.status}`);
+            const modalEl = document.getElementById('programDetailsModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
         }
 
-        logAudit('VIEW_PROGRAM_DETAILS', `Viewed details for program ${code}`);
+        logAudit('VIEW_PROGRAM_DETAILS', `Inspected read-only program details for ${code}`);
     }
 
     /**
-     * Program Status Toggle (USER RULE 6: Deactivation Safeguard)
+     * Program Deactivation Safeguard (USER RULE 1 / Program Rule 1)
      */
     async function toggleProgramStatus(code) {
         const prog = _programs.find(p => p.code === code);
         if (!prog) return;
 
-        const isDeactivating = (prog.status === 'Active');
+        const isDeactivating = prog.status === 'Active';
 
-        // Check active beneficiary restriction
         if (isDeactivating) {
-            const activeBensCount = Number(prog.slots_filled) || 0;
-            if (activeBensCount > 0) {
-                alert(`Deactivation Blocked: Program "${prog.code}" has ${activeBensCount} active beneficiaries enrolled. Assignments must be completed or transferred before this program can be deactivated.`);
-                logAudit('BLOCKED_DEACTIVATION', `Deactivation blocked for ${prog.code} due to ${activeBensCount} active beneficiaries.`);
+            const activeBens = _beneficiaries.filter(b => (b.program_code === code || b.program === code) && b.status === 'Active');
+            if (activeBens.length > 0) {
+                alert(`Action Blocked (Compliance Rule): Program "${prog.code}" has ${activeBens.length} active beneficiaries assigned. You cannot deactivate this program until all beneficiaries complete their term or are transferred.`);
+                logAudit('BLOCKED_DEACTIVATION', `Attempted deactivation of ${prog.code} blocked due to ${activeBens.length} active beneficiaries.`);
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to deactivate program "${prog.code} - ${prog.name}"? It will be archived.`)) {
                 return;
             }
         }
 
         const newStatus = isDeactivating ? 'Inactive' : 'Active';
-        if (!confirm(`Are you sure you want to change the status of program "${prog.code}" to ${newStatus}?`)) {
-            return;
-        }
-
         prog.status = newStatus;
 
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
-                await supabaseClient.from('programs').update({ status: newStatus }).eq('code', prog.code);
+                await supabaseClient.from('programs').update({ status: newStatus }).eq('code', code);
             } catch (err) {
                 console.warn('[PesoPrograms] Supabase update warning:', err.message);
             }
@@ -724,7 +715,7 @@ const PesoPrograms = (() => {
         renderProgramsTable();
         renderArchiveTable();
 
-        logAudit(isDeactivating ? 'DEACTIVATE_PROGRAM' : 'ACTIVATE_PROGRAM', `Set status of program ${prog.code} to ${newStatus}`);
+        logAudit('TOGGLE_PROGRAM_STATUS', `${isDeactivating ? 'Deactivated' : 'Activated'} program ${prog.code}`);
 
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
@@ -740,25 +731,32 @@ const PesoPrograms = (() => {
      */
     function renderArchiveTable() {
         const tbody = document.getElementById('archiveTableBody');
-        const badge = document.getElementById('archiveCountBadge');
+        const badge = document.getElementById('archiveTabBadge');
+        const sectionBadge = document.getElementById('archiveSectionBadge');
         if (!tbody) return;
 
         const archived = _programs.filter(p => p.status !== 'Active');
 
-        if (badge) badge.textContent = `${archived.length} Deactivated`;
+        if (badge) badge.textContent = archived.length;
+        if (sectionBadge) sectionBadge.textContent = `${archived.length} Archived Items`;
 
         if (archived.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-archive me-1"></i>No archived or deactivated programs found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-archive me-1"></i>No archived or deactivated programs found.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = archived.map(p => `
             <tr>
-                <td class="fw-bold font-monospace text-secondary text-decoration-line-through">${escapeHtml(p.code)}</td>
-                <td class="text-secondary">${escapeHtml(p.name)}</td>
+                <td class="fw-bold font-monospace text-secondary">
+                    <span class="text-decoration-line-through">${escapeHtml(p.code)}</span>
+                    <div class="fw-semibold text-dark">${escapeHtml(p.name)}</div>
+                </td>
                 <td><span class="badge bg-secondary-subtle text-secondary border">${escapeHtml(p.category || 'General')}</span></td>
-                <td><span class="text-muted">${formatCurrency(p.budget)}</span></td>
-                <td><span class="badge bg-danger-subtle text-danger border">Deactivated</span></td>
+                <td>
+                    <small class="text-muted d-block">Budget: ${formatCurrency(p.budget)}</small>
+                    <small class="text-muted d-block">Target Slots: ${p.slots_target || 100}</small>
+                </td>
+                <td><small class="text-muted font-monospace">2026-01-01</small></td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-success py-1 px-2 me-1" onclick="PesoPrograms.toggleProgramStatus('${p.code}')" title="Reactivate Program">
                         <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
@@ -850,7 +848,6 @@ const PesoPrograms = (() => {
         }
 
         renderProgramsTable();
-        renderAssignmentTable();
 
         logAudit('CREATE_PROGRAM', `Created new program ${code} (${name}) with budget ${formatCurrency(budget)}`);
 
@@ -869,9 +866,9 @@ const PesoPrograms = (() => {
     }
 
     function filterPrograms() {
-        _searchQuery = document.getElementById('searchProgramsQuery')?.value || '';
+        _searchQuery = (document.getElementById('programsSearchInput')?.value || document.getElementById('searchProgramsQuery')?.value || '').trim();
         _activeCategory = document.getElementById('filterProgramsCategory')?.value || 'all';
-        _activeFilter = document.getElementById('filterProgramsStatus')?.value || 'all';
+        _activeFilter = document.getElementById('programsStatusFilter')?.value || document.getElementById('filterProgramsStatus')?.value || 'all';
         renderProgramsTable();
     }
 

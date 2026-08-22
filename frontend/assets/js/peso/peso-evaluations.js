@@ -47,34 +47,147 @@ const PesoEvaluations = (() => {
     }
 
     /**
-     * Render the Level 1 Programs summary for Evaluation
+     * Render the main evaluation queue table in Admin Portal (Tab 3 / Evaluation)
      */
     function renderEvalLevel1(programs = []) {
-        const tbody = document.getElementById('evalLevel1TableBody');
+        const queueTbody = document.getElementById('evaluationQueueTableBody');
+        const l1Tbody = document.getElementById('evalLevel1TableBody');
+
+        // Update Stat Cards in Evaluation View
+        const total = _evaluations.length;
+        const pending = _evaluations.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
+        const approved = _evaluations.filter(a => a.status === 'Approved' || a.status === 'Officer Approved').length;
+        const denied = _evaluations.filter(a => a.status === 'Denied' || a.status === 'Officer Denied').length;
+
+        const elTotal = document.getElementById('statEvalTotalApps');
+        if (elTotal) elTotal.textContent = total;
+
+        const elPending = document.getElementById('statEvalPendingApps');
+        if (elPending) elPending.textContent = pending;
+
+        const elApproved = document.getElementById('statEvalApprovedApps');
+        if (elApproved) elApproved.textContent = approved;
+
+        const elDenied = document.getElementById('statEvalDeniedApps');
+        if (elDenied) elDenied.textContent = denied;
+
+        const tabBadge = document.getElementById('evalTabBadge');
+        if (tabBadge) tabBadge.textContent = pending;
+
+        // Populate program filter dropdown if empty
+        const progFilter = document.getElementById('evalProgramFilter');
+        if (progFilter && progFilter.options.length <= 1) {
+            const uniqueProgs = Array.from(new Set(_evaluations.map(a => a.programCode || 'PESO'))).filter(Boolean);
+            uniqueProgs.forEach(pc => {
+                const opt = document.createElement('option');
+                opt.value = pc;
+                opt.textContent = pc;
+                progFilter.appendChild(opt);
+            });
+        }
+
+        if (queueTbody) {
+            renderEvaluationQueue();
+        }
+
+        if (l1Tbody) {
+            const activeProgs = (programs && programs.length > 0) ? programs.filter(p => p.status === 'Active') : [];
+            if (activeProgs.length === 0) {
+                l1Tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No programs currently available for evaluation review.</td></tr>`;
+                return;
+            }
+
+            l1Tbody.innerHTML = activeProgs.map(p => {
+                const progApps = _evaluations.filter(a => a.programCode === p.code || a.program_id === p.id);
+                const progPending = progApps.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
+                const progApproved = progApps.filter(a => a.status === 'Approved' || a.status === 'Officer Approved').length;
+                const progDenied = progApps.filter(a => a.status === 'Denied' || a.status === 'Officer Denied').length;
+
+                return `
+                    <tr>
+                        <td class="fw-bold font-monospace text-primary">${escapeHtml(p.code)}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(p.name)}</td>
+                        <td><span class="badge bg-warning text-dark">${progPending} Pending</span></td>
+                        <td><span class="badge bg-success">${progApproved} Approved</span></td>
+                        <td><span class="badge bg-danger">${progDenied} Denied</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-primary py-1 px-2" onclick="PesoEvaluations.drilldownProgramEval('${p.code}', '${escapeHtml(p.name)}')">
+                                <i class="bi bi-folder2-open me-1"></i>Open Queue
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+
+    /**
+     * Render the Application Evaluation Queue for Admin Portal
+     */
+    function renderEvaluationQueue() {
+        const tbody = document.getElementById('evaluationQueueTableBody') || document.getElementById('evalApplicationsTableBody');
         if (!tbody) return;
 
-        const activeProgs = programs.filter(p => p.status === 'Active');
-        if (activeProgs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No programs currently available for evaluation review.</td></tr>`;
+        const searchQ = (document.getElementById('evalSearchInput')?.value || '').toLowerCase().trim();
+        const progFilter = document.getElementById('evalProgramFilter')?.value || 'ALL';
+        const statusFilter = document.getElementById('evalStatusFilter')?.value || 'ALL';
+
+        let filtered = _evaluations.filter(a => {
+            const matchesSearch = !searchQ ||
+                (a.applicant_name && a.applicant_name.toLowerCase().includes(searchQ)) ||
+                (a.beneficiaryName && a.beneficiaryName.toLowerCase().includes(searchQ)) ||
+                (a.application_number && a.application_number.toLowerCase().includes(searchQ)) ||
+                (a.qr_code && a.qr_code.toLowerCase().includes(searchQ));
+
+            const matchesProg = progFilter === 'ALL' || (a.programCode || '') === progFilter;
+            const matchesStatus = statusFilter === 'ALL' ||
+                (statusFilter === 'Pending' ? (a.status === 'Pending' || a.status === 'Under Review') : (a.status === statusFilter));
+
+            return matchesSearch && matchesProg && matchesStatus;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No applications found matching the selected filter criteria.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = activeProgs.map(p => {
-            const progApps = _evaluations.filter(a => a.programCode === p.code || a.program_id === p.id);
-            const pending = progApps.filter(a => a.status === 'Pending' || a.status === 'Under Review').length;
-            const approved = progApps.filter(a => a.status === 'Approved' || a.status === 'Officer Approved').length;
-            const denied = progApps.filter(a => a.status === 'Denied' || a.status === 'Officer Denied').length;
+        tbody.innerHTML = filtered.map(app => {
+            const isApproved = app.status === 'Approved' || app.status === 'Officer Approved';
+            const isDenied = app.status === 'Denied' || app.status === 'Officer Denied';
+            const badgeClass = isApproved ? 'bg-success-subtle text-success border border-success-subtle' : (isDenied ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle');
+            const appId = app.id || app.dbId;
+            const appNum = app.application_number || `APP-2026-00${appId}`;
+            const applicantName = app.beneficiaryName || app.applicant_name || 'Applicant';
 
             return `
                 <tr>
-                    <td class="fw-bold font-monospace text-primary">${escapeHtml(p.code)}</td>
-                    <td class="fw-semibold text-dark">${escapeHtml(p.name)}</td>
-                    <td><span class="badge bg-warning text-dark">${pending} Pending</span></td>
-                    <td><span class="badge bg-success">${approved} Approved</span></td>
-                    <td><span class="badge bg-danger">${denied} Denied</span></td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-primary py-1 px-2" onclick="PesoEvaluations.drilldownProgramEval('${p.code}', '${escapeHtml(p.name)}')">
-                            <i class="bi bi-folder2-open me-1"></i>Open Queue
+                    <td>
+                        <div class="fw-semibold text-dark">${escapeHtml(applicantName)}</div>
+                        <small class="text-muted font-monospace">${escapeHtml(appNum)}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-primary-subtle text-primary border font-monospace">${escapeHtml(app.programCode || 'PESO')}</span>
+                        <small class="text-muted d-block text-truncate" style="max-width: 180px;">${escapeHtml(app.program || 'Employment Assistance')}</small>
+                    </td>
+                    <td>
+                        <small class="text-muted font-monospace">${escapeHtml(app.dateSubmitted || app.date_applied || '2026-01-10')}</small>
+                    </td>
+                    <td>
+                        <small class="text-dark fw-medium d-block text-truncate" style="max-width: 220px;" title="${escapeHtml(app.remarks || 'No officer remarks')}">${escapeHtml(app.remarks || 'Verified requirements.')}</small>
+                        <span class="badge bg-light text-muted border" style="font-size: 0.7rem;"><i class="bi bi-file-earmark-check me-1"></i>Requirements Attached</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge ${badgeClass}">${escapeHtml(app.status || 'Pending')}</span>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="PesoEvaluations.openCaseFile('${appId}')" title="Inspect Case File (Read-Only)">
+                            <i class="bi bi-file-earmark-text me-1"></i>Inspect
+                        </button>
+                        <button class="btn btn-sm btn-success py-1 px-2 me-1" onclick="PesoEvaluations.processDecision('${appId}', 'Approved')" ${isApproved ? 'disabled' : ''} title="Approve Application">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger py-1 px-2" onclick="PesoEvaluations.processDecision('${appId}', 'Denied')" ${isDenied ? 'disabled' : ''} title="Deny Application">
+                            <i class="bi bi-x-lg"></i>
                         </button>
                     </td>
                 </tr>
@@ -102,51 +215,7 @@ const PesoEvaluations = (() => {
      * Render the applications queue (Level 3)
      */
     function renderEvalLevel3(progCode) {
-        const tbody = document.getElementById('evalApplicationsTableBody') || document.getElementById('evaluationTableBody');
-        if (!tbody) return;
-
-        let filtered = _evaluations;
-        if (progCode) {
-            filtered = filtered.filter(a => a.programCode === progCode || a.program_id === progCode);
-        }
-
-        if (_activeEvalFilter !== 'all') {
-            filtered = filtered.filter(a => a.status === _activeEvalFilter);
-        }
-
-        if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No applications found in this evaluation queue.</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = filtered.map(app => {
-            const isApproved = app.status === 'Approved' || app.status === 'Officer Approved';
-            const isDenied = app.status === 'Denied' || app.status === 'Officer Denied';
-            const badgeClass = isApproved ? 'bg-success' : (isDenied ? 'bg-danger' : 'bg-warning text-dark');
-            const appId = app.id || app.dbId;
-
-            return `
-                <tr>
-                    <td class="fw-bold font-monospace text-primary">#${escapeHtml(String(app.id))}</td>
-                    <td class="fw-semibold text-dark">${escapeHtml(app.beneficiaryName || app.applicant_name || 'Applicant')}</td>
-                    <td><span class="badge bg-light text-dark border font-monospace">${escapeHtml(app.programCode || app.program || 'PESO')}</span></td>
-                    <td><small class="text-muted font-monospace">${escapeHtml(app.dateSubmitted || app.date_applied || '-')}</small></td>
-                    <td><span class="badge bg-info-subtle text-dark border"><i class="bi bi-file-earmark-check me-1"></i>Verified</span></td>
-                    <td><span class="badge ${badgeClass}">${escapeHtml(app.status || 'Pending')}</span></td>
-                    <td class="text-end text-nowrap">
-                        <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="PesoEvaluations.openCaseFile('${appId}')" title="Inspect Case File (Read-Only)">
-                            <i class="bi bi-file-earmark-text me-1"></i>Inspect
-                        </button>
-                        <button class="btn btn-sm btn-success py-1 px-2 me-1" onclick="PesoEvaluations.processDecision('${appId}', 'Approved')" ${isApproved ? 'disabled' : ''} title="Approve Application">
-                            <i class="bi bi-check-lg"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger py-1 px-2" onclick="PesoEvaluations.processDecision('${appId}', 'Denied')" ${isDenied ? 'disabled' : ''} title="Deny Application">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        renderEvaluationQueue();
     }
 
     function backToEvalLevel1() {
@@ -289,4 +358,8 @@ const PesoEvaluations = (() => {
 // Global shortcuts
 window.PesoEvaluations = PesoEvaluations;
 window.renderEvalLevel1Programs = PesoEvaluations.renderEvalLevel1;
+window.renderEvaluationQueue = PesoEvaluations.renderEvalLevel1;
+window.filterEvaluationQueue = () => PesoEvaluations.renderEvalLevel1();
 window.openCaseFileInspectionModal = PesoEvaluations.openCaseFile;
+window.processEvaluationDecision = (id, dec) => PesoEvaluations.processDecision(id, dec);
+

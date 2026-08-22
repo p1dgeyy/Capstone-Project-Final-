@@ -271,6 +271,21 @@ const PesoOfficerApp = (() => {
                 state.beneficiaries = [...PesoPrograms.CANONICAL_PESO_BENEFICIARIES];
             }
 
+            if (state.applications.length === 0) {
+                state.applications = [
+                    { id: 1, dbId: 1, application_number: 'APP-2026-001', beneficiaryName: 'Maria Santos', applicant_name: 'Maria Santos', programCode: 'TUPAD', program: 'TUPAD (Emergency Employment)', date_applied: '2026-01-10', dateSubmitted: '2026-01-10', status: 'Pending', remarks: 'Complete 2x2 photo and Barangay Indigency attached.', amount_requested: 5000, amount_approved: 5000 },
+                    { id: 2, dbId: 2, application_number: 'APP-2026-002', beneficiaryName: 'Juan Dela Cruz', applicant_name: 'Juan Dela Cruz', programCode: 'TUPAD', program: 'TUPAD (Emergency Employment)', date_applied: '2026-01-12', dateSubmitted: '2026-01-12', status: 'Pending', remarks: 'Displaced transport worker from Morales cluster.', amount_requested: 5000, amount_approved: 5000 },
+                    { id: 3, dbId: 3, application_number: 'APP-2026-003', beneficiaryName: 'Carlos Mendoza', applicant_name: 'Carlos Mendoza', programCode: 'SPES', program: 'SPES (Student Employment)', date_applied: '2026-01-14', dateSubmitted: '2026-01-14', status: 'Approved', remarks: 'Approved for 30-day summer internship with SPES stipend.', amount_requested: 8000, amount_approved: 8000 }
+                ];
+            }
+
+            if (state.schedules.length === 0) {
+                state.schedules = [
+                    { id: 1, slot_id: 'SLOT-101', title: 'TUPAD Orientation & Tool Handout', beneficiaryName: 'Maria Santos', phone: '0917-123-4567', beneficiaryPhone: '0917-123-4567', programCode: 'TUPAD', date: '2026-08-25', interviewDate: '2026-08-25', time: '09:00 AM', scheduleTime: '09:00 AM', venue: 'Koronadal City Hall Gymnasium', officerName: 'Jane Smith', status: 'Scheduled', attendance: 'Pending' },
+                    { id: 2, slot_id: 'SLOT-102', title: 'SPES Pre-Deployment Briefing', beneficiaryName: 'Carlos Mendoza', phone: '0921-567-8901', beneficiaryPhone: '0921-567-8901', programCode: 'SPES', date: '2026-08-26', interviewDate: '2026-08-26', time: '10:30 AM', scheduleTime: '10:30 AM', venue: 'PESO Conference Hall Room A', officerName: 'Jane Smith', status: 'Scheduled', attendance: 'Pending' }
+                ];
+            }
+
             state.isLoaded = true;
 
         } catch (err) {

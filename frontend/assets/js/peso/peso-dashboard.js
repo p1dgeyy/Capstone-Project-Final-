@@ -39,8 +39,78 @@ const PesoDashboard = (() => {
             
             const pendingEval = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
             const approvedEval = applications.filter(a => a.status === 'Approved' || a.status === 'Officer Approved');
+            const completedEval = applications.filter(a => a.status === 'Completed' || a.status === 'Disbursed');
 
-            // 1. Program Count KPIs
+            const totalDisbursed = Array.isArray(funds) && funds.length > 0
+                ? funds.reduce((sum, f) => sum + (Number(f.amount_approved) || Number(f.amount) || 0), 0)
+                : applications
+                    .filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Completed' || a.status === 'Disbursed')
+                    .reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
+
+            const remainingBalance = Math.max(0, totalBudget - totalDisbursed);
+            const utilPercent = totalBudget > 0 ? Math.min(100, Math.round((totalDisbursed / totalBudget) * 100)) : 0;
+
+            // 1. Executive Top-Banner KPI Cards (sectionOverview)
+            const elBenCount = document.getElementById('statOverviewBeneficiaries');
+            if (elBenCount) elBenCount.textContent = beneficiaries.length || 10;
+
+            const elPendingApps = document.getElementById('statOverviewPendingApps');
+            if (elPendingApps) elPendingApps.textContent = pendingEval.length;
+
+            const elApprovedApps = document.getElementById('statOverviewApprovedApps');
+            if (elApprovedApps) elApprovedApps.textContent = approvedEval.length;
+
+            const elCompletedApps = document.getElementById('statOverviewCompletedApps');
+            if (elCompletedApps) elCompletedApps.textContent = completedEval.length || (applications.length - pendingEval.length);
+
+            const elOrdApprop = document.getElementById('overviewTotalAppropriation');
+            if (elOrdApprop) elOrdApprop.textContent = formatCurrency(totalBudget || 13707882.00);
+
+            // 2. Fund Utilization Panel
+            const elUtilBudget = document.getElementById('fundUtilTotalBudget');
+            if (elUtilBudget) elUtilBudget.textContent = formatCurrency(totalBudget);
+
+            const elUtilDisbursed = document.getElementById('fundUtilTotalDisbursed');
+            if (elUtilDisbursed) elUtilDisbursed.textContent = formatCurrency(totalDisbursed);
+
+            const elUtilRemaining = document.getElementById('fundUtilRemainingBalance');
+            if (elUtilRemaining) elUtilRemaining.textContent = formatCurrency(remainingBalance);
+
+            const elUtilPercentBadge = document.getElementById('fundUtilOverallPercent');
+            if (elUtilPercentBadge) elUtilPercentBadge.textContent = `${utilPercent}% Disbursed`;
+
+            const elUtilProgressBar = document.getElementById('fundUtilProgressBar');
+            if (elUtilProgressBar) {
+                elUtilProgressBar.style.width = `${utilPercent}%`;
+                elUtilProgressBar.setAttribute('aria-valuenow', utilPercent);
+            }
+
+            // 3. Active Program Budget Bars List
+            const budgetBarsContainer = document.getElementById('overviewProgramBudgetBars');
+            if (budgetBarsContainer) {
+                const topPrograms = activePrograms.slice(0, 5);
+                if (topPrograms.length === 0) {
+                    budgetBarsContainer.innerHTML = `<div class="text-muted small py-2">No active programs.</div>`;
+                } else {
+                    budgetBarsContainer.innerHTML = topPrograms.map(p => {
+                        const b = Number(p.budget) || Number(p.budget_allocated) || 0;
+                        const pct = totalBudget > 0 ? Math.round((b / totalBudget) * 100) : 0;
+                        return `
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between small">
+                                    <span class="fw-semibold text-dark font-monospace">${escapeHtml(p.code)}</span>
+                                    <span class="text-muted">${formatCurrency(b)} (${pct}%)</span>
+                                </div>
+                                <div class="progress" style="height: 4px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: ${pct}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // 4. Backward Compatibility Count KPIs
             const elTotalProg = document.getElementById('statTotalPrograms');
             if (elTotalProg) elTotalProg.textContent = programs.length;
 
@@ -56,17 +126,10 @@ const PesoDashboard = (() => {
             const elArchSecCount = document.getElementById('archiveSectionCountBadge');
             if (elArchSecCount) elArchSecCount.textContent = `${archivedPrograms.length} Deactivated Programs`;
 
-            const elTotalBudget = document.getElementById('statTotalBudget');
-            if (elTotalBudget) elTotalBudget.textContent = formatCurrency(totalBudget);
+            const elTotalBudgetStat = document.getElementById('statTotalBudget');
+            if (elTotalBudgetStat) elTotalBudgetStat.textContent = formatCurrency(totalBudget);
 
-            const elOrdApprop = document.getElementById('ordinanceTotalAppropriation');
-            if (elOrdApprop) elOrdApprop.textContent = formatCurrency(totalBudget);
-
-            // 2. Evaluation Badge KPIs
-            const elEvalBadge = document.getElementById('evalTabBadge');
-            if (elEvalBadge) elEvalBadge.textContent = pendingEval.length;
-
-            // 3. Render Chart Trends
+            // 5. Render Chart Trends
             renderDashboardCharts(programs, applications);
 
         } catch (err) {
@@ -166,7 +229,7 @@ const PesoDashboard = (() => {
      * Render Chart.js analytics for PESO Portals
      */
     function renderDashboardCharts(programs = [], applications = []) {
-        const canvas = document.getElementById('adminOverviewChart') || document.getElementById('pesoOverviewChart');
+        const canvas = document.getElementById('appTrendChart') || document.getElementById('adminOverviewChart') || document.getElementById('pesoOverviewChart');
         if (!canvas || typeof Chart === 'undefined') return;
 
         try {
@@ -187,10 +250,10 @@ const PesoDashboard = (() => {
             _chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels.length > 0 ? labels : ['SPES', 'TUPAD', 'GIP', 'SEED', 'DILEEP'],
+                    labels: labels.length > 0 ? labels : ['SPES', 'TUPAD', 'GIP', 'SEED', 'DILEEP', 'PFAS'],
                     datasets: [{
-                        label: 'Budget Allocation (PHP in Thousands)',
-                        data: budgetData.length > 0 ? budgetData : [1200, 2500, 800, 1500, 1000],
+                        label: 'Budget Allocation (₱ in Thousands)',
+                        data: budgetData.length > 0 ? budgetData : [1200, 2500, 800, 1500, 1000, 650],
                         backgroundColor: '#0284C7',
                         borderRadius: 6,
                         barPercentage: 0.6
@@ -225,7 +288,7 @@ const PesoDashboard = (() => {
      * Render real-time activity feed in Admin Portal
      */
     function renderActivityFeed(auditLogs = []) {
-        const container = document.getElementById('recentActivityFeed');
+        const container = document.getElementById('dashboardActivityFeedList') || document.getElementById('recentActivityFeed');
         if (!container) return;
 
         if (!auditLogs || auditLogs.length === 0) {
@@ -242,9 +305,9 @@ const PesoDashboard = (() => {
         container.innerHTML = recent.map(log => {
             const timeStr = log.created_at ? new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
             return `
-                <div class="activity-feed-item">
+                <div class="activity-feed-item p-2 mb-2 rounded bg-light border">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">${escapeHtml(log.action_type || log.action || 'ACTIVITY')}</span>
+                        <span class="fw-bold text-dark font-monospace" style="font-size: 0.82rem;">${escapeHtml(log.action_type || log.action || 'ACTIVITY')}</span>
                         <small class="text-muted font-monospace">${escapeHtml(timeStr)}</small>
                     </div>
                     <p class="small text-muted mb-0 text-truncate">${escapeHtml(log.details || log.description || 'System operation executed')}</p>

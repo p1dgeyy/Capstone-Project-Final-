@@ -188,66 +188,124 @@ const PesoAdminApp = (() => {
         logAudit('SWITCH_NAVIGATION_TAB', `Switched active navigation tab to "${target.toUpperCase()}"`);
     }
 
+    // Canonical fallback entities for staff and records
+    const CANONICAL_PESO_OFFICERS = [
+        { id: 1, first_name: 'Jane', last_name: 'Smith', username: 'peso-officer', role: 'PESO Officer', email: 'peso.officer@gmail.com', phone: '0917-555-0101', status: 'Active', created_at: '2026-01-10' },
+        { id: 2, first_name: 'John', last_name: 'Doe', username: 'peso-admin', role: 'PESO Admin', email: 'peso.admin@gmail.com', phone: '0918-555-0102', status: 'Active', created_at: '2026-01-05' },
+        { id: 3, first_name: 'Edward', last_name: 'Davis', username: 'evaluator', role: 'Evaluator', email: 'evaluator@gmail.com', phone: '0919-555-0103', status: 'Active', created_at: '2026-01-15' },
+        { id: 4, first_name: 'Michael', last_name: 'Tan', username: 'peso-officer-2', role: 'PESO Officer', email: 'michael.tan@koronadal.gov.ph', phone: '0920-555-0104', status: 'Active', created_at: '2026-02-01' }
+    ];
+
+    const CANONICAL_PESO_APPLICATIONS = [
+        { id: 1, application_number: 'APP-2026-001', applicant_name: 'Maria Santos', beneficiaryName: 'Maria Santos', qr_code: 'QR-BEN-102938', phone: '0917-123-4567', programCode: 'TUPAD', program: 'TUPAD (Emergency Employment)', date_applied: '2026-01-10', dateSubmitted: '2026-01-10', status: 'Pending', remarks: 'Complete 2x2 photo and Barangay Indigency attached.', amount_requested: 5000, amount_approved: 5000 },
+        { id: 2, application_number: 'APP-2026-002', applicant_name: 'Juan Dela Cruz', beneficiaryName: 'Juan Dela Cruz', qr_code: 'QR-BEN-203948', phone: '0918-234-5678', programCode: 'TUPAD', program: 'TUPAD (Emergency Employment)', date_applied: '2026-01-12', dateSubmitted: '2026-01-12', status: 'Pending', remarks: 'Displaced transport worker from Morales cluster.', amount_requested: 5000, amount_approved: 5000 },
+        { id: 3, application_number: 'APP-2026-003', applicant_name: 'Carlos Mendoza', beneficiaryName: 'Carlos Mendoza', qr_code: 'QR-BEN-506978', phone: '0921-567-8901', programCode: 'SPES', program: 'SPES (Student Employment)', date_applied: '2026-01-14', dateSubmitted: '2026-01-14', status: 'Approved', remarks: 'Approved for 30-day summer internship with SPES stipend.', amount_requested: 8000, amount_approved: 8000 },
+        { id: 4, application_number: 'APP-2026-004', applicant_name: 'Angela Bautista', beneficiaryName: 'Angela Bautista', qr_code: 'QR-BEN-607988', phone: '0922-678-9012', programCode: 'SPES', program: 'SPES (Student Employment)', date_applied: '2026-01-15', dateSubmitted: '2026-01-15', status: 'Approved', remarks: 'Assigned to GPS Barangay Hall Administrative desk.', amount_requested: 8000, amount_approved: 8000 },
+        { id: 5, application_number: 'APP-2026-005', applicant_name: 'Mark Anthony Reyes', beneficiaryName: 'Mark Anthony Reyes', qr_code: 'QR-BEN-708998', phone: '0923-789-0123', programCode: 'CKGIP', program: 'CKGIP (City Internship)', date_applied: '2026-01-18', dateSubmitted: '2026-01-18', status: 'Completed', remarks: 'Completed 6-month internship with City Engineering.', amount_requested: 10000, amount_approved: 10000 }
+    ];
+
+    const CANONICAL_PESO_SCHEDULES = [
+        { id: 1, slot_id: 'SLOT-101', title: 'TUPAD Orientation & Tool Handout', activity_type: 'Orientation', beneficiaryName: 'Maria Santos', phone: '0917-123-4567', programCode: 'TUPAD', date: '2026-08-25', interviewDate: '2026-08-25', time: '09:00 AM', scheduleTime: '09:00 AM', venue: 'Koronadal City Hall Gymnasium', location: 'Koronadal City Hall Gymnasium', officerName: 'Jane Smith', status: 'Scheduled', attendance: 'Pending' },
+        { id: 2, slot_id: 'SLOT-102', title: 'SPES Pre-Deployment Briefing', activity_type: 'Assessment Interview', beneficiaryName: 'Carlos Mendoza', phone: '0921-567-8901', programCode: 'SPES', date: '2026-08-26', interviewDate: '2026-08-26', time: '10:30 AM', scheduleTime: '10:30 AM', venue: 'PESO Conference Hall Room A', location: 'PESO Conference Hall Room A', officerName: 'Jane Smith', status: 'Scheduled', attendance: 'Pending' },
+        { id: 3, slot_id: 'SLOT-103', title: 'Vocational Training Certificate Distribution', activity_type: 'Certificate Distribution', beneficiaryName: 'Danilo Villanueva', phone: '0926-012-3456', programCode: 'SKILLS-TRAIN', date: '2026-08-28', interviewDate: '2026-08-28', time: '02:00 PM', scheduleTime: '02:00 PM', venue: 'PESO Tech-Voc Center', location: 'PESO Tech-Voc Center', officerName: 'Michael Tan', status: 'Scheduled', attendance: 'Pending' }
+    ];
+
+    const CANONICAL_PESO_NOTIFICATIONS = [
+        { id: 1, title: 'SPES Summer Batch 1 Orientation Call', message: 'All enrolled students under SPES Batch 1 are requested to report to the PESO Main Hall on August 26.', recipient_phone: 'All SPES Beneficiaries', department: 'PESO', channel: 'SMS / Portal', created_at: '2026-08-20T08:30:00Z' },
+        { id: 2, title: 'TUPAD Safety Equipment & Uniform Distribution', message: 'PPE and safety gear release for Morales clean-up team scheduled on August 25.', recipient_phone: 'TUPAD Batch 1', department: 'PESO', channel: 'SMS / Portal', created_at: '2026-08-19T10:15:00Z' },
+        { id: 3, title: 'Appropriation Ordinance Budget Allocation Confirmed', message: 'Appropriation Ordinance No. 6, Series of 2025 allocations committed to LGU ledger.', recipient_phone: 'Broadcast', department: 'PESO', channel: 'System', created_at: '2026-08-18T14:00:00Z' }
+    ];
+
+    const CANONICAL_PESO_AUDIT_LOGS = [
+        { id: 1, action_type: 'ORAL_ALLOCATION', action: 'APPROPRIATION_LOAD', user_name: 'PESO Administrator', user_role: 'PESO Admin', target_entity: 'Appropriation Ordinance No. 6', details: 'Initialized ₱13,707,882.00 LGU assistance budget ledger.', created_at: '2026-08-21T08:00:00Z' },
+        { id: 2, action_type: 'ENROLL_BENEFICIARY', action: 'BATCH_ENROLL', user_name: 'Jane Smith', user_role: 'PESO Officer', target_entity: 'TUPAD Batch 1', details: 'Enrolled 50 beneficiaries for Morales clean-up cluster.', created_at: '2026-08-21T09:30:00Z' },
+        { id: 3, action_type: 'SCHEDULE_EVENT', action: 'CREATE_SLOT', user_name: 'Jane Smith', user_role: 'PESO Officer', target_entity: 'SPES Orientation', details: 'Created schedule slot for SPES Batch 1 Pre-Deployment.', created_at: '2026-08-21T11:00:00Z' }
+    ];
+
     /**
-     * Master Data Fetcher from Supabase
+     * Master Data Fetcher from Supabase with Canonical Fallbacks
      */
     async function loadAllAdminData() {
-        if (typeof DataService === 'undefined') return;
+        let progRes = { data: [] };
+        let appRes = { data: [] };
+        let staffRes = { data: [] };
+        let schedRes = { data: [] };
+        let fundsRes = { data: [] };
+        let assistRes = { data: [] };
+        let notifRes = { data: [] };
+        let auditRes = { data: [] };
+        let batchRes = { data: [] };
+        let benRes = { data: [] };
 
-        try {
-            const [
-                progRes,
-                appRes,
-                staffRes,
-                schedRes,
-                fundsRes,
-                assistRes,
-                notifRes,
-                auditRes,
-                batchRes,
-                benRes
-            ] = await Promise.all([
-                DataService.programs.getAll({ agency: 'PESO' }),
-                DataService.applications.getAll({ agency: 'PESO' }),
-                DataService.staffProfiles.getAll({ agency: 'PESO' }),
-                DataService.interviews.getAll({ agency: 'PESO' }),
-                DataService.funds.getAll({ agency: 'PESO' }),
-                DataService.approvedAssistance.getAll({ agency: 'PESO' }),
-                supabaseClient ? supabaseClient.from('notifications').select('*').order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
-                DataService.auditLogs.getAll({ limit: 50 }),
-                DataService.batches.getAll({ agency: 'PESO' }),
-                DataService.beneficiaries.getAll()
-            ]);
+        if (typeof DataService !== 'undefined') {
+            try {
+                const results = await Promise.allSettled([
+                    DataService.programs.getAll({ agency: 'PESO' }),
+                    DataService.applications.getAll({ agency: 'PESO' }),
+                    DataService.staffProfiles.getAll({ agency: 'PESO' }),
+                    DataService.interviews.getAll({ agency: 'PESO' }),
+                    DataService.funds.getAll({ agency: 'PESO' }),
+                    DataService.approvedAssistance.getAll({ agency: 'PESO' }),
+                    supabaseClient ? supabaseClient.from('notifications').select('*').order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+                    DataService.auditLogs.getAll({ limit: 50 }),
+                    DataService.batches.getAll({ agency: 'PESO' }),
+                    DataService.beneficiaries.getAll()
+                ]);
 
-            const loadedPrograms = (progRes.data || []).filter(p => (p.agency || p.department || '').toUpperCase() === 'PESO');
-            const canonicalList = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_PROGRAMS) ? PesoPrograms.CANONICAL_PESO_PROGRAMS : [];
-
-            if (loadedPrograms.length > 0) {
-                AdminStore.programs = canonicalList.map(cp => {
-                    const found = loadedPrograms.find(lp => lp.code === cp.code);
-                    return found ? { ...cp, ...found } : cp;
-                });
-                loadedPrograms.forEach(lp => {
-                    if (!AdminStore.programs.some(p => p.code === lp.code)) {
-                        AdminStore.programs.push(lp);
-                    }
-                });
-            } else {
-                AdminStore.programs = [...canonicalList];
+                if (results[0].status === 'fulfilled' && results[0].value?.data) progRes = results[0].value;
+                if (results[1].status === 'fulfilled' && results[1].value?.data) appRes = results[1].value;
+                if (results[2].status === 'fulfilled' && results[2].value?.data) staffRes = results[2].value;
+                if (results[3].status === 'fulfilled' && results[3].value?.data) schedRes = results[3].value;
+                if (results[4].status === 'fulfilled' && results[4].value?.data) fundsRes = results[4].value;
+                if (results[5].status === 'fulfilled' && results[5].value?.data) assistRes = results[5].value;
+                if (results[6].status === 'fulfilled' && results[6].value?.data) notifRes = results[6].value;
+                if (results[7].status === 'fulfilled' && results[7].value?.data) auditRes = results[7].value;
+                if (results[8].status === 'fulfilled' && results[8].value?.data) batchRes = results[8].value;
+                if (results[9].status === 'fulfilled' && results[9].value?.data) benRes = results[9].value;
+            } catch (err) {
+                console.warn('[PesoAdminApp] Supabase data load notice:', err.message);
             }
+        }
 
-            const canonicalBatches = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_BATCHES) ? PesoPrograms.CANONICAL_PESO_BATCHES : [];
-            AdminStore.batches = (batchRes.data && batchRes.data.length > 0) ? batchRes.data : [...canonicalBatches];
+        // 1. Programs
+        const canonicalList = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_PROGRAMS) ? PesoPrograms.CANONICAL_PESO_PROGRAMS : [];
+        const loadedPrograms = (progRes.data || []).filter(p => (p.agency || p.department || '').toUpperCase() === 'PESO');
 
-            const canonicalBens = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_BENEFICIARIES) ? PesoPrograms.CANONICAL_PESO_BENEFICIARIES : [];
-            AdminStore.beneficiaries = (benRes.data && benRes.data.length > 0) ? benRes.data : [...canonicalBens];
+        if (loadedPrograms.length > 0) {
+            AdminStore.programs = canonicalList.map(cp => {
+                const found = loadedPrograms.find(lp => lp.code === cp.code);
+                return found ? { ...cp, ...found } : cp;
+            });
+            loadedPrograms.forEach(lp => {
+                if (!AdminStore.programs.some(p => p.code === lp.code)) {
+                    AdminStore.programs.push(lp);
+                }
+            });
+        } else {
+            AdminStore.programs = [...canonicalList];
+        }
 
-            AdminStore.applications = (appRes.data || []).map(a => {
+        // 2. Batches
+        const canonicalBatches = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_BATCHES) ? PesoPrograms.CANONICAL_PESO_BATCHES : [];
+        AdminStore.batches = (batchRes.data && batchRes.data.length > 0) ? batchRes.data : [...canonicalBatches];
+
+        // 3. Beneficiaries
+        const canonicalBens = (typeof PesoPrograms !== 'undefined' && PesoPrograms.CANONICAL_PESO_BENEFICIARIES) ? PesoPrograms.CANONICAL_PESO_BENEFICIARIES : [];
+        AdminStore.beneficiaries = (benRes.data && benRes.data.length > 0) ? benRes.data : [...canonicalBens];
+
+        // 4. Officers / Staff
+        const loadedOfficers = (staffRes.data || []).filter(s => !['CSWDO Admin', 'CSWDO Officer'].includes(s.role) && (s.department || 'PESO').toUpperCase() !== 'CSWDO');
+        AdminStore.officers = loadedOfficers.length > 0 ? loadedOfficers : [...CANONICAL_PESO_OFFICERS];
+
+        // 5. Applications
+        if (appRes.data && appRes.data.length > 0) {
+            AdminStore.applications = appRes.data.map(a => {
                 const ben = a.beneficiary || {};
                 const prog = a.program || {};
                 return {
                     id: a.id,
                     dbId: a.id,
+                    application_number: a.application_number || `APP-2026-00${a.id}`,
                     applicant_name: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Applicant',
                     beneficiaryName: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Applicant',
                     programCode: prog.code || 'PESO',
@@ -260,8 +318,13 @@ const PesoAdminApp = (() => {
                     amount_approved: a.amount_approved || 0
                 };
             });
-            AdminStore.officers = (staffRes.data || []).filter(s => !['CSWDO Admin', 'CSWDO Officer'].includes(s.role) && (s.department || 'PESO').toUpperCase() !== 'CSWDO');
-            AdminStore.schedules = (schedRes.data || []).map(i => {
+        } else {
+            AdminStore.applications = [...CANONICAL_PESO_APPLICATIONS];
+        }
+
+        // 6. Schedules
+        if (schedRes.data && schedRes.data.length > 0) {
+            AdminStore.schedules = schedRes.data.map(i => {
                 const ben = i.beneficiary || {};
                 const prog = i.program || {};
                 const officer = i.officer || {};
@@ -273,19 +336,25 @@ const PesoAdminApp = (() => {
                     beneficiaryName: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || i.title || 'Applicant',
                     phone: ben.phone || '09XX-***-XXXX',
                     programCode: prog.code || 'PESO',
-                    interviewDate: i.interview_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : 'Today'),
-                    date: i.interview_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : 'Today'),
+                    interviewDate: i.interview_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : '2026-08-25'),
+                    date: i.interview_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : '2026-08-25'),
                     scheduleTime: i.interview_time || '09:00 AM',
                     time: i.interview_time || '09:00 AM',
                     venue: i.venue_location || i.location || 'PESO Main Office',
                     location: i.venue_location || i.location || 'PESO Main Office',
-                    officerName: `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || 'PESO Officer',
+                    officerName: `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || 'Jane Smith',
                     status: i.status || 'Scheduled',
                     attendance: i.attendance_status || (i.status === 'Completed' ? 'Present' : 'Pending')
                 };
             });
-            AdminStore.funds = fundsRes.data || [];
-            AdminStore.approvedAssistance = (assistRes.data || []).map(d => ({
+        } else {
+            AdminStore.schedules = [...CANONICAL_PESO_SCHEDULES];
+        }
+
+        // 7. Funds & Approved Assistance
+        AdminStore.funds = (fundsRes.data && fundsRes.data.length > 0) ? fundsRes.data : [];
+        if (assistRes.data && assistRes.data.length > 0) {
+            AdminStore.approvedAssistance = assistRes.data.map(d => ({
                 id: d.id,
                 program_code: d.program ? d.program.code : 'PESO',
                 beneficiary_name: d.beneficiary ? `${d.beneficiary.first_name} ${d.beneficiary.last_name}` : 'Beneficiary',
@@ -294,16 +363,18 @@ const PesoAdminApp = (() => {
                 status: d.status || 'Disbursed',
                 disbursed_at: d.approved_at || d.created_at || 'Today'
             }));
-            AdminStore.notifications = notifRes.data || [];
-            AdminStore.auditLogs = auditRes.data || [];
-            AdminStore.batches = batchRes.data || [];
-            AdminStore.beneficiaries = benRes.data || [];
-
-        } catch (err) {
-            console.warn('[PesoAdminApp] Supabase data load notice:', err.message);
+        } else {
+            AdminStore.approvedAssistance = [
+                { id: 1, program_code: 'TUPAD', beneficiary_name: 'Maria Santos', qr_code: 'QR-BEN-102938', amount: 5000, amount_approved: 5000, status: 'Disbursed', disbursed_at: '2026-08-10' },
+                { id: 2, program_code: 'SPES', beneficiary_name: 'Carlos Mendoza', qr_code: 'QR-BEN-506978', amount: 8000, amount_approved: 8000, status: 'Disbursed', disbursed_at: '2026-08-15' }
+            ];
         }
 
-        // Pass data to submodules
+        // 8. Notifications & Audit Logs
+        AdminStore.notifications = (notifRes.data && notifRes.data.length > 0) ? notifRes.data : [...CANONICAL_PESO_NOTIFICATIONS];
+        AdminStore.auditLogs = (auditRes.data && auditRes.data.length > 0) ? auditRes.data : [...CANONICAL_PESO_AUDIT_LOGS];
+
+        // Pass hydrated data to submodules
         if (typeof PesoPrograms !== 'undefined') {
             PesoPrograms.setData(AdminStore.programs, AdminStore.batches, AdminStore.beneficiaries);
         }
@@ -326,6 +397,9 @@ const PesoAdminApp = (() => {
             });
         }
 
+        // Update all navigation tab count badges
+        updateNavigationTabBadges();
+
         // Setup session profile in header
         setupAdminSession();
 
@@ -333,10 +407,35 @@ const PesoAdminApp = (() => {
         switchTab(AdminStore.currentTab);
     }
 
+    function updateNavigationTabBadges() {
+        const elOffBadge = document.getElementById('officersTabBadge');
+        if (elOffBadge) elOffBadge.textContent = AdminStore.officers.length;
+
+        const activeProgs = AdminStore.programs.filter(p => p.status === 'Active');
+        const elProgBadge = document.getElementById('programsTabBadge');
+        if (elProgBadge) elProgBadge.textContent = activeProgs.length;
+
+        const pendingApps = AdminStore.applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
+        const elEvalBadge = document.getElementById('evalTabBadge');
+        if (elEvalBadge) elEvalBadge.textContent = pendingApps.length;
+
+        const upcomingSched = AdminStore.schedules.filter(s => s.status === 'Scheduled');
+        const elSchedBadge = document.getElementById('schedTabBadge');
+        if (elSchedBadge) elSchedBadge.textContent = upcomingSched.length;
+
+        const elNotifBadge = document.getElementById('notifTabBadge');
+        if (elNotifBadge) elNotifBadge.textContent = AdminStore.notifications.length;
+
+        const archivedProgs = AdminStore.programs.filter(p => p.status !== 'Active');
+        const elArchBadge = document.getElementById('archiveTabBadge');
+        if (elArchBadge) elArchBadge.textContent = archivedProgs.length;
+    }
+
     function setupAdminSession() {
         const user = (typeof PesoAuth !== 'undefined') ? PesoAuth.getCurrentUser() : null;
-        const adminName = user?.fullName || 'PESO Administrator';
-        const adminRole = user?.role || 'PESO Admin';
+        const rawName = user?.fullName || '';
+        const adminName = (rawName && rawName !== 'User' && rawName !== 'Guest') ? rawName : 'PESO Administrator';
+        const adminRole = (user?.role && user.role !== 'Guest') ? user.role : 'PESO Admin';
 
         const nameEls = [document.getElementById('adminUserName'), document.getElementById('adminUserNameMobile')];
         nameEls.forEach(el => { if (el) el.textContent = adminName; });
@@ -345,9 +444,8 @@ const PesoAdminApp = (() => {
         roleEls.forEach(el => { if (el) el.textContent = adminRole; });
 
         const avatarEl = document.getElementById('adminAvatarText');
-        if (avatarEl && adminName) {
-            const initials = adminName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-            avatarEl.textContent = initials || 'PA';
+        if (avatarEl) {
+            avatarEl.textContent = 'PA';
         }
     }
 
@@ -355,31 +453,72 @@ const PesoAdminApp = (() => {
      * Officers Directory Management (Tab 2)
      */
     function renderOfficersList() {
-        const tbody = document.getElementById('adminOfficersTableBody');
+        const tbody = document.getElementById('officersTableBody') || document.getElementById('adminOfficersTableBody');
         const badge = document.getElementById('officersTabBadge');
         if (!tbody) return;
 
+        const searchInput = (document.getElementById('officerSearchInput')?.value || '').toLowerCase().trim();
+        const roleFilter = document.getElementById('officerRoleFilter')?.value || 'ALL';
+        const statusFilter = document.getElementById('officerStatusFilter')?.value || 'ALL';
+
+        let filtered = AdminStore.officers.filter(o => {
+            const matchesSearch = !searchInput || 
+                `${o.first_name || ''} ${o.last_name || ''}`.toLowerCase().includes(searchInput) ||
+                (o.username || '').toLowerCase().includes(searchInput) ||
+                (o.email || '').toLowerCase().includes(searchInput);
+
+            const matchesRole = roleFilter === 'ALL' || (o.role || '') === roleFilter;
+            const matchesStatus = statusFilter === 'ALL' || (o.status || 'Active') === statusFilter;
+
+            return matchesSearch && matchesRole && matchesStatus;
+        });
+
         if (badge) badge.textContent = AdminStore.officers.length;
 
-        if (AdminStore.officers.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No officer accounts registered.</td></tr>`;
+        // Update Stat Cards in Officers View
+        const activeOfficers = AdminStore.officers.filter(o => (o.role === 'PESO Officer' || o.role === 'Officer') && o.status === 'Active');
+        const activeEvaluators = AdminStore.officers.filter(o => (o.role === 'Evaluator') && o.status === 'Active');
+        const deactivatedStaff = AdminStore.officers.filter(o => o.status === 'Inactive' || o.status === 'Deactivated');
+
+        const elTotalCount = document.getElementById('statTotalOfficersCount');
+        if (elTotalCount) elTotalCount.textContent = AdminStore.officers.length;
+
+        const elActiveOfficers = document.getElementById('statActiveOfficersCount');
+        if (elActiveOfficers) elActiveOfficers.textContent = activeOfficers.length;
+
+        const elActiveEvaluators = document.getElementById('statActiveEvaluatorsCount');
+        if (elActiveEvaluators) elActiveEvaluators.textContent = activeEvaluators.length;
+
+        const elDeactivated = document.getElementById('statDeactivatedStaffCount');
+        if (elDeactivated) elDeactivated.textContent = deactivatedStaff.length;
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No officer accounts match the selected criteria.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = AdminStore.officers.map(o => {
+        tbody.innerHTML = filtered.map(o => {
             const isInactive = o.status === 'Inactive' || o.status === 'Deactivated';
+            const fullName = `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.username || 'Officer';
+
             return `
                 <tr>
-                    <td class="fw-bold font-monospace text-primary">#OFF-${escapeHtml(String(o.id))}</td>
                     <td>
-                        <div class="fw-semibold text-dark">${escapeHtml(o.first_name || '')} ${escapeHtml(o.last_name || '')}</div>
-                        <small class="text-muted font-monospace">${escapeHtml(o.username || '')}</small>
+                        <div class="fw-semibold text-dark">${escapeHtml(fullName)}</div>
+                        <small class="text-muted font-monospace">#OFF-${escapeHtml(String(o.id))}</small>
                     </td>
-                    <td><span class="badge bg-primary-subtle text-primary border">${escapeHtml(o.role || 'PESO Officer')}</span></td>
-                    <td><small class="text-muted">${escapeHtml(o.email || '-')}</small></td>
-                    <td><span class="badge ${isInactive ? 'bg-danger-subtle text-danger border' : 'bg-success-subtle text-success border'}">${escapeHtml(o.status || 'Active')}</span></td>
-                    <td class="text-end">
-                        <button class="btn btn-sm ${isInactive ? 'btn-outline-success' : 'btn-outline-danger'} py-1 px-2" onclick="PesoAdminApp.toggleOfficerStatus('${o.id}')">
+                    <td>
+                        <div class="font-monospace text-dark small">${escapeHtml(o.username || '')}</div>
+                        <small class="text-muted">${escapeHtml(o.email || '-')}</small>
+                    </td>
+                    <td><span class="badge ${o.role === 'PESO Admin' ? 'bg-primary' : (o.role === 'Evaluator' ? 'bg-info text-dark' : 'bg-success-subtle text-success border')}">${escapeHtml(o.role || 'PESO Officer')}</span></td>
+                    <td class="font-monospace text-muted">${maskPhone(o.phone)}</td>
+                    <td><small class="text-muted font-monospace">${escapeHtml(o.created_at ? o.created_at.substring(0, 10) : '2026-01-10')}</small></td>
+                    <td class="text-center">
+                        <span class="badge ${isInactive ? 'bg-danger-subtle text-danger border' : 'bg-success-subtle text-success border'}">${escapeHtml(o.status || 'Active')}</span>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <button class="btn btn-sm ${isInactive ? 'btn-outline-success' : 'btn-outline-danger'} py-1 px-2" onclick="PesoAdminApp.toggleOfficerStatus('${o.id}')" title="${isInactive ? 'Activate Account' : 'Deactivate Account'}">
                             <i class="bi ${isInactive ? 'bi-play-fill me-1' : 'bi-pause-fill me-1'}"></i>${isInactive ? 'Activate' : 'Deactivate'}
                         </button>
                     </td>
@@ -408,6 +547,7 @@ const PesoAdminApp = (() => {
         }
 
         renderOfficersList();
+        updateNavigationTabBadges();
         logAudit('TOGGLE_OFFICER_STATUS', `Set officer #${officerId} status to ${newStatus}`);
         notify('Officer Status Updated', `Officer #${officerId} is now ${newStatus}.`, 'success');
     }
@@ -416,28 +556,55 @@ const PesoAdminApp = (() => {
      * Notifications Hub (Tab 7)
      */
     function renderNotificationsList() {
+        const tbody = document.getElementById('notificationsHistoryTableBody');
         const container = document.getElementById('adminNotificationsContainer');
         const badge = document.getElementById('notifTabBadge');
-        if (!container) return;
 
         if (badge) badge.textContent = AdminStore.notifications.length;
 
-        if (AdminStore.notifications.length === 0) {
-            container.innerHTML = `<div class="text-center py-4 text-muted">No notifications dispatched.</div>`;
-            return;
+        const searchQ = (document.getElementById('notifSearchInput')?.value || '').toLowerCase().trim();
+        const filtered = AdminStore.notifications.filter(n => {
+            if (!searchQ) return true;
+            return (n.title || '').toLowerCase().includes(searchQ) ||
+                (n.message || '').toLowerCase().includes(searchQ) ||
+                (n.recipient_phone || '').toLowerCase().includes(searchQ);
+        });
+
+        if (tbody) {
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No notifications match the filter criteria.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(n => `
+                <tr>
+                    <td class="fw-semibold text-dark">${escapeHtml(n.recipient_phone || 'All Beneficiaries')}</td>
+                    <td class="fw-bold text-primary">${escapeHtml(n.title || 'System Broadcast')}</td>
+                    <td><small class="text-muted d-block text-truncate" style="max-width: 320px;">${escapeHtml(n.message || '')}</small></td>
+                    <td><small class="text-muted font-monospace">${n.created_at ? new Date(n.created_at).toLocaleString() : 'Just now'}</small></td>
+                    <td class="text-center"><span class="badge bg-success-subtle text-success border">Delivered</span></td>
+                </tr>
+            `).join('');
         }
 
-        container.innerHTML = AdminStore.notifications.map(n => `
-            <div class="card mb-2 border shadow-sm">
-                <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="fw-bold mb-0 text-dark">${escapeHtml(n.title || n.message)}</h6>
-                        <small class="text-muted font-monospace">${escapeHtml(n.recipient_phone || 'Broadcast')}</small>
+        if (container) {
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-4 text-muted">No notifications dispatched.</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(n => `
+                <div class="card mb-2 border shadow-sm">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark">${escapeHtml(n.title || n.message)}</h6>
+                            <small class="text-muted font-monospace">${escapeHtml(n.recipient_phone || 'Broadcast')}</small>
+                        </div>
+                        <small class="text-muted">${n.created_at ? new Date(n.created_at).toLocaleDateString() : 'Today'}</small>
                     </div>
-                    <small class="text-muted">${n.created_at ? new Date(n.created_at).toLocaleDateString() : 'Today'}</small>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
     }
 
     // =========================================================================

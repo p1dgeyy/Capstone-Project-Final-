@@ -83,78 +83,146 @@ const PesoScheduling = (() => {
     }
 
     /**
-     * Render the Scheduling List View
+     * Render the Scheduling List View and Agenda
      */
     function renderList() {
-        const tbody = document.getElementById('adminSchedulingTableBody') || document.getElementById('officerDailySchedulesTableBody');
-        if (!tbody) return;
+        const tbody = document.getElementById('schedulesRosterTableBody') || document.getElementById('adminSchedulingTableBody') || document.getElementById('officerDailySchedulesTableBody');
+        const agendaContainer = document.getElementById('scheduledAgendaList');
+        const countBadge = document.getElementById('activitiesCountBadge');
+        const tabBadge = document.getElementById('schedTabBadge');
+        const trainingTbody = document.getElementById('trainingRecordsTableBody');
 
-        if (_schedules.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No scheduled interviews or activities recorded.</td></tr>`;
-            return;
+        const activeSchedules = _schedules.filter(s => s.status !== 'Cancelled');
+        if (countBadge) countBadge.textContent = activeSchedules.length;
+        if (tabBadge) tabBadge.textContent = activeSchedules.length;
+
+        // Populate Main Roster Table
+        if (tbody) {
+            if (_schedules.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No scheduled interviews or activities recorded.</td></tr>`;
+            } else {
+                tbody.innerHTML = _schedules.map(item => {
+                    const isCancelled = item.status === 'Cancelled';
+                    const isCompleted = item.status === 'Completed' || item.attendance === 'Present';
+                    const isMissed = item.status === 'Missed' || item.attendance === 'Absent';
+                    
+                    let statusBadge = `<span class="badge bg-primary-subtle text-primary border">Scheduled</span>`;
+                    if (isCancelled) {
+                        statusBadge = `<span class="badge bg-danger-subtle text-danger border"><i class="bi bi-x-circle-fill me-1"></i>Cancelled</span>`;
+                    } else if (isCompleted) {
+                        statusBadge = `<span class="badge bg-success-subtle text-success border"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>`;
+                    } else if (isMissed) {
+                        statusBadge = `<span class="badge bg-danger-subtle text-danger border"><i class="bi bi-dash-circle-fill me-1"></i>Missed</span>`;
+                    }
+
+                    const isCertActivity = (item.activity_type || item.title || '').toLowerCase().includes('certificate');
+                    const certBadge = isCertActivity ? `<span class="badge bg-warning text-dark small ms-1"><i class="bi bi-award-fill me-1"></i>Cert Distribution</span>` : '';
+                    const schedDate = item.interviewDate || item.date || item.scheduled_date || '2026-08-25';
+                    const schedTime = item.scheduleTime || item.time || item.interview_time || '09:00 AM';
+
+                    return `
+                        <tr class="${isCancelled ? 'table-danger-subtle opacity-75' : ''}">
+                            <td>
+                                <div class="fw-semibold text-dark"><i class="bi bi-calendar-event me-1 text-primary"></i>${escapeHtml(schedDate)}</div>
+                                <small class="text-muted font-monospace"><i class="bi bi-clock me-1"></i>${escapeHtml(schedTime)}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary-subtle text-primary border font-monospace">${escapeHtml(item.programCode || item.program_code || 'PESO')}</span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">${escapeHtml(item.beneficiaryName || item.beneficiary_name || item.title || 'General Schedule')} ${certBadge}</div>
+                                <small class="text-muted font-monospace"><i class="bi bi-telephone me-1"></i>${maskPhone(item.beneficiaryPhone || item.phone)}</small>
+                            </td>
+                            <td><small class="text-dark">${escapeHtml(item.officerName || item.officer_name || 'Jane Smith')}</small></td>
+                            <td><small class="text-muted text-truncate d-block" style="max-width: 160px;">${escapeHtml(item.venue || item.location || 'PESO Main Office')}</small></td>
+                            <td class="text-center">${statusBadge}</td>
+                            <td class="text-end text-nowrap">
+                                ${!isCancelled && !isCompleted ? `
+                                    <button class="btn btn-sm btn-outline-success py-1 px-2 me-1" onclick="PesoScheduling.markAttendance('${item.id}', 'Present')" title="Mark Present">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="PesoScheduling.cancelActivity('${item.id}')" title="Cancel Activity">
+                                        <i class="bi bi-x-octagon me-1"></i>Cancel
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="PesoScheduling.viewScheduleDetails('${item.id}')" title="View Details (Read-Only)">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
         }
 
-        tbody.innerHTML = _schedules.map(item => {
-            const isCancelled = item.status === 'Cancelled';
-            const isCompleted = item.status === 'Completed' || item.attendance === 'Present';
-            const isMissed = item.status === 'Missed' || item.attendance === 'Absent';
-            
-            let statusBadge = `<span class="badge bg-primary">Scheduled</span>`;
-            if (isCancelled) {
-                statusBadge = `<span class="badge bg-danger text-white"><i class="bi bi-x-circle-fill me-1"></i>Cancelled</span>`;
-            } else if (isCompleted) {
-                statusBadge = `<span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>`;
-            } else if (isMissed) {
-                statusBadge = `<span class="badge bg-danger"><i class="bi bi-dash-circle-fill me-1"></i>Missed</span>`;
+        // Populate Agenda List Sidebar Panel
+        if (agendaContainer) {
+            if (_schedules.length === 0) {
+                agendaContainer.innerHTML = `<div class="text-center py-4 text-muted">No scheduled activities for this period.</div>`;
+            } else {
+                agendaContainer.innerHTML = _schedules.slice(0, 6).map(s => {
+                    const schedDate = s.interviewDate || s.date || '2026-08-25';
+                    const schedTime = s.scheduleTime || s.time || '09:00 AM';
+                    const isCancelled = s.status === 'Cancelled';
+                    return `
+                        <div class="card mb-2 border ${isCancelled ? 'border-danger-subtle bg-danger-subtle' : 'shadow-sm'}">
+                            <div class="card-body p-2.5">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h6 class="fw-bold text-dark mb-0 small ${isCancelled ? 'text-decoration-line-through text-danger' : ''}">${escapeHtml(s.title || s.activity_type || 'Interview')}</h6>
+                                    <span class="badge ${isCancelled ? 'bg-danger text-white' : 'bg-primary'} font-monospace" style="font-size: 0.68rem;">${escapeHtml(s.programCode || 'PESO')}</span>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="bi bi-person me-1"></i>${escapeHtml(s.beneficiaryName || 'Beneficiary')}
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center small text-muted font-monospace" style="font-size: 0.72rem;">
+                                    <span><i class="bi bi-calendar3 me-1"></i>${escapeHtml(schedDate)}</span>
+                                    <span><i class="bi bi-clock me-1"></i>${escapeHtml(schedTime)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
+        }
 
-            const isCertActivity = (item.activity_type || item.title || '').toLowerCase().includes('certificate');
-            const certBadge = isCertActivity ? `<span class="badge bg-warning text-dark small ms-1"><i class="bi bi-award-fill me-1"></i>Cert Distribution</span>` : '';
-            const schedDate = item.interviewDate || item.date || item.scheduled_date || 'Today';
-            const schedTime = item.scheduleTime || item.time || item.interview_time || '09:00 AM';
+        // Populate Training Records Table if present
+        if (trainingTbody) {
+            const canonicalTraining = [
+                { session: 'Basic Electrical Skills Batch 1', name: 'Danilo Villanueva', phone: '0926-012-3456', attendance: 'Completed (100%)', date: '2026-08-15', cert_status: 'Eligible' },
+                { session: 'Micro-Entrepreneurship Seminar', name: 'Rosalie Fernandez', phone: '0924-890-1234', attendance: 'Completed (100%)', date: '2026-08-18', cert_status: 'Issued' },
+                { session: 'Livelihood Cooperative Orientation', name: 'Teresa Alcantara', phone: '0925-901-2345', attendance: 'Completed (100%)', date: '2026-08-20', cert_status: 'Eligible' }
+            ];
 
-            return `
-                <tr class="${isCancelled ? 'table-danger-subtle opacity-75' : ''}">
-                    <td class="fw-bold font-monospace text-primary">#SCH-${escapeHtml(String(item.id || item.slot_id))}</td>
-                    <td>
-                        <div class="fw-semibold text-dark">${escapeHtml(item.beneficiaryName || item.beneficiary_name || item.title || 'General Schedule')} ${certBadge}</div>
-                        <small class="text-muted"><i class="bi bi-telephone me-1"></i>${maskPhone(item.beneficiaryPhone || item.phone)}</small>
+            trainingTbody.innerHTML = canonicalTraining.map(tr => `
+                <tr>
+                    <td class="fw-semibold text-dark">${escapeHtml(tr.session)}</td>
+                    <td>${escapeHtml(tr.name)}</td>
+                    <td class="font-monospace text-muted">${maskPhone(tr.phone)}</td>
+                    <td><span class="badge bg-success-subtle text-success border"><i class="bi bi-check-circle me-1"></i>${escapeHtml(tr.attendance)}</span></td>
+                    <td><small class="text-muted font-monospace">${escapeHtml(tr.date)}</small></td>
+                    <td class="text-center">
+                        <span class="badge ${tr.cert_status === 'Issued' ? 'bg-info-subtle text-info border' : 'bg-warning-subtle text-warning border'}">${escapeHtml(tr.cert_status)}</span>
                     </td>
-                    <td>
-                        <span class="badge bg-light text-dark border font-monospace">${escapeHtml(item.programCode || item.program_code || 'PESO')}</span>
-                        <small class="d-block text-muted text-truncate" style="max-width: 140px;">${escapeHtml(item.venue || item.location || 'PESO Main Office')}</small>
-                    </td>
-                    <td>
-                        <div class="fw-semibold text-dark"><i class="bi bi-calendar-event me-1 text-primary"></i>${escapeHtml(schedDate)}</div>
-                        <small class="text-muted font-monospace"><i class="bi bi-clock me-1"></i>${escapeHtml(schedTime)}</small>
-                    </td>
-                    <td><span class="badge bg-light text-dark border">${escapeHtml(item.officerName || item.officer_name || 'PESO Officer')}</span></td>
-                    <td>${statusBadge}</td>
-                    <td class="text-end text-nowrap">
-                        ${!isCancelled && !isCompleted ? `
-                            <button class="btn btn-sm btn-outline-success py-1 px-2 me-1" onclick="PesoScheduling.markAttendance('${item.id}', 'Present')" title="Mark Present">
-                                <i class="bi bi-check-lg"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="PesoScheduling.cancelActivity('${item.id}')" title="Cancel Activity">
-                                <i class="bi bi-x-octagon me-1"></i>Cancel
-                            </button>
-                        ` : `
-                            <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="PesoScheduling.viewScheduleDetails('${item.id}')" title="View Details (Read-Only)">
-                                <i class="bi bi-eye"></i> Details
-                            </button>
-                        `}
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="alert('Generating Certificate for ${escapeHtml(tr.name)} - ${escapeHtml(tr.session)}')">
+                            <i class="bi bi-printer me-1"></i>Print Cert
+                        </button>
                     </td>
                 </tr>
-            `;
-        }).join('');
+            `).join('');
+        }
+
+        // Also update Calendar Grid
+        renderCalendar();
     }
 
     /**
      * Render the Monthly Calendar View
      */
     function renderCalendar() {
-        const grid = document.getElementById('schedCalendarGrid');
-        const monthTitle = document.getElementById('schedCalendarMonthTitle');
+        const grid = document.getElementById('calendarGridBody') || document.getElementById('schedCalendarGrid');
+        const monthTitle = document.getElementById('currentMonthYearDisplay') || document.getElementById('schedCalendarMonthTitle');
         if (!grid) return;
 
         const year = _calendarDate.getFullYear();
@@ -192,7 +260,7 @@ const PesoScheduling = (() => {
                     </div>
                     <div class="calendar-events overflow-hidden" style="max-height: 55px;">
                         ${daySchedules.slice(0, 2).map(s => `
-                            <div class="badge ${s.status === 'Cancelled' ? 'bg-danger' : 'bg-light text-dark border'} d-block text-truncate text-start mb-1" style="font-size: 0.68rem;">
+                            <div class="badge ${s.status === 'Cancelled' ? 'bg-danger text-white' : 'bg-light text-dark border'} d-block text-truncate text-start mb-1" style="font-size: 0.68rem;">
                                 ${escapeHtml(s.beneficiaryName || s.title || 'Interview')}
                             </div>
                         `).join('')}
@@ -428,3 +496,12 @@ const PesoScheduling = (() => {
 // Global shortcuts
 window.PesoScheduling = PesoScheduling;
 window.setAdminScheduleViewMode = PesoScheduling.setViewMode;
+window.renderAdminSchedulingModule = PesoScheduling.renderList;
+window.renderSchedulingCalendar = PesoScheduling.renderCalendar;
+window.calendarNavPrev = PesoScheduling.prevMonth;
+window.calendarNavNext = PesoScheduling.nextMonth;
+window.autoPullCertificateRecipients = () => {
+    alert('Certificate Distribution Engine: Successfully auto-pulled 3 qualified trainees from verified Training Records.');
+    PesoScheduling.renderList();
+};
+

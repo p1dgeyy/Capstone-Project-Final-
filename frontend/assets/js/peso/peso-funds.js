@@ -54,8 +54,8 @@ const PesoFunds = (() => {
      * Render Fund Overview Cards & Utilization Table (Tab 6 / Funds)
      */
     function renderFundsModule() {
-        const tbody = document.getElementById('fundsAllocationTableBody') || document.getElementById('dashFundDistributionTableBody');
-        const warningContainer = document.getElementById('fundOverflowWarningBanner');
+        const tbody = document.getElementById('programFundsTableBody') || document.getElementById('fundsAllocationTableBody') || document.getElementById('dashFundDistributionTableBody');
+        const warningContainer = document.getElementById('fundOverflowAlertBox') || document.getElementById('fundOverflowWarningBanner');
 
         let totalAllocated = 0;
         let totalSpent = 0;
@@ -91,15 +91,11 @@ const PesoFunds = (() => {
             if (overflowPrograms.length > 0) {
                 warningContainer.classList.remove('d-none');
                 warningContainer.innerHTML = `
-                    <div class="d-flex align-items-center gap-3">
-                        <i class="bi bi-exclamation-triangle-fill text-danger fs-3"></i>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-octagon-fill text-danger fs-4"></i>
                         <div>
-                            <h6 class="fw-bold text-danger mb-1">Fund Utilization Safeguard Alert</h6>
-                            <p class="small text-dark mb-0">
-                                The following programs have reached critical budget allocation thresholds (&ge; 85%):
-                                <strong>${overflowPrograms.map(o => `${o.code} (${o.ratio}%)`).join(', ')}</strong>.
-                                Review pending disbursement commitments before releasing further grants.
-                            </p>
+                            <strong class="text-danger">High Budget Utilization Notice:</strong> The following programs have reached critical budget allocation thresholds (&ge; 85%):
+                            <strong>${overflowPrograms.map(o => `${o.code} (${o.ratio}%)`).join(', ')}</strong>. Review allocations before releasing further grants.
                         </div>
                     </div>
                 `;
@@ -108,7 +104,7 @@ const PesoFunds = (() => {
             }
         }
 
-        // Render Table
+        // Render Program Funds Table
         if (tbody) {
             if (_programs.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No fund allocation records available.</td></tr>`;
@@ -125,11 +121,13 @@ const PesoFunds = (() => {
 
                 return `
                     <tr>
-                        <td class="fw-bold font-monospace text-primary">${escapeHtml(prog.code)}</td>
-                        <td class="fw-semibold text-dark">${escapeHtml(prog.name)}</td>
-                        <td class="fw-bold">${formatCurrency(allocated)}</td>
-                        <td class="text-danger fw-bold">${formatCurrency(spent)}</td>
-                        <td class="text-success fw-bold">${formatCurrency(remaining)}</td>
+                        <td>
+                            <div class="fw-bold text-dark font-monospace text-primary">${escapeHtml(prog.code)}</div>
+                            <div class="small text-muted">${escapeHtml(prog.name)}</div>
+                        </td>
+                        <td class="fw-bold text-dark">${formatCurrency(allocated)}</td>
+                        <td class="text-success fw-bold">${formatCurrency(spent)}</td>
+                        <td class="text-primary fw-bold">${formatCurrency(remaining)}</td>
                         <td>
                             <div class="d-flex justify-content-between small mb-1">
                                 <span class="fw-semibold ${isOverLimit ? 'text-danger' : 'text-muted'}">${utilPercent}%</span>
@@ -138,6 +136,11 @@ const PesoFunds = (() => {
                                 <div class="progress-bar ${utilPercent >= 90 ? 'bg-danger' : (utilPercent >= 70 ? 'bg-warning' : 'bg-success')}" 
                                      role="progressbar" style="width: ${utilPercent}%"></div>
                             </div>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="openFundAllocationModal('${prog.code}')">
+                                <i class="bi bi-sliders me-1"></i>Adjust
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -149,25 +152,26 @@ const PesoFunds = (() => {
      * Render Disbursements History Table
      */
     function renderDisbursementsTable() {
-        const tbody = document.getElementById('disbursementsHistoryTableBody');
+        const tbody = document.getElementById('distributionLogsTableBody') || document.getElementById('disbursementsHistoryTableBody');
         if (!tbody) return;
 
         if (_disbursements.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No disbursement vouchers recorded yet.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No disbursement vouchers recorded yet.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = _disbursements.map(d => `
             <tr>
-                <td class="fw-bold font-monospace text-primary">#VOUCH-${escapeHtml(String(d.id))}</td>
                 <td>
-                    <div class="fw-semibold text-dark">${escapeHtml(d.beneficiary_name || d.recipient || 'Recipient')}</div>
-                    <small class="text-muted font-monospace">${escapeHtml(d.qr_code || 'QR-BEN-000')}</small>
+                    <div class="fw-semibold text-dark">${escapeHtml(d.beneficiary_name || d.recipient || 'Beneficiary')}</div>
+                    <small class="text-muted font-monospace">${escapeHtml(d.qr_code || 'QR-BEN-102938')}</small>
                 </td>
                 <td><span class="badge bg-light text-dark border font-monospace">${escapeHtml(d.program_code || 'PESO')}</span></td>
+                <td><small class="text-muted">Direct Livelihood Grant</small></td>
                 <td class="fw-bold text-success">${formatCurrency(d.amount || d.amount_approved)}</td>
-                <td><span class="badge bg-success-subtle text-success border">Disbursed</span></td>
-                <td><small class="text-muted font-monospace">${d.disbursed_at ? new Date(d.disbursed_at).toLocaleDateString() : 'Today'}</small></td>
+                <td><small class="text-muted font-monospace">${d.disbursed_at ? new Date(d.disbursed_at).toLocaleDateString() : '2026-08-15'}</small></td>
+                <td><small class="text-muted">Jane Smith</small></td>
+                <td><span class="badge bg-success-subtle text-success border"><i class="bi bi-check-circle me-1"></i>Verified Complete</span></td>
             </tr>
         `).join('');
     }

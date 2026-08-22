@@ -67,63 +67,69 @@ const PesoReports = (() => {
      * Filter report data by module and date range
      */
     function queryReportRecords() {
-        const moduleType = document.getElementById('reportModuleSelect')?.value || 'all';
+        const moduleType = document.getElementById('reportTypeSelect')?.value || document.getElementById('reportModuleSelect')?.value || 'applications';
         const startDate = document.getElementById('reportStartDate')?.value || '';
         const endDate = document.getElementById('reportEndDate')?.value || '';
 
         let results = [];
 
-        // 1. Programs
-        if (moduleType === 'all' || moduleType === 'programs') {
-            _reportsData.programs.forEach(p => {
-                const date = p.created_at ? p.created_at.substring(0, 10) : '';
-                if ((!startDate || date >= startDate) && (!endDate || date <= endDate)) {
-                    results.push({
-                        module: 'Programs',
-                        referenceId: p.code,
-                        title: p.name,
-                        category: p.category || 'General',
-                        status: p.status || 'Active',
-                        amount: Number(p.budget) || 0,
-                        date: date || '2026-01-01'
-                    });
-                }
-            });
-        }
-
-        // 2. Applications / Evaluations
-        if (moduleType === 'all' || moduleType === 'applications') {
+        // 1. Applications Report
+        if (moduleType === 'applications') {
             _reportsData.applications.forEach(a => {
                 const date = a.dateSubmitted || a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : '');
                 if ((!startDate || date >= startDate) && (!endDate || date <= endDate)) {
                     results.push({
-                        module: 'Applications',
-                        referenceId: `#${a.id || a.dbId}`,
-                        title: a.beneficiaryName || a.applicant_name || 'Beneficiary',
-                        category: a.programCode || a.program || 'Assistance',
-                        status: a.status || 'Pending',
-                        amount: Number(a.amount_requested) || Number(a.amount_approved) || 0,
-                        date: date || '2026-01-01'
+                        col1: a.application_number || `#APP-${a.id || a.dbId}`,
+                        col2: a.beneficiaryName || a.applicant_name || 'Applicant',
+                        col3: a.programCode || a.program || 'TUPAD',
+                        col4: a.status || 'Pending',
+                        col5: formatCurrency(a.amount_requested || a.amount_approved || 5000),
+                        col6: date || '2026-01-10'
                     });
                 }
             });
         }
-
-        // 3. Scheduling
-        if (moduleType === 'all' || moduleType === 'scheduling') {
+        // 2. Scheduling Report
+        else if (moduleType === 'scheduling') {
             _reportsData.schedules.forEach(s => {
                 const date = s.interviewDate || s.date || (s.scheduled_date || '');
                 if ((!startDate || date >= startDate) && (!endDate || date <= endDate)) {
                     results.push({
-                        module: 'Scheduling',
-                        referenceId: `#SCH-${s.id || s.slot_id}`,
-                        title: s.beneficiaryName || s.title || 'Schedule',
-                        category: s.programCode || 'Interview',
-                        status: s.status || 'Scheduled',
-                        amount: 0,
-                        date: date || '2026-01-01'
+                        col1: s.slot_id || `#SCH-${s.id}`,
+                        col2: s.beneficiaryName || s.title || 'Beneficiary',
+                        col3: s.programCode || 'PESO',
+                        col4: s.status || 'Scheduled',
+                        col5: s.venue || s.location || 'PESO Main Office',
+                        col6: `${date || '2026-08-25'} ${s.scheduleTime || s.time || '09:00 AM'}`
                     });
                 }
+            });
+        }
+        // 3. Distribution / Assistance Report
+        else if (moduleType === 'distribution') {
+            _reportsData.funds.forEach(f => {
+                results.push({
+                    col1: f.qr_code || `QR-BEN-102938`,
+                    col2: f.beneficiary_name || 'Beneficiary',
+                    col3: f.program_code || 'PESO',
+                    col4: f.status || 'Disbursed',
+                    col5: formatCurrency(f.amount || f.amount_approved || 5000),
+                    col6: f.disbursed_at || '2026-08-15'
+                });
+            });
+        }
+        // 4. Funds Utilization Report
+        else if (moduleType === 'funds') {
+            _reportsData.programs.forEach(p => {
+                const budget = Number(p.budget) || Number(p.budget_allocated) || 0;
+                results.push({
+                    col1: p.code,
+                    col2: p.name,
+                    col3: p.category || 'Employment',
+                    col4: p.status || 'Active',
+                    col5: formatCurrency(budget),
+                    col6: `${p.slots_filled || 0} / ${p.slots_target || 100} Slots`
+                });
             });
         }
 
@@ -134,13 +140,70 @@ const PesoReports = (() => {
      * Render Report Table Preview (Tab 8 / Reports)
      */
     function renderReportsPreview() {
-        const tbody = document.getElementById('reportPreviewTableBody');
-        const countBadge = document.getElementById('reportResultCountBadge');
-        if (!tbody) return;
+        const thead = document.getElementById('reportDisplayTableHead');
+        const tbody = document.getElementById('reportDisplayTableBody') || document.getElementById('reportPreviewTableBody');
+        const countBadge = document.getElementById('reportTotalRecordsBadge') || document.getElementById('reportResultCountBadge');
+        const titleEl = document.getElementById('reportTitleHeader');
+        const moduleType = document.getElementById('reportTypeSelect')?.value || document.getElementById('reportModuleSelect')?.value || 'applications';
 
         const records = queryReportRecords();
 
         if (countBadge) countBadge.textContent = `${records.length} Records Found`;
+
+        // Update Thead based on report type
+        if (thead) {
+            if (moduleType === 'applications') {
+                if (titleEl) titleEl.textContent = 'Application Management & Case Breakdown Report';
+                thead.innerHTML = `
+                    <tr>
+                        <th>App #</th>
+                        <th>Applicant Name</th>
+                        <th>Program Code</th>
+                        <th>Status</th>
+                        <th>Amount Requested</th>
+                        <th>Submission Date</th>
+                    </tr>
+                `;
+            } else if (moduleType === 'scheduling') {
+                if (titleEl) titleEl.textContent = 'Attendance & Schedule Participation Report';
+                thead.innerHTML = `
+                    <tr>
+                        <th>Slot ID</th>
+                        <th>Attendee / Group</th>
+                        <th>Program</th>
+                        <th>Status</th>
+                        <th>Venue / Location</th>
+                        <th>Schedule Timestamp</th>
+                    </tr>
+                `;
+            } else if (moduleType === 'distribution') {
+                if (titleEl) titleEl.textContent = 'Assistance & Livelihood Grant Distribution Report';
+                thead.innerHTML = `
+                    <tr>
+                        <th>Beneficiary QR</th>
+                        <th>Recipient Name</th>
+                        <th>Program</th>
+                        <th>Status</th>
+                        <th>Disbursed Amount</th>
+                        <th>Release Date</th>
+                    </tr>
+                `;
+            } else {
+                if (titleEl) titleEl.textContent = 'Fund Utilization & Appropriation Ledger Report';
+                thead.innerHTML = `
+                    <tr>
+                        <th>Program Code</th>
+                        <th>Program Name</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Allocated Budget</th>
+                        <th>Beneficiary Slots</th>
+                    </tr>
+                `;
+            }
+        }
+
+        if (!tbody) return;
 
         if (records.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No records match the selected date range and module criteria.</td></tr>`;
@@ -149,12 +212,12 @@ const PesoReports = (() => {
 
         tbody.innerHTML = records.map(r => `
             <tr>
-                <td><span class="badge bg-primary-subtle text-primary border">${escapeHtml(r.module)}</span></td>
-                <td class="fw-bold font-monospace">${escapeHtml(r.referenceId)}</td>
-                <td class="fw-semibold text-dark">${escapeHtml(r.title)}</td>
-                <td>${escapeHtml(r.category)}</td>
-                <td><span class="badge ${r.status === 'Active' || r.status === 'Approved' ? 'bg-success' : (r.status === 'Cancelled' || r.status === 'Denied' ? 'bg-danger' : 'bg-warning text-dark')}">${escapeHtml(r.status)}</span></td>
-                <td class="font-monospace text-muted">${escapeHtml(r.date)}</td>
+                <td class="fw-bold font-monospace text-primary">${escapeHtml(r.col1)}</td>
+                <td class="fw-semibold text-dark">${escapeHtml(r.col2)}</td>
+                <td><span class="badge bg-light text-dark border font-monospace">${escapeHtml(r.col3)}</span></td>
+                <td><span class="badge ${r.col4 === 'Active' || r.col4 === 'Approved' || r.col4 === 'Disbursed' ? 'bg-success-subtle text-success border' : 'bg-warning-subtle text-warning border'}">${escapeHtml(r.col4)}</span></td>
+                <td class="fw-bold">${escapeHtml(r.col5)}</td>
+                <td class="font-monospace text-muted small">${escapeHtml(r.col6)}</td>
             </tr>
         `).join('');
     }
@@ -287,4 +350,9 @@ const PesoReports = (() => {
     });
 })();
 
+// Global shortcuts
 window.PesoReports = PesoReports;
+window.generateReportData = () => PesoReports.renderReportsPreview();
+window.exportActiveReportCSV = () => PesoReports.exportReportCSV();
+window.printActiveReportPDF = () => PesoReports.printReport();
+window.exportDistributionLogsCsv = () => PesoReports.exportReportCSV();
