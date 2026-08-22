@@ -101,11 +101,13 @@ const SessionManager = (() => {
    */
   function clear() {
     try {
-      const keys = ['userId', 'sessionToken', 'userRole', 'jwtAccessToken', 'username', 'userFullName', 'department', 'currentUser'];
-      keys.forEach(k => {
-        sessionStorage.removeItem(k);
-        localStorage.removeItem(k);
-      });
+      sessionStorage.removeItem('userId');
+      sessionStorage.removeItem('sessionToken');
+      sessionStorage.removeItem('userRole');
+      sessionStorage.removeItem('jwtAccessToken');
+      sessionStorage.removeItem('username');
+      sessionStorage.removeItem('userFullName');
+      sessionStorage.removeItem('department');
     } catch (e) { }
     _cachedProfile = null;
     if (_verifyTimer) {
@@ -118,7 +120,6 @@ const SessionManager = (() => {
    * Logout: sign out via Supabase Auth and clear local session data
    */
   async function logout(redirectUrl) {
-    const currentRole = getRole();
     try {
       if (supabaseClient) {
         await supabaseClient.auth.signOut();
@@ -132,26 +133,20 @@ const SessionManager = (() => {
     clear();
     try { sessionStorage.clear(); } catch (e) { }
 
-    // Redirect to proper login
-    let target = redirectUrl;
-    if (!target) {
-      target = (currentRole && currentRole.toLowerCase().includes('beneficiary')) ? 'official_login.html' : 'admin_login.html';
-    }
-    window.location.href = target;
+    // Redirect to login
+    window.location.href = redirectUrl || 'official_login.html';
   }
 
   /**
    * Force logout with a user-visible message
    */
   function forceLogout(message) {
-    const currentRole = getRole();
     clear();
     try {
       sessionStorage.clear();
-      sessionStorage.setItem('authGuardMessage', message || 'Your session has expired. Please log in again.');
+      sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
     } catch (e) { }
-    const target = (currentRole && currentRole.toLowerCase().includes('beneficiary')) ? 'official_login.html' : 'admin_login.html';
-    window.location.href = target;
+    window.location.href = 'official_login.html';
   }
 
   /**

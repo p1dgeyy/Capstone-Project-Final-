@@ -83,16 +83,23 @@
         status: profile.status || 'Active'
       };
     } else {
-      // Fallback display profile
+      // Fallback display profile from active registration session
+      const savedFullName = sessionStorage.getItem('beneficiaryFullName') || sessionStorage.getItem('beneficiaryName') || 'Beneficiary Applicant';
+      const savedUsername = sessionStorage.getItem('beneficiaryUsername') || sessionStorage.getItem('username') || 'beneficiary';
+      const savedQr = sessionStorage.getItem('beneficiaryQrCode') || 'QR-BEN-ACTIVE';
+      const savedEmail = sessionStorage.getItem('beneficiaryEmail') || '';
+      const savedPhone = sessionStorage.getItem('beneficiaryPhone') || '';
+      const savedAddr = sessionStorage.getItem('beneficiaryAddress') || 'City of Koronadal';
+
       state.user = {
-        qr_code: sessionStorage.getItem('beneficiaryQrCode') || 'QR-BEN-ACTIVE',
-        first_name: 'Beneficiary',
-        last_name: 'Applicant',
-        fullName: sessionStorage.getItem('beneficiaryName') || 'Beneficiary Applicant',
-        username: sessionStorage.getItem('beneficiaryUsername') || 'beneficiary',
-        email: '',
-        phone: '',
-        address: 'City of Koronadal',
+        qr_code: savedQr,
+        first_name: savedFullName.split(' ')[0] || 'Beneficiary',
+        last_name: savedFullName.split(' ').slice(1).join(' ') || '',
+        fullName: savedFullName,
+        username: savedUsername,
+        email: savedEmail,
+        phone: savedPhone,
+        address: savedAddr,
         status: 'Active'
       };
     }

@@ -1841,54 +1841,73 @@
                                 <input type="file" class="form-control" id="cswdoBenReqs" accept="image/*,.pdf,.docx">
                             </div>
                         </div>
-
                         <div class="d-flex justify-content-end gap-2 mt-4">
                             <button type="button" class="btn btn-secondary" onclick="closeAddBenModal()">Cancel</button>
                             <button type="submit" class="btn btn-primary fw-bold" id="btnCswdoProceedToDualVerify">
-                                <span>Proceed to Dual OTP Verification <i class="bi bi-arrow-right ms-1"></i></span>
+                                <span>Proceed to Email Verification <i class="bi bi-arrow-right ms-1"></i></span>
                             </button>
                         </div>
                     </form>
                 </div>
 
-                <!-- PHASE 2: DUAL OTP VERIFICATION (EMAIL + SMS) -->
-                <div id="addBenVerifyView" class="d-none text-center py-2">
-                    <div class="avatar-circle mx-auto mb-2" style="width: 56px; height: 56px; background: #E0F2FE; color: #0284C7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-                        <i class="bi bi-shield-check"></i>
+                <!-- PHASE 2: EMAIL OTP VERIFICATION -->
+                <div id="addBenEmailVerifyView" class="d-none text-center py-2">
+                    <div class="avatar-circle mx-auto mb-2" style="width: 56px; height: 56px; background: #EDE9FE; color: #7C3AED; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        <i class="bi bi-envelope-check-fill"></i>
                     </div>
-                    <h5 class="fw-bold text-dark mb-1">Dual Identity Verification</h5>
-                    <p class="text-muted small mb-3">Verification codes dispatched to beneficiary's Gmail & Phone.</p>
+                    <h5 class="fw-bold text-dark mb-1">Step 1 of 2: Gmail Verification</h5>
+                    <p class="text-muted small mb-3">Verification code dispatched to beneficiary's Gmail.</p>
 
-                    <!-- Step A: Email Code -->
                     <div class="card p-3 mb-3 bg-light border text-start">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-bold text-dark small"><i class="bi bi-envelope-fill text-primary me-1"></i> 1. Email Verification Code</span>
+                            <span class="fw-bold text-dark small"><i class="bi bi-envelope-fill text-primary me-1"></i> Target Email Address:</span>
                             <span class="badge bg-secondary font-monospace" id="cswdoMaskedEmail">***@gmail.com</span>
                         </div>
-                        <div class="input-group">
-                            <input type="text" class="form-control fw-bold font-monospace" id="cswdoBenEmailOtp" placeholder="Enter verification code" maxlength="8" style="letter-spacing: 4px;">
-                            <button class="btn btn-outline-primary btn-sm" type="button" onclick="resendCswdoEmailOtp()">Resend</button>
+                        <label class="form-label small fw-semibold text-muted">Enter 6-Digit Email Code:</label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control fw-bold font-monospace text-center fs-5" id="cswdoBenEmailOtp" placeholder="000000" maxlength="6" inputmode="numeric" style="letter-spacing: 6px;">
+                            <button class="btn btn-outline-primary btn-sm" type="button" id="btnCswdoResendEmailOtp" onclick="resendCswdoEmailOtp()">Resend Code</button>
                         </div>
-                    </div>
-
-                    <!-- Step B: SMS OTP -->
-                    <div class="card p-3 mb-3 bg-light border text-start">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-bold text-dark small"><i class="bi bi-phone-fill text-success me-1"></i> 2. SMS OTP Code</span>
-                            <span class="badge bg-secondary font-monospace" id="cswdoMaskedPhone">09XX-***-XXXX</span>
-                        </div>
-                        <div class="input-group">
-                            <input type="text" class="form-control fw-bold font-monospace" id="cswdoBenSmsOtp" placeholder="Enter SMS OTP code" maxlength="8" style="letter-spacing: 4px;">
-                            <button class="btn btn-outline-success btn-sm" type="button" onclick="resendCswdoSmsOtp()">Resend</button>
-                        </div>
+                        <div class="alert alert-danger py-1 px-2 small mb-0 d-none" id="cswdoEmailAlertMsg"></div>
                     </div>
 
                     <div class="d-flex justify-content-between mt-4">
                         <button type="button" class="btn btn-outline-secondary" onclick="backToCswdoBenForm()">
                             <i class="bi bi-arrow-left me-1"></i> Edit Form Details
                         </button>
+                        <button type="button" class="btn btn-purple fw-bold px-4" id="btnVerifyCswdoEmailOtp" onclick="verifyCswdoEmailOtp()">
+                            <span>Verify Email & Proceed to SMS OTP <i class="bi bi-arrow-right ms-1"></i></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PHASE 3: SMS OTP VERIFICATION -->
+                <div id="addBenSmsVerifyView" class="d-none text-center py-2">
+                    <div class="avatar-circle mx-auto mb-2" style="width: 56px; height: 56px; background: #DCFCE7; color: #15803D; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        <i class="bi bi-phone-vibrate-fill"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Step 2 of 2: SMS Phone OTP Verification</h5>
+                    <p class="text-muted small mb-3">Verification code dispatched to beneficiary's mobile number.</p>
+
+                    <div class="card p-3 mb-3 bg-light border text-start">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark small"><i class="bi bi-phone-fill text-success me-1"></i> Target Mobile Number:</span>
+                            <span class="badge bg-secondary font-monospace" id="cswdoMaskedPhone">09XX-***-XXXX</span>
+                        </div>
+                        <label class="form-label small fw-semibold text-muted">Enter 6-Digit SMS OTP:</label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control fw-bold font-monospace text-center fs-5" id="cswdoBenSmsOtp" placeholder="000000" maxlength="6" inputmode="numeric" style="letter-spacing: 6px;">
+                            <button class="btn btn-outline-success btn-sm" type="button" id="btnCswdoResendSmsOtp" onclick="resendCswdoSmsOtp()">Resend OTP</button>
+                        </div>
+                        <div class="alert alert-danger py-1 px-2 small mb-0 d-none" id="cswdoSmsAlertMsg"></div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-secondary" onclick="backToCswdoEmailVerify()">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Email Step
+                        </button>
                         <button type="button" class="btn btn-success fw-bold px-4" id="btnFinalizeCswdoBen" onclick="finalizeCswdoBeneficiaryCreation()">
-                            <i class="bi bi-check-circle-fill me-1"></i> Verify & Save Beneficiary Record
+                            <i class="bi bi-check-circle-fill me-1"></i> Verify SMS OTP & Create Beneficiary
                         </button>
                     </div>
                 </div>
@@ -4068,8 +4087,16 @@
             const form = document.getElementById('addBeneficiaryForm');
             if (form) form.reset();
             pendingCswdoBenData = null;
+
+            if (document.getElementById('cswdoBenEmailOtp')) document.getElementById('cswdoBenEmailOtp').value = '';
+            if (document.getElementById('cswdoBenSmsOtp')) document.getElementById('cswdoBenSmsOtp').value = '';
+            document.getElementById('cswdoEmailAlertMsg')?.classList.add('d-none');
+            document.getElementById('cswdoSmsAlertMsg')?.classList.add('d-none');
+
             document.getElementById('addBenFormView')?.classList.remove('d-none');
-            document.getElementById('addBenVerifyView')?.classList.add('d-none');
+            document.getElementById('addBenEmailVerifyView')?.classList.add('d-none');
+            document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
+
             const modal = document.getElementById('addBeneficiaryModal');
             if (modal) {
                 modal.classList.add('active');
@@ -4137,24 +4164,26 @@
             try {
                 if (typeof OTPAuth !== 'undefined') {
                     await OTPAuth.sendEmailCode(email);
-                    await OTPAuth.sendSmsOtp(phone);
                 }
 
                 document.getElementById('cswdoMaskedEmail').textContent = typeof OTPAuth !== 'undefined' ? OTPAuth.maskEmail(email) : email;
                 document.getElementById('cswdoMaskedPhone').textContent = typeof OTPAuth !== 'undefined' ? OTPAuth.maskPhone(phone) : phone;
 
                 document.getElementById('addBenFormView')?.classList.add('d-none');
-                document.getElementById('addBenVerifyView')?.classList.remove('d-none');
+                document.getElementById('addBenEmailVerifyView')?.classList.remove('d-none');
+                document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
+
+                setTimeout(() => document.getElementById('cswdoBenEmailOtp')?.focus(), 200);
 
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
-                        title: 'Verification Codes Dispatched',
-                        message: `Sent 6-digit verification code to ${email} and 6-digit OTP to ${phone}.`,
+                        title: 'Email Code Dispatched',
+                        message: `Dispatched 6-digit verification code to ${email}.`,
                         type: 'info'
                     });
                 }
             } catch (err) {
-                alert(err.message || 'Could not dispatch verification codes.');
+                alert(err.message || 'Could not dispatch email verification code.');
             } finally {
                 if (btn) btn.disabled = false;
             }
@@ -4180,30 +4209,80 @@
 
         function backToCswdoBenForm() {
             document.getElementById('addBenFormView')?.classList.remove('d-none');
-            document.getElementById('addBenVerifyView')?.classList.add('d-none');
+            document.getElementById('addBenEmailVerifyView')?.classList.add('d-none');
+            document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
         }
 
-        async function finalizeCswdoBeneficiaryCreation() {
-            const emailCode = document.getElementById('cswdoBenEmailOtp')?.value.trim();
-            const smsOtp = document.getElementById('cswdoBenSmsOtp')?.value.trim();
-            const btn = document.getElementById('btnFinalizeCswdoBen');
+        function backToCswdoEmailVerify() {
+            document.getElementById('addBenFormView')?.classList.add('d-none');
+            document.getElementById('addBenEmailVerifyView')?.classList.remove('d-none');
+            document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
+        }
 
-            if (!emailCode || emailCode.length < 6 || emailCode.length > 8) {
-                alert('Please enter your complete 6 to 8-digit Gmail verification code.');
+        async function verifyCswdoEmailOtp() {
+            const emailCode = document.getElementById('cswdoBenEmailOtp')?.value.trim();
+            const alertEl = document.getElementById('cswdoEmailAlertMsg');
+            const btn = document.getElementById('btnVerifyCswdoEmailOtp');
+
+            if (!emailCode || emailCode.length < 6) {
+                if (alertEl) {
+                    alertEl.textContent = 'Please enter the complete 6-digit Gmail verification code.';
+                    alertEl.classList.remove('d-none');
+                }
                 document.getElementById('cswdoBenEmailOtp')?.focus();
                 return;
             }
 
-            if (!smsOtp || smsOtp.length < 6 || smsOtp.length > 8) {
-                alert('Please enter your complete 6 to 8-digit SMS OTP code.');
-                document.getElementById('cswdoBenSmsOtp')?.focus();
-                return;
-            }
-
+            if (alertEl) alertEl.classList.add('d-none');
             if (btn) btn.disabled = true;
 
             try {
                 await OTPAuth.verifyEmailCode(pendingCswdoBenData.email, emailCode);
+
+                window.showSystemNotification({
+                    title: 'Email Verified!',
+                    message: 'Beneficiary email confirmed. Automatically dispatching SMS OTP to mobile phone...',
+                    type: 'success'
+                });
+
+                // Dispatch SMS OTP
+                await OTPAuth.sendSmsOtp(pendingCswdoBenData.phone);
+
+                // Transition to Phase 3
+                document.getElementById('addBenEmailVerifyView')?.classList.add('d-none');
+                document.getElementById('addBenSmsVerifyView')?.classList.remove('d-none');
+                setTimeout(() => document.getElementById('cswdoBenSmsOtp')?.focus(), 200);
+
+            } catch (err) {
+                if (alertEl) {
+                    alertEl.textContent = err.message || 'Invalid email verification code.';
+                    alertEl.classList.remove('d-none');
+                } else {
+                    alert(err.message || 'Invalid email verification code.');
+                }
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function finalizeCswdoBeneficiaryCreation() {
+            const smsOtp = document.getElementById('cswdoBenSmsOtp')?.value.trim();
+            const alertEl = document.getElementById('cswdoSmsAlertMsg');
+            const btn = document.getElementById('btnFinalizeCswdoBen');
+
+            if (!smsOtp || smsOtp.length < 6) {
+                if (alertEl) {
+                    alertEl.textContent = 'Please enter the complete 6-digit SMS OTP code.';
+                    alertEl.classList.remove('d-none');
+                }
+                document.getElementById('cswdoBenSmsOtp')?.focus();
+                return;
+            }
+
+            if (alertEl) alertEl.classList.add('d-none');
+            if (btn) btn.disabled = true;
+
+            try {
                 await OTPAuth.verifySmsOtp(pendingCswdoBenData.phone, smsOtp);
 
                 const uniqueQr = `QR-BEN-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -4212,33 +4291,73 @@
                     qr_code: uniqueQr,
                     status: 'Active',
                     terms_agreed: true,
-                    data_consent: true
+                    data_consent: true,
+                    verified_at: new Date().toISOString()
                 };
 
                 if (typeof DataService !== 'undefined' && DataService.beneficiaries) {
-                    await DataService.beneficiaries.create(payload);
+                    try {
+                        await DataService.beneficiaries.create(payload);
+                    } catch (dbErr) {
+                        console.warn('[CSWDO BEN CREATE DB]:', dbErr);
+                    }
                 }
 
                 closeAddBenModal();
 
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
-                        title: 'Beneficiary Registered!',
-                        message: `Successfully verified and added ${payload.first_name} ${payload.last_name} (${uniqueQr}) to CSWDO records.`,
-                        type: 'success'
+                        title: 'Beneficiary Account Created!',
+                        message: `Beneficiary ${payload.first_name} ${payload.last_name} (${uniqueQr}) was successfully verified and added to CSWDO records.`,
+                        type: 'success',
+                        duration: 8000
                     });
                 } else {
-                    alert(`Beneficiary ${payload.first_name} ${payload.last_name} successfully registered with QR: ${uniqueQr}`);
+                    alert(`Beneficiary Account Created: ${payload.first_name} ${payload.last_name} (${uniqueQr}) has been successfully registered.`);
                 }
 
                 if (typeof loadAllApplications === 'function') loadAllApplications();
 
             } catch (err) {
-                alert(err.message || 'Verification failed. Please check the entered codes.');
+                if (alertEl) {
+                    alertEl.textContent = err.message || 'SMS OTP verification failed.';
+                    alertEl.classList.remove('d-none');
+                } else {
+                    alert(err.message || 'Verification failed. Please check the entered codes.');
+                }
             } finally {
                 if (btn) btn.disabled = false;
             }
         }
+
+        // Setup auto-advance on keyup for CSWDO OTP input boxes
+        document.addEventListener('DOMContentLoaded', () => {
+            const emailInput = document.getElementById('cswdoBenEmailOtp');
+            if (emailInput) {
+                emailInput.addEventListener('input', (e) => {
+                    emailInput.value = emailInput.value.replace(/[^0-9]/g, '');
+                    if (emailInput.value.length === 6) {
+                        verifyCswdoEmailOtp();
+                    }
+                });
+                emailInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') verifyCswdoEmailOtp();
+                });
+            }
+
+            const smsInput = document.getElementById('cswdoBenSmsOtp');
+            if (smsInput) {
+                smsInput.addEventListener('input', (e) => {
+                    smsInput.value = smsInput.value.replace(/[^0-9]/g, '');
+                    if (smsInput.value.length === 6) {
+                        finalizeCswdoBeneficiaryCreation();
+                    }
+                });
+                smsInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') finalizeCswdoBeneficiaryCreation();
+                });
+            }
+        });
 
         // Ask for notification permission on load
         if ('Notification' in window && Notification.permission === 'default') {

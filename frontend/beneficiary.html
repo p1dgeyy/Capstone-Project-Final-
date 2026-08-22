@@ -4100,29 +4100,147 @@
         // Initialize notifications dropdown and load dynamic beneficiary statistics
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                // Check active beneficiary profile
-                let username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
-                let fullName = sessionStorage.getItem('beneficiaryName') || 'Maria Santos';
-                
+                // Check active beneficiary profile from session/local storage
+                let username = sessionStorage.getItem('beneficiaryUsername') || sessionStorage.getItem('username') || 'maria_santos';
+                let fullName = sessionStorage.getItem('beneficiaryFullName') || sessionStorage.getItem('beneficiaryName') || 'Maria Santos';
+                let qrCode = sessionStorage.getItem('beneficiaryQrCode') || 'QR-BEN-ACTIVE';
+                let program = sessionStorage.getItem('beneficiaryProgram') || 'PESO — Public Employment & Livelihood Assistance';
+                let phone = sessionStorage.getItem('beneficiaryPhone') || '';
+                let email = sessionStorage.getItem('beneficiaryEmail') || '';
+                let address = sessionStorage.getItem('beneficiaryAddress') || 'City of Koronadal';
+
+                // If this is a newly registered or custom user not in static userStats, build full personalized profile
+                if (!userStats[username]) {
+                    const isCswdo = program.toUpperCase().includes('CSWDO');
+                    const officeName = isCswdo ? 'CSWDO' : 'PESO';
+                    const officeBadgeClass = isCswdo ? 'cswdo' : 'peso';
+                    const shortProgName = program.split('—')[0].trim();
+                    const fullProgTitle = program.includes('—') ? program.split('—')[1].trim() : program;
+                    const appId = `APP-2026-${qrCode.replace(/[^0-9]/g, '').slice(-4) || '1088'}`;
+                    const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+                    userStats[username] = {
+                        fullName: fullName,
+                        qrCode: qrCode,
+                        pending: 1,
+                        approved: 0,
+                        scheduled: 0,
+                        notifications: 2,
+                        appIds: [appId],
+                        applicationsHtml: `
+                            <tr onclick="viewFullTracking('${appId}')" style="cursor: pointer;">
+                                <td><strong>#${appId}</strong></td>
+                                <td><strong>${fullProgTitle}</strong></td>
+                                <td><span class="office-badge ${officeBadgeClass}">${officeName}</span></td>
+                                <td>${todayStr}</td>
+                                <td>
+                                    <div class="progress" style="height: 16px; background-color: var(--rose-light); border-radius: 8px; width: 120px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 25%; background-color: var(--warning); border-radius: 8px; font-size: 0.75rem; font-weight: bold; line-height: 16px;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">25%</div>
+                                    </div>
+                                </td>
+                                <td><span class="status-pill pending">Intake Filed</span></td>
+                            </tr>
+                        `,
+                        notificationsHtml: `
+                            <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                                <div class="notif-dot"></div>
+                                <div class="notif-content">
+                                    <div class="notif-title"><i class="bi bi-shield-check text-success me-1"></i> Account Verified</div>
+                                    <div class="notif-msg">Welcome, ${fullName}! Your identity and contact credentials have been verified.</div>
+                                    <div class="notif-time">Just now</div>
+                                </div>
+                            </div>
+                            <div class="notif-item unread" onclick="navigateTo('notifications')" style="cursor: pointer;">
+                                <div class="notif-dot"></div>
+                                <div class="notif-content">
+                                    <div class="notif-title"><i class="bi bi-file-earmark-check text-primary me-1"></i> Application Intake Registered</div>
+                                    <div class="notif-msg">Your intake application for ${shortProgName} (${appId}) is submitted and pending officer review.</div>
+                                    <div class="notif-time">Today</div>
+                                </div>
+                            </div>
+                        `,
+                        dropdownNotifHtml: `
+                            <div class="notif-item unread">
+                                <div class="notif-dot"></div>
+                                <div class="notif-content">
+                                    <div class="notif-title">Account Verified</div>
+                                    <div class="notif-msg">Welcome to Koronadal Assistance Portal.</div>
+                                    <div class="notif-time">Just now</div>
+                                </div>
+                            </div>
+                        `,
+                        distributionHtml: `
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                                <div class="dist-date-block">
+                                    <span class="dist-day">--</span>
+                                    <span class="dist-month">PENDING</span>
+                                </div>
+                                <div style="flex: 1; margin-left: 20px;">
+                                    <h3 class="dist-title">${shortProgName} Intake</h3>
+                                    <div class="dist-info"><i class="bi bi-clock-history"></i> Pending Officer Schedule</div>
+                                </div>
+                                <span class="status-pill pending">Under Review</span>
+                            </div>
+                            <div class="dist-instructions">
+                                <strong>Next Steps:</strong><br>
+                                1. Your intake registration has been recorded under QR: <strong>${qrCode}</strong>.<br>
+                                2. An officer will review your submitted documents and assign an interview schedule.<br>
+                                3. Watch for SMS notifications on your verified mobile phone.
+                            </div>
+                        `
+                    };
+                }
+
                 // Get stats profile
                 let profile = userStats[username] || userStats['maria_santos'] || {};
 
                 // Update welcome name banner
                 const welcomeBanner = document.getElementById('welcomeUser');
                 if (welcomeBanner) {
-                    welcomeBanner.textContent = 'Welcome, ' + fullName + '!';
+                    const firstName = fullName.split(' ')[0] || fullName;
+                    welcomeBanner.textContent = 'Welcome, ' + firstName + '!';
                 }
 
                 // Update sidebar subtitle
                 const sidebarSubtitle = document.getElementById('sidebarSubtitle');
-                if (sidebarSubtitle && profile.fullName) {
-                    sidebarSubtitle.textContent = profile.fullName;
+                if (sidebarSubtitle) {
+                    sidebarSubtitle.textContent = fullName;
+                }
+
+                // Update QR Tracking Card
+                const benCardFullName = document.getElementById('benCardFullName');
+                if (benCardFullName) benCardFullName.textContent = fullName;
+
+                const benCardQrBadge = document.getElementById('benCardQrBadge');
+                if (benCardQrBadge) benCardQrBadge.textContent = qrCode;
+
+                const liveTrackingAppId = document.getElementById('liveTrackingAppId');
+                if (liveTrackingAppId && profile.appIds && profile.appIds[0]) {
+                    liveTrackingAppId.textContent = profile.appIds[0];
+                }
+
+                // Render dynamic QR Code inside canvas box
+                const benQrCanvasBox = document.getElementById('benQrCanvasBox');
+                if (benQrCanvasBox) {
+                    benQrCanvasBox.innerHTML = '';
+                    if (typeof QRCode !== 'undefined') {
+                        new QRCode(benQrCanvasBox, {
+                            text: qrCode,
+                            width: 120,
+                            height: 120,
+                            colorDark: "#0f172a",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                    } else {
+                        benQrCanvasBox.innerHTML = `<div class="p-3 font-monospace fw-bold text-dark border bg-light">${qrCode}</div>`;
+                    }
                 }
 
                 // Update QR Modal name as well
                 const qrName = document.querySelector('#qrModal h4');
-                if (qrName && profile.fullName) {
-                    qrName.textContent = profile.fullName;
+                if (qrName) {
+                    qrName.textContent = fullName;
                 }
 
                 // Update statistics indicators
@@ -4152,8 +4270,20 @@
 
                 // Prefill Profile Modal
                 const profileNameInput = document.getElementById('profileName');
-                if (profileNameInput && profile.fullName) {
-                    profileNameInput.value = profile.fullName;
+                if (profileNameInput) {
+                    profileNameInput.value = fullName;
+                }
+                const profileEmailInput = document.getElementById('profileEmail');
+                if (profileEmailInput && email) {
+                    profileEmailInput.value = email;
+                }
+                const profilePhoneInput = document.getElementById('profilePhone');
+                if (profilePhoneInput && phone) {
+                    profilePhoneInput.value = phone;
+                }
+                const profileAddressInput = document.getElementById('profileAddress');
+                if (profileAddressInput && address) {
+                    profileAddressInput.value = address;
                 }
 
                 // Setup Data Privacy modal behavior on first login with scroll requirement

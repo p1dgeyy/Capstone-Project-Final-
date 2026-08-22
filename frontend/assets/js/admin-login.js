@@ -47,16 +47,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         checkLockoutStatus();
 
-        // Check if user was redirected here with an auth guard alert message
-        const guardMsg = sessionStorage.getItem('authGuardMessage');
-        if (guardMsg) {
-            const errorAlert = document.getElementById('errorAlert');
-            const errorMessage = document.getElementById('errorMessage');
-            if (errorMessage) errorMessage.textContent = guardMsg;
-            if (errorAlert) errorAlert.style.display = 'block';
-            sessionStorage.removeItem('authGuardMessage');
-        }
-
         // Clear any stale cached credentials/sessions on login portal load
         ['userId', 'userRole', 'username', 'userFullName', 'department', 'jwtAccessToken', 'sessionToken'].forEach(k => sessionStorage.removeItem(k));
 
