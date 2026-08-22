@@ -1,14 +1,431 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=official_login.html">
-    <title>Redirecting...</title>
-    <script>
-        window.location.href = "official_login.html";
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Government of Koronadal - Unified Portals Gateway</title>
+
+    <!-- Dependencies: Bootstrap CSS & Icons, Google Fonts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Unified Stylesheet -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/unified-overlays.css">
+
+    <style>
+        .gateway-wrapper {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: radial-gradient(circle at 10% 20%, rgba(240, 196, 203, 0.25) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(229, 188, 169, 0.25) 0%, transparent 40%),
+                        var(--bg-app);
+        }
+
+        .gateway-header {
+            padding: 2.5rem 1.5rem 1.5rem;
+            text-align: center;
+        }
+
+        .seal-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 12px rgba(43, 37, 38, 0.1));
+            margin-bottom: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .seal-img:hover {
+            transform: scale(1.05);
+        }
+
+        .gateway-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.35rem;
+        }
+
+        .gateway-subtitle {
+            font-size: 1rem;
+            color: var(--text-muted);
+            max-width: 680px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .portal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 1.5rem 2.5rem;
+            width: 100%;
+        }
+
+        .portal-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: var(--shadow-card);
+            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .portal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: transparent;
+            transition: background 0.2s ease;
+        }
+
+        .portal-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-card-hover);
+            border-color: rgba(200, 125, 135, 0.45);
+        }
+
+        .portal-card.peso-admin:hover::before { background: var(--palette-antique-rose); }
+        .portal-card.peso-officer:hover::before { background: var(--palette-dried-thyme); }
+        .portal-card.cswdo-admin:hover::before { background: var(--palette-blush); }
+        .portal-card.cswdo-officer:hover::before { background: var(--palette-bisque); }
+        .portal-card.auth-portal:hover::before { background: var(--palette-champagne); }
+
+        .portal-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .portal-icon-box {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: transform 0.2s ease;
+        }
+
+        .portal-card:hover .portal-icon-box {
+            transform: scale(1.08);
+        }
+
+        .portal-card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.45rem;
+        }
+
+        .portal-card-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 1.25rem;
+        }
+
+        .portal-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 1.5rem;
+        }
+
+        .portal-feature-list li {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 0.35rem;
+        }
+
+        .portal-feature-list li i {
+            color: var(--palette-antique-rose);
+            font-size: 0.9rem;
+        }
+
+        .gateway-search-bar {
+            max-width: 460px;
+            margin: 0 auto 2rem;
+            position: relative;
+        }
+
+        .gateway-search-bar input {
+            padding-left: 2.75rem;
+            height: 48px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-light);
+            background: var(--bg-surface);
+            box-shadow: 0 2px 10px rgba(43, 37, 38, 0.03);
+            font-size: 0.92rem;
+        }
+
+        .gateway-search-bar i {
+            position: absolute;
+            left: 1.15rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .gateway-footer {
+            padding: 1.75rem 1.5rem;
+            border-top: 1px solid var(--border-light);
+            background: var(--bg-surface);
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .gateway-nav-top {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            padding: 1rem 2rem 0;
+        }
+    </style>
 </head>
+
 <body>
-    <p>Redirecting to <a href="official_login.html">Portal Login</a>...</p>
+    <div class="gateway-wrapper">
+
+        <!-- Top Right System Controls -->
+        <div class="gateway-nav-top">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 d-inline-flex align-items-center gap-1.5">
+                <span class="spinner-grow spinner-grow-sm text-success" style="width: 7px; height: 7px;"></span>
+                <span>Koronadal LGU Cloud Active</span>
+            </span>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleDarkMode()" id="darkModeBtn" aria-label="Toggle Dark Mode">
+                <i class="bi bi-moon-stars-fill me-1"></i> <span id="themeLabel">Dark Mode</span>
+            </button>
+        </div>
+
+        <!-- Hero Header -->
+        <header class="gateway-header">
+            <img src="assets/koronadalseal.png" alt="City Government of Koronadal Official Seal" class="seal-img">
+            <h1 class="gateway-title">City Government of Koronadal</h1>
+            <p class="gateway-subtitle">
+                Unified Portal Gateway for Public Employment Service Office (PESO) & City Social Welfare and Development Office (CSWDO) Management Systems
+            </p>
+
+            <!-- Quick Filter Bar -->
+            <div class="gateway-search-bar">
+                <i class="bi bi-search"></i>
+                <input type="text" id="portalSearchInput" class="form-control" placeholder="Search portals, modules, or services..." onkeyup="filterPortals()">
+            </div>
+        </header>
+
+        <!-- Main Portal Selection Grid -->
+        <main class="portal-grid" id="portalGrid">
+
+            <!-- Card 1: PESO Administrator Portal -->
+            <div class="portal-card peso-admin" data-keywords="peso administrator admin programs appropriation ordinance fund allocation scheduling evaluation audit logs">
+                <div>
+                    <div class="portal-card-top">
+                        <div class="portal-icon-box" style="background: rgba(200, 125, 135, 0.15); color: var(--palette-antique-rose);">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <span class="badge badge-rose">Super Admin</span>
+                    </div>
+                    <h2 class="portal-card-title">PESO Administrator Portal</h2>
+                    <p class="portal-card-desc">
+                        Comprehensive administrative oversight for PESO operations, Appropriation Ordinance No. 6 allocations, officer monitoring, and evaluation workflows.
+                    </p>
+                    <ul class="portal-feature-list">
+                        <li><i class="bi bi-check2-circle"></i> Ordinance No. 6 Budget Tracking</li>
+                        <li><i class="bi bi-check2-circle"></i> Employment & Livelihood CRUD</li>
+                        <li><i class="bi bi-check2-circle"></i> Audit Trails & System Logs</li>
+                    </ul>
+                </div>
+                <a href="peso_admin.html" class="btn btn-primary w-100 rounded-pill">
+                    <span>Enter PESO Admin</span>
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <!-- Card 2: PESO Officer Portal -->
+            <div class="portal-card peso-officer" data-keywords="peso officer field beneficiary assignment verification qr attendance scheduling">
+                <div>
+                    <div class="portal-card-top">
+                        <div class="portal-icon-box" style="background: rgba(107, 117, 86, 0.16); color: var(--palette-dried-thyme-contrast);">
+                            <i class="bi bi-person-workspace"></i>
+                        </div>
+                        <span class="badge badge-thyme">Officer Portal</span>
+                    </div>
+                    <h2 class="portal-card-title">PESO Officer Portal</h2>
+                    <p class="portal-card-desc">
+                        Officer-managed beneficiary profiling, program assignments, application verification, and real-time QR attendance scanning for training programs.
+                    </p>
+                    <ul class="portal-feature-list">
+                        <li><i class="bi bi-check2-circle"></i> Officer-Managed Beneficiaries</li>
+                        <li><i class="bi bi-check2-circle"></i> QR Scanner Attendance Engine</li>
+                        <li><i class="bi bi-check2-circle"></i> Intake & Verification Queue</li>
+                    </ul>
+                </div>
+                <a href="peso_officer.html" class="btn btn-success w-100 rounded-pill">
+                    <span>Enter PESO Officer</span>
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <!-- Card 3: CSWDO Administrator Portal -->
+            <div class="portal-card cswdo-admin" data-keywords="cswdo administrator admin aics senior pwd solo parent disaster social welfare budget">
+                <div>
+                    <div class="portal-card-top">
+                        <div class="portal-icon-box" style="background: rgba(240, 196, 203, 0.4); color: #8c4a55;">
+                            <i class="bi bi-building-fill-gear"></i>
+                        </div>
+                        <span class="badge badge-blush">CSWDO Admin</span>
+                    </div>
+                    <h2 class="portal-card-title">CSWDO Administrator Portal</h2>
+                    <p class="portal-card-desc">
+                        Executive social welfare governance: AICS, Senior Citizen, PWD, Solo Parent, and Disaster Relief distribution with budget compliance monitoring.
+                    </p>
+                    <ul class="portal-feature-list">
+                        <li><i class="bi bi-check2-circle"></i> Multi-Program Social Welfare</li>
+                        <li><i class="bi bi-check2-circle"></i> Social Worker Oversight & Caseloads</li>
+                        <li><i class="bi bi-check2-circle"></i> Payout Scheduling & Disbursement</li>
+                    </ul>
+                </div>
+                <a href="cswdo_admin.html" class="btn btn-primary w-100 rounded-pill">
+                    <span>Enter CSWDO Admin</span>
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <!-- Card 4: CSWDO Officer Portal -->
+            <div class="portal-card cswdo-officer" data-keywords="cswdo officer social worker client intake case assessment assistance payout qr">
+                <div>
+                    <div class="portal-card-top">
+                        <div class="portal-icon-box" style="background: rgba(229, 188, 169, 0.35); color: #7a3e46;">
+                            <i class="bi bi-heart-pulse-fill"></i>
+                        </div>
+                        <span class="badge badge-bisque">Social Worker</span>
+                    </div>
+                    <h2 class="portal-card-title">CSWDO Officer Portal</h2>
+                    <p class="portal-card-desc">
+                        Field social worker portal for client profiling, intake assessments, case study documentation, and real-time payout attendance recording.
+                    </p>
+                    <ul class="portal-feature-list">
+                        <li><i class="bi bi-check2-circle"></i> Client Intake & Profiling</li>
+                        <li><i class="bi bi-check2-circle"></i> Case Assessment & Screening</li>
+                        <li><i class="bi bi-check2-circle"></i> Assistance Payout Verification</li>
+                    </ul>
+                </div>
+                <a href="cswdo_officer.html" class="btn btn-outline-primary w-100 rounded-pill">
+                    <span>Enter CSWDO Officer</span>
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <!-- Card 5: Official & Beneficiary Login Hub -->
+            <div class="portal-card auth-portal" data-keywords="login official staff beneficiary sign in authentication otp password">
+                <div>
+                    <div class="portal-card-top">
+                        <div class="portal-icon-box" style="background: rgba(251, 234, 214, 0.7); color: #8a5a2b;">
+                            <i class="bi bi-key-fill"></i>
+                        </div>
+                        <span class="badge badge-champagne">Authentication</span>
+                    </div>
+                    <h2 class="portal-card-title">Official & Beneficiary Login</h2>
+                    <p class="portal-card-desc">
+                        Central authentication gateway for registered citizen beneficiaries, evaluators, and official LGU personnel with multi-factor security.
+                    </p>
+                    <ul class="portal-feature-list">
+                        <li><i class="bi bi-check2-circle"></i> Beneficiary Self-Service Access</li>
+                        <li><i class="bi bi-check2-circle"></i> Staff & Official Authentication</li>
+                        <li><i class="bi bi-check2-circle"></i> Data Privacy RA 10173 Compliant</li>
+                    </ul>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="official_login.html" class="btn btn-outline-primary flex-fill rounded-pill" style="font-size: 0.82rem;">
+                        <i class="bi bi-person-fill me-1"></i> Beneficiary
+                    </a>
+                    <a href="admin_login.html" class="btn btn-primary flex-fill rounded-pill" style="font-size: 0.82rem;">
+                        <i class="bi bi-lock-fill me-1"></i> Staff Login
+                    </a>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="gateway-footer">
+            <div class="container">
+                <div class="d-flex flex-wrap justify-content-center gap-3 mb-2">
+                    <a href="privacy.html" class="text-muted">Data Privacy Notice (RA 10173)</a>
+                    <span class="text-muted">•</span>
+                    <a href="terms.html" class="text-muted">Terms of Service</a>
+                    <span class="text-muted">•</span>
+                    <span class="text-muted">City Government of Koronadal &copy; 2026</span>
+                </div>
+                <div class="small text-muted">
+                    Official Digital Governance & Public Assistance Management Platform
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('koronadal_theme', isDark ? 'dark' : 'light');
+            document.getElementById('themeLabel').innerText = isDark ? 'Light Mode' : 'Dark Mode';
+            const icon = document.querySelector('#darkModeBtn i');
+            if (icon) {
+                icon.className = isDark ? 'bi bi-sun-fill me-1' : 'bi bi-moon-stars-fill me-1';
+            }
+        }
+
+        // Initialize Theme from localStorage
+        (function() {
+            const savedTheme = localStorage.getItem('koronadal_theme');
+            if (savedTheme === 'dark' || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !savedTheme)) {
+                document.body.classList.add('dark-mode');
+                const label = document.getElementById('themeLabel');
+                if (label) label.innerText = 'Light Mode';
+                const icon = document.querySelector('#darkModeBtn i');
+                if (icon) icon.className = 'bi bi-sun-fill me-1';
+            }
+        })();
+
+        // Live Portal Search Filter
+        function filterPortals() {
+            const query = document.getElementById('portalSearchInput').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.portal-card');
+            cards.forEach(card => {
+                const text = (card.innerText + ' ' + (card.getAttribute('data-keywords') || '')).toLowerCase();
+                if (!query || text.includes(query)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
+
 </html>

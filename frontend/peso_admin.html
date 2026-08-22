@@ -8,13 +8,13 @@
     <!-- Dependencies: Load jQuery first, then Bootstrap JS Bundle, then Chart.js -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Core API, Supabase & Safeguard Scripts -->
+    <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="assets/css/unified-overlays.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase-config.js"></script>
@@ -29,53 +29,64 @@
     <link rel="stylesheet" href="assets/css/peso-admin.css">
 
     <style>
-        /* Additional styling enhancements for seamless responsiveness & dark mode */
-        .badge-emp { background: #E0F2FE; color: #0284C7; }
-        .badge-livelihood { background: #D1FAE5; color: #059669; }
-        .badge-other { background: #F3E8FF; color: #7C3AED; }
-        .stat-card.purple .icon-wrapper { background: #EDE9FE; color: #7C3AED; }
-        .stat-card.danger .icon-wrapper { background: #FEE2E2; color: #DC2626; }
-        .stat-card.indigo .icon-wrapper { background: #E0E7FF; color: #4F46E5; }
+        /* Zero Auth Flicker Shield */
+        html.auth-pending body, html.auth-pending main {
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+        html.auth-verified body, html.auth-verified main {
+            visibility: visible !important;
+            opacity: 1 !important;
+            transition: opacity 0.15s ease-in;
+        }
+
+        /* Harmonized status and metric classes */
+        .badge-emp { background: rgba(200, 125, 135, 0.15); color: var(--palette-antique-rose, #c87d87); border: 1px solid rgba(200, 125, 135, 0.3); }
+        .badge-livelihood { background: rgba(107, 117, 86, 0.16); color: var(--palette-dried-thyme-contrast, #545c43); border: 1px solid rgba(107, 117, 86, 0.3); }
+        .badge-other { background: rgba(229, 188, 169, 0.3); color: #7a3e46; border: 1px solid rgba(229, 188, 169, 0.4); }
+        .stat-card.purple .icon-wrapper { background: rgba(229, 188, 169, 0.3); color: #7a3e46; }
+        .stat-card.danger .icon-wrapper { background: rgba(254, 226, 226, 0.8); color: #dc2626; }
+        .stat-card.indigo .icon-wrapper { background: rgba(200, 125, 135, 0.15); color: var(--palette-antique-rose, #c87d87); }
         
         .tab-count-badge {
             font-size: 0.72rem;
             padding: 0.2rem 0.5rem;
-            border-radius: 10px;
-            background: rgba(2, 132, 199, 0.15);
-            color: #0284C7;
+            border-radius: var(--radius-pill);
+            background: rgba(200, 125, 135, 0.15);
+            color: var(--palette-antique-rose, #c87d87);
             font-weight: 700;
         }
         body.dark-mode .tab-count-badge {
-            background: rgba(56, 189, 248, 0.2);
-            color: #38BDF8;
+            background: rgba(232, 165, 174, 0.2);
+            color: var(--palette-antique-rose-contrast, #e8a5ae);
         }
         .activity-feed-item {
             padding: 0.85rem 1rem;
-            border-left: 3px solid #0284C7;
-            background: #FFFFFF;
-            border-radius: 8px;
+            border-left: 3px solid var(--palette-antique-rose, #c87d87);
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
             margin-bottom: 0.65rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-light);
+            border-left: 3px solid var(--palette-antique-rose, #c87d87);
             transition: all 0.2s ease;
-        }
-        body.dark-mode .activity-feed-item {
-            background: #1E293B;
-            border-left-color: #38BDF8;
         }
         .activity-feed-item:hover {
             transform: translateX(3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+            box-shadow: var(--shadow-card-hover);
         }
         .overflow-warning-banner {
-            border-left: 5px solid #EF4444;
-            background: #FEF2F2;
-            border-radius: 10px;
+            border-left: 5px solid #ef4444;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-left: 5px solid #ef4444;
+            border-radius: var(--radius-md);
             padding: 1rem 1.25rem;
         }
         body.dark-mode .overflow-warning-banner {
-            background: #450A0A;
-            border-left-color: #F87171;
-            color: #FEE2E2;
+            background: rgba(69, 10, 10, 0.4);
+            border-left-color: #f87171;
+            color: #fee2e2;
         }
     </style>
 </head>
@@ -1923,5 +1934,18 @@
     <script src="assets/js/peso-admin/peso-admin-officers.js"></script>
     <script src="assets/js/peso-admin/peso-admin-main.js"></script>
     <script src="assets/js/peso_admin.js"></script>
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('koronadal_theme', isDark ? 'dark' : 'light');
+        }
+        (function() {
+            const savedTheme = localStorage.getItem('koronadal_theme');
+            if (savedTheme === 'dark' || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !savedTheme)) {
+                document.body.classList.add('dark-mode');
+            }
+        })();
+    </script>
 </body>
 </html>

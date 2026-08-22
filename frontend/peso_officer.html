@@ -7,10 +7,11 @@
     <!-- Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- API Configuration & Core Scripts -->
+    <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="assets/css/unified-overlays.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -34,73 +35,73 @@
 
     <style>
         :root {
-            --primary: #0284C7;
-            --primary-hover: #0369A1;
-            --primary-light: #E0F2FE;
-            --dark-navy: #0F172A;
+            --primary: var(--palette-antique-rose, #c87d87);
+            --primary-hover: #b56b76;
+            --primary-light: rgba(200, 125, 135, 0.15);
+            --dark-navy: var(--text-main, #2b2526);
             --sidebar-width: 270px;
             --header-height: 70px;
-            --bg-light: #F8FAFC;
-            --card-border: #E2E8F0;
-            --success: #10B981;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --info: #3B82F6;
+            --bg-light: var(--bg-app, #faf8f6);
+            --card-border: var(--border-light, rgba(200, 125, 135, 0.22));
+            --success: var(--palette-dried-thyme, #6b7556);
+            --warning: #d97706;
+            --danger: #dc2626;
+            --info: #4f46e5;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
+            font-family: var(--font-main, 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif);
         }
 
         body {
             background-color: var(--bg-light);
-            color: #1E293B;
+            color: var(--text-main);
             overflow-x: hidden;
         }
 
         /* Dark Mode Theme */
         body.dark-mode {
-            background-color: #0F172A;
-            color: #F8FAFC;
+            background-color: var(--bg-app, #181516);
+            color: var(--text-main, #f5eff0);
         }
         body.dark-mode .sidebar {
-            background-color: #1E293B;
-            border-right-color: #334155;
+            background-color: var(--bg-surface, #221e20) !important;
+            border-right-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
         }
         body.dark-mode .header-top {
-            background-color: #1E293B;
-            border-bottom-color: #334155;
-            color: #F8FAFC;
+            background-color: var(--bg-surface, #221e20) !important;
+            border-bottom-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
+            color: var(--text-main, #f5eff0) !important;
         }
         body.dark-mode .card,
         body.dark-mode .stat-card {
-            background-color: #1E293B;
-            border-color: #334155;
-            color: #F8FAFC;
+            background-color: var(--bg-surface, #221e20) !important;
+            border-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
+            color: var(--text-main, #f5eff0) !important;
         }
         body.dark-mode .table {
-            color: #F8FAFC;
+            color: var(--text-main, #f5eff0) !important;
         }
         body.dark-mode .table th {
-            background-color: #0F172A;
-            color: #94A3B8;
+            background-color: var(--bg-subtle, #2d2729) !important;
+            color: var(--text-muted, #c4b8bb) !important;
         }
         body.dark-mode .table td {
-            border-bottom-color: #334155;
+            border-bottom-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
         }
         body.dark-mode .modal-content {
-            background-color: #1E293B;
-            color: #F8FAFC;
-            border-color: #334155;
+            background-color: var(--bg-surface, #221e20) !important;
+            color: var(--text-main, #f5eff0) !important;
+            border-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
         }
         body.dark-mode .form-control,
         body.dark-mode .form-select {
-            background-color: #0F172A;
-            border-color: #334155;
-            color: #F8FAFC;
+            background-color: var(--bg-subtle, #2d2729) !important;
+            border-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
+            color: var(--text-main, #f5eff0) !important;
         }
 
         .sidebar {
@@ -3944,6 +3945,201 @@
 
         function logoutOfficer() {
             if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
+            if (!pendingOfficerBenData) return;
+            try {
+                await OTPAuth.sendEmailCode(pendingOfficerBenData.email);
+            } catch (e) {
+                alert(e.message || 'Failed to resend email code.');
+            }
+        }
+
+        async function resendOfficerSmsOtp() {
+            if (!pendingOfficerBenData) return;
+            try {
+                await OTPAuth.sendSmsOtp(pendingOfficerBenData.phone);
+            } catch (e) {
+                alert(e.message || 'Failed to resend SMS OTP.');
+            }
+        }
+
+        function backToOfficerBenForm() {
+            document.getElementById('addBenFormView')?.classList.remove('d-none');
+            document.getElementById('addBenEmailVerifyView')?.classList.add('d-none');
+            document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
+        }
+
+        function backToOfficerEmailVerify() {
+            document.getElementById('addBenFormView')?.classList.add('d-none');
+            document.getElementById('addBenEmailVerifyView')?.classList.remove('d-none');
+            document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
+        }
+
+        async function verifyOfficerEmailOtp() {
+            const emailCode = document.getElementById('officerBenEmailOtp')?.value.trim();
+            const alertEl = document.getElementById('officerEmailAlertMsg');
+            const btn = document.getElementById('btnVerifyOfficerEmailOtp');
+
+            if (!emailCode || emailCode.length < 6) {
+                if (alertEl) {
+                    alertEl.textContent = 'Please enter the complete 6-digit Gmail verification code.';
+                    alertEl.classList.remove('d-none');
+                }
+                document.getElementById('officerBenEmailOtp')?.focus();
+                return;
+            }
+
+            if (alertEl) alertEl.classList.add('d-none');
+            if (btn) btn.disabled = true;
+
+            try {
+                await OTPAuth.verifyEmailCode(pendingOfficerBenData.email, emailCode);
+
+                window.showSystemNotification({
+                    title: 'Email Verified!',
+                    message: 'Beneficiary email confirmed. Automatically dispatching SMS OTP to mobile phone...',
+                    type: 'success'
+                });
+
+                // Dispatch SMS OTP
+                await OTPAuth.sendSmsOtp(pendingOfficerBenData.phone);
+
+                // Transition to Phase 3
+                document.getElementById('addBenEmailVerifyView')?.classList.add('d-none');
+                document.getElementById('addBenSmsVerifyView')?.classList.remove('d-none');
+                setTimeout(() => document.getElementById('officerBenSmsOtp')?.focus(), 200);
+
+            } catch (err) {
+                if (alertEl) {
+                    alertEl.textContent = err.message || 'Invalid email verification code.';
+                    alertEl.classList.remove('d-none');
+                } else {
+                    alert(err.message || 'Invalid email verification code.');
+                }
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function finalizeOfficerBeneficiaryCreation() {
+            const smsOtp = document.getElementById('officerBenSmsOtp')?.value.trim();
+            const alertEl = document.getElementById('officerSmsAlertMsg');
+            const btn = document.getElementById('btnFinalizeOfficerBen');
+
+            if (!smsOtp || smsOtp.length < 6) {
+                if (alertEl) {
+                    alertEl.textContent = 'Please enter the complete 6-digit SMS OTP code.';
+                    alertEl.classList.remove('d-none');
+                }
+                document.getElementById('officerBenSmsOtp')?.focus();
+                return;
+            }
+
+            if (alertEl) alertEl.classList.add('d-none');
+            if (btn) btn.disabled = true;
+
+            try {
+                await OTPAuth.verifySmsOtp(pendingOfficerBenData.phone, smsOtp);
+
+                const uniqueQr = `QR-BEN-${Math.floor(100000 + Math.random() * 900000)}`;
+                const payload = {
+                    ...pendingOfficerBenData,
+                    qr_code: uniqueQr,
+                    status: 'Active',
+                    terms_agreed: true,
+                    data_consent: true,
+                    verified_at: new Date().toISOString()
+                };
+
+                if (typeof DataService !== 'undefined' && DataService.beneficiaries) {
+                    try {
+                        await DataService.beneficiaries.create(payload);
+                    } catch (dbErr) {
+                        console.warn('[OFFICER BEN CREATE DB]:', dbErr);
+                    }
+                }
+
+                beneficiariesList.unshift({
+                    id: uniqueQr,
+                    numId: Math.floor(1000 + Math.random() * 9000),
+                    qr_code: uniqueQr,
+                    name: `${payload.first_name} ${payload.last_name}`,
+                    barangay: payload.barangay,
+                    address: payload.address,
+                    contact: payload.phone,
+                    email: payload.email,
+                    program: payload.program,
+                    status: 'Active',
+                    idStatus: 'Verified',
+                    clearanceStatus: 'Verified',
+                    age: payload.age,
+                    sex: payload.sex
+                });
+
+                if (typeof renderBeneficiariesTable === 'function') {
+                    renderBeneficiariesTable();
+                }
+                if (typeof renderBeneficiaryTable === 'function') {
+                    renderBeneficiaryTable();
+                }
+
+                logOfficerAction('ADD_BENEFICIARY', `Manually registered beneficiary ${payload.first_name} ${payload.last_name} (${uniqueQr}) with verified Email and SMS OTP.`);
+
+                bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal'))?.hide();
+
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Beneficiary Account Created!',
+                        message: `Beneficiary ${payload.first_name} ${payload.last_name} (${uniqueQr}) was successfully verified and added to the system.`,
+                        type: 'success',
+                        duration: 8000
+                    });
+                } else {
+                    alert(`Beneficiary Account Created: ${payload.first_name} ${payload.last_name} (${uniqueQr}) has been successfully registered.`);
+                }
+
+            } catch (err) {
+                if (alertEl) {
+                    alertEl.textContent = err.message || 'SMS OTP verification failed.';
+                    alertEl.classList.remove('d-none');
+                } else {
+                    alert(err.message || 'Verification failed. Please check the entered code.');
+                }
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        // Setup auto-advance on keyup for officer OTP input boxes
+        document.addEventListener('DOMContentLoaded', () => {
+            const emailInput = document.getElementById('officerBenEmailOtp');
+            if (emailInput) {
+                emailInput.addEventListener('input', (e) => {
+                    emailInput.value = emailInput.value.replace(/[^0-9]/g, '');
+                    if (emailInput.value.length === 6) {
+                        verifyOfficerEmailOtp();
+                    }
+                });
+                emailInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') verifyOfficerEmailOtp();
+                });
+            }
+
+            const smsInput = document.getElementById('officerBenSmsOtp');
+            if (smsInput) {
+                smsInput.addEventListener('input', (e) => {
+                    smsInput.value = smsInput.value.replace(/[^0-9]/g, '');
+                    if (smsInput.value.length === 6) {
+                        finalizeOfficerBeneficiaryCreation();
+                    }
+                });
+                smsInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') finalizeOfficerBeneficiaryCreation();
+                });
+            }
+        });
+
+        function logoutOfficer() {
+            if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
                 SessionManager.logout('admin_login.html');
             } else {
                 sessionStorage.clear();
@@ -3951,6 +4147,18 @@
                 window.location.href = 'admin_login.html';
             }
         }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('koronadal_theme', isDark ? 'dark' : 'light');
+        }
+        (function() {
+            const savedTheme = localStorage.getItem('koronadal_theme');
+            if (savedTheme === 'dark' || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !savedTheme)) {
+                document.body.classList.add('dark-mode');
+            }
+        })();
     </script>
 </body>
 </html>
