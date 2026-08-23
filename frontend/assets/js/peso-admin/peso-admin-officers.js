@@ -177,6 +177,14 @@ function calcCreateOfficerAge() {
     }
     const today = new Date();
     const birthDate = new Date(dobVal);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    ageInput.value = isNaN(age) || age < 0 ? '' : age;
+}
+
 function getLoggedInAdminIdentity() {
     let adminId = 'PESO Admin';
     try {

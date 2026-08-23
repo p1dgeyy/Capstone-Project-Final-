@@ -1222,11 +1222,256 @@
         ageInput.value = isNaN(age) || age < 0 ? '' : age;
     }
 
-    function openCreateOfficerModal() {
-        if (typeof window.openCreateOfficerModal === 'function' && window.openCreateOfficerModal !== openCreateOfficerModal) {
-            window.openCreateOfficerModal();
-            return;
+    function showOfficerModalAlert(formEl, message) {
+        if (!formEl) return;
+        const isEdit = formEl.id === 'editOfficerForm';
+        const alertId = isEdit ? 'editOfficerAlert' : 'createOfficerAlert';
+        const msgId = isEdit ? 'editOfficerAlertMsg' : 'createOfficerAlertMsg';
+        
+        const alertEl = document.getElementById(alertId);
+        const msgEl = document.getElementById(msgId);
+        if (alertEl && msgEl) {
+            msgEl.textContent = message;
+            alertEl.classList.remove('d-none');
         }
+    }
+
+    function hideOfficerModalAlert(formEl) {
+        if (!formEl) return;
+        const isEdit = formEl.id === 'editOfficerForm';
+        const alertId = isEdit ? 'editOfficerAlert' : 'createOfficerAlert';
+        const alertEl = document.getElementById(alertId);
+        if (alertEl) {
+            alertEl.classList.add('d-none');
+        }
+    }
+
+    function attachOfficerFormLiveValidation(formEl) {
+        if (!formEl || formEl.dataset.liveBound === 'true') return;
+        formEl.dataset.liveBound = 'true';
+
+        const inputs = formEl.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            const handler = () => {
+                if (input.classList.contains('is-invalid')) {
+                    input.classList.remove('is-invalid');
+                    input.removeAttribute('title');
+                    input.removeAttribute('data-bs-title');
+                }
+                const remainingInvalids = formEl.querySelectorAll('.is-invalid');
+                if (remainingInvalids.length === 0) {
+                    hideOfficerModalAlert(formEl);
+                }
+            };
+            input.addEventListener('input', handler);
+            input.addEventListener('change', handler);
+        });
+    }
+
+    function validateOfficerForm(formEl, mode = 'create', currentOfficerId = null) {
+        if (!formEl) return { isValid: false, errors: [], summaryMessage: 'Form not found.' };
+
+        const errors = [];
+        const missingFields = [];
+
+        // Clear existing invalid classes
+        formEl.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+            el.removeAttribute('title');
+            el.removeAttribute('data-bs-title');
+        });
+
+        const isEdit = mode === 'edit';
+        const prefix = isEdit ? 'editOff' : 'createOff';
+
+        function getEl(idName) {
+            return document.getElementById(`${prefix}${idName}`) || 
+                   document.getElementById(`newOff${idName}`) ||
+                   formEl.querySelector(`[name="${idName}"]`);
+        }
+
+        const roleEl = getEl('Role');
+        const firstNameEl = getEl('FirstName');
+        const middleNameEl = getEl('MiddleName');
+        const lastNameEl = getEl('LastName');
+        const suffixEl = getEl('Suffix');
+        const dobEl = getEl('Dob');
+        const ageEl = getEl('Age');
+        const addressEl = getEl('Address');
+        const phoneEl = getEl('Phone') || getEl('ContactNumber');
+        const emailEl = getEl('Email');
+        const usernameEl = getEl('Username');
+        const passwordEl = getEl('Password');
+        const confirmPasswordEl = getEl('ConfirmPassword');
+
+        function setFieldError(element, fieldLabel, message, isMissing = false) {
+            if (!element) return;
+            element.classList.add('is-invalid');
+            element.setAttribute('title', message);
+            element.setAttribute('data-bs-title', message);
+            const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
+            if (feedback && message) {
+                feedback.textContent = message;
+            }
+            errors.push({ field: fieldLabel, message, element, isMissing });
+            if (isMissing) missingFields.push(fieldLabel);
+        }
+
+        // 1. Mandatory User Role validation (Only PESO Admin or PESO Officer)
+        const role = (roleEl?.value || '').trim();
+        if (!role || !['PESO Admin', 'PESO Officer'].includes(role)) {
+            setFieldError(roleEl, 'User Role', 'User role selection is mandatory (PESO Admin or PESO Officer).', true);
+        }
+
+        // 2. Personal Information: First Name & Last Name
+        const firstName = (firstNameEl?.value || '').trim();
+        if (!firstName) {
+            setFieldError(firstNameEl, 'First Name', 'First name is required.', true);
+        }
+
+        const middleName = (middleNameEl?.value || '').trim();
+        const lastName = (lastNameEl?.value || '').trim();
+        if (!lastName) {
+            setFieldError(lastNameEl, 'Last Name', 'Last name is required.', true);
+        }
+
+        const suffix = (suffixEl?.value || '').trim();
+
+        // 3. Birthdate Validation (Must be a valid past date, realistic age >= 18)
+        const dob = dobEl?.value || '';
+        if (!dob) {
+            setFieldError(dobEl, 'Birthdate', 'Valid birthdate is required.', true);
+        } else {
+            const birthDateObj = new Date(dob);
+            const todayObj = new Date();
+            if (isNaN(birthDateObj.getTime())) {
+                setFieldError(dobEl, 'Birthdate', 'Invalid birthdate format.');
+            } else if (birthDateObj > todayObj) {
+                setFieldError(dobEl, 'Birthdate', 'Birthdate cannot be in the future.');
+            } else {
+                let calculatedAge = todayObj.getFullYear() - birthDateObj.getFullYear();
+                const monthDiff = todayObj.getMonth() - birthDateObj.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && todayObj.getDate() < birthDateObj.getDate())) {
+                    calculatedAge--;
+                }
+                if (calculatedAge < 18) {
+                    setFieldError(dobEl, 'Birthdate', 'Officer must be at least 18 years of age.');
+                }
+            }
+        }
+
+        // 4. Address validation
+        const address = (addressEl?.value || '').trim();
+        if (!address) {
+            setFieldError(addressEl, 'Address', 'Address is required.', true);
+        }
+
+        // 5. Contact Number validation (PH based)
+        const contactNumber = (phoneEl?.value || '').trim();
+        const phoneDigits = contactNumber.replace(/[-\s]/g, '');
+        const phoneRegex = /^(09|\+639)\d{9}$/;
+        if (!contactNumber) {
+            setFieldError(phoneEl, 'Contact Number', 'Contact number is required.', true);
+        } else if (!phoneRegex.test(phoneDigits)) {
+            setFieldError(phoneEl, 'Contact Number', 'Contact number must be PH format (09XX-XXX-XXXX or 09XXXXXXXXX).');
+        }
+
+        // 6. Email validation
+        const email = (emailEl?.value || '').trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email) {
+            setFieldError(emailEl, 'Email Address', 'Email address is required.', true);
+        } else if (!emailRegex.test(email)) {
+            setFieldError(emailEl, 'Email Address', 'Enter a valid email address (e.g., officer@koronadal.gov.ph).');
+        }
+
+        // 7. Username validation (min 3 characters, unique)
+        const username = (usernameEl?.value || '').trim();
+        const existingList = Array.isArray(AdminStore?.officers) ? AdminStore.officers : (Array.isArray(officersList) ? officersList : []);
+        if (!username) {
+            setFieldError(usernameEl, 'Username', 'Username is required.', true);
+        } else if (username.length < 3) {
+            setFieldError(usernameEl, 'Username', 'Username must be at least 3 characters.');
+        } else if (existingList.some(o => (currentOfficerId === null || o.id !== currentOfficerId) && o.username && o.username.toLowerCase() === username.toLowerCase())) {
+            setFieldError(usernameEl, 'Username', `Username "${username}" is already assigned to another account.`);
+        }
+
+        // 8. Password validations
+        const password = passwordEl?.value || '';
+        const confirmPassword = confirmPasswordEl?.value || '';
+
+        if (!isEdit) {
+            // Create mode: password is required
+            if (!password) {
+                setFieldError(passwordEl, 'Password', 'Password is required.', true);
+            } else if (password.length < 8) {
+                setFieldError(passwordEl, 'Password', 'Password must be at least 8 characters.');
+            }
+
+            if (!confirmPassword) {
+                setFieldError(confirmPasswordEl, 'Confirm Password', 'Confirm password is required.', true);
+            } else if (password && confirmPassword && password !== confirmPassword) {
+                setFieldError(confirmPasswordEl, 'Confirm Password', 'Passwords do not match.');
+            }
+        } else {
+            // Edit mode: password is optional
+            if (password) {
+                if (password.length < 8) {
+                    setFieldError(passwordEl, 'Password', 'Password must be at least 8 characters.');
+                }
+                if (!confirmPassword) {
+                    setFieldError(confirmPasswordEl, 'Confirm Password', 'Confirm password is required when updating password.', true);
+                } else if (password !== confirmPassword) {
+                    setFieldError(confirmPasswordEl, 'Confirm Password', 'Passwords do not match.');
+                }
+            }
+        }
+
+        const isValid = errors.length === 0;
+
+        // Organized Exception Hierarchy Summary Message
+        let summaryMessage = '';
+        if (!isValid) {
+            if (missingFields.length > 0) {
+                summaryMessage = 'Please complete all required fields.';
+            } else if (errors.some(e => e.field === 'Email Address')) {
+                summaryMessage = 'Enter a valid email address.';
+            } else if (errors.some(e => e.field === 'Confirm Password')) {
+                summaryMessage = 'Passwords do not match.';
+            } else if (errors.some(e => e.field === 'Contact Number')) {
+                summaryMessage = 'Contact number must be PH format (09XX-XXX-XXXX or 09XXXXXXXXX).';
+            } else if (errors.some(e => e.field === 'Username')) {
+                summaryMessage = errors.find(e => e.field === 'Username').message;
+            } else if (errors.some(e => e.field === 'Birthdate')) {
+                summaryMessage = errors.find(e => e.field === 'Birthdate').message;
+            } else {
+                summaryMessage = errors[0].message;
+            }
+        }
+
+        return {
+            isValid,
+            errors,
+            missingFields,
+            summaryMessage,
+            data: {
+                role,
+                firstName,
+                middleName,
+                lastName,
+                suffix,
+                dob,
+                age: ageEl?.value || '',
+                address,
+                phone: contactNumber,
+                email,
+                username,
+                password
+            }
+        };
+    }
+
+    function openCreateOfficerModal() {
         const form = document.getElementById('createOfficerForm') || document.getElementById('newOfficerForm');
         if (form) {
             form.reset();
@@ -1235,11 +1480,8 @@
                 el.removeAttribute('title');
                 el.removeAttribute('data-bs-title');
             });
-            const alertEl = document.getElementById('createOfficerAlert');
-            if (alertEl) alertEl.classList.add('d-none');
-            if (typeof attachOfficerFormLiveValidation === 'function') {
-                attachOfficerFormLiveValidation(form);
-            }
+            hideOfficerModalAlert(form);
+            attachOfficerFormLiveValidation(form);
         }
         const ageEl = document.getElementById('createOffAge') || document.getElementById('newOffAge');
         if (ageEl) ageEl.value = '';
@@ -1259,19 +1501,13 @@
     const openNewOfficerModal = openCreateOfficerModal;
 
     async function handleCreateOfficerSubmit(e) {
-        if (typeof window.handleCreateOfficerSubmit === 'function' && window.handleCreateOfficerSubmit !== handleCreateOfficerSubmit) {
-            return await window.handleCreateOfficerSubmit(e);
-        }
-
         if (e && typeof e.preventDefault === 'function') {
             e.preventDefault();
         }
         const form = document.getElementById('createOfficerForm') || (e ? e.target : null);
-        if (!form) return;
+        if (!form) return false;
 
-        const validation = typeof validateOfficerForm === 'function' 
-            ? validateOfficerForm(form, 'create')
-            : (typeof window.validateOfficerForm === 'function' ? window.validateOfficerForm(form, 'create') : null);
+        const validation = validateOfficerForm(form, 'create');
 
         let adminIdentity = 'PESO Admin';
         try {
@@ -1283,36 +1519,22 @@
             if (storedUser) adminIdentity = `${adminIdentity} (${storedUser})`;
         } catch (err) {}
 
-        if (validation && !validation.isValid) {
-            const alertEl = document.getElementById('createOfficerAlert');
-            const alertMsg = document.getElementById('createOfficerAlertMsg');
-            if (alertEl && alertMsg) {
-                alertMsg.textContent = validation.summaryMessage;
-                alertEl.classList.remove('d-none');
-            }
-            if (validation.errors.length > 0 && validation.errors[0].element) {
+        if (!validation || !validation.isValid) {
+            showOfficerModalAlert(form, validation ? validation.summaryMessage : 'Please complete all required fields.');
+            if (validation && validation.errors.length > 0 && validation.errors[0].element) {
                 validation.errors[0].element.focus();
             }
-            const failReasons = validation.errors.map(err => `${err.field}: ${err.message}`).join('; ');
+            const failReasons = validation ? validation.errors.map(err => `${err.field}: ${err.message}`).join('; ') : 'Validation failed';
             if (typeof logAuditEvent === 'function') {
                 logAuditEvent('FAILED_CREATE_OFFICER_VALIDATION', `Failed Add Officer attempt by ${adminIdentity}. Reasons: ${failReasons}`);
             }
-            notify('Validation Notice', validation.summaryMessage, 'warning');
+            notify('Validation Notice', validation ? validation.summaryMessage : 'Please complete all required fields.', 'warning');
             return false;
         }
 
-        const role = (document.getElementById('createOffRole')?.value || '').trim();
-        const firstName = (document.getElementById('createOffFirstName')?.value || '').trim();
-        const middleName = (document.getElementById('createOffMiddleName')?.value || '').trim();
-        const lastName = (document.getElementById('createOffLastName')?.value || '').trim();
-        const suffix = (document.getElementById('createOffSuffix')?.value || '').trim();
-        const dob = document.getElementById('createOffDob')?.value || '';
-        const age = document.getElementById('createOffAge')?.value || '';
-        const username = (document.getElementById('createOffUsername')?.value || '').trim();
-        const email = (document.getElementById('createOffEmail')?.value || '').trim();
-        const password = document.getElementById('createOffPassword')?.value || '';
-        const phone = (document.getElementById('createOffPhone')?.value || '').trim();
-        const address = (document.getElementById('createOffAddress')?.value || '').trim();
+        hideOfficerModalAlert(form);
+
+        const { role, firstName, middleName, lastName, suffix, dob, age, address, phone, email, username, password } = validation.data;
 
         try {
             // Provision Supabase Auth User with metadata
@@ -3907,6 +4129,7 @@
     window.refreshDashboardMetrics = () => refreshAllData().then(() => renderDashboardOverview());
 
     // Module 2
+    window.validateOfficerForm = validateOfficerForm;
     window.openCreateOfficerModal = openCreateOfficerModal;
     window.openNewOfficerModal = openCreateOfficerModal;
     window.calcCreateOfficerAge = calcCreateOfficerAge;
