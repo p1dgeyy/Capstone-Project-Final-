@@ -369,7 +369,7 @@
                             <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Quick Admin Actions</h5>
                         </div>
                         <div class="p-3 d-flex flex-column gap-2">
-                            <button class="btn btn-outline-primary text-start p-2.5 rounded-3 d-flex align-items-center gap-2" onclick="openNewOfficerModal()">
+                            <button class="btn btn-outline-primary text-start p-2.5 rounded-3 d-flex align-items-center gap-2" onclick="openCreateOfficerModal()">
                                 <i class="bi bi-person-plus-fill fs-5 text-primary"></i>
                                 <div>
                                     <div class="fw-bold" style="font-size: 0.85rem;">Provision Officer Account</div>
@@ -419,7 +419,7 @@
                     </p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openNewOfficerModal()">
+                    <button class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openCreateOfficerModal()">
                         <i class="bi bi-person-plus-fill me-1 text-primary"></i> + Create Officer
                     </button>
                     <button class="btn btn-outline-light fw-semibold px-3" onclick="exportOfficersCsv()">
@@ -453,10 +453,10 @@
                     </div>
                 </div>
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="stat-card teal">
+                    <div class="stat-card purple">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value text-teal" id="statActiveEvaluatorsCount">0</div>
+                                <div class="stat-value text-purple" id="statActiveEvaluatorsCount">0</div>
                                 <div class="stat-label">Evaluator Staff</div>
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-card-checklist"></i></div>
@@ -498,7 +498,7 @@
                             <option value="Active">Active</option>
                             <option value="Deactivated">Deactivated</option>
                         </select>
-                        <button class="btn btn-primary fw-semibold" onclick="openNewOfficerModal()">
+                        <button class="btn btn-primary fw-semibold" onclick="openCreateOfficerModal()">
                             <i class="bi bi-plus-lg me-1"></i> New Officer
                         </button>
                     </div>
@@ -1374,63 +1374,114 @@
     </div>
 
     <!-- Modal 4: Create Officer Modal -->
-    <div class="modal fade" id="newOfficerModal" tabindex="-1" aria-labelledby="newOfficerModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal fade" id="createOfficerModal" tabindex="-1" aria-labelledby="createOfficerModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-person-plus-fill fs-3 text-warning"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="newOfficerModalTitle">Provision New Officer / Staff</h5>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="createOfficerModalTitle">Create New Officer / Staff</h5>
                             <small class="text-white-50">Authorized PESO Administrator Access</small>
                         </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="newOfficerForm" onsubmit="handleCreateOfficerSubmit(event)">
+                <form id="createOfficerForm" onsubmit="handleCreateOfficerSubmit(event)" novalidate>
                     <div class="modal-body p-4">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="newOffFirstName" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newOffFirstName" required placeholder="First Name">
+                        <!-- Section 1: Personal Information -->
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-person-lines-fill text-primary fs-5"></i>
+                            <h6 class="fw-bold text-dark mb-0">Personal Information</h6>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-6">
+                                <label for="createOffFirstName" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="createOffFirstName" required placeholder="First Name">
+                                <div class="invalid-feedback">First name is required.</div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="newOffLastName" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newOffLastName" required placeholder="Last Name">
+                            <div class="col-12 col-md-6">
+                                <label for="createOffMiddleName" class="form-label fw-semibold">Middle Name <span class="text-muted small">(Optional)</span></label>
+                                <input type="text" class="form-control" id="createOffMiddleName" placeholder="Middle Name">
                             </div>
-                            <div class="col-md-6">
-                                <label for="newOffUsername" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="newOffUsername" required placeholder="e.g. officer_koronadal">
+                            <div class="col-12 col-md-6">
+                                <label for="createOffLastName" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="createOffLastName" required placeholder="Last Name">
+                                <div class="invalid-feedback">Last name is required.</div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="newOffEmail" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="newOffEmail" required placeholder="e.g. officer@gmail.com">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="newOffPassword" class="form-label fw-semibold">Initial Password <span class="text-danger">*</span></label>
-                                <input type="password" class="form-control" id="newOffPassword" required minlength="6" placeholder="Minimum 6 characters">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="newOffRole" class="form-label fw-semibold">System Role <span class="text-danger">*</span></label>
-                                <select class="form-select" id="newOffRole" required>
-                                    <option value="PESO Officer" selected>PESO Officer</option>
-                                    <option value="Evaluator">Evaluator</option>
-                                    <option value="PESO Admin">PESO Admin</option>
+                            <div class="col-12 col-md-6">
+                                <label for="createOffSuffix" class="form-label fw-semibold">Suffix <span class="text-muted small">(Optional)</span></label>
+                                <select class="form-select" id="createOffSuffix">
+                                    <option value="" selected>None</option>
+                                    <option value="Jr.">Jr.</option>
+                                    <option value="Sr.">Sr.</option>
+                                    <option value="II">II</option>
+                                    <option value="III">III</option>
+                                    <option value="IV">IV</option>
+                                    <option value="V">V</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label for="newOffPhone" class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="newOffPhone" required placeholder="09XX-XXX-XXXX">
+                            <div class="col-12 col-md-6">
+                                <label for="createOffDob" class="form-label fw-semibold">Birthdate <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="createOffDob" required onchange="calcCreateOfficerAge()" oninput="calcCreateOfficerAge()">
+                                <div class="invalid-feedback">Valid birthdate is required.</div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="newOffAddress" class="form-label fw-semibold">Office / Address</label>
-                                <input type="text" class="form-control" id="newOffAddress" value="PESO Main Office, Koronadal City">
+                            <div class="col-12 col-md-6">
+                                <label for="createOffAge" class="form-label fw-semibold">Age</label>
+                                <input type="number" class="form-control bg-light" id="createOffAge" placeholder="Auto-calculated from birthdate" readonly>
+                            </div>
+                            <div class="col-12">
+                                <label for="createOffAddress" class="form-label fw-semibold">Address <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="createOffAddress" required placeholder="Purok / Street, Barangay, City of Koronadal">
+                                <div class="invalid-feedback">Address is required.</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="createOffPhone" class="form-label fw-semibold">Contact Number (PH based) <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control font-monospace" id="createOffPhone" required placeholder="09XX-XXX-XXXX">
+                                <div class="invalid-feedback">Please enter a valid PH mobile number (e.g. 09XXXXXXXXX).</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="createOffEmail" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="createOffEmail" required placeholder="e.g. officer@gmail.com">
+                                <div class="invalid-feedback">Please provide a valid email address.</div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Account Information -->
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-shield-lock-fill text-primary fs-5"></i>
+                            <h6 class="fw-bold text-dark mb-0">Account Information</h6>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label for="createOffUsername" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="createOffUsername" required placeholder="e.g. officer_koronadal">
+                                <div class="invalid-feedback">Username is required (min 3 characters).</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="createOffRole" class="form-label fw-semibold">User Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="createOffRole" required>
+                                    <option value="" disabled selected>Select User Role *</option>
+                                    <option value="PESO Officer">PESO Officer</option>
+                                    <option value="PESO Admin">PESO Admin</option>
+                                </select>
+                                <div class="invalid-feedback">User role selection is mandatory.</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="createOffPassword" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="createOffPassword" required minlength="8" placeholder="Minimum 8 characters">
+                                <div class="invalid-feedback">Password must be at least 8 characters.</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="createOffConfirmPassword" class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="createOffConfirmPassword" required minlength="8" placeholder="Minimum 8 characters">
+                                <div class="invalid-feedback">Passwords do not match.</div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-person-check-fill me-1"></i> Provision Officer</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4" id="btnSubmitCreateOfficer"><i class="bi bi-person-plus-fill me-1"></i> Add Officer</button>
                     </div>
                 </form>
             </div>

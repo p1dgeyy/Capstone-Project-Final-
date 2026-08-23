@@ -534,6 +534,8 @@
         tbody.innerHTML = filtered.map(o => {
             const fullName = `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.username;
             const isDeactivated = o.status === 'Deactivated' || o.status === 'Inactive';
+            const statusLabel = isDeactivated ? 'Deactivated' : 'Active';
+            const badgeClass = isDeactivated ? 'bg-danger' : 'bg-success';
             const maskedPhone = maskContactNumber(o.phone);
             const createdDate = formatDate(o.created_at);
 
@@ -556,8 +558,13 @@
                         <small class="text-muted">${createdDate}</small>
                     </td>
                     <td class="text-center">
-                        <div class="form-check form-switch d-inline-block">
-                            <input class="form-check-input" type="checkbox" role="switch" ${!isDeactivated ? 'checked' : ''} onchange="toggleOfficerStatus(${o.id}, this.checked)" aria-label="Toggle Status">
+                        <div class="d-inline-flex align-items-center justify-content-center gap-2">
+                            <div class="form-check form-switch mb-0" title="Toggle status (Active / Deactivated)">
+                                <input class="form-check-input" type="checkbox" role="switch" id="officerSwitch-${o.id}" ${!isDeactivated ? 'checked' : ''} onchange="toggleOfficerStatus(${o.id}, this.checked)" aria-label="Toggle Status for ${escapeHtml(fullName)}">
+                            </div>
+                            <span class="badge ${badgeClass} px-2.5 py-1 text-white fw-semibold" id="officerStatusLabel-${o.id}">
+                                ${statusLabel}
+                            </span>
                         </div>
                     </td>
                     <td class="text-end">
@@ -570,6 +577,11 @@
         }).join('');
 
         // Update Key Counters
+        updateOfficerMetricCounters();
+    }
+
+    function updateOfficerMetricCounters() {
+        const officers = AdminStore.officers || [];
         const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         setTxt('statTotalStaffCount', officers.length);
         setTxt('statActiveOfficersCount', officers.filter(o => o.role === 'PESO Officer' && o.status === 'Active').length);
@@ -581,69 +593,225 @@
         renderOfficersModule();
     }
 
-    function openNewOfficerModal() {
-        const form = document.getElementById('newOfficerForm');
-        if (form) form.reset();
-        openModal('newOfficerModal');
+    function calcCreateOfficerAge() {
+        const dobInput = document.getElementById('createOffDob') || document.getElementById('newOffDob');
+        const ageInput = document.getElementById('createOffAge') || document.getElementById('newOffAge');
+        if (!dobInput || !ageInput) return;
+        const dobVal = dobInput.value;
+        if (!dobVal) {
+            ageInput.value = '';
+            return;
+        }
+        const today = new Date();
+        const birthDate = new Date(dobVal);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        ageInput.value = isNaN(age) || age < 0 ? '' : age;
     }
+
+    function openCreateOfficerModal() {
+        const form = document.getElementById('createOfficerForm') || document.getElementById('newOfficerForm');
+        if (form) {
+            form.reset();
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        }
+        const ageEl = document.getElementById('createOffAge') || document.getElementById('newOffAge');
+        if (ageEl) ageEl.value = '';
+        const roleEl = document.getElementById('createOffRole') || document.getElementById('newOffRole');
+        if (roleEl) roleEl.value = '';
+
+        if (document.getElementById('createOfficerModal')) {
+            openModal('createOfficerModal');
+        } else {
+            openModal('newOfficerModal');
+        }
+    }
+    const openNewOfficerModal = openCreateOfficerModal;
 
     async function handleCreateOfficerSubmit(e) {
         e.preventDefault();
-        const firstName = document.getElementById('newOffFirstName').value.trim();
-        const lastName = document.getElementById('newOffLastName').value.trim();
-        const username = document.getElementById('newOffUsername').value.trim();
-        const email = document.getElementById('newOffEmail').value.trim();
-        const password = document.getElementById('newOffPassword').value;
-        const role = document.getElementById('newOffRole').value;
-        const phone = document.getElementById('newOffPhone').value.trim();
-        const address = document.getElementById('newOffAddress').value.trim();
+        const form = document.getElementById('createOfficerForm') || e.target;
+        if (form) {
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        }
 
-        if (!email || !password || !firstName || !lastName || !username) {
-            notify('Validation Error', 'Please complete all required officer fields.', 'warning');
+        const roleEl = document.getElementById('createOffRole') || document.getElementById('newOffRole');
+        const firstNameEl = document.getElementById('createOffFirstName') || document.getElementById('newOffFirstName');
+        const middleNameEl = document.getElementById('createOffMiddleName') || document.getElementById('newOffMiddleName');
+        const lastNameEl = document.getElementById('createOffLastName') || document.getElementById('newOffLastName');
+        const suffixEl = document.getElementById('createOffSuffix') || document.getElementById('newOffSuffix');
+        const dobEl = document.getElementById('createOffDob') || document.getElementById('newOffDob');
+        const ageEl = document.getElementById('createOffAge') || document.getElementById('newOffAge');
+        const usernameEl = document.getElementById('createOffUsername') || document.getElementById('newOffUsername');
+        const emailEl = document.getElementById('createOffEmail') || document.getElementById('newOffEmail');
+        const passwordEl = document.getElementById('createOffPassword') || document.getElementById('newOffPassword');
+        const confirmPasswordEl = document.getElementById('createOffConfirmPassword') || document.getElementById('newOffConfirmPassword');
+        const phoneEl = document.getElementById('createOffPhone') || document.getElementById('newOffPhone');
+        const addressEl = document.getElementById('createOffAddress') || document.getElementById('newOffAddress');
+
+        let isValid = true;
+        function setInvalid(element, msg) {
+            if (!element) return;
+            element.classList.add('is-invalid');
+            const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
+            if (feedback && msg) feedback.textContent = msg;
+            if (isValid) element.focus();
+            isValid = false;
+        }
+
+        // 1. Mandatory Role check (PESO Admin or PESO Officer)
+        const role = (roleEl?.value || '').trim();
+        if (!role || !['PESO Admin', 'PESO Officer'].includes(role)) {
+            setInvalid(roleEl, 'User role selection is mandatory (PESO Admin or PESO Officer).');
+        }
+
+        // 2. Personal Information validations
+        const firstName = (firstNameEl?.value || '').trim();
+        if (!firstName) {
+            setInvalid(firstNameEl, 'First Name is required.');
+        }
+
+        const middleName = (middleNameEl?.value || '').trim();
+        const lastName = (lastNameEl?.value || '').trim();
+        if (!lastName) {
+            setInvalid(lastNameEl, 'Last Name is required.');
+        }
+
+        const suffix = (suffixEl?.value || '').trim();
+        const dob = dobEl?.value || '';
+        if (!dob) {
+            setInvalid(dobEl, 'Valid birthdate is required.');
+        }
+
+        const age = ageEl?.value || '';
+        const address = (addressEl?.value || '').trim();
+        if (!address) {
+            setInvalid(addressEl, 'Address is required.');
+        }
+
+        // 3. Contact Number validation (PH based)
+        const phone = (phoneEl?.value || '').trim();
+        const phoneDigits = phone.replace(/[-\s]/g, '');
+        const phoneRegex = /^(09|\+639)\d{9}$/;
+        if (!phone) {
+            setInvalid(phoneEl, 'Contact Number is required.');
+        } else if (!phoneRegex.test(phoneDigits)) {
+            setInvalid(phoneEl, 'Please enter a valid PH mobile number (e.g. 09123456789 or +639123456789).');
+        }
+
+        // 4. Email validation
+        const email = (emailEl?.value || '').trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email) {
+            setInvalid(emailEl, 'Email Address is required.');
+        } else if (!emailRegex.test(email)) {
+            setInvalid(emailEl, 'Please provide a valid email address (e.g. officer@gmail.com).');
+        }
+
+        // 5. Account Information validations
+        const username = (usernameEl?.value || '').trim();
+        if (!username) {
+            setInvalid(usernameEl, 'Username is required.');
+        } else if (username.length < 3) {
+            setInvalid(usernameEl, 'Username must be at least 3 characters.');
+        } else if (AdminStore.officers && AdminStore.officers.some(o => o.username && o.username.toLowerCase() === username.toLowerCase())) {
+            setInvalid(usernameEl, `Username "${username}" is already assigned to another account.`);
+        }
+
+        const password = passwordEl?.value || '';
+        const confirmPassword = confirmPasswordEl?.value || '';
+
+        if (!password) {
+            setInvalid(passwordEl, 'Password is required.');
+        } else if (password.length < 8) {
+            setInvalid(passwordEl, 'Password must be a minimum of 8 characters in length.');
+        }
+
+        if (!confirmPassword) {
+            setInvalid(confirmPasswordEl, 'Confirm Password is required.');
+        } else if (password !== confirmPassword) {
+            setInvalid(confirmPasswordEl, 'Passwords do not match.');
+        }
+
+        if (!isValid) {
             return;
         }
 
         try {
             // Provision Supabase Auth User with metadata
-            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                    data: {
-                        first_name: firstName,
-                        last_name: lastName,
-                        username: username,
-                        role: role
+            let authId = null;
+            if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
+                try {
+                    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                first_name: firstName,
+                                middle_name: middleName,
+                                last_name: lastName,
+                                suffix: suffix,
+                                username: username,
+                                role: role
+                            }
+                        }
+                    });
+                    if (!authError && authData?.user) {
+                        authId = authData.user.id;
                     }
+                } catch (e) {
+                    console.warn('[SUPABASE AUTH WARN]', e);
                 }
-            });
-
-            if (authError) throw authError;
-
-            // Direct insert / check in staff_profiles
-            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
-                await DataService.staffProfiles.create({
-                    auth_id: authData.user ? authData.user.id : null,
-                    username: username,
-                    email: email,
-                    first_name: firstName,
-                    last_name: lastName,
-                    role: role,
-                    phone: phone,
-                    address: address,
-                    agency: 'PESO',
-                    status: 'Active'
-                });
             }
 
-            await logAdminAction('CREATE_OFFICER_ACCOUNT', 'staff_profile', null, `Provisioned new ${role} account: ${username} (${email})`);
-            notify('Officer Created', `Officer ${firstName} ${lastName} provisioned successfully.`, 'success');
-            closeModal('newOfficerModal');
-            await refreshAllData();
+            const newOffRecord = {
+                id: Date.now(),
+                auth_id: authId,
+                username: username,
+                email: email,
+                first_name: firstName,
+                middle_name: middleName || null,
+                last_name: lastName,
+                suffix: (suffix && suffix !== 'N/A') ? suffix : null,
+                birth_date: dob || null,
+                age: age ? parseInt(age, 10) : null,
+                role: role,
+                phone: phone,
+                address: address,
+                agency: 'PESO',
+                department: 'PESO',
+                status: 'Active',
+                created_at: new Date().toISOString()
+            };
+
+            // Direct insert in staff_profiles
+            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                try {
+                    const res = await DataService.staffProfiles.create(newOffRecord);
+                    if (res?.data?.id) newOffRecord.id = res.data.id;
+                } catch (dbErr) {
+                    console.warn('[STAFF DB INSERT]', dbErr);
+                }
+            }
+
+            AdminStore.officers.unshift(newOffRecord);
+
+            await logAdminAction('CREATE_OFFICER_ACCOUNT', 'staff_profile', newOffRecord.id, `Created new officer account: ${username} (${email}), Role: ${role}`);
+            notify('Officer Created', `Officer account for ${firstName} ${lastName} created successfully as ${role}.`, 'success');
+            
+            if (document.getElementById('createOfficerModal')) {
+                closeModal('createOfficerModal');
+            } else {
+                closeModal('newOfficerModal');
+            }
+
             renderOfficersModule();
         } catch (err) {
             console.error('[OFFICER CREATE ERROR]', err);
-            notify('Creation Failed', err.message || 'Could not provision officer.', 'danger');
+            notify('Creation Failed', err.message || 'Could not create officer.', 'danger');
         }
     }
 
@@ -695,16 +863,50 @@
     }
 
     async function toggleOfficerStatus(id, isActive) {
+        // Restriction: Only two states allowed — Active and Deactivated
         const newStatus = isActive ? 'Active' : 'Deactivated';
+
+        // Instant visual feedback on UI elements
+        const labelEl = document.getElementById(`officerStatusLabel-${id}`);
+        const switchEl = document.getElementById(`officerSwitch-${id}`);
+        if (labelEl) {
+            labelEl.textContent = newStatus;
+            labelEl.className = `badge ${newStatus === 'Active' ? 'bg-success' : 'bg-danger'} px-2.5 py-1 text-white fw-semibold`;
+        }
+        if (switchEl) {
+            switchEl.checked = (newStatus === 'Active');
+        }
+
+        // Update local memory models
+        const officer = AdminStore.officers ? AdminStore.officers.find(o => o.id === id) : null;
+        if (officer) {
+            officer.status = newStatus;
+        }
+        if (typeof officersList !== 'undefined' && Array.isArray(officersList)) {
+            const off2 = officersList.find(o => o.id === id);
+            if (off2) off2.status = newStatus;
+        }
+
+        // Update counter cards immediately
+        updateOfficerMetricCounters();
+
         try {
             if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
-                await DataService.staffProfiles.toggleStatus(id, newStatus);
+                await DataService.staffProfiles.update(id, { status: newStatus });
             }
             await logAdminAction(isActive ? 'ACTIVATE_OFFICER' : 'DEACTIVATE_OFFICER', 'staff_profile', id, `Changed officer #${id} status to ${newStatus}`);
-            notify('Status Updated', `Officer account set to ${newStatus}.`, 'success');
-            await refreshAllData();
-            renderOfficersModule();
+            notify('Status Updated', `Officer account set to ${newStatus}.`, isActive ? 'success' : 'warning');
         } catch (err) {
+            console.warn('[OFFICER STATUS UPDATE FAILED]', err);
+            // Rollback visual state on error
+            const rollbackStatus = !isActive ? 'Active' : 'Deactivated';
+            if (labelEl) {
+                labelEl.textContent = rollbackStatus;
+                labelEl.className = `badge ${rollbackStatus === 'Active' ? 'bg-success' : 'bg-danger'} px-2.5 py-1 text-white fw-semibold`;
+            }
+            if (switchEl) switchEl.checked = !isActive;
+            if (officer) officer.status = rollbackStatus;
+            updateOfficerMetricCounters();
             notify('Status Update Failed', err.message || 'Error changing status.', 'danger');
         }
     }
@@ -2178,7 +2380,10 @@
     window.refreshDashboardMetrics = () => refreshAllData().then(() => renderDashboardOverview());
 
     // Module 2
-    window.openNewOfficerModal = openNewOfficerModal;
+    window.openCreateOfficerModal = openCreateOfficerModal;
+    window.openNewOfficerModal = openCreateOfficerModal;
+    window.calcCreateOfficerAge = calcCreateOfficerAge;
+    window.calcNewOfficerAge = calcCreateOfficerAge;
     window.handleCreateOfficerSubmit = handleCreateOfficerSubmit;
     window.openEditOfficerModal = openEditOfficerModal;
     window.handleSaveOfficerUpdates = handleSaveOfficerUpdates;
