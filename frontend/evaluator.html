@@ -10,6 +10,7 @@
     <!-- Supabase JS Client & QR Scanner -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="assets/js/supabase-config.js"></script>
     <script src="assets/js/supabase-data.js"></script>
     <script src="assets/js/qr-scanner-controller.js"></script>
@@ -4444,10 +4445,31 @@ function toggleBeneficiaryStatus(id, status) {
     }
 }
 function viewQRCode(id) {
-    var a = beneficiaryData[id];
-    document.getElementById('qrCodeBeneficiaryId').textContent = '#' + id;
-    document.getElementById('qrCodeBeneficiaryName').textContent = a ? a.name : 'Unknown';
-    document.getElementById('qrCodeDisplay').innerHTML = '<i class="bi bi-qr-code" style="font-size:8rem; color:#333;"></i>';
+    var a = (typeof beneficiaryData !== 'undefined' && beneficiaryData[id]) ? beneficiaryData[id] : null;
+    var qrStr = (a && a.qr_code) ? a.qr_code : (id.startsWith('QR-') ? id : 'QR-BEN-' + id.replace(/[^0-9]/g, ''));
+    var name = a ? a.name : 'Beneficiary Applicant';
+    
+    var idEl = document.getElementById('qrCodeBeneficiaryId') || document.getElementById('qrCodeApplicantId');
+    var nameEl = document.getElementById('qrCodeBeneficiaryName') || document.getElementById('qrCodeApplicantName');
+    if (idEl) idEl.textContent = qrStr;
+    if (nameEl) nameEl.textContent = name;
+    
+    var qrDisplay = document.getElementById('qrCodeDisplay');
+    if (qrDisplay) {
+        qrDisplay.innerHTML = '';
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(qrDisplay, {
+                text: qrStr,
+                width: 180,
+                height: 180,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } else {
+            qrDisplay.innerHTML = '<div class="p-3 font-monospace fw-bold text-dark border bg-light">' + qrStr + '</div>';
+        }
+    }
     openModal('qrCodeModal');
 }
 function activateFromView() {

@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="assets/css/unified-overlays.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="assets/js/supabase-config.js"></script>
     <script src="assets/js/supabase-data.js"></script>
     <script src="assets/js/api-config.js"></script>
@@ -1182,27 +1183,29 @@
     </div>
 
     <!-- PRINTABLE QR CODE CARD MODAL -->
-    <div class="modal fade" id="printableQrModal" tabindex="-1">
+    <div class="modal fade" id="printableQrModal" tabindex="-1" aria-labelledby="printableQrModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="bi bi-qr-code me-2"></i>Beneficiary QR ID Card</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-success text-white py-3 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title fw-bold mb-0" id="printableQrModalLabel"><i class="bi bi-qr-code me-2"></i>Beneficiary QR ID Card</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body text-center p-4" id="printableQrCardFrame">
-                    <div class="border rounded p-4 bg-white shadow-sm mx-auto" style="max-width: 340px;">
-                        <small class="text-uppercase fw-bold text-muted">City Government of Koronadal</small>
-                        <h5 class="fw-bold text-primary mb-3">PESO Beneficiary Pass</h5>
-                        <div class="my-3"><i class="bi bi-qr-code fs-1 text-dark"></i></div>
-                        <h6 class="fw-bold mb-1" id="qrBenName">Juan Dela Cruz</h6>
-                        <p class="small text-muted mb-1" id="qrBenId">ID: BEN-2026-001</p>
-                        <span class="badge bg-success" id="qrBenProgram">TUPAD</span>
+                <div class="modal-body text-center p-4 bg-light" id="printableQrCardFrame">
+                    <div class="border-0 rounded-4 p-4 bg-white shadow-sm mx-auto" style="max-width: 360px;">
+                        <small class="text-uppercase fw-bold text-muted d-block mb-1">City Government of Koronadal</small>
+                        <h5 class="fw-bold text-success mb-3">PESO Beneficiary Pass</h5>
+                        <div id="printableQrCanvasContainer" class="d-flex justify-content-center my-3 p-2 bg-white rounded-3 border" style="min-height: 190px; align-items: center;"></div>
+                        <h5 class="fw-bold text-dark mb-1" id="qrBenName">Beneficiary Name</h5>
+                        <p class="font-monospace fw-bold text-primary mb-1" id="qrBenId">QR: QR-BEN-XXXXXX</p>
+                        <span class="badge bg-success px-3 py-2 rounded-pill" id="qrBenProgram">PESO Livelihood Program</span>
+                        <div class="text-muted small mt-2">Scan this QR code during office visits for instant record retrieval.</div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="window.print()"><i
-                            class="bi bi-printer me-1"></i> Print / Export PDF Card</button>
+                <div class="modal-footer bg-white border-top-0 d-flex justify-content-between px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i> Print / Save PDF
+                    </button>
                 </div>
             </div>
         </div>
@@ -3439,7 +3442,7 @@
             alert('Simulation Demo: Email Code verified successfully!');
         }
 
-        function submitBeneficiaryRegistration(event) {
+        async function submitBeneficiaryRegistration(event) {
             event.preventDefault();
 
             const certFile = document.getElementById('benClearanceFile');
@@ -3449,33 +3452,69 @@
             }
 
             const fn = document.getElementById('benFirstName').value.trim();
+            const mn = document.getElementById('benMiddleName') ? document.getElementById('benMiddleName').value.trim() : '';
             const ln = document.getElementById('benLastName').value.trim();
+            const suffix = document.getElementById('benSuffix') ? document.getElementById('benSuffix').value.trim() : '';
             const brgy = document.getElementById('benBarangay').value;
+            const purok = document.getElementById('benPurok').value.trim();
+            const phone = document.getElementById('benPhone').value.trim();
+            const email = document.getElementById('benEmail').value.trim();
+            const program = document.getElementById('benProgram').value;
+            const dob = document.getElementById('benBirthday') ? document.getElementById('benBirthday').value : null;
+            const age = document.getElementById('benAge') ? parseInt(document.getElementById('benAge').value) || 0 : 0;
+            const sex = document.getElementById('benSex') ? document.getElementById('benSex').value : 'Male';
 
-            const newId = `BEN-2026-${String(beneficiariesList.length + 1).padStart(3, '0')}`;
+            const uniqueQr = `QR-BEN-${Math.floor(100000 + Math.random() * 900000)}`;
             const newBen = {
-                id: newId,
-                name: `${fn} ${ln}`,
+                qr_code: uniqueQr,
+                first_name: fn,
+                middle_name: mn || null,
+                last_name: ln,
+                suffix: suffix || null,
+                age: age,
+                date_of_birth: dob,
+                sex: sex,
+                email: email,
+                phone: phone,
+                address: `Purok ${purok}, ${brgy}, City of Koronadal`,
                 barangay: brgy,
-                address: `Purok ${document.getElementById('benPurok').value.trim()}, ${brgy}`,
-                contact: document.getElementById('benPhone').value,
-                email: document.getElementById('benEmail').value,
-                program: document.getElementById('benProgram').value,
+                program: program,
                 status: 'Active',
                 idStatus: 'Verified',
-                clearanceStatus: 'Verified'
+                clearanceStatus: 'Verified',
+                terms_agreed: true,
+                data_consent: true,
+                created_at: new Date().toISOString()
             };
 
+            if (typeof DataService !== 'undefined' && DataService.beneficiaries) {
+                try {
+                    await DataService.beneficiaries.create(newBen);
+                } catch (dbErr) {
+                    console.warn('[PESO BEN CREATE DB]:', dbErr);
+                }
+            }
+
+            newBen.id = uniqueQr;
+            newBen.name = `${fn} ${ln}`;
+            newBen.contact = phone;
             beneficiariesList.unshift(newBen);
             renderBeneficiaryTable();
-            logOfficerAction('REGISTER_BENEFICIARY', `Registered new beneficiary ${newId} (${fn} ${ln})`);
+            logOfficerAction('REGISTER_BENEFICIARY', `Registered new beneficiary ${uniqueQr} (${fn} ${ln})`);
 
-            bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal')).hide();
-            alert(`Beneficiary ${fn} ${ln} registered successfully with ID ${newId}!`);
+            // Hide registration modal
+            const addModalEl = document.getElementById('addBeneficiaryModal');
+            if (addModalEl && typeof bootstrap !== 'undefined') {
+                const addModalInstance = bootstrap.Modal.getInstance(addModalEl);
+                if (addModalInstance) addModalInstance.hide();
+            }
+
+            // Immediately display the generated QR code modal with dismiss option
+            showPrintableQrCard(uniqueQr);
         }
 
         function openBeneficiaryInfoCardModal(id) {
-            const b = beneficiariesList.find(item => item.id === id);
+            const b = beneficiariesList.find(item => item.id === id || item.qr_code === id);
             if (!b) return;
 
             document.getElementById('infoCardTitle').innerHTML = `<i class="bi bi-person-badge me-2"></i>Beneficiary Info Card: ${b.name}`;
@@ -3485,20 +3524,20 @@
                         <div class="p-3 bg-light rounded mb-3">
                             <i class="bi bi-person-circle fs-1 text-primary"></i>
                             <h5 class="fw-bold mt-2 mb-0">${b.name}</h5>
-                            <small class="text-muted">ID: ${b.id}</small>
+                            <small class="text-muted">QR: ${b.qr_code || b.id}</small>
                         </div>
                         <span class="badge ${b.status === 'Active' ? 'bg-success fs-6' : 'bg-secondary fs-6'} px-3 py-2">${b.status} Account</span>
                     </div>
                     <div class="col-md-7">
                         <h6 class="fw-bold text-primary">Personal & Program Details</h6>
                         <table class="table table-sm">
-                            <tr><th>Barangay:</th><td>${b.barangay}</td></tr>
-                            <tr><th>Address:</th><td>${b.address}</td></tr>
-                            <tr><th>Contact Phone:</th><td>${maskContact(b.contact)}</td></tr>
-                            <tr><th>Email:</th><td>${b.email}</td></tr>
+                            <tr><th>Barangay:</th><td>${b.barangay || 'Koronadal'}</td></tr>
+                            <tr><th>Address:</th><td>${b.address || 'Koronadal City'}</td></tr>
+                            <tr><th>Contact Phone:</th><td>${maskContact(b.contact || b.phone)}</td></tr>
+                            <tr><th>Email:</th><td>${b.email || 'N/A'}</td></tr>
                             <tr><th>Assigned Program:</th><td><span class="badge bg-primary-subtle text-primary">${b.program}</span></td></tr>
-                            <tr><th>Valid ID Status:</th><td><span class="badge bg-success">${b.idStatus}</span></td></tr>
-                            <tr><th>Barangay Clearance:</th><td><span class="badge bg-success">${b.clearanceStatus}</span></td></tr>
+                            <tr><th>Valid ID Status:</th><td><span class="badge bg-success">${b.idStatus || 'Verified'}</span></td></tr>
+                            <tr><th>Barangay Clearance:</th><td><span class="badge bg-success">${b.clearanceStatus || 'Verified'}</span></td></tr>
                         </table>
                     </div>
                 </div>
@@ -3506,51 +3545,70 @@
 
             document.getElementById('infoCardFooter').innerHTML = `
                 <div>
-                    <button class="btn btn-outline-warning me-2" onclick="toggleAccountStatus('${b.id}')">
+                    <button class="btn btn-outline-warning me-2" onclick="toggleAccountStatus('${b.id || b.qr_code}')">
                         <i class="bi bi-power me-1"></i> ${b.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}
                     </button>
-                    <button class="btn btn-outline-success me-2" onclick="reviewDocumentStatus('${b.id}', 'Clearance', 'Verified')"><i class="bi bi-check2-circle me-1"></i> Approve Documents</button>
-                    <button class="btn btn-outline-danger" onclick="reviewDocumentStatus('${b.id}', 'Clearance', 'Rejected')"><i class="bi bi-x-circle me-1"></i> Reject Documents</button>
+                    <button class="btn btn-outline-success me-2" onclick="reviewDocumentStatus('${b.id || b.qr_code}', 'Clearance', 'Verified')"><i class="bi bi-check2-circle me-1"></i> Approve Documents</button>
+                    <button class="btn btn-outline-danger" onclick="reviewDocumentStatus('${b.id || b.qr_code}', 'Clearance', 'Rejected')"><i class="bi bi-x-circle me-1"></i> Reject Documents</button>
                 </div>
-                <button class="btn btn-primary" onclick="showPrintableQrCard('${b.id}')"><i class="bi bi-qr-code me-1"></i> View QR Card</button>
+                <button class="btn btn-primary" onclick="showPrintableQrCard('${b.id || b.qr_code}')"><i class="bi bi-qr-code me-1"></i> View QR Card</button>
             `;
 
-            new bootstrap.Modal(document.getElementById('beneficiaryInfoCardModal')).show();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('beneficiaryInfoCardModal')).show();
         }
 
         function toggleAccountStatus(id) {
-            const b = beneficiariesList.find(item => item.id === id);
+            const b = beneficiariesList.find(item => item.id === id || item.qr_code === id);
             if (!b) return;
 
             b.status = b.status === 'Active' ? 'Inactive' : 'Active';
             renderBeneficiaryTable();
             logOfficerAction('TOGGLE_STATUS', `Toggled account status for ${b.name} (${id}) to ${b.status}`);
 
-            bootstrap.Modal.getInstance(document.getElementById('beneficiaryInfoCardModal')).hide();
+            bootstrap.Modal.getInstance(document.getElementById('beneficiaryInfoCardModal'))?.hide();
             alert(`Account status for ${b.name} updated to ${b.status}!`);
         }
 
         function reviewDocumentStatus(id, docType, newStatus) {
-            const b = beneficiariesList.find(item => item.id === id);
+            const b = beneficiariesList.find(item => item.id === id || item.qr_code === id);
             if (!b) return;
 
             b.clearanceStatus = newStatus;
             renderBeneficiaryTable();
             logOfficerAction('REVIEW_DOCS', `Reviewed ${docType} for ${b.name} (${id}): ${newStatus}`);
 
-            bootstrap.Modal.getInstance(document.getElementById('beneficiaryInfoCardModal')).hide();
+            bootstrap.Modal.getInstance(document.getElementById('beneficiaryInfoCardModal'))?.hide();
             alert(`Document review status for ${b.name} updated to ${newStatus}!`);
         }
 
         function showPrintableQrCard(id) {
-            const b = beneficiariesList.find(item => item.id === id);
-            if (!b) return;
+            const b = (typeof beneficiariesList !== 'undefined' ? beneficiariesList.find(item => item.id === id || item.qr_code === id) : null);
+            const qrStr = b ? (b.qr_code || b.id) : (id || 'QR-BEN-ACTIVE');
+            const benName = b ? b.name : 'Beneficiary Applicant';
+            const progName = b ? (b.program || 'PESO Livelihood Program') : 'PESO Livelihood Program';
 
-            document.getElementById('qrBenName').textContent = b.name;
-            document.getElementById('qrBenId').textContent = `ID: ${b.id}`;
-            document.getElementById('qrBenProgram').textContent = b.program;
+            document.getElementById('qrBenName').textContent = benName;
+            document.getElementById('qrBenId').textContent = `QR: ${qrStr}`;
+            document.getElementById('qrBenProgram').textContent = progName;
 
-            new bootstrap.Modal(document.getElementById('printableQrModal')).show();
+            const qrContainer = document.getElementById('printableQrCanvasContainer');
+            if (qrContainer) {
+                qrContainer.innerHTML = '';
+                if (typeof QRCode !== 'undefined') {
+                    new QRCode(qrContainer, {
+                        text: qrStr,
+                        width: 175,
+                        height: 175,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } else {
+                    qrContainer.innerHTML = `<div class="p-3 font-monospace fw-bold text-dark border bg-light">${qrStr}</div>`;
+                }
+            }
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('printableQrModal')).show();
         }
 
         // ---------------------------------------------------------------------

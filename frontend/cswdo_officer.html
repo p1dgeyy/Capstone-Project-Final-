@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="assets/css/unified-overlays.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="assets/js/supabase-config.js"></script>
     <script src="assets/js/supabase-data.js"></script>
     <script src="assets/js/api-config.js"></script>
@@ -1912,6 +1913,36 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSWDO BENEFICIARY QR CODE SUCCESS MODAL -->
+    <div class="custom-modal" id="cswdoQrSuccessModal">
+        <div class="custom-modal-backdrop" onclick="closeCswdoQrModal()"></div>
+        <div class="custom-modal-dialog" style="max-width: 440px;">
+            <div class="custom-modal-header bg-success text-white py-3 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="custom-modal-title text-white fw-bold mb-0">
+                    <i class="bi bi-qr-code me-2"></i>Beneficiary QR ID Card
+                </h5>
+                <button type="button" class="btn-modal-close text-white" onclick="closeCswdoQrModal()">&times;</button>
+            </div>
+            <div class="custom-modal-body p-4 text-center bg-light">
+                <div class="bg-white rounded-4 p-4 shadow-sm border mx-auto">
+                    <small class="text-uppercase fw-bold text-muted d-block mb-1">City Government of Koronadal</small>
+                    <h5 class="fw-bold text-success mb-3">CSWDO Beneficiary Pass</h5>
+                    <div id="cswdoQrCanvasContainer" class="d-flex justify-content-center my-3 p-2 bg-white rounded-3 border" style="min-height: 190px; align-items: center;"></div>
+                    <h5 class="fw-bold text-dark mb-1" id="cswdoQrBenName">Beneficiary Name</h5>
+                    <p class="font-monospace fw-bold text-primary mb-1" id="cswdoQrBenId">QR: QR-BEN-XXXXXX</p>
+                    <span class="badge bg-success px-3 py-2 rounded-pill" id="cswdoQrBenProgram">Medical Assistance</span>
+                    <div class="text-muted small mt-2">Scan this QR code during office visits for instant record retrieval.</div>
+                </div>
+            </div>
+            <div class="custom-modal-footer bg-white border-top-0 d-flex justify-content-between px-4 py-3">
+                <button type="button" class="btn btn-secondary px-4 rounded-pill" onclick="closeCswdoQrModal()">Close</button>
+                <button type="button" class="btn btn-success px-4 rounded-pill fw-semibold shadow-sm" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Print / Save PDF
+                </button>
             </div>
         </div>
     </div>
@@ -4306,6 +4337,9 @@
 
                 closeAddBenModal();
 
+                // Immediately open the QR Code Success Modal with close option
+                openCswdoQrModal(payload);
+
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
                         title: 'Beneficiary Account Created!',
@@ -4328,6 +4362,49 @@
                 }
             } finally {
                 if (btn) btn.disabled = false;
+            }
+        }
+
+        function openCswdoQrModal(benData) {
+            const modal = document.getElementById('cswdoQrSuccessModal');
+            if (!modal) return;
+
+            const benName = `${benData.first_name || ''} ${benData.last_name || ''}`.trim() || 'Beneficiary Applicant';
+            const qrStr = benData.qr_code || 'QR-BEN-ACTIVE';
+            const progName = benData.program || 'CSWDO Assistance Program';
+
+            document.getElementById('cswdoQrBenName').textContent = benName;
+            document.getElementById('cswdoQrBenId').textContent = `QR: ${qrStr}`;
+            document.getElementById('cswdoQrBenProgram').textContent = progName;
+
+            const qrContainer = document.getElementById('cswdoQrCanvasContainer');
+            if (qrContainer) {
+                qrContainer.innerHTML = '';
+                if (typeof QRCode !== 'undefined') {
+                    new QRCode(qrContainer, {
+                        text: qrStr,
+                        width: 175,
+                        height: 175,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } else {
+                    qrContainer.innerHTML = `<div class="p-3 font-monospace fw-bold text-dark border bg-light">${qrStr}</div>`;
+                }
+            }
+
+            modal.classList.add('active');
+            modal.classList.add('show');
+            modal.style.display = 'flex';
+        }
+
+        function closeCswdoQrModal() {
+            const modal = document.getElementById('cswdoQrSuccessModal');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.classList.remove('show');
+                modal.style.display = 'none';
             }
         }
 
