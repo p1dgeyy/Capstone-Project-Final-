@@ -643,9 +643,13 @@ const PesoAdminApp = (() => {
             return;
         }
 
+        const username = email.split('@')[0];
+        let createdId = Date.now();
+
         const newStaff = {
-            id: Date.now(),
-            username: email.split('@')[0],
+            id: createdId,
+            username: username,
+            password: password,
             first_name: firstName,
             last_name: lastName,
             email: email,
@@ -656,16 +660,18 @@ const PesoAdminApp = (() => {
             created_at: new Date().toISOString()
         };
 
-        AdminStore.officers.unshift(newStaff);
-
-        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
             try {
-                await supabaseClient.from('staff_profiles').insert(newStaff);
+                const res = await DataService.staffProfiles.create(newStaff);
+                if (res && res.data && res.data.id) {
+                    newStaff.id = res.data.id;
+                }
             } catch (err) {
-                console.warn('[PesoAdminApp] Supabase staff insert warning:', err.message);
+                console.warn('[PesoAdminApp] DataService staff create note:', err.message);
             }
         }
 
+        AdminStore.officers.unshift(newStaff);
         renderOfficersList();
         logAudit('CREATE_OFFICER_ACCOUNT', `Created new ${role} account for "${firstName} ${lastName}" (${email})`);
         safeCloseModal('newOfficerModal');

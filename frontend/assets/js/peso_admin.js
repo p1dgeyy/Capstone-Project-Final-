@@ -1537,42 +1537,17 @@
         const { role, firstName, middleName, lastName, suffix, dob, age, address, phone, email, username, password } = validation.data;
 
         try {
-            // Provision Supabase Auth User with metadata
-            let authId = null;
-            if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
-                try {
-                    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                        email: email,
-                        password: password,
-                        options: {
-                            data: {
-                                first_name: firstName,
-                                middle_name: middleName,
-                                last_name: lastName,
-                                suffix: suffix,
-                                username: username,
-                                role: role
-                            }
-                        }
-                    });
-                    if (!authError && authData?.user) {
-                        authId = authData.user.id;
-                    }
-                } catch (e) {
-                    console.warn('[SUPABASE AUTH WARN]', e);
-                }
-            }
-
             const newOffRecord = {
                 id: Date.now(),
-                auth_id: authId,
                 username: username,
+                password: password,
                 email: email,
                 first_name: firstName,
                 middle_name: middleName || null,
                 last_name: lastName,
                 suffix: (suffix && suffix !== 'N/A') ? suffix : null,
                 birth_date: dob || null,
+                date_of_birth: dob || null,
                 age: age ? parseInt(age, 10) : null,
                 role: role,
                 phone: phone,
@@ -1583,7 +1558,7 @@
                 created_at: new Date().toISOString()
             };
 
-            // Direct insert in staff_profiles
+            // Direct insert / auth provisioning in staff_profiles via DataService
             if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
                 try {
                     const res = await DataService.staffProfiles.create(newOffRecord);

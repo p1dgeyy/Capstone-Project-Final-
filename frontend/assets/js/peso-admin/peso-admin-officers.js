@@ -532,8 +532,10 @@ async function handleCreateOfficerSubmit(e) {
         last_name: lastName,
         suffix: (suffix && suffix !== 'N/A') ? suffix : null,
         birth_date: dob || null,
+        date_of_birth: dob || null,
         age: age ? parseInt(age, 10) : null,
         username: username,
+        password: password,
         email: email,
         role: role,
         department: department,
@@ -545,7 +547,7 @@ async function handleCreateOfficerSubmit(e) {
     if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
         try {
             const createRes = await DataService.staffProfiles.create(newOff);
-            if (createRes.data) {
+            if (createRes && createRes.data && createRes.data.id) {
                 newOff.id = createRes.data.id;
             }
         } catch (err) {

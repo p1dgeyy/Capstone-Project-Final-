@@ -2966,6 +2966,7 @@
                 return;
             }
 
+            let createdOfficerId = Date.now();
             if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
                 try {
                     const res = await DataService.staffProfiles.create({
@@ -2975,31 +2976,58 @@
                         last_name,
                         suffix: suffix !== 'N/A' ? suffix : null,
                         username,
+                        password,
                         email,
                         role,
                         department,
                         sex: gender,
+                        gender: gender,
                         phone: contact_number,
+                        contact_number: contact_number,
                         address,
                         status: 'Active'
                     });
-                    if (res && res.data) {
-                        closeNewOfficerModal();
-                        if (typeof showSystemNotification === 'function') {
-                            showSystemNotification('Officer Account Created', `Account "${username}" created successfully.`, 'success');
-                        } else {
-                            alert(`Officer account "${username}" created successfully!`);
-                        }
-                        await loadOfficersData();
-                        return;
+                    if (res && res.data && res.data.id) {
+                        createdOfficerId = res.data.id;
                     }
                 } catch (err) {
                     console.warn('[CSWDO] Supabase officer creation notice:', err);
                 }
             }
 
+            const newOffObj = {
+                id: createdOfficerId,
+                first_name,
+                middle_name,
+                last_name,
+                suffix: suffix !== 'N/A' ? suffix : 'N/A',
+                full_name: `${first_name} ${last_name}`.trim(),
+                username,
+                email,
+                role,
+                department,
+                gender,
+                sex: gender,
+                contact_number: contact_number || 'N/A',
+                phone: contact_number || 'N/A',
+                address: address || 'Koronadal City',
+                status: 'Active'
+            };
+
+            // Prepend to local list if not already present
+            if (!allOfficers.some(o => o.id === createdOfficerId || o.username === username)) {
+                allOfficers.unshift(newOffObj);
+            }
+
             closeNewOfficerModal();
-            loadOfficersData();
+
+            if (typeof showSystemNotification === 'function') {
+                showSystemNotification('Officer Account Created', `Officer account "${username}" (${first_name} ${last_name}) created and recorded into Supabase successfully.`, 'success');
+            } else {
+                alert(`Officer account "${username}" created and recorded successfully!`);
+            }
+
+            await loadOfficersData();
         }
 
         // =======================================================

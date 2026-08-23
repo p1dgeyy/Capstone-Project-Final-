@@ -269,6 +269,7 @@ async function handleCreateUserSubmit(e) {
                 last_name: lastName,
                 suffix: suffix,
                 username: username,
+                password: password,
                 email: email,
                 password_hash: passwordHash,
                 role: role,
@@ -277,7 +278,7 @@ async function handleCreateUserSubmit(e) {
                 address: address,
                 status: 'Active'
             });
-            if (res.data) createdId = res.data.id;
+            if (res && res.data && res.data.id) createdId = res.data.id;
         } catch (err) {
             console.warn('[USERS] Supabase user creation notice:', err);
         }

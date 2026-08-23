@@ -364,32 +364,112 @@ const DataService = (() => {
           return { error: { message: 'Cross-department violation: Cannot assign PESO role in CSWDO portal.' } };
         }
 
+        // Field normalization
+        const dob = data.date_of_birth || data.birth_date || null;
+        const sex = data.sex || data.gender || null;
+        const phone = data.phone || data.contact_number || null;
+        const department = data.department || (data.agency === 'CSWDO' ? 'Medical' : 'PESO');
+
+        // Provision Supabase Auth User via isolated non-persisting client (preserves admin session)
+        let authId = data.auth_id || null;
+        if (!authId && data.email && data.password && typeof window.supabase !== 'undefined' && typeof SUPABASE_CONFIG !== 'undefined') {
+          try {
+            const isolatedAuthClient = window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY, {
+              auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false
+              }
+            });
+            const { data: authData, error: authErr } = await isolatedAuthClient.auth.signUp({
+              email: data.email,
+              password: data.password,
+              options: {
+                data: {
+                  username: data.username,
+                  role: data.role,
+                  first_name: data.first_name,
+                  middle_name: data.middle_name || '',
+                  last_name: data.last_name,
+                  suffix: data.suffix || '',
+                  age: parseInt(data.age) || 0,
+                  department: department,
+                  phone: phone || '',
+                  address: data.address || ''
+                }
+              }
+            });
+            if (!authErr && authData?.user?.id) {
+              authId = authData.user.id;
+            } else if (authErr) {
+              console.warn('[STAFF_CREATE_AUTH_WARN]', authErr.message || authErr);
+            }
+          } catch (authEx) {
+            console.warn('[STAFF_CREATE_AUTH_EX]', authEx);
+          }
+        }
+
+        if (!authId) {
+          authId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : '00000000-0000-4000-8000-' + Math.random().toString(16).substring(2, 14).padEnd(12, '0');
+        }
+
+        // Check if staff_profile row already exists (e.g. created by trigger or prior step)
+        let existing = null;
+        try {
+          const { data: found } = await client
+            .from('staff_profiles')
+            .select('*')
+            .or(`auth_id.eq.${authId},username.eq.${data.username},email.eq.${data.email}`)
+            .maybeSingle();
+          existing = found;
+        } catch (e) {}
+
         const payload = {
-          auth_id: data.auth_id,
+          auth_id: authId,
           username: data.username,
           role: data.role,
           first_name: data.first_name,
           middle_name: data.middle_name || null,
           last_name: data.last_name,
-          suffix: data.suffix || null,
+          suffix: (data.suffix && data.suffix !== 'N/A') ? data.suffix : null,
           age: parseInt(data.age) || 0,
-          date_of_birth: data.date_of_birth || null,
-          sex: data.sex || null,
+          date_of_birth: dob,
+          sex: sex,
           nationality: data.nationality || 'Filipino',
           marital_status: data.marital_status || null,
           email: data.email,
-          phone: data.phone || null,
+          phone: phone,
           address: data.address || null,
+          department: department,
           status: data.status || 'Active'
         };
-        const res = await client.from('staff_profiles').insert(payload).select().single();
+
+        let res = null;
+        if (existing && existing.id) {
+          res = await client.from('staff_profiles').update(payload).eq('id', existing.id).select().single();
+        } else {
+          res = await client.from('staff_profiles').insert(payload).select().single();
+          if (res.error && (res.error.code === '23505' || (res.error.message && res.error.message.includes('duplicate')))) {
+            res = await client.from('staff_profiles').update(payload).or(`username.eq.${data.username},email.eq.${data.email}`).select().single();
+          }
+        }
+
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: res.data.id,
             action: 'CREATE_STAFF_ACCOUNT',
             entityType: 'staff_profile',
             entityId: res.data.id,
-            details: `Created staff account "${res.data.username}" with role ${res.data.role}`
+            details: `Created officer account "${res.data.username}" (${res.data.first_name} ${res.data.last_name}), Role: ${res.data.role}, Dept: ${department}`
+          });
+          activityLog.log({
+            action: 'CREATE_OFFICER_ACCOUNT',
+            action_title: 'Officer Account Created',
+            admin_id: sessionStorage.getItem('username') || 'Admin',
+            details: `Created new officer profile for "${res.data.username}" (${res.data.role}) in ${department}`,
+            status: 'SUCCESS'
           });
         }
         return res;
@@ -401,6 +481,19 @@ const DataService = (() => {
         const updateData = { ...data };
         delete updateData.id;
         delete updateData.created_at;
+        if (updateData.gender && !updateData.sex) {
+          updateData.sex = updateData.gender;
+          delete updateData.gender;
+        }
+        if (updateData.contact_number && !updateData.phone) {
+          updateData.phone = updateData.contact_number;
+          delete updateData.contact_number;
+        }
+        if (updateData.birth_date && !updateData.date_of_birth) {
+          updateData.date_of_birth = updateData.birth_date;
+          delete updateData.birth_date;
+        }
+
         const res = await client.from('staff_profiles').update(updateData).eq('id', id).select().single();
         if (!res.error && res.data) {
           auditLogs.log({
@@ -410,9 +503,20 @@ const DataService = (() => {
             entityId: id,
             details: `Updated staff profile for "${res.data.username}" (${res.data.role})`
           });
+          activityLog.log({
+            action: 'UPDATE_OFFICER_ACCOUNT',
+            action_title: 'Officer Profile Updated',
+            admin_id: sessionStorage.getItem('username') || 'Admin',
+            details: `Updated profile details for officer #${id} ("${res.data.username}")`,
+            status: 'SUCCESS'
+          });
         }
         return res;
       });
+    },
+
+    async setStatus(id, newStatus) {
+      return this.toggleStatus(id, newStatus);
     },
 
     async toggleStatus(id, newStatus) {
@@ -425,6 +529,13 @@ const DataService = (() => {
             entityType: 'staff_profile',
             entityId: id,
             details: `Set staff account "${res.data.username}" status to ${newStatus}`
+          });
+          activityLog.log({
+            action: newStatus === 'Active' ? 'ACTIVATE_OFFICER' : 'DEACTIVATE_OFFICER',
+            action_title: `Officer ${newStatus}`,
+            admin_id: sessionStorage.getItem('username') || 'Admin',
+            details: `Set officer #${id} ("${res.data.username}") status to ${newStatus}`,
+            status: 'SUCCESS'
           });
         }
         return res;
@@ -441,6 +552,13 @@ const DataService = (() => {
             entityType: 'staff_profile',
             entityId: id,
             details: `Permanently deleted staff account "${staff.data?.username || id}" (${staff.data?.role || ''})`
+          });
+          activityLog.log({
+            action: 'DELETE_OFFICER_ACCOUNT',
+            action_title: 'Officer Deleted',
+            admin_id: sessionStorage.getItem('username') || 'Admin',
+            details: `Permanently deleted officer profile #${id}`,
+            status: 'SUCCESS'
           });
         }
         return res;

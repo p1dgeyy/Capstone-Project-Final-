@@ -183,9 +183,13 @@
    * @param {Function} [options.onCancel] Callback when cancel button clicked
    * @param {Function} [options.onRetry] Callback when retry action requested
    */
-  window.showSystemNotification = function (options) {
+  window.showSystemNotification = function (options, maybeMsg, maybeType) {
     if (typeof options === 'string') {
-      options = { message: options, title: 'System Notification', type: 'info' };
+      if (typeof maybeMsg === 'string') {
+        options = { title: options, message: maybeMsg, type: maybeType || 'info' };
+      } else {
+        options = { message: options, title: 'System Notification', type: 'info' };
+      }
     }
 
     const {
