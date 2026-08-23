@@ -897,45 +897,45 @@ window.handleGlobalSearch = (e) => {
 };
 
 // Exports & Prints
-window.exportAssistanceCSV = () => { if (typeof PesoReports !== 'undefined') PesoReports.exportReportCSV(); };
-window.exportDailyScheduleCSV = () => { if (typeof PesoReports !== 'undefined') PesoReports.exportReportCSV(); };
-window.printAssistanceReport = () => { window.print(); };
-window.showPrintableQrCard = (id) => PesoOfficerApp.showBeneficiaryQR(id);
+window.exportAssistanceCSV = window.exportAssistanceCSV || (() => { if (typeof PesoReports !== 'undefined') PesoReports.exportReportCSV(); });
+window.exportDailyScheduleCSV = window.exportDailyScheduleCSV || (() => { if (typeof PesoReports !== 'undefined') PesoReports.exportReportCSV(); });
+window.printAssistanceReport = window.printAssistanceReport || (() => { window.print(); });
+window.showPrintableQrCard = window.showPrintableQrCard || ((id) => PesoOfficerApp.showBeneficiaryQR(id));
 
 // OTP & Form Helpers
-window.sendOfficerEmailCode = () => { alert('Verification code dispatched to beneficiary email.'); };
-window.sendOfficerSmsOtp = () => { alert('SMS OTP code dispatched to beneficiary phone number.'); };
-window.resendOfficerEmailOtp = () => { alert('Verification code resent to beneficiary email.'); };
-window.resendOfficerSmsOtp = () => { alert('SMS OTP resent to beneficiary mobile phone.'); };
-window.backToOfficerBenForm = () => {
+window.sendOfficerEmailCode = window.sendOfficerEmailCode || (() => { alert('Verification code dispatched to beneficiary email.'); });
+window.sendOfficerSmsOtp = window.sendOfficerSmsOtp || (() => { alert('SMS OTP code dispatched to beneficiary phone number.'); });
+window.resendOfficerEmailOtp = window.resendOfficerEmailOtp || (() => { alert('Verification code resent to beneficiary email.'); });
+window.resendOfficerSmsOtp = window.resendOfficerSmsOtp || (() => { alert('SMS OTP resent to beneficiary mobile phone.'); });
+window.backToOfficerBenForm = window.backToOfficerBenForm || (() => {
     const step1 = document.getElementById('officerBenStep1');
     const step2 = document.getElementById('officerBenStep2');
     if (step1) step1.classList.remove('d-none');
     if (step2) step2.classList.add('d-none');
-};
-window.calculateBenAge = () => {
+});
+window.calculateBenAge = window.calculateBenAge || (() => {
     const dob = document.getElementById('intakeDob')?.value;
     if (dob) {
         const age = Math.floor((new Date() - new Date(dob)) / (365.25 * 24 * 60 * 60 * 1000));
         const ageInput = document.getElementById('intakeAge');
         if (ageInput) ageInput.value = Math.max(0, age);
     }
-};
-window.autoCalcOfficerAge = window.calculateBenAge;
-window.checkNewInterviewConflict = () => {};
-window.toggleAssignMode = (mode) => {
+});
+window.autoCalcOfficerAge = window.autoCalcOfficerAge || window.calculateBenAge;
+window.checkNewInterviewConflict = window.checkNewInterviewConflict || (() => {});
+window.toggleAssignMode = window.toggleAssignMode || ((mode) => {
     const batchBox = document.getElementById('batchSelectContainer');
     if (batchBox) batchBox.style.display = (mode === 'Batch') ? 'block' : 'none';
-};
-window.validateIntakeFileInput = (el, maxMb) => {
+});
+window.validateIntakeFileInput = window.validateIntakeFileInput || ((el, maxMb) => {
     if (el.files && el.files[0]) {
         if (el.files[0].size > maxMb * 1024 * 1024) {
             alert(`File exceeds maximum size limit of ${maxMb}MB.`);
             el.value = '';
         }
     }
-};
-window.previewBenPhoto = (el) => {
+});
+window.previewBenPhoto = window.previewBenPhoto || ((el) => {
     if (el.files && el.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -944,16 +944,13 @@ window.previewBenPhoto = (el) => {
         };
         reader.readAsDataURL(el.files[0]);
     }
-};
-window.handleOfficerSubmitAddBen = PesoOfficerApp.submitBeneficiaryIntake;
-window.submitBeneficiaryRegistration = PesoOfficerApp.submitBeneficiaryIntake;
-window.submitIntakeApplication = PesoOfficerApp.submitBeneficiaryIntake;
-window.loadOfficerTeam = PesoOfficerApp.loadAllOfficerData;
-
-// Auto-bootloader
-document.addEventListener('DOMContentLoaded', () => {
-    const isOfficerPage = window.location.pathname.includes('peso_officer.html');
-    if (isOfficerPage) {
-        PesoOfficerApp.loadAllOfficerData();
-    }
 });
+window.handleOfficerSubmitAddBen = window.handleOfficerSubmitAddBen || PesoOfficerApp.submitBeneficiaryIntake;
+window.submitBeneficiaryRegistration = window.submitBeneficiaryRegistration || PesoOfficerApp.submitBeneficiaryIntake;
+window.submitIntakeApplication = window.submitIntakeApplication || PesoOfficerApp.submitBeneficiaryIntake;
+window.loadOfficerTeam = window.loadOfficerTeam || PesoOfficerApp.loadAllOfficerData;
+
+// Export module
+if (typeof window !== 'undefined') {
+    window.PesoOfficerApp = PesoOfficerApp;
+}

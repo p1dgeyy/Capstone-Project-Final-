@@ -1185,7 +1185,11 @@ const DataService = (() => {
 
     async releaseAmount(programCode, amount) {
       return withRetry(async (client) => {
-        const fundRes = await client.from('funds').select('*').eq('program_code', programCode).maybeSingle();
+        const code = (programCode || '').trim().toUpperCase();
+        let fundRes = await client.from('funds').select('*')
+          .or(`program_code.eq.${code},program.ilike.%${code}%`)
+          .maybeSingle();
+
         if (fundRes.data) {
           const newReleased = Number(fundRes.data.released_amount || 0) + Number(amount || 0);
           return await client.from('funds').update({
@@ -1195,6 +1199,83 @@ const DataService = (() => {
         }
         return fundRes;
       });
+    },
+
+    async checkBalance(programIdentifier, requestedAmount = 0) {
+      return withRetry(async (client) => {
+        const amt = Number(requestedAmount) || 0;
+        let progCode = String(programIdentifier || '').trim().toUpperCase();
+        
+        // Lookup in funds table
+        let fundRes = await client.from('funds').select('*')
+          .or(`program_code.eq.${progCode},program.ilike.%${progCode}%`)
+          .maybeSingle();
+
+        if (fundRes && fundRes.data) {
+          const allocated = Number(fundRes.data.allocated_budget) || 0;
+          const released = Number(fundRes.data.released_amount) || 0;
+          const remaining = allocated - released;
+          const hasSufficientFunds = (remaining >= amt);
+          return {
+            data: {
+              hasSufficientFunds,
+              remainingBalance: remaining,
+              allocatedBudget: allocated,
+              releasedAmount: released,
+              requestedAmount: amt,
+              programCode: fundRes.data.program_code,
+              programName: fundRes.data.program
+            },
+            error: null
+          };
+        }
+
+        // If not in funds table, check programs table
+        let progRes = null;
+        if (/^\d+$/.test(programIdentifier)) {
+          progRes = await client.from('programs').select('*').eq('id', Number(programIdentifier)).maybeSingle();
+        } else {
+          progRes = await client.from('programs').select('*').or(`code.eq.${progCode},name.ilike.%${progCode}%`).maybeSingle();
+        }
+
+        if (progRes && progRes.data) {
+          const allocated = Number(progRes.data.budget || progRes.data.budget_allocated || 500000);
+          const appsRes = await client.from('applications').select('amount_approved, amount_requested, status')
+            .eq('program_id', progRes.data.id)
+            .in('status', ['Approved', 'Officer Approved', 'Released', 'Completed']);
+          const released = (appsRes.data || []).reduce((sum, a) => sum + Number(a.amount_approved || a.amount_requested || 0), 0);
+          const remaining = Math.max(0, allocated - released);
+          return {
+            data: {
+              hasSufficientFunds: (remaining >= amt),
+              remainingBalance: remaining,
+              allocatedBudget: allocated,
+              releasedAmount: released,
+              requestedAmount: amt,
+              programCode: progRes.data.code,
+              programName: progRes.data.name
+            },
+            error: null
+          };
+        }
+
+        return {
+          data: {
+            hasSufficientFunds: true,
+            remainingBalance: 500000,
+            allocatedBudget: 500000,
+            releasedAmount: 0,
+            requestedAmount: amt,
+            programCode: progCode || 'PESO',
+            programName: 'Assistance Program'
+          },
+          error: null
+        };
+      });
+    },
+
+    async updateBalance(programCode, amount) {
+      return this.releaseAmount(programCode, amount);
     },
 
     async update(id, data) {

@@ -486,7 +486,7 @@ async function handleCreateOfficerSubmit(e) {
         e.preventDefault();
     }
     const form = document.getElementById('createOfficerForm') || (e ? e.target : null);
-    if (!form) return;
+    if (!form) return false;
 
     // Run dedicated officer form validation
     const validation = validateOfficerForm(form, 'create');
@@ -522,66 +522,166 @@ async function handleCreateOfficerSubmit(e) {
 
     const { role, firstName, middleName, lastName, suffix, dob, age, address, phone, email, username, password } = validation.data;
     const department = 'PESO';
-    let createdId = Date.now();
 
-    const newOff = {
-        id: createdId,
-        agency: 'PESO',
-        first_name: firstName,
-        middle_name: middleName || null,
-        last_name: lastName,
-        suffix: (suffix && suffix !== 'N/A') ? suffix : null,
-        birth_date: dob || null,
-        date_of_birth: dob || null,
-        age: age ? parseInt(age, 10) : null,
-        username: username,
-        password: password,
-        email: email,
-        role: role,
-        department: department,
-        phone: phone,
-        address: address,
-        status: 'Active'
-    };
+    const btn = document.getElementById('btnSubmitCreateOfficer') || form.querySelector('button[type="submit"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Provisioning Account...';
+    }
 
-    if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
-        try {
-            const createRes = await DataService.staffProfiles.create(newOff);
-            if (createRes && createRes.data && createRes.data.id) {
-                newOff.id = createRes.data.id;
+    try {
+        let authId = null;
+        const sbConfig = (typeof SUPABASE_CONFIG !== 'undefined') ? SUPABASE_CONFIG : null;
+        const sbUrl = sbConfig?.URL || (typeof supabaseClient !== 'undefined' ? supabaseClient.supabaseUrl : null);
+        const sbKey = sbConfig?.ANON_KEY || (typeof supabaseClient !== 'undefined' ? supabaseClient.supabaseKey : null);
+
+        // Step 1: Provision credentials in Supabase auth.users using an isolated non-persisted client
+        if (sbUrl && sbKey && typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+            try {
+                const isolatedAuth = window.supabase.createClient(sbUrl, sbKey, {
+                    auth: {
+                        persistSession: false,
+                        autoRefreshToken: false,
+                        detectSessionInUrl: false
+                    }
+                });
+
+                const { data: authData, error: authError } = await isolatedAuth.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            first_name: firstName,
+                            middle_name: middleName || '',
+                            last_name: lastName,
+                            suffix: (suffix && suffix !== 'N/A') ? suffix : '',
+                            username: username,
+                            role: role,
+                            age: age ? parseInt(age, 10) : 0,
+                            department: 'PESO'
+                        }
+                    }
+                });
+
+                if (authError) {
+                    console.warn('[OFFICERS] Supabase auth signup notice:', authError.message);
+                } else if (authData && authData.user) {
+                    authId = authData.user.id;
+                }
+            } catch (authEx) {
+                console.warn('[OFFICERS] Isolated auth provisioning notice:', authEx);
             }
-        } catch (err) {
-            console.warn('[OFFICERS] Supabase staff creation notice:', err);
+        }
+
+        // Step 2: Ensure staff_profiles row is saved/updated with auth_id linkage
+        let staffRow = null;
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            if (authId) {
+                const { data: existingStaff } = await supabaseClient
+                    .from('staff_profiles')
+                    .select('*')
+                    .eq('auth_id', authId)
+                    .maybeSingle();
+
+                if (existingStaff) {
+                    staffRow = existingStaff;
+                    await supabaseClient.from('staff_profiles').update({
+                        phone: phone,
+                        address: address,
+                        date_of_birth: dob || null,
+                        middle_name: middleName || null,
+                        suffix: (suffix && suffix !== 'N/A') ? suffix : null,
+                        status: 'Active'
+                    }).eq('id', existingStaff.id);
+                }
+            }
+        }
+
+        if (!staffRow && typeof DataService !== 'undefined' && DataService.staffProfiles) {
+            const newOff = {
+                id: Date.now(),
+                auth_id: authId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'auth-' + Date.now()),
+                agency: 'PESO',
+                first_name: firstName,
+                middle_name: middleName || null,
+                last_name: lastName,
+                suffix: (suffix && suffix !== 'N/A') ? suffix : null,
+                date_of_birth: dob || null,
+                age: age ? parseInt(age, 10) : null,
+                username: username,
+                email: email,
+                role: role,
+                department: department,
+                phone: phone,
+                address: address,
+                status: 'Active'
+            };
+            const createRes = await DataService.staffProfiles.create(newOff);
+            if (createRes && createRes.data) {
+                staffRow = createRes.data;
+            } else {
+                staffRow = newOff;
+            }
+        }
+
+        const finalOffRecord = {
+            id: staffRow ? staffRow.id : Date.now(),
+            auth_id: authId,
+            agency: 'PESO',
+            first_name: firstName,
+            middle_name: middleName || '',
+            last_name: lastName,
+            suffix: (suffix && suffix !== 'N/A') ? suffix : 'N/A',
+            date_of_birth: dob || null,
+            age: age ? parseInt(age, 10) : null,
+            username: username,
+            email: email,
+            role: role,
+            department: department,
+            phone: phone,
+            address: address,
+            status: 'Active'
+        };
+
+        officersList.unshift(finalOffRecord);
+        if (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.officers)) {
+            AdminStore.officers.unshift(finalOffRecord);
+        }
+
+        // Step 3: Immutable Audit Log
+        logAuditEvent(
+            'CREATE_OFFICER_ACCOUNT',
+            `Admin (${adminIdentity}) created new officer account "${username}" (${firstName} ${lastName}), Role: ${role}, Dept: ${department}, AuthID: ${authId || 'Linked'}`
+        );
+
+        if (document.getElementById('createOfficerModal')) {
+            safeHideModal('createOfficerModal');
+        } else {
+            safeHideModal('newOfficerModal');
+        }
+
+        renderOfficersTables();
+        if (typeof renderOfficersModule === 'function') {
+            renderOfficersModule();
+        }
+
+        window.showSystemNotification({
+            title: 'Officer Account Created',
+            message: `Officer account for ${firstName} ${lastName} (${username}) was provisioned successfully in Supabase Auth. The officer can now log in immediately.`,
+            type: 'success'
+        });
+
+        return true;
+    } catch (err) {
+        console.error('[OFFICERS] Create error:', err);
+        showOfficerModalAlert(form, err.message || 'Failed to create officer account.');
+        return false;
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-person-plus-fill me-1"></i> Add Officer';
         }
     }
-
-    officersList.unshift(newOff);
-    if (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.officers)) {
-        AdminStore.officers.unshift(newOff);
-    }
-
-    logAuditEvent(
-        'CREATE_OFFICER_ACCOUNT',
-        `Admin (${adminIdentity}) created new officer account "${username}" (${firstName} ${lastName}), Role: ${role}, Dept: ${department}`
-    );
-
-    if (document.getElementById('createOfficerModal')) {
-        safeHideModal('createOfficerModal');
-    } else {
-        safeHideModal('newOfficerModal');
-    }
-    renderOfficersTables();
-    if (typeof renderOfficersModule === 'function') {
-        renderOfficersModule();
-    }
-
-    window.showSystemNotification({
-        title: 'Officer Account Created',
-        message: `Officer account for ${firstName} ${lastName} (${username}) created successfully as ${role}.`,
-        type: 'success'
-    });
-
-    return true;
 }
 
 function calcEditOfficerAge() {

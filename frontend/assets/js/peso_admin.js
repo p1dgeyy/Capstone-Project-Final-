@@ -1537,16 +1537,110 @@
         const { role, firstName, middleName, lastName, suffix, dob, age, address, phone, email, username, password } = validation.data;
 
         try {
+            // Provision Supabase Auth User with metadata using isolated client
+            let authId = null;
+            const sbConfig = (typeof SUPABASE_CONFIG !== 'undefined') ? SUPABASE_CONFIG : null;
+            const sbUrl = sbConfig?.URL || (typeof supabaseClient !== 'undefined' ? supabaseClient.supabaseUrl : null);
+            const sbKey = sbConfig?.ANON_KEY || (typeof supabaseClient !== 'undefined' ? supabaseClient.supabaseKey : null);
+
+            if (sbUrl && sbKey && typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                try {
+                    const isolatedAuth = window.supabase.createClient(sbUrl, sbKey, {
+                        auth: {
+                            persistSession: false,
+                            autoRefreshToken: false,
+                            detectSessionInUrl: false
+                        }
+                    });
+
+                    const { data: authData, error: authError } = await isolatedAuth.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                first_name: firstName,
+                                middle_name: middleName || '',
+                                last_name: lastName,
+                                suffix: (suffix && suffix !== 'N/A') ? suffix : '',
+                                username: username,
+                                role: role,
+                                age: age ? parseInt(age, 10) : 0,
+                                department: 'PESO'
+                            }
+                        }
+                    });
+
+                    if (authError) {
+                        console.warn('[SUPABASE AUTH WARN]', authError.message);
+                    } else if (authData?.user) {
+                        authId = authData.user.id;
+                    }
+                } catch (e) {
+                    console.warn('[SUPABASE AUTH WARN]', e);
+                }
+            }
+
+            let staffRow = null;
+            if (typeof supabaseClient !== 'undefined' && supabaseClient && authId) {
+                const { data: existingStaff } = await supabaseClient
+                    .from('staff_profiles')
+                    .select('*')
+                    .eq('auth_id', authId)
+                    .maybeSingle();
+
+                if (existingStaff) {
+                    staffRow = existingStaff;
+                    await supabaseClient.from('staff_profiles').update({
+                        phone: phone,
+                        address: address,
+                        date_of_birth: dob || null,
+                        middle_name: middleName || null,
+                        suffix: (suffix && suffix !== 'N/A') ? suffix : null,
+                        status: 'Active'
+                    }).eq('id', existingStaff.id);
+                }
+            }
+
+            if (!staffRow && typeof DataService !== 'undefined' && DataService.staffProfiles) {
+                const newOffRecord = {
+                    id: Date.now(),
+                    auth_id: authId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'auth-' + Date.now()),
+                    username: username,
+                    email: email,
+                    first_name: firstName,
+                    middle_name: middleName || null,
+                    last_name: lastName,
+                    suffix: (suffix && suffix !== 'N/A') ? suffix : null,
+                    date_of_birth: dob || null,
+                    age: age ? parseInt(age, 10) : null,
+                    role: role,
+                    phone: phone,
+                    address: address,
+                    agency: 'PESO',
+                    department: 'PESO',
+                    status: 'Active',
+                    created_at: new Date().toISOString()
+                };
+
+                try {
+                    const res = await DataService.staffProfiles.create(newOffRecord);
+                    if (res?.data?.id) staffRow = res.data;
+                    else staffRow = newOffRecord;
+                } catch (dbErr) {
+                    console.warn('[STAFF DB INSERT]', dbErr);
+                    staffRow = newOffRecord;
+                }
+            }
+
             const newOffRecord = {
-                id: Date.now(),
+                id: staffRow ? staffRow.id : Date.now(),
+                auth_id: authId,
                 username: username,
-                password: password,
                 email: email,
                 first_name: firstName,
                 middle_name: middleName || null,
                 last_name: lastName,
                 suffix: (suffix && suffix !== 'N/A') ? suffix : null,
-                birth_date: dob || null,
                 date_of_birth: dob || null,
                 age: age ? parseInt(age, 10) : null,
                 role: role,
@@ -1557,17 +1651,6 @@
                 status: 'Active',
                 created_at: new Date().toISOString()
             };
-
-            // Direct insert / auth provisioning in staff_profiles via DataService
-            if (typeof DataService !== 'undefined' && DataService.staffProfiles) {
-                try {
-                    const res = await DataService.staffProfiles.create(newOffRecord);
-                    if (res?.data?.id) newOffRecord.id = res.data.id;
-                } catch (dbErr) {
-                    console.warn('[STAFF DB INSERT]', dbErr);
-                }
-            }
-
             AdminStore.officers.unshift(newOffRecord);
             if (typeof officersList !== 'undefined' && Array.isArray(officersList)) {
                 officersList.unshift(newOffRecord);

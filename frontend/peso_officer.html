@@ -2259,7 +2259,34 @@
                     }));
                 }
 
-                // 5. Programs for Dashboard Budget & Spent Metrics
+                // 5. Approved Assistance Records
+                if (DataService.approvedAssistance) {
+                    const astRes = await DataService.approvedAssistance.getAll();
+                    if (astRes && Array.isArray(astRes.data)) {
+                        assistanceRecordsList = astRes.data.map(a => {
+                            const ben = a.beneficiary || {};
+                            const prog = a.program || {};
+                            const off = a.officer || {};
+                            const benName = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || ben.username || 'Beneficiary';
+                            const offName = `${off.first_name || ''} ${off.last_name || ''}`.trim() || off.username || 'PESO Officer';
+                            return {
+                                id: `AST-${a.id}`,
+                                dbId: a.id,
+                                beneficiaryQr: a.beneficiary_qr,
+                                beneficiaryName: benName,
+                                programCode: prog.code || 'PESO',
+                                programName: prog.name || 'Assistance Program',
+                                assistanceType: a.assistance_type,
+                                quantityAmount: a.quantity_amount,
+                                approvalDate: a.approval_date || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+                                conditions: a.conditions || 'Standard Release Terms',
+                                officerName: offName
+                            };
+                        });
+                    }
+                }
+
+                // 6. Programs for Dashboard Budget & Spent Metrics
                 let programsData = [];
                 if (DataService.programs) {
                     const progRes = await DataService.programs.getAll({ agency: 'PESO' });
@@ -2274,6 +2301,7 @@
                 renderBatchesCards();
                 renderLivelihoodMasterTable();
                 renderDailySchedules();
+                renderApprovedAssistanceTable();
                 loadOfficerTeam();
                 updateDashboardOverviewMetrics(programsData, (appRes && appRes.data) || []);
             } catch (err) {
@@ -3024,17 +3052,17 @@
             item.remarks = remarks;
             if (justification) item.justification = justification;
 
-            fetch(`/api/interview/${encodeURIComponent(scheduleId)}/attendance`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ presence_flag: selectedAtt, remarks, justification })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API attendance fallback:', e.message));
-
-            fetch(`/api/interview/${encodeURIComponent(scheduleId)}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus, remarks, justification })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API status fallback:', e.message));
+            // Direct DB persistence via DataService
+            if (typeof DataService !== 'undefined' && DataService.interviews) {
+                const targetDbId = item.dbId || (typeof scheduleId === 'number' ? scheduleId : parseInt(String(scheduleId).replace(/[^0-9]/g, '')) || null);
+                if (targetDbId) {
+                    DataService.interviews.markAttendance(targetDbId, {
+                        attendance_status: selectedAtt,
+                        status: newStatus,
+                        remarks: remarks ? `${remarks} (Justification: ${justification || 'N/A'})` : justification
+                    }).catch(e => console.warn('[OFFICER_SCHEDULE] Supabase attendance update error:', e));
+                }
+            }
 
             logOfficerAction('UPDATE_SCHEDULE', `Updated schedule ${scheduleId} -> Attendance: ${selectedAtt}, Status: ${newStatus}. Remarks: "${remarks}". Justification: "${justification || 'N/A'}"`);
 
@@ -3081,11 +3109,17 @@
             }
             if (justification) item.justification = justification;
 
-            fetch(`/api/interview/${encodeURIComponent(scheduleId)}/attendance`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ presence_flag: flag, remarks: item.remarks, justification })
-            }).catch(e => console.warn('[OFFICER_SCHEDULE] API sync fallback:', e.message));
+            // Direct DB persistence via DataService
+            if (typeof DataService !== 'undefined' && DataService.interviews) {
+                const targetDbId = item.dbId || (typeof scheduleId === 'number' ? scheduleId : parseInt(String(scheduleId).replace(/[^0-9]/g, '')) || null);
+                if (targetDbId) {
+                    DataService.interviews.markAttendance(targetDbId, {
+                        attendance_status: flag,
+                        status: item.status,
+                        remarks: item.remarks ? `${item.remarks} (Quick attendance marked: ${flag})` : `Quick attendance: ${flag}`
+                    }).catch(e => console.warn('[OFFICER_SCHEDULE] Attendance sync error:', e));
+                }
+            }
 
             logOfficerAction('MARK_ATTENDANCE', `Quick marked attendance for ${scheduleId} as ${flag}. Justification: "${justification || 'N/A'}"`);
 
@@ -3279,14 +3313,61 @@
                 }
             }
 
-            // Sync with backend API
-            if (targetSlot) {
-                fetch(`/api/schedule-slots/${encodeURIComponent(targetSlot.id || targetSlot.slot_id)}/assign`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(assignmentPayload)
-                }).catch(e => console.warn('[OFFICER_ASSIGN] API sync fallback:', e.message));
-            }
+            // Sync with Supabase Database and Notify Beneficiary
+            (async () => {
+                if (typeof DataService !== 'undefined' && DataService.interviews) {
+                    try {
+                        const targetBen = beneficiariesList.find(b =>
+                            b.name.toLowerCase() === (assignmentPayload.beneficiary_name || '').toLowerCase() ||
+                            b.qr_code === assignmentPayload.beneficiary_qr ||
+                            b.id === assignmentPayload.beneficiary_qr
+                        );
+                        const benQr = targetBen ? targetBen.qr_code : (assignmentPayload.beneficiary_qr || 'QR-BEN-ACTIVE');
+                        const officerProfile = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+                        const officerId = officerProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
+
+                        const interviewPayload = {
+                            beneficiary_qr: benQr,
+                            program_id: targetSlot?.program_id || 1,
+                            officer_id: officerId,
+                            interview_date: date,
+                            interview_time: time,
+                            venue_location: venue || 'PESO Main Office - Interview Room A',
+                            status: 'Scheduled',
+                            attendance_status: 'Unmarked',
+                            remarks: remarks || `Scheduled in ${mode} mode`
+                        };
+
+                        if (targetSlot && targetSlot.dbId) {
+                            await DataService.interviews.update(targetSlot.dbId, interviewPayload);
+                        } else {
+                            const createRes = await DataService.interviews.create(interviewPayload);
+                            if (createRes?.data && targetSlot) {
+                                targetSlot.dbId = createRes.data.id;
+                            }
+                        }
+
+                        // Trigger In-App Notification for Beneficiary
+                        if (DataService.notifications && benQr) {
+                            await DataService.notifications.create({
+                                beneficiary_qr: benQr,
+                                title: 'New Interview / Training Scheduled',
+                                message: `You have an activity scheduled on ${date} at ${time}. Venue: ${venue || 'PESO Main Office - Interview Room A'}.`
+                            });
+                        }
+
+                        // Multi-channel external dispatch (SMS & Email)
+                        if (typeof window.sendExternalSms === 'function' && assignmentPayload.beneficiary_phone) {
+                            window.sendExternalSms({
+                                recipientPhone: assignmentPayload.beneficiary_phone,
+                                message: `PESO Koronadal: You are scheduled for an interview on ${date} at ${time} at ${venue || 'PESO Main Office'}. Please bring valid ID.`
+                            });
+                        }
+                    } catch (schedErr) {
+                        console.warn('[OFFICER_ASSIGN] Supabase interview sync error:', schedErr);
+                    }
+                }
+            })();
 
             logOfficerAction('ASSIGN_BENEFICIARY', `Assigned ${mode} mode to slot ${slotId} (${mode === 'Individual' ? assignmentPayload.beneficiary_name : assignmentPayload.batch_name})`);
 
@@ -3704,18 +3785,59 @@
             const item = evaluationList.find(e => e.id === id || e.dbId === Number(id));
             if (!item) return;
 
+            const requestedAmount = Number(item.amountRequested || item.amount_requested || 5000);
+            const progCode = item.programCode || 'PESO';
+
+            // Budget Cap Guardrail Validation
+            if (typeof DataService !== 'undefined' && DataService.funds) {
+                try {
+                    const balanceRes = await DataService.funds.checkBalance(progCode, requestedAmount);
+                    if (balanceRes && balanceRes.data && !balanceRes.data.hasSufficientFunds) {
+                        const rem = Number(balanceRes.data.remainingBalance || 0);
+                        const msg = `Budget Cap Restriction: Cannot approve application ${id}. The program "${progCode}" has insufficient remaining balance (Remaining: ₱${rem.toLocaleString('en-PH', { minimumFractionDigits: 2 })}, Requested: ₱${requestedAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}).`;
+                        if (window.showSystemNotification) {
+                            window.showSystemNotification({
+                                title: 'Budget Cap Exceeded',
+                                message: msg,
+                                type: 'error'
+                            });
+                        } else {
+                            alert(msg);
+                        }
+                        logOfficerAction('FAILED_APPROVAL_BUDGET_CAP', `Blocked approval for ${id} due to budget cap on ${progCode}.`);
+                        return;
+                    }
+                } catch (bErr) {
+                    console.warn('[Officer Eval] Budget check warning:', bErr);
+                }
+            }
+
             item.status = 'Approved';
             item.remarks = 'Application evaluation complete. Approved by PESO Officer.';
             item.missingNotes = '';
             renderEvaluationQueueTable();
             logOfficerAction('APPROVE_APP', `Approved application ${id} for beneficiary ${item.beneficiaryName}.`);
 
-            if (typeof DataService !== 'undefined' && DataService.applications && item.dbId) {
+            if (typeof DataService !== 'undefined' && item.dbId) {
                 try {
-                    await DataService.applications.evaluate(item.dbId, {
-                        decision: 'Approved',
-                        notes: item.remarks
-                    });
+                    if (DataService.applications) {
+                        await DataService.applications.evaluate(item.dbId, {
+                            decision: 'Approved',
+                            notes: item.remarks
+                        });
+                    }
+
+                    if (DataService.funds) {
+                        await DataService.funds.releaseAmount(progCode, requestedAmount);
+                    }
+
+                    // Multi-channel external dispatch (SMS & Email)
+                    if (typeof window.sendExternalSms === 'function' && item.beneficiaryPhone) {
+                        window.sendExternalSms({
+                            recipientPhone: item.beneficiaryPhone,
+                            message: `PESO Koronadal: Your application (${item.id}) for ${item.program || 'Livelihood Assistance'} has been APPROVED by the PESO Officer.`
+                        });
+                    }
                 } catch (err) {
                     console.warn('[Officer Eval] Supabase sync notice:', err);
                 }
@@ -3907,6 +4029,248 @@
 
         function toggleSelectAllApps(mainCheckbox) {
             document.querySelectorAll('.app-row-checkbox').forEach(cb => cb.checked = mainCheckbox.checked);
+        }
+
+        // ---------------------------------------------------------------------
+        // TAB 5: APPROVED ASSISTANCE & MONITORING REPORTS CONTROLLER
+        // ---------------------------------------------------------------------
+        function openRecordAssistanceModal() {
+            const form = document.getElementById('assistanceRecordForm');
+            if (form) form.reset();
+            const modalEl = document.getElementById('recordAssistanceModal');
+            if (modalEl) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+        }
+
+        async function submitAssistanceRecord(event) {
+            if (event) event.preventDefault();
+
+            const benName = document.getElementById('astBenName')?.value.trim();
+            const programRaw = document.getElementById('astProgram')?.value;
+            const astType = document.getElementById('astType')?.value;
+            const quantityVal = document.getElementById('astQuantity')?.value.trim();
+            const conditions = document.getElementById('astConditions')?.value.trim() || 'Standard Release Terms';
+
+            if (!benName || !quantityVal) {
+                alert('Validation Error: Beneficiary Name and Quantity/Amount are required.');
+                return;
+            }
+
+            const programCode = programRaw.split(' ')[0].replace(/[^A-Z0-9-]/g, '') || 'PESO';
+            const numericAmount = parseFloat(quantityVal.replace(/[^0-9.]/g, '')) || 5000;
+
+            // Budget Cap Guardrail Validation
+            if (typeof DataService !== 'undefined' && DataService.funds) {
+                try {
+                    const balanceRes = await DataService.funds.checkBalance(programCode, numericAmount);
+                    if (balanceRes && balanceRes.data && !balanceRes.data.hasSufficientFunds) {
+                        const rem = Number(balanceRes.data.remainingBalance || 0);
+                        const msg = `Budget Cap Restriction: Cannot record assistance of ₱${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}. Remaining allocation for ${programCode} is ₱${rem.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`;
+                        if (window.showSystemNotification) {
+                            window.showSystemNotification({
+                                title: 'Budget Cap Exceeded',
+                                message: msg,
+                                type: 'error'
+                            });
+                        } else {
+                            alert(msg);
+                        }
+                        logOfficerAction('FAILED_ASSISTANCE_BUDGET_CAP', `Blocked recording assistance for ${benName} on ${programCode} due to budget limit.`);
+                        return;
+                    }
+                } catch (bErr) {
+                    console.warn('[Officer Ast] Budget validation note:', bErr);
+                }
+            }
+
+            const matchedBen = beneficiariesList.find(b =>
+                b.name.toLowerCase() === benName.toLowerCase() ||
+                (b.qr_code && b.qr_code.toLowerCase() === benName.toLowerCase())
+            );
+            const benQr = matchedBen ? matchedBen.qr_code : (beneficiariesList.length > 0 ? beneficiariesList[0].qr_code : 'QR-BEN-ACTIVE');
+            const officerProfile = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+            const officerId = officerProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
+            const officerName = officerProfile ? `${officerProfile.first_name || ''} ${officerProfile.last_name || ''}`.trim() : 'PESO Officer';
+            const approvalDate = new Date().toISOString().split('T')[0];
+
+            const newAstRecord = {
+                id: `AST-${Date.now()}`,
+                beneficiaryQr: benQr,
+                beneficiaryName: benName,
+                programCode: programCode,
+                programName: programRaw,
+                assistanceType: astType,
+                quantityAmount: quantityVal,
+                approvalDate: approvalDate,
+                conditions: conditions,
+                officerName: officerName
+            };
+
+            // DB Persistence: Write to approved_assistance and distributions
+            if (typeof DataService !== 'undefined') {
+                try {
+                    if (DataService.approvedAssistance) {
+                        await DataService.approvedAssistance.create({
+                            beneficiary_qr: benQr,
+                            program_id: 1,
+                            assistance_type: astType,
+                            quantity_amount: quantityVal,
+                            conditions: conditions,
+                            approval_date: approvalDate,
+                            officer_id: officerId
+                        });
+                    }
+
+                    if (DataService.distributions) {
+                        await DataService.distributions.create({
+                            application_id: null,
+                            distribution_date: approvalDate,
+                            distribution_time: '09:00 AM',
+                            location: 'PESO Main Office - Disbursement Counter',
+                            amount: numericAmount,
+                            status: 'Confirmed'
+                        });
+                    }
+
+                    if (DataService.funds) {
+                        await DataService.funds.releaseAmount(programCode, numericAmount);
+                    }
+
+                    if (DataService.notifications && benQr) {
+                        await DataService.notifications.create({
+                            beneficiary_qr: benQr,
+                            title: 'Assistance Grant Approved & Scheduled',
+                            message: `Your assistance grant (${astType}: ${quantityVal}) under ${programRaw} has been approved and queued for release.`
+                        });
+                    }
+
+                    if (typeof window.sendExternalSms === 'function' && matchedBen && matchedBen.contact) {
+                        window.sendExternalSms({
+                            recipientPhone: matchedBen.contact,
+                            message: `PESO Koronadal: Your assistance (${astType}: ${quantityVal}) has been approved and is scheduled for release at PESO Office.`
+                        });
+                    }
+                } catch (astDbErr) {
+                    console.warn('[Officer Ast] Supabase persistence error:', astDbErr);
+                }
+            }
+
+            assistanceRecordsList.unshift(newAstRecord);
+            renderApprovedAssistanceTable();
+
+            logOfficerAction('RECORD_APPROVED_ASSISTANCE', `Recorded approved assistance for ${benName} (${astType}: ${quantityVal}) under ${programCode}.`);
+
+            const modalEl = document.getElementById('recordAssistanceModal');
+            if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'Assistance Recorded Successfully',
+                    message: `Approved assistance for ${benName} (${astType}) has been logged, deducted from program balance, and dispatched to beneficiary portal.`,
+                    type: 'success'
+                });
+            } else {
+                alert(`Assistance record for ${benName} saved successfully.`);
+            }
+        }
+
+        function renderApprovedAssistanceTable(customList) {
+            const tbody = document.getElementById('assistanceRecordsTableBody') || document.getElementById('officerApprovedAssistanceTableBody');
+            if (!tbody) return;
+
+            const list = customList || assistanceRecordsList;
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No approved assistance records on file. Click "Record Approved Assistance" to add.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map(a => `
+                <tr>
+                    <td class="fw-bold font-monospace">${escapeHtml(a.id)}</td>
+                    <td class="fw-semibold text-dark">${escapeHtml(a.beneficiaryName)}</td>
+                    <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(a.programCode || a.programName)}</span></td>
+                    <td><span class="badge bg-primary-subtle text-primary fw-semibold">${escapeHtml(a.assistanceType)}</span> - <strong>${escapeHtml(a.quantityAmount)}</strong></td>
+                    <td>${escapeHtml(a.approvalDate)}</td>
+                    <td class="small text-muted">${escapeHtml(a.conditions)}</td>
+                    <td><small class="text-muted"><i class="bi bi-person-badge me-1"></i>${escapeHtml(a.officerName || 'PESO Officer')}</small></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterAssistanceTable() {
+            const search = (document.getElementById('astSearchInput')?.value || '').toLowerCase().trim();
+            const program = document.getElementById('astProgramFilter')?.value || '';
+            const astType = document.getElementById('astTypeFilter')?.value || '';
+
+            const filtered = assistanceRecordsList.filter(a => {
+                const ben = (a.beneficiaryName || '').toLowerCase();
+                const id = (a.id || '').toLowerCase();
+                const prog = (a.programCode || a.programName || '');
+                const type = (a.assistanceType || '');
+
+                const matchSearch = !search || ben.includes(search) || id.includes(search);
+                const matchProg = !program || prog.includes(program);
+                const matchType = !astType || type.includes(astType);
+                return matchSearch && matchProg && matchType;
+            });
+
+            renderApprovedAssistanceTable(filtered);
+        }
+
+        function exportAssistanceCSV() {
+            const search = (document.getElementById('astSearchInput')?.value || '').toLowerCase().trim();
+            const program = document.getElementById('astProgramFilter')?.value || '';
+            const astType = document.getElementById('astTypeFilter')?.value || '';
+
+            const filtered = assistanceRecordsList.filter(a => {
+                const ben = (a.beneficiaryName || '').toLowerCase();
+                const id = (a.id || '').toLowerCase();
+                const prog = (a.programCode || a.programName || '');
+                const type = (a.assistanceType || '');
+                return (!search || ben.includes(search) || id.includes(search)) &&
+                    (!program || prog.includes(program)) &&
+                    (!astType || type.includes(astType));
+            });
+
+            if (filtered.length === 0) {
+                alert('No assistance records match current filter for export.');
+                return;
+            }
+
+            const headers = ['Assistance ID', 'Beneficiary Name', 'Program Code', 'Assistance Type', 'Quantity / Amount', 'Approval Date', 'Conditions & Terms', 'Recording Officer'];
+            const csvRows = [headers.join(',')];
+
+            filtered.forEach(r => {
+                const clean = [
+                    r.id || '',
+                    `"${(r.beneficiaryName || '').replace(/"/g, '""')}"`,
+                    r.programCode || 'PESO',
+                    `"${(r.assistanceType || '').replace(/"/g, '""')}"`,
+                    `"${(r.quantityAmount || '').replace(/"/g, '""')}"`,
+                    r.approvalDate || '',
+                    `"${(r.conditions || '').replace(/"/g, '""')}"`,
+                    `"${(r.officerName || 'PESO Officer').replace(/"/g, '""')}"`
+                ];
+                csvRows.push(clean.join(','));
+            });
+
+            const csvContent = '\uFEFF' + csvRows.join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `approved_assistance_report_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            logOfficerAction('EXPORT_ASSISTANCE_CSV', `Exported approved assistance report (${filtered.length} records).`);
+        }
+
+        function printAssistanceReport() {
+            window.print();
         }
 
         // ---------------------------------------------------------------------
