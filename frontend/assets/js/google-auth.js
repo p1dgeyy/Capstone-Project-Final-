@@ -203,6 +203,25 @@ const GoogleAuth = (() => {
           return { error: 'unauthorized_staff' };
         }
 
+        // Strict Single Active Device Check: Prevent login if already active on another device
+        if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
+          const activeCheck = await SessionManager.checkAccountAlreadyActive(staffProfile.id, staffProfile.username);
+          if (activeCheck.isAlreadyActive) {
+            try { await supabaseClient.auth.signOut(); } catch (e) {}
+            const kickMsg = `This account is already logged in on another device or active window. Please log out from that device first or wait ${activeCheck.minutesRemaining} minute(s) of inactivity before logging in here.`;
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMsg = document.getElementById('errorMessage');
+            if (errorMsg) errorMsg.textContent = kickMsg;
+            if (errorAlert) errorAlert.style.display = 'block';
+            if (typeof SystemNotifications !== 'undefined' && SystemNotifications.show) {
+              SystemNotifications.show({ title: 'Account Already Active', message: kickMsg, type: 'warning', duration: 8000 });
+            } else {
+              alert(kickMsg);
+            }
+            return { error: 'already_active_on_another_device' };
+          }
+        }
+
         // Authorized Staff Session Initialization
         const fullName = `${staffProfile.first_name || ''} ${staffProfile.last_name || ''}`.trim() || staffProfile.username;
         sessionStorage.setItem('jwtAccessToken', session.access_token);
@@ -335,8 +354,27 @@ const GoogleAuth = (() => {
         }
       }
 
-      // Initialize Beneficiary Session Storage
-      const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username;
+        // Strict Single Active Device Check: Prevent login if already active on another device
+        if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
+          const activeCheck = await SessionManager.checkAccountAlreadyActive(profile.qr_code || profile.id, profile.username);
+          if (activeCheck.isAlreadyActive) {
+            try { await supabaseClient.auth.signOut(); } catch (e) {}
+            const kickMsg = `This account is already logged in on another device or active window. Please log out from that device first or wait ${activeCheck.minutesRemaining} minute(s) of inactivity before logging in here.`;
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMsg = document.getElementById('errorMessage');
+            if (errorMsg) errorMsg.textContent = kickMsg;
+            if (errorAlert) errorAlert.style.display = 'block';
+            if (typeof SystemNotifications !== 'undefined' && SystemNotifications.show) {
+              SystemNotifications.show({ title: 'Account Already Active', message: kickMsg, type: 'warning', duration: 8000 });
+            } else {
+              alert(kickMsg);
+            }
+            return { error: 'already_active_on_another_device' };
+          }
+        }
+
+        // Initialize Beneficiary Session Storage
+        const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username;
       sessionStorage.setItem('jwtAccessToken', session.access_token);
       sessionStorage.setItem('userRole', 'Beneficiary');
       sessionStorage.setItem('username', profile.username);

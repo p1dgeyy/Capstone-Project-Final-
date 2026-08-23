@@ -327,6 +327,19 @@
                     throw new Error('Account has been deactivated. Please contact your administrator.');
                 }
 
+                // Strict Single Active Device Check: Prevent login if already active on another device
+                if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
+                    const activeCheck = await SessionManager.checkAccountAlreadyActive(userProfile.id, userProfile.username);
+                    if (activeCheck.isAlreadyActive) {
+                        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                            try { await supabaseClient.auth.signOut(); } catch (e) {}
+                        }
+                        throw new Error(lang === 'tg'
+                            ? `Naka-log in na ang account na ito sa ibang device. Mag-log out muna sa naturang device o maghintay ng ${activeCheck.minutesRemaining} minuto ng inactivity.`
+                            : `This account is already logged in on another device or active window. Please log out from that device first or wait ${activeCheck.minutesRemaining} minute(s) of inactivity before logging in here.`);
+                    }
+                }
+
                 // Session Storage & AuthGuard Integration
                 const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.username;
                 sessionStorage.setItem('jwtAccessToken', accessToken || '');

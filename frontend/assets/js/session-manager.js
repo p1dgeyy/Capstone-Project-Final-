@@ -3,14 +3,15 @@
  * City Government of Koronadal — PESO & CSWDO Portals
  *
  * Enforces:
- *   1. Single Active Session Per User (Cross-Device Invalidation):
- *      Logging into an account on a new device immediately invalidates and logs out
- *      any older active session on other devices/browsers in real-time.
+ *   1. Strict Single-Device Active Login Block:
+ *      If an account is already logged in and active on another device, any new login attempt
+ *      on a second device is blocked until the account is logged out from the previous device
+ *      or the 20-minute inactivity timeout has elapsed.
  *   2. 20-Minute Inactivity Auto-Logout:
  *      Monitors user interactions and automatically logs out inactive sessions after 20 minutes,
  *      with a synchronized 60-second countdown warning modal across all open tabs.
- *   3. Real-time Synchronization & Heartbeat:
- *      Leverages Supabase Realtime + local storage syncing + periodic server verification.
+ *   3. Live Heartbeat & Session State Persistence:
+ *      Updates last activity in Supabase to maintain active device lock and releases it immediately on logout.
  */
 
 const SessionManager = (() => {
@@ -19,8 +20,8 @@ const SessionManager = (() => {
   // Constants
   const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
   const WARNING_BEFORE_MS = 60 * 1000;          // 60 seconds countdown
-  const HEARTBEAT_INTERVAL_MS = 10 * 1000;      // 10 seconds check
-  const ACTIVITY_THROTTLE_MS = 2000;            // 2 seconds throttle for activity events
+  const HEARTBEAT_INTERVAL_MS = 15 * 1000;      // 15 seconds heartbeat
+  const ACTIVITY_THROTTLE_MS = 3000;            // 3 seconds throttle for activity events
   const STORAGE_ACTIVITY_KEY = 'peso_last_user_activity';
   const STORAGE_ACTIVE_SESSION_KEY = 'peso_active_session_id';
 
@@ -29,11 +30,9 @@ const SessionManager = (() => {
   let _heartbeatTimer = null;
   let _inactivityTimer = null;
   let _warningModalEl = null;
-  let _warningInterval = null;
   let _lastActivityTimestamp = Date.now();
   let _lastThrottledWrite = 0;
   let _isVerifying = false;
-  let _realtimeChannel = null;
   let _sessionTerminated = false;
 
   /**
@@ -67,7 +66,68 @@ const SessionManager = (() => {
   }
 
   /**
-   * Save session data locally and register the single active session
+   * Check if this account is currently active on another device.
+   * If an active session exists and its last activity is within 20 minutes, blocks new login.
+   * If last activity is older than 20 minutes, clears the stale session and allows login.
+   */
+  async function checkAccountAlreadyActive(userId, identifier) {
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      return { isAlreadyActive: false };
+    }
+
+    const uId = String(userId || '').trim();
+    const uName = String(identifier || '').trim();
+    if (!uId && !uName) return { isAlreadyActive: false };
+
+    try {
+      let query = supabaseClient.from('active_user_sessions').select('*');
+      if (uId && uName) {
+        query = query.or(`user_id.eq.${uId},user_identifier.ilike.${uName}`);
+      } else if (uId) {
+        query = query.eq('user_id', uId);
+      } else {
+        query = query.ilike('user_identifier', uName);
+      }
+
+      const { data, error } = await query.maybeSingle();
+
+      if (error || !data) {
+        return { isAlreadyActive: false };
+      }
+
+      // Check if current browser already owns this session ID (e.g. page refresh in same browser)
+      const currentLocalSessionId = getSessionId();
+      if (currentLocalSessionId && data.session_id === currentLocalSessionId) {
+        return { isAlreadyActive: false, isOwnSession: true };
+      }
+
+      const lastActivityTime = new Date(data.last_activity_at || data.created_at).getTime();
+      const now = Date.now();
+      const elapsedMs = now - lastActivityTime;
+
+      // If active within the 20-minute inactivity threshold -> Block login on this new device
+      if (elapsedMs < INACTIVITY_TIMEOUT_MS) {
+        const remainingMinutes = Math.max(1, Math.ceil((INACTIVITY_TIMEOUT_MS - elapsedMs) / 60000));
+        return {
+          isAlreadyActive: true,
+          minutesRemaining: remainingMinutes,
+          deviceInfo: data.device_info || 'another device',
+          lastActivity: data.last_activity_at,
+          sessionId: data.session_id
+        };
+      } else {
+        // Session is older than 20 minutes (inactive/abandoned) -> Delete stale record
+        await supabaseClient.from('active_user_sessions').delete().eq('user_id', data.user_id);
+        return { isAlreadyActive: false };
+      }
+    } catch (e) {
+      console.warn('[SessionManager] checkAccountAlreadyActive warning:', e.message);
+      return { isAlreadyActive: false };
+    }
+  }
+
+  /**
+   * Save session data locally and register active session in Supabase
    */
   async function save(userId, sessionToken, role, extra = {}) {
     try {
@@ -82,12 +142,11 @@ const SessionManager = (() => {
       console.warn('[SessionManager] Could not write sessionStorage:', e);
     }
 
-    // Register active session ID
     return await registerSession(userId, role, extra);
   }
 
   /**
-   * Register a new active session in Supabase and local storage (Single Session Enforcement)
+   * Register active session in Supabase and local storage
    */
   async function registerSession(userId, role, extra = {}) {
     const sessionId = generateSessionId();
@@ -105,7 +164,7 @@ const SessionManager = (() => {
 
     _lastActivityTimestamp = now;
 
-    // Persist to Supabase so other devices detect the login
+    // Persist to Supabase
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
         const uId = String(userId || sessionStorage.getItem('userId') || '');
@@ -113,7 +172,7 @@ const SessionManager = (() => {
         const uName = extra.username || sessionStorage.getItem('username') || '';
         const userAgent = navigator.userAgent || 'Web Browser';
 
-        // 1. Update active_user_sessions table (Primary Single-Session Store)
+        // 1. Upsert active_user_sessions table
         if (uId) {
           supabaseClient
             .from('active_user_sessions')
@@ -131,7 +190,7 @@ const SessionManager = (() => {
             .catch(() => {});
         }
 
-        // 2. Update staff_profiles / beneficiaries table directly
+        // 2. Update profile table
         if (uRole.toLowerCase().includes('beneficiary')) {
           supabaseClient
             .from('beneficiaries')
@@ -156,9 +215,6 @@ const SessionManager = (() => {
           }
         }).catch(() => {});
 
-        // 4. Broadcast session claim on Realtime Channel
-        broadcastSessionClaim(uId, sessionId);
-
       } catch (err) {
         console.warn('[SessionManager] registerSession error (non-fatal):', err.message);
       }
@@ -168,24 +224,23 @@ const SessionManager = (() => {
   }
 
   /**
-   * Broadcast active session takeover via Supabase Realtime Broadcast
+   * Touch/Heartbeat active session in database to keep device lock active while user is working
    */
-  function broadcastSessionClaim(userId, sessionId) {
-    if (!supabaseClient || !userId) return;
+  async function touchActiveSession() {
+    if (!supabaseClient) return;
+    const uId = getUserId();
+    const sessionId = getSessionId();
+    if (!uId || !sessionId) return;
+
     try {
-      const channel = supabaseClient.channel(`user_session_broadcast_${userId}`);
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'SESSION_CLAIMED',
-            payload: { userId: userId, sessionId: sessionId, timestamp: Date.now() }
-          });
-        }
-      });
-    } catch (e) {
-      console.warn('[SessionManager] Broadcast note:', e.message);
-    }
+      const nowIso = new Date().toISOString();
+      supabaseClient
+        .from('active_user_sessions')
+        .update({ last_activity_at: nowIso })
+        .match({ user_id: String(uId), session_id: sessionId })
+        .then(() => {})
+        .catch(() => {});
+    } catch (e) {}
   }
 
   /**
@@ -197,7 +252,6 @@ const SessionManager = (() => {
       const { data: { session } } = await supabaseClient.auth.getSession();
       return session?.access_token || null;
     } catch (e) {
-      console.warn('[SessionManager] Failed to get token:', e.message);
       return null;
     }
   }
@@ -256,43 +310,38 @@ const SessionManager = (() => {
       clearInterval(_inactivityTimer);
       _inactivityTimer = null;
     }
-    if (_warningInterval) {
-      clearInterval(_warningInterval);
-      _warningInterval = null;
-    }
-    if (_realtimeChannel && supabaseClient) {
-      try {
-        supabaseClient.removeChannel(_realtimeChannel);
-      } catch (e) {}
-      _realtimeChannel = null;
-    }
   }
 
   /**
-   * User-initiated or standard Logout
+   * User-initiated or standard Logout: frees the active device lock immediately
    */
   async function logout(redirectUrl) {
     const targetUrl = redirectUrl || getLoginUrl(getRole());
 
     try {
       const uId = getUserId();
-      const currentSess = getSessionId();
+      const sessionId = getSessionId();
 
-      // Clear active session record in database
+      // Release active device lock in Supabase so the account can log in on any device
       if (supabaseClient && uId) {
-        supabaseClient
-          .from('active_user_sessions')
-          .delete()
-          .eq('user_id', uId)
-          .then(() => {})
-          .catch(() => {});
+        if (sessionId) {
+          await supabaseClient
+            .from('active_user_sessions')
+            .delete()
+            .match({ user_id: String(uId), session_id: sessionId });
+        } else {
+          await supabaseClient
+            .from('active_user_sessions')
+            .delete()
+            .eq('user_id', String(uId));
+        }
       }
 
       if (supabaseClient) {
         await supabaseClient.auth.signOut();
       }
     } catch (e) {
-      console.warn('[SessionManager] Sign-out warning:', e.message);
+      console.warn('[SessionManager] Sign-out error:', e.message);
     }
 
     clear();
@@ -305,139 +354,25 @@ const SessionManager = (() => {
    */
   function forceLogout(message, targetUrl) {
     const redirect = targetUrl || getLoginUrl(getRole());
+    const uId = getUserId();
+    const sessionId = getSessionId();
+
+    // Release database session lock
+    if (supabaseClient && uId) {
+      supabaseClient
+        .from('active_user_sessions')
+        .delete()
+        .eq('user_id', String(uId))
+        .then(() => {})
+        .catch(() => {});
+    }
+
     clear();
     try {
       sessionStorage.clear();
       sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
     } catch (e) {}
     window.location.href = redirect;
-  }
-
-  // =========================================================================
-  // SINGLE ACTIVE SESSION TERMINATION OVERLAY
-  // =========================================================================
-
-  /**
-   * Triggered when another device or tab registers a newer session
-   */
-  function handleRemoteSessionKicked() {
-    if (_sessionTerminated) return;
-    _sessionTerminated = true;
-
-    console.warn('[SessionManager] ⚠️ Active session invalidated by another login.');
-
-    // Clear background timers
-    if (_heartbeatTimer) clearInterval(_heartbeatTimer);
-    if (_inactivityTimer) clearInterval(_inactivityTimer);
-    if (_warningInterval) clearInterval(_warningInterval);
-
-    // Save kicked message for the login page
-    const kickMessage = 'Your account was logged in on another device. This session has been terminated for your security.';
-    try {
-      sessionStorage.setItem('sessionKickedMessage', kickMessage);
-      localStorage.setItem('peso_last_kick_reason', kickMessage);
-    } catch (e) {}
-
-    // Show unclosable termination modal
-    showSessionKickedModal(kickMessage);
-  }
-
-  function showSessionKickedModal(message) {
-    // Remove any existing modals
-    const existing = document.getElementById('sessionKickedOverlay');
-    if (existing) existing.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'sessionKickedOverlay';
-    overlay.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        z-index: 999999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1.5rem;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      ">
-        <div style="
-          background: #1e293b;
-          color: #f8fafc;
-          border: 1px solid rgba(239, 68, 68, 0.4);
-          border-radius: 16px;
-          max-width: 460px;
-          width: 100%;
-          padding: 2rem;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-          text-align: center;
-          animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        ">
-          <div style="
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            margin-bottom: 1.25rem;
-          ">
-            <i class="bi bi-shield-lock-fill"></i>
-          </div>
-          <h3 style="margin: 0 0 0.5rem; font-size: 1.35rem; font-weight: 700; color: #f8fafc;">Session Terminated</h3>
-          <p style="margin: 0 0 1.5rem; color: #94a3b8; font-size: 0.95rem; line-height: 1.5;">
-            ${message}
-          </p>
-          <div style="background: rgba(239, 68, 68, 0.1); border-radius: 8px; padding: 0.75rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: #fca5a5;">
-            <i class="bi bi-info-circle me-1"></i> Only one active session per account is permitted.
-          </div>
-          <button id="kickedRedirectBtn" style="
-            background: #dc2626;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            width: 100%;
-            cursor: pointer;
-            transition: background 0.2s;
-          ">
-            Return to Login (<span id="kickCountdownSec">4</span>s)
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    let countdown = 4;
-    const countEl = document.getElementById('kickCountdownSec');
-    const redirectTarget = getLoginUrl(getRole());
-
-    const timer = setInterval(() => {
-      countdown--;
-      if (countEl) countEl.textContent = String(countdown);
-      if (countdown <= 0) {
-        clearInterval(timer);
-        clear();
-        window.location.href = redirectTarget;
-      }
-    }, 1000);
-
-    const btn = document.getElementById('kickedRedirectBtn');
-    if (btn) {
-      btn.addEventListener('click', () => {
-        clearInterval(timer);
-        clear();
-        window.location.href = redirectTarget;
-      });
-    }
   }
 
   // =========================================================================
@@ -456,9 +391,10 @@ const SessionManager = (() => {
       try {
         localStorage.setItem(STORAGE_ACTIVITY_KEY, String(now));
       } catch (e) {}
+      touchActiveSession();
     }
 
-    // If warning modal was open, close it on user movement/activity
+    // If warning modal was open, close it on user interaction
     if (_warningModalEl && _warningModalEl.style.display !== 'none') {
       dismissInactivityWarning();
     }
@@ -491,12 +427,6 @@ const SessionManager = (() => {
         _lastActivityTimestamp = parseInt(e.newValue, 10) || Date.now();
         if (_warningModalEl && _warningModalEl.style.display !== 'none') {
           dismissInactivityWarning();
-        }
-      }
-      if (e.key === STORAGE_ACTIVE_SESSION_KEY && e.newValue) {
-        const mySession = sessionStorage.getItem('currentSessionId');
-        if (mySession && e.newValue !== mySession) {
-          handleRemoteSessionKicked();
         }
       }
     });
@@ -640,7 +570,7 @@ const SessionManager = (() => {
       const remainingSec = Math.max(0, Math.floor(remainingMs / 1000));
 
       if (idleMs >= INACTIVITY_TIMEOUT_MS) {
-        // Inactivity limit reached -> Auto logout
+        // Inactivity limit reached -> Auto logout and clear database session
         console.warn('[SessionManager] ⏱️ Inactivity timeout reached (20 mins). Logging out.');
         dismissInactivityWarning();
         forceLogout('You have been automatically logged out due to 20 minutes of inactivity.');
@@ -653,133 +583,27 @@ const SessionManager = (() => {
     }, 1000);
   }
 
-  // =========================================================================
-  // SINGLE ACTIVE SESSION WATCHDOG & HEARTBEAT
-  // =========================================================================
-
   /**
-   * Check if remote session ID matches current local session ID
+   * Start periodic heartbeat to maintain active session state
    */
-  async function checkActiveSession() {
-    if (_isVerifying || _sessionTerminated) return true;
-    if (!supabaseClient) return true;
+  function startHeartbeat() {
+    touchActiveSession();
 
-    const mySessionId = getSessionId();
-    const userId = getUserId();
-    const role = getRole();
-
-    if (!mySessionId || !userId) return true;
-
-    _isVerifying = true;
-    try {
-      // 1. Check active_user_sessions table
-      const { data: activeSessionRecord, error } = await supabaseClient
-        .from('active_user_sessions')
-        .select('session_id, last_activity_at')
-        .eq('user_id', String(userId))
-        .maybeSingle();
-
-      if (!error && activeSessionRecord && activeSessionRecord.session_id) {
-        if (activeSessionRecord.session_id !== mySessionId) {
-          handleRemoteSessionKicked();
-          return false;
-        }
-      } else {
-        // 2. Fallback check on user_metadata
-        const { data: userData } = await supabaseClient.auth.getUser();
-        const metaSessionId = userData?.user?.user_metadata?.current_session_id;
-        if (metaSessionId && metaSessionId !== mySessionId) {
-          handleRemoteSessionKicked();
-          return false;
-        }
-      }
-
-      return true;
-    } catch (e) {
-      console.warn('[SessionManager] checkActiveSession notice:', e.message);
-      return true;
-    } finally {
-      _isVerifying = false;
-    }
-  }
-
-  /**
-   * Listen to Supabase Realtime channel for instant push invalidation
-   */
-  function setupRealtimeSessionListener(userId) {
-    if (!supabaseClient || !userId || _realtimeChannel) return;
-
-    try {
-      const channelName = `user_session_watch_${userId}`;
-      _realtimeChannel = supabaseClient.channel(channelName);
-
-      // Listen for broadcast events
-      _realtimeChannel.on('broadcast', { event: 'SESSION_CLAIMED' }, (payload) => {
-        const payloadSessionId = payload?.payload?.sessionId;
-        const mySessionId = getSessionId();
-        if (payloadSessionId && mySessionId && payloadSessionId !== mySessionId) {
-          handleRemoteSessionKicked();
-        }
-      });
-
-      // Listen for postgres changes on active_user_sessions table
-      _realtimeChannel.on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'active_user_sessions',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          const newSessionId = payload?.new?.session_id;
-          const mySessionId = getSessionId();
-          if (newSessionId && mySessionId && newSessionId !== mySessionId) {
-            handleRemoteSessionKicked();
-          }
-        }
-      );
-
-      _realtimeChannel.subscribe();
-    } catch (e) {
-      console.warn('[SessionManager] Realtime setup warning:', e.message);
-    }
-  }
-
-  /**
-   * Start periodic session verification and heartbeat
-   */
-  function startSessionWatchdog() {
-    const userId = getUserId();
-    if (userId) {
-      setupRealtimeSessionListener(userId);
-    }
-
-    // Ensure session ID is initialized
-    if (!getSessionId()) {
-      registerSession(userId, getRole());
-    }
-
-    // Run initial active session verification
-    checkActiveSession();
-
-    // Check periodically
     if (_heartbeatTimer) clearInterval(_heartbeatTimer);
     _heartbeatTimer = setInterval(() => {
-      checkActiveSession();
+      touchActiveSession();
     }, HEARTBEAT_INTERVAL_MS);
 
-    // Also check whenever tab becomes visible again
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         recordUserActivity();
-        checkActiveSession();
+        touchActiveSession();
       }
     });
 
     window.addEventListener('focus', () => {
       recordUserActivity();
-      checkActiveSession();
+      touchActiveSession();
     });
   }
 
@@ -800,8 +624,7 @@ const SessionManager = (() => {
         return false;
       }
 
-      // Check single active session concurrency
-      return await checkActiveSession();
+      return true;
     } catch (e) {
       console.warn('[SessionManager] Verification tolerance applied:', e.message);
       return true;
@@ -811,10 +634,10 @@ const SessionManager = (() => {
   }
 
   /**
-   * Start all background watchdogs on protected pages
+   * Start background watchdogs on protected dashboard pages
    */
   function startPeriodicVerification() {
-    startSessionWatchdog();
+    startHeartbeat();
     startInactivityTimer();
   }
 
@@ -830,7 +653,6 @@ const SessionManager = (() => {
         if (errorEl) errorEl.textContent = message;
         if (alertEl) alertEl.style.display = 'block';
 
-        // Clear after displaying
         sessionStorage.removeItem('sessionKickedMessage');
         sessionStorage.removeItem('authGuardMessage');
       }
@@ -844,6 +666,7 @@ const SessionManager = (() => {
   return Object.freeze({
     save,
     registerSession,
+    checkAccountAlreadyActive,
     getSessionId,
     getToken,
     getTokenAsync,
@@ -854,8 +677,7 @@ const SessionManager = (() => {
     logout,
     forceLogout,
     verify,
-    checkActiveSession,
-    startSessionWatchdog,
+    touchActiveSession,
     startInactivityTimer,
     startPeriodicVerification,
     checkAndDisplayLoginNotice,
