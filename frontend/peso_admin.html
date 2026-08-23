@@ -535,14 +535,6 @@
                         <i class="bi bi-info-circle me-1"></i> Full program catalog, budget allocations, batch enrollments, and read-only beneficiary inspection.
                     </p>
                 </div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-light fw-semibold text-dark shadow-sm px-3" onclick="openCreateProgramModal()">
-                        <i class="bi bi-plus-lg me-1 text-primary"></i> + New Program
-                    </button>
-                    <button class="btn btn-outline-light fw-semibold px-3" onclick="openUploadOrdinanceModal()">
-                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> Upload Ordinance
-                    </button>
-                </div>
             </div>
 
             <!-- Breadcrumb Navigation for Hierarchical Drill-Down -->
@@ -557,22 +549,25 @@
             <!-- Level 1: Programs Catalog View -->
             <div id="programsLevel1View">
                 <div class="content-card">
-                    <div class="card-header-custom">
-                        <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 600px;">
+                    <div class="card-header-custom d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 260px; max-width: 500px;">
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
                                 <input type="text" class="form-control border-start-0 bg-light" id="programsSearchInput"
                                     placeholder="Search by program name, code, category..." oninput="filterProgramsCatalog()" aria-label="Search programs">
                             </div>
-                            <select class="form-select bg-light" id="programsStatusFilter" style="max-width: 150px;" onchange="filterProgramsCatalog()" aria-label="Programs Status Filter">
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <select class="form-select bg-light" id="programsStatusFilter" style="width: 140px;" onchange="filterProgramsCatalog()" aria-label="Programs Status Filter">
                                 <option value="ALL">All Status</option>
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Deactivated</option>
                             </select>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-secondary fw-semibold px-3" onclick="openUploadOrdinanceModal()" title="Upload LGU Appropriation Ordinance">
+                                <i class="bi bi-cloud-arrow-up-fill me-1"></i> Upload Ordinance
+                            </button>
                             <button class="btn btn-primary fw-semibold px-3 shadow-sm" onclick="openCreateProgramModal()">
-                                <i class="bi bi-plus-lg me-1"></i> New Program
+                                <i class="bi bi-plus-lg me-1"></i> + New Program
                             </button>
                         </div>
                     </div>
@@ -1224,46 +1219,80 @@
 
     <!-- Modal 1: Create Program Modal -->
     <div class="modal fade" id="createProgramModal" tabindex="-1" aria-labelledby="createProgramModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-header-title fw-bold mb-0" id="createProgramModalTitle">
-                        <i class="bi bi-folder-plus me-2"></i>Create New Livelihood Program
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header modal-header-custom py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-folder-plus fs-3 text-warning"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="createProgramModalTitle">Create New Livelihood Program</h5>
+                            <small class="text-white-50">LGU Koronadal PESO Livelihood & Employment Assistance</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="createProgramForm" onsubmit="handleCreateProgramSubmit(event)">
+                <form id="createProgramForm" onsubmit="handleCreateProgramSubmit(event)" novalidate>
                     <div class="modal-body p-4">
-                        <div class="row g-3">
-                            <div class="col-md-8">
+                        <!-- Section 1: Program Details -->
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-card-checklist text-primary fs-5"></i>
+                            <h6 class="fw-bold text-dark mb-0">Program Details</h6>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-8">
                                 <label for="newProgName" class="form-label fw-semibold">Program Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="newProgName" placeholder="e.g. Youth Micro-Entrepreneurship Scheme" required>
+                                <input type="text" class="form-control fw-bold" id="newProgName" required placeholder="e.g. Youth Micro-Entrepreneurship Scheme">
+                                <div class="invalid-feedback">Program Name is required.</div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4">
                                 <label for="newProgCode" class="form-label fw-semibold">Program Code <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control font-monospace" id="newProgCode" placeholder="e.g. YMES-2026" required>
+                                <input type="text" class="form-control font-monospace text-uppercase" id="newProgCode" required placeholder="e.g. YMES-2026">
+                                <div class="invalid-feedback">Program Code is required.</div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <label for="newProgCategory" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
                                 <select class="form-select" id="newProgCategory" required>
-                                    <option value="Livelihood Programs" selected>Livelihood Programs</option>
+                                    <option value="" disabled selected>Select Category *</option>
+                                    <option value="Livelihood Programs">Livelihood Programs</option>
                                     <option value="Employment Facilitation">Employment Facilitation</option>
                                     <option value="Special Programs">Special Programs</option>
                                 </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="newProgBudget" class="form-label fw-semibold">Allocated Budget (PHP ₱) <span class="text-danger">*</span></label>
-                                <input type="number" step="0.01" class="form-control fw-bold text-success" id="newProgBudget" placeholder="0.00" required>
+                                <div class="invalid-feedback">Category selection is required.</div>
                             </div>
                             <div class="col-12">
                                 <label for="newProgDesc" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="newProgDesc" rows="3" placeholder="Brief program overview and objectives..." required></textarea>
+                                <textarea class="form-control" id="newProgDesc" rows="3" required placeholder="Brief program overview, eligibility requirements, and objectives..."></textarea>
+                                <div class="invalid-feedback">Program Description is required.</div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Budget & Metadata -->
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-cash-stack text-success fs-5"></i>
+                            <h6 class="fw-bold text-dark mb-0">Budget & Metadata</h6>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label for="newProgBudget" class="form-label fw-semibold">Allocated Budget (PHP ₱) <span class="text-danger">*</span></label>
+                                <div class="input-group has-validation">
+                                    <span class="input-group-text bg-light fw-bold text-dark">₱</span>
+                                    <input type="number" step="0.01" min="0" class="form-control fw-bold text-success" id="newProgBudget" required placeholder="0.00">
+                                    <div class="invalid-feedback">Budget must be a valid positive amount.</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="newProgCreatedDateTime" class="form-label fw-semibold">Date & Time Created</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-clock-history"></i></span>
+                                    <input type="text" class="form-control bg-light font-monospace" id="newProgCreatedDateTime" readonly placeholder="System-generated timestamp">
+                                </div>
+                                <small class="text-muted">Automatically captured by the system upon creation.</small>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3">
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-check-lg me-1"></i> Save Program</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4" id="btnSubmitCreateProgram"><i class="bi bi-folder-plus me-1"></i> Add Program</button>
                     </div>
                 </form>
             </div>
@@ -1272,97 +1301,293 @@
 
     <!-- Modal 2: Edit Program Modal -->
     <div class="modal fade" id="programEditModal" tabindex="-1" aria-labelledby="programEditModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
-                    <h5 class="modal-title fw-bold mb-0" id="programEditModalTitle">
-                        <i class="bi bi-pencil-square me-2"></i>Edit Program Details
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-pencil-square fs-3 text-warning"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="programEditModalTitle">Edit Program Details</h5>
+                            <small class="text-white-50">LGU Koronadal PESO Livelihood & Employment Assistance</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="editProgramForm" onsubmit="handleSaveProgramUpdates(event)">
+                <form id="editProgramForm" onsubmit="handleSaveProgramUpdates(event)" novalidate>
                     <div class="modal-body p-4">
                         <input type="hidden" id="editProgId">
-                        <div class="row g-3">
-                            <div class="col-md-8">
+
+                        <!-- Section 1: Program Details -->
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-card-checklist text-primary fs-5"></i>
+                            <h6 class="fw-bold text-dark mb-0">Program Details</h6>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-8">
                                 <label for="editProgName" class="form-label fw-semibold">Program Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control fw-bold" id="editProgName" required>
+                                <input type="text" class="form-control fw-bold" id="editProgName" required placeholder="Program Name">
+                                <div class="invalid-feedback">Program Name is required.</div>
                             </div>
-                            <div class="col-md-4">
-                                <label for="editProgCode" class="form-label fw-semibold">Program Code (Read-Only)</label>
+                            <div class="col-12 col-md-4">
+                                <label for="editProgCode" class="form-label fw-semibold">Program Code <span class="text-muted small">(Read-Only)</span></label>
                                 <input type="text" class="form-control font-monospace bg-light" id="editProgCode" readonly>
                             </div>
-                            <div class="col-md-6">
-                                <label for="editProgBudget" class="form-label fw-semibold">Allocated Budget (PHP ₱) <span class="text-danger">*</span></label>
-                                <input type="number" step="0.01" class="form-control fw-bold text-success" id="editProgBudget" required>
-                            </div>
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <label for="editProgCategory" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
                                 <select class="form-select" id="editProgCategory" required>
                                     <option value="Livelihood Programs">Livelihood Programs</option>
                                     <option value="Employment Facilitation">Employment Facilitation</option>
                                     <option value="Special Programs">Special Programs</option>
                                 </select>
+                                <div class="invalid-feedback">Category selection is required.</div>
                             </div>
                             <div class="col-12">
                                 <label for="editProgDesc" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="editProgDesc" rows="3" required></textarea>
+                                <textarea class="form-control" id="editProgDesc" rows="3" required placeholder="Program description and guidelines..."></textarea>
+                                <div class="invalid-feedback">Description is required.</div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Budget & Metadata -->
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-cash-stack text-success fs-5"></i>
+                            <h6 class="fw-bold text-dark mb-0">Budget & Metadata</h6>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label for="editProgBudget" class="form-label fw-semibold">Allocated Budget (PHP ₱) <span class="text-danger">*</span></label>
+                                <div class="input-group has-validation">
+                                    <span class="input-group-text bg-light fw-bold text-dark">₱</span>
+                                    <input type="number" step="0.01" min="0" class="form-control fw-bold text-success" id="editProgBudget" required placeholder="0.00">
+                                    <div class="invalid-feedback">Budget must be a valid positive amount.</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="editProgUpdatedDateTime" class="form-label fw-semibold">Date & Time Updated</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-clock-history"></i></span>
+                                    <input type="text" class="form-control bg-light font-monospace" id="editProgUpdatedDateTime" readonly placeholder="System-generated timestamp">
+                                </div>
+                                <small class="text-muted">Automatically captured by the system upon updating.</small>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3">
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="bi bi-floppy-fill me-1"></i> Update Program</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4" id="btnSubmitEditProgram"><i class="bi bi-floppy-fill me-1"></i> Update Program</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Modal 3: View Program Details Modal (Read-Only) -->
+    <!-- Modal 3: View Program Details Modal (Strictly Read-Only, REQ: Descriptions, Slots, Age, Budget, Eligibility, Timeline, Documents, Audit Trail) -->
     <div class="modal fade" id="programDetailsViewModal" tabindex="-1" aria-labelledby="viewModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-dark text-white rounded-top-4 py-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-file-earmark-text text-warning fs-4"></i>
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <!-- Modal Header -->
+                <div class="modal-header bg-dark text-white py-3 px-4">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="bg-warning-subtle text-warning p-2.5 rounded-3 d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+                            <i class="bi bi-file-earmark-text-fill fs-3 text-warning"></i>
+                        </div>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="viewModalTitle">Program Full Details</h5>
-                            <span class="badge badge-readonly mt-1"><i class="bi bi-shield-lock-fill me-1"></i>Strictly Read-Only View</span>
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                <span class="badge bg-primary font-monospace px-2.5 py-1" id="viewProgCode">PROG-CODE</span>
+                                <span class="badge badge-category badge-livelihood" id="viewProgCategory">Livelihood Programs</span>
+                                <span class="badge bg-success" id="viewProgStatus">Active</span>
+                                <span class="badge badge-readonly"><i class="bi bi-shield-lock-fill me-1"></i>Strictly Read-Only View</span>
+                            </div>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="viewProgName">Program Full Details</h5>
+                            <small class="text-white-50" id="viewProgOrdinance">Appropriation Ordinance No. 6, Series of 2025 • LGU Koronadal PESO</small>
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="text-muted small uppercase fw-bold">Program Name</label>
-                            <h5 class="fw-bold text-dark mb-0" id="viewProgName">-</h5>
+
+                <div class="modal-body p-4 bg-light-subtle">
+                    <!-- Top Highlight Cards: Budget, Slots, Age, Target -->
+                    <div class="row g-3 mb-4">
+                        <!-- Metric 1: Budget Transparency -->
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white border-start border-success border-4">
+                                <div class="text-muted small fw-semibold text-uppercase mb-1"><i class="bi bi-cash-stack text-success me-1"></i>Allocated Budget</div>
+                                <h4 class="fw-bold text-success mb-1" id="viewProgBudget">₱0.00</h4>
+                                <small class="text-muted d-block" style="font-size: 0.73rem;"><i class="bi bi-check-circle-fill text-success me-1"></i>Synced with LGU Ordinance</small>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small uppercase fw-bold">Program Code</label>
-                            <h5 class="fw-bold text-primary font-monospace mb-0" id="viewProgCode">-</h5>
+
+                        <!-- Metric 2: Program Slots Counter -->
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white border-start border-primary border-4">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-muted small fw-semibold text-uppercase"><i class="bi bi-people-fill text-primary me-1"></i>Program Slots</span>
+                                    <span class="badge bg-primary-subtle text-primary fw-bold" id="viewProgSlotsBadge">0 / 0 Filled</span>
+                                </div>
+                                <h4 class="fw-bold text-dark mb-1" id="viewProgSlotsCount">0 / 0</h4>
+                                <div class="progress mb-1" style="height: 6px; border-radius: 3px;">
+                                    <div class="progress-bar bg-primary" id="viewProgSlotsProgressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <small class="text-muted" style="font-size: 0.73rem;" id="viewProgAvailableSlots">0 available slots remaining</small>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small uppercase fw-bold">Category</label>
-                            <div class="fw-bold text-dark mt-1" id="viewProgCategory">-</div>
+
+                        <!-- Metric 3: Age Requirements -->
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white border-start border-warning border-4">
+                                <div class="text-muted small fw-semibold text-uppercase mb-1"><i class="bi bi-person-check-fill text-warning me-1"></i>Age Requirement</div>
+                                <h4 class="fw-bold text-dark mb-1" id="viewProgAgeRequirement">18 - 65 Years Old</h4>
+                                <small class="text-muted d-block" style="font-size: 0.73rem;"><i class="bi bi-shield-check text-warning me-1"></i>Validated on Application</small>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small uppercase fw-bold">Allocated Budget</label>
-                            <div class="fw-bold text-success fs-5 mt-1" id="viewProgBudget">₱0.00</div>
+
+                        <!-- Metric 4: Assistance Type -->
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white border-start border-info border-4">
+                                <div class="text-muted small fw-semibold text-uppercase mb-1"><i class="bi bi-gift-fill text-info me-1"></i>Assistance Scope</div>
+                                <h6 class="fw-bold text-dark mb-1 text-truncate" id="viewProgAssistanceScope">Grant & Coaching</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.73rem;" id="viewProgTargetSummary">Disadvantaged & Jobseekers</small>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small uppercase fw-bold">Status</label>
-                            <div class="mt-1"><span class="badge bg-success fs-6" id="viewProgStatus">Active</span></div>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Left Column: Description, Eligibility, Timeline -->
+                        <div class="col-12 col-lg-7">
+                            <!-- Section 1: Program Descriptions -->
+                            <div class="card border-0 shadow-sm rounded-3 p-3.5 mb-4 bg-white">
+                                <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+                                    <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+                                    <h6 class="fw-bold text-dark mb-0">1. Program Overview & Purpose</h6>
+                                </div>
+                                <p class="text-secondary mb-3" id="viewProgDesc" style="line-height: 1.6;">-</p>
+                                <div class="p-3 bg-light rounded-3 border-start border-primary border-3">
+                                    <div class="row g-2 small">
+                                        <div class="col-12 col-md-6">
+                                            <span class="text-muted fw-semibold">Target Beneficiaries:</span>
+                                            <div class="fw-bold text-dark" id="viewProgTarget">-</div>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <span class="text-muted fw-semibold">Support Offered:</span>
+                                            <div class="fw-bold text-success" id="viewProgAssistance">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 2: Eligibility Criteria & Age Rules -->
+                            <div class="card border-0 shadow-sm rounded-3 p-3.5 mb-4 bg-white">
+                                <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+                                    <i class="bi bi-check2-square text-success fs-5"></i>
+                                    <h6 class="fw-bold text-dark mb-0">2. Eligibility Criteria & Qualifications</h6>
+                                </div>
+                                <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2 small">
+                                    <i class="bi bi-shield-lock-fill text-info fs-5"></i>
+                                    <div><strong id="viewProgAgeAlertText">Age Restriction:</strong> Validated during applicant enrollment and verification.</div>
+                                </div>
+                                <ul class="list-group list-group-flush small" id="viewProgEligibilityList">
+                                    <!-- Populated dynamically -->
+                                    <li class="list-group-item px-0 text-secondary"><i class="bi bi-check-circle-fill text-success me-2"></i>Resident of Koronadal City</li>
+                                </ul>
+                            </div>
+
+                            <!-- Section 3: Program Timeline -->
+                            <div class="card border-0 shadow-sm rounded-3 p-3.5 bg-white">
+                                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-calendar-event-fill text-warning fs-5"></i>
+                                        <h6 class="fw-bold text-dark mb-0">3. Program Timeline & Scheduling</h6>
+                                    </div>
+                                    <span class="badge bg-warning-subtle text-dark small"><i class="bi bi-arrow-repeat me-1"></i>Synced with Scheduling</span>
+                                </div>
+                                <div class="row g-3 small mb-3">
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-2.5 bg-light rounded-3">
+                                            <span class="text-muted d-block">Intake & Application Window:</span>
+                                            <strong class="text-dark" id="viewProgTimelineDeadline">Budget Year 2026 Active Intake</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-2.5 bg-light rounded-3">
+                                            <span class="text-muted d-block">Implementation & Cycle:</span>
+                                            <strong class="text-dark" id="viewProgTimelineCycle">Quarterly Scheduled Batches</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-muted small fw-semibold mb-2"><i class="bi bi-clock-history me-1"></i>Synchronized Activity / Training Sessions:</div>
+                                    <div id="viewProgSchedSessionsList" class="small">
+                                        <!-- Populated dynamically from schedules -->
+                                        <div class="text-muted fst-italic">No upcoming training sessions scheduled.</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-12">
-                            <label class="text-muted small uppercase fw-bold">Description</label>
-                            <div class="p-3 bg-light rounded-3 text-secondary" id="viewProgDesc">-</div>
+
+                        <!-- Right Column: Required Documents, Budget Breakdown, Audit Trail -->
+                        <div class="col-12 col-lg-5">
+                            <!-- Section 4: Required Documents -->
+                            <div class="card border-0 shadow-sm rounded-3 p-3.5 mb-4 bg-white">
+                                <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+                                    <i class="bi bi-folder-check text-primary fs-5"></i>
+                                    <h6 class="fw-bold text-dark mb-0">4. Required Application Documents</h6>
+                                </div>
+                                <p class="text-muted small mb-2">Applicants must submit and verify the following documents prior to approval:</p>
+                                <ul class="list-group list-group-flush small mb-3" id="viewProgRequiredDocsList">
+                                    <!-- Populated dynamically -->
+                                    <li class="list-group-item px-0 d-flex align-items-start gap-2">
+                                        <i class="bi bi-file-earmark-arrow-up text-primary mt-1"></i>
+                                        <div><strong>Valid Government ID</strong> (Photocopy with 3 specimen signatures)</div>
+                                    </li>
+                                </ul>
+                                <div class="alert alert-secondary py-2 px-2.5 mb-0 small" style="font-size: 0.75rem;">
+                                    <i class="bi bi-exclamation-circle-fill text-secondary me-1"></i> Upload validation is strictly enforced in the Beneficiary & Evaluation modules.
+                                </div>
+                            </div>
+
+                            <!-- Section 5: Audit Trail & Transparency (Read-Only) -->
+                            <div class="card border-0 shadow-sm rounded-3 p-3.5 bg-white">
+                                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-shield-check text-info fs-5"></i>
+                                        <h6 class="fw-bold text-dark mb-0">5. Administrative Audit Trail</h6>
+                                    </div>
+                                    <span class="badge bg-info-subtle text-info small">Read-Only</span>
+                                </div>
+                                <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.76rem;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Action / Event</th>
+                                                <th>Admin / Timestamp</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="viewProgAuditTrailBody">
+                                            <!-- Populated dynamically -->
+                                            <tr>
+                                                <td><span class="badge bg-light text-dark border">INITIAL_ALLOCATION</span></td>
+                                                <td><small class="text-muted">Appropriation Ordinance No. 6, S. 2025</small></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2 text-muted small">
+                        <i class="bi bi-shield-fill-check text-success"></i>
+                        <span>Compliant with RA 10173 Data Privacy & LGU Ordinance No. 6, Series of 2025</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" onclick="showOrdinanceReferenceModal()">
+                            <i class="bi bi-file-earmark-pdf me-1 text-danger"></i> Ordinance Ref
+                        </button>
+                        <button type="button" class="btn btn-primary px-4 fw-semibold" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>

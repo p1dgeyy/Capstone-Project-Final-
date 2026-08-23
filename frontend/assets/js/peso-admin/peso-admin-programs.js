@@ -1,9 +1,449 @@
-/**
- * PESO Admin Portal - Program Management Module (Tab 1) & Archive Controller
- * Module: Programs (peso-admin-programs.js)
- */
+// Canonical 14 PESO Programs Roster (Appropriation Ordinance No. 6, Series of 2025 Approved Budget)
+const CANONICAL_PESO_PROGRAM_CATALOG = [
+    {
+        id: 1,
+        code: 'AICS',
+        name: 'Assistance to Individuals in Crisis Situation (AICS)',
+        category: 'Special Programs',
+        budget: 1377882.00,
+        slots_target: 350,
+        slots_filled: 140,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Individuals & families in crisis, low-income heads of households, marginalized citizens',
+        assistance_type: 'Financial / Material Emergency Grant (₱2,000 - ₱5,000)',
+        description: 'Financial or material assistance to individuals and families in crisis. Provides emergency financial aid for medical, burial, educational, transportation, and subsistence needs to vulnerable residents facing acute hardship.',
+        eligibility_criteria: [
+            'Bona fide resident of the City of Koronadal with verified barangay indigency.',
+            'Currently experiencing sudden crisis (medical emergency, demise of breadwinner, disaster displacement).',
+            'Classified under low-income or marginalized bracket based on social intake assessment.',
+            'No duplicate financial grant received for the same emergency incident within the cycle.'
+        ],
+        required_documents: [
+            'Valid Government-Issued Identification Card (with 3 specimen signatures)',
+            'Barangay Certificate of Indigency / Certificate of Residency',
+            'Medical Certificate, Hospital Billing, or Certified Death Certificate (case-specific)',
+            'Social Case Intake Assessment Endorsement from PESO / CSWDO Desk'
+        ],
+        timeline: {
+            intake: 'Year-Round Daily Intake (Mon-Fri 8:00 AM - 5:00 PM)',
+            cycle: '1 - 3 Working Days Evaluation & Scheduled Disbursement'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (MOOE Allocation)',
+        status: 'Active'
+    },
+    {
+        id: 2,
+        code: 'CKGIP',
+        name: 'City of Koronadal Government Internship Program (CKGIP)',
+        category: 'Employment Facilitation',
+        budget: 500000.00,
+        slots_target: 50,
+        slots_filled: 28,
+        min_age: 18,
+        max_age: 30,
+        target_beneficiaries: 'Fresh college & vocational graduates, tech-voc completers, and unemployed youth',
+        assistance_type: '6-Month Paid Local Government Internship Grant (Monthly Allowance)',
+        description: 'Internship placements in city government offices for youth skill development. Equips fresh graduates and out-of-school youth with practical public sector work experience, workplace mentorship, and monthly allowance.',
+        eligibility_criteria: [
+            'Bona fide resident of Koronadal City aged 18 to 30 years old.',
+            'College graduate, senior high graduate, or accredited Tech-Voc completer.',
+            'Currently unemployed with no prior government internship completion record.',
+            'Committed to completing the 6-month continuous public service placement.'
+        ],
+        required_documents: [
+            'Valid Government / Student Identification Card',
+            'Barangay Clearance / Certificate of Residency',
+            'College Diploma or Official Transcript of Records (TOR)',
+            'Updated Resume / Curriculum Vitae with 2x2 Photo',
+            'Certificate of Indigency or Low Family Income Verification'
+        ],
+        timeline: {
+            intake: 'January 15 - February 20, 2026 (Intake Batch 1)',
+            cycle: '6 Months Continuous Placement (March 1 - August 31, 2026)'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (Regular Services Item II-A)',
+        status: 'Active'
+    },
+    {
+        id: 3,
+        code: 'KEEP',
+        name: 'Koronadal Emergency Employment Program (KEEP)',
+        category: 'Employment Facilitation',
+        budget: 1500000.00,
+        slots_target: 250,
+        slots_filled: 110,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Displaced local workers, underemployed informal laborers, calamity-affected breadwinners',
+        assistance_type: '15 to 30-Day Emergency Wage Employment + GSIS/Accident Micro-Insurance',
+        description: 'Short‑term employment for displaced or disadvantaged workers. Provides immediate temporary wage employment in community infrastructure maintenance, environmental cleanup, and local government support services.',
+        eligibility_criteria: [
+            'Bona fide resident of Koronadal City aged 18 to 65 years old.',
+            'Displaced worker due to enterprise closure, retrenchment, or severe weather disruption.',
+            'Informal sector worker with irregular or zero seasonal income.',
+            'Physically fit for community civil works and sanitation activities.'
+        ],
+        required_documents: [
+            'Valid Government-issued ID',
+            'Barangay Certificate of Indigency & Residency',
+            'Certificate of Displacement / Company Layoff Notice or Affidavit of Unemployment',
+            '1x1 ID Pictures on white background (2 copies)'
+        ],
+        timeline: {
+            intake: 'Quarterly Intake Windows (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)',
+            cycle: '15 to 30 Working Days per Deployed Batch'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (Regular Services Item II-B)',
+        status: 'Active'
+    },
+    {
+        id: 4,
+        code: 'TUPAD',
+        name: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers',
+        category: 'Employment Facilitation',
+        budget: 40000.00,
+        slots_target: 40,
+        slots_filled: 18,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Displaced, underemployed, and seasonal informal sector workers',
+        assistance_type: 'Emergency Employment Stipend (10-15 Days) + Personal Protective Equipment (PPE)',
+        description: 'Emergency employment program for displaced, underemployed, and seasonal workers. Community-based livelihood safety net delivered in partnership with DOLE for disadvantaged informal sector workers.',
+        eligibility_criteria: [
+            'Displaced or seasonal informal economy worker residing in Koronadal City aged 18-65.',
+            'Not currently an active beneficiary of another cash-for-work government subsidy.',
+            'Only one qualified worker per vulnerable household allowed per cycle.'
+        ],
+        required_documents: [
+            'Photocopy of Valid Government-Issued ID',
+            'Barangay Certificate of Indigency',
+            'Duly Accomplished DOLE TUPAD Profile Form',
+            '1x1 Photo on White Background'
+        ],
+        timeline: {
+            intake: 'BY 2026 Scheduled Community Batch Windows',
+            cycle: '10 to 15 Calendar Days Community Deployment'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (Regular Services Item II-C)',
+        status: 'Active'
+    },
+    {
+        id: 5,
+        code: 'PFAS',
+        name: 'Pangkabuhayan Financial Assistance (PFAS)',
+        category: 'Livelihood Programs',
+        budget: 7000000.00,
+        slots_target: 700,
+        slots_filled: 310,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Individual micro-entrepreneurs, street vendors, home-based producers, skilled tradespersons',
+        assistance_type: 'Seed Capital Grant (₱5,000 - ₱20,000) & Entrepreneurial Coaching',
+        description: 'Financial support to start or expand livelihood projects. Provides micro-enterprise seed capital, toolkits, and financial literacy coaching to empower low-income entrepreneurs to build sustainable businesses.',
+        eligibility_criteria: [
+            'Resident of the City of Koronadal for at least 6 consecutive months.',
+            'Operating an existing micro-enterprise or possessing a feasible business project proposal.',
+            'Household income falling below regional poverty threshold.',
+            'Completion of mandatory Entrepreneurial Mindset & Financial Literacy Seminar.'
+        ],
+        required_documents: [
+            'Valid Government-Issued ID',
+            'Barangay Business Clearance / Certificate of Indigency',
+            'Simple Business Proposal / Costing & Expenditure Plan',
+            'Photos of existing livelihood or trading stall (if applicable)',
+            'DTI or Mayor’s Business Permit (if registered)'
+        ],
+        timeline: {
+            intake: 'Rolling Monthly Intake (January - October 2026)',
+            cycle: 'Monthly Batch Evaluation, 25th Day Grant Releasing, 12-Month Monitoring'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-A)',
+        status: 'Active'
+    },
+    {
+        id: 6,
+        code: 'DILP',
+        name: 'Support to DOLE Integrated Livelihood Program (DILP)',
+        category: 'Livelihood Programs',
+        budget: 500000.00,
+        slots_target: 50,
+        slots_filled: 22,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Organized community livelihood associations, worker cooperatives, vulnerable groups',
+        assistance_type: 'Group Livelihood Equipment, Shared Facilities & Raw Materials Package',
+        description: 'Micro‑enterprise support through tools, equipment, and training. Group and individual livelihood assistance providing production machinery, raw materials, and enterprise capacity building.',
+        eligibility_criteria: [
+            'DOLE-registered Workers Association, CDA Cooperative, or SEC Non-Profit in Koronadal.',
+            'Minimum of 15 active participating members in good standing.',
+            'Established bookkeeping system and active bank / cooperative account.',
+            'Viable enterprise proposal aligned with priority local commodity sectors.'
+        ],
+        required_documents: [
+            'Certificate of Registration (DOLE, CDA, or SEC)',
+            'Association Constitution and By-Laws',
+            'Certified Masterlist of Officers & Members with Valid IDs',
+            'Detailed Group Project Proposal with Board Resolution',
+            'Financial Statements for preceding operating year (if existing)'
+        ],
+        timeline: {
+            intake: 'Call for Proposals: January - March 2026',
+            cycle: 'Technical Review (Apr-May), Equipment Handover (Jun-Aug 2026)'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-B)',
+        status: 'Active'
+    },
+    {
+        id: 7,
+        code: 'ASSOC-FACIL',
+        name: 'Association Facilitation & Registration',
+        category: 'Livelihood Programs',
+        budget: 50000.00,
+        slots_target: 25,
+        slots_filled: 12,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Informal workers, community craftspeople, market vendor groups, transport operators',
+        assistance_type: 'Legal Registration Assistance, Governance Training & Technical Facilitation',
+        description: 'Assistance in forming and registering community livelihood associations. Provides free legal structuring, drafting of by-laws, DOLE registration assistance, and governance workshops for informal sector groups.',
+        eligibility_criteria: [
+            'Group of at least 10 individuals residing in the same barangay of Koronadal City.',
+            'Common trade, livelihood project, or community economic endeavor.',
+            'Commitment of all elected officers to attend mandatory capacity-building modules.'
+        ],
+        required_documents: [
+            'Minutes of the Organizational Meeting',
+            'Attendance Sheet and Roster of Founding Members',
+            'Draft Constitution & By-Laws (PESO template available)',
+            'Barangay Endorsement Letter'
+        ],
+        timeline: {
+            intake: 'Year-Round Facilitation (Clinics every 2nd & 4th Wednesday)',
+            cycle: '10 Working Days Document Verification & DOLE Endorsement'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-C)',
+        status: 'Active'
+    },
+    {
+        id: 8,
+        code: 'JOB-FAIRS',
+        name: 'Conduct of Job Fairs & Career Expos',
+        category: 'Employment Facilitation',
+        budget: 100000.00,
+        slots_target: 1000,
+        slots_filled: 480,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Fresh graduates, displaced workers, licensed professionals, skilled tradespersons, jobseekers',
+        assistance_type: 'Free On-Site Interview Matchmaking, Direct Hiring, Career Guidance Booths',
+        description: 'Organized events connecting job seekers with employers. Citywide employment matchmaking summits hosting top local companies, overseas recruitment agencies, and government licensing desks.',
+        eligibility_criteria: [
+            'Open to all jobseekers residing in Koronadal City and Region XII.',
+            'At least 18 years of age with legal capacity for employment.',
+            'Registered in the National Skills Registration Program (NSRP) / PESO Database.'
+        ],
+        required_documents: [
+            'Multiple hard copies of updated Resume / Bio-Data',
+            'Valid Government-Issued ID',
+            '2x2 ID Photos (formal business attire)',
+            'Photocopies of Diploma, Transcript, or NC II Certificate (if applicable)',
+            'NBI or Police Clearance (recommended for on-the-spot hiring)'
+        ],
+        timeline: {
+            intake: 'Mega Job Fair (January), Labor Day Fair (May 1), PESO Week (September)',
+            cycle: 'One-Day Intensive Matchmaking per Fair + 30-Day Hiring Follow-up'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-D)',
+        status: 'Active'
+    },
+    {
+        id: 9,
+        code: 'JOB-PORTAL',
+        name: 'Development of Localized Job Portal',
+        category: 'Employment Facilitation',
+        budget: 150000.00,
+        slots_target: 5000,
+        slots_filled: 1950,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Active jobseekers, tech-voc completers, accredited Koronadal employers and enterprises',
+        assistance_type: '24/7 Digital Job Board, Resume Generator, Automated Skill Matching',
+        description: 'Online platform for job postings and applications. High-speed digital labor exchange platform connecting Koronadal employers and jobseekers with instant QR verification and SMS interview alerts.',
+        eligibility_criteria: [
+            'Jobseekers: Resident of Koronadal City, aged 18+.',
+            'Employers: Registered enterprise with valid Koronadal Mayor’s Business Permit.'
+        ],
+        required_documents: [
+            'Digital User Profile & Valid ID verification',
+            'Digital Resume / CV upload (PDF/Word)',
+            'Business Permit & SEC/DTI certificate (for employer accounts)'
+        ],
+        timeline: {
+            intake: '24/7 Online Registration & Automated Resume Screening',
+            cycle: 'Continuous Real-Time Matching & Employer Applicant Routing'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-E)',
+        status: 'Active'
+    },
+    {
+        id: 10,
+        code: 'SKILLS-TRAIN',
+        name: 'Livelihood/Skills Training Program',
+        category: 'Special Programs',
+        budget: 150000.00,
+        slots_target: 150,
+        slots_filled: 85,
+        min_age: 18,
+        max_age: 60,
+        target_beneficiaries: 'Out-of-school youth, unemployed adults, solo parents, PWDs, displaced workers',
+        assistance_type: 'Free Modular Skills Training, Consumable Toolkits, and Certificate of Completion',
+        description: 'Training sessions to enhance employability and entrepreneurship. Hands-on vocational courses (culinary, welding, electrical, dressmaking, digital skills) delivered with TESDA-accredited trainers.',
+        eligibility_criteria: [
+            'Resident of the City of Koronadal aged 18 to 60 years old.',
+            'Able to read, write, and comprehend basic technical instruction.',
+            'Committed to attend minimum 90% of scheduled training hours.',
+            'Willingness to undertake TESDA National Competency (NC) assessment.'
+        ],
+        required_documents: [
+            'Valid Government ID or Barangay ID',
+            'Barangay Certificate of Residency & Indigency',
+            '2x2 ID Photos on white background (3 copies)',
+            'Form 137 / High School Diploma (for technical courses)'
+        ],
+        timeline: {
+            intake: 'Cohort 1 (Mar-Apr 2026), Cohort 2 (Jun-Jul 2026), Cohort 3 (Aug-Sep 2026)',
+            cycle: '80 - 120 Hours Intensive Vocational Modules + NC II Assessment'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-F)',
+        status: 'Active'
+    },
+    {
+        id: 11,
+        code: 'OFW-FCD',
+        name: 'OFW Family Circle Day & Welfare Summit',
+        category: 'Special Programs',
+        budget: 200000.00,
+        slots_target: 200,
+        slots_filled: 95,
+        min_age: 18,
+        max_age: 70,
+        target_beneficiaries: 'Active OFWs, vacationing OFWs, returning OFWs, and direct dependents (spouse, parents, children)',
+        assistance_type: 'Financial Wellness Seminars, Family Wellness Counseling, Reintegration Grants Matching',
+        description: 'Community event supporting OFWs and their families. Annual fellowship and empowerment conference providing financial education, reintegration opportunities, and psychosocial support to migrant families.',
+        eligibility_criteria: [
+            'Active or former OFW with valid OWWA/POEA registration or immediate family member.',
+            'Resident of Koronadal City.',
+            'Registered in the PESO OFW Help Desk Registry.'
+        ],
+        required_documents: [
+            'Passport copy / OFW Info Sheet or OEC certificate',
+            'Proof of Kinship (PSA Marriage Certificate or Birth Certificate for dependents)',
+            'Barangay Certificate of Residency'
+        ],
+        timeline: {
+            intake: 'Pre-Registration Window: May 1 - May 31, 2026',
+            cycle: 'Annual Summit in June (Migrant Workers Month) + Follow-up Clinics'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-G)',
+        status: 'Active'
+    },
+    {
+        id: 12,
+        code: 'SPES',
+        name: 'Special Program for Employment of Students (SPES)',
+        category: 'Special Programs',
+        budget: 2000000.00,
+        slots_target: 400,
+        slots_filled: 190,
+        min_age: 15,
+        max_age: 30,
+        target_beneficiaries: 'Poor but deserving high school, senior high, and college students, and Out-of-School Youth (OSY)',
+        assistance_type: 'Salary Stipend (60% LGU, 40% DOLE) for 20-30 Days + GSIS Insurance',
+        description: 'Short‑term employment for poor but deserving students during school breaks. Provides youth with temporary summer/holiday employment in government and partner institutions to earn income for schooling.',
+        eligibility_criteria: [
+            'Students or Out-of-School Youth aged 15 to 30 years old.',
+            'Enrolled in high school, tech-voc, or college, or intending to re-enroll in the next term.',
+            'Passing grades in all subjects with no failing marks in the preceding academic year.',
+            'Combined parent/guardian annual net income must not exceed poverty threshold (₱150,000/year).'
+        ],
+        required_documents: [
+            'Birth Certificate (PSA or Local Civil Registrar certified)',
+            'School Registration Form / Assessment Slip / Certificate of Enrollment',
+            'Certified True Copy of Grades / Form 138 / Official Transcript',
+            'Parents’ Income Tax Return (ITR), BIR Tax Exemption, or Barangay Certificate of Low Income',
+            'SPES Application Form (DOLE Form 01)'
+        ],
+        timeline: {
+            intake: 'Application Window: February 1 - March 15, 2026',
+            cycle: 'Screening (Mar 20-25), Deployment Period: April 15 - May 25, 2026 (Summer Break)'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-H)',
+        status: 'Active'
+    },
+    {
+        id: 13,
+        code: 'PAROKYA-OWWA',
+        name: 'Support to Parokya ni OWWA Program',
+        category: 'Special Programs',
+        budget: 40000.00,
+        slots_target: 50,
+        slots_filled: 24,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Distressed OFWs, migrant returnees, families of OFWs in crisis',
+        assistance_type: 'Grassroots Welfare Outreach, Legal Consultation, Emergency Family Counseling',
+        description: 'Outreach and support activities for OFWs and their families. Grassroots outreach initiative bringing OWWA welfare services, legal advisories, and emergency assistance directly to parish and barangay communities.',
+        eligibility_criteria: [
+            'OFWs or OFW family members residing in Koronadal City.',
+            'Experiencing welfare, contract, repatriation, or emergency medical concerns overseas.'
+        ],
+        required_documents: [
+            'OFW Passport Copy / OWWA Membership ID',
+            'Overseas Employment Contract or Travel Document',
+            'Barangay Certificate of Indigency / Endorsement'
+        ],
+        timeline: {
+            intake: 'Bi-Monthly Grassroots Community Clinics across Clustered Barangays',
+            cycle: 'Continuous Help Desk Support at PESO Main Center'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-I)',
+        status: 'Active'
+    },
+    {
+        id: 14,
+        code: 'ROFWS',
+        name: 'Support to Returning OFWs Program (ROFW’S)',
+        category: 'Special Programs',
+        budget: 100000.00,
+        slots_target: 50,
+        slots_filled: 26,
+        min_age: 18,
+        max_age: 65,
+        target_beneficiaries: 'Permanently returned, repatriated, or distressed Overseas Filipino Workers',
+        assistance_type: 'Reintegration Seed Grants, Business Mentoring, Local Job Placement Referrals',
+        description: 'Reintegration support for returning OFWs through livelihood and employment facilitation. Empowers displaced and repatriated migrant workers to successfully transition back into local economic enterprise.',
+        eligibility_criteria: [
+            'Repatriated or permanently returned OFW residing in Koronadal City within the past 3 years.',
+            'Committed to establish local livelihood enterprise or seek domestic employment.',
+            'Completion of PESO Reintegration Orientation Workshop.'
+        ],
+        required_documents: [
+            'Valid Philippine Passport with arrival stamp or Travel Document',
+            'Repatriation Certificate or OWWA Case Referral',
+            'Barangay Certificate of Residency',
+            'Proposed Livelihood Project Plan'
+        ],
+        timeline: {
+            intake: 'Continuous Rolling Intake throughout 2026',
+            cycle: 'Monthly Reintegration Clinics (Last Friday) & Fast-Track Referral'
+        },
+        ordinance: 'Appropriation Ordinance No. 6, Series of 2025 (PPAs Item III-J)',
+        status: 'Active'
+    }
+];
 
-let programsList = [];
+let programsList = JSON.parse(JSON.stringify(CANONICAL_PESO_PROGRAM_CATALOG));
 let archiveList = [];
 const PROGRAM_BATCHES = {};
 const BATCH_BENEFICIARIES = {};
@@ -20,28 +460,40 @@ async function initProgramsData() {
             if (appRes && appRes.data && Array.isArray(appRes.data)) {
                 appRes.data.forEach(a => {
                     const pid = a.program_id;
+                    const pcode = a.program_code;
                     if (pid) appCountByProg[pid] = (appCountByProg[pid] || 0) + 1;
+                    if (pcode) appCountByProg[pcode] = (appCountByProg[pcode] || 0) + 1;
                 });
             }
 
-            if (progRes && progRes.data && Array.isArray(progRes.data)) {
-                programsList = progRes.data.map(p => ({
-                    id: p.id,
-                    code: p.code || 'PROG',
-                    name: p.name || 'Program Title',
-                    category: p.category || 'Livelihood Programs',
-                    budget: Number(p.budget) || 0,
-                    beneficiaries_count: appCountByProg[p.id] || Number(p.beneficiaries_count) || 0,
-                    total_slots: Number(p.total_slots) || 0,
-                    target_beneficiaries: p.target_beneficiaries || 'Beneficiaries & Jobseekers',
-                    assistance_type: p.assistance_type || 'Assistance Grant',
-                    description: p.description || '',
-                    eligibility_criteria: p.eligibility_criteria || 'Resident of Koronadal City',
-                    limitations: p.limitations || 'Standard LGU guidelines apply.',
-                    restrictions: p.restrictions || 'One grant per household.',
-                    ordinance: p.ordinance || 'LGU General Fund Ordinance',
-                    status: p.status || 'Active'
-                }));
+            if (progRes && progRes.data && Array.isArray(progRes.data) && progRes.data.length > 0) {
+                // Merge Supabase programs with canonical metadata
+                programsList = progRes.data.map(p => {
+                    const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.code === p.code || c.name === p.name) || {};
+                    const totalSlots = Number(p.slots_target || p.total_slots || canonical.slots_target || 100);
+                    const filledSlots = appCountByProg[p.id] || appCountByProg[p.code] || Number(p.slots_filled || canonical.slots_filled || 0);
+
+                    return {
+                        id: p.id,
+                        code: p.code || canonical.code || 'PROG',
+                        name: p.name || canonical.name || 'Program Title',
+                        category: p.category || canonical.category || 'Livelihood Programs',
+                        budget: Number(p.budget || canonical.budget || 0),
+                        beneficiaries_count: filledSlots,
+                        slots_target: totalSlots,
+                        slots_filled: filledSlots,
+                        min_age: p.min_age || canonical.min_age || 18,
+                        max_age: p.max_age || canonical.max_age || 65,
+                        target_beneficiaries: p.target_beneficiaries || canonical.target_beneficiaries || 'Beneficiaries & Jobseekers',
+                        assistance_type: p.assistance_type || canonical.assistance_type || 'Assistance Grant',
+                        description: p.description || canonical.description || '',
+                        eligibility_criteria: p.eligibility_criteria || canonical.eligibility_criteria || ['Resident of Koronadal City'],
+                        required_documents: p.required_documents || canonical.required_documents || ['Valid Government ID', 'Barangay Indigency'],
+                        timeline: p.timeline || canonical.timeline || { intake: 'Budget Year 2026 Active Intake', cycle: 'Quarterly Scheduled Batches' },
+                        ordinance: p.ordinance || canonical.ordinance || 'Appropriation Ordinance No. 6, Series of 2025',
+                        status: p.status || 'Active'
+                    };
+                });
                 renderDashboardTables();
                 return;
             }
@@ -49,7 +501,7 @@ async function initProgramsData() {
             console.warn('[PROGRAMS] Supabase fetch notice:', e);
         }
     }
-    programsList = [];
+    programsList = JSON.parse(JSON.stringify(CANONICAL_PESO_PROGRAM_CATALOG));
     renderDashboardTables();
 }
 
@@ -103,16 +555,39 @@ function filterPrograms() {
     }
 }
 
+// Helper to format system date & time
+function formatSystemDateTime(date = new Date()) {
+    const d = (date instanceof Date && !isNaN(date)) ? date : new Date(date);
+    if (isNaN(d.getTime())) {
+        return new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+    }
+    return d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
+}
+
 // --- CREATE NEW PROGRAM MODAL & HANDLER (RBAC: ADMIN ONLY) ---
 function openCreateProgramModal() {
     const form = document.getElementById('createProgramForm');
-    if (form) form.reset();
+    if (form) {
+        form.reset();
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
 
-    const dtInput = document.getElementById('newProgDateTime');
+    const dtInput = document.getElementById('newProgCreatedDateTime') || document.getElementById('newProgDateTime');
     if (dtInput) {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        dtInput.value = now.toISOString().slice(0, 16);
+        dtInput.value = formatSystemDateTime(new Date());
+    }
+
+    const categorySelect = document.getElementById('newProgCategory');
+    if (categorySelect) {
+        categorySelect.value = '';
     }
 
     logAuditEvent('OPEN_CREATE_PROGRAM_FORM', 'Admin opened Create New Livelihood Program form');
@@ -121,36 +596,63 @@ function openCreateProgramModal() {
 
 async function handleCreateProgramSubmit(e) {
     e.preventDefault();
+    const form = document.getElementById('createProgramForm') || e.target;
+    if (form) {
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
 
-    const name = document.getElementById('newProgName').value.trim();
-    const code = document.getElementById('newProgCode').value.trim().toUpperCase();
-    const category = document.getElementById('newProgCategory').value;
-    const budget = Number(document.getElementById('newProgBudget').value) || 0;
-    const description = document.getElementById('newProgDesc').value.trim();
-    const target = document.getElementById('newProgTarget').value.trim();
-    const assistanceType = document.getElementById('newProgAssistance').value;
-    const criteria = (document.getElementById('newProgEligibility') ? document.getElementById('newProgEligibility').value : '').trim() || 'Resident of Koronadal City';
-    const limitations = (document.getElementById('newProgLimitations') ? document.getElementById('newProgLimitations').value : '').trim() || 'Standard LGU guidelines apply.';
+    const nameEl = document.getElementById('newProgName');
+    const codeEl = document.getElementById('newProgCode');
+    const categoryEl = document.getElementById('newProgCategory');
+    const budgetEl = document.getElementById('newProgBudget');
+    const descEl = document.getElementById('newProgDesc');
 
-    if (!name || !code || !budget || !description) {
-        window.showSystemNotification({
-            title: 'Validation Error',
-            message: 'Please complete all required fields.',
-            type: 'warning'
-        });
+    let isValid = true;
+    function setInvalid(element, msg) {
+        if (!element) return;
+        element.classList.add('is-invalid');
+        const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
+        if (feedback && msg) feedback.textContent = msg;
+        if (isValid) element.focus();
+        isValid = false;
+    }
+
+    const name = (nameEl?.value || '').trim();
+    if (!name) {
+        setInvalid(nameEl, 'Program Name is required.');
+    }
+
+    const code = (codeEl?.value || '').trim().toUpperCase();
+    if (!code) {
+        setInvalid(codeEl, 'Program Code is required.');
+    } else if (programsList.some(p => p.code && p.code.toUpperCase() === code)) {
+        setInvalid(codeEl, `Program Code "${code}" is already in use.`);
+    }
+
+    const category = (categoryEl?.value || '').trim();
+    if (!category) {
+        setInvalid(categoryEl, 'Category selection is required.');
+    }
+
+    const desc = (descEl?.value || '').trim();
+    if (!desc) {
+        setInvalid(descEl, 'Program Description is required.');
+    }
+
+    const budgetVal = budgetEl?.value;
+    const budget = parseFloat(budgetVal);
+    if (!budgetVal || isNaN(budget) || budget <= 0) {
+        setInvalid(budgetEl, 'Budget must be a valid positive amount.');
+    }
+
+    if (!isValid) {
         return;
     }
 
-    if (programsList.some(p => p.code.toUpperCase() === code)) {
-        window.showSystemNotification({
-            title: 'Program Code Exists',
-            message: `A program with code "${code}" already exists.`,
-            type: 'warning'
-        });
-        return;
-    }
-
+    const now = new Date();
+    const formattedDt = formatSystemDateTime(now);
     let createdId = Date.now();
+
     const newProg = {
         id: createdId,
         code: code,
@@ -159,15 +661,15 @@ async function handleCreateProgramSubmit(e) {
         budget: budget,
         beneficiaries_count: 0,
         total_slots: 50,
-        target_beneficiaries: target || 'Beneficiaries & Jobseekers',
-        assistance_type: assistanceType || 'Livelihood Assistance',
-        description: description,
-        eligibility_criteria: criteria,
-        limitations: limitations,
+        target_beneficiaries: 'Beneficiaries & Jobseekers',
+        assistance_type: 'Livelihood Assistance',
+        description: desc,
+        eligibility_criteria: 'Resident of Koronadal City',
+        limitations: 'Standard LGU guidelines apply.',
         restrictions: 'One grant per household.',
         ordinance: 'Appropriation Ordinance No. 6, Series of 2025',
         status: 'Active',
-        created_at: new Date().toISOString()
+        created_at: now.toISOString()
     };
 
     if (typeof DataService !== 'undefined' && DataService.programs) {
@@ -178,9 +680,9 @@ async function handleCreateProgramSubmit(e) {
                 category: category,
                 agency: 'PESO',
                 budget: budget,
-                description: description
+                description: desc
             });
-            if (res.data && res.data.id) {
+            if (res && res.data && res.data.id) {
                 newProg.id = res.data.id;
             }
         } catch (err) {
@@ -195,43 +697,149 @@ async function handleCreateProgramSubmit(e) {
     renderDashboardTables();
 
     window.showSystemNotification({
-        title: 'Program Created',
-        message: `Program ${code} (${name}) created successfully.`,
+        title: 'Program Added',
+        message: `Program successfully added on ${formattedDt}.`,
         type: 'success'
     });
 }
 
-// --- DETAILS BUTTON: STRICTLY READ-ONLY PROGRAM DETAILS MODAL (RULE 1) ---
+// --- DETAILS BUTTON: STRICTLY READ-ONLY PROGRAM DETAILS MODAL (RULE 1 & 8 REQUIREMENTS) ---
 function openProgramDetailsViewModal(progId) {
     if (!Array.isArray(programsList)) programsList = [];
-    const prog = programsList.find(p => p && p.id === progId);
+    let prog = programsList.find(p => p && p.id === progId);
+    if (!prog) {
+        prog = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.id === progId || c.code === progId);
+    }
     if (!prog) {
         console.warn('[PROGRAMS] Program not found for ID:', progId);
         window.showSystemNotification({ title: 'Program Notice', message: 'Requested program details could not be loaded.', type: 'warning' });
         return;
     }
 
+    const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.code === prog.code || c.name === prog.name) || {};
+    const totalSlots = Number(prog.slots_target || prog.total_slots || canonical.slots_target || 100);
+    const filledSlots = Number(prog.slots_filled || prog.beneficiaries_count || canonical.slots_filled || 0);
+    const availableSlots = Math.max(0, totalSlots - filledSlots);
+    const percentSlots = totalSlots > 0 ? Math.min(100, Math.round((filledSlots / totalSlots) * 100)) : 0;
+    const minAge = prog.min_age || canonical.min_age || 18;
+    const maxAge = prog.max_age || canonical.max_age || 65;
+
     const setText = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.textContent = val || 'N/A';
     };
 
+    // 1. Program Header & Badge Details
     setText('viewProgName', prog.name);
     setText('viewProgCode', prog.code);
-    setText('viewProgCategory', prog.category);
-    setText('viewProgBudget', '₱' + Number(prog.budget || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }));
-    setText('viewProgBeneficiaries', `${prog.beneficiaries_count || 0} beneficiaries enrolled`);
-    setText('viewProgDesc', prog.description);
-    setText('viewProgTarget', prog.target_beneficiaries);
-    setText('viewProgAssistance', prog.assistance_type);
-    setText('viewProgEligibility', prog.eligibility_criteria);
-    setText('viewProgLimitations', prog.limitations);
-    setText('viewProgOrdinance', prog.ordinance || 'Appropriation Ordinance No. 6, Series of 2025');
+    setText('viewProgCategory', prog.category || canonical.category || 'Livelihood Programs');
+    setText('viewProgOrdinance', prog.ordinance || canonical.ordinance || 'Appropriation Ordinance No. 6, Series of 2025');
 
     const statusBadge = document.getElementById('viewProgStatus');
     if (statusBadge) {
         statusBadge.textContent = prog.status || 'Active';
-        statusBadge.className = (prog.status === 'Active') ? 'badge bg-success fs-6' : 'badge bg-secondary fs-6';
+        statusBadge.className = (prog.status === 'Active') ? 'badge bg-success' : 'badge bg-secondary';
+    }
+
+    // 2. Budget Transparency (Requirement 4)
+    const budgetAmount = Number(prog.budget || canonical.budget || 0);
+    setText('viewProgBudget', '₱' + budgetAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+    // 3. Program Slots Counter & Progress (Requirement 2)
+    setText('viewProgSlotsBadge', `${filledSlots} / ${totalSlots} Filled`);
+    setText('viewProgSlotsCount', `${filledSlots} / ${totalSlots}`);
+    setText('viewProgAvailableSlots', `${availableSlots} available slots remaining (${percentSlots}% filled)`);
+    const slotsProgressBar = document.getElementById('viewProgSlotsProgressBar');
+    if (slotsProgressBar) {
+        slotsProgressBar.style.width = `${percentSlots}%`;
+        slotsProgressBar.className = percentSlots >= 90 ? 'progress-bar bg-danger' : (percentSlots >= 70 ? 'progress-bar bg-warning' : 'progress-bar bg-primary');
+    }
+
+    // 4. Age Requirements (Requirement 3)
+    setText('viewProgAgeRequirement', `${minAge} - ${maxAge} Years Old`);
+    setText('viewProgAgeAlertText', `Age Restriction (${minAge} - ${maxAge} yrs old): Mandatory validation enforced during beneficiary application screening.`);
+
+    // 5. Target Beneficiaries & Assistance Scope (Requirement 1)
+    setText('viewProgAssistanceScope', prog.assistance_type || canonical.assistance_type || 'Financial & Livelihood Grant');
+    setText('viewProgTargetSummary', prog.target_beneficiaries || canonical.target_beneficiaries || 'Beneficiaries & Jobseekers');
+    setText('viewProgDesc', prog.description || canonical.description || 'Program description detailing objectives, guidelines, and support provided.');
+    setText('viewProgTarget', prog.target_beneficiaries || canonical.target_beneficiaries || 'Beneficiaries & Jobseekers');
+    setText('viewProgAssistance', prog.assistance_type || canonical.assistance_type || 'Assistance Grant');
+
+    // 6. Eligibility Criteria List (Requirement 5)
+    const eligList = prog.eligibility_criteria || canonical.eligibility_criteria || ['Resident of Koronadal City'];
+    const eligContainer = document.getElementById('viewProgEligibilityList');
+    if (eligContainer) {
+        const criteriaArr = Array.isArray(eligList) ? eligList : String(eligList).split(';').map(s => s.trim()).filter(Boolean);
+        eligContainer.innerHTML = criteriaArr.map(crit => `
+            <li class="list-group-item px-0 text-secondary d-flex align-items-start gap-2 bg-transparent">
+                <i class="bi bi-check-circle-fill text-success mt-0.5 flex-shrink-0"></i>
+                <div>${escapeHtml(crit)}</div>
+            </li>
+        `).join('');
+    }
+
+    // 7. Program Timeline & Scheduling (Requirement 6)
+    const timeline = prog.timeline || canonical.timeline || { intake: 'Budget Year 2026 Active Intake', cycle: 'Quarterly Scheduled Batches' };
+    setText('viewProgTimelineDeadline', timeline.intake || 'Active Intake');
+    setText('viewProgTimelineCycle', timeline.cycle || 'Quarterly Scheduled Batches');
+
+    // Sync with Scheduled Activities
+    const schedContainer = document.getElementById('viewProgSchedSessionsList');
+    if (schedContainer) {
+        schedContainer.innerHTML = `
+            <div class="d-flex align-items-center gap-2 p-2 bg-light rounded-3 mb-1">
+                <i class="bi bi-calendar-check text-primary"></i>
+                <div>
+                    <span class="fw-semibold text-dark">Program Orientation & Screening</span>
+                    <small class="text-muted d-block">Scheduled at PESO Main Office / Barangay Venues</small>
+                </div>
+            </div>
+        `;
+    }
+
+    // 8. Required Documents Checklist (Requirement 7)
+    const docsList = prog.required_documents || canonical.required_documents || [
+        'Valid Government-Issued ID (Photocopy with 3 specimen signatures)',
+        'Barangay Certificate of Indigency / Certificate of Residency'
+    ];
+    const docsContainer = document.getElementById('viewProgRequiredDocsList');
+    if (docsContainer) {
+        const docsArr = Array.isArray(docsList) ? docsList : String(docsList).split(';').map(s => s.trim()).filter(Boolean);
+        docsContainer.innerHTML = docsArr.map(doc => `
+            <li class="list-group-item px-0 d-flex align-items-start gap-2 bg-transparent">
+                <i class="bi bi-file-earmark-arrow-up text-primary mt-1 flex-shrink-0"></i>
+                <div class="text-dark">${escapeHtml(doc)}</div>
+            </li>
+        `).join('');
+    }
+
+    // 9. Read-Only Administrative Audit Trail (Requirement 8)
+    const auditTbody = document.getElementById('viewProgAuditTrailBody');
+    if (auditTbody) {
+        const createdDt = prog.created_at ? new Date(prog.created_at).toLocaleString() : 'Jan 1, 2026, 08:00 AM';
+        auditTbody.innerHTML = `
+            <tr>
+                <td>
+                    <span class="badge bg-success-subtle text-success font-monospace">INITIAL_ALLOCATION</span>
+                    <div class="small text-dark mt-0.5">Budget ₱${budgetAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} approved</div>
+                </td>
+                <td>
+                    <small class="text-muted font-monospace d-block">${createdDt}</small>
+                    <small class="text-secondary">Ordinance No. 6, S. 2025</small>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <span class="badge bg-primary-subtle text-primary font-monospace">SLOTS_CONFIGURED</span>
+                    <div class="small text-dark mt-0.5">${totalSlots} slots capacity registered (${filledSlots} filled)</div>
+                </td>
+                <td>
+                    <small class="text-muted font-monospace d-block">Current Active Roster</small>
+                    <small class="text-secondary">PESO Administrator</small>
+                </td>
+            </tr>
+        `;
     }
 
     safeOpenModal('programDetailsViewModal');
@@ -248,6 +856,12 @@ function openProgramEditModal(progId) {
         return;
     }
 
+    const form = document.getElementById('editProgramForm');
+    if (form) {
+        form.reset();
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
+
     const setVal = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.value = val || '';
@@ -259,17 +873,24 @@ function openProgramEditModal(progId) {
     setVal('editProgName', prog.name);
     setVal('editProgCode', prog.code);
     setVal('editProgBudget', prog.budget || 0);
-    setVal('editProgAssistance', prog.assistance_type);
+    setVal('editProgCategory', prog.category || 'Livelihood Programs');
     setVal('editProgDesc', prog.description);
-    setVal('editProgTarget', prog.target_beneficiaries);
-    setVal('editProgEligibility', prog.eligibility_criteria);
-    setVal('editProgLimitations', prog.limitations);
+
+    const dtInput = document.getElementById('editProgUpdatedDateTime');
+    if (dtInput) {
+        dtInput.value = formatSystemDateTime(new Date());
+    }
 
     safeOpenModal('programEditModal');
 }
 
 async function handleSaveProgramUpdates(e) {
     e.preventDefault();
+    const form = document.getElementById('editProgramForm') || e.target;
+    if (form) {
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
+
     const editIdEl = document.getElementById('editProgId');
     const progId = editIdEl ? Number(editIdEl.value) : null;
     const prog = programsList.find(p => p && p.id === progId);
@@ -278,27 +899,61 @@ async function handleSaveProgramUpdates(e) {
         return;
     }
 
-    const updatedName = (document.getElementById('editProgName')?.value || '').trim();
-    const updatedBudget = Number(document.getElementById('editProgBudget')?.value) || 0;
-    const updatedAssistance = (document.getElementById('editProgAssistance')?.value || '').trim();
-    const updatedDesc = (document.getElementById('editProgDesc')?.value || '').trim();
-    const updatedTarget = (document.getElementById('editProgTarget')?.value || '').trim();
-    const updatedEligibility = (document.getElementById('editProgEligibility')?.value || '').trim();
-    const updatedLimitations = (document.getElementById('editProgLimitations')?.value || '').trim();
+    const nameEl = document.getElementById('editProgName');
+    const categoryEl = document.getElementById('editProgCategory');
+    const budgetEl = document.getElementById('editProgBudget');
+    const descEl = document.getElementById('editProgDesc');
+
+    let isValid = true;
+    function setInvalid(element, msg) {
+        if (!element) return;
+        element.classList.add('is-invalid');
+        const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
+        if (feedback && msg) feedback.textContent = msg;
+        if (isValid) element.focus();
+        isValid = false;
+    }
+
+    const updatedName = (nameEl?.value || '').trim();
+    if (!updatedName) {
+        setInvalid(nameEl, 'Program Name is required.');
+    }
+
+    const updatedCategory = (categoryEl?.value || '').trim();
+    if (!updatedCategory) {
+        setInvalid(categoryEl, 'Category selection is required.');
+    }
+
+    const updatedDesc = (descEl?.value || '').trim();
+    if (!updatedDesc) {
+        setInvalid(descEl, 'Program Description is required.');
+    }
+
+    const budgetVal = budgetEl?.value;
+    const updatedBudget = parseFloat(budgetVal);
+    if (!budgetVal || isNaN(updatedBudget) || updatedBudget <= 0) {
+        setInvalid(budgetEl, 'Budget must be a valid positive amount.');
+    }
+
+    if (!isValid) {
+        return;
+    }
+
+    const now = new Date();
+    const formattedDt = formatSystemDateTime(now);
 
     prog.name = updatedName;
+    prog.category = updatedCategory;
     prog.budget = updatedBudget;
-    prog.assistance_type = updatedAssistance;
     prog.description = updatedDesc;
-    prog.target_beneficiaries = updatedTarget;
-    prog.eligibility_criteria = updatedEligibility;
-    prog.limitations = updatedLimitations;
-    prog.updated_at = new Date().toISOString();
+    prog.updated_at = now.toISOString();
 
     if (typeof DataService !== 'undefined' && DataService.programs) {
         try {
             await DataService.programs.update(progId, {
                 name: updatedName,
+                category: updatedCategory,
+                budget: updatedBudget,
                 description: updatedDesc
             });
         } catch (err) {
@@ -306,14 +961,14 @@ async function handleSaveProgramUpdates(e) {
         }
     }
 
-    logAuditEvent('UPDATE_PROGRAM', `Updated program details for ${prog.code} (${updatedName}). Budget: ₱${updatedBudget.toLocaleString()}`);
+    logAuditEvent('UPDATE_PROGRAM', `Updated program details for ${prog.code} (${updatedName}) on ${formattedDt}. Budget: ₱${updatedBudget.toLocaleString()}`);
 
     safeHideModal('programEditModal');
     renderDashboardTables();
 
     window.showSystemNotification({
         title: 'Program Updated',
-        message: `Program ${prog.code} was updated successfully.`,
+        message: `Program successfully updated on ${formattedDt}.`,
         type: 'success'
     });
 }
@@ -465,9 +1120,16 @@ async function permanentlyDeleteProgram(progId) {
     logAuditEvent('PERMANENT_DELETE_PROGRAM', `Admin permanently deleted program ${code} (${name}) from system.`);
     renderDashboardTables();
 
-    window.showSystemNotification({
-        title: 'Program Deleted',
-        message: `Program ${code} permanently deleted from archive.`,
-        type: 'danger'
-    });
-}
+// Global window exposure
+window.openCreateProgramModal = openCreateProgramModal;
+window.handleCreateProgramSubmit = handleCreateProgramSubmit;
+window.openProgramDetailsViewModal = openProgramDetailsViewModal;
+window.openProgramEditModal = openProgramEditModal;
+window.handleSaveProgramUpdates = handleSaveProgramUpdates;
+window.handleProgramToggle = handleProgramToggle;
+window.handleProgramStatusToggle = handleProgramToggle;
+window.openUploadOrdinanceModal = openUploadOrdinanceModal;
+window.handleUploadOrdinance = handleUploadOrdinance;
+window.showOrdinanceReferenceModal = showOrdinanceReferenceModal;
+window.activateProgram = activateProgram;
+window.permanentlyDeleteProgram = permanentlyDeleteProgram;
