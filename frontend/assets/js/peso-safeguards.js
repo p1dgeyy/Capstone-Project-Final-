@@ -710,24 +710,39 @@ if (typeof window.PESOSafeguards === 'undefined') {
               }
             }
 
-            // 2. Check scheduling forms for past-date violation
-            const dateInput = form.querySelector('input[type="date"], input[type="datetime-local"]');
-            if (dateInput && dateInput.value) {
-              const dateCheck = checkScheduleDateValidity(dateInput.value);
-              if (!dateCheck.valid) {
-                evt.preventDefault();
-                evt.stopPropagation();
-                logAudit({ intent: 'Schedule Date Interception', actionType: 'PAST_DATE_BLOCK', status: 'BLOCKED', details: dateCheck.reason });
-                if (typeof window.showSystemNotification === 'function') {
-                  window.showSystemNotification({
-                    title: 'Invalid Schedule Date',
-                    message: dateCheck.reason,
-                    type: 'warning'
-                  });
-                } else {
-                  alert(dateCheck.reason);
+            // 2. Check scheduling forms for past-date violation (strictly scoped to scheduling context)
+            const formId = (form.id || '').toLowerCase();
+            const isNonSchedulingForm = formId.includes('officer') || formId.includes('user') || 
+                                       formId.includes('beneficiary') || formId.includes('profile') || 
+                                       formId.includes('program') || formId.includes('applicant') || 
+                                       formId.includes('intake') || formId.includes('report') || 
+                                       formId.includes('login') || formId.includes('auth');
+
+            const isSchedulingForm = !isNonSchedulingForm && (
+              form.matches('[data-schedule-form="true"], #createSchedSlotForm, #newInterviewScheduleForm, #scheduleForm, #rescheduleForm, #activityScheduleForm, #createScheduleForm, #editScheduleForm, #createActivityForm, #editActivityForm') ||
+              formId.includes('sched') || formId.includes('interview') ||
+              form.closest('#schedulingModal, #createScheduleModal, #editScheduleModal, #createActivityModal, #editActivityModal') !== null
+            );
+
+            if (isSchedulingForm) {
+              const dateInput = form.querySelector('input[type="date"], input[type="datetime-local"]');
+              if (dateInput && dateInput.value) {
+                const dateCheck = checkScheduleDateValidity(dateInput.value);
+                if (!dateCheck.valid) {
+                  evt.preventDefault();
+                  evt.stopPropagation();
+                  logAudit({ intent: 'Schedule Date Interception', actionType: 'PAST_DATE_BLOCK', status: 'BLOCKED', details: dateCheck.reason });
+                  if (typeof window.showSystemNotification === 'function') {
+                    window.showSystemNotification({
+                      title: 'Invalid Schedule Date',
+                      message: dateCheck.reason,
+                      type: 'warning'
+                    });
+                  } else {
+                    alert(dateCheck.reason);
+                  }
+                  return false;
                 }
-                return false;
               }
             }
           } catch (err) {

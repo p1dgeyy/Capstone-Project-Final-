@@ -177,20 +177,284 @@ function calcCreateOfficerAge() {
     }
     const today = new Date();
     const birthDate = new Date(dobVal);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    ageInput.value = isNaN(age) || age < 0 ? '' : age;
+function getLoggedInAdminIdentity() {
+    let adminId = 'PESO Admin';
+    try {
+        if (typeof SessionManager !== 'undefined' && SessionManager.getUserId) {
+            const uid = SessionManager.getUserId();
+            if (uid) adminId = uid;
+        }
+        const storedUser = sessionStorage.getItem('username') || sessionStorage.getItem('userEmail') || localStorage.getItem('peso_logged_in_user');
+        if (storedUser) adminId = `${adminId} (${storedUser})`;
+    } catch (e) { }
+    return adminId;
 }
-const calcNewOfficerAge = calcCreateOfficerAge;
+
+function showOfficerModalAlert(formEl, message) {
+    if (!formEl) return;
+    const isEdit = formEl.id === 'editOfficerForm';
+    const alertId = isEdit ? 'editOfficerAlert' : 'createOfficerAlert';
+    const msgId = isEdit ? 'editOfficerAlertMsg' : 'createOfficerAlertMsg';
+    
+    let alertEl = document.getElementById(alertId);
+    let msgEl = document.getElementById(msgId);
+    if (alertEl && msgEl) {
+        msgEl.textContent = message;
+        alertEl.classList.remove('d-none');
+    }
+}
+
+function hideOfficerModalAlert(formEl) {
+    if (!formEl) return;
+    const isEdit = formEl.id === 'editOfficerForm';
+    const alertId = isEdit ? 'editOfficerAlert' : 'createOfficerAlert';
+    const alertEl = document.getElementById(alertId);
+    if (alertEl) {
+        alertEl.classList.add('d-none');
+    }
+}
+
+function attachOfficerFormLiveValidation(formEl) {
+    if (!formEl || formEl.dataset.liveBound === 'true') return;
+    formEl.dataset.liveBound = 'true';
+
+    const inputs = formEl.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        const handler = () => {
+            if (input.classList.contains('is-invalid')) {
+                input.classList.remove('is-invalid');
+                input.removeAttribute('title');
+                input.removeAttribute('data-bs-title');
+            }
+            // Check if any invalid fields remain
+            const remainingInvalids = formEl.querySelectorAll('.is-invalid');
+            if (remainingInvalids.length === 0) {
+                hideOfficerModalAlert(formEl);
+            }
+        };
+        input.addEventListener('input', handler);
+        input.addEventListener('change', handler);
+    });
+}
+
+/**
+ * Dedicated Form-Level and Field-Level Validation for PESO Officers
+ * Scoped strictly to Officer Management (no scheduling rules)
+ */
+function validateOfficerForm(formEl, mode = 'create', currentOfficerId = null) {
+    if (!formEl) return { isValid: false, errors: [], summaryMessage: 'Form not found.' };
+
+    const errors = [];
+    const missingFields = [];
+
+    // Clear existing invalid classes
+    formEl.querySelectorAll('.is-invalid').forEach(el => {
+        el.classList.remove('is-invalid');
+        el.removeAttribute('title');
+        el.removeAttribute('data-bs-title');
+    });
+
+    const isEdit = mode === 'edit';
+    const prefix = isEdit ? 'editOff' : 'createOff';
+
+    function getEl(idName) {
+        return document.getElementById(`${prefix}${idName}`) || 
+               document.getElementById(`newOff${idName}`) ||
+               formEl.querySelector(`[name="${idName}"]`);
+    }
+
+    const roleEl = getEl('Role');
+    const firstNameEl = getEl('FirstName');
+    const middleNameEl = getEl('MiddleName');
+    const lastNameEl = getEl('LastName');
+    const suffixEl = getEl('Suffix');
+    const dobEl = getEl('Dob');
+    const ageEl = getEl('Age');
+    const addressEl = getEl('Address');
+    const phoneEl = getEl('Phone') || getEl('ContactNumber');
+    const emailEl = getEl('Email');
+    const usernameEl = getEl('Username');
+    const passwordEl = getEl('Password');
+    const confirmPasswordEl = getEl('ConfirmPassword');
+
+    function setFieldError(element, fieldLabel, message, isMissing = false) {
+        if (!element) return;
+        element.classList.add('is-invalid');
+        element.setAttribute('title', message);
+        element.setAttribute('data-bs-title', message);
+        const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
+        if (feedback && message) {
+            feedback.textContent = message;
+        }
+        errors.push({ field: fieldLabel, message, element, isMissing });
+        if (isMissing) missingFields.push(fieldLabel);
+    }
+
+    // 1. Mandatory User Role validation (Only PESO Admin or PESO Officer)
+    const role = (roleEl?.value || '').trim();
+    if (!role || !['PESO Admin', 'PESO Officer'].includes(role)) {
+        setFieldError(roleEl, 'User Role', 'User role selection is mandatory (PESO Admin or PESO Officer).', true);
+    }
+
+    // 2. Personal Information: First Name & Last Name
+    const firstName = (firstNameEl?.value || '').trim();
+    if (!firstName) {
+        setFieldError(firstNameEl, 'First Name', 'First name is required.', true);
+    }
+
+    const middleName = (middleNameEl?.value || '').trim();
+    const lastName = (lastNameEl?.value || '').trim();
+    if (!lastName) {
+        setFieldError(lastNameEl, 'Last Name', 'Last name is required.', true);
+    }
+
+    const suffix = (suffixEl?.value || '').trim();
+
+    // 3. Birthdate Validation (Must be a valid past date, realistic age >= 18)
+    const dob = dobEl?.value || '';
+    if (!dob) {
+        setFieldError(dobEl, 'Birthdate', 'Valid birthdate is required.', true);
+    } else {
+        const birthDateObj = new Date(dob);
+        const todayObj = new Date();
+        if (isNaN(birthDateObj.getTime())) {
+            setFieldError(dobEl, 'Birthdate', 'Invalid birthdate format.');
+        } else if (birthDateObj > todayObj) {
+            setFieldError(dobEl, 'Birthdate', 'Birthdate cannot be in the future.');
+        } else {
+            let calculatedAge = todayObj.getFullYear() - birthDateObj.getFullYear();
+            const monthDiff = todayObj.getMonth() - birthDateObj.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && todayObj.getDate() < birthDateObj.getDate())) {
+                calculatedAge--;
+            }
+            if (calculatedAge < 18) {
+                setFieldError(dobEl, 'Birthdate', 'Officer must be at least 18 years of age.');
+            }
+        }
+    }
+
+    // 4. Address validation
+    const address = (addressEl?.value || '').trim();
+    if (!address) {
+        setFieldError(addressEl, 'Address', 'Address is required.', true);
+    }
+
+    // 5. Contact Number validation (PH based)
+    const contactNumber = (phoneEl?.value || '').trim();
+    const phoneDigits = contactNumber.replace(/[-\s]/g, '');
+    const phoneRegex = /^(09|\+639)\d{9}$/;
+    if (!contactNumber) {
+        setFieldError(phoneEl, 'Contact Number', 'Contact number is required.', true);
+    } else if (!phoneRegex.test(phoneDigits)) {
+        setFieldError(phoneEl, 'Contact Number', 'Contact number must be PH format 09XX-XXX-XXXX or 09XXXXXXXXX.');
+    }
+
+    // 6. Email validation
+    const email = (emailEl?.value || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+        setFieldError(emailEl, 'Email Address', 'Email address is required.', true);
+    } else if (!emailRegex.test(email)) {
+        setFieldError(emailEl, 'Email Address', 'Enter a valid email address (e.g., officer@koronadal.gov.ph).');
+    }
+
+    // 7. Username validation (min 3 characters, unique)
+    const username = (usernameEl?.value || '').trim();
+    const existingList = Array.isArray(officersList) ? officersList : [];
+    if (!username) {
+        setFieldError(usernameEl, 'Username', 'Username is required.', true);
+    } else if (username.length < 3) {
+        setFieldError(usernameEl, 'Username', 'Username must be at least 3 characters.');
+    } else if (existingList.some(o => (currentOfficerId === null || o.id !== currentOfficerId) && o.username && o.username.toLowerCase() === username.toLowerCase())) {
+        setFieldError(usernameEl, 'Username', `Username "${username}" is already assigned to another account.`);
+    }
+
+    // 8. Password validations
+    const password = passwordEl?.value || '';
+    const confirmPassword = confirmPasswordEl?.value || '';
+
+    if (!isEdit) {
+        // Create mode: password is required
+        if (!password) {
+            setFieldError(passwordEl, 'Password', 'Password is required.', true);
+        } else if (password.length < 8) {
+            setFieldError(passwordEl, 'Password', 'Password must be at least 8 characters.');
+        }
+
+        if (!confirmPassword) {
+            setFieldError(confirmPasswordEl, 'Confirm Password', 'Confirm password is required.', true);
+        } else if (password && confirmPassword && password !== confirmPassword) {
+            setFieldError(confirmPasswordEl, 'Confirm Password', 'Passwords do not match.');
+        }
+    } else {
+        // Edit mode: password is optional
+        if (password) {
+            if (password.length < 8) {
+                setFieldError(passwordEl, 'Password', 'Password must be at least 8 characters.');
+            }
+            if (!confirmPassword) {
+                setFieldError(confirmPasswordEl, 'Confirm Password', 'Confirm password is required when updating password.', true);
+            } else if (password !== confirmPassword) {
+                setFieldError(confirmPasswordEl, 'Confirm Password', 'Passwords do not match.');
+            }
+        }
+    }
+
+    const isValid = errors.length === 0;
+
+    // Organized Exception Hierarchy Summary Message
+    let summaryMessage = '';
+    if (!isValid) {
+        if (missingFields.length > 0) {
+            summaryMessage = 'Please complete all required fields.';
+        } else if (errors.some(e => e.field === 'Email Address')) {
+            summaryMessage = 'Enter a valid email address.';
+        } else if (errors.some(e => e.field === 'Confirm Password')) {
+            summaryMessage = 'Passwords do not match.';
+        } else if (errors.some(e => e.field === 'Contact Number')) {
+            summaryMessage = 'Contact number must be PH format (09XX-XXX-XXXX or 09XXXXXXXXX).';
+        } else if (errors.some(e => e.field === 'Username')) {
+            summaryMessage = errors.find(e => e.field === 'Username').message;
+        } else if (errors.some(e => e.field === 'Birthdate')) {
+            summaryMessage = errors.find(e => e.field === 'Birthdate').message;
+        } else {
+            summaryMessage = errors[0].message;
+        }
+    }
+
+    return {
+        isValid,
+        errors,
+        missingFields,
+        summaryMessage,
+        data: {
+            role,
+            firstName,
+            middleName,
+            lastName,
+            suffix,
+            dob,
+            age: ageEl?.value || '',
+            address,
+            phone: contactNumber,
+            email,
+            username,
+            password
+        }
+    };
+}
 
 function openCreateOfficerModal() {
     const form = document.getElementById('createOfficerForm') || document.getElementById('newOfficerForm');
     if (form) {
         form.reset();
-        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+            el.removeAttribute('title');
+            el.removeAttribute('data-bs-title');
+        });
+        hideOfficerModalAlert(form);
+        attachOfficerFormLiveValidation(form);
     }
     const ageEl = document.getElementById('createOffAge') || document.getElementById('newOffAge');
     if (ageEl) ageEl.value = '';
@@ -210,120 +474,48 @@ function openCreateOfficerModal() {
 const openNewOfficerModal = openCreateOfficerModal;
 
 async function handleCreateOfficerSubmit(e) {
-    e.preventDefault();
-    const form = document.getElementById('createOfficerForm') || e.target;
-
-    // Reset previous inline validation states
-    if (form) {
-        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
     }
+    const form = document.getElementById('createOfficerForm') || (e ? e.target : null);
+    if (!form) return;
 
-    const roleEl = document.getElementById('createOffRole') || document.getElementById('newOffRole');
-    const firstNameEl = document.getElementById('createOffFirstName') || document.getElementById('newOffFirstName');
-    const middleNameEl = document.getElementById('createOffMiddleName') || document.getElementById('newOffMiddleName');
-    const lastNameEl = document.getElementById('createOffLastName') || document.getElementById('newOffLastName');
-    const suffixEl = document.getElementById('createOffSuffix') || document.getElementById('newOffSuffix');
-    const dobEl = document.getElementById('createOffDob') || document.getElementById('newOffDob');
-    const ageEl = document.getElementById('createOffAge') || document.getElementById('newOffAge');
-    const addressEl = document.getElementById('createOffAddress') || document.getElementById('newOffAddress');
-    const phoneEl = document.getElementById('createOffPhone') || document.getElementById('newOffPhone') || document.getElementById('newOffContactNumber');
-    const emailEl = document.getElementById('createOffEmail') || document.getElementById('newOffEmail');
-    const usernameEl = document.getElementById('createOffUsername') || document.getElementById('newOffUsername');
-    const passwordEl = document.getElementById('createOffPassword') || document.getElementById('newOffPassword');
-    const confirmPasswordEl = document.getElementById('createOffConfirmPassword') || document.getElementById('newOffConfirmPassword');
+    // Run dedicated officer form validation
+    const validation = validateOfficerForm(form, 'create');
+    const adminIdentity = getLoggedInAdminIdentity();
 
-    let isValid = true;
-    function setInvalid(element, msg) {
-        if (!element) return;
-        element.classList.add('is-invalid');
-        const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
-        if (feedback && msg) feedback.textContent = msg;
-        if (isValid) {
-            element.focus();
+    if (!validation.isValid) {
+        // 1. Show modal-level alert banner
+        showOfficerModalAlert(form, validation.summaryMessage);
+
+        // 2. Focus first invalid field
+        if (validation.errors.length > 0 && validation.errors[0].element) {
+            validation.errors[0].element.focus();
         }
-        isValid = false;
+
+        // 3. Audit log the failed attempt with Admin ID and reason
+        const failReasons = validation.errors.map(err => `${err.field}: ${err.message}`).join('; ');
+        logAuditEvent(
+            'FAILED_CREATE_OFFICER_VALIDATION',
+            `Failed Add Officer attempt by ${adminIdentity}. Reasons: ${failReasons}`
+        );
+
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({
+                title: 'Validation Notice',
+                message: validation.summaryMessage,
+                type: 'warning'
+            });
+        }
+        return false;
     }
 
-    // 1. Mandatory User Role validation (Only PESO Admin or PESO Officer allowed)
-    const role = (roleEl?.value || '').trim();
-    if (!role || !['PESO Admin', 'PESO Officer'].includes(role)) {
-        setInvalid(roleEl, 'User role selection is mandatory (PESO Admin or PESO Officer).');
-    }
+    hideOfficerModalAlert(form);
 
-    // 2. Personal Information validations
-    const firstName = (firstNameEl?.value || '').trim();
-    if (!firstName) {
-        setInvalid(firstNameEl, 'First name is required.');
-    }
-
-    const middleName = (middleNameEl?.value || '').trim();
-    const lastName = (lastNameEl?.value || '').trim();
-    if (!lastName) {
-        setInvalid(lastNameEl, 'Last name is required.');
-    }
-
-    const suffix = (suffixEl?.value || '').trim();
-    const dob = dobEl?.value || '';
-    if (!dob) {
-        setInvalid(dobEl, 'Valid birthdate is required.');
-    }
-
-    const age = ageEl?.value || '';
-    const address = (addressEl?.value || '').trim();
-    if (!address) {
-        setInvalid(addressEl, 'Address is required.');
-    }
-
-    // 3. Contact Number validation (PH based)
-    const contactNumber = (phoneEl?.value || '').trim();
-    const phoneDigits = contactNumber.replace(/[-\s]/g, '');
-    const phoneRegex = /^(09|\+639)\d{9}$/;
-    if (!contactNumber) {
-        setInvalid(phoneEl, 'Contact number is required.');
-    } else if (!phoneRegex.test(phoneDigits)) {
-        setInvalid(phoneEl, 'Please enter a valid PH mobile number (e.g. 09123456789 or +639123456789).');
-    }
-
-    // 4. Email validation
-    const email = (emailEl?.value || '').trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-        setInvalid(emailEl, 'Email address is required.');
-    } else if (!emailRegex.test(email)) {
-        setInvalid(emailEl, 'Please provide a valid email address (e.g. officer@gmail.com).');
-    }
-
-    // 5. Account Information validations
-    const username = (usernameEl?.value || '').trim();
-    if (!username) {
-        setInvalid(usernameEl, 'Username is required.');
-    } else if (username.length < 3) {
-        setInvalid(usernameEl, 'Username must be at least 3 characters.');
-    } else if (officersList.some(o => o.username && o.username.toLowerCase() === username.toLowerCase())) {
-        setInvalid(usernameEl, `Username "${username}" is already assigned to another account.`);
-    }
-
-    const password = passwordEl?.value || '';
-    const confirmPassword = confirmPasswordEl?.value || '';
-
-    if (!password) {
-        setInvalid(passwordEl, 'Password is required.');
-    } else if (password.length < 8) {
-        setInvalid(passwordEl, 'Password must be a minimum of 8 characters in length.');
-    }
-
-    if (!confirmPassword) {
-        setInvalid(confirmPasswordEl, 'Confirm password is required.');
-    } else if (password !== confirmPassword) {
-        setInvalid(confirmPasswordEl, 'Passwords do not match.');
-    }
-
-    if (!isValid) {
-        return;
-    }
-
+    const { role, firstName, middleName, lastName, suffix, dob, age, address, phone, email, username, password } = validation.data;
     const department = 'PESO';
     let createdId = Date.now();
+
     const newOff = {
         id: createdId,
         agency: 'PESO',
@@ -337,7 +529,7 @@ async function handleCreateOfficerSubmit(e) {
         email: email,
         role: role,
         department: department,
-        phone: contactNumber,
+        phone: phone,
         address: address,
         status: 'Active'
     };
@@ -354,7 +546,14 @@ async function handleCreateOfficerSubmit(e) {
     }
 
     officersList.unshift(newOff);
-    logAuditEvent('CREATE_OFFICER_ACCOUNT', `Created new officer account "${username}" (${firstName} ${lastName}), Role: ${role}, Dept: ${department}`);
+    if (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.officers)) {
+        AdminStore.officers.unshift(newOff);
+    }
+
+    logAuditEvent(
+        'CREATE_OFFICER_ACCOUNT',
+        `Admin (${adminIdentity}) created new officer account "${username}" (${firstName} ${lastName}), Role: ${role}, Dept: ${department}`
+    );
 
     if (document.getElementById('createOfficerModal')) {
         safeHideModal('createOfficerModal');
@@ -362,12 +561,17 @@ async function handleCreateOfficerSubmit(e) {
         safeHideModal('newOfficerModal');
     }
     renderOfficersTables();
+    if (typeof renderOfficersModule === 'function') {
+        renderOfficersModule();
+    }
 
     window.showSystemNotification({
         title: 'Officer Account Created',
         message: `Officer account for ${firstName} ${lastName} (${username}) created successfully as ${role}.`,
         type: 'success'
     });
+
+    return true;
 }
 
 function calcEditOfficerAge() {
@@ -401,7 +605,13 @@ function openEditOfficerModal(officerId) {
     const form = document.getElementById('editOfficerForm');
     if (form) {
         form.reset();
-        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+            el.removeAttribute('title');
+            el.removeAttribute('data-bs-title');
+        });
+        hideOfficerModalAlert(form);
+        attachOfficerFormLiveValidation(form);
     }
 
     const setVal = (id, val) => {
@@ -433,11 +643,11 @@ function openEditOfficerModal(officerId) {
 }
 
 async function handleSaveOfficerUpdates(e) {
-    e.preventDefault();
-    const form = document.getElementById('editOfficerForm') || e.target;
-    if (form) {
-        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
     }
+    const form = document.getElementById('editOfficerForm') || (e ? e.target : null);
+    if (!form) return;
 
     const offIdEl = document.getElementById('editOffId');
     const offId = offIdEl ? Number(offIdEl.value) : null;
@@ -447,109 +657,32 @@ async function handleSaveOfficerUpdates(e) {
         return;
     }
 
-    const roleEl = document.getElementById('editOffRole');
-    const firstNameEl = document.getElementById('editOffFirstName');
-    const middleNameEl = document.getElementById('editOffMiddleName');
-    const lastNameEl = document.getElementById('editOffLastName');
-    const suffixEl = document.getElementById('editOffSuffix');
-    const dobEl = document.getElementById('editOffDob');
-    const ageEl = document.getElementById('editOffAge');
-    const addressEl = document.getElementById('editOffAddress');
-    const phoneEl = document.getElementById('editOffPhone');
-    const emailEl = document.getElementById('editOffEmail');
-    const usernameEl = document.getElementById('editOffUsername');
-    const passwordEl = document.getElementById('editOffPassword');
-    const confirmPasswordEl = document.getElementById('editOffConfirmPassword');
+    const validation = validateOfficerForm(form, 'edit', offId);
+    const adminIdentity = getLoggedInAdminIdentity();
 
-    let isValid = true;
-    function setInvalid(element, msg) {
-        if (!element) return;
-        element.classList.add('is-invalid');
-        const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
-        if (feedback && msg) feedback.textContent = msg;
-        if (isValid) {
-            element.focus();
+    if (!validation.isValid) {
+        showOfficerModalAlert(form, validation.summaryMessage);
+        if (validation.errors.length > 0 && validation.errors[0].element) {
+            validation.errors[0].element.focus();
         }
-        isValid = false;
-    }
-
-    // 1. Mandatory User Role validation (Only PESO Admin or PESO Officer allowed)
-    const role = (roleEl?.value || '').trim();
-    if (!role || !['PESO Admin', 'PESO Officer'].includes(role)) {
-        setInvalid(roleEl, 'User role selection is mandatory (PESO Admin or PESO Officer).');
-    }
-
-    // 2. Personal Information validations
-    const firstName = (firstNameEl?.value || '').trim();
-    if (!firstName) {
-        setInvalid(firstNameEl, 'First name is required.');
-    }
-
-    const middleName = (middleNameEl?.value || '').trim();
-    const lastName = (lastNameEl?.value || '').trim();
-    if (!lastName) {
-        setInvalid(lastNameEl, 'Last name is required.');
-    }
-
-    const suffix = (suffixEl?.value || '').trim();
-    const dob = dobEl?.value || '';
-    if (!dob) {
-        setInvalid(dobEl, 'Valid birthdate is required.');
-    }
-
-    const age = ageEl?.value || '';
-    const address = (addressEl?.value || '').trim();
-    if (!address) {
-        setInvalid(addressEl, 'Address is required.');
-    }
-
-    // 3. Contact Number validation (PH based)
-    const phone = (phoneEl?.value || '').trim();
-    const phoneDigits = phone.replace(/[-\s]/g, '');
-    const phoneRegex = /^(09|\+639)\d{9}$/;
-    if (!phone) {
-        setInvalid(phoneEl, 'Contact number is required.');
-    } else if (!phoneRegex.test(phoneDigits)) {
-        setInvalid(phoneEl, 'Please enter a valid PH mobile number (e.g. 09123456789 or +639123456789).');
-    }
-
-    // 4. Email validation
-    const email = (emailEl?.value || '').trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-        setInvalid(emailEl, 'Email address is required.');
-    } else if (!emailRegex.test(email)) {
-        setInvalid(emailEl, 'Please provide a valid email address (e.g. officer@gmail.com).');
-    }
-
-    // 5. Account Information validations
-    const username = (usernameEl?.value || '').trim();
-    if (!username) {
-        setInvalid(usernameEl, 'Username is required.');
-    } else if (username.length < 3) {
-        setInvalid(usernameEl, 'Username must be at least 3 characters.');
-    } else if (officersList.some(o => o.id !== offId && o.username && o.username.toLowerCase() === username.toLowerCase())) {
-        setInvalid(usernameEl, `Username "${username}" is already assigned to another account.`);
-    }
-
-    // 6. Optional Password Update validation
-    const password = passwordEl?.value || '';
-    const confirmPassword = confirmPasswordEl?.value || '';
-
-    if (password) {
-        if (password.length < 8) {
-            setInvalid(passwordEl, 'Password must be a minimum of 8 characters in length.');
+        const failReasons = validation.errors.map(err => `${err.field}: ${err.message}`).join('; ');
+        logAuditEvent(
+            'FAILED_UPDATE_OFFICER_VALIDATION',
+            `Failed Edit Officer attempt for ID ${offId} by ${adminIdentity}. Reasons: ${failReasons}`
+        );
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({
+                title: 'Validation Notice',
+                message: validation.summaryMessage,
+                type: 'warning'
+            });
         }
-        if (!confirmPassword) {
-            setInvalid(confirmPasswordEl, 'Confirm password is required when changing password.');
-        } else if (password !== confirmPassword) {
-            setInvalid(confirmPasswordEl, 'Passwords do not match.');
-        }
+        return false;
     }
 
-    if (!isValid) {
-        return;
-    }
+    hideOfficerModalAlert(form);
+
+    const { role, firstName, middleName, lastName, suffix, dob, age, address, phone, email, username } = validation.data;
 
     off.first_name = firstName;
     off.middle_name = middleName || null;
@@ -587,16 +720,26 @@ async function handleSaveOfficerUpdates(e) {
         }
     }
 
-    logAuditEvent('UPDATE_OFFICER_ACCOUNT', `Updated details for officer account ID ${offId} (${username}), Role: ${role}`);
+    if (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.officers)) {
+        const storeOff = AdminStore.officers.find(o => o && o.id === offId);
+        if (storeOff) Object.assign(storeOff, updatePayload);
+    }
+
+    logAuditEvent('UPDATE_OFFICER_ACCOUNT', `Admin (${adminIdentity}) updated officer ID ${offId} ("${username}"), Role: ${role}`);
 
     safeHideModal('editOfficerModal');
     renderOfficersTables();
+    if (typeof renderOfficersModule === 'function') {
+        renderOfficersModule();
+    }
 
     window.showSystemNotification({
         title: 'Account Updated',
         message: `Officer profile for "${firstName} ${lastName}" (${username}) updated successfully as ${role}.`,
         type: 'success'
     });
+
+    return true;
 }
 
 async function handleOfficerStatusToggle(event, officerId) {
@@ -674,6 +817,7 @@ async function permanentlyDeleteOfficer(officerId) {
 }
 
 // Global window exposure
+window.validateOfficerForm = validateOfficerForm;
 window.openCreateOfficerModal = openCreateOfficerModal;
 window.openNewOfficerModal = openCreateOfficerModal;
 window.calcCreateOfficerAge = calcCreateOfficerAge;

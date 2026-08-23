@@ -842,15 +842,15 @@ window.handleNotifRecipientChange = () => {
 };
 
 // Form submit bridges
-window.handleCreateProgramSubmit = PesoAdminApp.handleCreateProgramSubmit;
-window.handleUploadOrdinance = PesoAdminApp.handleUploadOrdinance;
-window.handleCreateOfficerSubmit = PesoAdminApp.handleCreateOfficerSubmit;
-window.handleFundAllocationSubmit = PesoAdminApp.handleFundAllocationSubmit;
-window.handleComposeNotificationSubmit = PesoAdminApp.handleComposeNotificationSubmit;
-window.handleCreateScheduleSlotSubmit = (e) => { if (typeof PesoScheduling !== 'undefined') PesoScheduling.submitScheduleActivity(e.target); };
-window.handleEvaluationDecisionSubmit = (e) => { if (e) e.preventDefault(); };
-window.handleSaveOfficerUpdates = (e) => { if (e) e.preventDefault(); };
-window.handleSaveProgramUpdates = (e) => { if (e) e.preventDefault(); };
+window.handleCreateProgramSubmit = window.handleCreateProgramSubmit || PesoAdminApp.handleCreateProgramSubmit;
+window.handleUploadOrdinance = window.handleUploadOrdinance || PesoAdminApp.handleUploadOrdinance;
+window.handleCreateOfficerSubmit = window.handleCreateOfficerSubmit || PesoAdminApp.handleCreateOfficerSubmit;
+window.handleFundAllocationSubmit = window.handleFundAllocationSubmit || PesoAdminApp.handleFundAllocationSubmit;
+window.handleComposeNotificationSubmit = window.handleComposeNotificationSubmit || PesoAdminApp.handleComposeNotificationSubmit;
+window.handleCreateScheduleSlotSubmit = window.handleCreateScheduleSlotSubmit || ((e) => { if (typeof PesoScheduling !== 'undefined') PesoScheduling.submitScheduleActivity(e.target); });
+window.handleEvaluationDecisionSubmit = window.handleEvaluationDecisionSubmit || ((e) => { if (e) e.preventDefault(); });
+window.handleSaveOfficerUpdates = window.handleSaveOfficerUpdates || ((e) => { if (e) e.preventDefault(); });
+window.handleSaveProgramUpdates = window.handleSaveProgramUpdates || ((e) => { if (e) e.preventDefault(); });
 
 // Auto-bootloader
 document.addEventListener('DOMContentLoaded', () => {
