@@ -962,38 +962,103 @@
         <!-- MODULE 6: FUND ALLOCATION & DISTRIBUTION (REQ034-036, REQ042-046)   -->
         <!-- =================================================================== -->
         <div id="sectionFunds" class="d-none">
+            <!-- Header Banner (Adjust Fund Allocations Button Removed as Requested) -->
             <div class="ordinance-banner mb-4">
                 <div>
                     <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                         <span class="badge bg-warning text-dark px-2.5 py-1 font-monospace fw-bold">LGU APPROPRIATIONS & DISBURSEMENT LOGS</span>
-                        <span class="badge bg-success text-white px-2 py-1">Real-Time Balances</span>
+                        <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-broadcast me-1"></i>Real-Time Balances</span>
+                        <span class="badge bg-info text-white px-2 py-1">Budget Year 2026</span>
                     </div>
                     <h4 class="fw-bold mb-1">Fund Allocation & Assistance Distribution</h4>
                     <p class="text-white-50 mb-0 small">
-                        <i class="bi bi-cash-stack me-1"></i> Live balance tracking, overflow protection safeguards, budget adjustment audits, and disbursed grants logs.
+                        <i class="bi bi-cash-stack me-1"></i> Live balance tracking, ordinance sync (REQ035), auto-updating utilization metrics (REQ034), batch & beneficiary breakdown (REQ036), and disbursed grants logs.
                     </p>
                 </div>
-                <button class="btn btn-light fw-bold text-primary shadow-sm px-3" onclick="openFundAllocationModal()">
-                    <i class="bi bi-sliders me-1"></i> Adjust Fund Allocations
-                </button>
             </div>
 
-            <!-- Fund Balance Overflow Warning Box (Dynamic) -->
+            <!-- Row 1: Key Budget Monitoring Executive Metrics (REQ034) -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card blue">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value" id="statFundApprovedBudget">₱13,707,882.00</div>
+                                <div class="stat-label">Approved Budget</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-bank2"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                            <span class="text-primary fw-semibold"><i class="bi bi-file-earmark-text me-1"></i> Ordinance No. 6 Allocation (REQ035)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card green">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-success" id="statFundUtilizedBalance">₱0.00</div>
+                                <div class="stat-label">Utilized Balance</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-arrow-down-circle-fill"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                            <span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Real-Time Disbursed Grants</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card teal">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-teal" id="statFundRemainingBalance">₱13,707,882.00</div>
+                                <div class="stat-label">Remaining Balance</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-wallet2"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                            <span class="text-info fw-semibold"><i class="bi bi-shield-check me-1"></i> Live Available Allocation</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card orange">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-warning" id="statFundPercentUtilized">0%</div>
+                                <div class="stat-label">% Utilized</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-speedometer2"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                            <span id="statFundAlertBadge" class="text-muted"><i class="bi bi-info-circle me-1"></i> Auto-Updates After Every Transaction (REQ034)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fund Balance Alert Box (< 10% Remaining Balance Notice) -->
             <div id="fundOverflowAlertBox" class="overflow-warning-banner mb-4 d-none">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-exclamation-octagon-fill text-danger fs-4"></i>
                     <div>
-                        <strong class="text-danger">High Budget Utilization Notice:</strong> One or more programs have exceeded 90% utilization or are approaching budget exhaustion. Review allocations below.
+                        <strong class="text-danger">Critical Budget Notice:</strong> <span id="fundOverflowAlertText">One or more programs have less than 10% remaining balance (or exceeded 90% utilization). Review allocations below.</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Program Budget Balances Table -->
+            <!-- 1. Program Budget Allocations & Remaining Balances Table -->
             <div class="content-card mb-4">
-                <div class="card-header-custom">
-                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-wallet2 text-primary me-2"></i>Program Budget Allocations & Remaining Balances</h5>
+                <div class="card-header-custom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-wallet2 text-primary me-2"></i>Program Budget Allocations & Remaining Balances</h5>
+                        <small class="text-muted">PESO Livelihood & Employment Assistance Programs (Locale-aware Currency ₱)</small>
+                    </div>
                     <button class="btn btn-sm btn-primary fw-semibold" onclick="openFundAllocationModal()">
-                        <i class="bi bi-plus-lg me-1"></i> Adjust Program Budget
+                        <i class="bi bi-pencil-square me-1"></i> Edit Program Budget
                     </button>
                 </div>
                 <div class="table-responsive">
@@ -1001,10 +1066,11 @@
                         <thead>
                             <tr>
                                 <th>Program Name & Code</th>
-                                <th>Allocated Budget</th>
+                                <th>Approved Budget</th>
                                 <th>Disbursed Assistance</th>
                                 <th>Remaining Balance</th>
                                 <th class="text-center">Utilization</th>
+                                <th class="text-center">Verification Status</th>
                                 <th class="text-end">Action</th>
                             </tr>
                         </thead>
@@ -1015,16 +1081,71 @@
                 </div>
             </div>
 
-            <!-- Assistance Distribution Logs Table (REQ042 – REQ046) -->
+            <!-- 2. Batch & Beneficiary Budget Breakdown (REQ036 - Read-Only) -->
+            <div class="content-card mb-4">
+                <div class="card-header-custom bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Batch & Beneficiary Budget Breakdown</h5>
+                            <span class="badge badge-readonly"><i class="bi bi-shield-lock-fill me-1"></i>REQ036 • Read-Only View</span>
+                        </div>
+                        <small class="text-muted">Detailed view of budget utilization breakdown per batch and per beneficiary with masked contacts.</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <select class="form-select form-select-sm" id="fundBreakdownProgSelect" style="min-width: 220px;" onchange="renderFundBreakdown()" aria-label="Filter Breakdown by Program">
+                            <option value="ALL">All PESO Programs</option>
+                        </select>
+                        <select class="form-select form-select-sm" id="fundBreakdownBatchSelect" style="min-width: 180px;" onchange="renderFundBreakdown()" aria-label="Filter Breakdown by Batch">
+                            <option value="ALL">All Batches</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2" id="breakdownSummaryBar">
+                    <div class="small text-muted">
+                        Showing breakdown for: <strong class="text-dark" id="breakdownFilterLabel">All Active Programs</strong>
+                    </div>
+                    <div class="d-flex gap-3 small">
+                        <span>Total Allocated: <strong class="text-dark font-monospace" id="breakdownTotalAllocated">₱0.00</strong></span>
+                        <span>Total Received: <strong class="text-success font-monospace" id="breakdownTotalReceived">₱0.00</strong></span>
+                        <span>Remaining: <strong class="text-primary font-monospace" id="breakdownTotalRemaining">₱0.00</strong></span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0" id="fundBreakdownTable">
+                        <thead>
+                            <tr>
+                                <th>Beneficiary Name</th>
+                                <th>QR Identifier</th>
+                                <th>Program & Batch</th>
+                                <th>Assistance Type</th>
+                                <th>Approved Allocation</th>
+                                <th>Received / Utilized</th>
+                                <th>Balance</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fundBreakdownTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. Assistance Distribution Logs Table (REQ042 – REQ046) -->
             <div class="content-card mb-0">
                 <div class="card-header-custom bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
                         <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-receipt-cutoff text-success me-2"></i>Assistance Distribution Logs</h5>
-                        <small class="text-muted">Live records of disbursed livelihood grants, starter kits, and allowances.</small>
+                        <small class="text-muted">Live records of disbursed livelihood grants, starter kits, and allowances (Real-Time Realized Deductions).</small>
                     </div>
-                    <button class="btn btn-sm btn-outline-success fw-semibold" onclick="exportDistributionLogsCsv()">
-                        <i class="bi bi-download me-1"></i> Export Distribution CSV
-                    </button>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-sm btn-outline-danger fw-semibold" onclick="printDistributionLogsPdf()" title="Print / PDF Export">
+                            <i class="bi bi-printer-fill me-1"></i> Print / PDF
+                        </button>
+                        <button class="btn btn-sm btn-outline-success fw-semibold" onclick="exportDistributionLogsCsv()" title="Export CSV">
+                            <i class="bi bi-download me-1"></i> Export Distribution CSV
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-custom align-middle mb-0" id="distributionLogsTable">
@@ -1037,6 +1158,7 @@
                                 <th>Release Date</th>
                                 <th>Releasing Officer</th>
                                 <th>Approval Conditions</th>
+                                <th class="text-center">Receipt Voucher</th>
                             </tr>
                         </thead>
                         <tbody id="distributionLogsTableBody">
@@ -2164,40 +2286,45 @@
         </div>
     </div>
 
-    <!-- Modal 9: Fund Allocation Adjustment Modal -->
+    <!-- Modal 9: Edit Program Budget Allocation Modal (REQ035) -->
     <div class="modal fade" id="fundAllocationModal" tabindex="-1" aria-labelledby="fundAllocModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
-                    <h5 class="modal-title fw-bold mb-0" id="fundAllocModalTitle">
-                        <i class="bi bi-sliders me-2"></i>Adjust Program Budget Allocation
-                    </h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-pencil-square text-warning fs-4"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="fundAllocModalTitle">Edit Program Budget Allocation</h5>
+                            <small class="text-white-50">LGU Appropriation Ordinance No. 6, Series of 2025 (REQ035)</small>
+                        </div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="fundAllocForm" onsubmit="handleFundAllocationSubmit(event)">
                     <div class="modal-body p-4">
                         <div class="mb-3">
-                            <label for="fundAllocProgSelect" class="form-label fw-semibold">Select Program <span class="text-danger">*</span></label>
+                            <label for="fundAllocProgSelect" class="form-label fw-semibold">Target Livelihood / Employment Program <span class="text-danger">*</span></label>
                             <select class="form-select" id="fundAllocProgSelect" required onchange="handleFundProgSelectionChange()">
                                 <!-- Populated dynamically -->
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="fundAllocNewBudget" class="form-label fw-semibold">New Allocated Budget (PHP ₱) <span class="text-danger">*</span></label>
+                            <label for="fundAllocNewBudget" class="form-label fw-semibold">Allocated Budget (PHP ₱) <span class="text-danger">*</span></label>
                             <div class="input-group has-validation">
                                 <span class="input-group-text bg-light fw-bold text-dark">₱</span>
                                 <input type="text" inputmode="decimal" autocomplete="off" class="form-control fw-bold text-success currency-input" id="fundAllocNewBudget" required placeholder="0.00">
                                 <div class="invalid-feedback">Budget must be a valid positive amount (minimum ₱0.01).</div>
                             </div>
+                            <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i>Locale-aware currency format enforced (e.g. ₱1,000.00, ₱10,000.00).</small>
                         </div>
                         <div class="mb-3">
-                            <label for="fundAllocJustification" class="form-label fw-semibold text-danger">Adjustment Justification / Ordinance Note <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="fundAllocJustification" rows="2" placeholder="Required: Administrative reason for budget reallocation..." required></textarea>
+                            <label for="fundAllocJustification" class="form-label fw-semibold text-primary">Ordinance Allocation Reference / Justification Note <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="fundAllocJustification" rows="2" placeholder="Required: LGU Appropriation Ordinance No. 6, Series of 2025 item reference or administrative reason..." required></textarea>
                         </div>
                     </div>
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-floppy-fill me-1"></i> Save & Log Audit</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-floppy-fill me-1"></i> Save Budget & Log Audit</button>
                     </div>
                 </form>
             </div>

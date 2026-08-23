@@ -69,24 +69,27 @@ const PesoFunds = (() => {
             const spent = progDisb.reduce((sum, d) => sum + (Number(d.amount) || Number(d.amount_approved) || 0), 0);
             totalSpent += spent;
 
-            if (allocated > 0 && spent >= allocated * 0.85) {
-                overflowPrograms.push({ code: prog.code, name: prog.name, allocated, spent, ratio: Math.round((spent / allocated) * 100) });
+            if (allocated > 0 && (spent >= allocated * 0.90 || (allocated - spent) < allocated * 0.10)) {
+                overflowPrograms.push({ code: prog.code, name: prog.name, allocated, spent, remaining: Math.max(0, allocated - spent), ratio: Math.round((spent / allocated) * 100) });
             }
         });
 
         const totalRemaining = Math.max(0, totalAllocated - totalSpent);
 
         // Update Fund Cards
-        const elTotal = document.getElementById('statFundTotalAllocated');
+        const elTotal = document.getElementById('statFundApprovedBudget') || document.getElementById('statFundTotalAllocated');
         if (elTotal) elTotal.textContent = formatCurrency(totalAllocated);
 
-        const elDisb = document.getElementById('statFundTotalDisbursed');
+        const elDisb = document.getElementById('statFundUtilizedBalance') || document.getElementById('statFundTotalDisbursed');
         if (elDisb) elDisb.textContent = formatCurrency(totalSpent);
 
-        const elRem = document.getElementById('statFundTotalRemaining');
+        const elRem = document.getElementById('statFundRemainingBalance') || document.getElementById('statFundTotalRemaining');
         if (elRem) elRem.textContent = formatCurrency(totalRemaining);
 
-        // Overflow Warning Banner
+        const elPct = document.getElementById('statFundPercentUtilized');
+        if (elPct) elPct.textContent = `${totalAllocated > 0 ? Math.round((totalSpent / totalAllocated) * 100) : 0}%`;
+
+        // Overflow / Low Balance Warning Banner (< 10% remaining)
         if (warningContainer) {
             if (overflowPrograms.length > 0) {
                 warningContainer.classList.remove('d-none');
@@ -94,7 +97,7 @@ const PesoFunds = (() => {
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-exclamation-octagon-fill text-danger fs-4"></i>
                         <div>
-                            <strong class="text-danger">High Budget Utilization Notice:</strong> The following programs have reached critical budget allocation thresholds (&ge; 85%):
+                            <strong class="text-danger">Critical Budget Notice:</strong> The following programs have less than 10% remaining balance or &ge; 90% utilization:
                             <strong>${overflowPrograms.map(o => `${o.code} (${o.ratio}%)`).join(', ')}</strong>. Review allocations before releasing further grants.
                         </div>
                     </div>
@@ -139,7 +142,7 @@ const PesoFunds = (() => {
                         </td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="openFundAllocationModal('${prog.code}')">
-                                <i class="bi bi-sliders me-1"></i>Adjust
+                                <i class="bi bi-pencil-square me-1"></i>Edit
                             </button>
                         </td>
                     </tr>

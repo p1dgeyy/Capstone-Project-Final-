@@ -12,18 +12,18 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         max_age: 65,
         target_beneficiaries: 'Individuals & families in crisis, low-income heads of households, marginalized citizens',
         assistance_type: 'Financial / Material Emergency Grant (₱2,000 - ₱5,000)',
-        description: 'Financial or material assistance to individuals and families in crisis. Provides emergency financial aid for medical, burial, educational, transportation, and subsistence needs to vulnerable residents facing acute hardship.',
+        description: 'Financial or material emergency assistance to individuals and families in crisis. Provides emergency financial aid for livelihood continuity, transportation, and immediate subsistence needs to vulnerable residents facing acute hardship.',
         eligibility_criteria: [
             'Bona fide resident of the City of Koronadal with verified barangay indigency.',
-            'Currently experiencing sudden crisis (medical emergency, demise of breadwinner, disaster displacement).',
+            'Currently experiencing sudden crisis (loss of livelihood breadwinner, disaster displacement, emergency hardship).',
             'Classified under low-income or marginalized bracket based on social intake assessment.',
             'No duplicate financial grant received for the same emergency incident within the cycle.'
         ],
         required_documents: [
             'Valid Government-Issued Identification Card (with 3 specimen signatures)',
             'Barangay Certificate of Indigency / Certificate of Residency',
-            'Medical Certificate, Hospital Billing, or Certified Death Certificate (case-specific)',
-            'Social Case Intake Assessment Endorsement from PESO / CSWDO Desk'
+            'Incident / Livelihood Disruption Verification Document',
+            'Social Case Intake Assessment Endorsement from PESO Desk'
         ],
         timeline: {
             intake: 'Year-Round Daily Intake (Mon-Fri 8:00 AM - 5:00 PM)',
@@ -1458,6 +1458,7 @@ async function permanentlyDeleteProgram(progId) {
 
     logAuditEvent('PERMANENT_DELETE_PROGRAM', `Admin permanently deleted program ${code} (${name}) from system.`);
     renderDashboardTables();
+}
 
 // Global window exposure
 window.openCreateProgramModal = openCreateProgramModal;
