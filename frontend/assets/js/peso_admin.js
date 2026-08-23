@@ -661,13 +661,30 @@
         }
     }
 
-    // Safe Notification Wrapper
-    function notify(title, message, type = 'info') {
-        if (typeof window.showSystemNotification === 'function') {
-            window.showSystemNotification({ title, message, type });
-        } else {
-            console.log(`[Notification ${type.toUpperCase()}]: ${title} - ${message}`);
-            if (type === 'danger' || type === 'error') alert(`${title}: ${message}`);
+    // Persistent System Notification & Alert Wrapper
+    function notify(title, message, type = 'info', options = {}) {
+        const adminId = sessionStorage.getItem('userId') ? parseInt(sessionStorage.getItem('userId')) : 1;
+        const adminName = sessionStorage.getItem('userName') || sessionStorage.getItem('userEmail') || 'PESO Admin';
+        const eventType = options.eventType || (type === 'danger' || type === 'error' ? 'ADMIN_VALIDATION_ERROR' : 'ADMIN_ACTION_COMPLETED');
+
+        if (typeof window.dispatchSystemNotification === 'function') {
+            window.dispatchSystemNotification({
+                title,
+                message,
+                type,
+                staffId: adminId,
+                actorName: adminName,
+                eventType,
+                recipientQr: options.recipientQr || null,
+                payload: options.payload || null
+            });
+        }
+
+        // If error or warning or modal requested, display accessible system modal card
+        if (type === 'danger' || type === 'error' || type === 'warning' || options.modal) {
+            if (typeof window.showSystemNotification === 'function') {
+                window.showSystemNotification({ title, message, type: type === 'danger' ? 'error' : type });
+            }
         }
     }
 
@@ -3666,7 +3683,7 @@
         const search = (document.getElementById('notifSearchInput')?.value || '').toLowerCase();
 
         const filtered = notifs.filter(n => {
-            const str = `${n.title || ''} ${n.message || ''} ${n.beneficiary_qr || ''} ${n.staff_user_id || ''}`.toLowerCase();
+            const str = `${n.title || ''} ${n.message || ''} ${n.beneficiary_qr || ''} ${n.staff_user_id || ''} ${n.actor || ''}`.toLowerCase();
             return !search || str.includes(search);
         });
 
@@ -3674,19 +3691,25 @@
         if (!tbody) return;
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No dispatched notification logs found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No dispatched notification logs found.</td></tr>';
             return;
         }
 
         tbody.innerHTML = filtered.map(n => {
-            const target = n.beneficiary_qr ? `<span class="badge bg-light text-dark font-monospace border">${escapeHtml(n.beneficiary_qr)}</span>` : `<span class="badge bg-primary-subtle text-primary">Staff #${n.staff_user_id}</span>`;
+            const target = n.beneficiary_qr 
+                ? `<span class="badge bg-light text-dark font-monospace border"><i class="bi bi-qr-code me-1"></i>${escapeHtml(n.beneficiary_qr)}</span>` 
+                : `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-person-badge me-1"></i>Staff #${n.staff_user_id || 1}</span>`;
+            
+            const actor = n.actor || n.admin_identity || (n.staff_user_id ? `Admin #${n.staff_user_id}` : 'PESO Admin (ID: 1)');
+
             return `
                 <tr>
                     <td>${target}</td>
-                    <td class="fw-bold text-dark">${escapeHtml(n.title)}</td>
-                    <td><div class="text-secondary small" style="max-width: 320px;">${escapeHtml(n.message)}</div></td>
-                    <td><small class="text-muted">${formatDateTime(n.created_at)}</small></td>
-                    <td class="text-center"><span class="badge ${n.is_read ? 'bg-secondary' : 'bg-success'}">${n.is_read ? 'Read' : 'Delivered'}</span></td>
+                    <td><span class="fw-bold text-dark">${escapeHtml(n.title)}</span></td>
+                    <td><div class="text-secondary small" style="max-width: 380px;">${escapeHtml(n.message)}</div></td>
+                    <td><small class="text-muted fw-semibold"><i class="bi bi-shield-check text-primary me-1"></i>${escapeHtml(actor)}</small></td>
+                    <td><small class="text-muted font-monospace">${formatDateTime(n.created_at)}</small></td>
+                    <td class="text-center"><span class="badge ${n.is_read ? 'bg-secondary-subtle text-secondary border' : 'bg-success-subtle text-success border border-success-subtle'}">${n.is_read ? 'Read' : 'Delivered'}</span></td>
                 </tr>
             `;
         }).join('');

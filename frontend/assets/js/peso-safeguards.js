@@ -644,8 +644,12 @@ if (typeof window.PESOSafeguards === 'undefined') {
   function executeWithSafeguards(context, onExecute) {
     const validation = validateCommand(context);
     if (!validation.allowed) {
-      if (typeof showToast === 'function') {
-        showToast(validation.reason, 'error');
+      if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({
+          title: 'Operation Blocked',
+          message: validation.reason,
+          type: 'error'
+        });
       } else {
         alert(validation.reason);
       }

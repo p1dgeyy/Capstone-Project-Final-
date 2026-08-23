@@ -550,6 +550,38 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Persistent Live System Notifications & Activity Feed Card -->
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold"><i class="bi bi-bell-fill text-primary me-2"></i>Persistent System Notifications & Activity Log</h5>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="officerNotifCountBadge">0 Notifications</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="officerNotificationsTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Target (QR / Staff)</th>
+                                            <th>Event & Title</th>
+                                            <th>Message Content</th>
+                                            <th>Timestamp</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="officerNotificationsTableBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-3 text-muted">Loading system notifications...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- 2. BENEFICIARIES MANAGEMENT TAB -->
@@ -2295,6 +2327,18 @@
                     }
                 }
 
+                // 7. System Notifications for Officer Feed
+                if (DataService.notifications) {
+                    try {
+                        const notifRes = await DataService.notifications.getAll();
+                        if (notifRes && Array.isArray(notifRes.data)) {
+                            officerNotificationsList = notifRes.data;
+                        }
+                    } catch (nErr) {
+                        console.warn('[PESO Officer] notifications fetch note:', nErr);
+                    }
+                }
+
                 // Render views
                 renderBeneficiaryTable();
                 renderEvaluationQueueTable();
@@ -2302,11 +2346,47 @@
                 renderLivelihoodMasterTable();
                 renderDailySchedules();
                 renderApprovedAssistanceTable();
+                renderOfficerNotificationsFeed();
                 loadOfficerTeam();
                 updateDashboardOverviewMetrics(programsData, (appRes && appRes.data) || []);
             } catch (err) {
                 console.warn('[PESO Officer] loadAllOfficerData notice:', err);
             }
+        }
+
+        // ---------------------------------------------------------------------
+        // OFFICER SYSTEM NOTIFICATIONS FEED CONTROLLER
+        // ---------------------------------------------------------------------
+        let officerNotificationsList = [];
+
+        function renderOfficerNotificationsFeed() {
+            const tbody = document.getElementById('officerNotificationsTableBody');
+            const badge = document.getElementById('officerNotifCountBadge');
+            if (badge) badge.textContent = `${officerNotificationsList.length} Notification${officerNotificationsList.length === 1 ? '' : 's'}`;
+            if (!tbody) return;
+
+            if (officerNotificationsList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted"><i class="bi bi-bell-slash text-muted me-1"></i>No persistent system notifications logged yet.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = officerNotificationsList.slice(0, 20).map(n => {
+                const target = n.beneficiary_qr 
+                    ? `<span class="badge bg-light text-dark font-monospace border"><i class="bi bi-qr-code me-1"></i>${escapeHtml(n.beneficiary_qr)}</span>` 
+                    : `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-person-badge me-1"></i>Staff #${n.staff_user_id || 1}</span>`;
+                
+                const timeStr = n.created_at ? new Date(n.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent';
+
+                return `
+                    <tr>
+                        <td>${target}</td>
+                        <td><span class="fw-bold text-dark">${escapeHtml(n.title)}</span></td>
+                        <td><div class="text-secondary small" style="max-width: 480px;">${escapeHtml(n.message)}</div></td>
+                        <td><small class="text-muted font-monospace">${timeStr}</small></td>
+                        <td class="text-center"><span class="badge ${n.is_read ? 'bg-secondary-subtle text-secondary' : 'bg-success-subtle text-success border border-success-subtle'}">${n.is_read ? 'Read' : 'Delivered'}</span></td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // ---------------------------------------------------------------------

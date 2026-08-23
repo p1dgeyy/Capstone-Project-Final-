@@ -332,14 +332,99 @@
     });
   };
 
-  // Provide showToast mapping to system notification modal card as safeguard
-  window.showToast = function (msg, type = 'info') {
-    window.showSystemNotification({
-      title: type === 'error' ? 'Validation Error' : 'System Alert',
-      message: String(msg),
-      type: type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info')
-    });
-  };
+  /**
+   * Persistent System Notification Dispatcher
+   * Automatically persists to DB notifications table, records an immutable audit log,
+   * updates the Notification Hub in memory and UI, and optionally sends multi-channel alerts.
+   */
+  async function dispatchSystemNotification({
+    title,
+    message,
+    type = 'info',
+    recipientQr = null,
+    staffId = null,
+    eventType = 'SYSTEM_NOTIFICATION',
+    actorId = null,
+    actorName = null,
+    payload = null,
+    recipientPhone = null,
+    recipientEmail = null
+  }) {
+    const timestamp = new Date().toISOString();
+    const resolvedActor = actorName || (typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('userName') || sessionStorage.getItem('userEmail')) : 'System User') || 'Admin/Officer';
+    const resolvedStaffId = staffId || (typeof sessionStorage !== 'undefined' ? parseInt(sessionStorage.getItem('userId')) : null) || 1;
+
+    console.log(`[SYSTEM NOTIFICATION] [${eventType}] Dispatched: "${title}" - "${message}" by ${resolvedActor}`);
+
+    let notificationRecord = {
+      id: Date.now(),
+      title: title,
+      message: message,
+      beneficiary_qr: recipientQr,
+      staff_user_id: resolvedStaffId,
+      is_read: false,
+      created_at: timestamp
+    };
+
+    // 1. Persist to Supabase Database (notifications table)
+    if (typeof DataService !== 'undefined' && DataService.notifications) {
+      try {
+        const notifRes = await DataService.notifications.create({
+          title,
+          message,
+          beneficiary_qr: recipientQr,
+          staff_user_id: resolvedStaffId
+        });
+        if (notifRes && notifRes.data) {
+          notificationRecord = notifRes.data;
+        }
+      } catch (dbErr) {
+        console.warn('[SYSTEM NOTIFICATION] DB persistence notice:', dbErr);
+      }
+    }
+
+    // 2. Persist to Audit Log (audit_logs table)
+    if (typeof DataService !== 'undefined' && DataService.auditLogs) {
+      try {
+        await DataService.auditLogs.log({
+          action: eventType,
+          entityType: 'notification',
+          entityId: notificationRecord.id ? parseInt(notificationRecord.id) : null,
+          details: `[${eventType}] ${title}: ${message} (Actor: ${resolvedActor}, Target: ${recipientQr || ('Staff #' + resolvedStaffId)})`
+        });
+      } catch (auditErr) {
+        console.warn('[SYSTEM NOTIFICATION] Audit logging notice:', auditErr);
+      }
+    }
+
+    // 3. Update AdminStore notifications & Notification Hub UI if available
+    if (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.notifications)) {
+      AdminStore.notifications.unshift(notificationRecord);
+      if (typeof renderNotificationsModule === 'function') {
+        renderNotificationsModule();
+      }
+      if (typeof updateTabCounts === 'function') {
+        updateTabCounts();
+      }
+    }
+
+    // 4. Update Officer Portal Notifications if present
+    if (typeof renderOfficerNotificationsFeed === 'function') {
+      renderOfficerNotificationsFeed();
+    }
+
+    // 5. External SMS / Email dispatch if provided
+    if (recipientPhone && typeof window.sendExternalSms === 'function') {
+      window.sendExternalSms({ recipientPhone, message: `${title}: ${message}` });
+    }
+    if (recipientEmail && typeof window.sendExternalEmail === 'function') {
+      window.sendExternalEmail({ recipientEmail, subject: title, body: message });
+    }
+
+    return notificationRecord;
+  }
+
+  window.dispatchSystemNotification = dispatchSystemNotification;
 
   // =========================================================================
   // Multi-Channel External Notification Gateway (SMS / Email)
