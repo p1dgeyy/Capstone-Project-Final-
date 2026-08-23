@@ -38,8 +38,10 @@ CREATE TABLE IF NOT EXISTS staff_profiles (
   phone VARCHAR(20) DEFAULT NULL,
   address TEXT DEFAULT NULL,
 
-  -- Account Status
+  -- Account Status & Session Tracking
   status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'Deactivated', 'Inactive')),
+  current_session_id VARCHAR(100) DEFAULT NULL,
+  last_activity_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -51,6 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_staff_role ON staff_profiles(role);
 CREATE INDEX IF NOT EXISTS idx_staff_username ON staff_profiles(username);
 CREATE INDEX IF NOT EXISTS idx_staff_auth_id ON staff_profiles(auth_id);
 CREATE INDEX IF NOT EXISTS idx_staff_status ON staff_profiles(status);
+CREATE INDEX IF NOT EXISTS idx_staff_session ON staff_profiles(current_session_id);
 
 -- =============================================================================
 -- 2. BENEFICIARIES TABLE
@@ -84,8 +87,10 @@ CREATE TABLE IF NOT EXISTS beneficiaries (
   terms_agreed BOOLEAN DEFAULT FALSE,
   data_consent BOOLEAN DEFAULT FALSE,
 
-  -- Account Status
+  -- Account Status & Session Tracking
   status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'Deactivated', 'Inactive')),
+  current_session_id VARCHAR(100) DEFAULT NULL,
+  last_activity_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -97,6 +102,23 @@ CREATE INDEX IF NOT EXISTS idx_ben_auth_id ON beneficiaries(auth_id);
 CREATE INDEX IF NOT EXISTS idx_ben_username ON beneficiaries(username);
 CREATE INDEX IF NOT EXISTS idx_ben_status ON beneficiaries(status);
 CREATE INDEX IF NOT EXISTS idx_ben_last_name ON beneficiaries(last_name);
+CREATE INDEX IF NOT EXISTS idx_ben_session ON beneficiaries(current_session_id);
+
+-- =============================================================================
+-- 2.1 ACTIVE USER SESSIONS TABLE (Single Active Device Concurrency Control)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS active_user_sessions (
+  user_id VARCHAR(100) PRIMARY KEY,
+  session_id VARCHAR(100) NOT NULL,
+  user_identifier VARCHAR(100),
+  role VARCHAR(50),
+  device_info TEXT DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_activity_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_active_sessions_session_id ON active_user_sessions(session_id);
+CREATE INDEX IF NOT EXISTS idx_active_sessions_last_activity ON active_user_sessions(last_activity_at);
 
 -- =============================================================================
 -- 3. PROGRAMS TABLE

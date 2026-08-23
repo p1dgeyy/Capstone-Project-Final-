@@ -213,7 +213,12 @@ const GoogleAuth = (() => {
         sessionStorage.setItem('department', staffProfile.department || 'PESO');
 
         if (typeof SessionManager !== 'undefined' && SessionManager.save) {
-          SessionManager.save(staffProfile.id, session.access_token, staffProfile.role);
+          SessionManager.save(staffProfile.id, session.access_token, staffProfile.role, {
+            username: staffProfile.username,
+            fullName: fullName,
+            department: staffProfile.department || 'PESO',
+            email: staffProfile.email
+          });
         }
 
         // Clean transient OAuth storage

@@ -47,6 +47,11 @@
     document.addEventListener('DOMContentLoaded', () => {
         checkLockoutStatus();
 
+        // Check if redirected due to session kick or inactivity timeout
+        if (typeof SessionManager !== 'undefined' && SessionManager.checkAndDisplayLoginNotice) {
+            SessionManager.checkAndDisplayLoginNotice('errorMessage', 'errorAlert');
+        }
+
         // Clear any stale cached credentials/sessions on login portal load
         ['userId', 'userRole', 'username', 'userFullName', 'department', 'jwtAccessToken', 'sessionToken'].forEach(k => sessionStorage.removeItem(k));
 
@@ -332,7 +337,12 @@
                 sessionStorage.setItem('department', userProfile.department || 'PESO');
 
                 if (typeof SessionManager !== 'undefined' && SessionManager.save) {
-                    SessionManager.save(userProfile.id, accessToken, userProfile.role);
+                    SessionManager.save(userProfile.id, accessToken, userProfile.role, {
+                        username: userProfile.username || identifier,
+                        fullName: fullName,
+                        department: userProfile.department || 'PESO',
+                        email: userProfile.email || ''
+                    });
                 }
 
                 // Audit Log

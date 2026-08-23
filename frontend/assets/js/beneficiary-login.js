@@ -10,6 +10,11 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Check if redirected due to session kick or inactivity timeout
+        if (typeof SessionManager !== 'undefined' && SessionManager.checkAndDisplayLoginNotice) {
+            SessionManager.checkAndDisplayLoginNotice('errorMessage', 'errorAlert');
+        }
+
         // Reset login form fields on page load
         const loginForm = document.getElementById('loginForm');
         if (loginForm) loginForm.reset();
@@ -259,7 +264,12 @@
                 // Save session data & AuthGuard integration
                 const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.username;
                 if (typeof SessionManager !== 'undefined' && SessionManager.save) {
-                    SessionManager.save(userProfile.id, accessToken, 'Beneficiary');
+                    SessionManager.save(userProfile.qr_code || userProfile.id, accessToken, 'Beneficiary', {
+                        username: userProfile.username,
+                        fullName: fullName,
+                        qrCode: userProfile.qr_code,
+                        email: userProfile.email || ''
+                    });
                 }
 
                 sessionStorage.setItem('jwtAccessToken', accessToken || '');

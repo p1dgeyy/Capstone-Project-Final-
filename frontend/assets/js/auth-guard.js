@@ -319,11 +319,22 @@ const AuthGuard = (() => {
       }
 
       setupAuthStateListener();
+
+      // Start Single-Session Watchdog & 20-Minute Inactivity Timer
+      if (typeof SessionManager !== 'undefined' && SessionManager.startPeriodicVerification) {
+        SessionManager.startPeriodicVerification();
+      }
+
       return true;
 
     } catch (err) {
       console.warn('[AUTH_GUARD] requireAuth note (recovered):', err?.message || err);
-      if (sessionStorage.getItem('userRole')) return true;
+      if (sessionStorage.getItem('userRole')) {
+        if (typeof SessionManager !== 'undefined' && SessionManager.startPeriodicVerification) {
+          SessionManager.startPeriodicVerification();
+        }
+        return true;
+      }
       redirectToLogin('A system error occurred. Please log in again.');
       return false;
     }

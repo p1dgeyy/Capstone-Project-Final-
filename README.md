@@ -70,7 +70,9 @@ The system uses **Supabase Auth** for authentication:
 
 - **Login:** `supabaseClient.auth.signInWithPassword({ email, password })`
 - **Registration:** `supabaseClient.auth.signUp({ email, password, options: { data: { ... } } })`
-- **Session:** Managed by Supabase JS client; access tokens are stored automatically.
+- **Session Security:**
+  - **Single Active Session per User:** Concurrent logins on different devices/browsers are automatically invalidated. When an account logs in on a new device, any older active session receives a real-time invalidation notification and is logged out immediately.
+  - **20-Minute Inactivity Auto-Logout:** Active dashboards monitor user interactions. If a user is inactive for 20 minutes, the session is safely terminated. A 60-second warning modal countdown appears at minute 19 allowing the user to stay logged in. Activity synchronizes across all open browser tabs.
 - **Route Protection:** `auth-guard.js` checks for an active session and redirects unauthenticated users.
 
 ### User Roles
