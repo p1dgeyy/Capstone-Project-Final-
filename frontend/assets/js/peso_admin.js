@@ -1905,6 +1905,21 @@
             categorySelect.value = '';
         }
 
+        const slotsInput = document.getElementById('newProgSlots');
+        if (slotsInput) slotsInput.value = '100';
+
+        const minAgeInput = document.getElementById('newProgMinAge');
+        if (minAgeInput) minAgeInput.value = '18';
+
+        const maxAgeInput = document.getElementById('newProgMaxAge');
+        if (maxAgeInput) maxAgeInput.value = '65';
+
+        const intakeInput = document.getElementById('newProgIntake');
+        if (intakeInput) intakeInput.value = 'Budget Year 2026 Active Intake (Rolling Admissions)';
+
+        const cycleInput = document.getElementById('newProgCycle');
+        if (cycleInput) cycleInput.value = 'Quarterly Cohorts & Continuous Placement';
+
         logAdminAction('OPEN_CREATE_PROGRAM_FORM', 'program', null, 'Admin opened Create New Livelihood Program form');
         openModal('createProgramModal');
     }
@@ -1919,8 +1934,17 @@
         const nameEl = document.getElementById('newProgName');
         const codeEl = document.getElementById('newProgCode');
         const categoryEl = document.getElementById('newProgCategory');
-        const budgetEl = document.getElementById('newProgBudget');
+        const targetEl = document.getElementById('newProgTarget');
+        const assistanceEl = document.getElementById('newProgAssistance');
         const descEl = document.getElementById('newProgDesc');
+        const slotsEl = document.getElementById('newProgSlots');
+        const minAgeEl = document.getElementById('newProgMinAge');
+        const maxAgeEl = document.getElementById('newProgMaxAge');
+        const budgetEl = document.getElementById('newProgBudget');
+        const intakeEl = document.getElementById('newProgIntake');
+        const cycleEl = document.getElementById('newProgCycle');
+        const eligEl = document.getElementById('newProgEligibility');
+        const reqDocsEl = document.getElementById('newProgRequiredDocs');
 
         let isValid = true;
         function setInvalid(element, msg) {
@@ -1949,9 +1973,36 @@
             setInvalid(categoryEl, 'Category selection is required.');
         }
 
+        const target = (targetEl?.value || '').trim();
+        if (!target) {
+            setInvalid(targetEl, 'Target beneficiaries specification is required.');
+        }
+
+        const assistance = (assistanceEl?.value || '').trim();
+        if (!assistance) {
+            setInvalid(assistanceEl, 'Support offered / assistance scope is required.');
+        }
+
         const desc = (descEl?.value || '').trim();
         if (!desc) {
             setInvalid(descEl, 'Program Description is required.');
+        }
+
+        const slots = parseInt(slotsEl?.value || '0', 10);
+        if (isNaN(slots) || slots < 1) {
+            setInvalid(slotsEl, 'Slot capacity must be at least 1.');
+        }
+
+        const minAge = parseInt(minAgeEl?.value || '0', 10);
+        const maxAge = parseInt(maxAgeEl?.value || '0', 10);
+        if (isNaN(minAge) || minAge < 15 || minAge > 99) {
+            setInvalid(minAgeEl, 'Minimum age must be between 15 and 99.');
+        }
+        if (isNaN(maxAge) || maxAge < 16 || maxAge > 100) {
+            setInvalid(maxAgeEl, 'Maximum age must be between 16 and 100.');
+        }
+        if (!isNaN(minAge) && !isNaN(maxAge) && minAge >= maxAge) {
+            setInvalid(minAgeEl, 'Minimum age must be strictly less than maximum age.');
         }
 
         const budgetVal = parseCurrencyToNumber(budgetEl?.value);
@@ -1961,6 +2012,26 @@
             budgetEl.value = formatRawCurrencyString(budgetVal, true);
         }
 
+        const intake = (intakeEl?.value || '').trim();
+        if (!intake) {
+            setInvalid(intakeEl, 'Intake window is required.');
+        }
+
+        const cycle = (cycleEl?.value || '').trim();
+        if (!cycle) {
+            setInvalid(cycleEl, 'Cycle duration is required.');
+        }
+
+        const eligRaw = (eligEl?.value || '').trim();
+        if (!eligRaw) {
+            setInvalid(eligEl, 'Eligibility criteria is required.');
+        }
+
+        const reqDocsRaw = (reqDocsEl?.value || '').trim();
+        if (!reqDocsRaw) {
+            setInvalid(reqDocsEl, 'Required documents list is required.');
+        }
+
         if (!isValid) {
             return;
         }
@@ -1968,6 +2039,8 @@
         const budget = budgetVal;
         const now = new Date();
         const formattedDt = formatSystemDateTime(now);
+        const eligArray = eligRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
+        const reqDocsArray = reqDocsRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
 
         const newProgramPayload = {
             code: code,
@@ -1975,6 +2048,16 @@
             category: category,
             budget: budget,
             description: desc,
+            target_beneficiaries: target,
+            assistance_type: assistance,
+            slots_target: slots,
+            slots_filled: 0,
+            total_slots: slots,
+            min_age: minAge,
+            max_age: maxAge,
+            eligibility_criteria: eligArray,
+            required_documents: reqDocsArray,
+            timeline: { intake, cycle },
             agency: 'PESO',
             status: 'Active',
             created_at: now.toISOString()
@@ -1988,12 +2071,15 @@
                 }
             }
 
-            await logAdminAction('CREATE_PROGRAM', 'program', null, `Created program ${code} (${name}) with budget ${formatCurrency(budget)} on ${formattedDt}`);
-            notify('Program Added', `Program successfully added on ${formattedDt}.`, 'success');
+            if (!AdminStore.programs) AdminStore.programs = [];
+            AdminStore.programs.unshift(newProgramPayload);
+
+            await logAdminAction('CREATE_PROGRAM', 'program', newProgramPayload.id || null, `Created program ${code} (${name}) with budget ${formatCurrency(budget)}, slots: ${slots}, age req: ${minAge}-${maxAge} on ${formattedDt}`);
+            notify('Program Added', `Program "${code}" successfully added on ${formattedDt}.`, 'success');
             if (window.showSystemNotification) {
                 window.showSystemNotification({
                     title: 'Program Added',
-                    message: `Program successfully added on ${formattedDt}.`,
+                    message: `Program "${code}" successfully added on ${formattedDt}.`,
                     type: 'success'
                 });
             }
@@ -2182,6 +2268,8 @@
         const prog = AdminStore.programs ? AdminStore.programs.find(p => p.id === progId) : null;
         if (!prog) return;
 
+        const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.code === prog.code || c.name === prog.name) || {};
+
         const form = document.getElementById('editProgramForm');
         if (form) {
             form.reset();
@@ -2196,13 +2284,32 @@
         setVal('editProgId', prog.id);
         setVal('editProgName', prog.name || '');
         setVal('editProgCode', prog.code || '');
+        setVal('editProgCategory', prog.category || canonical.category || 'Livelihood Programs');
+        setVal('editProgTarget', prog.target_beneficiaries || canonical.target_beneficiaries || '');
+        setVal('editProgAssistance', prog.assistance_type || canonical.assistance_type || '');
+        setVal('editProgDesc', prog.description || canonical.description || '');
+
+        setVal('editProgSlots', prog.slots_target || prog.total_slots || canonical.slots_target || 100);
+        setVal('editProgMinAge', prog.min_age || canonical.min_age || 18);
+        setVal('editProgMaxAge', prog.max_age || canonical.max_age || 65);
+
         const budgetInput = document.getElementById('editProgBudget');
         if (budgetInput) {
             attachCurrencyInputAutoFormat(budgetInput);
-            budgetInput.value = formatRawCurrencyString(prog.budget || 0, true);
+            budgetInput.value = formatRawCurrencyString(prog.budget || canonical.budget || 0, true);
         }
-        setVal('editProgCategory', prog.category || 'Livelihood Programs');
-        setVal('editProgDesc', prog.description || '');
+
+        const timeline = prog.timeline || canonical.timeline || { intake: 'Budget Year 2026 Active Intake', cycle: 'Quarterly Scheduled Batches' };
+        setVal('editProgIntake', timeline.intake || 'Active Intake');
+        setVal('editProgCycle', timeline.cycle || 'Quarterly Scheduled Batches');
+
+        const eligList = prog.eligibility_criteria || canonical.eligibility_criteria || ['Resident of Koronadal City'];
+        const eligStr = Array.isArray(eligList) ? eligList.join(';\n') : String(eligList);
+        setVal('editProgEligibility', eligStr);
+
+        const docsList = prog.required_documents || canonical.required_documents || ['Valid Government-Issued ID', 'Barangay Certificate of Indigency'];
+        const docsStr = Array.isArray(docsList) ? docsList.join(';\n') : String(docsList);
+        setVal('editProgRequiredDocs', docsStr);
 
         const dtInput = document.getElementById('editProgUpdatedDateTime');
         if (dtInput) {
@@ -2222,8 +2329,17 @@
         const id = parseInt(document.getElementById('editProgId')?.value);
         const nameEl = document.getElementById('editProgName');
         const categoryEl = document.getElementById('editProgCategory');
-        const budgetEl = document.getElementById('editProgBudget');
+        const targetEl = document.getElementById('editProgTarget');
+        const assistanceEl = document.getElementById('editProgAssistance');
         const descEl = document.getElementById('editProgDesc');
+        const slotsEl = document.getElementById('editProgSlots');
+        const minAgeEl = document.getElementById('editProgMinAge');
+        const maxAgeEl = document.getElementById('editProgMaxAge');
+        const budgetEl = document.getElementById('editProgBudget');
+        const intakeEl = document.getElementById('editProgIntake');
+        const cycleEl = document.getElementById('editProgCycle');
+        const eligEl = document.getElementById('editProgEligibility');
+        const reqDocsEl = document.getElementById('editProgRequiredDocs');
 
         let isValid = true;
         function setInvalid(element, msg) {
@@ -2245,9 +2361,36 @@
             setInvalid(categoryEl, 'Category selection is required.');
         }
 
+        const target = (targetEl?.value || '').trim();
+        if (!target) {
+            setInvalid(targetEl, 'Target beneficiaries specification is required.');
+        }
+
+        const assistance = (assistanceEl?.value || '').trim();
+        if (!assistance) {
+            setInvalid(assistanceEl, 'Support offered description is required.');
+        }
+
         const desc = (descEl?.value || '').trim();
         if (!desc) {
             setInvalid(descEl, 'Program Description is required.');
+        }
+
+        const slots = parseInt(slotsEl?.value || '0', 10);
+        if (isNaN(slots) || slots < 1) {
+            setInvalid(slotsEl, 'Slot capacity must be at least 1.');
+        }
+
+        const minAge = parseInt(minAgeEl?.value || '0', 10);
+        const maxAge = parseInt(maxAgeEl?.value || '0', 10);
+        if (isNaN(minAge) || minAge < 15 || minAge > 99) {
+            setInvalid(minAgeEl, 'Minimum age must be between 15 and 99.');
+        }
+        if (isNaN(maxAge) || maxAge < 16 || maxAge > 100) {
+            setInvalid(maxAgeEl, 'Maximum age must be between 16 and 100.');
+        }
+        if (!isNaN(minAge) && !isNaN(maxAge) && minAge >= maxAge) {
+            setInvalid(minAgeEl, 'Minimum age must be strictly less than maximum age.');
         }
 
         const budgetVal = parseCurrencyToNumber(budgetEl?.value);
@@ -2257,6 +2400,26 @@
             budgetEl.value = formatRawCurrencyString(budgetVal, true);
         }
 
+        const intake = (intakeEl?.value || '').trim();
+        if (!intake) {
+            setInvalid(intakeEl, 'Intake window is required.');
+        }
+
+        const cycle = (cycleEl?.value || '').trim();
+        if (!cycle) {
+            setInvalid(cycleEl, 'Cycle duration is required.');
+        }
+
+        const eligRaw = (eligEl?.value || '').trim();
+        if (!eligRaw) {
+            setInvalid(eligEl, 'Eligibility criteria is required.');
+        }
+
+        const reqDocsRaw = (reqDocsEl?.value || '').trim();
+        if (!reqDocsRaw) {
+            setInvalid(reqDocsEl, 'Required application documents list is required.');
+        }
+
         if (!isValid) {
             return;
         }
@@ -2264,12 +2427,23 @@
         const budget = budgetVal;
         const now = new Date();
         const formattedDt = formatSystemDateTime(now);
+        const eligArray = eligRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
+        const reqDocsArray = reqDocsRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
 
         const updatePayload = {
             name: name,
-            budget: budget,
             category: category,
+            target_beneficiaries: target,
+            assistance_type: assistance,
             description: desc,
+            slots_target: slots,
+            total_slots: slots,
+            min_age: minAge,
+            max_age: maxAge,
+            budget: budget,
+            timeline: { intake, cycle },
+            eligibility_criteria: eligArray,
+            required_documents: reqDocsArray,
             updated_at: now.toISOString()
         };
 
@@ -2283,7 +2457,8 @@
                 Object.assign(progObj, updatePayload);
             }
 
-            await logAdminAction('UPDATE_PROGRAM', 'program', id, `Updated program details for #${id} (${name}) on ${formattedDt}`);
+            // Requirement 8: Read-only Audit Trail logging
+            await logAdminAction('UPDATE_PROGRAM', 'program', id, `Updated program details for #${id} (${name}) on ${formattedDt}. Budget: ${formatCurrency(budget)}, Slots: ${slots}, Age: ${minAge}-${maxAge}`);
             notify('Program Updated', `Program successfully updated on ${formattedDt}.`, 'success');
             if (window.showSystemNotification) {
                 window.showSystemNotification({
@@ -2297,7 +2472,7 @@
             await refreshAllData();
             renderProgramsCatalog();
         } catch (err) {
-            notify('Update Failed', err.message || 'Error updating program.', 'danger');
+            notify('Program Update Failed', err.message || 'Error updating program.', 'danger');
         }
     }
 

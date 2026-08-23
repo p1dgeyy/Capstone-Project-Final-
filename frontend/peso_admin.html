@@ -1233,10 +1233,13 @@
                 </div>
                 <form id="createProgramForm" onsubmit="handleCreateProgramSubmit(event)" novalidate>
                     <div class="modal-body p-4">
-                        <!-- Section 1: Program Details -->
+                        <!-- Section 1: Program Overview & Descriptions (Req 1) -->
                         <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
                             <i class="bi bi-card-checklist text-primary fs-5"></i>
-                            <h6 class="fw-bold text-dark mb-0">Program Details</h6>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">1. Program Overview & Descriptions</h6>
+                                <small class="text-muted">Mandatory: Detail the program purpose, target beneficiaries, and support offered.</small>
+                            </div>
                         </div>
                         <div class="row g-3 mb-4">
                             <div class="col-12 col-md-8">
@@ -1249,7 +1252,7 @@
                                 <input type="text" class="form-control font-monospace text-uppercase" id="newProgCode" required placeholder="e.g. YMES-2026">
                                 <div class="invalid-feedback">Program Code is required.</div>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 col-md-6">
                                 <label for="newProgCategory" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
                                 <select class="form-select" id="newProgCategory" required>
                                     <option value="" disabled selected>Select Category *</option>
@@ -1259,34 +1262,97 @@
                                 </select>
                                 <div class="invalid-feedback">Category selection is required.</div>
                             </div>
+                            <div class="col-12 col-md-6">
+                                <label for="newProgTarget" class="form-label fw-semibold">Target Beneficiaries <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgTarget" required placeholder="e.g. Displaced informal workers, OSY youth, low-income heads">
+                                <div class="invalid-feedback">Target beneficiaries specification is required.</div>
+                            </div>
                             <div class="col-12">
-                                <label for="newProgDesc" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="newProgDesc" rows="3" required placeholder="Brief program overview, eligibility requirements, and objectives..."></textarea>
-                                <div class="invalid-feedback">Program Description is required.</div>
+                                <label for="newProgAssistance" class="form-label fw-semibold">Support Offered / Assistance Scope <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgAssistance" required placeholder="e.g. Micro-enterprise seed grant (₱5,000 - ₱20,000) & Toolkits">
+                                <div class="invalid-feedback">Support offered description is required.</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="newProgDesc" class="form-label fw-semibold">Program Purpose & Objectives <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="newProgDesc" rows="3" required placeholder="Comprehensive explanation of program objectives, purpose, and community impact..."></textarea>
+                                <div class="invalid-feedback">Program Purpose & Description is required.</div>
                             </div>
                         </div>
 
-                        <!-- Section 2: Budget & Metadata -->
+                        <!-- Section 2: Slots, Age Rules & Budget Transparency (Req 2, 3, 4) -->
                         <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <i class="bi bi-cash-stack text-success fs-5"></i>
-                            <h6 class="fw-bold text-dark mb-0">Budget & Metadata</h6>
+                            <i class="bi bi-sliders text-success fs-5"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">2. Program Slots, Age Requirements & Budget</h6>
+                                <small class="text-muted">Set participant quota, applicant age bounds, and ordinance-aligned budget.</small>
+                            </div>
                         </div>
-                        <div class="row g-3">
-                            <div class="col-12 col-md-6">
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-4">
+                                <label for="newProgSlots" class="form-label fw-semibold">Total Slot Capacity <span class="text-danger">*</span></label>
+                                <div class="input-group has-validation">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-people-fill"></i></span>
+                                    <input type="number" min="1" max="100000" class="form-control fw-bold" id="newProgSlots" required placeholder="e.g. 100">
+                                    <div class="invalid-feedback">Slot capacity must be at least 1.</div>
+                                </div>
+                                <small class="text-muted">Auto-decrements upon enrollment approval.</small>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-semibold">Age Requirements <span class="text-danger">*</span></label>
+                                <div class="input-group has-validation">
+                                    <input type="number" min="15" max="99" class="form-control" id="newProgMinAge" required placeholder="Min" value="18">
+                                    <span class="input-group-text bg-light text-muted">to</span>
+                                    <input type="number" min="16" max="100" class="form-control" id="newProgMaxAge" required placeholder="Max" value="65">
+                                    <div class="invalid-feedback">Min age must be less than Max age.</div>
+                                </div>
+                                <small class="text-muted">Enforced during beneficiary application.</small>
+                            </div>
+                            <div class="col-12 col-md-4">
                                 <label for="newProgBudget" class="form-label fw-semibold">Allocated Budget (PHP ₱) <span class="text-danger">*</span></label>
                                 <div class="input-group has-validation">
                                     <span class="input-group-text bg-light fw-bold text-dark">₱</span>
                                     <input type="text" inputmode="decimal" autocomplete="off" class="form-control fw-bold text-success currency-input" id="newProgBudget" required placeholder="0.00">
                                     <div class="invalid-feedback">Budget must be a valid positive amount (minimum ₱0.01).</div>
                                 </div>
+                                <small class="text-muted">Synced with Appropriation Ordinance.</small>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12">
                                 <label for="newProgCreatedDateTime" class="form-label fw-semibold">Date & Time Created</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light text-muted"><i class="bi bi-clock-history"></i></span>
                                     <input type="text" class="form-control bg-light font-monospace" id="newProgCreatedDateTime" readonly placeholder="System-generated timestamp">
                                 </div>
-                                <small class="text-muted">Automatically captured by the system upon creation.</small>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Timeline, Eligibility & Required Documents (Req 5, 6, 7) -->
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-calendar3-range text-warning fs-5"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">3. Timeline, Eligibility & Required Documents</h6>
+                                <small class="text-muted">Define intake schedule, qualification criteria, and mandatory applicant documents.</small>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label for="newProgIntake" class="form-label fw-semibold">Intake & Application Window <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgIntake" required placeholder="e.g. January 15 - March 31, 2026 / Rolling Daily">
+                                <div class="invalid-feedback">Intake window is required.</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="newProgCycle" class="form-label fw-semibold">Implementation & Cycle Duration <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newProgCycle" required placeholder="e.g. 6 Months Continuous Placement / 15-30 Days">
+                                <div class="invalid-feedback">Cycle duration is required.</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="newProgEligibility" class="form-label fw-semibold">Eligibility Criteria <span class="text-danger">*</span> <small class="text-muted">(Separate with semicolons or new lines)</small></label>
+                                <textarea class="form-control" id="newProgEligibility" rows="3" required placeholder="e.g. Bona fide resident of Koronadal City;&#10;Low-income household income below regional poverty line;&#10;Not a current beneficiary of another government livelihood grant."></textarea>
+                                <div class="invalid-feedback">Eligibility criteria is required.</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="newProgRequiredDocs" class="form-label fw-semibold">Required Application Documents <span class="text-danger">*</span> <small class="text-muted">(Separate with semicolons or new lines)</small></label>
+                                <textarea class="form-control" id="newProgRequiredDocs" rows="3" required placeholder="e.g. Valid Government-Issued ID with 3 specimen signatures;&#10;Barangay Certificate of Indigency or Residency;&#10;Proof of Income / Displacement Certificate."></textarea>
+                                <div class="invalid-feedback">Required documents list is required.</div>
                             </div>
                         </div>
                     </div>
@@ -1317,10 +1383,13 @@
                     <div class="modal-body p-4">
                         <input type="hidden" id="editProgId">
 
-                        <!-- Section 1: Program Details -->
+                        <!-- Section 1: Program Overview & Descriptions (Req 1) -->
                         <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
                             <i class="bi bi-card-checklist text-primary fs-5"></i>
-                            <h6 class="fw-bold text-dark mb-0">Program Details</h6>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">1. Program Overview & Descriptions</h6>
+                                <small class="text-muted">Mandatory: Detail the program purpose, target beneficiaries, and support offered.</small>
+                            </div>
                         </div>
                         <div class="row g-3 mb-4">
                             <div class="col-12 col-md-8">
@@ -1332,7 +1401,7 @@
                                 <label for="editProgCode" class="form-label fw-semibold">Program Code <span class="text-muted small">(Read-Only)</span></label>
                                 <input type="text" class="form-control font-monospace bg-light" id="editProgCode" readonly>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 col-md-6">
                                 <label for="editProgCategory" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
                                 <select class="form-select" id="editProgCategory" required>
                                     <option value="Livelihood Programs">Livelihood Programs</option>
@@ -1341,20 +1410,50 @@
                                 </select>
                                 <div class="invalid-feedback">Category selection is required.</div>
                             </div>
+                            <div class="col-12 col-md-6">
+                                <label for="editProgTarget" class="form-label fw-semibold">Target Beneficiaries <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editProgTarget" required placeholder="Target Beneficiaries">
+                                <div class="invalid-feedback">Target beneficiaries specification is required.</div>
+                            </div>
                             <div class="col-12">
-                                <label for="editProgDesc" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                                <label for="editProgAssistance" class="form-label fw-semibold">Support Offered / Assistance Scope <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editProgAssistance" required placeholder="Support Offered">
+                                <div class="invalid-feedback">Support offered description is required.</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="editProgDesc" class="form-label fw-semibold">Program Purpose & Objectives <span class="text-danger">*</span></label>
                                 <textarea class="form-control" id="editProgDesc" rows="3" required placeholder="Program description and guidelines..."></textarea>
                                 <div class="invalid-feedback">Description is required.</div>
                             </div>
                         </div>
 
-                        <!-- Section 2: Budget & Metadata -->
+                        <!-- Section 2: Slots, Age Rules & Budget Transparency (Req 2, 3, 4) -->
                         <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <i class="bi bi-cash-stack text-success fs-5"></i>
-                            <h6 class="fw-bold text-dark mb-0">Budget & Metadata</h6>
+                            <i class="bi bi-sliders text-success fs-5"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">2. Program Slots, Age Requirements & Budget</h6>
+                                <small class="text-muted">Set participant quota, applicant age bounds, and ordinance-aligned budget.</small>
+                            </div>
                         </div>
-                        <div class="row g-3">
-                            <div class="col-12 col-md-6">
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-4">
+                                <label for="editProgSlots" class="form-label fw-semibold">Total Slot Capacity <span class="text-danger">*</span></label>
+                                <div class="input-group has-validation">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-people-fill"></i></span>
+                                    <input type="number" min="1" max="100000" class="form-control fw-bold" id="editProgSlots" required placeholder="e.g. 100">
+                                    <div class="invalid-feedback">Slot capacity must be at least 1.</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-semibold">Age Requirements <span class="text-danger">*</span></label>
+                                <div class="input-group has-validation">
+                                    <input type="number" min="15" max="99" class="form-control" id="editProgMinAge" required placeholder="Min" value="18">
+                                    <span class="input-group-text bg-light text-muted">to</span>
+                                    <input type="number" min="16" max="100" class="form-control" id="editProgMaxAge" required placeholder="Max" value="65">
+                                    <div class="invalid-feedback">Min age must be less than Max age.</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
                                 <label for="editProgBudget" class="form-label fw-semibold">Allocated Budget (PHP ₱) <span class="text-danger">*</span></label>
                                 <div class="input-group has-validation">
                                     <span class="input-group-text bg-light fw-bold text-dark">₱</span>
@@ -1362,13 +1461,43 @@
                                     <div class="invalid-feedback">Budget must be a valid positive amount (minimum ₱0.01).</div>
                                 </div>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12">
                                 <label for="editProgUpdatedDateTime" class="form-label fw-semibold">Date & Time Updated</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light text-muted"><i class="bi bi-clock-history"></i></span>
                                     <input type="text" class="form-control bg-light font-monospace" id="editProgUpdatedDateTime" readonly placeholder="System-generated timestamp">
                                 </div>
-                                <small class="text-muted">Automatically captured by the system upon updating.</small>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Timeline, Eligibility & Required Documents (Req 5, 6, 7) -->
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-calendar3-range text-warning fs-5"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">3. Timeline, Eligibility & Required Documents</h6>
+                                <small class="text-muted">Define intake schedule, qualification criteria, and mandatory applicant documents.</small>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label for="editProgIntake" class="form-label fw-semibold">Intake & Application Window <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editProgIntake" required placeholder="e.g. January 15 - March 31, 2026 / Rolling Daily">
+                                <div class="invalid-feedback">Intake window is required.</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="editProgCycle" class="form-label fw-semibold">Implementation & Cycle Duration <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editProgCycle" required placeholder="e.g. 6 Months Continuous Placement / 15-30 Days">
+                                <div class="invalid-feedback">Cycle duration is required.</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="editProgEligibility" class="form-label fw-semibold">Eligibility Criteria <span class="text-danger">*</span> <small class="text-muted">(Separate with semicolons or new lines)</small></label>
+                                <textarea class="form-control" id="editProgEligibility" rows="3" required placeholder="Eligibility criteria..."></textarea>
+                                <div class="invalid-feedback">Eligibility criteria is required.</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="editProgRequiredDocs" class="form-label fw-semibold">Required Application Documents <span class="text-danger">*</span> <small class="text-muted">(Separate with semicolons or new lines)</small></label>
+                                <textarea class="form-control" id="editProgRequiredDocs" rows="3" required placeholder="Required documents..."></textarea>
+                                <div class="invalid-feedback">Required documents list is required.</div>
                             </div>
                         </div>
                     </div>

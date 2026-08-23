@@ -744,6 +744,21 @@ function openCreateProgramModal() {
         categorySelect.value = '';
     }
 
+    const slotsInput = document.getElementById('newProgSlots');
+    if (slotsInput) slotsInput.value = '100';
+
+    const minAgeInput = document.getElementById('newProgMinAge');
+    if (minAgeInput) minAgeInput.value = '18';
+
+    const maxAgeInput = document.getElementById('newProgMaxAge');
+    if (maxAgeInput) maxAgeInput.value = '65';
+
+    const intakeInput = document.getElementById('newProgIntake');
+    if (intakeInput) intakeInput.value = 'Budget Year 2026 Active Intake (Rolling Admissions)';
+
+    const cycleInput = document.getElementById('newProgCycle');
+    if (cycleInput) cycleInput.value = 'Quarterly Cohorts & Continuous Placement';
+
     logAuditEvent('OPEN_CREATE_PROGRAM_FORM', 'Admin opened Create New Livelihood Program form');
     safeOpenModal('createProgramModal');
 }
@@ -758,8 +773,17 @@ async function handleCreateProgramSubmit(e) {
     const nameEl = document.getElementById('newProgName');
     const codeEl = document.getElementById('newProgCode');
     const categoryEl = document.getElementById('newProgCategory');
-    const budgetEl = document.getElementById('newProgBudget');
+    const targetEl = document.getElementById('newProgTarget');
+    const assistanceEl = document.getElementById('newProgAssistance');
     const descEl = document.getElementById('newProgDesc');
+    const slotsEl = document.getElementById('newProgSlots');
+    const minAgeEl = document.getElementById('newProgMinAge');
+    const maxAgeEl = document.getElementById('newProgMaxAge');
+    const budgetEl = document.getElementById('newProgBudget');
+    const intakeEl = document.getElementById('newProgIntake');
+    const cycleEl = document.getElementById('newProgCycle');
+    const eligEl = document.getElementById('newProgEligibility');
+    const reqDocsEl = document.getElementById('newProgRequiredDocs');
 
     let isValid = true;
     function setInvalid(element, msg) {
@@ -771,6 +795,7 @@ async function handleCreateProgramSubmit(e) {
         isValid = false;
     }
 
+    // 1. Program Name & Code
     const name = (nameEl?.value || '').trim();
     if (!name) {
         setInvalid(nameEl, 'Program Name is required.');
@@ -788,17 +813,68 @@ async function handleCreateProgramSubmit(e) {
         setInvalid(categoryEl, 'Category selection is required.');
     }
 
-    const desc = (descEl?.value || '').trim();
-    if (!desc) {
-        setInvalid(descEl, 'Program Description is required.');
+    // 1. Descriptions breakdown (Requirement 1: purpose, target beneficiaries, support offered)
+    const target = (targetEl?.value || '').trim();
+    if (!target) {
+        setInvalid(targetEl, 'Target beneficiaries specification is required.');
     }
 
+    const assistance = (assistanceEl?.value || '').trim();
+    if (!assistance) {
+        setInvalid(assistanceEl, 'Support offered / assistance scope description is required.');
+    }
+
+    const desc = (descEl?.value || '').trim();
+    if (!desc) {
+        setInvalid(descEl, 'Program Purpose & Objectives description is required.');
+    }
+
+    // 2. Program Slots (Requirement 2: capacity quota)
+    const slots = parseInt(slotsEl?.value || '0', 10);
+    if (isNaN(slots) || slots < 1) {
+        setInvalid(slotsEl, 'Total slot capacity must be at least 1.');
+    }
+
+    // 3. Age Requirements (Requirement 3: min < max enforced)
+    const minAge = parseInt(minAgeEl?.value || '0', 10);
+    const maxAge = parseInt(maxAgeEl?.value || '0', 10);
+    if (isNaN(minAge) || minAge < 15 || minAge > 99) {
+        setInvalid(minAgeEl, 'Minimum age must be between 15 and 99.');
+    }
+    if (isNaN(maxAge) || maxAge < 16 || maxAge > 100) {
+        setInvalid(maxAgeEl, 'Maximum age must be between 16 and 100.');
+    }
+    if (!isNaN(minAge) && !isNaN(maxAge) && minAge >= maxAge) {
+        setInvalid(minAgeEl, 'Minimum age must be strictly less than maximum age.');
+    }
+
+    // 4. Budget Transparency (Requirement 4: en-PH currency >= 0.01)
     const budgetVal = parseCurrencyToNumber(budgetEl?.value);
     if (!budgetEl?.value.trim() || isNaN(budgetVal) || budgetVal < 0.01) {
         setInvalid(budgetEl, 'Budget must be a valid positive amount (minimum ₱0.01).');
     } else if (budgetEl) {
-        // Enforce 2 decimal precision format
         budgetEl.value = formatRawCurrencyString(budgetVal, true);
+    }
+
+    // 5. Timeline, Eligibility & Required Documents (Requirements 5, 6, 7)
+    const intake = (intakeEl?.value || '').trim();
+    if (!intake) {
+        setInvalid(intakeEl, 'Intake and application window schedule is required.');
+    }
+
+    const cycle = (cycleEl?.value || '').trim();
+    if (!cycle) {
+        setInvalid(cycleEl, 'Implementation cycle duration is required.');
+    }
+
+    const eligRaw = (eligEl?.value || '').trim();
+    if (!eligRaw) {
+        setInvalid(eligEl, 'Eligibility criteria qualification rules are required.');
+    }
+
+    const reqDocsRaw = (reqDocsEl?.value || '').trim();
+    if (!reqDocsRaw) {
+        setInvalid(reqDocsEl, 'Required application documents list is required.');
     }
 
     if (!isValid) {
@@ -810,6 +886,9 @@ async function handleCreateProgramSubmit(e) {
     const formattedDt = formatSystemDateTime(now);
     let createdId = Date.now();
 
+    const eligArray = eligRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
+    const reqDocsArray = reqDocsRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
+
     const newProg = {
         id: createdId,
         code: code,
@@ -817,13 +896,20 @@ async function handleCreateProgramSubmit(e) {
         category: category,
         budget: budget,
         beneficiaries_count: 0,
-        total_slots: 50,
-        target_beneficiaries: 'Beneficiaries & Jobseekers',
-        assistance_type: 'Livelihood Assistance',
+        slots_target: slots,
+        slots_filled: 0,
+        total_slots: slots,
+        min_age: minAge,
+        max_age: maxAge,
+        target_beneficiaries: target,
+        assistance_type: assistance,
         description: desc,
-        eligibility_criteria: 'Resident of Koronadal City',
-        limitations: 'Standard LGU guidelines apply.',
-        restrictions: 'One grant per household.',
+        eligibility_criteria: eligArray.length > 0 ? eligArray : [eligRaw],
+        required_documents: reqDocsArray.length > 0 ? reqDocsArray : [reqDocsRaw],
+        timeline: {
+            intake: intake,
+            cycle: cycle
+        },
         ordinance: 'Appropriation Ordinance No. 6, Series of 2025',
         status: 'Active',
         created_at: now.toISOString()
@@ -848,14 +934,15 @@ async function handleCreateProgramSubmit(e) {
     }
 
     programsList.unshift(newProg);
-    logAuditEvent('CREATE_PROGRAM', `Created new program "${code}" (${name}) with budget ₱${budget.toLocaleString()}. Category: ${category}`);
+    // Requirement 8: Audit trail with timestamp + admin identity
+    logAuditEvent('CREATE_PROGRAM', `Created new program "${code}" (${name}) with budget ${formatPHP(budget)}, capacity: ${slots} slots, age req: ${minAge}-${maxAge} yrs on ${formattedDt}`);
 
     safeHideModal('createProgramModal');
     renderDashboardTables();
 
     window.showSystemNotification({
         title: 'Program Added',
-        message: `Program successfully added on ${formattedDt}.`,
+        message: `Program "${code}" successfully created with ${slots} slots and ${formatPHP(budget)} budget on ${formattedDt}.`,
         type: 'success'
     });
 }
@@ -1013,6 +1100,8 @@ function openProgramEditModal(progId) {
         return;
     }
 
+    const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.code === prog.code || c.name === prog.name) || {};
+
     const form = document.getElementById('editProgramForm');
     if (form) {
         form.reset();
@@ -1029,13 +1118,32 @@ function openProgramEditModal(progId) {
     if (badge) badge.textContent = prog.code || '';
     setVal('editProgName', prog.name);
     setVal('editProgCode', prog.code);
+    setVal('editProgCategory', prog.category || canonical.category || 'Livelihood Programs');
+    setVal('editProgTarget', prog.target_beneficiaries || canonical.target_beneficiaries || '');
+    setVal('editProgAssistance', prog.assistance_type || canonical.assistance_type || '');
+    setVal('editProgDesc', prog.description || canonical.description || '');
+
+    setVal('editProgSlots', prog.slots_target || prog.total_slots || canonical.slots_target || 100);
+    setVal('editProgMinAge', prog.min_age || canonical.min_age || 18);
+    setVal('editProgMaxAge', prog.max_age || canonical.max_age || 65);
+
     const budgetInput = document.getElementById('editProgBudget');
     if (budgetInput) {
         attachCurrencyInputAutoFormat(budgetInput);
-        budgetInput.value = formatRawCurrencyString(prog.budget || 0, true);
+        budgetInput.value = formatRawCurrencyString(prog.budget || canonical.budget || 0, true);
     }
-    setVal('editProgCategory', prog.category || 'Livelihood Programs');
-    setVal('editProgDesc', prog.description);
+
+    const timeline = prog.timeline || canonical.timeline || { intake: 'Budget Year 2026 Active Intake', cycle: 'Quarterly Scheduled Batches' };
+    setVal('editProgIntake', timeline.intake || 'Active Intake');
+    setVal('editProgCycle', timeline.cycle || 'Quarterly Scheduled Batches');
+
+    const eligList = prog.eligibility_criteria || canonical.eligibility_criteria || ['Resident of Koronadal City'];
+    const eligStr = Array.isArray(eligList) ? eligList.join(';\n') : String(eligList);
+    setVal('editProgEligibility', eligStr);
+
+    const docsList = prog.required_documents || canonical.required_documents || ['Valid Government-Issued ID', 'Barangay Certificate of Indigency'];
+    const docsStr = Array.isArray(docsList) ? docsList.join(';\n') : String(docsList);
+    setVal('editProgRequiredDocs', docsStr);
 
     const dtInput = document.getElementById('editProgUpdatedDateTime');
     if (dtInput) {
@@ -1062,8 +1170,17 @@ async function handleSaveProgramUpdates(e) {
 
     const nameEl = document.getElementById('editProgName');
     const categoryEl = document.getElementById('editProgCategory');
-    const budgetEl = document.getElementById('editProgBudget');
+    const targetEl = document.getElementById('editProgTarget');
+    const assistanceEl = document.getElementById('editProgAssistance');
     const descEl = document.getElementById('editProgDesc');
+    const slotsEl = document.getElementById('editProgSlots');
+    const minAgeEl = document.getElementById('editProgMinAge');
+    const maxAgeEl = document.getElementById('editProgMaxAge');
+    const budgetEl = document.getElementById('editProgBudget');
+    const intakeEl = document.getElementById('editProgIntake');
+    const cycleEl = document.getElementById('editProgCycle');
+    const eligEl = document.getElementById('editProgEligibility');
+    const reqDocsEl = document.getElementById('editProgRequiredDocs');
 
     let isValid = true;
     function setInvalid(element, msg) {
@@ -1085,9 +1202,36 @@ async function handleSaveProgramUpdates(e) {
         setInvalid(categoryEl, 'Category selection is required.');
     }
 
+    const updatedTarget = (targetEl?.value || '').trim();
+    if (!updatedTarget) {
+        setInvalid(targetEl, 'Target beneficiaries specification is required.');
+    }
+
+    const updatedAssistance = (assistanceEl?.value || '').trim();
+    if (!updatedAssistance) {
+        setInvalid(assistanceEl, 'Support offered description is required.');
+    }
+
     const updatedDesc = (descEl?.value || '').trim();
     if (!updatedDesc) {
         setInvalid(descEl, 'Program Description is required.');
+    }
+
+    const updatedSlots = parseInt(slotsEl?.value || '0', 10);
+    if (isNaN(updatedSlots) || updatedSlots < 1) {
+        setInvalid(slotsEl, 'Slot capacity must be at least 1.');
+    }
+
+    const updatedMinAge = parseInt(minAgeEl?.value || '0', 10);
+    const updatedMaxAge = parseInt(maxAgeEl?.value || '0', 10);
+    if (isNaN(updatedMinAge) || updatedMinAge < 15 || updatedMinAge > 99) {
+        setInvalid(minAgeEl, 'Minimum age must be between 15 and 99.');
+    }
+    if (isNaN(updatedMaxAge) || updatedMaxAge < 16 || updatedMaxAge > 100) {
+        setInvalid(maxAgeEl, 'Maximum age must be between 16 and 100.');
+    }
+    if (!isNaN(updatedMinAge) && !isNaN(updatedMaxAge) && updatedMinAge >= updatedMaxAge) {
+        setInvalid(minAgeEl, 'Minimum age must be strictly less than maximum age.');
     }
 
     const budgetVal = parseCurrencyToNumber(budgetEl?.value);
@@ -1097,6 +1241,26 @@ async function handleSaveProgramUpdates(e) {
         budgetEl.value = formatRawCurrencyString(budgetVal, true);
     }
 
+    const updatedIntake = (intakeEl?.value || '').trim();
+    if (!updatedIntake) {
+        setInvalid(intakeEl, 'Intake window is required.');
+    }
+
+    const updatedCycle = (cycleEl?.value || '').trim();
+    if (!updatedCycle) {
+        setInvalid(cycleEl, 'Cycle duration is required.');
+    }
+
+    const eligRaw = (eligEl?.value || '').trim();
+    if (!eligRaw) {
+        setInvalid(eligEl, 'Eligibility criteria is required.');
+    }
+
+    const reqDocsRaw = (reqDocsEl?.value || '').trim();
+    if (!reqDocsRaw) {
+        setInvalid(reqDocsEl, 'Required application documents list is required.');
+    }
+
     if (!isValid) {
         return;
     }
@@ -1104,11 +1268,22 @@ async function handleSaveProgramUpdates(e) {
     const updatedBudget = budgetVal;
     const now = new Date();
     const formattedDt = formatSystemDateTime(now);
+    const eligArray = eligRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
+    const reqDocsArray = reqDocsRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
 
     prog.name = updatedName;
     prog.category = updatedCategory;
-    prog.budget = updatedBudget;
+    prog.target_beneficiaries = updatedTarget;
+    prog.assistance_type = updatedAssistance;
     prog.description = updatedDesc;
+    prog.slots_target = updatedSlots;
+    prog.total_slots = updatedSlots;
+    prog.min_age = updatedMinAge;
+    prog.max_age = updatedMaxAge;
+    prog.budget = updatedBudget;
+    prog.timeline = { intake: updatedIntake, cycle: updatedCycle };
+    prog.eligibility_criteria = eligArray;
+    prog.required_documents = reqDocsArray;
     prog.updated_at = now.toISOString();
 
     if (typeof DataService !== 'undefined' && DataService.programs) {
@@ -1124,14 +1299,15 @@ async function handleSaveProgramUpdates(e) {
         }
     }
 
-    logAuditEvent('UPDATE_PROGRAM', `Updated program details for ${prog.code} (${updatedName}) on ${formattedDt}. Budget: ₱${updatedBudget.toLocaleString()}`);
+    // Requirement 8: Read-only Audit Trail logging
+    logAuditEvent('UPDATE_PROGRAM', `Updated program details for ${prog.code} (${updatedName}) on ${formattedDt}. Budget: ${formatPHP(updatedBudget)}, Slots: ${updatedSlots}, Age: ${updatedMinAge}-${updatedMaxAge}`);
 
     safeHideModal('programEditModal');
     renderDashboardTables();
 
     window.showSystemNotification({
         title: 'Program Updated',
-        message: `Program successfully updated on ${formattedDt}.`,
+        message: `Program ${prog.code} successfully updated on ${formattedDt}.`,
         type: 'success'
     });
 }
