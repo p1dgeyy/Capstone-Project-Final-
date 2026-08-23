@@ -572,12 +572,166 @@ function formatSystemDateTime(date = new Date()) {
     });
 }
 
+/**
+ * Currency Formatting & Auto-masking Engine (en-PH Standard, Intl.NumberFormat)
+ * Enforces thousands separator (comma every 3 digits), 2 fixed decimal places, and min ₱0.01
+ */
+function formatPHP(amount) {
+    const num = typeof amount === 'number' ? amount : parseCurrencyToNumber(amount);
+    return '₱' + new Intl.NumberFormat('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(num);
+}
+
+function parseCurrencyToNumber(val) {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    const clean = String(val).replace(/[^\d.]/g, '').trim();
+    if (!clean) return 0;
+    const num = parseFloat(clean);
+    return isNaN(num) ? 0 : num;
+}
+
+function formatRawCurrencyString(rawStr, enforceTwoDecimals = false) {
+    if (rawStr === null || rawStr === undefined || rawStr === '') return '';
+    let str = String(rawStr).replace(/[^\d.]/g, '');
+    if (!str) return '';
+
+    // Handle multiple decimal points (keep only first)
+    const parts = str.split('.');
+    let integerPart = parts[0] || '0';
+    if (integerPart.length > 1 && integerPart.startsWith('0')) {
+        integerPart = integerPart.replace(/^0+/, '') || '0';
+    }
+
+    // Format integer part with Philippine comma thousand separators
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    if (parts.length > 1) {
+        let decimalPart = parts[1].substring(0, 2);
+        if (enforceTwoDecimals) {
+            while (decimalPart.length < 2) {
+                decimalPart += '0';
+            }
+        }
+        return `${formattedInteger}.${decimalPart}`;
+    } else if (enforceTwoDecimals) {
+        return `${formattedInteger}.00`;
+    }
+
+    return formattedInteger;
+}
+
+function attachCurrencyInputAutoFormat(inputEl) {
+    if (!inputEl || inputEl.dataset.currencyAttached === 'true') return;
+    inputEl.dataset.currencyAttached = 'true';
+
+    inputEl.setAttribute('type', 'text');
+    inputEl.setAttribute('inputmode', 'decimal');
+    inputEl.setAttribute('autocomplete', 'off');
+
+    // Keydown: block non-numeric characters (allow navigation, backspace, delete, tab, and single period)
+    inputEl.addEventListener('keydown', function(e) {
+        const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+        if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+            return;
+        }
+
+        // Allow single decimal point
+        if (e.key === '.' || e.key === 'Decimal') {
+            if (this.value.includes('.')) {
+                e.preventDefault();
+            }
+            return;
+        }
+
+        // Only allow 0-9
+        if (!/^[0-9]$/.test(e.key)) {
+            e.preventDefault();
+        }
+    });
+
+    // Input: format digits with thousands separators dynamically while typing
+    inputEl.addEventListener('input', function() {
+        const cursorPos = this.selectionStart;
+        const originalLen = this.value.length;
+        const raw = this.value;
+
+        const endsWithDot = raw.endsWith('.');
+        let formatted = formatRawCurrencyString(raw, false);
+        if (endsWithDot && !formatted.includes('.')) {
+            formatted += '.';
+        }
+
+        this.value = formatted;
+
+        // Maintain cursor position smartly
+        const diff = this.value.length - originalLen;
+        const newCursorPos = Math.max(0, cursorPos + diff);
+        this.setSelectionRange(newCursorPos, newCursorPos);
+
+        const num = parseCurrencyToNumber(this.value);
+        if (num >= 0.01) {
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    // Blur: Enforce fixed 2 decimal precision (.00 auto-add)
+    inputEl.addEventListener('blur', function() {
+        const val = this.value.trim();
+        if (val) {
+            const num = parseCurrencyToNumber(val);
+            if (num > 0) {
+                this.value = formatRawCurrencyString(val, true);
+                this.classList.remove('is-invalid');
+            } else {
+                this.value = '0.00';
+            }
+        }
+    });
+
+    // Paste: strip invalid characters and format cleanly
+    inputEl.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        const num = parseCurrencyToNumber(text);
+        if (num > 0) {
+            this.value = formatRawCurrencyString(num.toFixed(2), true);
+            this.dispatchEvent(new Event('input'));
+        }
+    });
+}
+
+function initAllCurrencyInputs() {
+    document.querySelectorAll('.currency-input').forEach(attachCurrencyInputAutoFormat);
+    const newBudget = document.getElementById('newProgBudget');
+    if (newBudget) attachCurrencyInputAutoFormat(newBudget);
+    const editBudget = document.getElementById('editProgBudget');
+    if (editBudget) attachCurrencyInputAutoFormat(editBudget);
+    const fundBudget = document.getElementById('fundAllocNewBudget');
+    if (fundBudget) attachCurrencyInputAutoFormat(fundBudget);
+}
+
+// Attach on DOM load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAllCurrencyInputs);
+} else {
+    initAllCurrencyInputs();
+}
+
 // --- CREATE NEW PROGRAM MODAL & HANDLER (RBAC: ADMIN ONLY) ---
 function openCreateProgramModal() {
     const form = document.getElementById('createProgramForm');
     if (form) {
         form.reset();
         form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
+
+    const budgetEl = document.getElementById('newProgBudget');
+    if (budgetEl) {
+        attachCurrencyInputAutoFormat(budgetEl);
+        budgetEl.value = '';
     }
 
     const dtInput = document.getElementById('newProgCreatedDateTime') || document.getElementById('newProgDateTime');
@@ -639,16 +793,19 @@ async function handleCreateProgramSubmit(e) {
         setInvalid(descEl, 'Program Description is required.');
     }
 
-    const budgetVal = budgetEl?.value;
-    const budget = parseFloat(budgetVal);
-    if (!budgetVal || isNaN(budget) || budget <= 0) {
-        setInvalid(budgetEl, 'Budget must be a valid positive amount.');
+    const budgetVal = parseCurrencyToNumber(budgetEl?.value);
+    if (!budgetEl?.value.trim() || isNaN(budgetVal) || budgetVal < 0.01) {
+        setInvalid(budgetEl, 'Budget must be a valid positive amount (minimum ₱0.01).');
+    } else if (budgetEl) {
+        // Enforce 2 decimal precision format
+        budgetEl.value = formatRawCurrencyString(budgetVal, true);
     }
 
     if (!isValid) {
         return;
     }
 
+    const budget = budgetVal;
     const now = new Date();
     const formattedDt = formatSystemDateTime(now);
     let createdId = Date.now();
@@ -872,7 +1029,11 @@ function openProgramEditModal(progId) {
     if (badge) badge.textContent = prog.code || '';
     setVal('editProgName', prog.name);
     setVal('editProgCode', prog.code);
-    setVal('editProgBudget', prog.budget || 0);
+    const budgetInput = document.getElementById('editProgBudget');
+    if (budgetInput) {
+        attachCurrencyInputAutoFormat(budgetInput);
+        budgetInput.value = formatRawCurrencyString(prog.budget || 0, true);
+    }
     setVal('editProgCategory', prog.category || 'Livelihood Programs');
     setVal('editProgDesc', prog.description);
 
@@ -929,16 +1090,18 @@ async function handleSaveProgramUpdates(e) {
         setInvalid(descEl, 'Program Description is required.');
     }
 
-    const budgetVal = budgetEl?.value;
-    const updatedBudget = parseFloat(budgetVal);
-    if (!budgetVal || isNaN(updatedBudget) || updatedBudget <= 0) {
-        setInvalid(budgetEl, 'Budget must be a valid positive amount.');
+    const budgetVal = parseCurrencyToNumber(budgetEl?.value);
+    if (!budgetEl?.value.trim() || isNaN(budgetVal) || budgetVal < 0.01) {
+        setInvalid(budgetEl, 'Budget must be a valid positive amount (minimum ₱0.01).');
+    } else if (budgetEl) {
+        budgetEl.value = formatRawCurrencyString(budgetVal, true);
     }
 
     if (!isValid) {
         return;
     }
 
+    const updatedBudget = budgetVal;
     const now = new Date();
     const formattedDt = formatSystemDateTime(now);
 

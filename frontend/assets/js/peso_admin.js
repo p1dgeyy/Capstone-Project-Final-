@@ -507,10 +507,134 @@
         return '09XX-***-XXXX';
     }
 
-    // Helper: Format Currency (PHP ₱)
+    // Helper: Format Currency (PHP ₱) using en-PH locale standard
     function formatCurrency(amount) {
-        const num = Number(amount) || 0;
-        return '₱' + num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const num = typeof amount === 'number' ? amount : parseCurrencyToNumber(amount);
+        return '₱' + (Number(num) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatPHP(amount) {
+        return formatCurrency(amount);
+    }
+
+    function parseCurrencyToNumber(val) {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === 'number') return isNaN(val) ? 0 : val;
+        const clean = String(val).replace(/[^\d.]/g, '').trim();
+        if (!clean) return 0;
+        const num = parseFloat(clean);
+        return isNaN(num) ? 0 : num;
+    }
+
+    function formatRawCurrencyString(rawStr, enforceTwoDecimals = false) {
+        if (rawStr === null || rawStr === undefined || rawStr === '') return '';
+        let str = String(rawStr).replace(/[^\d.]/g, '');
+        if (!str) return '';
+
+        const parts = str.split('.');
+        let integerPart = parts[0] || '0';
+        if (integerPart.length > 1 && integerPart.startsWith('0')) {
+            integerPart = integerPart.replace(/^0+/, '') || '0';
+        }
+
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+        if (parts.length > 1) {
+            let decimalPart = parts[1].substring(0, 2);
+            if (enforceTwoDecimals) {
+                while (decimalPart.length < 2) {
+                    decimalPart += '0';
+                }
+            }
+            return `${formattedInteger}.${decimalPart}`;
+        } else if (enforceTwoDecimals) {
+            return `${formattedInteger}.00`;
+        }
+
+        return formattedInteger;
+    }
+
+    function attachCurrencyInputAutoFormat(inputEl) {
+        if (!inputEl || inputEl.dataset.currencyAttached === 'true') return;
+        inputEl.dataset.currencyAttached = 'true';
+
+        inputEl.setAttribute('type', 'text');
+        inputEl.setAttribute('inputmode', 'decimal');
+        inputEl.setAttribute('autocomplete', 'off');
+
+        inputEl.addEventListener('keydown', function(e) {
+            const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+            if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+                return;
+            }
+
+            if (e.key === '.' || e.key === 'Decimal') {
+                if (this.value.includes('.')) {
+                    e.preventDefault();
+                }
+                return;
+            }
+
+            if (!/^[0-9]$/.test(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        inputEl.addEventListener('input', function() {
+            const cursorPos = this.selectionStart;
+            const originalLen = this.value.length;
+            const raw = this.value;
+
+            const endsWithDot = raw.endsWith('.');
+            let formatted = formatRawCurrencyString(raw, false);
+            if (endsWithDot && !formatted.includes('.')) {
+                formatted += '.';
+            }
+
+            this.value = formatted;
+
+            const diff = this.value.length - originalLen;
+            const newCursorPos = Math.max(0, cursorPos + diff);
+            this.setSelectionRange(newCursorPos, newCursorPos);
+
+            const num = parseCurrencyToNumber(this.value);
+            if (num >= 0.01) {
+                this.classList.remove('is-invalid');
+            }
+        });
+
+        inputEl.addEventListener('blur', function() {
+            const val = this.value.trim();
+            if (val) {
+                const num = parseCurrencyToNumber(val);
+                if (num > 0) {
+                    this.value = formatRawCurrencyString(val, true);
+                    this.classList.remove('is-invalid');
+                } else {
+                    this.value = '0.00';
+                }
+            }
+        });
+
+        inputEl.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            const num = parseCurrencyToNumber(text);
+            if (num > 0) {
+                this.value = formatRawCurrencyString(num.toFixed(2), true);
+                this.dispatchEvent(new Event('input'));
+            }
+        });
+    }
+
+    function initAllCurrencyInputs() {
+        document.querySelectorAll('.currency-input').forEach(attachCurrencyInputAutoFormat);
+        const newBudget = document.getElementById('newProgBudget');
+        if (newBudget) attachCurrencyInputAutoFormat(newBudget);
+        const editBudget = document.getElementById('editProgBudget');
+        if (editBudget) attachCurrencyInputAutoFormat(editBudget);
+        const fundBudget = document.getElementById('fundAllocNewBudget');
+        if (fundBudget) attachCurrencyInputAutoFormat(fundBudget);
     }
 
     // Helper: Format Date
@@ -1765,6 +1889,12 @@
             form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
         }
 
+        const budgetEl = document.getElementById('newProgBudget');
+        if (budgetEl) {
+            attachCurrencyInputAutoFormat(budgetEl);
+            budgetEl.value = '';
+        }
+
         const dtInput = document.getElementById('newProgCreatedDateTime');
         if (dtInput) {
             dtInput.value = formatSystemDateTime(new Date());
@@ -1824,16 +1954,18 @@
             setInvalid(descEl, 'Program Description is required.');
         }
 
-        const budgetVal = budgetEl?.value;
-        const budget = parseFloat(budgetVal);
-        if (!budgetVal || isNaN(budget) || budget <= 0) {
-            setInvalid(budgetEl, 'Budget must be a valid positive amount.');
+        const budgetVal = parseCurrencyToNumber(budgetEl?.value);
+        if (!budgetEl?.value.trim() || isNaN(budgetVal) || budgetVal < 0.01) {
+            setInvalid(budgetEl, 'Budget must be a valid positive amount (minimum ₱0.01).');
+        } else if (budgetEl) {
+            budgetEl.value = formatRawCurrencyString(budgetVal, true);
         }
 
         if (!isValid) {
             return;
         }
 
+        const budget = budgetVal;
         const now = new Date();
         const formattedDt = formatSystemDateTime(now);
 
@@ -2064,7 +2196,11 @@
         setVal('editProgId', prog.id);
         setVal('editProgName', prog.name || '');
         setVal('editProgCode', prog.code || '');
-        setVal('editProgBudget', prog.budget || 0);
+        const budgetInput = document.getElementById('editProgBudget');
+        if (budgetInput) {
+            attachCurrencyInputAutoFormat(budgetInput);
+            budgetInput.value = formatRawCurrencyString(prog.budget || 0, true);
+        }
         setVal('editProgCategory', prog.category || 'Livelihood Programs');
         setVal('editProgDesc', prog.description || '');
 
@@ -2114,16 +2250,18 @@
             setInvalid(descEl, 'Program Description is required.');
         }
 
-        const budgetVal = budgetEl?.value;
-        const budget = parseFloat(budgetVal);
-        if (!budgetVal || isNaN(budget) || budget <= 0) {
-            setInvalid(budgetEl, 'Budget must be a valid positive amount.');
+        const budgetVal = parseCurrencyToNumber(budgetEl?.value);
+        if (!budgetEl?.value.trim() || isNaN(budgetVal) || budgetVal < 0.01) {
+            setInvalid(budgetEl, 'Budget must be a valid positive amount (minimum ₱0.01).');
+        } else if (budgetEl) {
+            budgetEl.value = formatRawCurrencyString(budgetVal, true);
         }
 
         if (!isValid) {
             return;
         }
 
+        const budget = budgetVal;
         const now = new Date();
         const formattedDt = formatSystemDateTime(now);
 
@@ -2760,7 +2898,12 @@
             progSelect.innerHTML = AdminStore.programs.map(p => `<option value="${p.id}" data-budget="${p.budget}">${escapeHtml(p.name)} (${p.code}) - Current: ${formatCurrency(p.budget)}</option>`).join('');
             handleFundProgSelectionChange();
         }
+        const fundInput = document.getElementById('fundAllocNewBudget');
+        if (fundInput) {
+            attachCurrencyInputAutoFormat(fundInput);
+        }
         document.getElementById('fundAllocForm')?.reset();
+        if (fundInput) fundInput.classList.remove('is-invalid');
         openModal('fundAllocationModal');
     }
 
@@ -2770,7 +2913,11 @@
         if (selOpt) {
             const currentBudget = selOpt.getAttribute('data-budget') || 0;
             const input = document.getElementById('fundAllocNewBudget');
-            if (input) input.value = currentBudget;
+            if (input) {
+                attachCurrencyInputAutoFormat(input);
+                input.value = formatRawCurrencyString(currentBudget, true);
+                input.classList.remove('is-invalid');
+            }
         }
     }
 
@@ -2786,8 +2933,22 @@
     async function handleFundAllocationSubmit(e) {
         e.preventDefault();
         const progId = parseInt(document.getElementById('fundAllocProgSelect').value);
-        const newBudget = parseFloat(document.getElementById('fundAllocNewBudget').value) || 0;
+        const budgetInput = document.getElementById('fundAllocNewBudget');
+        const newBudget = parseCurrencyToNumber(budgetInput?.value);
         const justification = document.getElementById('fundAllocJustification').value.trim();
+
+        if (!budgetInput?.value.trim() || isNaN(newBudget) || newBudget < 0.01) {
+            if (budgetInput) {
+                budgetInput.classList.add('is-invalid');
+                budgetInput.focus();
+            }
+            return;
+        }
+
+        if (budgetInput) {
+            budgetInput.value = formatRawCurrencyString(newBudget, true);
+            budgetInput.classList.remove('is-invalid');
+        }
 
         try {
             if (typeof DataService !== 'undefined' && DataService.programs) {
@@ -3443,8 +3604,14 @@
     };
 
     // Auto-boot on DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', () => {
-        initPesoAdmin();
+    document.addEventListener('DOMContentLoaded', async () => {
+        initAllCurrencyInputs();
+        try {
+            await refreshAllData();
+            renderDashboardOverview();
+        } catch (e) {
+            console.warn('[PESO Admin] Initial boot notice:', e);
+        }
     });
 
 })(window, document);

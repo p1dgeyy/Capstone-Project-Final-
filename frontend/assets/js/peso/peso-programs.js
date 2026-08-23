@@ -810,14 +810,14 @@ const PesoPrograms = (() => {
     async function submitCreateProgram(formEl) {
         const code = (document.getElementById('newProgCode')?.value || '').trim().toUpperCase();
         const name = (document.getElementById('newProgName')?.value || '').trim();
-        const category = document.getElementById('newProgCategory')?.value || 'Employment';
-        const budget = parseFloat(document.getElementById('newProgBudget')?.value || '0');
+        const rawBudget = document.getElementById('newProgBudget')?.value || '0';
+        const budget = parseFloat(String(rawBudget).replace(/[^\d.]/g, '')) || 0;
         const slots = parseInt(document.getElementById('newProgSlots')?.value || '100', 10);
         const desc = (document.getElementById('newProgDesc')?.value || '').trim();
         const eligibility = (document.getElementById('newProgEligibility')?.value || '').trim();
 
-        if (!code || !name || budget <= 0) {
-            alert('Please fill out all mandatory fields: Program Code, Name, and Budget.');
+        if (!code || !name || budget < 0.01) {
+            alert('Please fill out all mandatory fields: Program Code, Name, and Budget (minimum ₱0.01).');
             return;
         }
 
