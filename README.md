@@ -34,7 +34,6 @@ Capstone-Project-Final-/
 │   ├── peso_admin.html           # PESO Admin Dashboard
 │   ├── cswdo_officer.html        # CSWDO Officer Dashboard
 │   ├── cswdo_admin.html          # CSWDO Admin Dashboard
-│   ├── evaluator.html            # Evaluator Dashboard
 │   └── vercel.json               # Vercel deployment routing configuration
 ├── database/
 │   └── supabase_schema.sql       # PostgreSQL schema + Row Level Security policies
@@ -82,7 +81,6 @@ The system uses **Supabase Auth** for authentication:
 | PESO Officer | `/admin_login` | `peso_officer.html` |
 | CSWDO Admin | `/admin_login` | `cswdo_admin.html` |
 | CSWDO Officer | `/admin_login` | `cswdo_officer.html` |
-| Evaluator | `/admin_login` | `evaluator.html` |
 | Beneficiary | `/official_login` | `beneficiary.html` |
 
 ---

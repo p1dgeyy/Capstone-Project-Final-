@@ -35,8 +35,7 @@ const AuthGuard = (() => {
     'peso_officer.html': ['PESO Officer', 'PESO Admin'],
     'peso_admin.html': ['PESO Admin'],
     'cswdo_officer.html': ['CSWDO Officer', 'CSWDO Admin'],
-    'cswdo_admin.html': ['CSWDO Admin'],
-    'evaluator.html': ['PESO Officer', 'PESO Admin', 'Evaluator']
+    'cswdo_admin.html': ['CSWDO Admin']
   };
 
   // Role -> correct login portal. Used to bounce a user back to the RIGHT
@@ -406,7 +405,7 @@ const AuthGuard = (() => {
       'PESO Officer': 'peso_officer.html',
       'CSWDO Admin': 'cswdo_admin.html',
       'CSWDO Officer': 'cswdo_officer.html',
-      'Evaluator': 'evaluator.html',
+      'Evaluator': 'peso_officer.html',
       'Beneficiary': 'beneficiary.html'
     };
     return map[role] || null;

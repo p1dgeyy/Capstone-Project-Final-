@@ -262,7 +262,7 @@ const GoogleAuth = (() => {
           } else if (roleLower.includes('cswdo') && roleLower.includes('officer')) {
             redirectUrl = 'cswdo_officer.html';
           } else if (roleLower.includes('evaluator')) {
-            redirectUrl = 'evaluator.html';
+            redirectUrl = 'peso_officer.html';
           }
 
           window.location.replace(redirectUrl);
