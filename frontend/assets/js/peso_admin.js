@@ -924,7 +924,10 @@
         if (tab === 'overview') renderDashboardOverview();
         else if (tab === 'officers') renderOfficersModule();
         else if (tab === 'programs') renderProgramsCatalog();
-        else if (tab === 'evaluation') renderEvaluationModule();
+        else if (tab === 'evaluation') {
+            if (typeof renderEvalLevel1Programs === 'function') renderEvalLevel1Programs();
+            else renderEvaluationModule();
+        }
         else if (tab === 'scheduling') renderSchedulingModule();
         else if (tab === 'funds') renderFundsModule();
         else if (tab === 'notifications') renderNotificationsModule();
@@ -2513,6 +2516,10 @@
     // 6. MODULE 4: APPLICATION EVALUATION OVERSIGHT (REQ024 – REQ029)
     // =========================================================================
     function renderEvaluationModule() {
+        if (typeof renderEvalLevel1Programs === 'function') {
+            renderEvalLevel1Programs();
+            return;
+        }
         const apps = AdminStore.applications;
         const progs = AdminStore.programs;
         const search = (document.getElementById('evalSearchInput')?.value || '').toLowerCase();
@@ -2601,6 +2608,10 @@
     }
 
     function inspectApplicationForEvaluation(appId) {
+        if (typeof openReviewCaseFileModal === 'function') {
+            openReviewCaseFileModal(appId);
+            return;
+        }
         const app = AdminStore.applications.find(a => a.id === appId);
         if (!app) return;
 

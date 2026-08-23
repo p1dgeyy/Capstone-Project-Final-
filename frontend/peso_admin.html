@@ -672,9 +672,9 @@
                         <span class="badge bg-primary text-white px-2.5 py-1 font-monospace fw-bold">EVALUATION OVERSIGHT MODULE</span>
                         <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-shield-check me-1"></i>PESO Admin Review Desk</span>
                     </div>
-                    <h4 class="fw-bold mb-1">Livelihood Application Case Review</h4>
+                    <h4 class="fw-bold mb-1">Livelihood Application Evaluation & Case Review</h4>
                     <p class="text-white-50 mb-0 small">
-                        <i class="bi bi-file-earmark-check me-1"></i> Inspect submitted documents, review evaluator recommendations, approve/deny grants, and log audit entries.
+                        <i class="bi bi-file-earmark-check me-1"></i> Multi-level evaluation queue: Programs &rarr; Batches &rarr; Applications. Inspect case files, verify compliance, and log assessment decisions.
                     </p>
                 </div>
             </div>
@@ -685,8 +685,8 @@
                     <div class="stat-card blue">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value" id="statEvalTotalApps">0</div>
-                                <div class="stat-label">Total Applications</div>
+                                <div class="stat-value" id="evalStatTotalPrograms">0</div>
+                                <div class="stat-label">Livelihood Programs</div>
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-folder2-open"></i></div>
                         </div>
@@ -696,8 +696,8 @@
                     <div class="stat-card orange">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value text-warning" id="statEvalPendingApps">0</div>
-                                <div class="stat-label">Pending / In Review</div>
+                                <div class="stat-value text-warning" id="evalStatPendingApps">0</div>
+                                <div class="stat-label">Pending Evaluation</div>
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-clock-history"></i></div>
                         </div>
@@ -707,8 +707,8 @@
                     <div class="stat-card green">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value text-success" id="statEvalApprovedApps">0</div>
-                                <div class="stat-label">Admin Approved</div>
+                                <div class="stat-value text-success" id="evalStatApprovedApps">0</div>
+                                <div class="stat-label">Approved Applications</div>
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-check-circle-fill"></i></div>
                         </div>
@@ -718,8 +718,8 @@
                     <div class="stat-card orange" style="border-left: 4px solid var(--danger);">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value text-danger" id="statEvalDeniedApps">0</div>
-                                <div class="stat-label">Denied / Disapproved</div>
+                                <div class="stat-value text-danger" id="evalStatDeniedApps">0</div>
+                                <div class="stat-label">Denied Applications</div>
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-x-circle-fill"></i></div>
                         </div>
@@ -727,45 +727,149 @@
                 </div>
             </div>
 
-            <!-- Filter & Queue Table -->
-            <div class="content-card">
-                <div class="card-header-custom">
-                    <div class="d-flex align-items-center gap-2 flex-grow-1 flex-wrap" style="max-width: 750px;">
-                        <div class="input-group" style="max-width: 320px;">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" class="form-control border-start-0 bg-light" id="evalSearchInput"
-                                placeholder="Search applicant, app #, address..." oninput="filterEvaluationQueue()" aria-label="Search applications">
+            <!-- Breadcrumb Navigation for Hierarchical Drill-Down (REQ024 & REQ025) -->
+            <nav aria-label="breadcrumb" id="evalDrilldownNav" class="mb-3">
+                <ol class="breadcrumb breadcrumb-custom align-middle mb-0">
+                    <li class="breadcrumb-item"><a href="javascript:void(0)" onclick="showEvalLevel1()" class="text-primary fw-semibold text-decoration-none"><i class="bi bi-folder2-open me-1"></i>Programs Catalog</a></li>
+                    <li class="breadcrumb-item active text-muted d-none" id="evalBreadcrumbBatchItem"><span id="evalLevel2Breadcrumb">Program Batches</span></li>
+                    <li class="breadcrumb-item active text-dark fw-bold d-none" id="evalBreadcrumbAppItem"><span id="evalLevel3Breadcrumb">Applications Queue</span></li>
+                </ol>
+            </nav>
+
+            <!-- LEVEL 1: PROGRAMS VIEW (REQ024) -->
+            <div id="evalViewLevel1">
+                <div class="content-card">
+                    <div class="card-header-custom d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 260px; max-width: 500px;">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 bg-light" id="evalProgSearchInput"
+                                    placeholder="Search programs by name or code..." oninput="filterEvalLevel1Programs()" aria-label="Search Programs">
+                            </div>
                         </div>
-                        <select class="form-select bg-light" id="evalProgramFilter" style="max-width: 220px;" onchange="filterEvaluationQueue()" aria-label="Program Filter">
-                            <option value="ALL">All Programs</option>
-                            <!-- Populated dynamically -->
-                        </select>
-                        <select class="form-select bg-light" id="evalStatusFilter" style="max-width: 180px;" onchange="filterEvaluationQueue()" aria-label="Status Filter">
-                            <option value="ALL">All Statuses</option>
-                            <option value="Pending">Pending / In Review</option>
-                            <option value="Officer Approved">Officer Approved</option>
-                            <option value="Approved">Admin Approved</option>
-                            <option value="Denied">Denied / Rejected</option>
-                        </select>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <select class="form-select bg-light" id="evalProgStatusFilter" style="width: 180px;" onchange="filterEvalLevel1Programs()" aria-label="Evaluation Progress Filter">
+                                <option value="ALL">All Statuses</option>
+                                <option value="Pending Evaluation">Pending Evaluation</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle mb-0" id="evalLevel1ProgramsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 320px;">Livelihood Program</th>
+                                    <th style="width: 180px;">Category</th>
+                                    <th class="text-center" style="width: 180px;">Applications Intake</th>
+                                    <th class="text-center" style="width: 180px;">Evaluation Status</th>
+                                    <th class="text-end" style="width: 160px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="evalLevel1ProgramsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            </div>
 
-                <div class="table-responsive">
-                    <table class="table table-custom align-middle mb-0" id="evaluationQueueTable">
-                        <thead>
-                            <tr>
-                                <th>App # & Applicant</th>
-                                <th>Target Program</th>
-                                <th>Submission Date</th>
-                                <th>Officer Decision & Notes</th>
-                                <th class="text-center">Current Status</th>
-                                <th class="text-end" style="width: 160px;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="evaluationQueueTableBody">
-                            <!-- Populated dynamically -->
-                        </tbody>
-                    </table>
+            <!-- LEVEL 2: BATCHES VIEW (REQ024 & REQ025) -->
+            <div id="evalViewLevel2" class="d-none">
+                <div class="content-card">
+                    <div class="card-header-custom bg-light d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <span class="badge bg-primary font-monospace mb-1" id="evalLevel2ProgBadge">PROGRAM</span>
+                            <h5 class="fw-bold mb-0 text-dark" id="evalLevel2ProgTitle">Program Batches</h5>
+                            <small class="text-muted">Select a specific batch below to view and evaluate applicant submissions.</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group" style="max-width: 260px;">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 bg-white" id="evalBatchSearchInput"
+                                    placeholder="Search batch..." oninput="filterEvalLevel2Batches()" aria-label="Search Batches">
+                            </div>
+                            <select class="form-select bg-white" id="evalBatchStatusFilter" style="width: 160px;" onchange="filterEvalLevel2Batches()" aria-label="Batch Status Filter">
+                                <option value="ALL">All Batches</option>
+                                <option value="Pending Evaluation">Pending Evaluation</option>
+                                <option value="Approved">Approved</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" onclick="showEvalLevel1()"><i class="bi bi-arrow-left me-1"></i> Back to Programs</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle mb-0" id="evalLevel2BatchesTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 260px;">Batch Name & ID</th>
+                                    <th style="width: 220px;">Lead Unit / Date</th>
+                                    <th class="text-center" style="width: 180px;">Enrolled Applications</th>
+                                    <th class="text-center" style="width: 180px;">Evaluation Status</th>
+                                    <th class="text-end" style="width: 180px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="evalLevel2BatchesTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEVEL 3: APPLICATIONS VIEW (REQ025) -->
+            <div id="evalViewLevel3" class="d-none">
+                <div class="content-card">
+                    <div class="card-header-custom bg-light d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <span class="badge bg-primary font-monospace" id="evalLevel3ProgBreadcrumb">PROGRAM</span>
+                                <span class="badge bg-dark font-monospace" id="evalLevel3BatchBreadcrumb">BATCH</span>
+                                <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-shield-check me-1"></i>Evaluation Queue</span>
+                            </div>
+                            <h5 class="fw-bold mb-0 text-dark" id="evalLevel3ViewTitle">Batch Applications Roster</h5>
+                            <small class="text-muted">Displaying applicant name, requested program, submission date, verification status, and evaluation status.</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="input-group" style="max-width: 240px;">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 bg-white" id="evalAppSearchInput"
+                                    placeholder="Search applicant..." oninput="filterEvalLevel3Apps()" aria-label="Search Applicant">
+                            </div>
+                            <select class="form-select bg-white" id="evalAppVerifFilter" style="width: 180px;" onchange="filterEvalLevel3Apps()" aria-label="Verification Filter">
+                                <option value="ALL">All Verifications</option>
+                                <option value="Verified">Verified Documents</option>
+                                <option value="Pending Verification">Pending Verification</option>
+                            </select>
+                            <select class="form-select bg-white" id="evalAppStatusFilter" style="width: 180px;" onchange="filterEvalLevel3Apps()" aria-label="Status Filter">
+                                <option value="ALL">All Decisions</option>
+                                <option value="Pending Evaluation">Pending Evaluation</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Denied">Denied</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" onclick="showEvalLevel2()"><i class="bi bi-arrow-left me-1"></i> Back to Batches</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle mb-0" id="evalLevel3AppsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 240px;">Applicant Name & Contact</th>
+                                    <th style="width: 200px;">Requested Program & Batch</th>
+                                    <th style="width: 140px;">Submission Date</th>
+                                    <th class="text-center" style="width: 170px;">Verification Status</th>
+                                    <th class="text-center" style="width: 170px;">Evaluation Status</th>
+                                    <th class="text-end" style="width: 160px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="evalLevel3AppsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2133,85 +2237,123 @@
         </div>
     </div>
 
-    <!-- Modal 7: Inspect & Evaluate Application Modal (REQ027 – REQ029) -->
-    <div class="modal fade" id="inspectEvaluationModal" tabindex="-1" aria-labelledby="inspectEvalModalTitle" aria-hidden="true">
+    <!-- Modal 7: Application Case File & Compliance Review Modal (REQ026 – REQ029) -->
+    <div class="modal fade" id="reviewCaseFileModal" tabindex="-1" aria-labelledby="reviewCaseFileModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-file-earmark-check-fill text-warning fs-4"></i>
+                        <i class="bi bi-file-earmark-medical-fill text-warning fs-4"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="inspectEvalModalTitle">Application Compliance & Review</h5>
-                            <span class="badge bg-white text-primary fw-semibold mt-1" id="evalModalAppNumber">APP-XXXX</span>
+                            <h5 class="modal-title fw-bold mb-0" id="reviewCaseFileModalTitle">Application Case File Review</h5>
+                            <span class="badge bg-white text-primary fw-semibold mt-1" id="reviewProgramBatchTag">PROGRAM — BATCH</span>
                         </div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="evaluationDecisionForm" onsubmit="handleEvaluationDecisionSubmit(event)">
-                    <div class="modal-body p-4">
-                        <input type="hidden" id="evalTargetAppId">
-                        <input type="hidden" id="evalTargetBeneficiaryQr">
-
-                        <!-- Applicant & Program Summary -->
-                        <div class="card border-0 bg-light p-3 rounded-3 mb-3">
-                            <div class="row g-2 small">
-                                <div class="col-md-6">
-                                    <span class="text-muted">Applicant:</span> <strong class="text-dark" id="evalApplicantName">-</strong>
-                                </div>
-                                <div class="col-md-6">
-                                    <span class="text-muted">Program:</span> <strong class="text-primary" id="evalProgramName">-</strong>
-                                </div>
-                                <div class="col-md-6">
-                                    <span class="text-muted">Contact (Masked):</span> <span class="masked-phone" id="evalApplicantPhone">-</span>
-                                </div>
-                                <div class="col-md-6">
-                                    <span class="text-muted">Date Applied:</span> <span class="text-dark" id="evalDateApplied">-</span>
-                                </div>
+                <div class="modal-body p-4">
+                    <!-- Applicant Profile Summary (Read-Only per User Rules) -->
+                    <div class="card border-0 bg-light p-3 rounded-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-person-badge text-primary me-1"></i>Beneficiary Demographic Profile</h6>
+                            <span id="reviewVerificationStatusBadge" class="badge bg-success px-3 py-1 fs-6"><i class="bi bi-patch-check-fill me-1"></i> Verified</span>
+                        </div>
+                        <div class="row g-2 small text-secondary">
+                            <div class="col-md-6">
+                                <span class="text-muted">Applicant Name:</span> <strong class="text-dark" id="reviewApplicantName">-</strong>
                             </div>
-                        </div>
-
-                        <!-- Documents Preview -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark"><i class="bi bi-paperclip me-1"></i>Submitted Documents & Checklist</label>
-                            <div id="evalDocsContainer" class="p-3 bg-light rounded-3 border">
-                                <!-- Populated dynamically -->
+                            <div class="col-md-6">
+                                <span class="text-muted">Contact (Masked):</span> <span class="masked-phone text-dark fw-semibold" id="reviewApplicantContact">-</span>
                             </div>
-                        </div>
-
-                        <!-- Assessor / Officer Notes Review -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark"><i class="bi bi-chat-left-quote me-1"></i>Officer Evaluation Notes</label>
-                            <div class="p-3 bg-light rounded-3 text-secondary small" id="evalOfficerNotesDisplay">No officer notes recorded yet.</div>
-                        </div>
-
-                        <!-- Admin Decision Panel -->
-                        <div class="card border-primary p-3 rounded-3 bg-primary-subtle">
-                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-award me-1"></i>Administrator Decision Action</h6>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="evalAdminDecision" class="form-label fw-semibold">Action Decision <span class="text-danger">*</span></label>
-                                    <select class="form-select fw-bold" id="evalAdminDecision" required>
-                                        <option value="Approved" selected>Approve Application</option>
-                                        <option value="Denied">Disapprove / Deny</option>
-                                        <option value="Under Review">Hold Under Review</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="evalApprovedAmount" class="form-label fw-semibold">Approved Grant (₱)</label>
-                                    <input type="number" step="0.01" class="form-control fw-bold text-success" id="evalApprovedAmount" value="5000.00">
-                                </div>
-                                <div class="col-12">
-                                    <label for="evalAdminNotes" class="form-label fw-semibold">Assessor Remarks / Justification <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="evalAdminNotes" rows="2" placeholder="State basis for decision (e.g. Passed all qualification criteria)..." required></textarea>
-                                </div>
+                            <div class="col-md-6">
+                                <span class="text-muted">Barangay Address:</span> <span class="text-dark" id="reviewApplicantAddress">-</span>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="text-muted">Date Submitted:</span> <span class="text-dark" id="reviewSubmissionDate">-</span>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="text-muted">Civil Status:</span> <span class="text-dark" id="reviewApplicantCivilStatus">Single</span>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="text-muted">Spouse Name:</span> <span class="text-dark" id="reviewApplicantSpouse">N/A</span>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="text-muted">Dependents:</span> <span class="text-dark" id="reviewApplicantChildren">None</span>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-check2-circle me-1"></i> Confirm & Log Audit</button>
+
+                    <!-- Submitted Documents Checklist (REQ026) -->
+                    <div class="card border-0 bg-light p-3 rounded-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-folder-check text-success me-1"></i>Submitted Mandatory Requirements</h6>
+                            <small class="text-muted">All documents must be verified before approval.</small>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-custom bg-white align-middle mb-0 border rounded">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Requirement / Document Type</th>
+                                        <th>File Attachment</th>
+                                        <th class="text-center">Compliance Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reviewDocumentsTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </form>
+
+                    <!-- Action Assessment Notes (REQ027) -->
+                    <div class="card border-primary p-3 rounded-3 bg-primary-subtle mb-2">
+                        <label for="reviewActionAssessmentNotes" class="form-label fw-bold text-dark mb-1">
+                            <i class="bi bi-pencil-square text-primary me-1"></i>Action Assessment Notes <span class="text-danger">*</span>
+                        </label>
+                        <small class="text-muted d-block mb-2">Record official observations, compliance findings, eligibility remarks, or basis for decision.</small>
+                        <textarea class="form-control bg-white" id="reviewActionAssessmentNotes" rows="3"
+                            placeholder="Enter evaluation notes (e.g., Verified complete documentary requirements, resident of Koronadal City, eligible for grant release)..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between flex-wrap gap-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Review</button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-danger fw-semibold px-3" onclick="executeEvalDecision('Denied')">
+                            <i class="bi bi-x-circle me-1"></i> Deny Application
+                        </button>
+                        <button type="button" class="btn btn-outline-warning text-dark fw-semibold px-3" onclick="executeEvalDecision('Pending Evaluation')">
+                            <i class="bi bi-clock-history me-1"></i> Hold Pending
+                        </button>
+                        <button type="button" class="btn btn-success fw-bold px-4 shadow-sm" onclick="executeEvalDecision('Approved')">
+                            <i class="bi bi-check-circle-fill me-1"></i> Approve Application
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 7B: Document Preview Modal -->
+    <div class="modal fade" id="docPreviewModal" tabindex="-1" aria-labelledby="docPreviewTitle" aria-hidden="true">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom py-3">
+                    <h6 class="modal-title fw-bold mb-0" id="docPreviewTitle"><i class="bi bi-eye-fill me-2 text-info"></i>Document Preview</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="p-4 bg-light border rounded-3 mb-3">
+                        <i class="bi bi-file-earmark-pdf-fill text-danger" style="font-size: 3.5rem;"></i>
+                        <h6 class="fw-bold mt-2 mb-1" id="docPreviewFileName">Document.pdf</h6>
+                        <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-patch-check-fill me-1"></i>Official LGU Submission Verified</span>
+                    </div>
+                    <p class="text-muted small mb-0">Authenticated digital document record on file with Koronadal PESO Operations Unit.</p>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 justify-content-center">
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close Preview</button>
+                </div>
             </div>
         </div>
     </div>
