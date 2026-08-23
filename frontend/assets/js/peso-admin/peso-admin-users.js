@@ -629,11 +629,3 @@ function exportCompliancePdf() {
     logAuditEvent('EXPORT_COMPLIANCE_PDF', 'Initiated Compliance PDF Print View for User Roster');
     window.print();
 }
-
-// Backward compatibility aliases for merged officer management
-window.openNewOfficerModal = openNewUserModal;
-window.openEditOfficerModal = openEditUserModal;
-window.initOfficersData = initUserManagementData;
-window.fetchOfficersFromApi = fetchUsersFromApi;
-window.filterOfficers = filterUsers;
-window.renderOfficersTables = filterUsers;

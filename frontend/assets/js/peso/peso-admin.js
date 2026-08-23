@@ -766,12 +766,12 @@ window.safeCloseModal = PesoAdminApp.safeCloseModal;
 window.refreshDashboardMetrics = PesoAdminApp.loadAllAdminData;
 
 // Modal triggers & action bridges
-window.openCreateProgramModal = () => PesoAdminApp.safeOpenModal('newProgramModal');
-window.openNewOfficerModal = () => PesoAdminApp.safeOpenModal('newOfficerModal');
-window.openUploadOrdinanceModal = () => PesoAdminApp.safeOpenModal('uploadOrdinanceModal');
-window.openFundAllocationModal = () => PesoAdminApp.safeOpenModal('fundAllocationModal');
-window.openComposeNotificationModal = () => PesoAdminApp.safeOpenModal('composeNotificationModal');
-window.openCreateScheduleSlotModal = () => PesoAdminApp.safeOpenModal('scheduleActivityModal');
+window.openCreateProgramModal = window.openCreateProgramModal || (() => PesoAdminApp.safeOpenModal('newProgramModal'));
+window.openNewOfficerModal = window.openNewOfficerModal || (() => PesoAdminApp.safeOpenModal('newOfficerModal'));
+window.openUploadOrdinanceModal = window.openUploadOrdinanceModal || (() => PesoAdminApp.safeOpenModal('uploadOrdinanceModal'));
+window.openFundAllocationModal = window.openFundAllocationModal || (() => PesoAdminApp.safeOpenModal('fundAllocationModal'));
+window.openComposeNotificationModal = window.openComposeNotificationModal || (() => PesoAdminApp.safeOpenModal('composeNotificationModal'));
+window.openCreateScheduleSlotModal = window.openCreateScheduleSlotModal || (() => PesoAdminApp.safeOpenModal('scheduleActivityModal'));
 window.showAuditLogsModal = () => {
     const tbody = document.getElementById('auditLogsModalTableBody');
     if (tbody && PesoAdminApp.AdminStore.auditLogs.length > 0) {
