@@ -269,8 +269,8 @@
                             try { await supabaseClient.auth.signOut(); } catch (e) {}
                         }
                         throw new Error(lang === 'tg'
-                            ? `Naka-log in na ang account na ito sa ibang device. Mag-log out muna sa naturang device o maghintay ng ${activeCheck.minutesRemaining} minuto ng inactivity.`
-                            : `This account is already logged in on another device or active window. Please log out from that device first or wait ${activeCheck.minutesRemaining} minute(s) of inactivity before logging in here.`);
+                            ? `Kasalukuyang ginagamit ang account na ito sa ibang device.`
+                            : `Current account is being used on another device. Please log out from that device first to log in here.`);
                     }
                 }
 

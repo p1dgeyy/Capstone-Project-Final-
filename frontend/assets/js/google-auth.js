@@ -208,7 +208,7 @@ const GoogleAuth = (() => {
           const activeCheck = await SessionManager.checkAccountAlreadyActive(staffProfile.id, staffProfile.username);
           if (activeCheck.isAlreadyActive) {
             try { await supabaseClient.auth.signOut(); } catch (e) {}
-            const kickMsg = `This account is already logged in on another device or active window. Please log out from that device first or wait ${activeCheck.minutesRemaining} minute(s) of inactivity before logging in here.`;
+            const kickMsg = `Current account is being used on another device. Please log out from that device first to log in here.`;
             const errorAlert = document.getElementById('errorAlert');
             const errorMsg = document.getElementById('errorMessage');
             if (errorMsg) errorMsg.textContent = kickMsg;
@@ -359,7 +359,7 @@ const GoogleAuth = (() => {
           const activeCheck = await SessionManager.checkAccountAlreadyActive(profile.qr_code || profile.id, profile.username);
           if (activeCheck.isAlreadyActive) {
             try { await supabaseClient.auth.signOut(); } catch (e) {}
-            const kickMsg = `This account is already logged in on another device or active window. Please log out from that device first or wait ${activeCheck.minutesRemaining} minute(s) of inactivity before logging in here.`;
+            const kickMsg = `Current account is being used on another device. Please log out from that device first to log in here.`;
             const errorAlert = document.getElementById('errorAlert');
             const errorMsg = document.getElementById('errorMessage');
             if (errorMsg) errorMsg.textContent = kickMsg;

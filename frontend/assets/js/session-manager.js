@@ -4,14 +4,14 @@
  *
  * Enforces:
  *   1. Strict Single-Device Active Login Block:
- *      If an account is already logged in and active on another device, any new login attempt
- *      on a second device is blocked until the account is logged out from the previous device
- *      or the 20-minute inactivity timeout has elapsed.
- *   2. 20-Minute Inactivity Auto-Logout:
+ *      If an account is currently active on another device, attempts to log in on a second device
+ *      are blocked with "Current account is being used on another device."
+ *   2. Immediate Re-Login on Logout / Timeout:
+ *      When an account logs out manually or times out after 20 minutes of inactivity,
+ *      the active session lock is deleted from Supabase immediately so the user can re-login instantly.
+ *   3. 20-Minute Inactivity Auto-Logout:
  *      Monitors user interactions and automatically logs out inactive sessions after 20 minutes,
  *      with a synchronized 60-second countdown warning modal across all open tabs.
- *   3. Live Heartbeat & Session State Persistence:
- *      Updates last activity in Supabase to maintain active device lock and releases it immediately on logout.
  */
 
 const SessionManager = (() => {
@@ -67,8 +67,8 @@ const SessionManager = (() => {
 
   /**
    * Check if this account is currently active on another device.
-   * If an active session exists and its last activity is within 20 minutes, blocks new login.
-   * If last activity is older than 20 minutes, clears the stale session and allows login.
+   * If active within 20 minutes, returns { isAlreadyActive: true }
+   * If stale (>20 minutes) or logged out, deletes stale record and returns { isAlreadyActive: false }
    */
   async function checkAccountAlreadyActive(userId, identifier) {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
@@ -95,7 +95,7 @@ const SessionManager = (() => {
         return { isAlreadyActive: false };
       }
 
-      // Check if current browser already owns this session ID (e.g. page refresh in same browser)
+      // Check if current browser already owns this session ID (e.g. same browser window / tab refresh)
       const currentLocalSessionId = getSessionId();
       if (currentLocalSessionId && data.session_id === currentLocalSessionId) {
         return { isAlreadyActive: false, isOwnSession: true };
@@ -105,7 +105,7 @@ const SessionManager = (() => {
       const now = Date.now();
       const elapsedMs = now - lastActivityTime;
 
-      // If active within the 20-minute inactivity threshold -> Block login on this new device
+      // If active within the 20-minute inactivity threshold -> Block login on another device
       if (elapsedMs < INACTIVITY_TIMEOUT_MS) {
         const remainingMinutes = Math.max(1, Math.ceil((INACTIVITY_TIMEOUT_MS - elapsedMs) / 60000));
         return {
@@ -116,7 +116,7 @@ const SessionManager = (() => {
           sessionId: data.session_id
         };
       } else {
-        // Session is older than 20 minutes (inactive/abandoned) -> Delete stale record
+        // Session is older than 20 minutes (inactive/abandoned) -> Delete stale record immediately
         await supabaseClient.from('active_user_sessions').delete().eq('user_id', data.user_id);
         return { isAlreadyActive: false };
       }
@@ -174,7 +174,7 @@ const SessionManager = (() => {
 
         // 1. Upsert active_user_sessions table
         if (uId) {
-          supabaseClient
+          await supabaseClient
             .from('active_user_sessions')
             .upsert({
               user_id: uId,
@@ -183,11 +183,7 @@ const SessionManager = (() => {
               role: uRole,
               device_info: userAgent,
               last_activity_at: nowIso
-            }, { onConflict: 'user_id' })
-            .then(({ error }) => {
-              if (error) console.warn('[SessionManager] active_user_sessions upsert note:', error.message);
-            })
-            .catch(() => {});
+            }, { onConflict: 'user_id' });
         }
 
         // 2. Update profile table
@@ -320,24 +316,29 @@ const SessionManager = (() => {
 
     try {
       const uId = getUserId();
+      const uName = sessionStorage.getItem('username');
       const sessionId = getSessionId();
 
-      // Release active device lock in Supabase so the account can log in on any device
-      if (supabaseClient && uId) {
-        if (sessionId) {
-          await supabaseClient
-            .from('active_user_sessions')
-            .delete()
-            .match({ user_id: String(uId), session_id: sessionId });
-        } else {
+      // Release active device lock in Supabase so the account can log in on any device immediately
+      if (supabaseClient) {
+        if (uId) {
           await supabaseClient
             .from('active_user_sessions')
             .delete()
             .eq('user_id', String(uId));
         }
-      }
-
-      if (supabaseClient) {
+        if (uName) {
+          await supabaseClient
+            .from('active_user_sessions')
+            .delete()
+            .eq('user_identifier', String(uName));
+        }
+        if (sessionId) {
+          await supabaseClient
+            .from('active_user_sessions')
+            .delete()
+            .eq('session_id', sessionId);
+        }
         await supabaseClient.auth.signOut();
       }
     } catch (e) {
@@ -350,21 +351,39 @@ const SessionManager = (() => {
   }
 
   /**
-   * Force logout with user notification
+   * Force logout with user notification: awaits database lock release before redirecting
    */
-  function forceLogout(message, targetUrl) {
+  async function forceLogout(message, targetUrl) {
     const redirect = targetUrl || getLoginUrl(getRole());
     const uId = getUserId();
+    const uName = sessionStorage.getItem('username');
     const sessionId = getSessionId();
 
-    // Release database session lock
-    if (supabaseClient && uId) {
-      supabaseClient
-        .from('active_user_sessions')
-        .delete()
-        .eq('user_id', String(uId))
-        .then(() => {})
-        .catch(() => {});
+    // Release database session lock before redirecting so user can log in immediately
+    if (supabaseClient) {
+      try {
+        if (uId) {
+          await supabaseClient
+            .from('active_user_sessions')
+            .delete()
+            .eq('user_id', String(uId));
+        }
+        if (uName) {
+          await supabaseClient
+            .from('active_user_sessions')
+            .delete()
+            .eq('user_identifier', String(uName));
+        }
+        if (sessionId) {
+          await supabaseClient
+            .from('active_user_sessions')
+            .delete()
+            .eq('session_id', sessionId);
+        }
+        await supabaseClient.auth.signOut();
+      } catch (e) {
+        console.warn('[SessionManager] forceLogout cleanup error:', e.message);
+      }
     }
 
     clear();
@@ -561,7 +580,7 @@ const SessionManager = (() => {
 
     if (_inactivityTimer) clearInterval(_inactivityTimer);
 
-    _inactivityTimer = setInterval(() => {
+    _inactivityTimer = setInterval(async () => {
       if (_sessionTerminated) return;
 
       const lastActivity = getLastActivityTime();
@@ -570,10 +589,10 @@ const SessionManager = (() => {
       const remainingSec = Math.max(0, Math.floor(remainingMs / 1000));
 
       if (idleMs >= INACTIVITY_TIMEOUT_MS) {
-        // Inactivity limit reached -> Auto logout and clear database session
+        // Inactivity limit reached -> Auto logout and clear database session immediately
         console.warn('[SessionManager] ⏱️ Inactivity timeout reached (20 mins). Logging out.');
         dismissInactivityWarning();
-        forceLogout('You have been automatically logged out due to 20 minutes of inactivity.');
+        await forceLogout('You have been automatically logged out due to 20 minutes of inactivity.');
       } else if (remainingMs <= WARNING_BEFORE_MS) {
         // Show warning countdown at 19 minutes (60 seconds remaining)
         showInactivityWarningModal(remainingSec);
@@ -620,7 +639,7 @@ const SessionManager = (() => {
       const session = sessionData?.session;
 
       if (error || !session) {
-        forceLogout('Your session has expired. Please log in again.');
+        await forceLogout('Your session has expired. Please log in again.');
         return false;
       }
 
