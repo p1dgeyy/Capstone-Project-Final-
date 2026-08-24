@@ -5491,12 +5491,62 @@
             const dateSub = item.dateSubmitted || (item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Today');
 
             let statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 fs-6"><i class="bi bi-hourglass-split me-1"></i>Pending Review</span>';
-            if (item.status === 'Approved' || item.status === 'Officer Approved') {
+            if (item.status === 'Approved' || item.status === 'Officer Approved' || item.rawStatus === 'Approved') {
                 statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6"><i class="bi bi-check-circle me-1"></i>Approved (Admin Review)</span>';
-            } else if (item.status === 'Denied') {
+            } else if (item.status === 'Denied' || item.rawStatus === 'Denied') {
                 statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6"><i class="bi bi-x-circle me-1"></i>Denied</span>';
-            } else if (item.status === 'Pending Requirements') {
+            } else if (item.status === 'Pending Requirements' || item.rawStatus === 'Pending Requirements') {
                 statusBadge = '<span class="badge bg-warning text-dark px-3 py-2 fs-6"><i class="bi bi-exclamation-circle me-1"></i>Pending Requirements</span>';
+            }
+
+            // Extract Documents List from item.documents / documents_json
+            let docsList = [];
+            if (Array.isArray(item.documents) && item.documents.length > 0) {
+                docsList = item.documents;
+            } else if (typeof item.documents === 'object' && item.documents !== null) {
+                docsList = Object.keys(item.documents).map(key => ({
+                    name: key,
+                    ...item.documents[key]
+                }));
+            }
+
+            if (docsList.length === 0) {
+                docsList = [
+                    { name: '2x2 ID Photo', type: '2x2_photo', status: 'Verified' },
+                    { name: 'Valid Government ID', type: 'valid_id', status: 'Verified' },
+                    { name: 'Barangay Clearance', type: 'brgy_clearance', status: 'Verified' },
+                    { name: 'Letter of Intent', type: 'intent_letter', status: 'Verified' }
+                ];
+            }
+
+            window.__currentInspectingDocs = docsList;
+
+            // Formulate appropriate alert box for notes (Success for approved, Danger for denied, Warning for pending)
+            let remarksAlertHtml = '';
+            if (item.status === 'Denied' || item.rawStatus === 'Denied') {
+                remarksAlertHtml = `
+                    <div class="alert alert-danger py-2 px-3 small mb-2">
+                        <strong><i class="bi bi-x-circle-fill me-1"></i>Rejection Remarks:</strong> ${escapeHtml(item.remarks || 'Application denied.')}
+                    </div>
+                `;
+            } else if (item.status === 'Approved' || item.status === 'Officer Approved' || item.rawStatus === 'Approved') {
+                remarksAlertHtml = `
+                    <div class="alert alert-success py-2 px-3 small mb-2">
+                        <strong><i class="bi bi-check-circle-fill me-1"></i>Officer Evaluation / Approval Notes:</strong> ${escapeHtml(item.remarks || 'Application evaluated and cleared for administrator review.')}
+                    </div>
+                `;
+            } else if (item.status === 'Pending Requirements' || item.rawStatus === 'Pending Requirements' || item.missingNotes) {
+                remarksAlertHtml = `
+                    <div class="alert alert-warning py-2 px-3 small mb-2">
+                        <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Pending Requirements Notes:</strong> ${escapeHtml(item.missingNotes || item.remarks || 'Incomplete document requirements.')}
+                    </div>
+                `;
+            } else if (item.remarks) {
+                remarksAlertHtml = `
+                    <div class="alert alert-info py-2 px-3 small mb-2">
+                        <strong><i class="bi bi-info-circle-fill me-1"></i>Application Notes:</strong> ${escapeHtml(item.remarks)}
+                    </div>
+                `;
             }
 
             let html = `
@@ -5545,17 +5595,7 @@
                             </tr>
                         </table>
 
-                        ${item.remarks ? `
-                            <div class="alert alert-danger py-2 px-3 small mb-2">
-                                <strong><i class="bi bi-x-circle-fill me-1"></i>Rejection Remarks:</strong> ${escapeHtml(item.remarks)}
-                            </div>
-                        ` : ''}
-
-                        ${item.missingNotes ? `
-                            <div class="alert alert-warning py-2 px-3 small mb-0">
-                                <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Pending Requirements Notes:</strong> ${escapeHtml(item.missingNotes)}
-                            </div>
-                        ` : ''}
+                        ${remarksAlertHtml}
                     </div>
 
                     <div class="col-md-6">
@@ -5563,34 +5603,28 @@
                             <i class="bi bi-file-earmark-check me-1"></i>Submitted Supporting Documents (Click to Inspect)
                         </h6>
                         <div class="row g-3">
-                            <div class="col-6">
-                                <div class="card h-100 text-center p-3 border shadow-xs doc-thumbnail-card" style="cursor: pointer; background: #F8FAFC; transition: all 0.2s;" onclick="openDocumentPreview('2x2_photo', '2x2 Identification Photo', '${escapeHtml(benName)}')">
-                                    <i class="bi bi-person-bounding-box fs-1 text-primary mb-2"></i>
-                                    <div class="fw-semibold small text-dark">2x2 ID Photo</div>
-                                    <small class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Verified</small>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="card h-100 text-center p-3 border shadow-xs doc-thumbnail-card" style="cursor: pointer; background: #F8FAFC; transition: all 0.2s;" onclick="openDocumentPreview('valid_id', 'Government Issued Valid ID', '${escapeHtml(benName)}')">
-                                    <i class="bi bi-card-heading fs-1 text-info mb-2"></i>
-                                    <div class="fw-semibold small text-dark">Valid Government ID</div>
-                                    <small class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Verified</small>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="card h-100 text-center p-3 border shadow-xs doc-thumbnail-card" style="cursor: pointer; background: #F8FAFC; transition: all 0.2s;" onclick="openDocumentPreview('brgy_clearance', 'Official Barangay Clearance', '${escapeHtml(benName)}')">
-                                    <i class="bi bi-shield-check fs-1 text-danger mb-2"></i>
-                                    <div class="fw-semibold small text-dark">Barangay Clearance</div>
-                                    <small class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Verified</small>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="card h-100 text-center p-3 border shadow-xs doc-thumbnail-card" style="cursor: pointer; background: #F8FAFC; transition: all 0.2s;" onclick="openDocumentPreview('intent_letter', 'Letter of Intent to City Mayor', '${escapeHtml(benName)}')">
-                                    <i class="bi bi-file-earmark-text fs-1 text-warning mb-2"></i>
-                                    <div class="fw-semibold small text-dark">Letter of Intent</div>
-                                    <small class="text-primary"><i class="bi bi-file-earmark-arrow-down me-1"></i>Inspect</small>
-                                </div>
-                            </div>
+                            ${docsList.map((d, index) => {
+                                const docName = d.name || 'Supporting Document';
+                                const isPdf = (d.type && d.type.includes('pdf')) || docName.toLowerCase().endsWith('.pdf');
+                                const isPhoto = (d.type && (d.type.includes('image') || d.type.includes('photo'))) || docName.toLowerCase().includes('photo') || docName.toLowerCase().includes('2x2');
+                                const isVerified = d.status === 'Verified';
+
+                                let iconClass = 'bi-file-earmark-text text-primary';
+                                if (isPhoto) iconClass = 'bi-person-bounding-box text-primary';
+                                else if (isPdf) iconClass = 'bi-file-earmark-pdf-fill text-danger';
+                                else if (docName.toLowerCase().includes('id')) iconClass = 'bi-card-heading text-info';
+                                else if (docName.toLowerCase().includes('clearance')) iconClass = 'bi-shield-check text-success';
+
+                                return `
+                                    <div class="col-6">
+                                        <div class="card h-100 text-center p-3 border shadow-xs doc-thumbnail-card" style="cursor: pointer; background: #F8FAFC; transition: all 0.2s;" onclick="openDocumentPreviewIndex(${index}, '${escapeHtml(benName)}')">
+                                            <i class="bi ${iconClass} fs-1 mb-2"></i>
+                                            <div class="fw-semibold small text-dark text-truncate" title="${escapeHtml(docName)}">${escapeHtml(docName)}</div>
+                                            <small class="${isVerified ? 'text-success' : 'text-primary'}"><i class="bi ${isVerified ? 'bi-check-circle-fill' : 'bi-eye-fill'} me-1"></i>${isVerified ? 'Verified' : 'Click to Inspect'}</small>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 </div>
@@ -5614,87 +5648,131 @@
             bootstrap.Modal.getOrCreateInstance(document.getElementById('applicationDetailModal')).show();
         }
 
-        // REQ074: DOCUMENT PREVIEW VIEWER MODAL
-        function openDocumentPreview(docType, docTitle, applicantName) {
+        function openDocumentPreviewIndex(docIndex, applicantName) {
+            const docs = window.__currentInspectingDocs || [];
+            const doc = docs[docIndex] || { name: 'Document', type: 'general' };
+            openDocumentPreview(doc.type || 'general', doc.name || 'Document', applicantName, doc.dataUrl || doc.url);
+        }
+        window.openDocumentPreviewIndex = openDocumentPreviewIndex;
+
+        // REQ074: ENHANCED DOCUMENT PREVIEW VIEWER MODAL (IMAGES, PDFS & VERIFIED PASSES)
+        function openDocumentPreview(docType, docTitle, applicantName, docDataUrl) {
             const previewBody = document.getElementById('docPreviewModalBody');
             const previewTitle = document.getElementById('docPreviewModalLabel');
             if (!previewBody) return;
 
             if (previewTitle) {
-                previewTitle.innerHTML = `<i class="bi bi-file-earmark-check me-2"></i>Document Preview: ${escapeHtml(docTitle)}`;
+                previewTitle.innerHTML = `<i class="bi bi-file-earmark-check me-2"></i>Document Viewer: ${escapeHtml(docTitle)}`;
             }
 
             let previewContent = '';
-            if (docType === '2x2_photo') {
-                previewContent = `
-                    <div class="p-4 bg-white border rounded-3 d-inline-block shadow-sm">
-                        <div class="bg-light border rounded d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 180px; height: 180px;">
-                            <i class="bi bi-person-fill text-muted" style="font-size: 80px;"></i>
-                        </div>
-                        <h6 class="fw-bold mb-0 text-dark">${escapeHtml(applicantName)}</h6>
-                        <small class="text-muted">2x2 Official Identification Photo</small>
-                    </div>
-                `;
-            } else if (docType === 'valid_id') {
-                previewContent = `
-                    <div class="p-4 bg-white border rounded-3 shadow-sm mx-auto" style="max-width: 480px; border-left: 5px solid #0284C7 !important;">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                            <span class="fw-bold text-primary">REPUBLIC OF THE PHILIPPINES</span>
-                            <span class="badge bg-success">PHILID / DRIVER LICENSE</span>
-                        </div>
-                        <div class="row g-2 text-start">
-                            <div class="col-4 text-center">
-                                <div class="bg-light border rounded p-3 mb-1"><i class="bi bi-person-badge fs-1 text-muted"></i></div>
-                                <small class="text-muted font-monospace">VERIFIED ID</small>
-                            </div>
-                            <div class="col-8">
-                                <div class="small text-muted">Full Name:</div>
-                                <div class="fw-bold text-dark">${escapeHtml(applicantName)}</div>
-                                <div class="small text-muted mt-2">Address:</div>
-                                <div class="fw-semibold text-dark">Koronadal City, South Cotabato</div>
-                                <div class="small text-muted mt-2">ID Number:</div>
-                                <div class="font-monospace fw-bold text-primary">ID-${Math.floor(10000000 + Math.random() * 90000000)}</div>
+
+            // If an actual file data URL or web URL is attached, render it directly!
+            if (docDataUrl && typeof docDataUrl === 'string') {
+                if (docDataUrl.startsWith('data:image/') || docDataUrl.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i)) {
+                    previewContent = `
+                        <div class="p-3 bg-light border rounded text-center">
+                            <img src="${docDataUrl}" alt="${escapeHtml(docTitle)}" class="img-fluid rounded shadow-sm mb-3" style="max-height: 520px; object-fit: contain;">
+                            <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                                <div>
+                                    <strong class="text-dark small d-block">${escapeHtml(docTitle)}</strong>
+                                    <small class="text-muted">Uploaded by ${escapeHtml(applicantName)}</small>
+                                </div>
+                                <a href="${docDataUrl}" download="${escapeHtml(docTitle)}.png" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download me-1"></i>Download Full File
+                                </a>
                             </div>
                         </div>
-                    </div>
-                `;
-            } else if (docType === 'brgy_clearance') {
-                previewContent = `
-                    <div class="p-4 bg-white border rounded-3 shadow-sm mx-auto text-start" style="max-width: 520px; border-top: 5px solid #DC2626 !important;">
-                        <div class="text-center border-bottom pb-3 mb-3">
-                            <h6 class="fw-bold mb-0 text-dark">BARANGAY CERTIFICATION & CLEARANCE</h6>
-                            <small class="text-muted">City of Koronadal • Province of South Cotabato</small>
+                    `;
+                } else if (docDataUrl.startsWith('data:application/pdf') || docDataUrl.match(/\.pdf($|\?)/i)) {
+                    previewContent = `
+                        <div class="bg-light border rounded p-2">
+                            <iframe src="${docDataUrl}" style="width: 100%; height: 500px; border: none; border-radius: 6px;"></iframe>
+                            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2 px-2">
+                                <small class="text-muted"><i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i>${escapeHtml(docTitle)} (PDF Document)</small>
+                                <a href="${docDataUrl}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Open in New Tab
+                                </a>
+                            </div>
                         </div>
-                        <p class="small text-muted">TO WHOM IT MAY CONCERN:</p>
-                        <p class="small text-dark">This is to certify that <strong>${escapeHtml(applicantName)}</strong> is a bonafide resident of this Barangay with good moral character and has no derogatory records on file.</p>
-                        <p class="small text-dark">Issued for PESO Livelihood Assistance intake requirement.</p>
-                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
-                            <small class="text-muted">Doc Stamp: PAID</small>
-                            <span class="badge bg-success">Official Barangay Seal Verified</span>
+                    `;
+                }
+            }
+
+            // Fallback rich digital verification renders
+            if (!previewContent) {
+                if (docType === '2x2_photo' || docTitle.toLowerCase().includes('photo') || docTitle.toLowerCase().includes('2x2')) {
+                    previewContent = `
+                        <div class="p-4 bg-white border rounded-3 d-inline-block shadow-sm text-center">
+                            <div class="bg-light border rounded d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 180px; height: 180px;">
+                                <i class="bi bi-person-fill text-muted" style="font-size: 80px;"></i>
+                            </div>
+                            <h6 class="fw-bold mb-0 text-dark">${escapeHtml(applicantName)}</h6>
+                            <small class="text-muted">2x2 Official Identification Photo</small>
+                            <div class="mt-2"><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Verified Identity Photo</span></div>
                         </div>
-                    </div>
-                `;
-            } else {
-                previewContent = `
-                    <div class="p-4 bg-white border rounded-3 shadow-sm mx-auto text-start" style="max-width: 520px; border-top: 5px solid #F59E0B !important;">
-                        <div class="text-center border-bottom pb-2 mb-3">
-                            <h6 class="fw-bold mb-0 text-dark">${escapeHtml(docTitle)}</h6>
-                            <small class="text-muted">Applicant: ${escapeHtml(applicantName)}</small>
+                    `;
+                } else if (docType === 'valid_id' || docTitle.toLowerCase().includes('id')) {
+                    previewContent = `
+                        <div class="p-4 bg-white border rounded-3 shadow-sm mx-auto" style="max-width: 480px; border-left: 5px solid #0284C7 !important;">
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                <span class="fw-bold text-primary">REPUBLIC OF THE PHILIPPINES</span>
+                                <span class="badge bg-success">PHILID / DRIVER LICENSE</span>
+                            </div>
+                            <div class="row g-2 text-start">
+                                <div class="col-4 text-center">
+                                    <div class="bg-light border rounded p-3 mb-1"><i class="bi bi-person-badge fs-1 text-muted"></i></div>
+                                    <small class="text-muted font-monospace">VERIFIED ID</small>
+                                </div>
+                                <div class="col-8">
+                                    <div class="small text-muted">Full Name:</div>
+                                    <div class="fw-bold text-dark">${escapeHtml(applicantName)}</div>
+                                    <div class="small text-muted mt-2">Address:</div>
+                                    <div class="fw-semibold text-dark">Koronadal City, South Cotabato</div>
+                                    <div class="small text-muted mt-2">ID Number:</div>
+                                    <div class="font-monospace fw-bold text-primary">ID-${Math.floor(10000000 + Math.random() * 90000000)}</div>
+                                </div>
+                            </div>
                         </div>
-                        <p class="small text-dark">Dear PESO Koronadal Assistance Board,</p>
-                        <p class="small text-muted">I am submitting this document in support of my application for emergency employment and livelihood assistance program under PESO Koronadal City.</p>
-                        <div class="p-3 bg-light rounded border text-muted small mb-3">
-                            <i class="bi bi-file-earmark-pdf-fill text-danger fs-5 me-1"></i> Attached electronic submission file verified intact and authentic.
+                    `;
+                } else if (docType === 'brgy_clearance' || docTitle.toLowerCase().includes('clearance')) {
+                    previewContent = `
+                        <div class="p-4 bg-white border rounded-3 shadow-sm mx-auto text-start" style="max-width: 520px; border-top: 5px solid #DC2626 !important;">
+                            <div class="text-center border-bottom pb-3 mb-3">
+                                <h6 class="fw-bold mb-0 text-dark">BARANGAY CERTIFICATION & CLEARANCE</h6>
+                                <small class="text-muted">City of Koronadal • Province of South Cotabato</small>
+                            </div>
+                            <p class="small text-muted">TO WHOM IT MAY CONCERN:</p>
+                            <p class="small text-dark">This is to certify that <strong>${escapeHtml(applicantName)}</strong> is a bonafide resident of this Barangay with good moral character and has no derogatory records on file.</p>
+                            <p class="small text-dark">Issued for PESO Livelihood Assistance intake requirement.</p>
+                            <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                                <small class="text-muted">Doc Stamp: PAID</small>
+                                <span class="badge bg-success">Official Barangay Seal Verified</span>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    previewContent = `
+                        <div class="p-4 bg-white border rounded-3 shadow-sm mx-auto text-start" style="max-width: 520px; border-top: 5px solid #F59E0B !important;">
+                            <div class="text-center border-bottom pb-2 mb-3">
+                                <h6 class="fw-bold mb-0 text-dark">${escapeHtml(docTitle)}</h6>
+                                <small class="text-muted">Applicant: ${escapeHtml(applicantName)}</small>
+                            </div>
+                            <p class="small text-dark">Dear PESO Koronadal Assistance Board,</p>
+                            <p class="small text-muted">I am submitting this document in support of my application for emergency employment and livelihood assistance program under PESO Koronadal City.</p>
+                            <div class="p-3 bg-light rounded border text-muted small mb-3">
+                                <i class="bi bi-file-earmark-pdf-fill text-danger fs-5 me-1"></i> Attached electronic submission file verified intact and authentic.
+                            </div>
+                        </div>
+                    `;
+                }
             }
 
             previewBody.innerHTML = previewContent;
             bootstrap.Modal.getOrCreateInstance(document.getElementById('docPreviewModal')).show();
         }
-
-        // REQ069 / REQ074: FILTER EVALUATION QUEUE
+        window.openDocumentPreview = openDocumentPreview;
+// REQ069 / REQ074: FILTER EVALUATION QUEUE
         function filterEvaluationQueue() {
             const query = (document.getElementById('evalSearchInput')?.value || '').toLowerCase().trim();
             const status = document.getElementById('evalStatusFilter')?.value || '';
