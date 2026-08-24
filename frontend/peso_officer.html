@@ -321,9 +321,174 @@
             color: white;
         }
 
-        .badge-pending {
-            background-color: #F59E0B;
-            color: white;
+        /* Enhanced PESO Dashboard Styles (Unified Layout Flow & WCAG 2.1 AA) */
+        .dash-sticky-summary-bar {
+            position: sticky;
+            top: 70px;
+            z-index: 95;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid #E2E8F0;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+
+        .dash-summary-kpi {
+            padding: 12px 16px;
+            border-right: 1px solid #E2E8F0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .dash-summary-kpi:last-child {
+            border-right: none;
+        }
+
+        .dash-subtabs {
+            border-bottom: 2px solid #E2E8F0;
+            gap: 8px;
+        }
+
+        .dash-subtabs .nav-link {
+            border: none;
+            border-radius: 12px 12px 0 0;
+            padding: 10px 18px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #64748B;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .dash-subtabs .nav-link:hover {
+            color: var(--primary);
+            background: #F1F5F9;
+        }
+
+        .dash-subtabs .nav-link.active {
+            color: var(--primary);
+            background: #FFFFFF;
+            border-bottom: 3px solid var(--primary);
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .dash-program-card,
+        .dash-fund-card {
+            border: 1px solid #E2E8F0;
+            border-radius: 16px;
+            background: #FFFFFF;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            overflow: hidden;
+        }
+
+        .dash-program-card:hover,
+        .dash-fund-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08);
+            border-color: #CBD5E1;
+        }
+
+        .dash-panel-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s ease;
+        }
+
+        .dash-panel-header:hover {
+            background-color: #F8FAFC;
+        }
+
+        .dash-panel-chevron {
+            transition: transform 0.25s ease;
+        }
+
+        .dash-panel-toggle.collapsed .dash-panel-chevron {
+            transform: rotate(-90deg);
+        }
+
+        .peso-quick-action-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1040;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50px;
+            padding: 8px 16px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideUpQuickBar 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUpQuickBar {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        .peso-quick-btn {
+            color: #F8FAFC;
+            background: transparent;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 30px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .peso-quick-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #FFFFFF;
+            transform: translateY(-1px);
+        }
+
+        .peso-quick-btn.active,
+        .peso-quick-btn:active {
+            background: var(--primary);
+            color: #FFFFFF;
+        }
+
+        @media (max-width: 992px) {
+            .dash-summary-kpi {
+                border-right: none;
+                border-bottom: 1px solid #E2E8F0;
+            }
+            .peso-quick-action-bar {
+                bottom: 12px;
+                padding: 6px 10px;
+                gap: 4px;
+                max-width: 96vw;
+                overflow-x: auto;
+            }
+            .peso-quick-btn span {
+                display: none;
+            }
+            .peso-quick-btn {
+                padding: 8px 10px;
+            }
         }
 
         @media print {
@@ -422,321 +587,404 @@
     <!-- Main Content Container -->
     <main class="main-content">
 
-        <!-- 1. DASHBOARD TAB -->
+        <!-- 1. DASHBOARD TAB (ENHANCED MODULAR & ACCESSIBLE LAYOUT) -->
         <section id="tab-dashboard" class="tab-section">
-            <div class="page-header">
+            <!-- Dashboard Page Header & Horizontal Sub-Tabs -->
+            <div class="page-header pb-2 mb-3">
                 <div>
                     <h1 class="page-title">PESO Officer Dashboard</h1>
-                    <p class="text-muted">Overview of livelihood programs, project statuses, fund allocations, interview activities, document verification alerts, and assigned tasks</p>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" onclick="openIntakeModal()"><i
-                            class="bi bi-file-earmark-plus me-1"></i> New Intake Application</button>
-                    <button class="btn btn-primary" onclick="openAddBeneficiaryModal()"><i
-                            class="bi bi-person-plus me-1"></i> Add Beneficiary</button>
+                    <p class="text-muted mb-0">Overview of livelihood programs, project statuses, fund allocations, interview activities, and operational tasks</p>
                 </div>
             </div>
 
-            <!-- REQ062: Livelihood Programs & Beneficiaries Overview Stats Grid -->
-            <div class="row g-4 mb-3">
-                <div class="col-md-3">
-                    <div class="stat-card d-flex align-items-center gap-3">
+            <!-- 1. Sticky Top Summary Bar (Single-instance high-level KPIs) -->
+            <div class="dash-sticky-summary-bar p-2 mb-4" id="dashStickySummaryBar" role="region" aria-label="Dashboard Key Metrics Summary">
+                <div class="row g-0 align-items-center">
+                    <div class="col-6 col-md-4 col-lg dash-summary-kpi">
                         <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-diagram-3-fill"></i></div>
                         <div>
-                            <h3 class="mb-0 fw-bold" id="statActivePrograms">0</h3>
-                            <span class="text-muted small">Active Programs</span>
+                            <span class="text-muted small fw-semibold d-block">Active Programs</span>
+                            <h4 class="mb-0 fw-bold text-dark" id="statActivePrograms">0</h4>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card d-flex align-items-center gap-3">
-                        <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-clock-history"></i></div>
-                        <div>
-                            <h3 class="mb-0 fw-bold" id="statPendingPrograms">0</h3>
-                            <span class="text-muted small">Pending Programs / Projects</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card d-flex align-items-center gap-3">
-                        <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-check2-all"></i></div>
-                        <div>
-                            <h3 class="mb-0 fw-bold" id="statCompletedPrograms">0</h3>
-                            <span class="text-muted small">Completed Programs</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card d-flex align-items-center gap-3">
+                    <div class="col-6 col-md-4 col-lg dash-summary-kpi">
                         <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-people-fill"></i></div>
                         <div>
-                            <h3 class="mb-0 fw-bold" id="statAssignedBen">0</h3>
-                            <span class="text-muted small">Assigned Beneficiaries</span>
+                            <span class="text-muted small fw-semibold d-block">Assigned Beneficiaries</span>
+                            <h4 class="mb-0 fw-bold text-dark" id="statAssignedBen">0</h4>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Application & Fund Utilization Secondary Stat Row -->
-            <div class="row g-4 mb-4">
-                <div class="col-md-3">
-                    <div class="stat-card d-flex align-items-center gap-3">
+                    <div class="col-6 col-md-4 col-lg dash-summary-kpi">
+                        <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-cash-stack"></i></div>
+                        <div>
+                            <span class="text-muted small fw-semibold d-block">Disbursed Funds</span>
+                            <h4 class="mb-0 fw-bold text-success font-monospace" id="statDisbursedFunds">₱0.00</h4>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg dash-summary-kpi">
                         <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div>
                         <div>
-                            <h3 class="mb-0 fw-bold" id="statPendingEval">0</h3>
-                            <span class="text-muted small">Pending Evaluations</span>
+                            <span class="text-muted small fw-semibold d-block">Pending Evaluations</span>
+                            <h4 class="mb-0 fw-bold text-warning" id="statPendingEval">0</h4>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card d-flex align-items-center gap-3">
-                        <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check-circle"></i></div>
-                        <div>
-                            <h3 class="mb-0 fw-bold" id="statApprovedEval">0</h3>
-                            <span class="text-muted small">Approved Applications</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card d-flex align-items-center gap-3">
-                        <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-cash-stack"></i></div>
-                        <div>
-                            <h3 class="mb-0 fw-bold" id="statDisbursedFunds">₱0.00</h3>
-                            <span class="text-muted small">Disbursed Funds</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card d-flex align-items-center gap-3">
+                    <div class="col-12 col-md-8 col-lg dash-summary-kpi">
                         <div class="stat-icon bg-dark-subtle text-dark"><i class="bi bi-bank2"></i></div>
                         <div>
-                            <h3 class="mb-0 fw-bold" id="statTotalAppropriation">₱0.00</h3>
-                            <span class="text-muted small">Total Appropriation</span>
+                            <span class="text-muted small fw-semibold d-block">Total Appropriation</span>
+                            <h4 class="mb-0 fw-bold text-dark font-monospace" id="statTotalAppropriation">₱0.00</h4>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- REQ063: Fund Allocation & Resource Distribution & REQ065: Interview Activity Summary -->
-            <div class="row g-4 mb-4">
-                <div class="col-lg-7">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div>
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-cash-coin text-primary me-2"></i>Fund Allocation & Resource Distribution</h5>
-                                <small class="text-muted">Budget utilization and assistance resource distribution per program</small>
+            <!-- 2. Dashboard Sub-Tabbed Horizontal Segmentation -->
+            <ul class="nav nav-tabs dash-subtabs mb-4" id="dashSubTabsNav" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="dashSubTabOverviewBtn" data-bs-toggle="tab" data-bs-target="#dashPaneOverview" type="button" role="tab" aria-controls="dashPaneOverview" aria-selected="true">
+                        <i class="bi bi-grid-1x2-fill text-primary"></i> Overview & Tasks
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="dashSubTabProgramsBtn" data-bs-toggle="tab" data-bs-target="#dashPanePrograms" type="button" role="tab" aria-controls="dashPanePrograms" aria-selected="false">
+                        <i class="bi bi-kanban-fill text-info"></i> Programs & Projects Monitor
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="dashSubTabFundsBtn" data-bs-toggle="tab" data-bs-target="#dashPaneFunds" type="button" role="tab" aria-controls="dashPaneFunds" aria-selected="false">
+                        <i class="bi bi-cash-coin text-success"></i> Fund Allocation & Resources
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="dashSubTabInterviewsBtn" data-bs-toggle="tab" data-bs-target="#dashPaneInterviews" type="button" role="tab" aria-controls="dashPaneInterviews" aria-selected="false">
+                        <i class="bi bi-calendar-check text-warning"></i> Interview Activity Summary
+                    </button>
+                </li>
+            </ul>
+
+            <!-- 3. Dashboard Sub-Tab Content Panes -->
+            <div class="tab-content" id="dashSubTabsContent">
+                
+                <!-- PANE 1: OVERVIEW & TASKS -->
+                <div class="tab-pane fade show active" id="dashPaneOverview" role="tabpanel" aria-labelledby="dashSubTabOverviewBtn">
+                    <div class="row g-4 mb-4">
+                        <!-- REQ066: Document Verification Alert Queue -->
+                        <div class="col-lg-6">
+                            <div class="card h-100 border-0 shadow-sm overflow-hidden" id="cardDocAlerts">
+                                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center dash-panel-header" onclick="toggleDashPanel('collapseDocAlerts')">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="stat-icon bg-danger-subtle text-danger" style="width:36px; height:36px; font-size:1.1rem;"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold text-dark">Document Verification Alert Queue</h6>
+                                            <small class="text-muted">Incomplete or questionable beneficiary documents</small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" id="dashDocAlertsCountBadge">0 Flagged</span>
+                                        <i class="bi bi-chevron-down text-muted dash-panel-chevron" id="chevron-collapseDocAlerts"></i>
+                                    </div>
+                                </div>
+                                <div class="collapse show" id="collapseDocAlerts">
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                                            <table class="table table-hover align-middle mb-0" id="dashDocAlertsTable">
+                                                <thead class="table-light sticky-top">
+                                                    <tr>
+                                                        <th>Beneficiary</th>
+                                                        <th>Barangay</th>
+                                                        <th>Flagged Issue</th>
+                                                        <th class="text-center">Doc Status</th>
+                                                        <th class="text-end">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="dashDocAlertsTableBody">
+                                                    <tr>
+                                                        <td colspan="5" class="text-center py-3 text-muted">Scanning beneficiary documents...</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="dashTotalBudgetBadge">Budget: ₱0.00</span>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Program / Project</th>
-                                            <th>Allocated Budget</th>
-                                            <th>Spent / Disbursed</th>
-                                            <th>Remaining</th>
-                                            <th>Resource / Slots</th>
-                                            <th>Utilization</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dashFundDistributionTableBody">
-                                        <tr>
-                                            <td colspan="6" class="text-center py-3 text-muted">Loading live fund and resource distribution...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+
+                        <!-- REQ067: Daily Interview Activities & Assigned Tasks -->
+                        <div class="col-lg-6">
+                            <div class="card h-100 border-0 shadow-sm overflow-hidden" id="cardDailyTasks">
+                                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center dash-panel-header" onclick="toggleDashPanel('collapseDailyTasks')">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="stat-icon bg-primary-subtle text-primary" style="width:36px; height:36px; font-size:1.1rem;"><i class="bi bi-list-task"></i></div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold text-dark">Daily Activities & Assigned Tasks</h6>
+                                            <small class="text-muted">Today's appointments and operational checklist</small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-primary-subtle text-primary" id="dashTodayDateBadge">Today</span>
+                                        <i class="bi bi-chevron-down text-muted dash-panel-chevron" id="chevron-collapseDailyTasks"></i>
+                                    </div>
+                                </div>
+                                <div class="collapse show" id="collapseDailyTasks">
+                                    <div class="card-body">
+                                        <h6 class="fw-bold small text-uppercase text-muted mb-2"><i class="bi bi-calendar-event me-1"></i> Today's Scheduled Interview Sessions</h6>
+                                        <div id="dashTodayInterviewsList" class="mb-3" style="max-height: 150px; overflow-y: auto;">
+                                            <div class="text-center py-3 text-muted small">Loading today's interviews...</div>
+                                        </div>
+
+                                        <hr class="my-3">
+
+                                        <h6 class="fw-bold small text-uppercase text-muted mb-2"><i class="bi bi-check2-square me-1"></i> Officer Assigned Action Items</h6>
+                                        <div id="dashOfficerTasksList" class="d-flex flex-column gap-2">
+                                            <div class="text-center py-2 text-muted small">Loading assigned tasks...</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-lg-5">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-check text-info me-2"></i>Interview Activity Summary</h5>
-                            <button class="btn btn-sm btn-outline-primary" onclick="switchTab('daily-schedules')">
-                                <i class="bi bi-arrow-right-circle me-1"></i>View Schedules
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="row text-center g-3 mb-3">
-                                <div class="col-6">
-                                    <div class="p-3 bg-light rounded border">
-                                        <h4 class="fw-bold text-primary mb-0" id="dashSchedCount">0</h4>
-                                        <small class="text-muted fw-semibold">Scheduled</small>
-                                    </div>
+                    <!-- Live Persistent Activity & Notification Feed -->
+                    <div class="card border-0 shadow-sm overflow-hidden mb-4" id="cardNotifFeed">
+                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center dash-panel-header" onclick="toggleDashPanel('collapseNotifFeed')">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="stat-icon bg-info-subtle text-info" style="width:36px; height:36px; font-size:1.1rem;"><i class="bi bi-bell-fill"></i></div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">System Notifications & Traceability Feed</h6>
+                                    <small class="text-muted">Real-time system events, application alerts, and officer dispatches</small>
                                 </div>
-                                <div class="col-6">
-                                    <div class="p-3 bg-light rounded border">
-                                        <h4 class="fw-bold text-success mb-0" id="dashCompletedCount">0</h4>
-                                        <small class="text-muted fw-semibold">Completed</small>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="p-3 bg-light rounded border">
-                                        <h4 class="fw-bold text-warning mb-0" id="dashPendingSchedCount">0</h4>
-                                        <small class="text-muted fw-semibold">Pending</small>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="p-3 bg-light rounded border">
-                                        <h4 class="fw-bold text-danger mb-0" id="dashMissedCount">0</h4>
-                                        <small class="text-muted fw-semibold">Missed</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded border bg-light-subtle">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="small fw-bold text-dark"><i class="bi bi-clock-history text-primary me-1"></i> Today's Schedule Load</span>
-                                    <span class="badge bg-primary text-white" id="dashTodaySchedBadge">0 Sessions Today</span>
-                                </div>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar bg-success" id="dashSchedProgressBar" role="progressbar" style="width: 0%"></div>
-                                </div>
-                                <div class="d-flex justify-content-between text-muted small mt-1">
-                                    <span id="dashSchedProgressText">0% Completed</span>
-                                    <span>Target: 100%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- REQ064: Livelihood Programs & Projects Status Monitor -->
-            <div class="row g-4 mb-4">
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div>
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-kanban-fill text-primary me-2"></i>Livelihood Programs & Projects Status Monitor</h5>
-                                <small class="text-muted">Monitor program schedules, implementation timelines, completion progress, and slot capacities</small>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="dashProjectsCountBadge">0 Programs / Projects</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="officerNotifCountBadge">0 Notifications</span>
+                                <i class="bi bi-chevron-down text-muted dash-panel-chevron" id="chevron-collapseNotifFeed"></i>
                             </div>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0" id="dashProjectsMonitorTable">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Program / Project</th>
-                                            <th>Category</th>
-                                            <th>Schedule & Timeline</th>
-                                            <th>Slots Assigned</th>
-                                            <th style="min-width: 180px;">Implementation Progress</th>
-                                            <th class="text-center">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dashProjectsMonitorTableBody">
-                                        <tr>
-                                            <td colspan="6" class="text-center py-3 text-muted">Loading program and project status monitor...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- REQ066 & REQ067: Document Verification Alerts & Daily Interview Activities / Tasks -->
-            <div class="row g-4 mb-4">
-                <!-- REQ066: Beneficiaries with Incomplete, Missing, or Questionable Documents -->
-                <div class="col-lg-6">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="mb-0 fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Document Verification Alert Queue</h5>
-                                <small class="text-muted">Beneficiaries with incomplete, missing, or questionable documents</small>
-                            </div>
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle" id="dashDocAlertsCountBadge">0 Flagged</span>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive" style="max-height: 360px;">
-                                <table class="table table-hover align-middle mb-0" id="dashDocAlertsTable">
-                                    <thead class="table-light sticky-top">
-                                        <tr>
-                                            <th>Beneficiary</th>
-                                            <th>Barangay</th>
-                                            <th>Flagged Issue</th>
-                                            <th class="text-center">Doc Status</th>
-                                            <th class="text-end">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dashDocAlertsTableBody">
-                                        <tr>
-                                            <td colspan="5" class="text-center py-3 text-muted">Scanning beneficiary documents...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="collapse show" id="collapseNotifFeed">
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0" id="officerNotificationsTable">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th>Target (QR / Staff)</th>
+                                                <th>Event & Title</th>
+                                                <th>Message Content</th>
+                                                <th>Timestamp</th>
+                                                <th class="text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="officerNotificationsTableBody">
+                                            <tr>
+                                                <td colspan="5" class="text-center py-3 text-muted">Loading system notifications...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- REQ067: Daily Interview Activities & Assigned Tasks -->
-                <div class="col-lg-6">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-list-task text-primary me-2"></i>Daily Activities & Assigned Tasks</h5>
-                                <small class="text-muted">Today's interview appointments & operational checklist</small>
+                <!-- PANE 2: PROGRAMS & PROJECTS MONITOR (MODULAR GRID CARDS) -->
+                <div class="tab-pane fade" id="dashPanePrograms" role="tabpanel" aria-labelledby="dashSubTabProgramsBtn">
+                    <!-- Search & Filter Controls -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body p-3">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-5">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                        <input type="text" class="form-control border-start-0 ps-0" id="dashProgSearchInput" placeholder="Search programs by code, title, or category..." onkeyup="filterDashPrograms()" aria-label="Search programs">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="dashProgStatusFilter" onchange="filterDashPrograms()" aria-label="Program Status Filter">
+                                        <option value="">All Statuses (Active, Pending, Completed)</option>
+                                        <option value="Active">Active Programs</option>
+                                        <option value="Pending">Pending / Draft Programs</option>
+                                        <option value="Completed">Completed / Archived</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 d-flex gap-2">
+                                    <select class="form-select" id="dashProgCategoryFilter" onchange="filterDashPrograms()" aria-label="Program Category Filter">
+                                        <option value="">All Categories</option>
+                                        <option value="Employment">Employment Assistance</option>
+                                        <option value="Youth">Youth & Students</option>
+                                        <option value="Livelihood">Livelihood & Enterprise</option>
+                                        <option value="Special">Special Projects</option>
+                                    </select>
+                                    <button class="btn btn-outline-secondary text-nowrap" onclick="resetDashProgFilters()"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                </div>
                             </div>
-                            <span class="badge bg-primary-subtle text-primary" id="dashTodayDateBadge">Today</span>
                         </div>
-                        <div class="card-body">
-                            <h6 class="fw-bold small text-uppercase text-muted mb-2"><i class="bi bi-calendar-event me-1"></i> Today's Scheduled Interview Sessions</h6>
-                            <div id="dashTodayInterviewsList" class="mb-3" style="max-height: 160px; overflow-y: auto;">
-                                <div class="text-center py-3 text-muted small">Loading today's interviews...</div>
+                    </div>
+
+                    <!-- Grid of Modular Interactive Program Cards -->
+                    <div class="row g-4 mb-4" id="dashProgramsGridContainer">
+                        <div class="col-12 text-center py-5 text-muted">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            Loading modular program monitor cards...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANE 3: FUND ALLOCATION & RESOURCE DISTRIBUTION -->
+                <div class="tab-pane fade" id="dashPaneFunds" role="tabpanel" aria-labelledby="dashSubTabFundsBtn">
+                    <!-- Fund Filter Controls -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body p-3">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                        <input type="text" class="form-control border-start-0 ps-0" id="dashFundSearchInput" placeholder="Search funds by program or code..." onkeyup="filterDashFunds()" aria-label="Search funds">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select" id="dashFundCategoryFilter" onchange="filterDashFunds()" aria-label="Fund Utilization Filter">
+                                        <option value="">All Utilization Levels</option>
+                                        <option value="high">High Utilization (≥ 80%)</option>
+                                        <option value="medium">Medium Utilization (40% - 79%)</option>
+                                        <option value="low">Low Utilization (&lt; 40%)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-outline-secondary w-100" onclick="resetDashFundFilters()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+                                </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <hr class="my-3">
+                    <!-- Modular Fund Utilization Grid -->
+                    <div class="row g-4 mb-4" id="dashFundsGridContainer">
+                        <div class="col-12 text-center py-5 text-muted">
+                            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                            Loading fund allocation cards...
+                        </div>
+                    </div>
 
-                            <h6 class="fw-bold small text-uppercase text-muted mb-2"><i class="bi bi-check2-square me-1"></i> Officer Assigned Action Items</h6>
-                            <div id="dashOfficerTasksList" class="d-flex flex-column gap-2">
-                                <div class="text-center py-2 text-muted small">Loading assigned tasks...</div>
+                    <!-- Collapsible Comparison View -->
+                    <div class="card border-0 shadow-sm overflow-hidden mb-4" id="cardFundTable">
+                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center dash-panel-header" onclick="toggleDashPanel('collapseFundTable')">
+                            <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-table text-primary me-2"></i>Comparative Fund Breakdown Table</h6>
+                            <i class="bi bi-chevron-down text-muted dash-panel-chevron" id="chevron-collapseFundTable"></i>
+                        </div>
+                        <div class="collapse show" id="collapseFundTable">
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th>Program / Project</th>
+                                                <th>Allocated Budget</th>
+                                                <th>Spent / Disbursed</th>
+                                                <th>Remaining</th>
+                                                <th>Resource / Slots</th>
+                                                <th>Utilization</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashFundDistributionTableBody">
+                                            <tr>
+                                                <td colspan="6" class="text-center py-3 text-muted">Loading live fund distribution...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Persistent Live System Notifications & Activity Feed Card -->
-            <div class="row g-4 mb-4">
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold"><i class="bi bi-bell-fill text-primary me-2"></i>Persistent System Notifications & Activity Log</h5>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="officerNotifCountBadge">0 Notifications</span>
+                <!-- PANE 4: INTERVIEW ACTIVITY SUMMARY -->
+                <div class="tab-pane fade" id="dashPaneInterviews" role="tabpanel" aria-labelledby="dashSubTabInterviewsBtn">
+                    <!-- Metrics Row -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="stat-card p-3 d-flex align-items-center gap-3">
+                                <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-calendar-event"></i></div>
+                                <div>
+                                    <h3 class="fw-bold mb-0 text-dark" id="dashSchedCount">0</h3>
+                                    <span class="text-muted small">Total Scheduled</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0" id="officerNotificationsTable">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Target (QR / Staff)</th>
-                                            <th>Event & Title</th>
-                                            <th>Message Content</th>
-                                            <th>Timestamp</th>
-                                            <th class="text-center">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="officerNotificationsTableBody">
-                                        <tr>
-                                            <td colspan="5" class="text-center py-3 text-muted">Loading system notifications...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-card p-3 d-flex align-items-center gap-3">
+                                <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check-circle-fill"></i></div>
+                                <div>
+                                    <h3 class="fw-bold mb-0 text-success" id="dashCompletedCount">0</h3>
+                                    <span class="text-muted small">Completed / Present</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-card p-3 d-flex align-items-center gap-3">
+                                <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div>
+                                <div>
+                                    <h3 class="fw-bold mb-0 text-warning" id="dashPendingSchedCount">0</h3>
+                                    <span class="text-muted small">Pending Sessions</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-card p-3 d-flex align-items-center gap-3">
+                                <div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-x-circle-fill"></i></div>
+                                <div>
+                                    <h3 class="fw-bold mb-0 text-danger" id="dashMissedCount">0</h3>
+                                    <span class="text-muted small">Missed / Absent</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Schedule Load Meter Card -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Today's Operational Schedule Load</h6>
+                                    <small class="text-muted">Overall completion percentage for today's interviews</small>
+                                </div>
+                                <span class="badge bg-primary px-3 py-2 rounded-pill font-monospace" id="dashTodaySchedBadge">0 Sessions Today</span>
+                            </div>
+                            <div class="progress my-3" style="height: 10px; border-radius: 6px;">
+                                <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" id="dashSchedProgressBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center text-muted small">
+                                <span id="dashSchedProgressText" class="fw-semibold text-dark">0% Completed</span>
+                                <button class="btn btn-sm btn-outline-primary" onclick="switchTab('daily-schedules')">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> Open Full Calendar & Roster
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </section>
+
+        <!-- PERSISTENT FLOATING QUICK ACTION BAR (SHORTCUTS FOR OFFICER NAVIGATION) -->
+        <nav class="peso-quick-action-bar" id="pesoOfficerQuickActionBar" aria-label="Quick Action Shortcuts">
+            <button class="peso-quick-btn" onclick="openQrScannerModal()" title="Scan Beneficiary QR Code">
+                <i class="bi bi-qr-code-scan text-info fs-6"></i>
+                <span>Scan QR</span>
+            </button>
+            <button class="peso-quick-btn" onclick="openAddBeneficiaryModal()" title="Register New Beneficiary">
+                <i class="bi bi-person-plus text-success fs-6"></i>
+                <span>Add Beneficiary</span>
+            </button>
+            <button class="peso-quick-btn" onclick="switchTab('evaluation')" title="Evaluate Applications">
+                <i class="bi bi-clipboard-check text-warning fs-6"></i>
+                <span>Evaluate Apps</span>
+            </button>
+            <button class="peso-quick-btn" onclick="switchTab('daily-schedules')" title="View Daily Schedules">
+                <i class="bi bi-calendar-event text-primary fs-6"></i>
+                <span>Daily Roster</span>
+            </button>
+            <button class="peso-quick-btn" onclick="openAuditModal()" title="View Audit Logs & Traceability">
+                <i class="bi bi-journal-text text-light fs-6"></i>
+                <span>Audit Logs</span>
+            </button>
+        </nav>
 
         <!-- 2. BENEFICIARIES MANAGEMENT TAB -->
         <section id="tab-beneficiaries" class="tab-section d-none">
@@ -2799,7 +3047,12 @@
             { id: 9, code: 'SPES-2025', name: '2025 Summer SPES Assistance Wave', category: 'Youth & Students', budget: 1750000, slots_target: 350, slots_filled: 350, timeline: 'Apr - May 2025', status: 'Completed' }
         ];
 
+        let cachedDashProgramsList = [];
+        let cachedDashApplicationsList = [];
+
         function updateDashboardOverviewMetrics(programsData, applicationsData) {
+            cachedDashApplicationsList = Array.isArray(applicationsData) ? applicationsData : [];
+
             // Build unified programs list (combining DB records with canonical definitions)
             let unifiedPrograms = Array.isArray(programsData) && programsData.length > 0 ? [...programsData] : [...CANONICAL_PESO_DASH_PROGRAMS];
             
@@ -2825,22 +3078,20 @@
                 }
             });
 
-            // REQ062: Livelihood Programs Overview Stats
+            cachedDashProgramsList = unifiedPrograms;
+
+            // 1. Sticky Top Summary Bar KPIs (Single-Instance Metrics)
             const activeProgs = unifiedPrograms.filter(p => (p.status || 'Active') === 'Active');
             const pendingProgs = unifiedPrograms.filter(p => ['Pending', 'Pending Setup', 'Draft', 'Under Review'].includes(p.status));
             const completedProgs = unifiedPrograms.filter(p => ['Completed', 'Archived', 'Closed'].includes(p.status));
             const assignedCount = beneficiariesList.length;
 
             if (document.getElementById('statActivePrograms')) document.getElementById('statActivePrograms').textContent = activeProgs.length;
-            if (document.getElementById('statPendingPrograms')) document.getElementById('statPendingPrograms').textContent = pendingProgs.length;
-            if (document.getElementById('statCompletedPrograms')) document.getElementById('statCompletedPrograms').textContent = completedProgs.length;
             if (document.getElementById('statAssignedBen')) document.getElementById('statAssignedBen').textContent = assignedCount;
 
-            // Application & Fund Utilization Stats
-            const pendingEval = evaluationList.filter(a => a.status === 'Pending').length;
+            const pendingEval = evaluationList.filter(a => a.status === 'Pending' || a.status === 'Pending Requirements').length;
             const approvedEval = evaluationList.filter(a => a.status === 'Approved').length;
             if (document.getElementById('statPendingEval')) document.getElementById('statPendingEval').textContent = pendingEval;
-            if (document.getElementById('statApprovedEval')) document.getElementById('statApprovedEval').textContent = approvedEval;
 
             let totalDisbursed = 0;
             if (Array.isArray(applicationsData)) {
@@ -2871,106 +3122,13 @@
                 }
             }
 
-            // REQ063: Fund Allocation & Resource Distribution Table
-            const fundTbody = document.getElementById('dashFundDistributionTableBody');
-            const totalBudgetBadge = document.getElementById('dashTotalBudgetBadge');
-            if (fundTbody) {
-                let totalAllocated = 0;
-                const rowsHtml = unifiedPrograms.map(prog => {
-                    const progCode = prog.code || '';
-                    const progName = prog.name || progCode;
-                    const allocated = Number(prog.budget) || 0;
-                    totalAllocated += allocated;
+            // 2. Render Modular Program Cards (Pane 2)
+            renderDashboardProgramCards(unifiedPrograms);
 
-                    const progApps = Array.isArray(applicationsData)
-                        ? applicationsData.filter(a => (a.program_id === prog.id || (a.program && a.program.code === progCode)) && (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed'))
-                        : [];
-                    let spent = progApps.reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
-                    if (spent === 0 && prog.status === 'Active') {
-                        spent = Math.round(allocated * ((prog.slots_filled || 1) / (prog.slots_target || 1)));
-                    } else if (prog.status === 'Completed') {
-                        spent = allocated;
-                    }
-                    const remaining = Math.max(0, allocated - spent);
-                    const utilPercent = allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
-                    const slotsInfo = `${prog.slots_filled || 0} / ${prog.slots_target || 100} Slots`;
+            // 3. Render Modular Fund Cards & Comparative Table (Pane 3)
+            renderDashboardFundCards(unifiedPrograms);
 
-                    return `
-                        <tr>
-                            <td>
-                                <div class="fw-bold text-dark">${escapeHtml(progCode)}</div>
-                                <small class="text-muted text-truncate d-inline-block" style="max-width: 220px;">${escapeHtml(progName)}</small>
-                            </td>
-                            <td class="fw-semibold">₱${allocated.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
-                            <td class="text-danger fw-semibold">₱${spent.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
-                            <td class="text-success fw-semibold">₱${remaining.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
-                            <td><span class="badge bg-light text-dark border font-monospace">${slotsInfo}</span></td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
-                                        <div class="progress-bar ${utilPercent >= 80 ? 'bg-danger' : (utilPercent >= 50 ? 'bg-primary' : 'bg-info')}" role="progressbar" style="width: ${utilPercent}%"></div>
-                                    </div>
-                                    <small class="fw-bold">${utilPercent}%</small>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-
-                fundTbody.innerHTML = rowsHtml;
-
-                if (totalBudgetBadge) {
-                    totalBudgetBadge.textContent = totalAllocated >= 1000000
-                        ? `Budget: ₱${(totalAllocated / 1000000).toFixed(2)}M`
-                        : `Budget: ₱${totalAllocated.toLocaleString('en-PH')}`;
-                }
-            }
-
-            // REQ064: Livelihood Programs & Projects Status Monitor
-            const projTbody = document.getElementById('dashProjectsMonitorTableBody');
-            const projBadge = document.getElementById('dashProjectsCountBadge');
-            if (projBadge) projBadge.textContent = `${unifiedPrograms.length} Programs / Projects`;
-            if (projTbody) {
-                projTbody.innerHTML = unifiedPrograms.map(prog => {
-                    const progCode = prog.code || '';
-                    const progName = prog.name || progCode;
-                    const category = prog.category || 'Employment Assistance';
-                    const timeline = prog.timeline || 'Jan - Dec 2026';
-                    const targetSlots = prog.slots_target || 100;
-                    const filledSlots = prog.slots_filled || 0;
-                    const progressPct = prog.status === 'Completed' ? 100 : (prog.status === 'Pending' ? 0 : Math.min(100, Math.round((filledSlots / targetSlots) * 100)));
-
-                    let statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Active</span>';
-                    if (prog.status === 'Pending' || prog.status === 'Pending Setup') {
-                        statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-clock me-1"></i>Pending Setup</span>';
-                    } else if (prog.status === 'Completed') {
-                        statusBadge = '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-flag-fill me-1"></i>Completed</span>';
-                    }
-
-                    return `
-                        <tr>
-                            <td>
-                                <div class="fw-bold text-dark">${escapeHtml(progCode)}</div>
-                                <small class="text-muted">${escapeHtml(progName)}</small>
-                            </td>
-                            <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(category)}</span></td>
-                            <td><span class="small font-monospace text-muted"><i class="bi bi-calendar3 me-1"></i>${escapeHtml(timeline)}</span></td>
-                            <td><span class="fw-semibold text-primary font-monospace">${filledSlots}</span> / <span class="text-muted font-monospace">${targetSlots}</span></td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="progress flex-grow-1" style="height: 8px;">
-                                        <div class="progress-bar ${progressPct === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${progressPct}%"></div>
-                                    </div>
-                                    <small class="fw-bold font-monospace">${progressPct}%</small>
-                                </div>
-                            </td>
-                            <td class="text-center">${statusBadge}</td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-
-            // REQ065: Interview Activity Summary
+            // 4. Interview Activity Summary (Pane 4)
             const totalSched = dailySchedulesList.length;
             const completedSched = dailySchedulesList.filter(s => s.status === 'Completed' || s.attendance === 'Present').length;
             const pendingSched = dailySchedulesList.filter(s => s.status === 'Pending' || s.attendance === 'Unmarked' || !s.attendance).length;
@@ -2996,11 +3154,337 @@
                 document.getElementById('dashSchedProgressText').textContent = `${todayProgress}% Completed`;
             }
 
-            // REQ066: Beneficiaries with Incomplete, Missing, or Questionable Documents
+            // 5. Document Verification Alert Queue (Pane 1 - REQ066)
             renderDashboardDocAlerts();
 
-            // REQ067: Daily Interview Activities & Assigned Tasks
+            // 6. Daily Activities & Checklist (Pane 1 - REQ067)
             renderDashboardDailyActivities(todaySchedules, pendingEval);
+
+            // 7. Initialize Collapsible Panel Memory
+            initDashPanelStates();
+        }
+
+        // ---------------------------------------------------------------------
+        // REQ062 & REQ064: MODULAR INTERACTIVE PROGRAM CARDS CONTROLLER
+        // ---------------------------------------------------------------------
+        function renderDashboardProgramCards(programs) {
+            const container = document.getElementById('dashProgramsGridContainer');
+            if (!container) return;
+
+            if (!programs || programs.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5 text-muted">
+                        <i class="bi bi-search fs-2 d-block mb-2 text-muted"></i>
+                        No programs found matching the selected search or filter criteria.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = programs.map(prog => {
+                const progCode = prog.code || 'PROG';
+                const progName = prog.name || progCode;
+                const category = prog.category || 'Livelihood Assistance';
+                const timeline = prog.timeline || 'Jan - Dec 2026';
+                const budget = Number(prog.budget) || 0;
+                const targetSlots = Number(prog.slots_target) || 100;
+                const filledSlots = Number(prog.slots_filled) || 0;
+                const remainingSlots = Math.max(0, targetSlots - filledSlots);
+                const progressPct = prog.status === 'Completed' ? 100 : (prog.status === 'Pending' ? 0 : Math.min(100, Math.round((filledSlots / targetSlots) * 100)));
+
+                let statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Active</span>';
+                if (prog.status === 'Pending' || prog.status === 'Pending Setup') {
+                    statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-clock me-1"></i>Pending Setup</span>';
+                } else if (prog.status === 'Completed') {
+                    statusBadge = '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-flag-fill me-1"></i>Completed</span>';
+                }
+
+                const safeCode = progCode.replace(/[^a-zA-Z0-9]/g, '_');
+
+                return `
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="dash-program-card h-100 shadow-sm p-3 d-flex flex-column justify-content-between">
+                            <div>
+                                <!-- Header -->
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h5 class="fw-bold text-dark mb-0 font-monospace">${escapeHtml(progCode)}</h5>
+                                        <span class="badge bg-light text-muted border text-truncate d-inline-block" style="max-width: 180px;">${escapeHtml(category)}</span>
+                                    </div>
+                                    <div>${statusBadge}</div>
+                                </div>
+                                <p class="text-muted small mb-3 text-truncate-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 38px;">${escapeHtml(progName)}</p>
+
+                                <!-- Key Metrics Pill Grid -->
+                                <div class="row g-2 text-center mb-3">
+                                    <div class="col-4">
+                                        <div class="p-2 bg-light rounded border">
+                                            <span class="text-muted small d-block" style="font-size:0.72rem;">Allocated</span>
+                                            <strong class="font-monospace text-primary small">₱${(budget / 1000).toFixed(0)}k</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 bg-light rounded border">
+                                            <span class="text-muted small d-block" style="font-size:0.72rem;">Filled Slots</span>
+                                            <strong class="font-monospace text-success small">${filledSlots}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 bg-light rounded border">
+                                            <span class="text-muted small d-block" style="font-size:0.72rem;">Target</span>
+                                            <strong class="font-monospace text-dark small">${targetSlots}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Progress Bar -->
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="small fw-semibold text-muted">Implementation Progress</span>
+                                        <span class="small fw-bold font-monospace text-primary">${progressPct}%</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px; border-radius: 4px;">
+                                        <div class="progress-bar ${progressPct === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${progressPct}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Expandable Sub-Section -->
+                            <div>
+                                <div class="collapse mb-2" id="detail-prog-${safeCode}">
+                                    <div class="p-3 bg-light rounded border text-start">
+                                        <div class="small text-muted mb-1"><i class="bi bi-calendar3 me-1"></i>Timeline: <strong>${escapeHtml(timeline)}</strong></div>
+                                        <div class="small text-muted mb-2"><i class="bi bi-people me-1"></i>Remaining Slots: <strong>${remainingSlots} open slots</strong></div>
+                                        <div class="d-flex gap-2 mt-2">
+                                            <button class="btn btn-xs btn-outline-primary w-50 py-1" onclick="switchTab('evaluation')">
+                                                <i class="bi bi-clipboard-check me-1"></i>Evaluations
+                                            </button>
+                                            <button class="btn btn-xs btn-outline-secondary w-50 py-1" onclick="switchTab('livelihood-mgmt')">
+                                                <i class="bi bi-diagram-3 me-1"></i>Batches
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-sm btn-light w-100 fw-semibold text-primary border-top pt-2" type="button" data-bs-toggle="collapse" data-bs-target="#detail-prog-${safeCode}" aria-expanded="false">
+                                    <i class="bi bi-arrows-expand me-1"></i> Toggle Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterDashPrograms() {
+            const query = (document.getElementById('dashProgSearchInput')?.value || '').toLowerCase().trim();
+            const status = document.getElementById('dashProgStatusFilter')?.value || '';
+            const category = document.getElementById('dashProgCategoryFilter')?.value || '';
+
+            const filtered = cachedDashProgramsList.filter(p => {
+                const matchQuery = !query || (p.code && p.code.toLowerCase().includes(query)) || (p.name && p.name.toLowerCase().includes(query)) || (p.category && p.category.toLowerCase().includes(query));
+                const matchStatus = !status || (p.status && p.status.toLowerCase().includes(status.toLowerCase()));
+                const matchCategory = !category || (p.category && p.category.toLowerCase().includes(category.toLowerCase()));
+                return matchQuery && matchStatus && matchCategory;
+            });
+
+            renderDashboardProgramCards(filtered);
+        }
+
+        function resetDashProgFilters() {
+            if (document.getElementById('dashProgSearchInput')) document.getElementById('dashProgSearchInput').value = '';
+            if (document.getElementById('dashProgStatusFilter')) document.getElementById('dashProgStatusFilter').value = '';
+            if (document.getElementById('dashProgCategoryFilter')) document.getElementById('dashProgCategoryFilter').value = '';
+            renderDashboardProgramCards(cachedDashProgramsList);
+        }
+
+        // ---------------------------------------------------------------------
+        // REQ063: MODULAR FUND ALLOCATION CARDS & TABLE CONTROLLER
+        // ---------------------------------------------------------------------
+        function renderDashboardFundCards(programs) {
+            const container = document.getElementById('dashFundsGridContainer');
+            const tbody = document.getElementById('dashFundDistributionTableBody');
+            const totalBadge = document.getElementById('dashTotalBudgetBadge');
+
+            if (!programs || programs.length === 0) {
+                if (container) container.innerHTML = '<div class="col-12 text-center py-4 text-muted">No fund allocation records found.</div>';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No fund records.</td></tr>';
+                return;
+            }
+
+            let totalAllocated = 0;
+
+            // 1. Render Grid Cards
+            if (container) {
+                container.innerHTML = programs.map(prog => {
+                    const progCode = prog.code || '';
+                    const progName = prog.name || progCode;
+                    const allocated = Number(prog.budget) || 0;
+                    totalAllocated += allocated;
+
+                    const progApps = Array.isArray(cachedDashApplicationsList)
+                        ? cachedDashApplicationsList.filter(a => (a.program_id === prog.id || (a.program && a.program.code === progCode)) && (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed'))
+                        : [];
+                    let spent = progApps.reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
+                    if (spent === 0 && prog.status === 'Active') {
+                        spent = Math.round(allocated * ((prog.slots_filled || 1) / (prog.slots_target || 1)));
+                    } else if (prog.status === 'Completed') {
+                        spent = allocated;
+                    }
+                    const remaining = Math.max(0, allocated - spent);
+                    const utilPercent = allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
+
+                    return `
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <div class="dash-fund-card h-100 shadow-sm p-3 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h5 class="fw-bold font-monospace text-dark mb-0">${escapeHtml(progCode)}</h5>
+                                        <span class="badge ${utilPercent >= 80 ? 'bg-danger-subtle text-danger' : (utilPercent >= 40 ? 'bg-primary-subtle text-primary' : 'bg-success-subtle text-success')} border">${utilPercent}% Utilized</span>
+                                    </div>
+                                    <p class="text-muted small text-truncate mb-3">${escapeHtml(progName)}</p>
+
+                                    <div class="p-3 bg-light rounded border mb-3">
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span class="text-muted">Allocated:</span>
+                                            <strong class="font-monospace text-dark">₱${allocated.toLocaleString('en-PH')}</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span class="text-muted">Spent / Disbursed:</span>
+                                            <strong class="font-monospace text-danger">₱${spent.toLocaleString('en-PH')}</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between small border-top pt-1">
+                                            <span class="text-muted fw-semibold">Remaining Balance:</span>
+                                            <strong class="font-monospace text-success">₱${remaining.toLocaleString('en-PH')}</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="progress" style="height: 8px; border-radius: 4px;">
+                                        <div class="progress-bar ${utilPercent >= 80 ? 'bg-danger' : (utilPercent >= 40 ? 'bg-primary' : 'bg-info')}" role="progressbar" style="width: ${utilPercent}%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 text-end">
+                                    <small class="text-muted font-monospace"><i class="bi bi-people me-1"></i>${prog.slots_filled || 0}/${prog.slots_target || 100} Slots Funded</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // 2. Render Comparative Table
+            if (tbody) {
+                tbody.innerHTML = programs.map(prog => {
+                    const progCode = prog.code || '';
+                    const progName = prog.name || progCode;
+                    const allocated = Number(prog.budget) || 0;
+
+                    const progApps = Array.isArray(cachedDashApplicationsList)
+                        ? cachedDashApplicationsList.filter(a => (a.program_id === prog.id || (a.program && a.program.code === progCode)) && (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed'))
+                        : [];
+                    let spent = progApps.reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
+                    if (spent === 0 && prog.status === 'Active') {
+                        spent = Math.round(allocated * ((prog.slots_filled || 1) / (prog.slots_target || 1)));
+                    } else if (prog.status === 'Completed') {
+                        spent = allocated;
+                    }
+                    const remaining = Math.max(0, allocated - spent);
+                    const utilPercent = allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
+                    const slotsInfo = `${prog.slots_filled || 0} / ${prog.slots_target || 100} Slots`;
+
+                    return `
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-dark font-monospace">${escapeHtml(progCode)}</div>
+                                <small class="text-muted text-truncate d-inline-block" style="max-width: 220px;">${escapeHtml(progName)}</small>
+                            </td>
+                            <td class="fw-semibold font-monospace">₱${allocated.toLocaleString('en-PH')}</td>
+                            <td class="text-danger fw-semibold font-monospace">₱${spent.toLocaleString('en-PH')}</td>
+                            <td class="text-success fw-semibold font-monospace">₱${remaining.toLocaleString('en-PH')}</td>
+                            <td><span class="badge bg-light text-dark border font-monospace">${slotsInfo}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                        <div class="progress-bar ${utilPercent >= 80 ? 'bg-danger' : (utilPercent >= 50 ? 'bg-primary' : 'bg-info')}" role="progressbar" style="width: ${utilPercent}%"></div>
+                                    </div>
+                                    <small class="fw-bold font-monospace">${utilPercent}%</small>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            if (totalBadge) {
+                totalBadge.textContent = totalAllocated >= 1000000
+                    ? `Budget: ₱${(totalAllocated / 1000000).toFixed(2)}M`
+                    : `Budget: ₱${totalAllocated.toLocaleString('en-PH')}`;
+            }
+        }
+
+        function filterDashFunds() {
+            const query = (document.getElementById('dashFundSearchInput')?.value || '').toLowerCase().trim();
+            const filter = document.getElementById('dashFundCategoryFilter')?.value || '';
+
+            const filtered = cachedDashProgramsList.filter(p => {
+                const allocated = Number(p.budget) || 1;
+                const filled = Number(p.slots_filled) || 0;
+                const target = Number(p.slots_target) || 1;
+                const util = Math.round((filled / target) * 100);
+
+                const matchQuery = !query || (p.code && p.code.toLowerCase().includes(query)) || (p.name && p.name.toLowerCase().includes(query));
+                let matchLevel = true;
+                if (filter === 'high') matchLevel = util >= 80;
+                else if (filter === 'medium') matchLevel = util >= 40 && util < 80;
+                else if (filter === 'low') matchLevel = util < 40;
+
+                return matchQuery && matchLevel;
+            });
+
+            renderDashboardFundCards(filtered);
+        }
+
+        function resetDashFundFilters() {
+            if (document.getElementById('dashFundSearchInput')) document.getElementById('dashFundSearchInput').value = '';
+            if (document.getElementById('dashFundCategoryFilter')) document.getElementById('dashFundCategoryFilter').value = '';
+            renderDashboardFundCards(cachedDashProgramsList);
+        }
+
+        // ---------------------------------------------------------------------
+        // COLLAPSIBLE PANEL PERSISTENCE CONTROLLER (LOCALSTORAGE MEMORY)
+        // ---------------------------------------------------------------------
+        function toggleDashPanel(panelId) {
+            const el = document.getElementById(panelId);
+            const chevron = document.getElementById(`chevron-${panelId}`);
+            if (!el) return;
+
+            const isShown = el.classList.contains('show');
+            if (isShown) {
+                el.classList.remove('show');
+                if (chevron) chevron.style.transform = 'rotate(-90deg)';
+                localStorage.setItem(`peso_dash_panel_${panelId}`, 'collapsed');
+            } else {
+                el.classList.add('show');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                localStorage.setItem(`peso_dash_panel_${panelId}`, 'open');
+            }
+        }
+
+        function initDashPanelStates() {
+            ['collapseDocAlerts', 'collapseDailyTasks', 'collapseNotifFeed', 'collapseFundTable'].forEach(panelId => {
+                const state = localStorage.getItem(`peso_dash_panel_${panelId}`);
+                const el = document.getElementById(panelId);
+                const chevron = document.getElementById(`chevron-${panelId}`);
+                if (el) {
+                    if (state === 'collapsed') {
+                        el.classList.remove('show');
+                        if (chevron) chevron.style.transform = 'rotate(-90deg)';
+                    } else if (state === 'open') {
+                        el.classList.add('show');
+                        if (chevron) chevron.style.transform = 'rotate(0deg)';
+                    }
+                }
+            });
         }
 
         // ---------------------------------------------------------------------
