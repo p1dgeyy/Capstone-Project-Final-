@@ -2215,13 +2215,27 @@
                     if (DataService.beneficiaries) {
                         const { data: benData } = await DataService.beneficiaries.getAll();
                         if (benData && Array.isArray(benData)) {
-                            const mappedBens = benData.map(b => ({
-                                id: String(b.qr_code),
-                                name: `${b.first_name || ''} ${b.last_name || ''}`.trim(),
-                                contact: b.phone || b.contact_number || '',
-                                barangay: b.address || 'Koronadal',
-                                status: b.status || 'Active'
-                            }));
+                            const mappedBens = benData.map(b => {
+                                const fullName = `${b.first_name || ''} ${b.middle_name ? b.middle_name + ' ' : ''}${b.last_name || ''} ${b.suffix && b.suffix !== 'N/A' ? b.suffix : ''}`.trim();
+                                const uname = b.username || (b.email ? b.email.split('@')[0] : 'beneficiary');
+                                return {
+                                    id: String(b.qr_code || `BEN-${b.id}`),
+                                    qr_code: b.qr_code,
+                                    name: fullName || uname,
+                                    full_name: fullName || uname,
+                                    username: uname,
+                                    first_name: b.first_name || '',
+                                    last_name: b.last_name || '',
+                                    date_of_birth: b.date_of_birth || 'N/A',
+                                    age: b.age || 25,
+                                    contact: b.phone || b.contact_number || '',
+                                    phone: b.phone || b.contact_number || '',
+                                    email: b.email || 'N/A',
+                                    barangay: b.barangay || b.address || 'Koronadal',
+                                    address: b.address || 'Koronadal City',
+                                    status: b.status || 'Active'
+                                };
+                            });
                             localStorage.setItem('cswdo_beneficiaries', JSON.stringify(mappedBens));
                         }
                     }

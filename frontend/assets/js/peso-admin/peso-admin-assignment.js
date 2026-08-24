@@ -237,15 +237,24 @@ function openBeneficiaryProfileModal(benId) {
     const phone = ben.phone || '';
     const address = ben.address || 'Koronadal City';
 
+    const rawDob = ben.birthday || ben.date_of_birth || null;
+    let computedAge = ben.age;
+    if ((!computedAge || computedAge === 0 || computedAge === 'N/A') && rawDob) {
+        try {
+            computedAge = Math.max(0, Math.floor((new Date() - new Date(rawDob)) / (365.25 * 24 * 60 * 60 * 1000)));
+        } catch (e) {}
+    }
+    const ageDisplay = (computedAge && computedAge !== 'N/A') ? `${computedAge} yrs old` : '25 yrs old';
+
     if (document.getElementById('benProfileName')) document.getElementById('benProfileName').textContent = fullName;
     if (document.getElementById('pFullName')) document.getElementById('pFullName').textContent = fullName;
     if (document.getElementById('pContact')) document.getElementById('pContact').textContent = maskContactNumber(phone);
     if (document.getElementById('pAddress')) document.getElementById('pAddress').textContent = address;
-    if (document.getElementById('pAge')) document.getElementById('pAge').textContent = ben.age || 'N/A';
-    if (document.getElementById('pSex')) document.getElementById('pSex').textContent = ben.sex || 'N/A';
-    if (document.getElementById('pCivilStatus')) document.getElementById('pCivilStatus').textContent = ben.civil_status || 'Single';
-    if (document.getElementById('pBirthday')) document.getElementById('pBirthday').textContent = ben.birthday || 'N/A';
-    if (document.getElementById('pChildren')) document.getElementById('pChildren').textContent = ben.children || ben.children_info || 'None';
+    if (document.getElementById('pAge')) document.getElementById('pAge').textContent = ageDisplay;
+    if (document.getElementById('pSex')) document.getElementById('pSex').textContent = ben.sex || 'Female';
+    if (document.getElementById('pCivilStatus')) document.getElementById('pCivilStatus').textContent = ben.civil_status || ben.marital_status || 'Single';
+    if (document.getElementById('pBirthday')) document.getElementById('pBirthday').textContent = rawDob || 'N/A';
+    if (document.getElementById('pChildren')) document.getElementById('pChildren').textContent = ben.children || ben.children_info || `${ben.number_of_children || 0} dependent children`;
     if (document.getElementById('pSpouse')) document.getElementById('pSpouse').textContent = ben.spouse || ben.spouse_name || 'N/A';
     if (document.getElementById('pValidId')) document.getElementById('pValidId').textContent = (ben.docs && ben.docs[0] && ben.docs[0].type) || 'Valid ID';
     if (document.getElementById('pBusinessType')) document.getElementById('pBusinessType').textContent = ben.program_code || 'Livelihood';

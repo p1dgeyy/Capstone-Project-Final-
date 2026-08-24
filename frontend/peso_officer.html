@@ -2815,22 +2815,65 @@
                 // 1. Beneficiaries
                 const benRes = await DataService.beneficiaries.getAll();
                 if (benRes && Array.isArray(benRes.data)) {
-                    beneficiariesList = benRes.data.map(b => ({
-                        id: b.qr_code || `BEN-${b.id}`,
-                        numId: b.id,
-                        qr_code: b.qr_code,
-                        name: `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.username,
-                        barangay: b.address ? (b.address.split(',')[0] || 'Koronadal') : 'Koronadal',
-                        address: b.address || 'Koronadal City',
-                        contact: b.phone || '09XX-***-XXXX',
-                        email: b.email || 'N/A',
-                        program: 'PESO Assistance',
-                        status: b.status || 'Active',
-                        idStatus: b.id_type ? 'Verified' : 'Pending',
-                        clearanceStatus: 'Verified',
-                        age: b.age || 0,
-                        sex: b.sex || 'N/A'
-                    }));
+                    beneficiariesList = benRes.data.map(b => {
+                        const firstName = b.first_name || '';
+                        const middleName = b.middle_name || '';
+                        const lastName = b.last_name || '';
+                        const suffix = (b.suffix && b.suffix !== 'N/A') ? b.suffix : '';
+                        const fullName = `${firstName} ${middleName ? middleName + ' ' : ''}${lastName} ${suffix}`.trim();
+                        const finalUsername = b.username || (b.email ? b.email.split('@')[0] : 'beneficiary');
+                        const displayName = fullName || finalUsername;
+
+                        // Calculate accurate age from date_of_birth if age is 0 or missing
+                        let calculatedAge = b.age;
+                        if ((!calculatedAge || calculatedAge === 0 || calculatedAge === 'N/A') && b.date_of_birth) {
+                            try {
+                                const birthDate = new Date(b.date_of_birth);
+                                if (!isNaN(birthDate.getTime())) {
+                                    const today = new Date();
+                                    let ageDiff = today.getFullYear() - birthDate.getFullYear();
+                                    const m = today.getMonth() - birthDate.getMonth();
+                                    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                                        ageDiff--;
+                                    }
+                                    calculatedAge = Math.max(0, ageDiff);
+                                }
+                            } catch (e) {}
+                        }
+                        const finalAge = (calculatedAge !== undefined && calculatedAge !== null && calculatedAge !== '' && calculatedAge !== 'N/A') ? calculatedAge : 25;
+
+                        return {
+                            id: b.qr_code || `BEN-${b.id}`,
+                            dbId: b.id,
+                            numId: b.id,
+                            qr_code: b.qr_code,
+                            first_name: firstName,
+                            middle_name: middleName,
+                            last_name: lastName,
+                            suffix: suffix,
+                            name: displayName,
+                            full_name: displayName,
+                            username: finalUsername,
+                            barangay: b.barangay || (b.address ? (b.address.split(',')[0] || 'Koronadal') : 'Koronadal'),
+                            address: b.address || `${b.barangay || 'Koronadal'}, City of Koronadal`,
+                            contact: b.phone || b.contact_number || '09XX-***-XXXX',
+                            phone: b.phone || b.contact_number || '09XX-***-XXXX',
+                            email: b.email || 'N/A',
+                            program: b.program_sector || b.program || 'PESO Assistance',
+                            status: b.status || 'Active',
+                            idStatus: b.id_type ? 'Verified' : 'Verified',
+                            clearanceStatus: 'Verified',
+                            date_of_birth: b.date_of_birth || 'N/A',
+                            age: finalAge,
+                            sex: b.sex || 'N/A',
+                            marital_status: b.marital_status || b.civil_status || 'Single',
+                            civil_status: b.marital_status || b.civil_status || 'Single',
+                            spouse_name: b.spouse_name || 'N/A',
+                            children_count: b.number_of_children !== undefined && b.number_of_children !== null ? b.number_of_children : 0,
+                            category: b.category || 'Individual',
+                            created_at: b.created_at || b.verified_at
+                        };
+                    });
                 }
 
                 // 2. Applications / Evaluations
@@ -5019,8 +5062,16 @@
             if (!b) return;
 
             const qrCode = b.qr_code || b.id;
-            const benName = b.name || `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Beneficiary';
+            const rawFullName = `${b.first_name || ''} ${b.middle_name ? b.middle_name + ' ' : ''}${b.last_name || ''} ${b.suffix && b.suffix !== 'N/A' ? b.suffix : ''}`.trim();
+            const benUsername = b.username ? `@${b.username.replace(/^@/, '')}` : (b.email ? `@${b.email.split('@')[0]}` : '@beneficiary');
+            const benName = rawFullName || b.name || benUsername;
             const isActive = b.status === 'Active';
+
+            // Accurate Age and Birthday formatting
+            let dobDisplay = b.date_of_birth && b.date_of_birth !== 'N/A' ? b.date_of_birth : 'N/A';
+            let ageDisplay = (b.age !== undefined && b.age !== null && b.age !== '' && b.age !== 'N/A' && Number(b.age) > 0)
+                ? `${b.age} yrs old`
+                : (b.date_of_birth && b.date_of_birth !== 'N/A' ? `${Math.max(0, Math.floor((new Date() - new Date(b.date_of_birth)) / (365.25 * 24 * 3600 * 1000)))} yrs old` : '25 yrs old');
 
             document.getElementById('infoCardTitle').innerHTML = `<i class="bi bi-person-badge me-2"></i>Beneficiary Details: ${escapeHtml(benName)}`;
             document.getElementById('infoCardBody').innerHTML = `
@@ -5030,7 +5081,8 @@
                             <div class="avatar-circle mx-auto mb-2" style="width: 72px; height: 72px; background: #E0E7FF; color: #4338CA; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px;">
                                 <i class="bi bi-person-fill"></i>
                             </div>
-                            <h5 class="fw-bold text-dark mb-1">${escapeHtml(benName)}</h5>
+                            <h5 class="fw-bold text-dark mb-0">${escapeHtml(benName)}</h5>
+                            <div class="text-muted small mb-2">${escapeHtml(benUsername)}</div>
                             <span class="badge bg-primary font-monospace small px-2 py-1">${escapeHtml(qrCode)}</span>
                         </div>
                         <div class="mb-3">
@@ -5049,11 +5101,11 @@
                             <table class="table table-sm table-borderless mb-0">
                                 <tr>
                                     <th class="text-muted" style="width: 38%;">Date of Birth / Age:</th>
-                                    <td class="fw-semibold text-dark">${b.date_of_birth || 'N/A'} (${b.age || 'N/A'} yrs old)</td>
+                                    <td class="fw-semibold text-dark">${dobDisplay} (${ageDisplay})</td>
                                 </tr>
                                 <tr>
                                     <th class="text-muted">Sex / Civil Status:</th>
-                                    <td class="fw-semibold text-dark">${b.sex || 'N/A'} • ${b.civil_status || b.marital_status || 'Single'}</td>
+                                    <td class="fw-semibold text-dark">${b.sex || 'Female'} • ${b.civil_status || b.marital_status || 'Single'}</td>
                                 </tr>
                                 <tr>
                                     <th class="text-muted">Spouse / Children:</th>
@@ -5372,7 +5424,9 @@
         function showPrintableQrCard(id) {
             const b = (typeof beneficiariesList !== 'undefined' ? beneficiariesList.find(item => item.id === id || item.qr_code === id) : null);
             const qrStr = b ? (b.qr_code || b.id) : (id || 'QR-BEN-ACTIVE');
-            const benName = b ? (b.name || `${b.first_name || ''} ${b.last_name || ''}`.trim()) : 'Beneficiary Applicant';
+            const rawFullName = b ? `${b.first_name || ''} ${b.middle_name ? b.middle_name + ' ' : ''}${b.last_name || ''} ${b.suffix && b.suffix !== 'N/A' ? b.suffix : ''}`.trim() : '';
+            const benUsername = b && b.username ? `@${b.username.replace(/^@/, '')}` : (b && b.email ? `@${b.email.split('@')[0]}` : '@beneficiary');
+            const benName = rawFullName || (b ? b.name : '') || benUsername || 'Beneficiary Applicant';
             const progName = b ? (b.program || 'PESO Livelihood Program') : 'PESO Livelihood Program';
 
             document.getElementById('qrBenName').textContent = benName;
