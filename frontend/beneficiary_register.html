@@ -1442,34 +1442,8 @@
                 const fullAddress = `${registrationData.purok}, ${registrationData.barangay}, City of Koronadal`;
                 const fullName = `${registrationData.first_name} ${registrationData.middle_name ? registrationData.middle_name + ' ' : ''}${registrationData.last_name} ${registrationData.suffix || ''}`.trim();
 
-                // 1. Create or link user in Supabase Auth FIRST
-                let createdAuthId = null;
-                if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
-                    try {
-                        const { data: authData } = await supabaseClient.auth.signUp({
-                            email: registrationData.email,
-                            password: registrationData.password,
-                            options: {
-                                data: {
-                                    username: registrationData.username,
-                                    first_name: registrationData.first_name,
-                                    last_name: registrationData.last_name,
-                                    role: 'Beneficiary',
-                                    qr_code: uniqueQr
-                                }
-                            }
-                        });
-                        if (authData && authData.user) {
-                            createdAuthId = authData.user.id;
-                        }
-                    } catch (e) {
-                        console.warn('[AUTH SIGNUP NOTE]:', e);
-                    }
-                }
-
                 const beneficiaryRecord = {
                     qr_code: uniqueQr,
-                    auth_id: createdAuthId,
                     username: registrationData.username,
                     first_name: registrationData.first_name,
                     middle_name: registrationData.middle_name || null,
@@ -1494,32 +1468,108 @@
                     verified_at: new Date().toISOString()
                 };
 
-                // 2. Insert/Update into Supabase beneficiaries table with EXACT registration username
-                if (typeof DataService !== 'undefined' && DataService.beneficiaries) {
+                // ===== STEP A: Insert the FULL beneficiary record FIRST (before auth) =====
+                let dbSaveSuccess = false;
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     try {
-                        await DataService.beneficiaries.create(beneficiaryRecord);
+                        const { data: insertRes, error: insertErr } = await supabaseClient
+                            .from('beneficiaries')
+                            .insert(beneficiaryRecord)
+                            .select()
+                            .single();
+                        if (insertErr) {
+                            console.warn('[REG INSERT ERROR]:', insertErr.message);
+                            // Fallback: try upsert if duplicate email
+                            const { error: upsertErr } = await supabaseClient
+                                .from('beneficiaries')
+                                .upsert(beneficiaryRecord, { onConflict: 'email' });
+                            if (!upsertErr) dbSaveSuccess = true;
+                            else console.warn('[REG UPSERT ERROR]:', upsertErr.message);
+                        } else {
+                            dbSaveSuccess = true;
+                        }
                     } catch (benErr) {
-                        console.warn('[REGISTRATION DB INSERT]:', benErr);
-                    }
-                } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    try {
-                        await supabaseClient.from('beneficiaries').upsert(beneficiaryRecord, { onConflict: 'email' });
-                    } catch (benErr) {
-                        console.warn('[REGISTRATION DB INSERT]:', benErr);
+                        console.warn('[REGISTRATION DB INSERT EXCEPTION]:', benErr);
                     }
                 }
 
-                // Explicit guarantee: Update username in beneficiaries to match user input
+                // If direct supabase insert didn't work, try DataService
+                if (!dbSaveSuccess && typeof DataService !== 'undefined' && DataService.beneficiaries) {
+                    try {
+                        await DataService.beneficiaries.create(beneficiaryRecord);
+                        dbSaveSuccess = true;
+                    } catch (dsErr) {
+                        console.warn('[DATASERVICE CREATE ERROR]:', dsErr);
+                    }
+                }
+
+                console.log('[REGISTRATION] DB save result:', dbSaveSuccess ? 'SUCCESS' : 'FAILED', beneficiaryRecord);
+
+                // ===== STEP B: Create Supabase Auth user AFTER the DB record is saved =====
+                let createdAuthId = null;
+                if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
+                    try {
+                        const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
+                            email: registrationData.email,
+                            password: registrationData.password,
+                            options: {
+                                data: {
+                                    username: registrationData.username,
+                                    first_name: registrationData.first_name,
+                                    last_name: registrationData.last_name,
+                                    role: 'Beneficiary',
+                                    qr_code: uniqueQr
+                                }
+                            }
+                        });
+                        if (authErr) {
+                            console.warn('[AUTH SIGNUP ERROR]:', authErr.message);
+                        } else if (authData && authData.user) {
+                            createdAuthId = authData.user.id;
+                        }
+                    } catch (e) {
+                        console.warn('[AUTH SIGNUP EXCEPTION]:', e);
+                    }
+                }
+
+                // ===== STEP C: Link auth_id and guarantee all fields are saved =====
                 if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     try {
-                        await supabaseClient.from('beneficiaries').update({
+                        const updatePayload = {
                             username: registrationData.username,
                             first_name: registrationData.first_name,
+                            middle_name: registrationData.middle_name || null,
                             last_name: registrationData.last_name,
+                            suffix: registrationData.suffix || null,
+                            age: parseInt(registrationData.age) || 0,
+                            date_of_birth: registrationData.dob || null,
+                            sex: registrationData.sex || null,
+                            marital_status: registrationData.civil_status || null,
+                            spouse_name: registrationData.spouse_name || null,
+                            number_of_children: parseInt(registrationData.number_of_children) || 0,
                             phone: registrationData.phone_number,
-                            status: 'Active'
-                        }).eq('email', registrationData.email);
-                    } catch (syncErr) {}
+                            address: fullAddress,
+                            purok: registrationData.purok,
+                            barangay: registrationData.barangay,
+                            program: registrationData.program_sector,
+                            status: 'Active',
+                            verified_channel: activeVerificationChannel,
+                            verified_at: new Date().toISOString()
+                        };
+                        if (createdAuthId) updatePayload.auth_id = createdAuthId;
+
+                        const { error: updateErr } = await supabaseClient
+                            .from('beneficiaries')
+                            .update(updatePayload)
+                            .eq('email', registrationData.email);
+                        if (updateErr) {
+                            console.warn('[REG FINAL UPDATE ERROR]:', updateErr.message);
+                        } else {
+                            console.log('[REGISTRATION] Final update with auth_id successful');
+                        }
+                    } catch (syncErr) {
+                        console.warn('[REG FINAL UPDATE EXCEPTION]:', syncErr);
+                    }
                 }
 
 

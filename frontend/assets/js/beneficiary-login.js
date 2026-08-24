@@ -19,77 +19,20 @@
         const loginForm = document.getElementById('loginForm');
         if (loginForm) loginForm.reset();
 
-        // Password Reset Modal Controls
-        const forgotForm = document.getElementById('forgotPasswordForm');
-        if (forgotForm) {
-            forgotForm.addEventListener('submit', async function (e) {
-                e.preventDefault();
-                const identifier = (document.getElementById('forgotIdentifier')?.value || '').trim();
-                const btn = document.getElementById('btnSendVerification');
-
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying...';
-                }
-
-                let targetEmail = identifier.includes('@') ? identifier : null;
-                if (!targetEmail && typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    try {
-                        const { data: benRecord } = await supabaseClient
-                            .from('beneficiaries')
-                            .select('email')
-                            .or(`username.ilike.${identifier},qr_code.ilike.${identifier}`)
-                            .maybeSingle();
-                        if (benRecord && benRecord.email) {
-                            targetEmail = benRecord.email;
-                        }
-                    } catch (err) {
-                        console.warn('[RESET] Beneficiary lookup error:', err);
-                    }
-                }
-                if (!targetEmail) {
-                    targetEmail = identifier.includes('@') ? identifier : `${identifier}@beneficiary.local`;
-                }
-
-                const resetToken = 'BEN-RST-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-
-                const badge = document.getElementById('forgotUserEmailBadge');
-                const display = document.getElementById('verificationLinkDisplay');
-                const tokenInput = document.getElementById('verifiedResetToken');
-
-                if (badge) badge.textContent = targetEmail;
-                if (display) display.textContent = `${window.location.origin}${window.location.pathname}?action=reset&token=${resetToken}`;
-                if (tokenInput) tokenInput.value = resetToken;
-
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Send Verification Link';
-                }
-
-                const step1 = document.getElementById('forgotStep1');
-                const step2 = document.getElementById('forgotStep2');
-                if (step1) step1.classList.add('d-none');
-                if (step2) step2.classList.remove('d-none');
-            });
-        }
+        // Password Reset Modal - delegate to OTP-based handlers defined below
+        // (The form's onsubmit="handleSendResetOtp(event)" in the HTML handles step 1)
 
         const resetCompleteForm = document.getElementById('resetCompleteForm');
         if (resetCompleteForm) {
             resetCompleteForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                const newPass = document.getElementById('newResetPassword')?.value;
-                const confirmPass = document.getElementById('confirmResetPassword')?.value;
-
-                if (newPass !== confirmPass) {
-                    alert('Passwords do not match.');
-                    return;
+                if (typeof window.handleCommitNewPassword === 'function') {
+                    window.handleCommitNewPassword(e);
                 }
-
-                alert('Password reset successful! You may now sign in with your updated credentials.');
-                if (window.hideModal) window.hideModal('resetModal');
             });
         }
     });
+
 
     window.copyVerificationLink = function () {
         const text = document.getElementById('verificationLinkDisplay')?.textContent || '';

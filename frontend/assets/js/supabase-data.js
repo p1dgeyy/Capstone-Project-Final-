@@ -263,23 +263,33 @@ const DataService = (() => {
           status: data.status || 'Active'
         };
 
-        // Check if a row already exists with this email or username (e.g. from Supabase auth trigger)
+        // Check if a row already exists with this email or username (e.g. from Supabase auth trigger or prior registration)
         let existing = null;
         try {
-          const { data: found } = await client
+          const { data: matches } = await client
             .from('beneficiaries')
-            .select('qr_code, email, username')
-            .or(`email.eq.${payload.email},username.eq.${payload.username}`)
-            .maybeSingle();
-          existing = found;
-        } catch (e) {}
+            .select('qr_code, email, username, id')
+            .or(`email.ilike.${payload.email},username.ilike.${payload.username}`)
+            .limit(1);
+          if (matches && matches.length > 0) {
+            existing = matches[0];
+          }
+        } catch (e) {
+          console.warn('[BENEFICIARIES_CREATE_LOOKUP_NOTE]', e);
+        }
 
         let res = null;
         if (existing && existing.qr_code) {
-          // Update the existing row with complete profile information
+          // Update the existing row with complete profile information and keep the same QR code if already set
+          payload.qr_code = existing.qr_code;
           res = await client.from('beneficiaries').update(payload).eq('qr_code', existing.qr_code).select().single();
         } else {
-          res = await client.from('beneficiaries').insert(payload).select().single();
+          // Robust upsert by email to prevent duplicate key violations
+          res = await client.from('beneficiaries').upsert(payload, { onConflict: 'email' }).select().single();
+          if (res.error) {
+            // Fallback plain insert
+            res = await client.from('beneficiaries').insert(payload).select().single();
+          }
         }
 
         if (!res.error && res.data) {
@@ -293,6 +303,7 @@ const DataService = (() => {
         return res;
       });
     },
+
 
 
     async update(qrCode, data) {
