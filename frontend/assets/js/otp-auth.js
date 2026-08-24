@@ -105,22 +105,8 @@ const OTPAuth = (() => {
         _saveOtpStore(store);
 
         let supabaseSuccess = false;
-        // Attempt Supabase Auth email dispatch via Gmail SMTP
-        try {
-            if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
-                const { error } = await supabaseClient.auth.signInWithOtp({
-                    email: cleanEmail,
-                    options: { shouldCreateUser: true }
-                });
-                if (!error) {
-                    supabaseSuccess = true;
-                } else {
-                    console.warn('[OTPAuth] Supabase signInWithOtp note:', error.message);
-                }
-            }
-        } catch (e) {
-            console.warn('[OTPAuth] Supabase dispatch exception:', e);
-        }
+        // Dispatch verification code via Supabase RPC / External Email
+        // (Do NOT use signInWithOtp here as it pre-creates auth.users without the user's chosen password)
 
         // Dispatch via External Email Gateway if available
         if (typeof window.sendExternalEmail === 'function') {
@@ -482,11 +468,11 @@ const OTPAuth = (() => {
 
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             // Update in beneficiaries table
-            if (record.beneficiaryId) {
+            if (cleanEmail) {
                 await supabaseClient
                     .from('beneficiaries')
                     .update({ updated_at: new Date().toISOString() })
-                    .eq('id', record.beneficiaryId);
+                    .eq('email', cleanEmail);
             }
 
             // Update in Supabase Auth if session exists or through updateUser

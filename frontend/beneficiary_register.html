@@ -1479,12 +1479,13 @@
                             .single();
                         if (insertErr) {
                             console.warn('[REG INSERT ERROR]:', insertErr.message);
-                            // Fallback: try upsert if duplicate email
+                            // Fallback: try update if duplicate
                             const { error: upsertErr } = await supabaseClient
                                 .from('beneficiaries')
-                                .upsert(beneficiaryRecord, { onConflict: 'email' });
+                                .update(beneficiaryRecord)
+                                .eq('qr_code', uniqueQr);
                             if (!upsertErr) dbSaveSuccess = true;
-                            else console.warn('[REG UPSERT ERROR]:', upsertErr.message);
+                            else console.warn('[REG UPDATE ERROR]:', upsertErr.message);
                         } else {
                             dbSaveSuccess = true;
                         }

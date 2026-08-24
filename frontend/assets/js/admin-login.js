@@ -350,17 +350,11 @@
                     throw new Error('Account has been deactivated. Please contact your administrator.');
                 }
 
-                // Strict Single Active Device Check: Prevent login if already active on another device
-                if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
-                    const activeCheck = await SessionManager.checkAccountAlreadyActive(userProfile.id, userProfile.username);
-                    if (activeCheck.isAlreadyActive) {
-                        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                            try { await supabaseClient.auth.signOut(); } catch (e) {}
-                        }
-                        throw new Error(lang === 'tg'
-                            ? `Kasalukuyang ginagamit ang account na ito sa ibang device.`
-                            : `Current account is being used on another device. Please log out from that device first to log in here.`);
-                    }
+                // Active Device Session Takeover: Seamlessly take over and register new active session
+                if (typeof SessionManager !== 'undefined' && SessionManager.clearActiveSessionRemote) {
+                    try {
+                        await SessionManager.clearActiveSessionRemote(userProfile.id);
+                    } catch (e) {}
                 }
 
                 // Session Storage & AuthGuard Integration
