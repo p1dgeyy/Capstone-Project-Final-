@@ -511,21 +511,48 @@ const OTPAuth = (() => {
         return { success: true, message: 'Password updated successfully! You can now log in.' };
     }
 
-    return {
-        generateNumericCode,
-        maskEmail,
-        maskPhone,
-        sendEmailCode,
-        verifyEmailCode,
-        sendSmsOtp,
-        verifySmsOtp,
-        sendPasswordResetOtp,
-        verifyPasswordResetOtp,
-        resetBeneficiaryPassword
+        // Real-time Event Broadcaster for Multi-Tab Sync & Live Transactions
+        broadcastRealtimeEvent: function(eventType, payload = {}) {
+            const eventData = {
+                type: eventType,
+                payload: payload,
+                timestamp: Date.now()
+            };
+            try {
+                if (typeof BroadcastChannel !== 'undefined') {
+                    const bc = new BroadcastChannel('koronadal_portal_sync');
+                    bc.postMessage(eventData);
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('koronadal_last_event', JSON.stringify(eventData));
+            } catch (e) {}
+        },
+
+        onRealtimeEvent: function(callback) {
+            if (typeof BroadcastChannel !== 'undefined') {
+                try {
+                    const bc = new BroadcastChannel('koronadal_portal_sync');
+                    bc.onmessage = (ev) => {
+                        if (ev.data && typeof callback === 'function') callback(ev.data);
+                    };
+                } catch (e) {}
+            }
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'koronadal_last_event' && e.newValue) {
+                    try {
+                        const parsed = JSON.parse(e.newValue);
+                        if (typeof callback === 'function') callback(parsed);
+                    } catch (err) {}
+                }
+            });
+        }
     };
 })();
 
 // Export globally
 if (typeof window !== 'undefined') {
     window.OTPAuth = OTPAuth;
+    window.broadcastRealtimeEvent = OTPAuth.broadcastRealtimeEvent;
+    window.onRealtimeEvent = OTPAuth.onRealtimeEvent;
 }

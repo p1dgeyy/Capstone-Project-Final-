@@ -347,7 +347,7 @@
 
         <div class="card-custom">
 
-            <!-- 3-STEP PROGRESS INDICATOR (PURPLE ACTIVE STATE) -->
+            <!-- 3-STAGE PROGRESS INDICATOR (PURPLE ACTIVE STATE) -->
             <div class="stepper-wrapper">
                 <div class="stepper-line"></div>
                 <div class="stepper-line-progress" id="stepperProgressBar"></div>
@@ -359,12 +359,12 @@
 
                 <div class="step-item" id="stepIndicator2">
                     <div class="step-circle" id="stepCircle2">2</div>
-                    <div class="step-label">2. Verify Email</div>
+                    <div class="step-label">2. Verify Account (Email or SMS)</div>
                 </div>
 
                 <div class="step-item" id="stepIndicator3">
                     <div class="step-circle" id="stepCircle3">3</div>
-                    <div class="step-label">3. Verify Number</div>
+                    <div class="step-label">3. Launch Dashboard</div>
                 </div>
             </div>
 
@@ -485,25 +485,22 @@
                     </div>
 
                     <!-- 3. VERIFIED CONTACT DETAILS -->
-                    <h3 class="section-title"><i class="bi bi-shield-lock-fill me-2"></i>3. Contact Information (For
-                        Dual Verification)</h3>
+                    <h3 class="section-title"><i class="bi bi-shield-lock-fill me-2"></i>3. Contact Information (Choose Verification Channel Next)</h3>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Contact Number (SMS OTP Target) <span
+                            <label class="form-label">Contact Number (SMS Verification Target) <span
                                     class="text-danger">*</span></label>
                             <input  type="tel" class="form-control" id="regPhone" placeholder="e.g. 09171234567"
                                 required aria-label="09171234567">
-                            <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>A 6-digit SMS OTP
-                                will be sent in Step 3.</div>
+                            <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>Used for SMS OTP verification or notifications.</div>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Email Address (Email Code Target) <span
+                            <label class="form-label">Email Address (Gmail Verification Target) <span
                                     class="text-danger">*</span></label>
-                            <input  type="email" class="form-control" id="regEmail" placeholder="e.g. juan@email.com"
-                                required aria-label="Juan@email.com">
-                            <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>A 6-digit code will
-                                be sent to this address in Step 2.</div>
+                            <input  type="email" class="form-control" id="regEmail" placeholder="e.g. juan@gmail.com"
+                                required aria-label="juan@gmail.com">
+                            <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>Must be a valid Gmail (@gmail.com) address.</div>
                         </div>
                     </div>
 
@@ -624,7 +621,7 @@
                             onclick="window.location.href='official_login.html'">Cancel</button>
                         <button type="submit" class="btn btn-purple w-50 py-2" id="btnSubmitStep1">
                             <span class="spinner-border spinner-border-sm me-2 d-none" id="step1Spinner"></span>
-                            <span>Proceed to Email Verification <i
+                            <span>Proceed to Verification <i
                                     class="bi bi-arrow-right-circle-fill ms-1"></i></span>
                         </button>
                     </div>
@@ -638,55 +635,88 @@
             </div>
 
             <!-- ============================================================== -->
-            <!-- STEP 2: 4-DIGIT EMAIL CODE VERIFICATION (GMAIL) -->
+            <!-- STEP 2: FLEXIBLE VERIFICATION CHOICE (EMAIL OR SMS) -->
             <!-- ============================================================== -->
-            <div id="step2View" class="d-none text-center py-3">
+            <div id="step2View" class="d-none text-center py-2">
                 <div class="avatar-circle mx-auto mb-3"
                     style="width: 72px; height: 72px; background: var(--primary-light); color: var(--step-purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px;">
-                    <i class="bi bi-envelope-check-fill"></i>
+                    <i class="bi bi-shield-check" id="verifyHeaderIcon"></i>
                 </div>
 
-                <h3 class="fw-bold text-dark mb-1">Verify Your Gmail Address</h3>
-                <p class="text-muted mb-2">We sent a 4-digit verification code to:</p>
-                <div class="badge bg-light text-primary border px-3 py-2 fs-6 fw-bold mb-3" id="displayMaskedEmail">
-                    user@gmail.com</div>
+                <h3 class="fw-bold text-dark mb-1">Verify Your Identity</h3>
+                <p class="text-muted mb-4">Choose whether you prefer to verify your account via <strong>Gmail</strong> or <strong>SMS Number</strong>.</p>
 
-                <div class="alert alert-info py-2 px-3 small mx-auto text-start" style="max-width: 520px;">
-                    <i class="bi bi-clock-history me-1 text-primary"></i> Enter the 6-digit code sent to your Gmail within <strong>5 minutes</strong>.
+                <!-- METHOD SELECTOR CARDS -->
+                <div class="row g-3 justify-content-center mb-4 mx-auto" style="max-width: 580px;">
+                    <div class="col-6">
+                        <div class="card p-3 h-100 border-2 text-start position-relative cursor-pointer transition-all"
+                            id="cardMethodEmail" onclick="selectVerificationChannel('EMAIL')"
+                            style="cursor: pointer; border-color: var(--step-purple); background: #FAF5FF; border-radius: 14px;">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="p-2 rounded-circle me-2 bg-white text-purple shadow-sm" style="color: var(--step-purple);">
+                                    <i class="bi bi-envelope-fill fs-5"></i>
+                                </div>
+                                <span class="fw-bold text-dark fs-6">Via Gmail</span>
+                            </div>
+                            <p class="text-muted small mb-0 font-monospace" id="displayMaskedEmail">user@gmail.com</p>
+                            <span class="badge bg-purple position-absolute top-0 end-0 m-2 d-none" id="badgeEmailSelected" style="background-color: var(--step-purple);"><i class="bi bi-check2"></i> Selected</span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="card p-3 h-100 border-2 text-start position-relative cursor-pointer transition-all"
+                            id="cardMethodSms" onclick="selectVerificationChannel('SMS')"
+                            style="cursor: pointer; border-color: #E2E8F0; background: #FFFFFF; border-radius: 14px;">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="p-2 rounded-circle me-2 bg-light text-success shadow-sm">
+                                    <i class="bi bi-phone-fill fs-5 text-success"></i>
+                                </div>
+                                <span class="fw-bold text-dark fs-6">Via SMS Phone</span>
+                            </div>
+                            <p class="text-muted small mb-0 font-monospace" id="displayMaskedPhone">09XX-***-XXXX</p>
+                            <span class="badge bg-success position-absolute top-0 end-0 m-2 d-none" id="badgeSmsSelected"><i class="bi bi-check2"></i> Selected</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="alert alert-danger py-2 px-3 small mx-auto d-none" style="max-width: 520px;"
-                    id="emailVerifyAlert">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="emailVerifyAlertMsg">Invalid code.</span>
-                </div>
+                <!-- VERIFICATION BOX -->
+                <div class="card p-4 mx-auto bg-light border-0 rounded-4 mb-4 text-center" style="max-width: 540px;">
+                    <p class="text-muted small mb-2" id="verifyInstructionMsg">
+                        We sent a 6-digit verification code to your Gmail. Enter it below to activate your account.
+                    </p>
 
-                <!-- 6-DIGIT SEGMENTED CODE INPUTS -->
-                <div class="code-box-container" id="emailCodeBoxes">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit1" aria-label="Email Digit 1">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit2" aria-label="Email Digit 2">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit3" aria-label="Email Digit 3">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit4" aria-label="Email Digit 4">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit5" aria-label="Email Digit 5">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="emailDigit6" aria-label="Email Digit 6">
-                </div>
+                    <div class="alert alert-danger py-2 px-3 small mx-auto d-none mb-3" style="max-width: 480px;"
+                        id="verifyAlert">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="verifyAlertMsg">Invalid code.</span>
+                    </div>
 
-                <!-- RESEND & EXPIRY TIMER -->
-                <div class="d-flex justify-content-between align-items-center small text-muted mx-auto mb-4 px-2"
-                    style="max-width: 520px;">
-                    <span>Expires in: <strong class="text-danger" id="emailExpiryTimer">05:00</strong></span>
-                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-purple fw-semibold"
-                        id="btnResendEmail" onclick="resendEmailOtpCode()" disabled>
-                        Resend Code <span id="emailResendCooldown">(60s)</span>
+                    <!-- 6-DIGIT SEGMENTED INPUT BOXES -->
+                    <div class="code-box-container my-3" id="otpCodeBoxes">
+                        <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="otpDigit1" aria-label="Digit 1">
+                        <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="otpDigit2" aria-label="Digit 2">
+                        <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="otpDigit3" aria-label="Digit 3">
+                        <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="otpDigit4" aria-label="Digit 4">
+                        <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="otpDigit5" aria-label="Digit 5">
+                        <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="otpDigit6" aria-label="Digit 6">
+                    </div>
+
+                    <!-- RESEND & EXPIRY TIMER -->
+                    <div class="d-flex justify-content-between align-items-center small text-muted px-2 mb-3">
+                        <span>Code expires in: <strong class="text-danger font-monospace" id="otpExpiryTimer">05:00</strong></span>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold"
+                            id="btnResendActiveCode" onclick="resendActiveOtpCode()" disabled style="color: var(--step-purple);">
+                            Resend Code <span id="otpResendCooldown">(60s)</span>
+                        </button>
+                    </div>
+
+                    <!-- VERIFY & COMPLETE BUTTON -->
+                    <button type="button" class="btn btn-purple w-100 py-3 mb-2 fw-bold fs-6" id="btnConfirmActiveOtp" onclick="handleVerifyActiveOtp()">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" id="otpVerifySpinner"></span>
+                        <i class="bi bi-check-circle-fill me-1"></i> Verify & Open Dashboard
                     </button>
                 </div>
 
-                <!-- ACTIONS -->
-                <div class="mx-auto" style="max-width: 520px;">
-                    <button type="button" class="btn btn-purple w-100 py-3 mb-3" id="btnConfirmEmailCode" onclick="handleVerifyEmailCode()">
-                        <span class="spinner-border spinner-border-sm me-2 d-none" id="emailVerifySpinner"></span>
-                        <i class="bi bi-check-circle-fill me-1"></i> Verify Email & Proceed to Phone OTP
-                    </button>
-
+                <div class="mx-auto" style="max-width: 540px;">
                     <button type="button" class="btn btn-outline-secondary w-100 py-2 small" onclick="goToStep(1)">
                         <i class="bi bi-arrow-left me-1"></i> Edit Account Details
                     </button>
@@ -694,74 +724,15 @@
             </div>
 
             <!-- ============================================================== -->
-            <!-- STEP 3: VERIFY PHONE NUMBER (6-DIGIT OTP) -->
-            <!-- ============================================================== -->
-            <div id="step3View" class="d-none text-center py-3">
-                <div class="avatar-circle mx-auto mb-3"
-                    style="width: 72px; height: 72px; background: var(--primary-light); color: var(--step-purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px;">
-                    <i class="bi bi-phone-vibrate-fill"></i>
-                </div>
-
-                <h3 class="fw-bold text-dark mb-1">Verify Your Contact Number</h3>
-                <p class="text-muted mb-2">We sent an OTP code via SMS to:</p>
-                <div class="badge bg-light text-primary border px-3 py-2 fs-6 fw-bold mb-3" id="displayMaskedPhone">+63
-                    9XX-***-XXXX</div>
-
-                <div class="alert alert-info py-2 px-3 small mx-auto" style="max-width: 520px;">
-                    <i class="bi bi-clock-history me-1"></i> Enter this code within <strong>5 minutes</strong>. Never
-                    share this OTP with anyone.
-                </div>
-
-                <div class="alert alert-danger py-2 px-3 small mx-auto d-none" style="max-width: 520px;"
-                    id="phoneVerifyAlert">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="phoneVerifyAlertMsg">Invalid
-                        code.</span>
-                </div>
-
-                <!-- 6-DIGIT SEGMENTED CODE INPUTS -->
-                <div class="code-box-container" id="phoneOtpBoxes">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit1" aria-label="Phone Digit1">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit2" aria-label="Phone Digit2">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit3" aria-label="Phone Digit3">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit4" aria-label="Phone Digit4">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit5" aria-label="Phone Digit5">
-                    <input type="text" class="form-control code-digit-box" maxlength="1" inputmode="numeric" id="phoneDigit6" aria-label="Phone Digit6">
-                </div>
-
-                <!-- RESEND & EXPIRY TIMER -->
-                <div class="d-flex justify-content-between align-items-center small text-muted mx-auto mb-4 px-2"
-                    style="max-width: 520px;">
-                    <span>Expires in: <strong class="text-danger" id="phoneExpiryTimer">05:00</strong></span>
-                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-purple fw-semibold"
-                        id="btnResendPhone" onclick="resendPhoneOtpCode()" disabled>
-                        Resend OTP <span id="phoneResendCooldown">(60s)</span>
-                    </button>
-                </div>
-
-                <!-- ACTION BUTTONS -->
-                <div class="mx-auto" style="max-width: 520px;">
-                    <button type="button" class="btn btn-purple w-100 py-3 mb-3" id="btnConfirmPhoneOtp"
-                        onclick="handleVerifyPhoneOtp()">
-                        <span class="spinner-border spinner-border-sm me-2 d-none" id="phoneVerifySpinner"></span>
-                        <i class="bi bi-check-circle-fill me-1"></i> Verify Phone OTP & Complete Registration
-                    </button>
-
-                    <button type="button" class="btn btn-outline-secondary w-100 py-2 small" onclick="goToStep(2)">
-                        <i class="bi bi-arrow-left me-1"></i> Back to Email Verification
-                    </button>
-                </div>
-            </div>
-
-            <!-- ============================================================== -->
-            <!-- FINALIZATION SCREEN: SUCCESSFUL REGISTRATION -->
+            <!-- STEP 3: FINALIZATION & AUTO-REDIRECT -->
             <!-- ============================================================== -->
             <div id="finalizationView" class="d-none text-center py-4">
                 <div class="success-checkmark-wrapper">
                     <i class="bi bi-check-lg"></i>
                 </div>
 
-                <h2 class="fw-bold text-dark mb-1">Account Fully Verified!</h2>
-                <p class="text-muted mb-4 fs-6">Welcome to the PESO & CSWDO Public Portal of Koronadal.</p>
+                <h2 class="fw-bold text-dark mb-1">Registration Complete!</h2>
+                <p class="text-muted mb-4 fs-6">Your beneficiary account has been successfully verified.</p>
 
                 <div class="card bg-light border-0 p-4 rounded-4 text-start mx-auto mb-4" style="max-width: 520px;">
                     <div class="text-center mb-3">
@@ -810,11 +781,10 @@
     <script>
         // Registration State Store
         let currentStep = 1;
+        let activeVerificationChannel = 'EMAIL'; // 'EMAIL' or 'SMS'
         let registrationData = {};
-        let emailExpiryInterval = null;
-        let emailResendInterval = null;
-        let phoneExpiryInterval = null;
-        let phoneResendInterval = null;
+        let otpExpiryInterval = null;
+        let otpResendInterval = null;
 
         // Auto calculate age from Birthday input
         function autoCalculateAge() {
@@ -917,7 +887,6 @@
 
             document.getElementById('step1View').classList.add('d-none');
             document.getElementById('step2View').classList.add('d-none');
-            document.getElementById('step3View').classList.add('d-none');
             document.getElementById('finalizationView').classList.add('d-none');
 
             const ind1 = document.getElementById('stepIndicator1');
@@ -943,30 +912,85 @@
                 circ1.innerHTML = '<i class="bi bi-check-lg"></i>';
                 ind2.classList.add('active');
                 progress.style.width = '50%';
-                startEmailTimers();
-                setupSegmentedInputs('emailCodeBoxes', 6);
+                renderVerificationChannelUI();
+                startOtpTimers();
+                setupSegmentedInputs('otpCodeBoxes', 6);
             } else if (step === 3) {
-                document.getElementById('step3View').classList.remove('d-none');
+                document.getElementById('finalizationView').classList.remove('d-none');
                 ind1.classList.add('completed');
                 circ1.innerHTML = '<i class="bi bi-check-lg"></i>';
                 ind2.classList.add('completed');
                 circ2.innerHTML = '<i class="bi bi-check-lg"></i>';
                 ind3.classList.add('active');
                 progress.style.width = '100%';
-                startPhoneTimers();
-                setupSegmentedInputs('phoneOtpBoxes', 6);
-            } else if (step === 4) {
-                document.getElementById('finalizationView').classList.remove('d-none');
-                ind1.classList.add('completed');
-                circ1.innerHTML = '<i class="bi bi-check-lg"></i>';
-                ind2.classList.add('completed');
-                circ2.innerHTML = '<i class="bi bi-check-lg"></i>';
-                ind3.classList.add('completed');
-                circ3.innerHTML = '<i class="bi bi-check-lg"></i>';
-                progress.style.width = '100%';
             }
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Switch between Email and SMS Channel
+        async function selectVerificationChannel(channel) {
+            if (activeVerificationChannel === channel) return;
+            activeVerificationChannel = channel;
+            renderVerificationChannelUI();
+            
+            // Clear inputs and alerts
+            for (let i = 1; i <= 6; i++) {
+                const el = document.getElementById(`otpDigit${i}`);
+                if (el) el.value = '';
+            }
+            document.getElementById('verifyAlert')?.classList.add('d-none');
+
+            // Dispatch code for newly selected channel
+            try {
+                if (channel === 'EMAIL') {
+                    await OTPAuth.sendEmailCode(registrationData.email);
+                } else {
+                    await OTPAuth.sendSmsOtp(registrationData.phone_number);
+                }
+                startOtpTimers();
+                setupSegmentedInputs('otpCodeBoxes', 6);
+            } catch (err) {
+                const alertEl = document.getElementById('verifyAlert');
+                const alertMsg = document.getElementById('verifyAlertMsg');
+                if (alertEl && alertMsg) {
+                    alertMsg.textContent = err.message || 'Could not send verification code.';
+                    alertEl.classList.remove('d-none');
+                }
+            }
+        }
+
+        function renderVerificationChannelUI() {
+            const cardEmail = document.getElementById('cardMethodEmail');
+            const cardSms = document.getElementById('cardMethodSms');
+            const badgeEmail = document.getElementById('badgeEmailSelected');
+            const badgeSms = document.getElementById('badgeSmsSelected');
+            const instr = document.getElementById('verifyInstructionMsg');
+            const icon = document.getElementById('verifyHeaderIcon');
+
+            if (activeVerificationChannel === 'EMAIL') {
+                cardEmail.style.borderColor = 'var(--step-purple)';
+                cardEmail.style.background = '#FAF5FF';
+                badgeEmail.classList.remove('d-none');
+
+                cardSms.style.borderColor = '#E2E8F0';
+                cardSms.style.background = '#FFFFFF';
+                badgeSms.classList.add('d-none');
+
+                icon.className = 'bi bi-envelope-check-fill';
+                instr.innerHTML = `We sent a 6-digit verification code to your Gmail (<strong>${registrationData.email || 'user@gmail.com'}</strong>). Enter it below.`;
+            } else {
+                cardSms.style.borderColor = '#10B981';
+                cardSms.style.background = '#F0FDF4';
+                badgeSms.classList.remove('d-none');
+
+                cardEmail.style.borderColor = '#E2E8F0';
+                cardEmail.style.background = '#FFFFFF';
+                badgeEmail.classList.add('d-none');
+
+                icon.className = 'bi bi-phone-vibrate-fill';
+                instr.innerHTML = `We sent a 6-digit SMS OTP to your mobile number (<strong>${OTPAuth.maskPhone(registrationData.phone_number)}</strong>). Enter it below.`;
+            }
         }
 
         // Setup segmented auto-advance boxes with auto-submit
@@ -982,15 +1006,10 @@
                         if (index < inputs.length - 1) {
                             inputs[index + 1].focus();
                         } else {
-                            // Check if all filled for auto-verify
                             let allFilled = true;
                             inputs.forEach(i => { if (!i.value) allFilled = false; });
                             if (allFilled) {
-                                if (containerId === 'emailCodeBoxes') {
-                                    handleVerifyEmailCode();
-                                } else if (containerId === 'phoneOtpBoxes') {
-                                    handleVerifyPhoneOtp();
-                                }
+                                handleVerifyActiveOtp();
                             }
                         }
                     }
@@ -999,11 +1018,7 @@
                     if (e.key === 'Backspace' && !input.value && index > 0) {
                         inputs[index - 1].focus();
                     } else if (e.key === 'Enter') {
-                        if (containerId === 'emailCodeBoxes') {
-                            handleVerifyEmailCode();
-                        } else if (containerId === 'phoneOtpBoxes') {
-                            handleVerifyPhoneOtp();
-                        }
+                        handleVerifyActiveOtp();
                     }
                 };
                 input.onpaste = (e) => {
@@ -1015,11 +1030,7 @@
                     const next = Math.min(text.length, inputs.length - 1);
                     inputs[next].focus();
                     if (text.length >= count) {
-                        if (containerId === 'emailCodeBoxes') {
-                            handleVerifyEmailCode();
-                        } else if (containerId === 'phoneOtpBoxes') {
-                            handleVerifyPhoneOtp();
-                        }
+                        handleVerifyActiveOtp();
                     }
                 };
             });
@@ -1134,16 +1145,17 @@
                 document.getElementById('displayMaskedEmail').textContent = email;
                 document.getElementById('displayMaskedPhone').textContent = OTPAuth.maskPhone(phone);
 
-                // Dispatch 6-Digit Email Code via OTPAuth
+                // Default initial verification method is Email
+                activeVerificationChannel = 'EMAIL';
                 await OTPAuth.sendEmailCode(email);
 
-                // Advance to Step 2
+                // Advance to Step 2 (Verification Hub)
                 goToStep(2);
 
             } catch (err) {
                 window.showSystemNotification({
                     title: 'Registration Notice',
-                    message: err.message || 'Could not dispatch email verification code.',
+                    message: err.message || 'Could not dispatch verification code.',
                     type: 'error'
                 });
             } finally {
@@ -1153,34 +1165,34 @@
         }
 
         // -------------------------------------------------------------
-        // STEP 2: 6-DIGIT EMAIL VERIFICATION
+        // STEP 2: OTP TIMER & DISPATCH
         // -------------------------------------------------------------
-        function startEmailTimers() {
-            if (emailExpiryInterval) clearInterval(emailExpiryInterval);
+        function startOtpTimers() {
+            if (otpExpiryInterval) clearInterval(otpExpiryInterval);
             let expirySecs = 300;
-            const timerEl = document.getElementById('emailExpiryTimer');
+            const timerEl = document.getElementById('otpExpiryTimer');
 
-            emailExpiryInterval = setInterval(() => {
+            otpExpiryInterval = setInterval(() => {
                 const mins = Math.floor(expirySecs / 60).toString().padStart(2, '0');
                 const secs = (expirySecs % 60).toString().padStart(2, '0');
                 timerEl.textContent = `${mins}:${secs}`;
                 if (expirySecs <= 0) {
-                    clearInterval(emailExpiryInterval);
+                    clearInterval(otpExpiryInterval);
                     timerEl.textContent = 'Expired';
                 }
                 expirySecs--;
             }, 1000);
 
-            if (emailResendInterval) clearInterval(emailResendInterval);
+            if (otpResendInterval) clearInterval(otpResendInterval);
             let cooldown = 60;
-            const btnResend = document.getElementById('btnResendEmail');
-            const cooldownEl = document.getElementById('emailResendCooldown');
+            const btnResend = document.getElementById('btnResendActiveCode');
+            const cooldownEl = document.getElementById('otpResendCooldown');
             btnResend.disabled = true;
 
-            emailResendInterval = setInterval(() => {
+            otpResendInterval = setInterval(() => {
                 cooldown--;
                 if (cooldown <= 0) {
-                    clearInterval(emailResendInterval);
+                    clearInterval(otpResendInterval);
                     btnResend.disabled = false;
                     cooldownEl.textContent = '';
                 } else {
@@ -1189,34 +1201,38 @@
             }, 1000);
         }
 
-        async function resendEmailOtpCode() {
+        async function resendActiveOtpCode() {
             try {
-                await OTPAuth.sendEmailCode(registrationData.email);
-                startEmailTimers();
-                setupSegmentedInputs('emailCodeBoxes', 6);
+                if (activeVerificationChannel === 'EMAIL') {
+                    await OTPAuth.sendEmailCode(registrationData.email);
+                } else {
+                    await OTPAuth.sendSmsOtp(registrationData.phone_number);
+                }
+                startOtpTimers();
+                setupSegmentedInputs('otpCodeBoxes', 6);
             } catch (err) {
                 window.showSystemNotification({
                     title: 'Resend Failed',
-                    message: err.message || 'Could not resend email verification code.',
+                    message: err.message || 'Could not resend verification code.',
                     type: 'error'
                 });
             }
         }
 
-        async function handleVerifyEmailCode() {
+        async function handleVerifyActiveOtp() {
             let code = '';
             for (let i = 1; i <= 6; i++) {
-                const el = document.getElementById(`emailDigit${i}`);
+                const el = document.getElementById(`otpDigit${i}`);
                 if (el && el.value) code += el.value.trim();
             }
 
-            const alertEl = document.getElementById('emailVerifyAlert');
-            const alertMsg = document.getElementById('emailVerifyAlertMsg');
-            const btnConfirm = document.getElementById('btnConfirmEmailCode');
-            const spinner = document.getElementById('emailVerifySpinner');
+            const alertEl = document.getElementById('verifyAlert');
+            const alertMsg = document.getElementById('verifyAlertMsg');
+            const btnConfirm = document.getElementById('btnConfirmActiveOtp');
+            const spinner = document.getElementById('otpVerifySpinner');
 
             if (code.length < 6) {
-                alertMsg.textContent = 'Please enter your complete 6-digit Gmail verification code.';
+                alertMsg.textContent = 'Please enter your complete 6-digit verification code.';
                 alertEl.classList.remove('d-none');
                 return;
             }
@@ -1226,104 +1242,12 @@
             spinner.classList.remove('d-none');
 
             try {
-                await OTPAuth.verifyEmailCode(registrationData.email, code);
-
-                window.showSystemNotification({
-                    title: 'Email Verified!',
-                    message: 'Gmail verified successfully. Transitioning to Phone SMS OTP verification...',
-                    type: 'success'
-                });
-
-                // Dispatch SMS OTP
-                await OTPAuth.sendSmsOtp(registrationData.phone_number);
-
-                // Auto-advance to Step 3
-                goToStep(3);
-
-            } catch (err) {
-                alertMsg.textContent = err.message || 'Invalid or expired email verification code.';
-                alertEl.classList.remove('d-none');
-            } finally {
-                btnConfirm.disabled = false;
-                spinner.classList.add('d-none');
-            }
-        }
-
-        // -------------------------------------------------------------
-        // STEP 3: SMS OTP & COMPLETE REGISTRATION
-        // -------------------------------------------------------------
-        function startPhoneTimers() {
-            if (phoneExpiryInterval) clearInterval(phoneExpiryInterval);
-            let expirySecs = 300;
-            const timerEl = document.getElementById('phoneExpiryTimer');
-
-            phoneExpiryInterval = setInterval(() => {
-                const mins = Math.floor(expirySecs / 60).toString().padStart(2, '0');
-                const secs = (expirySecs % 60).toString().padStart(2, '0');
-                timerEl.textContent = `${mins}:${secs}`;
-                if (expirySecs <= 0) {
-                    clearInterval(phoneExpiryInterval);
-                    timerEl.textContent = 'Expired';
-                }
-                expirySecs--;
-            }, 1000);
-
-            if (phoneResendInterval) clearInterval(phoneResendInterval);
-            let cooldown = 60;
-            const btnResend = document.getElementById('btnResendPhone');
-            const cooldownEl = document.getElementById('phoneResendCooldown');
-            btnResend.disabled = true;
-
-            phoneResendInterval = setInterval(() => {
-                cooldown--;
-                if (cooldown <= 0) {
-                    clearInterval(phoneResendInterval);
-                    btnResend.disabled = false;
-                    cooldownEl.textContent = '';
+                // Verify via the chosen active channel (Email OR SMS)
+                if (activeVerificationChannel === 'EMAIL') {
+                    await OTPAuth.verifyEmailCode(registrationData.email, code);
                 } else {
-                    cooldownEl.textContent = `(${cooldown}s)`;
+                    await OTPAuth.verifySmsOtp(registrationData.phone_number, code);
                 }
-            }, 1000);
-        }
-
-        async function resendPhoneOtpCode() {
-            try {
-                await OTPAuth.sendSmsOtp(registrationData.phone_number);
-                startPhoneTimers();
-                setupSegmentedInputs('phoneOtpBoxes', 6);
-            } catch (err) {
-                window.showSystemNotification({
-                    title: 'Resend Failed',
-                    message: err.message || 'Could not resend SMS OTP.',
-                    type: 'error'
-                });
-            }
-        }
-
-        async function handleVerifyPhoneOtp() {
-            let otp = '';
-            for (let i = 1; i <= 6; i++) {
-                const el = document.getElementById(`phoneDigit${i}`);
-                if (el && el.value) otp += el.value.trim();
-            }
-
-            const alertEl = document.getElementById('phoneVerifyAlert');
-            const alertMsg = document.getElementById('phoneVerifyAlertMsg');
-            const btnConfirm = document.getElementById('btnConfirmPhoneOtp');
-            const spinner = document.getElementById('phoneVerifySpinner');
-
-            if (otp.length < 6) {
-                alertMsg.textContent = 'Please enter your complete 6-digit SMS OTP code.';
-                alertEl.classList.remove('d-none');
-                return;
-            }
-
-            alertEl.classList.add('d-none');
-            btnConfirm.disabled = true;
-            spinner.classList.remove('d-none');
-
-            try {
-                await OTPAuth.verifySmsOtp(registrationData.phone_number, otp);
 
                 // Generate Unique QR Code
                 const uniqueQr = `QR-BEN-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -1352,6 +1276,7 @@
                     status: 'Active',
                     terms_agreed: true,
                     data_consent: true,
+                    verified_channel: activeVerificationChannel,
                     verified_at: new Date().toISOString()
                 };
 
@@ -1419,6 +1344,17 @@
                     program: registrationData.program_sector
                 }));
 
+                // Broadcast Real-time event for Live Synchronization
+                if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+                    OTPAuth.broadcastRealtimeEvent('BENEFICIARY_REGISTERED', {
+                        qrCode: uniqueQr,
+                        fullName: fullName,
+                        program: registrationData.program_sector,
+                        barangay: registrationData.barangay,
+                        verifiedChannel: activeVerificationChannel
+                    });
+                }
+
                 // Populate Summary Card
                 document.getElementById('summaryQrCode').textContent = uniqueQr;
                 document.getElementById('summaryFullName').textContent = fullName;
@@ -1429,20 +1365,20 @@
 
                 window.showSystemNotification({
                     title: 'Account Fully Verified!',
-                    message: 'Registration complete! Automatically redirecting you to your personal beneficiary portal...',
+                    message: `Verified successfully via ${activeVerificationChannel === 'EMAIL' ? 'Gmail' : 'SMS'}. Redirecting you directly to your Beneficiary Portal Dashboard...`,
                     type: 'success',
-                    duration: 4000
+                    duration: 3000
                 });
 
                 // Advance to Finalization view and auto-redirect to personal beneficiary page
-                goToStep(4);
+                goToStep(3);
 
                 setTimeout(() => {
                     window.location.href = 'beneficiary.html';
-                }, 1800);
+                }, 1400);
 
             } catch (err) {
-                alertMsg.textContent = err.message || 'Invalid or expired OTP.';
+                alertMsg.textContent = err.message || 'Invalid or expired verification code.';
                 alertEl.classList.remove('d-none');
             } finally {
                 btnConfirm.disabled = false;
@@ -1452,4 +1388,4 @@
     </script>
 </body>
 
-</html>
+</html>

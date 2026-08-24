@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_staff_session ON staff_profiles(current_session_i
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS beneficiaries (
   qr_code VARCHAR(20) PRIMARY KEY,  -- e.g. 'QR-BEN-A3F8B201'
-  auth_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  auth_id UUID DEFAULT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   username VARCHAR(50) NOT NULL UNIQUE,
 
   -- Profile Details
@@ -74,14 +74,24 @@ CREATE TABLE IF NOT EXISTS beneficiaries (
   date_of_birth DATE DEFAULT NULL,
   sex VARCHAR(10) DEFAULT NULL CHECK (sex IN ('Male', 'Female')),
   nationality VARCHAR(50) DEFAULT 'Filipino',
-  marital_status VARCHAR(20) DEFAULT NULL CHECK (marital_status IN ('Single', 'Married', 'Widowed', 'Divorced')),
+  marital_status VARCHAR(20) DEFAULT NULL CHECK (marital_status IN ('Single', 'Married', 'Widowed', 'Divorced', 'Separated')),
+  spouse_name VARCHAR(150) DEFAULT NULL,
+  number_of_children INT DEFAULT 0,
+
+  -- Address & Program Details
+  purok VARCHAR(100) DEFAULT NULL,
+  barangay VARCHAR(100) DEFAULT NULL,
+  address TEXT DEFAULT NULL,
+  program VARCHAR(255) DEFAULT NULL,
+  department VARCHAR(50) DEFAULT NULL,
 
   -- Contact Details
   email VARCHAR(100) NOT NULL,
   phone VARCHAR(20) DEFAULT NULL,
-  address TEXT DEFAULT NULL,
 
   -- Beneficiary Verification
+  verified_channel VARCHAR(20) DEFAULT 'EMAIL',
+  verified_at TIMESTAMPTZ DEFAULT NOW(),
   id_type VARCHAR(100) DEFAULT NULL,
   id_file_path VARCHAR(255) DEFAULT NULL,
   terms_agreed BOOLEAN DEFAULT FALSE,
@@ -466,6 +476,18 @@ CREATE POLICY "Allow beneficiary creation on signup"
   ON beneficiaries FOR INSERT
   WITH CHECK (auth_id = auth.uid());
 
+-- Staff (officers/admins) can manually register/insert beneficiaries
+CREATE POLICY "Staff can insert beneficiaries"
+  ON beneficiaries FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM staff_profiles sp
+      WHERE sp.auth_id = auth.uid()
+      AND sp.role IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer')
+    )
+  );
+
+
 -- ---- programs policies ----
 
 -- Everyone can read programs
@@ -668,6 +690,42 @@ CREATE POLICY "Staff can manage interviews"
   );
 
 -- =============================================================================
+-- REALTIME REPLICATION (SUPABASE REALTIME PUBLICATION)
+-- =============================================================================
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE beneficiaries;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE applications;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE distributions;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE interview_schedules;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE approved_assistance;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+END $$;
+
+-- =============================================================================
 -- SEED DATA: Default Programs
 -- =============================================================================
 INSERT INTO programs (code, name, description, agency, status) VALUES
@@ -678,3 +736,4 @@ INSERT INTO programs (code, name, description, agency, status) VALUES
   ('AICS', 'Assistance to Individuals in Crisis Situation', 'Financial or material assistance to individuals in crisis situations.', 'CSWDO', 'Active'),
   ('SLP', 'Sustainable Livelihood Program', 'Helps poor families become self-sufficient through micro-enterprise development.', 'CSWDO', 'Active')
 ON CONFLICT (code) DO NOTHING;
+

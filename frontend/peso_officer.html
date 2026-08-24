@@ -2495,7 +2495,7 @@
         </div>
     </div>
 
-    <!-- ADD BENEFICIARY MODAL WITH SEQUENTIAL DUAL OTP VERIFICATION -->
+    <!-- ADD BENEFICIARY MODAL WITH SINGLE-CHANNEL VERIFICATION CHOICE (EMAIL OR SMS) -->
     <div class="modal fade" id="addBeneficiaryModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
@@ -2650,9 +2650,9 @@
                                     <select class="form-select" id="officerBenProgram" required>
                                         <optgroup label="Regular Services">
                                             <option value="City Government Internship Program (CKGIP)">City Government
-                                                Internship Program (CKGIP)</option>
+                                                 Internship Program (CKGIP)</option>
                                             <option value="Koronadal Emergency Employment Program (KEEP)">Koronadal
-                                                Emergency Employment Program (KEEP)</option>
+                                                 Emergency Employment Program (KEEP)</option>
                                             <option
                                                 value="Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)"
                                                 selected>Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers
@@ -2701,87 +2701,71 @@
                             <div class="d-flex justify-content-end gap-2 mt-4">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-primary fw-bold" id="btnProceedToDualVerify">
-                                    <span>Proceed to Email Verification <i class="bi bi-arrow-right ms-1"></i></span>
+                                    <span>Proceed to Beneficiary Verification <i class="bi bi-arrow-right ms-1"></i></span>
                                 </button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- PHASE 2: EMAIL OTP VERIFICATION -->
-                    <div id="addBenEmailVerifyView" class="d-none text-center py-2">
+                    <!-- PHASE 2: VERIFICATION CHANNEL CHOICE & CODE INPUT -->
+                    <div id="addBenVerifyChannelView" class="d-none text-center py-2">
                         <div class="avatar-circle mx-auto mb-2"
-                            style="width: 56px; height: 56px; background: #EDE9FE; color: #7C3AED; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-                            <i class="bi bi-envelope-check-fill"></i>
+                            style="width: 60px; height: 60px; background: #EDE9FE; color: #7C3AED; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                            <i class="bi bi-shield-check" id="officerVerifyChannelIcon"></i>
                         </div>
-                        <h5 class="fw-bold text-dark mb-1">Step 1 of 2: Gmail Verification</h5>
-                        <p class="text-muted small mb-3">We sent a 6-digit verification code to the beneficiary's email.
-                        </p>
+                        <h5 class="fw-bold text-dark mb-1">Beneficiary Identity Verification</h5>
+                        <p class="text-muted small mb-3">Ask applicant for their preferred verification channel (<strong>Email</strong> or <strong>SMS</strong>).</p>
 
-                        <div class="card p-3 mb-3 bg-light border text-start">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold text-dark small"><i
-                                        class="bi bi-envelope-fill text-primary me-1"></i> Target Email Address:</span>
-                                <span class="badge bg-secondary font-monospace"
-                                    id="officerMaskedEmail">***@gmail.com</span>
+                        <!-- CHANNEL SELECTOR CARDS -->
+                        <div class="row g-2 mb-3 text-start">
+                            <div class="col-6">
+                                <div class="card p-2 border-2 position-relative" id="officerCardMethodEmail"
+                                    onclick="selectOfficerVerificationChannel('EMAIL')"
+                                    style="cursor: pointer; border-color: #7C3AED; background: #FAF5FF; border-radius: 10px;">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi bi-envelope-fill me-1 text-purple" style="color: #7C3AED;"></i>
+                                        <span class="fw-bold text-dark small">Gmail Verification</span>
+                                    </div>
+                                    <div class="font-monospace text-muted small" id="officerMaskedEmail">***@gmail.com</div>
+                                    <span class="badge bg-primary position-absolute top-0 end-0 m-1" id="officerBadgeEmailSelected" style="font-size: 0.65rem;">Active</span>
+                                </div>
                             </div>
-                            <label class="form-label small fw-semibold text-muted">Enter 6-Digit Email Code:</label>
+                            <div class="col-6">
+                                <div class="card p-2 border-2 position-relative" id="officerCardMethodSms"
+                                    onclick="selectOfficerVerificationChannel('SMS')"
+                                    style="cursor: pointer; border-color: #E2E8F0; background: #FFFFFF; border-radius: 10px;">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi bi-phone-fill me-1 text-success"></i>
+                                        <span class="fw-bold text-dark small">SMS Phone OTP</span>
+                                    </div>
+                                    <div class="font-monospace text-muted small" id="officerMaskedPhone">09XX-***-XXXX</div>
+                                    <span class="badge bg-success position-absolute top-0 end-0 m-1 d-none" id="officerBadgeSmsSelected" style="font-size: 0.65rem;">Active</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card p-3 mb-3 bg-light border text-start rounded-3">
+                            <label class="form-label small fw-semibold text-dark mb-1" id="officerOtpInputLabel">
+                                Enter 6-Digit Code Received by Applicant:
+                            </label>
                             <div class="input-group mb-2">
                                 <input type="text" class="form-control fw-bold font-monospace text-center fs-5"
-                                    id="officerBenEmailOtp" placeholder="000000" maxlength="6" inputmode="numeric"
+                                    id="officerBenOtpInput" placeholder="000000" maxlength="6" inputmode="numeric"
                                     style="letter-spacing: 6px;">
                                 <button class="btn btn-outline-primary btn-sm" type="button"
-                                    id="btnOfficerResendEmailOtp" onclick="resendOfficerEmailOtp()">Resend Code</button>
+                                    id="btnOfficerResendActiveOtp" onclick="resendOfficerOtpCode()">Resend Code</button>
                             </div>
-                            <div class="alert alert-danger py-1 px-2 small mb-0 d-none" id="officerEmailAlertMsg"></div>
+                            <div class="alert alert-danger py-1 px-2 small mb-0 d-none" id="officerVerifyAlertMsg"></div>
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
                             <button type="button" class="btn btn-outline-secondary" onclick="backToOfficerBenForm()">
                                 <i class="bi bi-arrow-left me-1"></i> Edit Form Details
                             </button>
-                            <button type="button" class="btn btn-purple fw-bold px-4" id="btnVerifyOfficerEmailOtp"
-                                onclick="verifyOfficerEmailOtp()">
-                                <span>Verify Email & Proceed to SMS OTP <i class="bi bi-arrow-right ms-1"></i></span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- PHASE 3: SMS OTP VERIFICATION -->
-                    <div id="addBenSmsVerifyView" class="d-none text-center py-2">
-                        <div class="avatar-circle mx-auto mb-2"
-                            style="width: 56px; height: 56px; background: #DCFCE7; color: #15803D; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-                            <i class="bi bi-phone-vibrate-fill"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-1">Step 2 of 2: SMS Phone OTP Verification</h5>
-                        <p class="text-muted small mb-3">We sent a 6-digit SMS OTP code to the beneficiary's contact
-                            number.</p>
-
-                        <div class="card p-3 mb-3 bg-light border text-start">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold text-dark small"><i class="bi bi-phone-fill text-success me-1"></i>
-                                    Target Mobile Number:</span>
-                                <span class="badge bg-secondary font-monospace"
-                                    id="officerMaskedPhone">09XX-***-XXXX</span>
-                            </div>
-                            <label class="form-label small fw-semibold text-muted">Enter 6-Digit SMS OTP:</label>
-                            <div class="input-group mb-2">
-                                <input type="text" class="form-control fw-bold font-monospace text-center fs-5"
-                                    id="officerBenSmsOtp" placeholder="000000" maxlength="6" inputmode="numeric"
-                                    style="letter-spacing: 6px;">
-                                <button class="btn btn-outline-success btn-sm" type="button" id="btnOfficerResendSmsOtp"
-                                    onclick="resendOfficerSmsOtp()">Resend OTP</button>
-                            </div>
-                            <div class="alert alert-danger py-1 px-2 small mb-0 d-none" id="officerSmsAlertMsg"></div>
-                        </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-outline-secondary"
-                                onclick="backToOfficerEmailVerify()">
-                                <i class="bi bi-arrow-left me-1"></i> Back to Email Step
-                            </button>
                             <button type="button" class="btn btn-success fw-bold px-4" id="btnFinalizeOfficerBen"
                                 onclick="finalizeOfficerBeneficiaryCreation()">
-                                <i class="bi bi-check-circle-fill me-1"></i> Verify SMS OTP & Create Beneficiary
+                                <span class="spinner-border spinner-border-sm me-1 d-none" id="officerFinalizeSpinner"></span>
+                                <i class="bi bi-check-circle-fill me-1"></i> Verify & Register Beneficiary
                             </button>
                         </div>
                     </div>
@@ -6483,9 +6467,10 @@
         }
 
         // ---------------------------------------------------------------------
-        // OFFICER ADD BENEFICIARY WITH SEQUENTIAL DUAL OTP (EMAIL -> SMS)
+        // OFFICER ADD BENEFICIARY WITH SINGLE-CHANNEL CHOICE (EMAIL OR SMS)
         // ---------------------------------------------------------------------
         let pendingOfficerBenData = null;
+        let activeOfficerVerificationChannel = 'EMAIL'; // 'EMAIL' or 'SMS'
 
         function autoCalcOfficerAge() {
             const dob = document.getElementById('officerBenDob')?.value;
@@ -6503,17 +6488,66 @@
             const form = document.getElementById('addBeneficiaryForm');
             if (form) form.reset();
             pendingOfficerBenData = null;
+            activeOfficerVerificationChannel = 'EMAIL';
 
-            if (document.getElementById('officerBenEmailOtp')) document.getElementById('officerBenEmailOtp').value = '';
-            if (document.getElementById('officerBenSmsOtp')) document.getElementById('officerBenSmsOtp').value = '';
-            document.getElementById('officerEmailAlertMsg')?.classList.add('d-none');
-            document.getElementById('officerSmsAlertMsg')?.classList.add('d-none');
+            if (document.getElementById('officerBenOtpInput')) document.getElementById('officerBenOtpInput').value = '';
+            document.getElementById('officerVerifyAlertMsg')?.classList.add('d-none');
 
             document.getElementById('addBenFormView')?.classList.remove('d-none');
-            document.getElementById('addBenEmailVerifyView')?.classList.add('d-none');
-            document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
+            document.getElementById('addBenVerifyChannelView')?.classList.add('d-none');
 
             bootstrap.Modal.getOrCreateInstance(document.getElementById('addBeneficiaryModal')).show();
+        }
+
+        function selectOfficerVerificationChannel(channel) {
+            if (activeOfficerVerificationChannel === channel) return;
+            activeOfficerVerificationChannel = channel;
+            renderOfficerVerificationChannelUI();
+
+            if (document.getElementById('officerBenOtpInput')) document.getElementById('officerBenOtpInput').value = '';
+            document.getElementById('officerVerifyAlertMsg')?.classList.add('d-none');
+
+            // Dispatch code via newly selected channel
+            if (pendingOfficerBenData) {
+                resendOfficerOtpCode();
+            }
+        }
+
+        function renderOfficerVerificationChannelUI() {
+            const cardEmail = document.getElementById('officerCardMethodEmail');
+            const cardSms = document.getElementById('officerCardMethodSms');
+            const badgeEmail = document.getElementById('officerBadgeEmailSelected');
+            const badgeSms = document.getElementById('officerBadgeSmsSelected');
+            const icon = document.getElementById('officerVerifyChannelIcon');
+            const label = document.getElementById('officerOtpInputLabel');
+
+            if (activeOfficerVerificationChannel === 'EMAIL') {
+                if (cardEmail) {
+                    cardEmail.style.borderColor = '#7C3AED';
+                    cardEmail.style.background = '#FAF5FF';
+                }
+                if (cardSms) {
+                    cardSms.style.borderColor = '#E2E8F0';
+                    cardSms.style.background = '#FFFFFF';
+                }
+                badgeEmail?.classList.remove('d-none');
+                badgeSms?.classList.add('d-none');
+                if (icon) icon.className = 'bi bi-envelope-check-fill';
+                if (label) label.textContent = 'Enter 6-Digit Code Received by Applicant via Gmail:';
+            } else {
+                if (cardSms) {
+                    cardSms.style.borderColor = '#10B981';
+                    cardSms.style.background = '#F0FDF4';
+                }
+                if (cardEmail) {
+                    cardEmail.style.borderColor = '#E2E8F0';
+                    cardEmail.style.background = '#FFFFFF';
+                }
+                badgeSms?.classList.remove('d-none');
+                badgeEmail?.classList.add('d-none');
+                if (icon) icon.className = 'bi bi-phone-vibrate-fill text-success';
+                if (label) label.textContent = 'Enter 6-Digit SMS OTP Received by Applicant via Mobile Phone:';
+            }
         }
 
         async function handleOfficerSubmitAddBen(e) {
@@ -6582,6 +6616,7 @@
             if (btn) btn.disabled = true;
 
             try {
+                activeOfficerVerificationChannel = 'EMAIL';
                 if (typeof OTPAuth !== 'undefined') {
                     await OTPAuth.sendEmailCode(email);
                 }
@@ -6589,121 +6624,71 @@
                 document.getElementById('officerMaskedEmail').textContent = typeof OTPAuth !== 'undefined' ? OTPAuth.maskEmail(email) : email;
                 document.getElementById('officerMaskedPhone').textContent = typeof OTPAuth !== 'undefined' ? OTPAuth.maskPhone(phone) : phone;
 
-                document.getElementById('addBenFormView')?.classList.add('d-none');
-                document.getElementById('addBenEmailVerifyView')?.classList.remove('d-none');
-                document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
+                renderOfficerVerificationChannelUI();
 
-                setTimeout(() => document.getElementById('officerBenEmailOtp')?.focus(), 200);
+                document.getElementById('addBenFormView')?.classList.add('d-none');
+                document.getElementById('addBenVerifyChannelView')?.classList.remove('d-none');
+
+                setTimeout(() => document.getElementById('officerBenOtpInput')?.focus(), 200);
 
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
-                        title: 'Email Verification Code Dispatched',
-                        message: `Dispatched 6-digit verification code to ${email}.`,
+                        title: 'Verification Code Dispatched',
+                        message: `Dispatched 6-digit verification code to applicant's email (${email}).`,
                         type: 'info'
                     });
                 }
             } catch (err) {
-                alert(err.message || 'Could not dispatch email verification code.');
+                alert(err.message || 'Could not dispatch verification code.');
             } finally {
                 if (btn) btn.disabled = false;
             }
         }
 
-        async function resendOfficerEmailOtp() {
+        async function resendOfficerOtpCode() {
             if (!pendingOfficerBenData) return;
             try {
-                await OTPAuth.sendEmailCode(pendingOfficerBenData.email);
+                if (activeOfficerVerificationChannel === 'EMAIL') {
+                    await OTPAuth.sendEmailCode(pendingOfficerBenData.email);
+                } else {
+                    await OTPAuth.sendSmsOtp(pendingOfficerBenData.phone);
+                }
             } catch (e) {
-                alert(e.message || 'Failed to resend email code.');
-            }
-        }
-
-        async function resendOfficerSmsOtp() {
-            if (!pendingOfficerBenData) return;
-            try {
-                await OTPAuth.sendSmsOtp(pendingOfficerBenData.phone);
-            } catch (e) {
-                alert(e.message || 'Failed to resend SMS OTP.');
+                alert(e.message || 'Failed to resend verification code.');
             }
         }
 
         function backToOfficerBenForm() {
             document.getElementById('addBenFormView')?.classList.remove('d-none');
-            document.getElementById('addBenEmailVerifyView')?.classList.add('d-none');
-            document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
-        }
-
-        function backToOfficerEmailVerify() {
-            document.getElementById('addBenFormView')?.classList.add('d-none');
-            document.getElementById('addBenEmailVerifyView')?.classList.remove('d-none');
-            document.getElementById('addBenSmsVerifyView')?.classList.add('d-none');
-        }
-
-        async function verifyOfficerEmailOtp() {
-            const emailCode = document.getElementById('officerBenEmailOtp')?.value.trim();
-            const alertEl = document.getElementById('officerEmailAlertMsg');
-            const btn = document.getElementById('btnVerifyOfficerEmailOtp');
-
-            if (!emailCode || emailCode.length < 6) {
-                if (alertEl) {
-                    alertEl.textContent = 'Please enter the complete 6-digit Gmail verification code.';
-                    alertEl.classList.remove('d-none');
-                }
-                document.getElementById('officerBenEmailOtp')?.focus();
-                return;
-            }
-
-            if (alertEl) alertEl.classList.add('d-none');
-            if (btn) btn.disabled = true;
-
-            try {
-                await OTPAuth.verifyEmailCode(pendingOfficerBenData.email, emailCode);
-
-                window.showSystemNotification({
-                    title: 'Email Verified!',
-                    message: 'Beneficiary email confirmed. Automatically dispatching SMS OTP to mobile phone...',
-                    type: 'success'
-                });
-
-                // Dispatch SMS OTP
-                await OTPAuth.sendSmsOtp(pendingOfficerBenData.phone);
-
-                // Transition to Phase 3
-                document.getElementById('addBenEmailVerifyView')?.classList.add('d-none');
-                document.getElementById('addBenSmsVerifyView')?.classList.remove('d-none');
-                setTimeout(() => document.getElementById('officerBenSmsOtp')?.focus(), 200);
-
-            } catch (err) {
-                if (alertEl) {
-                    alertEl.textContent = err.message || 'Invalid email verification code.';
-                    alertEl.classList.remove('d-none');
-                } else {
-                    alert(err.message || 'Invalid email verification code.');
-                }
-            } finally {
-                if (btn) btn.disabled = false;
-            }
+            document.getElementById('addBenVerifyChannelView')?.classList.add('d-none');
         }
 
         async function finalizeOfficerBeneficiaryCreation() {
-            const smsOtp = document.getElementById('officerBenSmsOtp')?.value.trim();
-            const alertEl = document.getElementById('officerSmsAlertMsg');
+            const enteredCode = document.getElementById('officerBenOtpInput')?.value.trim();
+            const alertEl = document.getElementById('officerVerifyAlertMsg');
             const btn = document.getElementById('btnFinalizeOfficerBen');
+            const spinner = document.getElementById('officerFinalizeSpinner');
 
-            if (!smsOtp || smsOtp.length < 6) {
+            if (!enteredCode || enteredCode.length < 6) {
                 if (alertEl) {
-                    alertEl.textContent = 'Please enter the complete 6-digit SMS OTP code.';
+                    alertEl.textContent = 'Please enter the complete 6-digit verification code.';
                     alertEl.classList.remove('d-none');
                 }
-                document.getElementById('officerBenSmsOtp')?.focus();
+                document.getElementById('officerBenOtpInput')?.focus();
                 return;
             }
 
             if (alertEl) alertEl.classList.add('d-none');
             if (btn) btn.disabled = true;
+            if (spinner) spinner.classList.remove('d-none');
 
             try {
-                await OTPAuth.verifySmsOtp(pendingOfficerBenData.phone, smsOtp);
+                // Verify via selected single channel
+                if (activeOfficerVerificationChannel === 'EMAIL') {
+                    await OTPAuth.verifyEmailCode(pendingOfficerBenData.email, enteredCode);
+                } else {
+                    await OTPAuth.verifySmsOtp(pendingOfficerBenData.phone, enteredCode);
+                }
 
                 const uniqueQr = `QR-BEN-${Math.floor(100000 + Math.random() * 900000)}`;
                 const payload = {
@@ -6712,6 +6697,7 @@
                     status: 'Active',
                     terms_agreed: true,
                     data_consent: true,
+                    verified_channel: activeOfficerVerificationChannel,
                     verified_at: new Date().toISOString()
                 };
 
@@ -6747,14 +6733,26 @@
                     renderBeneficiaryTable();
                 }
 
-                logOfficerAction('ADD_BENEFICIARY', `Manually registered beneficiary ${payload.first_name} ${payload.last_name} (${uniqueQr}) with verified Email and SMS OTP.`);
+                logOfficerAction('ADD_BENEFICIARY', `Manually registered beneficiary ${payload.first_name} ${payload.last_name} (${uniqueQr}) verified via ${activeOfficerVerificationChannel}.`);
 
+                // Broadcast real-time event for Live Synchronization
+                if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+                    OTPAuth.broadcastRealtimeEvent('BENEFICIARY_REGISTERED', {
+                        qrCode: uniqueQr,
+                        fullName: `${payload.first_name} ${payload.last_name}`,
+                        program: payload.program,
+                        barangay: payload.barangay,
+                        verifiedChannel: activeOfficerVerificationChannel
+                    });
+                }
+
+                // Hide intake modal - OFFICER REMAINS ON PESO OFFICER PAGE
                 bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal'))?.hide();
 
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
                         title: 'Beneficiary Account Created!',
-                        message: `Beneficiary ${payload.first_name} ${payload.last_name} (${uniqueQr}) was successfully verified and added to the system.`,
+                        message: `Beneficiary ${payload.first_name} ${payload.last_name} (${uniqueQr}) was successfully verified via ${activeOfficerVerificationChannel === 'EMAIL' ? 'Gmail' : 'SMS'} and added to records.`,
                         type: 'success',
                         duration: 8000
                     });
@@ -6764,41 +6762,41 @@
 
             } catch (err) {
                 if (alertEl) {
-                    alertEl.textContent = err.message || 'SMS OTP verification failed.';
+                    alertEl.textContent = err.message || 'Verification failed. Please check the entered code.';
                     alertEl.classList.remove('d-none');
                 } else {
                     alert(err.message || 'Verification failed. Please check the entered code.');
                 }
             } finally {
                 if (btn) btn.disabled = false;
+                if (spinner) spinner.classList.add('d-none');
             }
         }
 
         // Setup auto-advance on keyup for officer OTP input boxes
         document.addEventListener('DOMContentLoaded', () => {
-            const emailInput = document.getElementById('officerBenEmailOtp');
-            if (emailInput) {
-                emailInput.addEventListener('input', (e) => {
-                    emailInput.value = emailInput.value.replace(/[^0-9]/g, '');
-                    if (emailInput.value.length === 6) {
-                        verifyOfficerEmailOtp();
-                    }
-                });
-                emailInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') verifyOfficerEmailOtp();
-                });
-            }
-
-            const smsInput = document.getElementById('officerBenSmsOtp');
-            if (smsInput) {
-                smsInput.addEventListener('input', (e) => {
-                    smsInput.value = smsInput.value.replace(/[^0-9]/g, '');
-                    if (smsInput.value.length === 6) {
+            const otpInput = document.getElementById('officerBenOtpInput');
+            if (otpInput) {
+                otpInput.addEventListener('input', (e) => {
+                    otpInput.value = otpInput.value.replace(/[^0-9]/g, '');
+                    if (otpInput.value.length === 6) {
                         finalizeOfficerBeneficiaryCreation();
                     }
                 });
-                smsInput.addEventListener('keydown', (e) => {
+                otpInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') finalizeOfficerBeneficiaryCreation();
+                });
+            }
+
+            // Listen for Realtime Sync Events across tabs
+            if (typeof OTPAuth !== 'undefined' && OTPAuth.onRealtimeEvent) {
+                OTPAuth.onRealtimeEvent((event) => {
+                    console.log('[PESO OFFICER REALTIME EVENT]:', event);
+                    if (event.type === 'BENEFICIARY_REGISTERED' || event.type === 'APPLICATION_SUBMITTED' || event.type === 'DISBURSEMENT_RECORDED') {
+                        if (typeof renderBeneficiariesTable === 'function') renderBeneficiariesTable();
+                        if (typeof renderBeneficiaryTable === 'function') renderBeneficiaryTable();
+                        if (typeof updateStatsCards === 'function') updateStatsCards();
+                    }
                 });
             }
         });

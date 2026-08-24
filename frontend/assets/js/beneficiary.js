@@ -408,6 +408,18 @@
     } catch (e) {
       console.warn('[REALTIME TRACKER] Subscription notice:', e);
     }
+
+    // Also listen to Cross-tab Realtime Event Broadcaster
+    if (typeof OTPAuth !== 'undefined' && OTPAuth.onRealtimeEvent) {
+      OTPAuth.onRealtimeEvent(async (event) => {
+        console.log('[BENEFICIARY DASHBOARD REALTIME EVENT]:', event);
+        if (event.type === 'APPLICATION_APPROVED' || event.type === 'APPLICATION_REJECTED' || 
+            event.type === 'DISBURSEMENT_RECORDED' || event.type === 'APPLICATION_UPDATED' ||
+            event.type === 'BENEFICIARY_REGISTERED') {
+          await fetchBeneficiaryData();
+        }
+      });
+    }
   }
 
   // Dynamic Assistance Request Intake Submission directly to Supabase
@@ -463,7 +475,17 @@
       }
     }
 
-    alert(`Your assistance request (${appNumber}) for ${selectedProgramName} has been submitted successfully!\n\nStatus: Pending PESO Officer evaluation.`);
+    // Broadcast Real-time event across portal tabs
+    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+      OTPAuth.broadcastRealtimeEvent('APPLICATION_SUBMITTED', {
+        application_number: appNumber,
+        program: selectedProgramName,
+        beneficiary_qr: state.user?.qr_code,
+        beneficiary_name: state.user?.fullName
+      });
+    }
+
+    alert(`Your assistance request (${appNumber}) for ${selectedProgramName} has been submitted successfully!\n\nStatus: Pending Officer evaluation.`);
 
     if (window.closeModal) window.closeModal('requestIntakeModal');
     if (remarksInput) remarksInput.value = '';
