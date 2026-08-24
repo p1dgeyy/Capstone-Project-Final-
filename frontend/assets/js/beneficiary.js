@@ -153,23 +153,69 @@
         }
       }
 
-      // 3. Fetch Interview Schedules
+      // 3. Fetch Interview & Activity Schedules (Assigned Directly or Linked)
       if (typeof DataService !== 'undefined' && DataService.interviews) {
-        const intRes = await DataService.interviews.getByBeneficiary(qr);
-        if (intRes.data) {
-          state.trainings = intRes.data.map(i => ({
-            id: `SCH-${i.id}`,
-            dbId: i.id,
-            title: `${i.program?.name || 'Assistance Program'} Interview / Assessment`,
-            program_code: i.program?.code || 'PESO',
-            date: i.interview_date,
-            time: i.interview_time || '09:00 AM',
-            venue: i.venue_location || 'PESO Office, City Hall Complex',
-            status: i.status || 'Scheduled',
-            attendance: i.attendance_status || 'Unmarked',
-            trainer: i.officer ? `${i.officer.first_name} ${i.officer.last_name}` : 'PESO Officer',
-            certificate: `CERT-${new Date().getFullYear()}-${i.id}`
-          }));
+        let allInt = [];
+        try {
+          const directRes = await DataService.interviews.getByBeneficiary(qr);
+          if (directRes && Array.isArray(directRes.data)) {
+            allInt = directRes.data;
+          }
+          
+          // Also fetch active PESO schedules for the beneficiary's enrolled applications
+          const allRes = await DataService.interviews.getAll({ agency: 'PESO' });
+          if (allRes && Array.isArray(allRes.data)) {
+            allRes.data.forEach(item => {
+              if (item.beneficiary_qr === qr || !allInt.some(x => x.id === item.id)) {
+                if (item.beneficiary_qr === qr || item.batch_id) {
+                  if (!allInt.some(x => x.id === item.id)) {
+                    allInt.push(item);
+                  }
+                }
+              }
+            });
+          }
+        } catch (intErr) {
+          console.warn('[BENEFICIARY_SCHEDULES] Fetch warning:', intErr);
+        }
+
+        if (allInt.length > 0) {
+          state.trainings = allInt.map(i => {
+            const prog = i.program || {};
+            const officer = i.officer || {};
+            const schedDate = i.start_date || i.interview_date || (i.created_at ? i.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10));
+            const startTime = i.start_time || i.interview_time || '09:00 AM';
+            const endTime = i.end_time || '10:00 AM';
+            const schedTime = `${startTime}${endTime ? ' - ' + endTime : ''}`;
+            const officerName = `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || officer.username || 'Designated PESO Officer';
+            const progTitle = prog.name ? `${prog.name} (${prog.code || 'PESO'})` : 'PESO Livelihood Program';
+
+            return {
+              id: `SCH-${i.id}`,
+              dbId: i.id,
+              title: i.title || `${prog.name || 'Assistance Program'} ${i.category || 'Activity'}`,
+              category: i.category || 'Interview',
+              programName: progTitle,
+              program_code: prog.code || 'PESO',
+              startDate: schedDate,
+              start_date: schedDate,
+              endDate: i.end_date || schedDate,
+              date: schedDate,
+              startTime: startTime,
+              endTime: endTime,
+              time: schedTime,
+              scheduleTime: schedTime,
+              duration: i.duration || '1 Hour',
+              venue: i.venue_location || 'PESO Office, City Hall Complex',
+              status: i.status || 'Scheduled',
+              attendance: i.attendance_status || 'Unmarked',
+              officerName: officerName,
+              trainer: officerName,
+              remarks: i.remarks || 'Please bring a valid government ID and original copies of submitted documents.',
+              notes: i.remarks || 'Please bring a valid government ID and original copies of submitted documents.',
+              certificate: `CERT-${new Date().getFullYear()}-${i.id}`
+            };
+          });
         }
       }
 
@@ -221,27 +267,54 @@
   }
 
   // Summary Overview Cards Rendering
+  let activeBenScheduleViewMode = 'upcoming';
+
+  function toggleBeneficiaryScheduleView(mode) {
+    activeBenScheduleViewMode = mode;
+    const btnUp = document.getElementById('btnSchedUpcoming');
+    const btnPast = document.getElementById('btnSchedPast');
+
+    if (mode === 'upcoming') {
+      if (btnUp) { btnUp.className = 'btn btn-primary active fw-semibold'; }
+      if (btnPast) { btnPast.className = 'btn btn-outline-secondary fw-semibold'; }
+    } else {
+      if (btnUp) { btnUp.className = 'btn btn-outline-secondary fw-semibold'; }
+      if (btnPast) { btnPast.className = 'btn btn-primary active fw-semibold'; }
+    }
+
+    renderBeneficiaryScheduledActivities();
+  }
+  window.toggleBeneficiaryScheduleView = toggleBeneficiaryScheduleView;
+
+  // Summary Overview Cards & Dashboard Controller
   function renderDashboardOverview() {
-    const totalAppEl = document.getElementById('benStatTotalApps') || document.getElementById('statTotalApps');
-    const approvedEl = document.getElementById('benStatApprovedApps') || document.getElementById('statApproved');
-    const pendingEl = document.getElementById('benStatPendingApps') || document.getElementById('statPending');
-    const scheduledEl = document.getElementById('statScheduled');
-    const notifCountEl = document.getElementById('statNotifications');
+    // 1. Calculate the 4 Standardized Overview Stat Cards
+    const totalApps = state.applications.length;
+    const pendingApps = state.applications.filter(a => {
+      const s = (a.status || '').toLowerCase();
+      return s.includes('pending') || s.includes('review') || s.includes('under review') || s.includes('requirements');
+    }).length;
+    const approvedApps = state.applications.filter(a => {
+      const s = (a.status || '').toLowerCase();
+      return s === 'approved' || s === 'officer approved';
+    }).length;
+    const completedApps = state.applications.filter(a => {
+      const s = (a.status || '').toLowerCase();
+      return s === 'completed' || s === 'released';
+    }).length;
 
-    const totalCount = state.applications.length;
-    const approvedCount = state.applications.filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Released' || a.status === 'Completed').length;
-    const pendingCount = state.applications.filter(a => a.status === 'Pending' || a.status === 'Under Review' || a.status === 'Pending Requirements' || a.status === 'Interview Scheduled').length;
-    const scheduledCount = state.trainings.filter(t => t.status === 'Scheduled' || t.status === 'Active').length;
-    const unreadNotifs = state.notifications.filter(n => !n.isRead).length;
+    if (document.getElementById('benStatSubmittedApps')) document.getElementById('benStatSubmittedApps').textContent = totalApps;
+    if (document.getElementById('benStatPendingApps')) document.getElementById('benStatPendingApps').textContent = pendingApps;
+    if (document.getElementById('benStatApprovedApps')) document.getElementById('benStatApprovedApps').textContent = approvedApps;
+    if (document.getElementById('benStatCompletedApps')) document.getElementById('benStatCompletedApps').textContent = completedApps;
 
-    if (totalAppEl) totalAppEl.textContent = totalCount;
-    if (approvedEl) approvedEl.textContent = approvedCount;
-    if (pendingEl) pendingEl.textContent = pendingCount;
-    if (scheduledEl) scheduledEl.textContent = scheduledCount;
-    if (notifCountEl) notifCountEl.textContent = state.notifications.length;
+    const qrBadge = document.getElementById('benPortalQrBadge');
+    if (qrBadge && state.user) {
+      qrBadge.innerHTML = `<i class="bi bi-qr-code text-primary me-1"></i>${state.user.qr_code || 'QR-BEN-ACTIVE'}`;
+    }
 
-    renderQrPassCard();
-    renderLiveTransactionStepper();
+    renderApplicationProgressAndDocTracker();
+    renderBeneficiaryScheduledActivities();
     renderApplicationsTable();
     renderRecentApplicationsTable();
     renderDocumentStatusBoard();
@@ -249,6 +322,218 @@
     renderDistributionReleases();
     renderNotificationsFeed();
   }
+
+  // Visual Application Progress & Document Tracker
+  function renderApplicationProgressAndDocTracker() {
+    const trackerEl = document.getElementById('liveStageTracker');
+    const appIdEl = document.getElementById('liveTrackingAppId');
+    const checklistContainer = document.getElementById('benDocumentChecklistContainer');
+
+    const latestApp = state.applications.length > 0 ? state.applications[0] : null;
+
+    if (!latestApp) {
+      if (appIdEl) appIdEl.textContent = 'NO ACTIVE APPLICATION';
+      if (checklistContainer) {
+        checklistContainer.innerHTML = `
+          <div class="alert alert-light border p-3 rounded-3 d-flex align-items-center justify-content-between mb-0">
+            <div>
+              <strong class="text-dark small d-block"><i class="bi bi-info-circle text-primary me-1"></i>Account Ready For Assistance Intake</strong>
+              <span class="text-muted" style="font-size: 0.82rem;">Click "Apply for Assistance" to submit your application form to PESO.</span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openModal('applyModal')">Apply Now</button>
+          </div>
+        `;
+      }
+      resetStepperState(1);
+      return;
+    }
+
+    if (appIdEl) appIdEl.textContent = latestApp.id;
+
+    // Determine milestone step: 1. Submitted ➔ 2. Under Review ➔ 3. Requirements Needed ➔ 4. Approved ➔ 5. Released
+    const status = (latestApp.status || '').toLowerCase();
+    let currentStep = 1;
+    let hasMissingDocs = false;
+
+    // Parse documents to check for missing/flagged requirements
+    let docs = [];
+    if (latestApp.rawDocs && Array.isArray(latestApp.rawDocs)) {
+      docs = latestApp.rawDocs;
+    } else {
+      docs = [
+        { name: 'Valid Government-Issued ID', status: 'Verified' },
+        { name: 'Barangay Certificate of Indigency', status: status.includes('requirements') ? 'Missing / Required' : 'Verified' },
+        { name: 'Proof of Low Income / Displaced Status', status: 'Verified' }
+      ];
+    }
+
+    hasMissingDocs = status.includes('requirements') || docs.some(d => (d.status || '').toLowerCase().includes('missing') || (d.status || '').toLowerCase().includes('pending'));
+
+    if (status === 'released' || status === 'completed') {
+      currentStep = 5;
+    } else if (status === 'approved' || status === 'officer approved') {
+      currentStep = 4;
+    } else if (hasMissingDocs || status.includes('requirements')) {
+      currentStep = 3;
+    } else if (status.includes('review') || status.includes('evaluation')) {
+      currentStep = 2;
+    } else {
+      currentStep = 1;
+    }
+
+    // Update Stepper Steps
+    for (let i = 1; i <= 5; i++) {
+      const stepEl = document.getElementById(`step-${i}`);
+      const timeEl = document.getElementById(`step-${i}-time`);
+      if (!stepEl) continue;
+
+      if (i < currentStep) {
+        stepEl.className = 'stage-step completed';
+        if (timeEl) timeEl.textContent = 'Done';
+      } else if (i === currentStep) {
+        stepEl.className = currentStep === 3 && hasMissingDocs ? 'stage-step active border-warning' : 'stage-step active';
+        if (timeEl) timeEl.textContent = currentStep === 3 && hasMissingDocs ? 'Action Needed' : 'In Progress';
+      } else {
+        stepEl.className = 'stage-step';
+        if (timeEl) timeEl.textContent = 'Pending';
+      }
+    }
+
+    // Render Missing Requirements / Document Callout
+    if (checklistContainer) {
+      if (hasMissingDocs) {
+        checklistContainer.innerHTML = `
+          <div class="alert alert-warning border-warning p-3 rounded-3 mb-0">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <strong class="text-dark"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Action Required: Incomplete / Flagged Documents</strong>
+              <span class="badge bg-warning text-dark">Pending Beneficiary Action</span>
+            </div>
+            <p class="small text-dark mb-2">PESO Officer marked requirements as pending. Please upload the missing document copies to resume review:</p>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              ${docs.map(d => `
+                <span class="badge ${(d.status || '').toLowerCase().includes('missing') ? 'bg-danger text-white' : 'bg-light text-dark border'} p-2">
+                  <i class="bi ${(d.status || '').toLowerCase().includes('missing') ? 'bi-x-circle me-1' : 'bi-check-circle me-1 text-success'}"></i>${d.name} (${d.status})
+                </span>
+              `).join('')}
+            </div>
+            <button class="btn btn-sm btn-primary fw-semibold" onclick="navigateTo('documents')"><i class="bi bi-upload me-1"></i>Upload Missing Requirements</button>
+          </div>
+        `;
+      } else {
+        checklistContainer.innerHTML = `
+          <div class="alert alert-light border p-3 rounded-3 d-flex align-items-center justify-content-between mb-0">
+            <div>
+              <strong class="text-dark small d-block"><i class="bi bi-check2-circle text-success me-1"></i>All Required Documents Verified</strong>
+              <span class="text-muted" style="font-size: 0.82rem;">Your application for <strong>${latestApp.type}</strong> is cleared and on track.</span>
+            </div>
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Ready For Release</span>
+          </div>
+        `;
+      }
+    }
+  }
+
+  // "My Scheduled Activities" Box Controller (Compact Agenda Container)
+  function renderBeneficiaryScheduledActivities() {
+    const container = document.getElementById('benScheduledActivitiesContainer');
+    const countBadge = document.getElementById('benSchedCounterBadge');
+    if (!container) return;
+
+    const todayStr = new Date().toISOString().substring(0, 10);
+
+    // Filter schedules into upcoming vs past
+    const allSchedules = state.trainings || [];
+    const upcomingSchedules = allSchedules.filter(s => {
+      const sDate = s.startDate || s.start_date || s.date || '';
+      const isPastStatus = s.status === 'Completed' || s.status === 'Cancelled';
+      return sDate >= todayStr && !isPastStatus;
+    });
+
+    const pastSchedules = allSchedules.filter(s => {
+      const sDate = s.startDate || s.start_date || s.date || '';
+      const isPastStatus = s.status === 'Completed' || s.status === 'Cancelled';
+      return sDate < todayStr || isPastStatus;
+    });
+
+    if (countBadge) {
+      countBadge.textContent = `${upcomingSchedules.length} Upcoming`;
+    }
+
+    const targetList = activeBenScheduleViewMode === 'upcoming' ? upcomingSchedules : pastSchedules;
+
+    if (targetList.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-5 bg-light rounded-3 border text-muted">
+          <i class="bi bi-calendar-x fs-2 text-secondary d-block mb-2"></i>
+          <h6 class="fw-bold text-dark mb-1">No ${activeBenScheduleViewMode === 'upcoming' ? 'upcoming' : 'past'} scheduled activities found.</h6>
+          <p class="small text-muted mb-0">Scheduled interviews, distribution dates, and certificate releases will appear here automatically.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = targetList.map(item => {
+      const sDate = item.startDate || item.start_date || item.date || todayStr;
+      const sTime = item.time || item.scheduleTime || '09:00 AM - 10:00 AM';
+      const duration = item.duration || '1 Hour';
+      const venue = item.venue || 'PESO Office, City Hall Complex';
+      const officer = item.trainer || item.officerName || 'Designated PESO Officer';
+      const category = item.category || (item.title && item.title.includes('Certificate') ? 'Certificate Distribution' : (item.title && item.title.includes('Distribution') ? 'Assistance Distribution' : 'Interview'));
+      const programName = item.programName || item.title || 'PESO Assistance Program';
+      const notes = item.remarks || item.notes || 'Please bring a valid government ID and original copies of submitted documents.';
+
+      // 5-Color Status Badge: 🟢 Today, 🔵 Scheduled, 🟡 Postponed, 🔴 Cancelled, ⚫ Completed
+      let statusBadge = '';
+      if (item.status === 'Completed') {
+        statusBadge = '<span class="badge bg-dark text-white"><i class="bi bi-circle-fill me-1" style="font-size: 0.55rem;"></i>Completed (⚫)</span>';
+      } else if (item.status === 'Cancelled') {
+        statusBadge = '<span class="badge bg-danger text-white"><i class="bi bi-circle-fill me-1" style="font-size: 0.55rem;"></i>Cancelled (🔴)</span>';
+      } else if (item.status === 'Postponed') {
+        statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-circle-fill me-1" style="font-size: 0.55rem;"></i>Postponed (🟡)</span>';
+      } else if (sDate === todayStr) {
+        statusBadge = '<span class="badge bg-success text-white"><i class="bi bi-circle-fill me-1" style="font-size: 0.55rem;"></i>Today (🟢)</span>';
+      } else {
+        statusBadge = '<span class="badge bg-primary text-white"><i class="bi bi-circle-fill me-1" style="font-size: 0.55rem;"></i>Scheduled (🔵)</span>';
+      }
+
+      return `
+        <div class="card border rounded-3 p-3 bg-white shadow-sm position-relative" style="border-left: 5px solid ${item.status === 'Completed' ? '#334155' : item.status === 'Cancelled' ? '#ef4444' : item.status === 'Postponed' ? '#f59e0b' : (sDate === todayStr ? '#10b981' : '#3b82f6')} !important;">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-info-subtle text-dark border">${category}</span>
+                <strong class="text-dark fs-6">${item.title || 'Activity Slot'}</strong>
+              </div>
+              <div class="text-primary fw-semibold small"><i class="bi bi-diagram-3 me-1"></i>${programName}</div>
+            </div>
+            <div>${statusBadge}</div>
+          </div>
+
+          <div class="row g-2 small text-dark my-2 p-2 bg-light rounded border">
+            <div class="col-md-4">
+              <span class="text-muted d-block">Date & Time Slot</span>
+              <strong><i class="bi bi-calendar-event me-1 text-primary"></i>${sDate}</strong>
+              <div class="text-muted">${sTime} (${duration})</div>
+            </div>
+            <div class="col-md-4">
+              <span class="text-muted d-block">Location / Venue</span>
+              <strong><i class="bi bi-geo-alt-fill text-danger me-1"></i>${venue}</strong>
+            </div>
+            <div class="col-md-4">
+              <span class="text-muted d-block">Assigned PESO Officer</span>
+              <strong><i class="bi bi-person-fill text-primary me-1"></i>${officer}</strong>
+            </div>
+          </div>
+
+          <div class="mt-2 text-muted small d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle text-primary"></i>
+            <span><strong>Instructions:</strong> ${notes}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  window.renderBeneficiaryScheduledActivities = renderBeneficiaryScheduledActivities;
 
   // Dynamic QR Code Rendering for Beneficiary Pass Card & Modal
   function renderQrPassCard() {
@@ -636,6 +921,7 @@
   // Centralized Notifications Feed
   function renderNotificationsFeed() {
     const container = document.getElementById('benNotificationsFeed') || document.getElementById('notifDropdownList');
+    const dashFeed = document.getElementById('benDashboardNotificationsFeed');
     const badge = document.getElementById('benUnreadNotifBadge');
     const unreadCount = state.notifications.filter(n => !n.isRead).length;
 
@@ -644,22 +930,20 @@
       badge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
     }
 
-    if (!container) return;
-
-    if (state.notifications.length === 0) {
-      container.innerHTML = '<div class="p-3 text-center text-muted small">No notifications at this time.</div>';
-      return;
-    }
-
-    container.innerHTML = state.notifications.map(n => `
-      <div class="list-group-item p-3 mb-1 rounded ${n.isRead ? 'bg-light' : 'bg-white border-start border-primary border-3'}" style="cursor: pointer;" onclick="window.markBeneficiaryNotificationRead(${n.id})">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-          <strong class="text-dark"><i class="bi bi-bell-fill text-primary me-2"></i>${n.title}</strong>
-          <small class="text-muted">${n.date}</small>
+    const htmlContent = state.notifications.length === 0 
+      ? '<div class="p-3 text-center text-muted small">No notifications at this time.</div>'
+      : state.notifications.map(n => `
+        <div class="list-group-item p-3 mb-1 rounded ${n.isRead ? 'bg-light' : 'bg-white border-start border-primary border-3'}" style="cursor: pointer;" onclick="window.markBeneficiaryNotificationRead(${n.id})">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong class="text-dark"><i class="bi bi-bell-fill text-primary me-2"></i>${n.title}</strong>
+            <small class="text-muted">${n.date}</small>
+          </div>
+          <p class="mb-0 small text-muted">${n.message}</p>
         </div>
-        <p class="mb-0 small text-muted">${n.message}</p>
-      </div>
-    `).join('');
+      `).join('');
+
+    if (container) container.innerHTML = htmlContent;
+    if (dashFeed) dashFeed.innerHTML = htmlContent;
   }
 
   async function markBeneficiaryNotificationRead(id) {
