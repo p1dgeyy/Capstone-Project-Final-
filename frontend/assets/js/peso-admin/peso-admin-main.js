@@ -117,24 +117,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 5. Initialize Realtime Subscriptions for PESO Admin Portal
+    // 5. Initialize Realtime Subscriptions for PESO Admin Portal (Singleton guarded)
     try {
-        if (typeof DataService !== 'undefined' && DataService.realtime) {
-            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches'], (payload) => {
+        if (typeof DataService !== 'undefined' && DataService.realtime && !window.__pesoAdminRealtimeActive) {
+            window.__pesoAdminRealtimeActive = true;
+            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches', 'approved_assistance', 'notifications'], (payload) => {
                 console.log('[PESO Admin Realtime Event]:', payload.table, payload.eventType);
                 if (payload.table === 'programs') {
-                    initProgramsData();
+                    if (typeof initProgramsData === 'function') initProgramsData();
                 } else if (payload.table === 'applications') {
-                    initEvalModuleData();
-                    initProgramsData();
+                    if (typeof initEvalModuleData === 'function') initEvalModuleData();
+                    if (typeof initProgramsData === 'function') initProgramsData();
                 } else if (payload.table === 'interview_schedules') {
-                    initSchedulingData();
+                    if (typeof initSchedulingData === 'function') initSchedulingData();
                 } else if (payload.table === 'staff_profiles') {
-                    initUserManagementData();
-                    initOfficersData();
+                    if (typeof initUserManagementData === 'function') initUserManagementData();
+                    if (typeof initOfficersData === 'function') initOfficersData();
                 } else if (payload.table === 'batches') {
-                    initEvalModuleData();
+                    if (typeof initEvalModuleData === 'function') initEvalModuleData();
                 }
+                if (typeof renderDashboardTables === 'function') renderDashboardTables();
+                if (typeof renderActiveTab === 'function') renderActiveTab();
             });
         }
     } catch (rtErr) {

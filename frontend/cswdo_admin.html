@@ -2378,6 +2378,27 @@
         }
 
         // 5. Recent Activity Feed
+        
+        async function loadRecentActivity() {
+            const container = document.getElementById('activityFeedContainer');
+            if (container) {
+                container.innerHTML = '<li class="text-center py-3 text-muted small"><span class="spinner-border spinner-border-sm me-2"></span>Refreshing activities...</li>';
+            }
+            try {
+                if (typeof DataService !== 'undefined' && DataService.activityLog) {
+                    const actRes = await DataService.activityLog.getAll({ limit: 12 });
+                    if (actRes && Array.isArray(actRes.data)) {
+                        renderRecentActivityFeed(actRes.data);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('[CSWDO Admin] loadRecentActivity error:', e);
+            }
+            await refreshDashboardData();
+        }
+        window.loadRecentActivity = loadRecentActivity;
+
         function renderRecentActivityFeed(activities) {
             const container = document.getElementById('activityFeedContainer');
             if (!container) return;

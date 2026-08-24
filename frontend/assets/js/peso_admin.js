@@ -4165,10 +4165,11 @@
         closeModal('uploadOrdinanceModal');
     }
 
-    // Realtime Synchronization Listener
+    // Realtime Synchronization Listener (Singleton guarded)
     function initRealtimeSync() {
         try {
-            if (typeof DataService !== 'undefined' && DataService.realtime) {
+            if (typeof DataService !== 'undefined' && DataService.realtime && !window.__pesoAdminRealtimeActive) {
+                window.__pesoAdminRealtimeActive = true;
                 DataService.realtime.subscribeMulti(['programs', 'applications', 'staff_profiles', 'interview_schedules', 'approved_assistance', 'notifications'], (payload) => {
                     console.log('[PESO Admin Realtime Event Received]:', payload.table, payload.eventType);
                     refreshAllData().then(() => renderActiveTab());

@@ -644,6 +644,41 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE approved_assistance;
   EXCEPTION WHEN duplicate_object THEN NULL;
   END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE programs;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE funds;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE staff_profiles;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE activity_log;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE audit_logs;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE batches;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE active_user_sessions;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
 END $$;
 
 -- =============================================================================

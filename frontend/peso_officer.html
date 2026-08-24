@@ -6933,7 +6933,61 @@
                 document.body.classList.add('dark-mode');
             }
         })();
-    </script>
+    
+        async function openAuditModal() {
+            const tbody = document.getElementById('auditLogsTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading audit logs...</td></tr>';
+                let logs = [];
+                try {
+                    if (typeof DataService !== 'undefined' && DataService.auditLogs) {
+                        const res = await DataService.auditLogs.getAll({ limit: 50 });
+                        if (res && Array.isArray(res.data)) logs = res.data;
+                    }
+                } catch (e) {
+                    console.warn('[PESO Officer] Failed to fetch audit logs from DataService:', e);
+                }
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No audit logs recorded yet.</td></tr>';
+                } else {
+                    tbody.innerHTML = logs.map(l => {
+                        let badgeClass = 'bg-secondary';
+                        const action = (l.action || '').toUpperCase();
+                        if (action.includes('SUCCESS') || action.includes('CREATE') || action.includes('APPROVE') || action.includes('ACTIVATE')) badgeClass = 'bg-success';
+                        else if (action.includes('FAIL') || action.includes('DENIED') || action.includes('DELETE') || action.includes('REJECT')) badgeClass = 'bg-danger';
+                        else if (action.includes('UPDATE') || action.includes('EDIT')) badgeClass = 'bg-info text-dark';
+                        else if (action.includes('EVALUAT') || action.includes('SCHEDULE')) badgeClass = 'bg-primary';
+
+                        const officer = l.staff ? `${l.staff.first_name || ''} ${l.staff.last_name || ''}`.trim() || l.staff.username : (l.userRole || 'PESO Officer');
+                        const time = l.created_at ? new Date(l.created_at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'medium' }) : 'Recent';
+                        return `
+                            <tr>
+                                <td><small class="text-muted">${time}</small></td>
+                                <td><span class="badge bg-light text-dark border">${officer}</span></td>
+                                <td><span class="badge ${badgeClass}">${l.action || 'ACTION'}</span></td>
+                                <td><small>${l.details || '—'}</small></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+            const modalEl = document.getElementById('auditLogsModal');
+            if (modalEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal) {
+                    $(modalEl).modal('show');
+                } else {
+                    modalEl.classList.add('show');
+                    modalEl.style.display = 'block';
+                }
+            }
+        }
+        window.openAuditModal = openAuditModal;
+
+</script>
 </body>
 
 </html>
