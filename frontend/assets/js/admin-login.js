@@ -197,6 +197,7 @@
                 let accessToken = null;
 
                 // Step 1: Direct Supabase Auth Verification (Username OR Email)
+                let specificErrorMsg = null;
                 if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     let targetEmail = null;
                     let resolvedStaffFromDb = null;
@@ -215,6 +216,24 @@
                         }
                     } catch (lookupErr) {
                         console.warn('[ADMIN_LOGIN] Staff profile lookup notice:', lookupErr);
+                    }
+
+                    // 1.5: Detect if account is actually a Beneficiary trying to log into Staff Portal
+                    if (!resolvedStaffFromDb) {
+                        try {
+                            const { data: benMatch } = await supabaseClient
+                                .from('beneficiaries')
+                                .select('id, username, email, qr_code')
+                                .or(`username.ilike.${cleanIdentifier},email.ilike.${cleanIdentifier},qr_code.ilike.${cleanIdentifier}`)
+                                .maybeSingle();
+                            if (benMatch) {
+                                throw new Error(`Beneficiary Account Detected: You are attempting to log into the Staff Portal with a Beneficiary account. Please use the Beneficiary Login Portal (<a href="official_login.html" class="fw-bold text-decoration-underline text-white">official_login.html</a>).`);
+                            }
+                        } catch (benCheckErr) {
+                            if (benCheckErr.message && benCheckErr.message.includes('Beneficiary Account Detected')) {
+                                throw benCheckErr;
+                            }
+                        }
                     }
 
                     // 2. Try RPC resolve_login_email if available
@@ -250,6 +269,9 @@
                             break;
                         } else {
                             authError = res.error;
+                            if (res.error && res.error.message && res.error.message.toLowerCase().includes('email not confirmed')) {
+                                specificErrorMsg = 'Email Not Confirmed: Supabase requires email verification. Please disable "Confirm email" in Supabase Auth Settings.';
+                            }
                         }
                     }
 
@@ -285,7 +307,7 @@
                                 id: authData.user.id,
                                 auth_id: authData.user.id,
                                 username: meta.username || identifier,
-                                role: meta.role || (targetEmail.includes('admin') ? 'PESO Admin' : 'PESO Officer'),
+                                role: meta.role || (targetEmail && targetEmail.includes('admin') ? 'PESO Admin' : 'PESO Officer'),
                                 first_name: meta.first_name || 'Staff',
                                 last_name: meta.last_name || 'Member',
                                 email: authData.user.email,
@@ -308,6 +330,7 @@
                         localStorage.setItem('peso_lockout_until', lockoutUntilTimestamp.toString());
                         checkLockoutStatus();
                     }
+                    if (specificErrorMsg) throw new Error(specificErrorMsg);
                     throw new Error(lang === 'tg' ? 'Maling username/email o password.' : 'Invalid username/email or password.');
                 }
 

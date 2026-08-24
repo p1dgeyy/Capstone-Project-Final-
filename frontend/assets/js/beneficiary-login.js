@@ -55,6 +55,7 @@
             const identifier = (document.getElementById('username')?.value || '').trim();
             const password = document.getElementById('password')?.value || '';
             const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
             const successAlert = document.getElementById('successAlert');
             const loginBtn = document.getElementById('loginBtn');
             const spinner = loginBtn?.querySelector('.spinner');
@@ -73,41 +74,66 @@
                 let authSuccess = false;
                 let userProfile = null;
                 let accessToken = null;
+                let specificAuthErrorMsg = null;
 
-                // Step 1: Direct Supabase Authentication (Resolving Username OR Email)
                 if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     let targetEmail = null;
                     let resolvedBenFromDb = null;
                     const cleanIdentifier = identifier.trim();
 
-                    // 1. Check beneficiaries table by username, email, qr_code, or phone
+                    // Step 1: Look up beneficiary in database by username, email, or QR code
                     try {
-                        const { data: benRecord } = await supabaseClient
+                        const { data: byUsername } = await supabaseClient
                             .from('beneficiaries')
                             .select('*')
-                            .or(`username.ilike.${cleanIdentifier},email.ilike.${cleanIdentifier},qr_code.ilike.${cleanIdentifier}`)
+                            .ilike('username', cleanIdentifier)
                             .maybeSingle();
+                        if (byUsername) resolvedBenFromDb = byUsername;
 
-                        if (benRecord) {
-                            resolvedBenFromDb = benRecord;
-                            if (benRecord.email) {
-                                targetEmail = benRecord.email;
-                            }
+                        if (!resolvedBenFromDb) {
+                            const { data: byEmail } = await supabaseClient
+                                .from('beneficiaries')
+                                .select('*')
+                                .ilike('email', cleanIdentifier)
+                                .maybeSingle();
+                            if (byEmail) resolvedBenFromDb = byEmail;
+                        }
+
+                        if (!resolvedBenFromDb) {
+                            const { data: byQr } = await supabaseClient
+                                .from('beneficiaries')
+                                .select('*')
+                                .eq('qr_code', cleanIdentifier)
+                                .maybeSingle();
+                            if (byQr) resolvedBenFromDb = byQr;
+                        }
+
+                        if (resolvedBenFromDb && resolvedBenFromDb.email) {
+                            targetEmail = resolvedBenFromDb.email;
                         }
                     } catch (lookupErr) {
                         console.warn('[LOGIN] Beneficiary database lookup notice:', lookupErr);
                     }
 
-                    // 2. Try RPC resolve_login_email if available
-                    if (!targetEmail) {
+                    // Step 1.5: Detect if account belongs to Staff (misplaced login portal)
+                    if (!resolvedBenFromDb) {
                         try {
-                            const { data: rpcEmail } = await supabaseClient
-                                .rpc('resolve_login_email', { p_identifier: cleanIdentifier, p_portal: 'beneficiary' });
-                            if (rpcEmail) targetEmail = rpcEmail;
-                        } catch (rpcErr) { }
+                            const { data: staffMatch } = await supabaseClient
+                                .from('staff_profiles')
+                                .select('id, username, email, role')
+                                .or(`username.ilike.${cleanIdentifier},email.ilike.${cleanIdentifier}`)
+                                .maybeSingle();
+                            if (staffMatch) {
+                                throw new Error(`Staff Account Detected: You are attempting to log in with a ${staffMatch.role || 'Staff'} account. Please use the Staff Login Portal (<a href="admin_login.html" class="fw-bold text-decoration-underline text-white">admin_login.html</a>).`);
+                            }
+                        } catch (staffCheckErr) {
+                            if (staffCheckErr.message && staffCheckErr.message.includes('Staff Account Detected')) {
+                                throw staffCheckErr;
+                            }
+                        }
                     }
 
-                    // 3. Build candidate list to try with Supabase Auth
+                    // Step 2: Build candidate emails
                     const candidateEmails = [];
                     if (targetEmail) candidateEmails.push(targetEmail);
                     if (cleanIdentifier.includes('@')) candidateEmails.push(cleanIdentifier);
@@ -132,6 +158,9 @@
                             break;
                         } else {
                             authError = res.error;
+                            if (res.error && res.error.message && res.error.message.toLowerCase().includes('email not confirmed')) {
+                                specificAuthErrorMsg = 'Email Not Confirmed: Supabase requires email verification. Please disable "Confirm email" in Supabase Auth Settings or check your email inbox.';
+                            }
                         }
                     }
 
@@ -159,29 +188,16 @@
                             }
                         }
 
-                        if (!profile && identifier) {
-                            const { data: profByUsername } = await supabaseClient
-                                .from('beneficiaries')
-                                .select('*')
-                                .ilike('username', identifier)
-                                .maybeSingle();
-                            if (profByUsername) {
-                                profile = profByUsername;
-                                supabaseClient.from('beneficiaries').update({ auth_id: authData.user.id }).eq('id', profByUsername.id).then(() => {});
-                            }
-                        }
-
                         if (profile) {
                             profile.role = 'Beneficiary';
                             authSuccess = true;
                             userProfile = profile;
                             accessToken = authData.session.access_token;
                         } else {
-                            // Fallback profile from user metadata
                             const meta = authData.user.user_metadata || {};
                             userProfile = {
                                 id: authData.user.id,
-                                qr_code: `QR-${authData.user.id.substring(0, 8).toUpperCase()}`,
+                                qr_code: meta.qr_code || `QR-BEN-${authData.user.id.substring(0, 8).toUpperCase()}`,
                                 username: meta.username || identifier,
                                 first_name: meta.first_name || 'Beneficiary',
                                 last_name: meta.last_name || '',
@@ -196,6 +212,7 @@
                 }
 
                 if (!authSuccess) {
+                    if (specificAuthErrorMsg) throw new Error(specificAuthErrorMsg);
                     throw new Error(lang === 'tg' ? 'Hindi tamang username/email o password.' : 'Invalid username/email or password.');
                 }
 
@@ -204,7 +221,7 @@
                     throw new Error('Account has been deactivated. Please contact your administrator.');
                 }
 
-                // Strict Single Active Device Check: Prevent login if already active on another device
+                // Strict Single Active Device Check
                 if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
                     const activeCheck = await SessionManager.checkAccountAlreadyActive(userProfile.qr_code || userProfile.id, userProfile.username);
                     if (activeCheck.isAlreadyActive) {
@@ -231,7 +248,7 @@
                 sessionStorage.setItem('jwtAccessToken', accessToken || '');
                 sessionStorage.setItem('userRole', 'Beneficiary');
                 sessionStorage.setItem('username', userProfile.username);
-                sessionStorage.setItem('userId', String(userProfile.id));
+                sessionStorage.setItem('userId', String(userProfile.id || userProfile.qr_code));
                 sessionStorage.setItem('userFullName', fullName);
                 sessionStorage.setItem('beneficiaryLoggedIn', 'true');
                 sessionStorage.setItem('beneficiaryUsername', userProfile.username);
@@ -249,19 +266,12 @@
                         status: 'AUTHENTICATED',
                         details: `Beneficiary "${userProfile.username}" (${userProfile.qr_code || userProfile.id}) logged in successfully.`
                     });
-                } else if (typeof supabaseClient !== 'undefined' && supabaseClient && userProfile.qr_code) {
-                    supabaseClient.from('audit_logs').insert({
-                        beneficiary_qr: userProfile.qr_code,
-                        action: 'SUCCESS:LOGIN_SUCCESS',
-                        entity_type: 'Authentication Engine',
-                        details: `Beneficiary "${userProfile.username}" (${userProfile.qr_code}) logged in successfully.`
-                    }).then(() => {});
                 }
 
                 const dict = (window.LoginSupport && window.LoginSupport.translations && window.LoginSupport.translations[lang]) || (window.translations && window.translations[lang]) || {};
                 if (successAlert) {
                     const successMsgEl = successAlert.querySelector('#successMessage');
-                    if (successMsgEl) successMsgEl.textContent = dict['success_redirect'] || 'Login successful! Redirecting...';
+                    if (successMsgEl) successMsgEl.textContent = dict['success_redirect'] || 'Login successful! Redirecting to Beneficiary Portal...';
                     successAlert.style.display = 'block';
                 }
 
@@ -270,8 +280,9 @@
                 }, 600);
 
             } catch (err) {
+                console.error('[BENEFICIARY_LOGIN] Authentication error:', err);
                 const errorMsgEl = document.getElementById('errorMessage');
-                if (errorMsgEl) errorMsgEl.textContent = err.message;
+                if (errorMsgEl) errorMsgEl.innerHTML = err.message || 'Invalid username/email or password.';
                 if (errorAlert) errorAlert.style.display = 'block';
                 if (btnText) btnText.style.display = 'inline';
                 if (btnIcon) btnIcon.style.display = 'inline-block';
