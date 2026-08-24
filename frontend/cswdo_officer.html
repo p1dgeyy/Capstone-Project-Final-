@@ -1911,36 +1911,52 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- CSWDO BENEFICIARY QR CODE SUCCESS MODAL -->
+      <!-- CSWDO BENEFICIARY QR CODE SUCCESS MODAL -->
     <div class="custom-modal" id="cswdoQrSuccessModal">
         <div class="custom-modal-backdrop" onclick="closeCswdoQrModal()"></div>
-        <div class="custom-modal-dialog" style="max-width: 440px;">
+        <div class="custom-modal-dialog" style="max-width: 480px;">
             <div class="custom-modal-header bg-success text-white py-3 px-4 d-flex justify-content-between align-items-center">
                 <h5 class="custom-modal-title text-white fw-bold mb-0">
-                    <i class="bi bi-qr-code me-2"></i>Beneficiary QR ID Card
+                    <i class="bi bi-qr-code me-2"></i>Official CSWDO Beneficiary Pass
                 </h5>
                 <button type="button" class="btn-modal-close text-white" onclick="closeCswdoQrModal()">&times;</button>
             </div>
             <div class="custom-modal-body p-4 text-center bg-light">
-                <div class="bg-white rounded-4 p-4 shadow-sm border mx-auto">
-                    <small class="text-uppercase fw-bold text-muted d-block mb-1">City Government of Koronadal</small>
-                    <h5 class="fw-bold text-success mb-3">CSWDO Beneficiary Pass</h5>
-                    <div id="cswdoQrCanvasContainer" class="d-flex justify-content-center my-3 p-2 bg-white rounded-3 border" style="min-height: 190px; align-items: center;"></div>
-                    <h5 class="fw-bold text-dark mb-1" id="cswdoQrBenName">Beneficiary Name</h5>
-                    <p class="font-monospace fw-bold text-primary mb-1" id="cswdoQrBenId">QR: QR-BEN-XXXXXX</p>
-                    <span class="badge bg-success px-3 py-2 rounded-pill" id="cswdoQrBenProgram">Medical Assistance</span>
-                    <div class="text-muted small mt-2">Scan this QR code during office visits for instant record retrieval.</div>
+                <div class="bg-white rounded-4 p-4 shadow-sm border mx-auto text-start mb-3" id="printableCswdoPass">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                        <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.65rem;">City Government of Koronadal</small>
+                        <span class="badge bg-success font-monospace" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill me-1"></i>Verified Active</span>
+                    </div>
+                    <div class="text-center py-2 bg-light rounded-3 border mb-3">
+                        <div id="cswdoQrCanvasContainer" class="d-flex justify-content-center my-2 p-1" style="min-height: 150px; align-items: center;"></div>
+                        <p class="font-monospace fw-bold text-success fs-5 mb-1" id="cswdoQrBenId">QR: QR-BEN-XXXXXX</p>
+                        <div class="text-muted small" style="font-size: 0.72rem;">Scan for instant CSWDO welfare evaluation & assistance releases</div>
+                    </div>
+                    <div class="row g-1 small">
+                        <div class="col-4 text-muted">Beneficiary:</div>
+                        <div class="col-8 fw-bold text-dark" id="cswdoQrBenName">Elena Garcia</div>
+                        <div class="col-4 text-muted">Username:</div>
+                        <div class="col-8 fw-semibold text-dark font-monospace" id="cswdoQrBenUser">elena.garcia</div>
+                        <div class="col-4 text-muted">Email:</div>
+                        <div class="col-8 text-dark" id="cswdoQrBenEmail">elena@gmail.com</div>
+                        <div class="col-4 text-muted">Contact:</div>
+                        <div class="col-8 text-dark" id="cswdoQrBenPhone">0917-***-1234</div>
+                        <div class="col-4 text-muted">Barangay:</div>
+                        <div class="col-8 text-dark" id="cswdoQrBenBrgy">Morales</div>
+                        <div class="col-4 text-muted">Assistance:</div>
+                        <div class="col-8"><span class="badge bg-success" id="cswdoQrBenProgram">Medical Assistance</span></div>
+                    </div>
                 </div>
             </div>
             <div class="custom-modal-footer bg-white border-top-0 d-flex justify-content-between px-4 py-3">
-                <button type="button" class="btn btn-secondary px-4 rounded-pill" onclick="closeCswdoQrModal()">Close</button>
+                <button type="button" class="btn btn-secondary px-4 rounded-pill fw-semibold" onclick="closeCswdoQrModal()">Done / Close</button>
                 <button type="button" class="btn btn-success px-4 rounded-pill fw-semibold shadow-sm" onclick="window.print()">
-                    <i class="bi bi-printer me-1"></i> Print / Save PDF
+                    <i class="bi bi-printer me-1"></i> Print Pass Slip
                 </button>
             </div>
         </div>
+    </div>
+
     </div>
 
     <!-- ============================================== -->
@@ -4537,9 +4553,13 @@
             const qrStr = benData.qr_code || 'QR-BEN-ACTIVE';
             const progName = benData.program || 'CSWDO Assistance Program';
 
-            document.getElementById('cswdoQrBenName').textContent = benName;
-            document.getElementById('cswdoQrBenId').textContent = `QR: ${qrStr}`;
-            document.getElementById('cswdoQrBenProgram').textContent = progName;
+            if (document.getElementById('cswdoQrBenName')) document.getElementById('cswdoQrBenName').textContent = benName;
+            if (document.getElementById('cswdoQrBenUser')) document.getElementById('cswdoQrBenUser').textContent = benData.username || '-';
+            if (document.getElementById('cswdoQrBenEmail')) document.getElementById('cswdoQrBenEmail').textContent = benData.email || '-';
+            if (document.getElementById('cswdoQrBenPhone')) document.getElementById('cswdoQrBenPhone').textContent = benData.phone || '-';
+            if (document.getElementById('cswdoQrBenBrgy')) document.getElementById('cswdoQrBenBrgy').textContent = `${benData.barangay || ''}, City of Koronadal`;
+            if (document.getElementById('cswdoQrBenId')) document.getElementById('cswdoQrBenId').textContent = `QR: ${qrStr}`;
+            if (document.getElementById('cswdoQrBenProgram')) document.getElementById('cswdoQrBenProgram').textContent = progName;
 
             const qrContainer = document.getElementById('cswdoQrCanvasContainer');
             if (qrContainer) {
@@ -4547,8 +4567,8 @@
                 if (typeof QRCode !== 'undefined') {
                     new QRCode(qrContainer, {
                         text: qrStr,
-                        width: 175,
-                        height: 175,
+                        width: 150,
+                        height: 150,
                         colorDark: "#000000",
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.H

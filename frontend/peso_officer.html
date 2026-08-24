@@ -2767,7 +2767,49 @@
                                 <span class="spinner-border spinner-border-sm me-1 d-none" id="officerFinalizeSpinner"></span>
                                 <i class="bi bi-check-circle-fill me-1"></i> Verify & Register Beneficiary
                             </button>
+    <!-- PESO BENEFICIARY QR CODE PASS CONFIRMATION MODAL -->
+    <div class="modal fade" id="pesoOfficerBenQrModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white py-3 px-4">
+                    <h5 class="modal-title fw-bold fs-6 mb-0">
+                        <i class="bi bi-qr-code-scan me-2"></i>Official PESO Beneficiary Pass
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center bg-light">
+                    <div class="card p-3 border rounded-3 bg-white shadow-sm mb-3 text-start" id="printablePesoOfficerPass">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                            <span class="text-uppercase fw-bold text-muted small" style="font-size: 0.65rem;">City Government of Koronadal</span>
+                            <span class="badge bg-success font-monospace" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill me-1"></i>Verified Active</span>
                         </div>
+                        <div class="text-center py-2 bg-light rounded-3 border mb-3">
+                            <div id="pesoOfficerQrContainer" class="d-flex justify-content-center my-1" style="min-height: 150px; align-items: center;"></div>
+                            <div class="font-monospace fw-bold text-primary fs-5 mt-1" id="pesoOfficerQrText">QR-BEN-XXXXXX</div>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">Scan for instant PESO intake and evaluation verification</small>
+                        </div>
+                        <div class="row g-1 small">
+                            <div class="col-4 text-muted">Beneficiary:</div>
+                            <div class="col-8 fw-bold text-dark" id="pesoOfficerQrName">-</div>
+                            <div class="col-4 text-muted">Username:</div>
+                            <div class="col-8 fw-semibold text-dark font-monospace" id="pesoOfficerQrUser">-</div>
+                            <div class="col-4 text-muted">Email:</div>
+                            <div class="col-8 text-dark" id="pesoOfficerQrEmail">-</div>
+                            <div class="col-4 text-muted">Contact:</div>
+                            <div class="col-8 text-dark" id="pesoOfficerQrPhone">-</div>
+                            <div class="col-4 text-muted">Barangay:</div>
+                            <div class="col-8 text-dark" id="pesoOfficerQrBrgy">-</div>
+                            <div class="col-4 text-muted">Program:</div>
+                            <div class="col-8"><span class="badge bg-primary text-wrap text-start" id="pesoOfficerQrProgram">TUPAD</span></div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary flex-fill fw-bold" onclick="printPesoOfficerPass()">
+                            <i class="bi bi-printer me-1"></i> Print Pass Slip
+                        </button>
+                        <button type="button" class="btn btn-secondary flex-fill fw-bold" data-bs-dismiss="modal">
+                            <i class="bi bi-check2-circle me-1"></i> Done / Close
+                        </button>
                     </div>
                 </div>
             </div>
@@ -6746,8 +6788,11 @@
                     });
                 }
 
-                // Hide intake modal - OFFICER REMAINS ON PESO OFFICER PAGE
+                // Hide intake modal
                 bootstrap.Modal.getInstance(document.getElementById('addBeneficiaryModal'))?.hide();
+
+                // Open Official PESO Beneficiary QR Pass Modal for walk-in applicant (Officer remains on page)
+                openPesoOfficerQrPassModal(payload);
 
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
@@ -6756,8 +6801,6 @@
                         type: 'success',
                         duration: 8000
                     });
-                } else {
-                    alert(`Beneficiary Account Created: ${payload.first_name} ${payload.last_name} (${uniqueQr}) has been successfully registered.`);
                 }
 
             } catch (err) {
@@ -6772,6 +6815,44 @@
                 if (spinner) spinner.classList.add('d-none');
             }
         }
+
+        function openPesoOfficerQrPassModal(benData) {
+            const benName = `${benData.first_name || ''} ${benData.last_name || ''}`.trim() || 'Beneficiary Applicant';
+            const qrStr = benData.qr_code || 'QR-BEN-ACTIVE';
+            const progName = benData.program || 'TUPAD / PESO Assistance';
+
+            if (document.getElementById('pesoOfficerQrName')) document.getElementById('pesoOfficerQrName').textContent = benName;
+            if (document.getElementById('pesoOfficerQrUser')) document.getElementById('pesoOfficerQrUser').textContent = benData.username || '-';
+            if (document.getElementById('pesoOfficerQrEmail')) document.getElementById('pesoOfficerQrEmail').textContent = benData.email || '-';
+            if (document.getElementById('pesoOfficerQrPhone')) document.getElementById('pesoOfficerQrPhone').textContent = benData.phone || '-';
+            if (document.getElementById('pesoOfficerQrBrgy')) document.getElementById('pesoOfficerQrBrgy').textContent = `${benData.barangay || ''}, City of Koronadal`;
+            if (document.getElementById('pesoOfficerQrProgram')) document.getElementById('pesoOfficerQrProgram').textContent = progName;
+            if (document.getElementById('pesoOfficerQrText')) document.getElementById('pesoOfficerQrText').textContent = qrStr;
+
+            const qrContainer = document.getElementById('pesoOfficerQrContainer');
+            if (qrContainer) {
+                qrContainer.innerHTML = '';
+                if (typeof QRCode !== 'undefined') {
+                    new QRCode(qrContainer, {
+                        text: qrStr,
+                        width: 140,
+                        height: 140,
+                        colorDark: "#0F172A",
+                        colorLight: "#FFFFFF",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } else {
+                    qrContainer.innerHTML = `<div class="p-2 font-monospace fw-bold text-primary">${qrStr}</div>`;
+                }
+            }
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('pesoOfficerBenQrModal')).show();
+        }
+
+        function printPesoOfficerPass() {
+            window.print();
+        }
+
 
         // Setup auto-advance on keyup for officer OTP input boxes
         document.addEventListener('DOMContentLoaded', () => {

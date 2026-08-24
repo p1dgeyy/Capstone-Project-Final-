@@ -13,6 +13,7 @@
 
     <!-- API Base & Security Configuration -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/supabase-config.js"></script>
     <script src="assets/js/supabase-data.js"></script>
@@ -724,53 +725,75 @@
             </div>
 
             <!-- ============================================================== -->
-            <!-- STEP 3: FINALIZATION & AUTO-REDIRECT -->
+            <!-- STEP 3: FINALIZATION & DIGITAL PASS CONFIRMATION -->
             <!-- ============================================================== -->
             <div id="finalizationView" class="d-none text-center py-4">
-                <div class="success-checkmark-wrapper">
+                <div class="success-checkmark-wrapper mb-3">
                     <i class="bi bi-check-lg"></i>
                 </div>
 
-                <h2 class="fw-bold text-dark mb-1">Registration Complete!</h2>
-                <p class="text-muted mb-4 fs-6">Your beneficiary account has been successfully verified.</p>
+                <h2 class="fw-bold text-dark mb-1">Account Verified & Created!</h2>
+                <p class="text-muted mb-4 fs-6">Here is your official City of Koronadal Beneficiary Digital Pass & Verification Summary.</p>
 
-                <div class="card bg-light border-0 p-4 rounded-4 text-start mx-auto mb-4" style="max-width: 520px;">
-                    <div class="text-center mb-3">
-                        <div class="p-3 bg-white border rounded-3 d-inline-block shadow-sm">
-                            <i class="bi bi-qr-code text-primary" style="font-size: 64px;"></i>
-                            <div class="fw-bold font-monospace text-dark mt-1" id="summaryQrCode">QR-BEN-000000</div>
+                <!-- BENEFICIARY DIGITAL PASS CARD -->
+                <div class="card border shadow-sm p-4 rounded-4 text-start mx-auto mb-4 bg-white" style="max-width: 560px; border-color: #E2E8F0 !important;" id="printableBeneficiaryPass">
+                    <!-- CARD HEADER -->
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                        <div>
+                            <span class="badge bg-primary text-uppercase px-2 py-1 mb-1" style="font-size: 0.68rem; letter-spacing: 0.5px;">City Government of Koronadal</span>
+                            <h6 class="fw-bold text-dark mb-0">Official Beneficiary ID Pass</h6>
                         </div>
+                        <span class="badge bg-success px-3 py-2 rounded-pill font-monospace"><i class="bi bi-shield-check me-1"></i>Active Verified</span>
                     </div>
-                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-badge me-2 text-primary"></i>Verified Beneficiary Profile:</h6>
-                    <div class="row g-2 small">
-                        <div class="col-5 text-muted">Full Name:</div>
-                        <div class="col-7 fw-bold text-dark" id="summaryFullName">Juan Santos Dela Cruz</div>
 
-                        <div class="col-5 text-muted">Username:</div>
-                        <div class="col-7 fw-bold text-dark" id="summaryUsername">juan.delacruz</div>
+                    <!-- VISUAL QR CODE CANVAS -->
+                    <div class="text-center py-2 mb-3 bg-light rounded-3 border">
+                        <div id="summaryQrCanvas" class="d-flex justify-content-center p-2" style="min-height: 160px; align-items: center;"></div>
+                        <div class="fw-bold font-monospace text-primary fs-5 mt-1" id="summaryQrCode">QR-BEN-000000</div>
+                        <small class="text-muted d-block mt-1">Scan at City Hall / PESO / CSWDO desks for instant record retrieval.</small>
+                    </div>
 
-                        <div class="col-5 text-muted">Email Address:</div>
-                        <div class="col-7"><span id="summaryEmail" class="fw-semibold">user@gmail.com</span> <span
-                                class="badge-verified ms-1"><i class="bi bi-check-circle-fill"></i> Verified</span>
+                    <!-- BENEFICIARY DETAILS TABLE -->
+                    <div class="bg-light p-3 rounded-3 border">
+                        <h6 class="fw-bold text-dark mb-2 small text-uppercase" style="letter-spacing: 0.5px;"><i class="bi bi-person-lines-fill me-1 text-primary"></i>Account Information</h6>
+                        <div class="row g-2 small">
+                            <div class="col-4 text-muted">Full Name:</div>
+                            <div class="col-8 fw-bold text-dark" id="summaryFullName">Juan Santos Dela Cruz</div>
+
+                            <div class="col-4 text-muted">Username:</div>
+                            <div class="col-8 fw-bold text-dark font-monospace" id="summaryUsername">juan.delacruz</div>
+
+                            <div class="col-4 text-muted">Gmail Address:</div>
+                            <div class="col-8"><span id="summaryEmail" class="fw-semibold text-dark">user@gmail.com</span> <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill"></i> Verified</span></div>
+
+                            <div class="col-4 text-muted">Mobile Number:</div>
+                            <div class="col-8"><span id="summaryPhone" class="fw-semibold text-dark">0917-***-2222</span> <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill"></i> Verified</span></div>
+
+                            <div class="col-4 text-muted">Barangay:</div>
+                            <div class="col-8 fw-semibold text-dark" id="summaryBarangay">Morales, City of Koronadal</div>
+
+                            <div class="col-4 text-muted">Assigned Sector:</div>
+                            <div class="col-8"><span class="badge bg-primary px-2 py-1" id="summarySector">PESO Assistance</span></div>
                         </div>
-
-                        <div class="col-5 text-muted">Contact Number:</div>
-                        <div class="col-7"><span id="summaryPhone" class="fw-semibold">0917-***-2222</span> <span
-                                class="badge-verified ms-1"><i class="bi bi-check-circle-fill"></i> Verified</span>
-                        </div>
-
-                        <div class="col-5 text-muted">Assigned Sector:</div>
-                        <div class="col-7"><span class="badge bg-primary px-2 py-1" id="summarySector">PESO Assistance</span></div>
                     </div>
                 </div>
 
-                <div class="mx-auto" style="max-width: 520px;">
-                    <button type="button" class="btn btn-purple w-100 py-3 fs-6 fw-bold"
-                        onclick="window.location.href='beneficiary.html'">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Access Portal Dashboard
+                <!-- ACTION BUTTONS: PROCEED TO DASHBOARD, PRINT/SAVE QR, CLOSE/OPEN LATER -->
+                <div class="d-flex flex-column gap-2 mx-auto" style="max-width: 560px;">
+                    <button type="button" class="btn btn-purple py-3 fs-6 fw-bold shadow-sm" id="btnProceedDashboard" onclick="window.location.href='beneficiary.html'">
+                        <i class="bi bi-speedometer2 me-2"></i> Proceed to My Dashboard
                     </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary flex-fill py-2 fw-semibold" onclick="printOrSavePass()">
+                            <i class="bi bi-printer me-1"></i> Print / Save QR Pass
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary flex-fill py-2 fw-semibold" onclick="closeAndOpenLater()">
+                            <i class="bi bi-x-circle me-1"></i> Close / Open Later
+                        </button>
+                    </div>
                 </div>
             </div>
+
 
         </div>
     </div>
@@ -1355,27 +1378,42 @@
                     });
                 }
 
-                // Populate Summary Card
+                // Populate Summary Digital Card
                 document.getElementById('summaryQrCode').textContent = uniqueQr;
                 document.getElementById('summaryFullName').textContent = fullName;
                 document.getElementById('summaryUsername').textContent = registrationData.username;
                 document.getElementById('summaryEmail').textContent = registrationData.email;
                 document.getElementById('summaryPhone').textContent = registrationData.phone_number;
+                document.getElementById('summaryBarangay').textContent = `${registrationData.barangay}, City of Koronadal`;
                 document.getElementById('summarySector').textContent = registrationData.program_sector;
+
+                // Render Dynamic Visual QR Code
+                const qrContainer = document.getElementById('summaryQrCanvas');
+                if (qrContainer) {
+                    qrContainer.innerHTML = '';
+                    if (typeof QRCode !== 'undefined') {
+                        new QRCode(qrContainer, {
+                            text: uniqueQr,
+                            width: 150,
+                            height: 150,
+                            colorDark: "#0F172A",
+                            colorLight: "#FFFFFF",
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                    } else {
+                        qrContainer.innerHTML = `<div class="p-3 font-monospace fw-bold text-dark border bg-white rounded">${uniqueQr}</div>`;
+                    }
+                }
 
                 window.showSystemNotification({
                     title: 'Account Fully Verified!',
-                    message: `Verified successfully via ${activeVerificationChannel === 'EMAIL' ? 'Gmail' : 'SMS'}. Redirecting you directly to your Beneficiary Portal Dashboard...`,
+                    message: `Verified successfully via ${activeVerificationChannel === 'EMAIL' ? 'Gmail' : 'SMS'}. Your official Beneficiary Pass is ready!`,
                     type: 'success',
-                    duration: 3000
+                    duration: 6000
                 });
 
-                // Advance to Finalization view and auto-redirect to personal beneficiary page
+                // Advance to Step 3 Digital Pass Hub (User can proceed or close/save)
                 goToStep(3);
-
-                setTimeout(() => {
-                    window.location.href = 'beneficiary.html';
-                }, 1400);
 
             } catch (err) {
                 alertMsg.textContent = err.message || 'Invalid or expired verification code.';
@@ -1385,6 +1423,17 @@
                 spinner.classList.add('d-none');
             }
         }
+
+        function printOrSavePass() {
+            window.print();
+        }
+
+        function closeAndOpenLater() {
+            if (confirm('Your account has been verified and your QR Pass is saved. Would you like to exit to the main homepage?')) {
+                window.location.href = 'index.html';
+            }
+        }
+
     </script>
 </body>
 
