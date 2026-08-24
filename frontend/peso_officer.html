@@ -492,6 +492,37 @@
             }
         }
 
+        /* 5-Color Status Legend & Chips for PESO Officer Daily Schedule */
+        .status-pill-green { background-color: #10B981; color: #FFFFFF; font-weight: 600; font-size: 0.75rem; border-radius: 9999px; padding: 2px 8px; }
+        .status-pill-blue { background-color: #2563EB; color: #FFFFFF; font-weight: 600; font-size: 0.75rem; border-radius: 9999px; padding: 2px 8px; }
+        .status-pill-yellow { background-color: #F59E0B; color: #1E293B; font-weight: 600; font-size: 0.75rem; border-radius: 9999px; padding: 2px 8px; }
+        .status-pill-red { background-color: #EF4444; color: #FFFFFF; font-weight: 600; font-size: 0.75rem; border-radius: 9999px; padding: 2px 8px; }
+        .status-pill-gray { background-color: #475569; color: #FFFFFF; font-weight: 600; font-size: 0.75rem; border-radius: 9999px; padding: 2px 8px; }
+
+        .officer-cal-chip {
+            padding: 3px 6px;
+            font-size: 0.72rem;
+            border-radius: 6px;
+            margin-bottom: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+        .officer-cal-chip:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+        .officer-cal-chip-green { background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+        .officer-cal-chip-blue { background: #DBEAFE; color: #1D4ED8; border: 1px solid #93C5FD; }
+        .officer-cal-chip-yellow { background: #FEF3C7; color: #B45309; border: 1px solid #FCD34D; }
+        .officer-cal-chip-red { background: #FEE2E2; color: #B91C1C; border: 1px solid #FCA5A5; }
+        .officer-cal-chip-gray { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+
         @media print {
             body * {
                 visibility: hidden;
@@ -1347,210 +1378,168 @@
             </div>
         </section>
 
-        <!-- 6. DAILY INTERVIEW SCHEDULE & BENEFICIARY ASSIGNMENT DESK -->
+        <!-- 6. DAILY SCHEDULE & ACTIVITY CONTROL MODULE (PESO OFFICER) -->
         <section id="tab-daily-schedules" class="tab-section d-none">
-            <div class="page-header">
+            <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                 <div>
-                    <h1 class="page-title"><i class="bi bi-calendar-check-fill text-primary me-2"></i>Officer Daily
-                        Schedule & Beneficiary Assignment Desk</h1>
-                    <p class="text-muted">Manage beneficiary assignments (Individual / Batch), monitor attendance
-                        (Present / Absent), update interview statuses, and review Admin-provisioned slots</p>
+                    <h1 class="page-title d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar-check-fill text-primary"></i> Daily Schedule & Activity Control
+                    </h1>
+                    <p class="text-muted mb-0">Real-time view of master schedules assigned by the PESO Administrator, venue locations, batch setup, and beneficiary rosters.</p>
                 </div>
-                <div class="d-flex gap-2 align-items-center">
-                    <button class="btn btn-outline-secondary" onclick="exportDailyScheduleCSV()"><i
-                            class="bi bi-download me-1"></i> Export Daily Roster (CSV)</button>
-                    <button class="btn btn-primary" onclick="openScheduleNewInterviewModal()"><i
-                            class="bi bi-person-plus-fill me-1"></i> Assign Beneficiary</button>
-                </div>
-            </div>
-
-            <!-- Date Navigation Toolbar & Metric Badges -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row align-items-center g-3">
-                        <div class="col-lg-5">
-                            <div class="d-flex align-items-center gap-2">
-                                <button class="btn btn-outline-primary" onclick="navigateScheduleDate(-1)"
-                                    title="Previous Day (Left Arrow Key)">
-                                    <i class="bi bi-chevron-left"></i>
-                                </button>
-                                <button class="btn btn-primary fw-bold px-3" onclick="navigateScheduleDate(0)"
-                                    title="Jump to Today (T Key)">
-                                    Today
-                                </button>
-                                <button class="btn btn-outline-primary" onclick="navigateScheduleDate(1)"
-                                    title="Next Day (Right Arrow Key)">
-                                    <i class="bi bi-chevron-right"></i>
-                                </button>
-                                <div class="ms-2">
-                                    <h5 class="fw-bold text-dark mb-0" id="currentScheduleDateDisplay">Saturday, August
-                                        8, 2026</h5>
-                                    <small class="text-muted" id="scheduleDateSubtitle">Assigned Program Slots for PESO
-                                        Officer</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
-                                <input type="date" class="form-control" id="scheduleDatePickerInput"
-                                    onchange="onScheduleDatePickerChange(this.value)" aria-label="Schedule Date Picker">
-                            </div>
-                        </div>
-                        <div class="col-lg-4 text-lg-end">
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-outline-secondary active" id="btnViewModeList"
-                                    onclick="setScheduleViewMode('list')"><i class="bi bi-list-ul me-1"></i> List
-                                    View</button>
-                                <button type="button" class="btn btn-outline-secondary" id="btnViewModeCalendar"
-                                    onclick="setScheduleViewMode('calendar')"><i class="bi bi-grid-3x3-gap me-1"></i>
-                                    Calendar Grid</button>
-                            </div>
-                            <span class="badge bg-light text-muted border ms-2 small d-none d-xl-inline"><i
-                                    class="bi bi-keyboard me-1"></i> Left/Right = Date | T = Today</span>
-                        </div>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button class="btn btn-outline-primary fw-bold" onclick="jumpOfficerScheduleToday()" title="Jump to Current Date">
+                        <i class="bi bi-calendar-day me-1"></i> Today
+                    </button>
+                    <div class="btn-group" role="group" aria-label="View Switcher">
+                        <button type="button" class="btn btn-outline-secondary active" id="btnOfficerSchedViewCalendar" onclick="setOfficerScheduleViewMode('calendar')">
+                            <i class="bi bi-calendar-month me-1"></i> Calendar View
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="btnOfficerSchedViewList" onclick="setOfficerScheduleViewMode('list')">
+                            <i class="bi bi-list-task me-1"></i> List View
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Conflict Warning Alert Banner -->
-            <div id="scheduleConflictAlertBanner"
-                class="alert alert-danger d-none align-items-center gap-3 p-3 shadow-sm border-danger mb-4"
-                role="alert">
-                <i class="bi bi-exclamation-octagon-fill fs-3 text-danger"></i>
-                <div class="flex-grow-1">
-                    <h6 class="fw-bold text-danger mb-1"><i class="bi bi-shield-slash-fill me-1"></i>Schedule Conflict
-                        Warning Detected!</h6>
-                    <div id="scheduleConflictAlertText" class="small">Overlapping interview time slots were detected for
-                        this officer on the selected date. Please adjust interview times to resolve conflicts.</div>
+            <!-- Overview Stat Cards (4 Cards) -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold d-block">Today's Activities</span>
+                            <h3 class="fw-bold mb-0 text-primary" id="officerStatTodayActivities">0</h3>
+                        </div>
+                        <div class="stat-icon bg-primary-subtle text-primary fs-4"><i class="bi bi-calendar-event-fill"></i></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold d-block">Received Admin Schedules (Blank)</span>
+                            <h3 class="fw-bold mb-0 text-info" id="officerStatBlankSchedules">0</h3>
+                        </div>
+                        <div class="stat-icon bg-info-subtle text-info fs-4"><i class="bi bi-inbox-fill"></i></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold d-block">Active Batches / Tasks</span>
+                            <h3 class="fw-bold mb-0 text-warning" id="officerStatActiveBatches">0</h3>
+                        </div>
+                        <div class="stat-icon bg-warning-subtle text-warning fs-4"><i class="bi bi-people-fill"></i></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold d-block">Completed Activities</span>
+                            <h3 class="fw-bold mb-0 text-dark" id="officerStatCompletedActivities">0</h3>
+                        </div>
+                        <div class="stat-icon bg-dark-subtle text-dark fs-4"><i class="bi bi-check-circle-fill"></i></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Quick Status Filter Bar -->
+            <!-- Search, Filter & Legend Toolbar -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
+                    <div class="row g-3 align-items-center mb-3">
+                        <div class="col-md-4">
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" id="dailyScheduleSearchInput"
-                                    placeholder="Search beneficiary, batch, ID..." onkeyup="filterDailySchedules()"
-                                    aria-label="Search beneficiary, batch, ID">
+                                <input type="text" class="form-control" id="officerSchedSearchInput" placeholder="Filter title, program, batch, or venue..." onkeyup="filterOfficerScheduleView()" aria-label="Search schedules">
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <select class="form-select" id="dailyScheduleProgramFilter"
-                                onchange="filterDailySchedules()" aria-label="Daily Schedule Program">
-                                <option value="">All Programs (TUPAD, SPES, PFAS, CKGIP)</option>
-                                <option value="TUPAD">TUPAD (Emergency Employment)</option>
-                                <option value="SPES">SPES (Student Employment)</option>
-                                <option value="PFAS">PFAS (Pangkabuhayan Assistance)</option>
-                                <option value="CKGIP">CKGIP (City Internship)</option>
+                            <select class="form-select" id="officerSchedCategoryFilter" onchange="filterOfficerScheduleView()" aria-label="Category filter">
+                                <option value="">All Activity Categories</option>
+                                <option value="Interview">Interview</option>
+                                <option value="Assistance Distribution">Assistance Distribution</option>
+                                <option value="Certificate Distribution">Certificate Distribution</option>
+                                <option value="Others">Others</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="dailyScheduleStatusFilter" onchange="filterDailySchedules()"
-                                aria-label="Daily Schedule Status">
+                        <div class="col-md-3">
+                            <select class="form-select" id="officerSchedStatusFilter" onchange="filterOfficerScheduleView()" aria-label="Status filter">
                                 <option value="">All Statuses</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Completed">Completed</option>
-                                <option value="Missed">Missed</option>
+                                <option value="Scheduled">Scheduled / Blank</option>
+                                <option value="Postponed">Postponed</option>
                                 <option value="Cancelled">Cancelled</option>
+                                <option value="Completed">Completed</option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <select class="form-select" id="dailyScheduleAttendanceFilter"
-                                onchange="filterDailySchedules()" aria-label="Daily Schedule Attendance">
-                                <option value="">All Attendance</option>
-                                <option value="Present">Present (Attended)</option>
-                                <option value="Absent">Absent (No-Show)</option>
-                                <option value="Unmarked">Unmarked</option>
-                            </select>
+                            <button class="btn btn-outline-secondary w-100" onclick="resetOfficerScheduleFilters()"><i class="bi bi-arrow-counterclockwise me-1"></i> Reset</button>
                         </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-outline-secondary w-100" onclick="resetDailyScheduleFilters()"><i
-                                    class="bi bi-arrow-counterclockwise me-1"></i> Reset</button>
-                        </div>
+                    </div>
+
+                    <!-- 5-Color Status Legend -->
+                    <div class="d-flex flex-wrap align-items-center gap-3 pt-2 border-top">
+                        <span class="small fw-bold text-muted text-uppercase me-1"><i class="bi bi-palette-fill me-1"></i>Status Key:</span>
+                        <span class="status-pill-green"><i class="bi bi-circle-fill me-1 small"></i>🟢 Today</span>
+                        <span class="status-pill-blue"><i class="bi bi-circle-fill me-1 small"></i>🔵 Scheduled / Received Blank</span>
+                        <span class="status-pill-yellow"><i class="bi bi-circle-fill me-1 small"></i>🟡 Postponed</span>
+                        <span class="status-pill-red"><i class="bi bi-circle-fill me-1 small"></i>🔴 Cancelled</span>
+                        <span class="status-pill-gray"><i class="bi bi-circle-fill me-1 small"></i>⚫ Completed</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Daily Summary Metrics Cards -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted small fw-semibold">Total Assigned Slots</span>
-                            <h4 class="fw-bold mb-0 text-dark" id="statDailyTotal">0</h4>
-                        </div>
-                        <div class="stat-icon bg-light text-primary fs-4"><i class="bi bi-calendar-event"></i></div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted small fw-semibold">Pending Interviews</span>
-                            <h4 class="fw-bold mb-0 text-warning" id="statDailyPending">0</h4>
-                        </div>
-                        <div class="stat-icon bg-warning-subtle text-warning fs-4"><i class="bi bi-hourglass-split"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted small fw-semibold">Completed Slots</span>
-                            <h4 class="fw-bold mb-0 text-success" id="statDailyCompleted">0</h4>
-                        </div>
-                        <div class="stat-icon bg-success-subtle text-success fs-4"><i class="bi bi-check2-all"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted small fw-semibold">Missed / Absent</span>
-                            <h4 class="fw-bold mb-0 text-danger" id="statDailyMissed">0</h4>
-                        </div>
-                        <div class="stat-icon bg-danger-subtle text-danger fs-4"><i class="bi bi-x-circle"></i></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- List View Container -->
-            <div id="dailyScheduleListViewContainer" class="card border-0 shadow-sm">
+            <!-- Calendar View Container -->
+            <div id="officerScheduleCalendarViewContainer" class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-card-checklist text-primary me-2"></i>Officer Assigned
-                        Slots & Interviews Roster</h5>
-                    <span class="badge bg-primary-subtle text-primary" id="dailyScheduleCountBadge">0 Records</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="navigateOfficerCalendar(-1)" title="Previous Month"><i class="bi bi-chevron-left"></i></button>
+                        <h5 class="mb-0 fw-bold" id="officerCalMonthYearLabel">August 2026</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="navigateOfficerCalendar(1)" title="Next Month"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Click any activity chip to configure batch roster or execute on-site tracking</small>
+                </div>
+                <div class="card-body p-3">
+                    <!-- Calendar Days of Week Header -->
+                    <div class="row g-1 text-center fw-bold text-muted small mb-2">
+                        <div class="col">SUN</div>
+                        <div class="col">MON</div>
+                        <div class="col">TUE</div>
+                        <div class="col">WED</div>
+                        <div class="col">THU</div>
+                        <div class="col">FRI</div>
+                        <div class="col">SAT</div>
+                    </div>
+                    <!-- Calendar Day Cells Grid -->
+                    <div class="row g-1" id="officerCalendarDaysGrid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- List / Agenda View Container -->
+            <div id="officerScheduleListViewContainer" class="card border-0 shadow-sm d-none mb-4">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-list-columns-reverse text-primary me-2"></i>Assigned Schedules Agenda</h5>
+                    <span class="badge bg-primary-subtle text-primary" id="officerScheduleCountBadge">0 Records</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Slot ID</th>
-                                    <th>Mode & Beneficiary / Batch</th>
-                                    <th>Program Linkage (Admin)</th>
-                                    <th>Time Slot & Venue</th>
+                                    <th>Activity Title & Category</th>
+                                    <th>Program (Read-Only)</th>
+                                    <th>Date & Time Slot</th>
+                                    <th>Location</th>
                                     <th>Status</th>
-                                    <th>Attendance</th>
-                                    <th>Remarks & Cluster</th>
-                                    <th class="text-end">Actions</th>
+                                    <th>Roster / Batch Setup</th>
+                                    <th class="text-end">Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="dailyScheduleTableBody">
-                                <!-- Loaded dynamically -->
+                            <tbody id="officerScheduleTableBody">
+                                <!-- Populated dynamically -->
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-
-            <!-- Calendar Grid View Container -->
-            <div id="dailyScheduleCalendarGridContainer" class="d-none">
-                <div class="row g-3" id="dailyScheduleCalendarGridCards">
-                    <!-- Loaded dynamically -->
                 </div>
             </div>
         </section>
@@ -2208,227 +2197,258 @@
         </div>
     </div>
 
-    <!-- INTERVIEW SCHEDULE & BENEFICIARY DETAIL VIEW MODAL (VIEW ONLY) -->
-    <div class="modal fade" id="interviewScheduleDetailModal" tabindex="-1" aria-hidden="true">
+    <!-- BATCH SETUP & TARGET BENEFICIARY SELECTION MODAL (PESO OFFICER) -->
+    <div class="modal fade" id="officerScheduleConfigModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title fw-bold" id="interviewDetailModalHeaderTitle">
-                        <i class="bi bi-person-lines-fill me-2"></i>Interview Schedule & Beneficiary Details
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-gear-wide-connected me-2"></i>Configure Schedule Roster & Batch Linkage
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4" id="interviewScheduleDetailModalBody">
-                    <!-- Dynamically populated -->
+                <div class="modal-body p-4">
+                    <input type="hidden" id="cfgScheduleDbId" value="">
+
+                    <!-- 1. View Admin Master Schedule Details (Read-Only) -->
+                    <div class="card border-primary-subtle bg-light p-3 rounded-3 mb-4 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-primary fs-6 font-monospace" id="cfgDisplaySlotBadge">SLOT #0</span>
+                            <span class="badge bg-secondary-subtle text-dark border"><i class="bi bi-shield-lock me-1"></i>PESO Administrator Master Schedule (Read-Only)</span>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold d-block">Activity Subject Title</label>
+                                <span class="fw-bold text-dark fs-6" id="cfgDisplayTitle">—</span>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted fw-bold d-block">Category</label>
+                                <span class="badge bg-info-subtle text-dark border" id="cfgDisplayCategory">—</span>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted fw-bold d-block">Program Name</label>
+                                <span class="badge bg-light text-dark border" id="cfgDisplayProgram">—</span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small text-muted fw-bold d-block">Date Range & Time Slot</label>
+                                <span class="text-dark" id="cfgDisplayDateTime">—</span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small text-muted fw-bold d-block">Venue / Location</label>
+                                <span class="text-dark" id="cfgDisplayLocation">—</span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small text-muted fw-bold d-block">Admin Notes / Remarks</label>
+                                <span class="text-muted fst-italic small" id="cfgDisplayNotes">None</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Officer Batch Selection Logic (Category-Based) -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-0">
+                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-folder-symlink me-2"></i>Officer Batch Configuration</h6>
+                        </div>
+                        <div class="card-body pt-0">
+                            <!-- Toggle container for Assistance & Certificate Distributions -->
+                            <div id="cfgBatchModeToggleContainer" class="mb-3 d-none">
+                                <label class="form-label fw-bold small text-dark">Batch Option</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="cfgBatchOption" id="cfgBatchOptionExisting" value="existing" checked onchange="toggleCfgBatchOption('existing')">
+                                    <label class="btn btn-outline-primary fw-bold" for="cfgBatchOptionExisting"><i class="bi bi-folder-check me-1"></i> Select Existing Batch</label>
+
+                                    <input type="radio" class="btn-check" name="cfgBatchOption" id="cfgBatchOptionNew" value="new" onchange="toggleCfgBatchOption('new')">
+                                    <label class="btn btn-outline-primary fw-bold" for="cfgBatchOptionNew"><i class="bi bi-folder-plus me-1"></i> Create New Batch</label>
+                                </div>
+                            </div>
+
+                            <!-- Interview category notice -->
+                            <div id="cfgInterviewBatchNotice" class="alert alert-info py-2 small mb-3">
+                                <i class="bi bi-info-circle-fill me-1"></i> <strong>Interview Activities:</strong> Strictly linked to pre-existing applicant batches for evaluation consistency.
+                            </div>
+
+                            <!-- Existing Batch Dropdown Section -->
+                            <div id="cfgExistingBatchSection" class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold small">Select Pre-Created Applicant Batch <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="cfgTargetBatchSelect" onchange="handleCfgBatchSelectionChange(this.value)">
+                                        <option value="">-- Choose Existing Batch --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">Batch Target / Capacity</label>
+                                    <input type="text" class="form-control bg-light" id="cfgBatchCapacityDisplay" readonly value="—">
+                                </div>
+                            </div>
+
+                            <!-- Create New Batch Section (Only for Assistance / Certificate Distributions) -->
+                            <div id="cfgNewBatchSection" class="row g-3 d-none">
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold small">New Batch Title / Identifier <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="cfgNewBatchNameInput" placeholder="e.g. Batch 2026-A: TUPAD Poblacion Cleaners">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">Batch Target Capacity</label>
+                                    <input type="number" class="form-control" id="cfgNewBatchCapacityInput" value="50" min="1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Beneficiary Selection Box & Filter Controls -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-people-fill text-primary me-2"></i>Select Target Beneficiaries</h6>
+                                <span class="badge bg-primary rounded-pill px-3 py-2" id="officerBenSelectionCounter">Selected: 0 / Target: 0</span>
+                            </div>
+                            <!-- Master Control Box Button -->
+                            <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btnSelectAllBeneficiaries" onclick="toggleSelectAllFilteredBeneficiaries()">
+                                <i class="bi bi-check2-all me-1"></i> Select All Filtered Beneficiaries
+                            </button>
+                        </div>
+                        <div class="card-body pt-0">
+                            <!-- Filters -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-7">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                                        <input type="text" class="form-control" id="officerBenSearchInput" placeholder="Filter beneficiary name, ref #, or category..." onkeyup="filterCfgBeneficiariesTable()">
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <select class="form-select" id="officerBenBarangayFilter" onchange="filterCfgBeneficiariesTable()">
+                                        <option value="">All 27 Predefined Barangays</option>
+                                        <option value="Assumption">Assumption</option>
+                                        <option value="Avanceña">Avanceña</option>
+                                        <option value="Cacub">Cacub</option>
+                                        <option value="Caloocan">Caloocan</option>
+                                        <option value="Carpenter Hill">Carpenter Hill</option>
+                                        <option value="Concepcion">Concepcion</option>
+                                        <option value="Esperanza">Esperanza</option>
+                                        <option value="General Paulino Santos">General Paulino Santos</option>
+                                        <option value="Mabini">Mabini</option>
+                                        <option value="Magsaysay">Magsaysay</option>
+                                        <option value="Mambucal">Mambucal</option>
+                                        <option value="Morales">Morales</option>
+                                        <option value="Namnama">Namnama</option>
+                                        <option value="New Pangasinan">New Pangasinan</option>
+                                        <option value="Paraiso">Paraiso</option>
+                                        <option value="Rotonda">Rotonda</option>
+                                        <option value="San Isidro">San Isidro</option>
+                                        <option value="San Roque">San Roque</option>
+                                        <option value="San Jose">San Jose</option>
+                                        <option value="Sta. Cruz">Sta. Cruz</option>
+                                        <option value="Sto. Niño">Sto. Niño</option>
+                                        <option value="Saravia">Saravia</option>
+                                        <option value="Topland">Topland</option>
+                                        <option value="Zone 1">Zone 1</option>
+                                        <option value="Zone 2">Zone 2</option>
+                                        <option value="Zone 3">Zone 3</option>
+                                        <option value="Zone 4">Zone 4</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Table -->
+                            <div class="table-responsive border rounded" style="max-height: 320px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0" id="officerBenSelectionTable">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 40px;" class="text-center">
+                                                <input type="checkbox" class="form-check-input" id="thMasterCheckbox" onchange="toggleMasterHeaderCheckbox(this.checked)">
+                                            </th>
+                                            <th>Recipient Ref #</th>
+                                            <th>Full Name</th>
+                                            <th>Barangay</th>
+                                            <th>Category Tag</th>
+                                            <th>Item / Assistance Allocation</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="officerBenSelectionTableBody">
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer justify-content-between" id="interviewScheduleDetailModalFooter">
-                    <!-- Quick action controls -->
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary fw-bold px-4" id="btnConfirmSyncBatchSchedule" onclick="submitOfficerBatchSync()">
+                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> Confirm & Sync Batch Schedule
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- OFFICER BENEFICIARY ASSIGNMENT MODAL (INDIVIDUAL & BATCH MODES) -->
-    <div class="modal fade" id="scheduleNewInterviewModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+    <!-- ON-SITE SCHEDULE EXECUTION MODAL (PESO OFFICER) -->
+    <div class="modal fade" id="officerExecuteScheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title fw-bold">
-                        <i class="bi bi-person-plus-fill me-2"></i>Officer Beneficiary Assignment & Scheduling Desk
+                        <i class="bi bi-play-circle-fill text-success me-2"></i>On-Site Schedule Execution & Attendance Roster
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <form id="newInterviewScheduleForm" onsubmit="submitNewInterviewSchedule(event)">
+                    <input type="hidden" id="execScheduleDbId" value="">
 
-                        <div id="newInterviewConflictAlert" class="alert alert-danger d-none mb-3" role="alert">
-                            <i class="bi bi-exclamation-octagon-fill me-2"></i><span
-                                id="newInterviewConflictText"></span>
-                        </div>
-
-                        <!-- Fixed Admin Program Linkage Header -->
-                        <div class="card border-primary-subtle bg-light p-3 rounded-3 mb-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="badge bg-primary font-monospace fs-6"
-                                        id="assignModalProgramBadge">TUPAD</span>
-                                    <span class="badge bg-dark-subtle text-dark ms-1"
-                                        id="assignModalSlotIdBadge">SLOT-001</span>
+                    <!-- Activity Summary Banner -->
+                    <div class="card border-0 bg-light p-3 rounded-3 mb-4 shadow-sm">
+                        <div class="row align-items-center g-3">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h5 class="fw-bold text-dark mb-0" id="execDisplayTitle">—</h5>
+                                    <span class="badge bg-primary" id="execDisplayCategory">—</span>
                                 </div>
-                                <span class="badge bg-secondary-subtle text-dark border"><i
-                                        class="bi bi-shield-lock me-1"></i>Admin Linked Program (Read-Only)</span>
-                            </div>
-                            <h6 class="fw-bold text-dark mt-2 mb-0" id="assignModalProgramName">Emergency Employment
-                                Assistance Program</h6>
-                            <input type="hidden" id="assignModalSlotId" value="">
-                        </div>
-
-                        <!-- Assignment Mode Switcher -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">Assignment Mode <span
-                                    class="text-danger">*</span></label>
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check" name="assignModeRadio" id="modeIndividualRadio"
-                                    value="Individual" checked onchange="toggleAssignMode('Individual')">
-                                <label class="btn btn-outline-primary fw-bold py-2" for="modeIndividualRadio"><i
-                                        class="bi bi-person-fill me-1"></i> Individual Beneficiary</label>
-
-                                <input type="radio" class="btn-check" name="assignModeRadio" id="modeBatchRadio"
-                                    value="Batch" onchange="toggleAssignMode('Batch')">
-                                <label class="btn btn-outline-primary fw-bold py-2" for="modeBatchRadio"><i
-                                        class="bi bi-people-fill me-1"></i> Batch / Group Assignment</label>
-                            </div>
-                        </div>
-
-                        <!-- INDIVIDUAL BENEFICIARY FIELDS CONTAINER -->
-                        <div id="assignIndividualFieldsContainer">
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Beneficiary Personal Details
-                            </h6>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label for="schedBenName" class="form-label fw-bold">Beneficiary Full Name <span
-                                            class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="schedBenName"
-                                        placeholder="e.g. Generoso Alcantara">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="schedBenPhone" class="form-label fw-bold">Contact Phone Number <span
-                                            class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="schedBenPhone"
-                                        placeholder="0917-123-4567">
-                                    <div class="form-text text-muted">Protected under Data Privacy Act (Masked in public
-                                        views).</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="schedBenBarangay" class="form-label fw-bold">Barangay (Koronadal City)
-                                        <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="schedBenBarangay">
-                                        <option value="Poblacion">Poblacion</option>
-                                        <option value="Morales" selected>Morales</option>
-                                        <option value="Zone 1">Zone 1</option>
-                                        <option value="Zone 2">Zone 2</option>
-                                        <option value="Rotonda">Rotonda</option>
-                                        <option value="San Isidro">San Isidro</option>
-                                        <option value="Concepcion">Concepcion</option>
-                                        <option value="Mabini">Mabini</option>
-                                        <option value="Carpenter Hill">Carpenter Hill</option>
-                                        <option value="Saravia">Saravia</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="schedBenEmail" class="form-label fw-bold">Email Address</label>
-                                    <input type="email" class="form-control" id="schedBenEmail"
-                                        placeholder="beneficiary@koronadal.ph">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="schedBenSex" class="form-label fw-bold">Sex</label>
-                                    <select class="form-select" id="schedBenSex">
-                                        <option value="Female">Female</option>
-                                        <option value="Male">Male</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="schedBenAge" class="form-label fw-bold">Age</label>
-                                    <input type="number" class="form-control" id="schedBenAge" value="28" min="15"
-                                        max="99">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="schedProjectType" class="form-label fw-bold">Project /
-                                        Sub-Category</label>
-                                    <input type="text" class="form-control" id="schedProjectType"
-                                        placeholder="e.g. Road Maintenance">
+                                <div class="small text-muted">
+                                    <span class="me-3"><i class="bi bi-calendar-event me-1"></i><span id="execDisplayDateTime">—</span></span>
+                                    <span><i class="bi bi-geo-alt me-1"></i><span id="execDisplayLocation">—</span></span>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- BATCH ASSIGNMENT FIELDS CONTAINER -->
-                        <div id="assignBatchFieldsContainer" class="d-none">
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Batch Metadata & Cluster
-                                Parameters</h6>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-8">
-                                    <label for="schedBatchName" class="form-label fw-bold">Batch Identifier / Name <span
-                                            class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="schedBatchName"
-                                        placeholder="e.g. Batch 2026-02: San Isidro Tree Planting Initiative">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="schedBatchCount" class="form-label fw-bold">Beneficiary Count <span
-                                            class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="schedBatchCount" value="25" min="1"
-                                        max="500">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="schedBatchCluster" class="form-label fw-bold">Barangay Cluster <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-select" id="schedBatchCluster">
-                                        <option value="Cluster 1 - Poblacion Proper (Zone I, II, III, IV)">Cluster 1 -
-                                            Poblacion Proper (Zone I, II, III, IV)</option>
-                                        <option value="Cluster 2 - East Poblacion & Morales" selected>Cluster 2 - East
-                                            Poblacion & Morales</option>
-                                        <option value="Cluster 3 - West Urban / General Paulino Santos">Cluster 3 - West
-                                            Urban / General Paulino Santos</option>
-                                        <option value="Cluster 4 - North Corridor (San Isidro, Concepcion)">Cluster 4 -
-                                            North Corridor (San Isidro, Concepcion)</option>
-                                        <option value="Cluster 5 - South Corridor (Saravia, Carpenter Hill)">Cluster 5 -
-                                            South Corridor (Saravia, Carpenter Hill)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="schedBatchSubCategory" class="form-label fw-bold">Program
-                                        Sub-Category</label>
-                                    <input type="text" class="form-control" id="schedBatchSubCategory"
-                                        placeholder="e.g. Community Tree Planting & Urban Reforestation">
-                                </div>
+                            <div class="col-md-4 text-md-end">
+                                <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="openQrScannerForExecution()">
+                                    <i class="bi bi-qr-code-scan me-1"></i> Scan Beneficiary QR
+                                </button>
                             </div>
                         </div>
+                    </div>
 
-                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Schedule Time & Location</h6>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-4">
-                                <label for="schedInterviewDate" class="form-label fw-bold">Interview Date <span
-                                        class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="schedInterviewDate" required
-                                    onchange="checkNewInterviewConflict()">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="schedTimeSlot" class="form-label fw-bold">Time Slot <span
-                                        class="text-danger">*</span></label>
-                                <select class="form-select" id="schedTimeSlot" required
-                                    onchange="checkNewInterviewConflict()">
-                                    <option value="08:00 AM - 09:00 AM">08:00 AM - 09:00 AM</option>
-                                    <option value="09:00 AM - 10:00 AM" selected>09:00 AM - 10:00 AM</option>
-                                    <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
-                                    <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
-                                    <option value="01:00 PM - 02:00 PM">01:00 PM - 02:00 PM</option>
-                                    <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM</option>
-                                    <option value="03:00 PM - 04:00 PM">03:00 PM - 04:00 PM</option>
-                                    <option value="04:00 PM - 05:00 PM">04:00 PM - 05:00 PM</option>
-                                    <option value="08:00 AM - 12:00 PM">08:00 AM - 12:00 PM (Batch Block)</option>
-                                    <option value="01:00 PM - 05:00 PM">01:00 PM - 05:00 PM (Batch Block)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="schedVenue" class="form-label fw-bold">Interview Venue / Room <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="schedVenue" required
-                                    value="PESO Main Office - Room A">
+                    <!-- Populated Roster Table -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-card-checklist text-primary me-2"></i>Beneficiary Roster & Attendance Tracking</h6>
+                            <span class="badge bg-secondary-subtle text-dark border" id="execRosterCountBadge">0 Beneficiaries</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>Ref / QR Code</th>
+                                            <th>Beneficiary Name</th>
+                                            <th>Barangay</th>
+                                            <th>Attendance Check-In</th>
+                                            <th>Outcome / Remarks</th>
+                                            <th class="text-center">Assistance / Cert Released</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="execRosterTableBody">
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="schedRemarks" class="form-label fw-bold">Officer Remarks / Notes</label>
-                            <textarea class="form-control" id="schedRemarks" rows="2"
-                                placeholder="e.g. Verified eligibility; pre-qualification interview scheduled"></textarea>
-                        </div>
-
-                        <div class="modal-footer px-0 pb-0">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary px-4" id="btnSubmitNewSchedule">
-                                <i class="bi bi-calendar-check me-1"></i> Save Beneficiary Assignment
-                            </button>
-                        </div>
-                    </form>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-dark fw-bold px-4" id="btnMarkActivityCompleted" onclick="submitMarkActivityCompleted()">
+                        <i class="bi bi-check2-circle text-success me-1"></i> Mark Activity Completed (⚫)
+                    </button>
                 </div>
             </div>
         </div>
@@ -2944,32 +2964,55 @@
                         const ben = i.beneficiary || {};
                         const prog = i.program || {};
                         const officer = i.officer || {};
-                        const schedDate = i.interview_date || i.scheduled_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : new Date().toISOString().substring(0, 10));
-                        const schedTime = i.interview_time || i.scheduled_time || '09:00 AM';
+                        const schedDate = i.start_date || i.interview_date || i.scheduled_date || (i.created_at ? i.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10));
+                        const endDate = i.end_date || schedDate;
+                        const startTime = i.start_time || i.interview_time || '09:00 AM';
+                        const endTime = i.end_time || '10:00 AM';
+                        const schedTime = `${startTime}${endTime ? ' - ' + endTime : ''}`;
                         const benName = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || i.title || 'Applicant';
                         const offName = `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || officer.username || 'PESO Officer';
 
                         return {
                             id: `SLOT-${i.id}`,
                             slot_id: `SLOT-${i.id}`,
+                            dbId: i.id,
                             numId: i.id,
+                            title: i.title || 'Activity Slot',
+                            category: i.category || 'Interview',
+                            category_other: i.category_other || null,
                             officerId: i.officer_id,
                             officer_id: i.officer_id,
                             officerName: offName,
                             officer_name: offName,
+                            programId: i.program_id,
+                            program_id: i.program_id,
                             programCode: prog.code || 'PESO',
                             program_code: prog.code || 'PESO',
                             programName: prog.name || 'Assistance Program',
                             program_name: prog.name || 'Assistance Program',
-                            program_sub_category: i.remarks || 'Assessment Session',
-                            projectType: i.remarks || 'Assessment Session',
+                            startDate: schedDate,
+                            start_date: schedDate,
+                            endDate: endDate,
+                            end_date: endDate,
+                            startTime: startTime,
+                            start_time: startTime,
+                            endTime: endTime,
+                            end_time: endTime,
+                            duration: i.duration || '1 Hour',
                             interviewDate: schedDate,
                             slot_date: schedDate,
                             scheduleTime: schedTime,
                             schedule_time: schedTime,
                             timeSlot: schedTime,
                             venue: i.venue_location || i.location || 'PESO Main Office',
-                            scheduling_mode: i.beneficiary_qr ? 'Individual' : 'Unassigned',
+                            venue_location: i.venue_location || i.location || 'PESO Main Office',
+                            batchId: i.batch_id || null,
+                            batch_id: i.batch_id || null,
+                            batchName: i.batch ? i.batch.name : (i.batch_id ? `Batch #${i.batch_id}` : ''),
+                            batch_name: i.batch ? i.batch.name : (i.batch_id ? `Batch #${i.batch_id}` : ''),
+                            recipientCount: i.recipient_count || 0,
+                            recipient_count: i.recipient_count || 0,
+                            scheduling_mode: i.batch_id ? 'Batch' : (i.beneficiary_qr ? 'Individual' : 'Blank'),
                             beneficiaryId: i.beneficiary_qr,
                             beneficiaryName: benName,
                             beneficiary_name: benName,
@@ -2982,13 +3025,17 @@
                             age: ben.age || 0,
                             applicationId: i.application_id ? `APP-${i.application_id}` : '',
                             dateApplied: i.created_at ? i.created_at.substring(0, 10) : schedDate,
-                            status: i.status || 'Active',
-                            slot_status: i.status || 'Active',
+                            status: i.status || 'Scheduled',
+                            slot_status: i.status || 'Scheduled',
                             is_locked: false,
                             lock_status: 'Active',
                             attendance: i.attendance_status || (i.status === 'Completed' ? 'Present' : (i.status === 'Missed' ? 'Absent' : 'Unmarked')),
                             remarks: i.remarks || '',
                             admin_remarks: i.remarks || '',
+                            postponed_at: i.postponed_at,
+                            postponement_reason: i.postponement_reason,
+                            cancelled_at: i.cancelled_at,
+                            cancellation_reason: i.cancellation_reason,
                             documents: []
                         };
                     });
@@ -3966,164 +4013,600 @@
             }
         }
 
-        function checkDailyScheduleConflicts(dateSchedules) {
-            const banner = document.getElementById('scheduleConflictAlertBanner');
-            const alertText = document.getElementById('scheduleConflictAlertText');
-            if (!banner) return;
+        // ---------------------------------------------------------------------
+        // DAILY SCHEDULE & ACTIVITY CONTROL MODULE CONTROLLER
+        // ---------------------------------------------------------------------
+        let officerSchedViewMode = 'calendar';
+        let officerCalMonth = new Date().getMonth();
+        let officerCalYear = new Date().getFullYear();
+        let selectedOfficerActivityId = null;
+        let selectedOfficerBeneficiaryIds = new Set();
+        let activeActivityRoster = [];
 
-            const timeMap = {};
-            let conflicts = [];
+        function setOfficerScheduleViewMode(mode) {
+            officerSchedViewMode = mode;
+            const btnCal = document.getElementById('btnOfficerSchedViewCalendar');
+            const btnList = document.getElementById('btnOfficerSchedViewList');
+            const calView = document.getElementById('officerScheduleCalendarViewContainer');
+            const listView = document.getElementById('officerScheduleListViewContainer');
 
-            dateSchedules.forEach(item => {
-                if (item.status === 'Cancelled' || item.slot_status === 'Cancelled') return;
-                const slotTime = (item.scheduleTime || item.schedule_time || '').trim().toLowerCase();
-                const displayName = item.beneficiaryName || item.beneficiary_name || item.batch_name || item.id;
-                if (timeMap[slotTime]) {
-                    conflicts.push(`"${displayName}" and "${timeMap[slotTime].name}" at ${slotTime}`);
-                } else {
-                    timeMap[slotTime] = { name: displayName, item };
-                }
-            });
-
-            if (conflicts.length > 0) {
-                banner.classList.remove('d-none');
-                banner.classList.add('d-flex');
-                if (alertText) {
-                    alertText.innerHTML = `Overlapping schedule detected for ${conflicts.join('; ')}. Please adjust time slots to prevent interview queue bottlenecks.`;
-                }
+            if (mode === 'calendar') {
+                if (btnCal) btnCal.classList.add('active');
+                if (btnList) btnList.classList.remove('active');
+                if (calView) calView.classList.remove('d-none');
+                if (listView) listView.classList.add('d-none');
             } else {
-                banner.classList.add('d-none');
-                banner.classList.remove('d-flex');
+                if (btnCal) btnCal.classList.remove('active');
+                if (btnList) btnList.classList.add('active');
+                if (calView) calView.classList.add('d-none');
+                if (listView) listView.classList.remove('d-none');
             }
+            renderDailySchedules();
+        }
+        window.setOfficerScheduleViewMode = setOfficerScheduleViewMode;
+
+        function jumpOfficerScheduleToday() {
+            const today = new Date();
+            officerCalMonth = today.getMonth();
+            officerCalYear = today.getFullYear();
+            renderDailySchedules();
+        }
+        window.jumpOfficerScheduleToday = jumpOfficerScheduleToday;
+
+        function navigateOfficerCalendar(delta) {
+            officerCalMonth += delta;
+            if (officerCalMonth < 0) {
+                officerCalMonth = 11;
+                officerCalYear--;
+            } else if (officerCalMonth > 11) {
+                officerCalMonth = 0;
+                officerCalYear++;
+            }
+            renderDailySchedules();
+        }
+        window.navigateOfficerCalendar = navigateOfficerCalendar;
+
+        function filterOfficerScheduleView() {
+            renderDailySchedules();
+        }
+        window.filterOfficerScheduleView = filterOfficerScheduleView;
+
+        function resetOfficerScheduleFilters() {
+            if (document.getElementById('officerSchedSearchInput')) document.getElementById('officerSchedSearchInput').value = '';
+            if (document.getElementById('officerSchedCategoryFilter')) document.getElementById('officerSchedCategoryFilter').value = '';
+            if (document.getElementById('officerSchedStatusFilter')) document.getElementById('officerSchedStatusFilter').value = '';
+            renderDailySchedules();
+        }
+        window.resetOfficerScheduleFilters = resetOfficerScheduleFilters;
+
+        function getOfficerScheduleFilteredList() {
+            const search = (document.getElementById('officerSchedSearchInput')?.value || '').toLowerCase().trim();
+            const category = document.getElementById('officerSchedCategoryFilter')?.value || '';
+            const status = document.getElementById('officerSchedStatusFilter')?.value || '';
+
+            return dailySchedulesList.filter(s => {
+                if (category && s.category !== category) return false;
+                if (status && s.status !== status) return false;
+                if (search) {
+                    const matchTitle = (s.title || '').toLowerCase().includes(search);
+                    const matchProg = (s.programName || s.program_name || '').toLowerCase().includes(search);
+                    const matchBatch = (s.batchName || s.batch_name || '').toLowerCase().includes(search);
+                    const matchVenue = (s.venue || '').toLowerCase().includes(search);
+                    const matchOfficer = (s.officerName || s.officer_name || '').toLowerCase().includes(search);
+                    if (!matchTitle && !matchProg && !matchBatch && !matchVenue && !matchOfficer) return false;
+                }
+                return true;
+            });
         }
 
         function renderDailySchedules() {
-            const search = document.getElementById('dailyScheduleSearchInput') ? document.getElementById('dailyScheduleSearchInput').value.toLowerCase().trim() : '';
-            const progFilter = document.getElementById('dailyScheduleProgramFilter') ? document.getElementById('dailyScheduleProgramFilter').value : '';
-            const statusFilter = document.getElementById('dailyScheduleStatusFilter') ? document.getElementById('dailyScheduleStatusFilter').value : '';
-            const attFilter = document.getElementById('dailyScheduleAttendanceFilter') ? document.getElementById('dailyScheduleAttendanceFilter').value : '';
+            const todayStr = new Date().toISOString().substring(0, 10);
 
-            let dateSchedules = dailySchedulesList.filter(s => (s.interviewDate || s.slot_date) === currentScheduleDate);
-            checkDailyScheduleConflicts(dateSchedules);
+            // 1. Calculate and Update 4 Overview Stat Cards
+            let todayCount = 0;
+            let blankCount = 0;
+            let activeBatchCount = 0;
+            let completedCount = 0;
 
-            let filtered = dateSchedules.filter(item => {
-                const benName = (item.beneficiaryName || item.beneficiary_name || item.batch_name || '').toLowerCase();
-                const slotId = (item.id || item.slot_id || '').toLowerCase();
-                const progCode = (item.programCode || item.program_code || '').toLowerCase();
-                const progName = (item.programName || item.program_name || '').toLowerCase();
-                const brgy = (item.barangay || item.barangay_cluster || '').toLowerCase();
+            dailySchedulesList.forEach(s => {
+                const sDate = s.startDate || s.start_date || s.interviewDate || s.slot_date;
+                const status = s.status || 'Scheduled';
+                const hasBatch = !!(s.batchId || s.batch_id || (s.recipientCount && s.recipientCount > 0));
 
-                const matchSearch = !search ||
-                    benName.includes(search) ||
-                    slotId.includes(search) ||
-                    progCode.includes(search) ||
-                    progName.includes(search) ||
-                    brgy.includes(search);
-
-                const currentProg = item.programCode || item.program_code;
-                const matchProg = !progFilter || currentProg === progFilter;
-                const currentStatus = item.status || item.slot_status;
-                const matchStatus = !statusFilter || currentStatus === statusFilter;
-                const currentAtt = item.attendance;
-                const matchAtt = !attFilter || currentAtt === attFilter;
-
-                return matchSearch && matchProg && matchStatus && matchAtt;
+                if (sDate === todayStr) {
+                    todayCount++;
+                }
+                if (status === 'Scheduled' && !hasBatch) {
+                    blankCount++;
+                } else if ((status === 'Scheduled' || status === 'Active') && hasBatch) {
+                    activeBatchCount++;
+                } else if (status === 'Completed') {
+                    completedCount++;
+                }
             });
 
-            const totalScheduled = dateSchedules.length;
-            const pendingCount = dateSchedules.filter(s => (s.status || s.slot_status) === 'Pending' || (s.status || s.slot_status) === 'Active').length;
-            const completedCount = dateSchedules.filter(s => (s.status || s.slot_status) === 'Completed').length;
-            const missedCount = dateSchedules.filter(s => (s.status || s.slot_status) === 'Missed' || s.attendance === 'Absent').length;
+            if (document.getElementById('officerStatTodayActivities')) document.getElementById('officerStatTodayActivities').textContent = todayCount;
+            if (document.getElementById('officerStatBlankSchedules')) document.getElementById('officerStatBlankSchedules').textContent = blankCount;
+            if (document.getElementById('officerStatActiveBatches')) document.getElementById('officerStatActiveBatches').textContent = activeBatchCount;
+            if (document.getElementById('officerStatCompletedActivities')) document.getElementById('officerStatCompletedActivities').textContent = completedCount;
 
-            if (document.getElementById('statDailyTotal')) document.getElementById('statDailyTotal').textContent = totalScheduled;
-            if (document.getElementById('statDailyPending')) document.getElementById('statDailyPending').textContent = pendingCount;
-            if (document.getElementById('statDailyCompleted')) document.getElementById('statDailyCompleted').textContent = completedCount;
-            if (document.getElementById('statDailyMissed')) document.getElementById('statDailyMissed').textContent = missedCount;
-            if (document.getElementById('dailyScheduleCountBadge')) document.getElementById('dailyScheduleCountBadge').textContent = `${filtered.length} of ${totalScheduled} Records`;
+            const filteredList = getOfficerScheduleFilteredList();
 
-            const tbody = document.getElementById('dailyScheduleTableBody');
-            if (tbody) {
-                if (filtered.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
-                                <h6 class="fw-bold mb-1">No schedules or beneficiary assignments found for this date.</h6>
-                                <p class="small text-muted mb-3">Click "Assign Beneficiary" or navigate dates using toolbar.</p>
-                                <button class="btn btn-sm btn-outline-primary" onclick="openScheduleNewInterviewModal()"><i class="bi bi-plus-circle me-1"></i>Assign Beneficiary to Slot</button>
-                            </td>
-                        </tr>
+            // 2. Render Calendar Grid View
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthYearLabel = document.getElementById('officerCalMonthYearLabel');
+            if (monthYearLabel) monthYearLabel.textContent = `${monthNames[officerCalMonth]} ${officerCalYear}`;
+
+            const daysGrid = document.getElementById('officerCalendarDaysGrid');
+            if (daysGrid) {
+                const firstDayIndex = new Date(officerCalYear, officerCalMonth, 1).getDay();
+                const totalDaysInMonth = new Date(officerCalYear, officerCalMonth + 1, 0).getDate();
+                const prevMonthDays = new Date(officerCalYear, officerCalMonth, 0).getDate();
+
+                let html = '';
+
+                // Previous month padding
+                for (let i = firstDayIndex - 1; i >= 0; i--) {
+                    const dayNum = prevMonthDays - i;
+                    html += `
+                        <div class="col" style="min-height: 110px; width: 14.285%; flex: 0 0 14.285%; max-width: 14.285%;">
+                            <div class="p-1 border rounded bg-light text-muted h-100 opacity-50 small">
+                                <span class="fw-bold">${dayNum}</span>
+                            </div>
+                        </div>
                     `;
+                }
+
+                // Current month days
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const dStr = String(d).padStart(2, '0');
+                    const mStr = String(officerCalMonth + 1).padStart(2, '0');
+                    const cellDateStr = `${officerCalYear}-${mStr}-${dStr}`;
+                    const isToday = cellDateStr === todayStr;
+
+                    const dayActivities = filteredList.filter(a => {
+                        const aStart = a.startDate || a.start_date || a.interviewDate || a.slot_date;
+                        const aEnd = a.endDate || a.end_date || aStart;
+                        return cellDateStr >= aStart && cellDateStr <= aEnd;
+                    });
+
+                    let chipsHtml = '';
+                    dayActivities.forEach(act => {
+                        let chipColor = 'blue';
+                        if (act.status === 'Completed') chipColor = 'gray';
+                        else if (act.status === 'Cancelled') chipColor = 'red';
+                        else if (act.status === 'Postponed') chipColor = 'yellow';
+                        else if (isToday) chipColor = 'green';
+
+                        const batchTag = act.batchName || (act.batch_id ? `B#${act.batch_id}` : 'Blank');
+                        chipsHtml += `
+                            <div class="officer-cal-chip officer-cal-chip-${chipColor}" onclick="handleOfficerActivityClick(${act.dbId || act.numId || act.id})" title="${escapeHtml(act.title)} (${act.category}) - ${act.status}">
+                                <i class="bi bi-circle-fill" style="font-size: 0.55rem;"></i>
+                                <span class="fw-bold text-truncate" style="max-width: 90px;">${escapeHtml(act.title)}</span>
+                                <small class="ms-auto opacity-75">[${escapeHtml(batchTag)}]</small>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                        <div class="col" style="min-height: 110px; width: 14.285%; flex: 0 0 14.285%; max-width: 14.285%;">
+                            <div class="p-2 border rounded h-100 ${isToday ? 'border-primary bg-primary-subtle' : 'bg-white'} position-relative" style="overflow-y: auto; max-height: 140px;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold small ${isToday ? 'text-primary' : 'text-dark'}">${d}</span>
+                                    ${isToday ? '<span class="badge bg-primary px-1 py-0" style="font-size: 0.65rem;">TODAY</span>' : ''}
+                                </div>
+                                ${chipsHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                daysGrid.innerHTML = html;
+            }
+
+            // 3. Render List View
+            const tbody = document.getElementById('officerScheduleTableBody');
+            const countBadge = document.getElementById('officerScheduleCountBadge');
+            if (countBadge) countBadge.textContent = `${filteredList.length} Records`;
+
+            if (tbody) {
+                if (filteredList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-info-circle me-1"></i>No assigned schedules found matching the selected filters.</td></tr>';
                 } else {
-                    tbody.innerHTML = filtered.map(item => {
-                        const slotId = item.id || item.slot_id;
-                        const isLocked = item.is_locked || item.lock_status === 'Locked';
-                        const isBatch = item.scheduling_mode === 'Batch' || (item.batch_count && item.batch_count > 1);
-                        const isUnassigned = item.scheduling_mode === 'Unassigned' || (!item.beneficiaryName && !item.beneficiary_name && !item.batch_name);
+                    tbody.innerHTML = filteredList.map(item => {
+                        const actId = item.dbId || item.numId || item.id;
+                        const sDate = item.startDate || item.start_date || item.interviewDate || item.slot_date;
+                        const sTime = item.scheduleTime || item.schedule_time || '09:00 AM';
+                        const status = item.status || 'Scheduled';
 
-                        const progCode = item.programCode || item.program_code || 'TUPAD';
-                        const progName = item.programName || item.program_name || 'Assistance Program';
-                        const schedTime = item.scheduleTime || item.schedule_time || '09:00 AM - 10:00 AM';
-                        const venue = item.venue || 'PESO Main Office';
-                        const status = item.status || item.slot_status || 'Pending';
-                        const attendance = item.attendance || 'Unmarked';
-                        const remarks = item.remarks || item.admin_remarks || '';
-                        const cluster = item.barangay_cluster || item.barangay || '';
+                        let statusBadge = `<span class="badge bg-primary">🔵 Scheduled</span>`;
+                        if (status === 'Completed') statusBadge = `<span class="badge bg-dark">⚫ Completed</span>`;
+                        else if (status === 'Cancelled') statusBadge = `<span class="badge bg-danger">🔴 Cancelled</span>`;
+                        else if (status === 'Postponed') statusBadge = `<span class="badge bg-warning text-dark">🟡 Postponed</span>`;
+                        else if (sDate === todayStr) statusBadge = `<span class="badge bg-success">🟢 Today</span>`;
 
-                        let benDisplay = '';
-                        if (isBatch) {
-                            benDisplay = `
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1"><i class="bi bi-people-fill me-1"></i>Batch</span>
-                                <strong class="text-dark">${item.batch_name || 'Community Batch Group'}</strong><br>
-                                <small class="text-muted"><i class="bi bi-person-lines-fill me-1"></i>${item.batch_count || 30} Beneficiaries • ${cluster || 'Cluster Area'}</small>
-                            `;
-                        } else if (isUnassigned) {
-                            benDisplay = `
-                                <span class="badge bg-secondary-subtle text-dark border me-1"><i class="bi bi-person-x me-1"></i>Unassigned</span>
-                                <span class="text-muted fst-italic">Awaiting Officer Assignment</span>
-                            `;
-                        } else {
-                            const name = item.beneficiaryName || item.beneficiary_name || 'Assigned Beneficiary';
-                            const phone = item.beneficiaryPhone || item.beneficiary_phone || '0917-000-0000';
-                            benDisplay = `
-                                <span class="badge bg-info-subtle text-dark border me-1"><i class="bi bi-person-fill me-1"></i>Individual</span>
-                                <strong class="text-dark">${name}</strong><br>
-                                <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${item.barangay || 'Koronadal'} • ${maskContact(phone)}</small>
-                            `;
-                        }
+                        const hasBatch = !!(item.batchId || item.batch_id || (item.recipientCount && item.recipientCount > 0));
+                        const rosterBadge = hasBatch 
+                            ? `<span class="badge bg-success-subtle text-success border"><i class="bi bi-check2-circle me-1"></i>${escapeHtml(item.batchName || 'Batch Assigned')} (${item.recipientCount || 0} pax)</span>`
+                            : `<span class="badge bg-secondary-subtle text-muted border"><i class="bi bi-inbox me-1"></i>Blank / Awaiting Batch</span>`;
 
                         return `
-                            <tr style="cursor:pointer" onclick="openInterviewScheduleDetail('${slotId}')">
+                            <tr>
                                 <td>
-                                    <span class="fw-bold font-monospace text-primary">${slotId}</span><br>
-                                    ${isLocked ? '<span class="badge bg-dark text-white small"><i class="bi bi-lock-fill me-1"></i>Locked</span>' : '<span class="badge bg-success-subtle text-success border small"><i class="bi bi-unlock-fill me-1"></i>Unlocked</span>'}
-                                </td>
-                                <td>${benDisplay}</td>
-                                <td>
-                                    <span class="badge bg-primary font-monospace">${progCode}</span>
-                                    <small class="d-block text-muted text-truncate" style="max-width: 170px;">${progName}</small>
+                                    <div class="fw-bold text-dark">${escapeHtml(item.title)}</div>
+                                    <span class="badge bg-info-subtle text-dark border">${escapeHtml(item.category)}</span>
                                 </td>
                                 <td>
-                                    <span class="fw-bold text-dark"><i class="bi bi-clock me-1 text-primary"></i>${schedTime}</span><br>
-                                    <small class="text-muted"><i class="bi bi-building me-1"></i>${venue}</small>
+                                    <div class="fw-semibold text-primary">${escapeHtml(item.programName || item.program_name || 'Assistance Program')}</div>
+                                    <small class="text-muted">${escapeHtml(item.programCode || item.program_code || 'PESO')}</small>
                                 </td>
-                                <td>${getStatusBadgeHtml(status)}</td>
-                                <td>${getAttendanceBadgeHtml(attendance)}</td>
                                 <td>
-                                    <small class="text-muted text-truncate d-inline-block" style="max-width: 140px;">${remarks || 'No remarks'}</small>
-                                    ${cluster ? `<br><span class="badge bg-light text-dark border small">${cluster}</span>` : ''}
+                                    <div><i class="bi bi-calendar-event me-1 text-muted"></i>${sDate}</div>
+                                    <small class="text-muted"><i class="bi bi-clock me-1 text-muted"></i>${sTime}</small>
                                 </td>
-                                <td class="text-end" onclick="event.stopPropagation()">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-outline-primary py-1 px-2" title="Strictly View-Only Details" onclick="openInterviewScheduleDetail('${slotId}')">
-                                            <i class="bi bi-eye me-1"></i>Details
+                                <td>
+                                    <small class="text-dark"><i class="bi bi-geo-alt me-1 text-danger"></i>${escapeHtml(item.venue)}</small>
+                                </td>
+                                <td>${statusBadge}</td>
+                                <td>${rosterBadge}</td>
+                                <td class="text-end text-nowrap">
+                                    <button class="btn btn-sm btn-primary me-1 fw-semibold" onclick="handleOfficerActivityClick(${actId})">
+                                        <i class="bi ${hasBatch || status === 'Completed' ? 'bi-play-circle' : 'bi-gear-wide-connected'} me-1"></i>${hasBatch || status === 'Completed' ? 'Execute / Track' : 'Setup Roster'}
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+        window.renderDailySchedules = renderDailySchedules;
+
+        function handleOfficerActivityClick(activityId) {
+            const act = dailySchedulesList.find(s => (s.dbId || s.numId || s.id) == activityId);
+            if (!act) return;
+
+            const hasBatch = !!(act.batchId || act.batch_id || (act.recipientCount && act.recipientCount > 0));
+            if (act.status === 'Completed' || hasBatch) {
+                openOfficerExecuteScheduleModal(activityId);
+            } else {
+                openOfficerScheduleConfigModal(activityId);
+            }
+        }
+        window.handleOfficerActivityClick = handleOfficerActivityClick;
+
+        // ---------------------------------------------------------------------
+        // BATCH SETUP & TARGET BENEFICIARY SELECTION MODAL LOGIC
+        // ---------------------------------------------------------------------
+        function openOfficerScheduleConfigModal(activityId) {
+            const act = dailySchedulesList.find(s => (s.dbId || s.numId || s.id) == activityId);
+            if (!act) {
+                alert('Schedule activity record not found.');
+                return;
+            }
+
+            selectedOfficerActivityId = activityId;
+            selectedOfficerBeneficiaryIds.clear();
+
+            document.getElementById('cfgScheduleDbId').value = act.dbId || act.id || activityId;
+            document.getElementById('cfgDisplaySlotBadge').textContent = `SLOT #${act.dbId || act.id || activityId}`;
+            document.getElementById('cfgDisplayTitle').textContent = act.title || 'Master Schedule Activity';
+            document.getElementById('cfgDisplayCategory').textContent = act.category || 'Interview';
+            document.getElementById('cfgDisplayProgram').textContent = act.programName || act.program_name || 'Assistance Program';
+            document.getElementById('cfgDisplayDateTime').textContent = `${act.startDate || act.start_date || act.interviewDate} (${act.scheduleTime || act.schedule_time})`;
+            document.getElementById('cfgDisplayLocation').textContent = act.venue || 'PESO Main Office';
+            document.getElementById('cfgDisplayNotes').textContent = act.remarks || act.admin_remarks || 'None provided by Administrator';
+
+            // Category-based batch setup controls
+            const isInterview = (act.category || '').toLowerCase().includes('interview');
+            const toggleContainer = document.getElementById('cfgBatchModeToggleContainer');
+            const interviewNotice = document.getElementById('cfgInterviewBatchNotice');
+            const existingSection = document.getElementById('cfgExistingBatchSection');
+            const newSection = document.getElementById('cfgNewBatchSection');
+
+            if (isInterview) {
+                if (toggleContainer) toggleContainer.classList.add('d-none');
+                if (interviewNotice) interviewNotice.classList.remove('d-none');
+                if (existingSection) existingSection.classList.remove('d-none');
+                if (newSection) newSection.classList.add('d-none');
+            } else {
+                if (toggleContainer) toggleContainer.classList.remove('d-none');
+                if (interviewNotice) interviewNotice.classList.add('d-none');
+                const existingRadio = document.getElementById('cfgBatchOptionExisting');
+                if (existingRadio) existingRadio.checked = true;
+                if (existingSection) existingSection.classList.remove('d-none');
+                if (newSection) newSection.classList.add('d-none');
+            }
+
+            // Populate existing batches dropdown
+            const batchSelect = document.getElementById('cfgTargetBatchSelect');
+            if (batchSelect) {
+                batchSelect.innerHTML = '<option value="">-- Choose Existing Batch --</option>';
+                batchesList.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.dbId || b.id;
+                    opt.textContent = `${b.name} (${b.program || 'Program'} - ${b.capacity || 50} slots)`;
+                    batchSelect.appendChild(opt);
+                });
+            }
+
+            // Render beneficiary table for selection
+            filterCfgBeneficiariesTable();
+
+            new bootstrap.Modal(document.getElementById('officerScheduleConfigModal')).show();
+        }
+        window.openOfficerScheduleConfigModal = openOfficerScheduleConfigModal;
+
+        function toggleCfgBatchOption(option) {
+            const existingSection = document.getElementById('cfgExistingBatchSection');
+            const newSection = document.getElementById('cfgNewBatchSection');
+            if (option === 'existing') {
+                if (existingSection) existingSection.classList.remove('d-none');
+                if (newSection) newSection.classList.add('d-none');
+            } else {
+                if (existingSection) existingSection.classList.add('d-none');
+                if (newSection) newSection.classList.remove('d-none');
+            }
+        }
+        window.toggleCfgBatchOption = toggleCfgBatchOption;
+
+        function handleCfgBatchSelectionChange(batchId) {
+            const batch = batchesList.find(b => String(b.dbId || b.id) === String(batchId));
+            const disp = document.getElementById('cfgBatchCapacityDisplay');
+            if (disp) {
+                disp.value = batch ? `${batch.capacity || 50} pax capacity` : '—';
+            }
+            updateOfficerBenSelectionCounter();
+        }
+        window.handleCfgBatchSelectionChange = handleCfgBatchSelectionChange;
+
+        function getFilteredEligibleBeneficiaries() {
+            const search = (document.getElementById('officerBenSearchInput')?.value || '').toLowerCase().trim();
+            const brgy = document.getElementById('officerBenBarangayFilter')?.value || '';
+
+            return beneficiariesList.filter(b => {
+                if (brgy && b.barangay !== brgy) return false;
+                if (search) {
+                    const matchName = (b.name || b.full_name || '').toLowerCase().includes(search);
+                    const matchQr = (b.qr_code || b.id || '').toLowerCase().includes(search);
+                    const matchCat = (b.category || '').toLowerCase().includes(search);
+                    if (!matchName && !matchQr && !matchCat) return false;
+                }
+                return true;
+            });
+        }
+
+        function filterCfgBeneficiariesTable() {
+            const tbody = document.getElementById('officerBenSelectionTableBody');
+            if (!tbody) return;
+
+            const list = getFilteredEligibleBeneficiaries();
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-info-circle me-1"></i>No eligible beneficiaries found matching criteria.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map(b => {
+                const benId = b.qr_code || b.id;
+                const isChecked = selectedOfficerBeneficiaryIds.has(benId);
+
+                return `
+                    <tr class="${isChecked ? 'table-primary' : ''}">
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input row-ben-checkbox" value="${benId}" ${isChecked ? 'checked' : ''} onchange="handleBenRowCheckboxChange('${benId}', this.checked)">
+                        </td>
+                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(benId)}</span></td>
+                        <td><strong class="text-dark">${escapeHtml(b.name || b.full_name || 'Beneficiary')}</strong></td>
+                        <td><span class="badge bg-light text-dark border">${escapeHtml(b.barangay || 'Poblacion')}</span></td>
+                        <td><span class="badge bg-info-subtle text-dark border">${escapeHtml(b.category || 'Individual')}</span></td>
+                        <td><small class="text-muted">${escapeHtml(b.program || 'Assistance Package')}</small></td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateOfficerBenSelectionCounter();
+        }
+        window.filterCfgBeneficiariesTable = filterCfgBeneficiariesTable;
+
+        function handleBenRowCheckboxChange(benId, checked) {
+            if (checked) {
+                selectedOfficerBeneficiaryIds.add(benId);
+            } else {
+                selectedOfficerBeneficiaryIds.delete(benId);
+            }
+            updateOfficerBenSelectionCounter();
+        }
+        window.handleBenRowCheckboxChange = handleBenRowCheckboxChange;
+
+        function toggleSelectAllFilteredBeneficiaries() {
+            const list = getFilteredEligibleBeneficiaries();
+            const allChecked = list.length > 0 && list.every(b => selectedOfficerBeneficiaryIds.has(b.qr_code || b.id));
+
+            list.forEach(b => {
+                const id = b.qr_code || b.id;
+                if (allChecked) {
+                    selectedOfficerBeneficiaryIds.delete(id);
+                } else {
+                    selectedOfficerBeneficiaryIds.add(id);
+                }
+            });
+
+            filterCfgBeneficiariesTable();
+        }
+        window.toggleSelectAllFilteredBeneficiaries = toggleSelectAllFilteredBeneficiaries;
+
+        function toggleMasterHeaderCheckbox(checked) {
+            const list = getFilteredEligibleBeneficiaries();
+            list.forEach(b => {
+                const id = b.qr_code || b.id;
+                if (checked) {
+                    selectedOfficerBeneficiaryIds.add(id);
+                } else {
+                    selectedOfficerBeneficiaryIds.delete(id);
+                }
+            });
+            filterCfgBeneficiariesTable();
+        }
+        window.toggleMasterHeaderCheckbox = toggleMasterHeaderCheckbox;
+
+        function updateOfficerBenSelectionCounter() {
+            const counter = document.getElementById('officerBenSelectionCounter');
+            const targetBatchId = document.getElementById('cfgTargetBatchSelect')?.value;
+            const batch = batchesList.find(b => String(b.dbId || b.id) === String(targetBatchId));
+            const targetCap = batch ? (batch.capacity || 50) : 50;
+
+            if (counter) {
+                counter.textContent = `Selected: ${selectedOfficerBeneficiaryIds.size} / Target: ${targetCap}`;
+            }
+        }
+
+        async function submitOfficerBatchSync() {
+            const activityId = document.getElementById('cfgScheduleDbId')?.value;
+            const act = dailySchedulesList.find(s => (s.dbId || s.numId || s.id) == activityId);
+            if (!act) {
+                alert('Schedule activity not found.');
+                return;
+            }
+
+            const isInterview = (act.category || '').toLowerCase().includes('interview');
+            const isExisting = isInterview || (document.querySelector('input[name="cfgBatchOption"]:checked')?.value === 'existing');
+
+            let batchId = null;
+            let batchName = '';
+
+            if (isExisting) {
+                batchId = document.getElementById('cfgTargetBatchSelect')?.value;
+                if (!batchId) {
+                    alert('Validation Error: Please select an existing applicant batch.');
+                    return;
+                }
+                const b = batchesList.find(item => String(item.dbId || item.id) === String(batchId));
+                batchName = b ? b.name : `Batch #${batchId}`;
+            } else {
+                batchName = document.getElementById('cfgNewBatchNameInput')?.value.trim();
+                const capacity = Number(document.getElementById('cfgNewBatchCapacityInput')?.value) || 50;
+                if (!batchName) {
+                    alert('Validation Error: Please provide a New Batch Title / Identifier.');
+                    return;
+                }
+                try {
+                    const newBRes = await DataService.batches.create({
+                        name: batchName,
+                        capacity: capacity,
+                        program_id: act.programId || 1
+                    });
+                    if (newBRes && newBRes.data) {
+                        batchId = newBRes.data.id;
+                        batchesList.push({
+                            id: `BAT-${newBRes.data.id}`,
+                            dbId: newBRes.data.id,
+                            name: batchName,
+                            capacity: capacity,
+                            program: act.programCode || 'PESO'
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[OFFICER_BATCH] Batch creation error:', e);
+                }
+            }
+
+            const selectedCount = selectedOfficerBeneficiaryIds.size;
+            const btnSync = document.getElementById('btnConfirmSyncBatchSchedule');
+            if (btnSync) btnSync.disabled = true;
+
+            const updatePayload = {
+                batch_id: batchId ? parseInt(batchId, 10) : null,
+                recipient_count: selectedCount,
+                status: 'Scheduled',
+                remarks: `Batch Linked: ${batchName} (${selectedCount} Beneficiaries)`
+            };
+
+            try {
+                if (typeof DataService !== 'undefined' && DataService.interviews) {
+                    await DataService.interviews.update(act.dbId || activityId, updatePayload);
+                } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    await supabaseClient.from('interview_schedules').update(updatePayload).eq('id', act.dbId || activityId);
+                }
+
+                act.batchId = batchId;
+                act.batch_id = batchId;
+                act.batchName = batchName;
+                act.batch_name = batchName;
+                act.recipientCount = selectedCount;
+                act.recipient_count = selectedCount;
+                act.scheduling_mode = 'Batch';
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('officerScheduleConfigModal'));
+                if (modal) modal.hide();
+
+                alert(`Success: Batch "${batchName}" synced with ${selectedCount} beneficiaries. Master schedule updated and broadcasted to PESO Admin in real-time.`);
+                renderDailySchedules();
+            } catch (err) {
+                console.error('[OFFICER_BATCH] Sync error:', err);
+                alert(`Error syncing schedule batch: ${err.message || err}`);
+            } finally {
+                if (btnSync) btnSync.disabled = false;
+            }
+        }
+        window.submitOfficerBatchSync = submitOfficerBatchSync;
+
+        // ---------------------------------------------------------------------
+        // SCHEDULE EXECUTION & ON-SITE TRACKING MODAL LOGIC
+        // ---------------------------------------------------------------------
+        function openOfficerExecuteScheduleModal(activityId) {
+            const act = dailySchedulesList.find(s => (s.dbId || s.numId || s.id) == activityId);
+            if (!act) return;
+
+            document.getElementById('execScheduleDbId').value = act.dbId || act.id || activityId;
+            document.getElementById('execDisplayTitle').textContent = act.title || 'Schedule Execution';
+            document.getElementById('execDisplayCategory').textContent = act.category || 'Interview';
+            document.getElementById('execDisplayDateTime').textContent = `${act.startDate || act.start_date || act.interviewDate} (${act.scheduleTime || act.schedule_time})`;
+            document.getElementById('execDisplayLocation').textContent = act.venue || 'PESO Main Office';
+
+            // Populate roster table
+            const tbody = document.getElementById('execRosterTableBody');
+            const countBadge = document.getElementById('execRosterCountBadge');
+
+            // Collect active roster
+            let roster = [];
+            if (act.category === 'Certificate Distribution') {
+                roster = beneficiariesList.slice(0, 5); // Auto-pulled certificate eligible recipients
+            } else {
+                roster = beneficiariesList.slice(0, act.recipientCount || 5);
+            }
+            activeActivityRoster = roster;
+
+            if (countBadge) countBadge.textContent = `${roster.length} Beneficiaries`;
+
+            if (tbody) {
+                if (roster.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No beneficiaries assigned to this activity roster yet.</td></tr>';
+                } else {
+                    tbody.innerHTML = roster.map((b, idx) => {
+                        const benId = b.qr_code || b.id || `QR-BEN-${idx + 1}`;
+                        const isPresent = act.attendance === 'Present';
+                        const isAbsent = act.attendance === 'Absent';
+
+                        return `
+                            <tr id="execRow_${benId}">
+                                <td><span class="font-monospace fw-bold text-primary">${escapeHtml(benId)}</span></td>
+                                <td><strong class="text-dark">${escapeHtml(b.name || b.full_name || 'Beneficiary')}</strong></td>
+                                <td><span class="badge bg-light text-dark border">${escapeHtml(b.barangay || 'Poblacion')}</span></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-success ${isPresent ? 'active' : ''}" onclick="markExecAttendance('${benId}', 'Present')">
+                                            <i class="bi bi-check-lg me-1"></i> Present
                                         </button>
-                                        ${(!isLocked && isUnassigned) ? `
-                                            <button class="btn btn-sm btn-primary py-1 px-2 ms-1" title="Assign Beneficiary" onclick="openScheduleNewInterviewModal('${slotId}')">
-                                                <i class="bi bi-person-plus me-1"></i>Assign
-                                            </button>
-                                        ` : ''}
+                                        <button type="button" class="btn btn-outline-danger ${isAbsent ? 'active' : ''}" onclick="markExecAttendance('${benId}', 'Absent')">
+                                            <i class="bi bi-x-lg me-1"></i> Absent
+                                        </button>
                                     </div>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Outcome / Notes..." value="${escapeHtml(act.remarks || '')}">
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input" ${act.status === 'Completed' ? 'checked' : ''}>
                                 </td>
                             </tr>
                         `;
@@ -4131,674 +4614,78 @@
                 }
             }
 
-            const gridCont = document.getElementById('dailyScheduleCalendarGridCards');
-            if (gridCont) {
-                if (filtered.length === 0) {
-                    gridCont.innerHTML = `<div class="col-12 text-center py-5 text-muted"><p>No schedule records found for this date in calendar view.</p></div>`;
+            new bootstrap.Modal(document.getElementById('officerExecuteScheduleModal')).show();
+        }
+        window.openOfficerExecuteScheduleModal = openOfficerExecuteScheduleModal;
+
+        function markExecAttendance(benId, status) {
+            const row = document.getElementById(`execRow_${benId}`);
+            if (row) {
+                const btnPresent = row.querySelector('.btn-outline-success');
+                const btnAbsent = row.querySelector('.btn-outline-danger');
+                if (status === 'Present') {
+                    if (btnPresent) btnPresent.classList.add('active');
+                    if (btnAbsent) btnAbsent.classList.remove('active');
                 } else {
-                    gridCont.innerHTML = filtered.map(item => {
-                        const slotId = item.id || item.slot_id;
-                        const status = item.status || item.slot_status || 'Pending';
-                        const isBatch = item.scheduling_mode === 'Batch' || (item.batch_count && item.batch_count > 1);
-                        const displayName = item.beneficiaryName || item.beneficiary_name || item.batch_name || 'Slot Activity';
-                        const progCode = item.programCode || item.program_code || 'TUPAD';
-                        const schedTime = item.scheduleTime || item.schedule_time || '09:00 AM - 10:00 AM';
-
-                        return `
-                            <div class="col-md-6 col-lg-4">
-                                <div class="card h-100 border-0 shadow-sm p-3" style="border-left: 4px solid ${status === 'Completed' ? '#16a34a' : status === 'Missed' ? '#dc2626' : '#f59e0b'} !important;">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <span class="badge bg-light text-primary border fw-bold">${slotId}</span>
-                                            <h6 class="fw-bold text-dark mt-2 mb-0">${displayName}</h6>
-                                            <small class="text-muted">${isBatch ? `Batch count: ${item.batch_count || 30} pax` : maskContact(item.beneficiaryPhone || item.beneficiary_phone || '0917-000-0000')}</small>
-                                        </div>
-                                        <div>${getStatusBadgeHtml(status)}</div>
-                                    </div>
-                                    <hr class="my-2 text-muted">
-                                    <div class="small mb-2">
-                                        <div><strong><i class="bi bi-clock me-1 text-primary"></i>Time:</strong> ${schedTime}</div>
-                                        <div><strong><i class="bi bi-diagram-3 me-1 text-info"></i>Program:</strong> ${progCode}</div>
-                                        <div><strong><i class="bi bi-person-badge me-1"></i>Attendance:</strong> ${getAttendanceBadgeHtml(item.attendance)}</div>
-                                    </div>
-                                    <div class="mt-auto pt-2 d-flex justify-content-between align-items-center">
-                                        <small class="text-muted text-truncate" style="max-width: 140px;">${item.remarks || item.admin_remarks || 'No notes'}</small>
-                                        <button class="btn btn-sm btn-primary py-0 px-2" onclick="openInterviewScheduleDetail('${slotId}')">
-                                            <i class="bi bi-eye me-1"></i>View Details
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
+                    if (btnPresent) btnPresent.classList.remove('active');
+                    if (btnAbsent) btnAbsent.classList.add('active');
                 }
             }
         }
+        window.markExecAttendance = markExecAttendance;
 
-        function filterDailySchedules() {
-            renderDailySchedules();
-        }
-
-        function resetDailyScheduleFilters() {
-            if (document.getElementById('dailyScheduleSearchInput')) document.getElementById('dailyScheduleSearchInput').value = '';
-            if (document.getElementById('dailyScheduleProgramFilter')) document.getElementById('dailyScheduleProgramFilter').value = '';
-            if (document.getElementById('dailyScheduleStatusFilter')) document.getElementById('dailyScheduleStatusFilter').value = '';
-            if (document.getElementById('dailyScheduleAttendanceFilter')) document.getElementById('dailyScheduleAttendanceFilter').value = '';
-            renderDailySchedules();
-        }
-
-        // ---------------------------------------------------------------------
-        // STRICTLY READ-ONLY COMBINED DETAILS MODAL
-        // ---------------------------------------------------------------------
-        function openInterviewScheduleDetail(id) {
-            const item = dailySchedulesList.find(s => s.id === id || s.slot_id === id || s.numId === Number(id));
-            if (!item) {
-                alert(`Schedule record with identifier "${id}" not found.`);
-                return;
-            }
-
-            selectedInterviewScheduleId = item.id || item.slot_id;
-            const isPast = (item.interviewDate || item.slot_date) < getTodayDateStr();
-            const isBatch = item.scheduling_mode === 'Batch' || (item.batch_count && item.batch_count > 1);
-            const isLocked = item.is_locked || item.lock_status === 'Locked';
-
-            const modalTitle = document.getElementById('interviewDetailModalHeaderTitle');
-            if (modalTitle) {
-                modalTitle.innerHTML = `<i class="bi bi-journal-text me-2"></i>Schedule & Assignment Details — ${item.id || item.slot_id}`;
-            }
-
-            const modalBody = document.getElementById('interviewScheduleDetailModalBody');
-            if (modalBody) {
-                let assignmentSection = '';
-                if (isBatch) {
-                    assignmentSection = `
-                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-people-fill me-2"></i>Batch Assignment Context</h6>
-                        <table class="table table-sm table-borderless">
-                            <tr><th class="text-muted" style="width: 150px;">Mode:</th><td><span class="badge bg-primary-subtle text-primary border">Batch / Group Assignment</span></td></tr>
-                            <tr><th class="text-muted">Batch Name:</th><td><strong class="text-dark">${item.batch_name || 'San Isidro Group Initiative'}</strong></td></tr>
-                            <tr><th class="text-muted">Pax Count:</th><td><span class="badge bg-success-subtle text-success fs-6">${item.batch_count || 30} Beneficiaries</span></td></tr>
-                            <tr><th class="text-muted">Barangay Cluster:</th><td>${item.barangay_cluster || 'Cluster 2 - East Poblacion & Morales'}</td></tr>
-                            <tr><th class="text-muted">Sub-Category:</th><td>${item.program_sub_category || 'Community Tree Planting'}</td></tr>
-                        </table>
-                    `;
-                } else if (item.scheduling_mode === 'Unassigned' || (!item.beneficiaryName && !item.beneficiary_name)) {
-                    assignmentSection = `
-                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-x me-2"></i>Beneficiary Assignment Context</h6>
-                        <div class="alert alert-secondary border p-3">
-                            <i class="bi bi-info-circle me-1"></i> No beneficiary or batch assigned yet. Officer can assign a beneficiary to this slot before lock.
-                        </div>
-                    `;
-                } else {
-                    const bName = item.beneficiaryName || item.beneficiary_name || 'N/A';
-                    const bPhone = item.beneficiaryPhone || item.beneficiary_phone || '0917-000-0000';
-                    const bBrgy = item.barangay || 'Poblacion';
-                    const bEmail = item.beneficiaryEmail || item.beneficiary_email || 'beneficiary@koronadal.ph';
-                    const bAddr = item.beneficiaryAddress || item.beneficiary_address || `Purok 1, Barangay ${bBrgy}, Koronadal City`;
-
-                    assignmentSection = `
-                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-badge-fill me-2"></i>Beneficiary Profile (View-Only)</h6>
-                        <table class="table table-sm table-borderless">
-                            <tr><th class="text-muted" style="width: 150px;">Full Name:</th><td><strong class="text-dark fs-6">${bName}</strong></td></tr>
-                            <tr><th class="text-muted">Contact Number:</th><td><span class="badge bg-light text-dark border fs-6"><i class="bi bi-shield-lock text-success me-1"></i>${maskContact(bPhone)}</span></td></tr>
-                            <tr><th class="text-muted">Email:</th><td>${bEmail}</td></tr>
-                            <tr><th class="text-muted">Address:</th><td>${bAddr}</td></tr>
-                            <tr><th class="text-muted">Demographics:</th><td>${item.age || 28} yrs old • ${item.sex || 'Female'}</td></tr>
-                            <tr><th class="text-muted">Application Ref:</th><td><code>${item.applicationId || 'APP-2026-001'}</code></td></tr>
-                        </table>
-                    `;
-                }
-
-                modalBody.innerHTML = `
-                    <div class="row g-4">
-                        <div class="col-lg-6 border-end">
-                            ${assignmentSection}
-
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mt-4 mb-3"><i class="bi bi-diagram-3-fill me-2"></i>Admin Linked Program</h6>
-                            <table class="table table-sm table-borderless">
-                                <tr>
-                                    <th class="text-muted" style="width: 150px;">Program Type:</th>
-                                    <td><span class="badge bg-primary font-monospace fs-6">${item.programCode || item.program_code || 'TUPAD'}</span> — ${item.programName || item.program_name || 'Employment Program'}</td>
-                                </tr>
-                                <tr>
-                                    <th class="text-muted">Sub-Category:</th>
-                                    <td><strong>${item.program_sub_category || item.projectType || 'Environmental Assistance'}</strong></td>
-                                </tr>
-                                <tr>
-                                    <th class="text-muted">Lock State:</th>
-                                    <td>${isLocked ? '<span class="badge bg-dark text-white"><i class="bi bi-lock-fill me-1"></i>Locked by Admin</span>' : '<span class="badge bg-success-subtle text-success border"><i class="bi bi-unlock-fill me-1"></i>Unlocked (Officer Editable)</span>'}</td>
-                                </tr>
-                            </table>
-                        </div>
-
-                        <div class="col-lg-6">
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-clock-history me-2"></i>Slot Logistics & Schedule Details</h6>
-                            <div class="p-3 bg-light rounded border mb-3">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <small class="text-muted d-block">Scheduled Date</small>
-                                        <strong class="text-dark">${item.interviewDate || item.slot_date}</strong>
-                                    </div>
-                                    <div class="col-6">
-                                        <small class="text-muted d-block">Time Slot</small>
-                                        <strong class="text-primary">${item.scheduleTime || item.schedule_time}</strong>
-                                    </div>
-                                    <div class="col-12 mt-2">
-                                        <small class="text-muted d-block">Venue / Room</small>
-                                        <span class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${item.venue}</span>
-                                    </div>
-                                    <div class="col-12 mt-1">
-                                        <small class="text-muted d-block">Assigned Officer</small>
-                                        <span class="text-dark"><i class="bi bi-person-fill text-primary me-1"></i>${item.officerName || item.officer_name || 'PESO Officer'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-person-check-fill me-1 text-success"></i>Attendance Monitoring</h6>
-                            <div class="btn-group w-100 mb-3" role="group">
-                                <input type="radio" class="btn-check" name="attRadioGroup" id="attRadioPresent" value="Present" ${item.attendance === 'Present' ? 'checked' : ''} onchange="onModalAttendanceRadioChange('Present')">
-                                <label class="btn btn-outline-success fw-bold py-2" for="attRadioPresent"><i class="bi bi-check2-circle me-1"></i> Present (Attended)</label>
-
-                                <input type="radio" class="btn-check" name="attRadioGroup" id="attRadioAbsent" value="Absent" ${item.attendance === 'Absent' ? 'checked' : ''} onchange="onModalAttendanceRadioChange('Absent')">
-                                <label class="btn btn-outline-danger fw-bold py-2" for="attRadioAbsent"><i class="bi bi-x-circle me-1"></i> Absent (No-Show)</label>
-                            </div>
-
-                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-arrow-repeat me-1 text-primary"></i>Interview Outcome / Status</h6>
-                            <div class="d-flex gap-2 mb-3" id="modalStatusBtnGroup">
-                                <button type="button" class="btn ${(item.status || item.slot_status) === 'Completed' ? 'btn-success' : 'btn-outline-success'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Completed')">
-                                    <i class="bi bi-check-circle-fill me-1"></i> Completed
-                                </button>
-                                <button type="button" class="btn ${(item.status || item.slot_status) === 'Pending' || (item.status || item.slot_status) === 'Active' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Pending')">
-                                    <i class="bi bi-hourglass-split me-1"></i> Pending
-                                </button>
-                                <button type="button" class="btn ${(item.status || item.slot_status) === 'Missed' ? 'btn-danger' : 'btn-outline-danger'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Missed')">
-                                    <i class="bi bi-x-circle me-1"></i> Missed
-                                </button>
-                            </div>
-                            <input type="hidden" id="modalActiveStatusInput" value="${item.status || item.slot_status || 'Pending'}">
-
-                            <div class="mb-3">
-                                <label for="modalInterviewRemarksInput" class="form-label fw-bold text-dark">Remarks / Progress Notes</label>
-                                <textarea class="form-control" id="modalInterviewRemarksInput" rows="2" placeholder="e.g. Verified requirements; candidate cleared for program placement...">${item.remarks || item.admin_remarks || ''}</textarea>
-                            </div>
-
-                            <div id="modalPastDateJustificationContainer" class="${isPast ? '' : 'd-none'} alert alert-warning border-warning p-3">
-                                <div class="d-flex align-items-center mb-1 text-dark fw-bold">
-                                    <i class="bi bi-shield-exclamation text-warning fs-5 me-2"></i>
-                                    Past Date Audit Justification (Mandatory)
-                                </div>
-                                <p class="small text-muted mb-2">Past Date Restriction: Modifying attendance or status for past-dated schedules requires mandatory audit justification.</p>
-                                <input  type="text" class="form-control" id="modalPastDateJustificationInput" value="${item.justification || ''}" placeholder="Enter mandatory reason for past date modification..." aria-label="Mandatory reason for past date modification">
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            const modalFooter = document.getElementById('interviewScheduleDetailModalFooter');
-            if (modalFooter) {
-                modalFooter.innerHTML = `
-                    <div>
-                        <button type="button" class="btn btn-outline-success me-2" onclick="quickMarkAttendance('${item.id || item.slot_id}', 'Present')">
-                            <i class="bi bi-person-check me-1"></i> Quick Present
-                        </button>
-                        <button type="button" class="btn btn-outline-danger me-2" onclick="quickMarkAttendance('${item.id || item.slot_id}', 'Absent')">
-                            <i class="bi bi-person-x me-1"></i> Quick Absent
-                        </button>
-                    </div>
-                    <div>
-                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary px-4 fw-bold" onclick="saveInterviewDetailUpdates('${item.id || item.slot_id}')">
-                            <i class="bi bi-save me-1"></i> Save Changes
-                        </button>
-                    </div>
-                `;
-            }
-
-            new bootstrap.Modal(document.getElementById('interviewScheduleDetailModal')).show();
-        }
-
-        function onModalAttendanceRadioChange(val) {
-            const statusInput = document.getElementById('modalActiveStatusInput');
-            if (val === 'Present' && statusInput && statusInput.value === 'Missed') {
-                onModalStatusButtonClick('Completed');
-            } else if (val === 'Absent' && statusInput && statusInput.value === 'Completed') {
-                onModalStatusButtonClick('Missed');
-            }
-        }
-
-        function onModalStatusButtonClick(newStatus) {
-            const statusInput = document.getElementById('modalActiveStatusInput');
-            if (statusInput) statusInput.value = newStatus;
-
-            const parent = document.getElementById('modalStatusBtnGroup');
-            if (parent) {
-                parent.innerHTML = `
-                    <button type="button" class="btn ${newStatus === 'Completed' ? 'btn-success' : 'btn-outline-success'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Completed')">
-                        <i class="bi bi-check-circle-fill me-1"></i> Completed
-                    </button>
-                    <button type="button" class="btn ${newStatus === 'Pending' || newStatus === 'Active' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Pending')">
-                        <i class="bi bi-hourglass-split me-1"></i> Pending
-                    </button>
-                    <button type="button" class="btn ${newStatus === 'Missed' ? 'btn-danger' : 'btn-outline-danger'} flex-grow-1 fw-bold" onclick="onModalStatusButtonClick('Missed')">
-                        <i class="bi bi-x-circle me-1"></i> Missed
-                    </button>
-                `;
-            }
-        }
-
-        function saveInterviewDetailUpdates(scheduleId) {
-            const item = dailySchedulesList.find(s => s.id === scheduleId || s.slot_id === scheduleId);
-            if (!item) return;
-
-            const selectedAtt = document.querySelector('input[name="attRadioGroup"]:checked')?.value || item.attendance || 'Unmarked';
-            const newStatus = document.getElementById('modalActiveStatusInput')?.value || item.status || 'Pending';
-            const remarks = document.getElementById('modalInterviewRemarksInput')?.value.trim() || '';
-            const justificationInput = document.getElementById('modalPastDateJustificationInput');
-            const justification = justificationInput ? justificationInput.value.trim() : '';
-
-            const isPast = (item.interviewDate || item.slot_date) < getTodayDateStr();
-
-            if (isPast && !justification && !remarks) {
-                alert('Past Date Restriction: Modifying attendance or status for past-dated schedules requires explicit audit justification.');
-                if (justificationInput) justificationInput.focus();
-                return;
-            }
-
-            item.attendance = selectedAtt;
-            item.status = newStatus;
-            item.slot_status = newStatus;
-            item.remarks = remarks;
-            if (justification) item.justification = justification;
-
-            // Direct DB persistence via DataService
-            if (typeof DataService !== 'undefined' && DataService.interviews) {
-                const targetDbId = item.dbId || (typeof scheduleId === 'number' ? scheduleId : parseInt(String(scheduleId).replace(/[^0-9]/g, '')) || null);
-                if (targetDbId) {
-                    DataService.interviews.markAttendance(targetDbId, {
-                        attendance_status: selectedAtt,
-                        status: newStatus,
-                        remarks: remarks ? `${remarks} (Justification: ${justification || 'N/A'})` : justification
-                    }).catch(e => console.warn('[OFFICER_SCHEDULE] Supabase attendance update error:', e));
-                }
-            }
-
-            logOfficerAction('UPDATE_SCHEDULE', `Updated schedule ${scheduleId} -> Attendance: ${selectedAtt}, Status: ${newStatus}. Remarks: "${remarks}". Justification: "${justification || 'N/A'}"`);
-
-            renderDailySchedules();
-
-            if (bootstrap.Modal.getInstance(document.getElementById('interviewScheduleDetailModal'))) {
-                bootstrap.Modal.getInstance(document.getElementById('interviewScheduleDetailModal')).hide();
-            }
-
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Schedule Updated',
-                    message: `Schedule ${scheduleId} successfully updated. Status: ${newStatus}, Attendance: ${selectedAtt}.`,
-                    type: 'success'
-                });
+        function openQrScannerForExecution() {
+            if (typeof openQrScannerModal === 'function') {
+                openQrScannerModal();
             } else {
-                alert(`Schedule ${scheduleId} updated successfully.`);
+                alert('QR Scanner lookup opened. Scan beneficiary card to verify attendance.');
             }
         }
+        window.openQrScannerForExecution = openQrScannerForExecution;
 
-        function quickMarkAttendance(scheduleId, flag) {
-            const item = dailySchedulesList.find(s => s.id === scheduleId || s.slot_id === scheduleId);
-            if (!item) return;
+        async function submitMarkActivityCompleted() {
+            const activityId = document.getElementById('execScheduleDbId')?.value;
+            const act = dailySchedulesList.find(s => (s.dbId || s.numId || s.id) == activityId);
+            if (!act) return;
 
-            const isPast = (item.interviewDate || item.slot_date) < getTodayDateStr();
-            let justification = null;
-
-            if (isPast) {
-                justification = prompt(`Past Date Restriction: Enter mandatory audit justification for updating past schedule ${scheduleId} to ${flag}:`);
-                if (!justification || !justification.trim()) {
-                    alert('Past Date Restriction: Action cancelled. Justification is mandatory for past dates.');
-                    return;
-                }
-            }
-
-            item.attendance = flag;
-            if (flag === 'Present' && (item.status === 'Missed' || item.slot_status === 'Missed')) {
-                item.status = 'Completed';
-                item.slot_status = 'Completed';
-            }
-            if (flag === 'Absent' && (item.status === 'Completed' || item.slot_status === 'Completed')) {
-                item.status = 'Missed';
-                item.slot_status = 'Missed';
-            }
-            if (justification) item.justification = justification;
-
-            // Direct DB persistence via DataService
-            if (typeof DataService !== 'undefined' && DataService.interviews) {
-                const targetDbId = item.dbId || (typeof scheduleId === 'number' ? scheduleId : parseInt(String(scheduleId).replace(/[^0-9]/g, '')) || null);
-                if (targetDbId) {
-                    DataService.interviews.markAttendance(targetDbId, {
-                        attendance_status: flag,
-                        status: item.status,
-                        remarks: item.remarks ? `${item.remarks} (Quick attendance marked: ${flag})` : `Quick attendance: ${flag}`
-                    }).catch(e => console.warn('[OFFICER_SCHEDULE] Attendance sync error:', e));
-                }
-            }
-
-            logOfficerAction('MARK_ATTENDANCE', `Quick marked attendance for ${scheduleId} as ${flag}. Justification: "${justification || 'N/A'}"`);
-
-            renderDailySchedules();
-
-            if (bootstrap.Modal.getInstance(document.getElementById('interviewScheduleDetailModal'))) {
-                bootstrap.Modal.getInstance(document.getElementById('interviewScheduleDetailModal')).hide();
-            }
-
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Attendance Marked',
-                    message: `Attendance for ${scheduleId} marked as ${flag}.`,
-                    type: 'success'
-                });
-            }
-        }
-
-        // ---------------------------------------------------------------------
-        // ASSIGN BENEFICIARY / BATCH MODAL LOGIC
-        // ---------------------------------------------------------------------
-        function openScheduleNewInterviewModal(targetSlotId) {
-            const form = document.getElementById('newInterviewScheduleForm');
-            if (form) form.reset();
-
-            // Default to Individual mode
-            const indRadio = document.getElementById('modeIndividualRadio');
-            if (indRadio) indRadio.checked = true;
-            toggleAssignMode('Individual');
-
-            const alertBox = document.getElementById('newInterviewConflictAlert');
-            if (alertBox) alertBox.classList.add('d-none');
-
-            // Find matching slot or create default
-            let slot = dailySchedulesList.find(s => s.id === targetSlotId || s.slot_id === targetSlotId);
-            if (!slot) {
-                slot = dailySchedulesList.find(s => (s.interviewDate || s.slot_date) === currentScheduleDate) || dailySchedulesList[0];
-            }
-
-            if (slot) {
-                if (document.getElementById('assignModalSlotId')) document.getElementById('assignModalSlotId').value = slot.id || slot.slot_id;
-                if (document.getElementById('assignModalSlotIdBadge')) document.getElementById('assignModalSlotIdBadge').textContent = slot.id || slot.slot_id;
-                if (document.getElementById('assignModalProgramBadge')) document.getElementById('assignModalProgramBadge').textContent = slot.programCode || slot.program_code || 'TUPAD';
-                if (document.getElementById('assignModalProgramName')) document.getElementById('assignModalProgramName').textContent = slot.programName || slot.program_name || 'Emergency Employment Assistance';
-                if (document.getElementById('schedInterviewDate')) document.getElementById('schedInterviewDate').value = slot.interviewDate || slot.slot_date || currentScheduleDate;
-                if (document.getElementById('schedTimeSlot')) document.getElementById('schedTimeSlot').value = slot.scheduleTime || slot.schedule_time || '09:00 AM - 10:00 AM';
-                if (document.getElementById('schedVenue')) document.getElementById('schedVenue').value = slot.venue || 'PESO Main Office - Room A';
-            }
-
-            new bootstrap.Modal(document.getElementById('scheduleNewInterviewModal')).show();
-        }
-
-        function checkNewInterviewConflict() {
-            const date = document.getElementById('schedInterviewDate')?.value;
-            const time = document.getElementById('schedTimeSlot')?.value;
-            const currentSlotId = document.getElementById('assignModalSlotId')?.value;
-            const alertBox = document.getElementById('newInterviewConflictAlert');
-            const alertText = document.getElementById('newInterviewConflictText');
-            const submitBtn = document.getElementById('btnSubmitNewSchedule');
-
-            if (!date || !time) return false;
-
-            const cleanTime = time.trim().toLowerCase();
-            const conflict = dailySchedulesList.find(s =>
-                (s.id || s.slot_id) !== currentSlotId &&
-                (s.interviewDate || s.slot_date) === date &&
-                (s.scheduleTime || s.schedule_time || '').toLowerCase().includes(cleanTime) &&
-                s.status !== 'Cancelled' &&
-                s.slot_status !== 'Cancelled'
-            );
-
-            if (conflict) {
-                if (alertBox) alertBox.classList.remove('d-none');
-                if (alertText) alertText.innerHTML = `<strong>Conflict Detected!</strong> Another slot (${conflict.id || conflict.slot_id}) is scheduled on ${date} at ${time}. Overlapping slots for the officer are prevented.`;
-                if (submitBtn) submitBtn.disabled = true;
-                return true;
-            } else {
-                if (alertBox) alertBox.classList.add('d-none');
-                if (submitBtn) submitBtn.disabled = false;
-                return false;
-            }
-        }
-
-        function submitNewInterviewSchedule(event) {
-            event.preventDefault();
-
-            if (checkNewInterviewConflict()) {
-                alert('Conflict Restriction: An overlapping schedule exists for this time slot. Please choose another time.');
+            if (!confirm(`Are you sure you want to mark activity "${act.title}" as Completed (⚫)? This will log completion across Officer and Administrator dashboards.`)) {
                 return;
             }
 
-            const slotId = document.getElementById('assignModalSlotId')?.value;
-            const mode = document.querySelector('input[name="assignModeRadio"]:checked')?.value || 'Individual';
-            const date = document.getElementById('schedInterviewDate')?.value;
-            const time = document.getElementById('schedTimeSlot')?.value;
-            const venue = document.getElementById('schedVenue')?.value.trim();
-            const remarks = document.getElementById('schedRemarks')?.value.trim();
+            const btn = document.getElementById('btnMarkActivityCompleted');
+            if (btn) btn.disabled = true;
 
-            let targetSlot = dailySchedulesList.find(s => (s.id || s.slot_id) === slotId);
-
-            if (targetSlot && (targetSlot.is_locked || targetSlot.lock_status === 'Locked')) {
-                alert('Lock Restriction: This slot has been locked by PESO Admin. Beneficiary assignment cannot be modified while locked.');
-                return;
-            }
-
-            let assignmentPayload = {
-                scheduling_mode: mode,
-                remarks
-            };
-
-            if (mode === 'Individual') {
-                const benName = document.getElementById('schedBenName')?.value.trim();
-                const benPhone = document.getElementById('schedBenPhone')?.value.trim();
-                const benBarangay = document.getElementById('schedBenBarangay')?.value;
-                const benEmail = document.getElementById('schedBenEmail')?.value.trim() || 'beneficiary@koronadal.ph';
-                const benSex = document.getElementById('schedBenSex')?.value;
-                const benAge = Number(document.getElementById('schedBenAge')?.value) || 28;
-                const subCategory = document.getElementById('schedProjectType')?.value.trim();
-
-                if (!benName || !benPhone) {
-                    alert('Validation Error: Please provide Beneficiary Name and Phone Number.');
-                    return;
-                }
-
-                // Check double booking for beneficiary
-                const doubleBooked = dailySchedulesList.find(s =>
-                    (s.id || s.slot_id) !== slotId &&
-                    (s.interviewDate || s.slot_date) === date &&
-                    (s.scheduleTime || s.schedule_time) === time &&
-                    (s.beneficiaryName || s.beneficiary_name || '').toLowerCase() === benName.toLowerCase() &&
-                    s.status !== 'Cancelled'
-                );
-
-                if (doubleBooked) {
-                    alert(`Double Booking Restriction: Beneficiary "${benName}" is already scheduled in slot ${doubleBooked.id || doubleBooked.slot_id} on ${date} at ${time}.`);
-                    return;
-                }
-
-                assignmentPayload = {
-                    ...assignmentPayload,
-                    beneficiary_name: benName,
-                    beneficiary_phone: benPhone,
-                    beneficiary_email: benEmail,
-                    beneficiary_address: `Purok 1, Barangay ${benBarangay}, Koronadal City`,
-                    barangay: benBarangay,
-                    sex: benSex,
-                    age: benAge,
-                    program_sub_category: subCategory
+            try {
+                const payload = {
+                    status: 'Completed',
+                    attendance_status: 'Present',
+                    remarks: 'Activity successfully executed on-site by PESO Officer.'
                 };
 
-                if (targetSlot) {
-                    targetSlot.scheduling_mode = 'Individual';
-                    targetSlot.beneficiaryName = benName;
-                    targetSlot.beneficiary_name = benName;
-                    targetSlot.beneficiaryPhone = benPhone;
-                    targetSlot.beneficiary_phone = benPhone;
-                    targetSlot.beneficiaryEmail = benEmail;
-                    targetSlot.barangay = benBarangay;
-                    targetSlot.sex = benSex;
-                    targetSlot.age = benAge;
-                    targetSlot.projectType = subCategory;
-                    targetSlot.program_sub_category = subCategory;
-                    targetSlot.remarks = remarks;
-                }
-            } else {
-                const batchName = document.getElementById('schedBatchName')?.value.trim();
-                const batchCount = Number(document.getElementById('schedBatchCount')?.value) || 25;
-                const cluster = document.getElementById('schedBatchCluster')?.value;
-                const subCategory = document.getElementById('schedBatchSubCategory')?.value.trim();
-
-                if (!batchName) {
-                    alert('Validation Error: Please provide Batch Identifier / Name.');
-                    return;
-                }
-
-                assignmentPayload = {
-                    ...assignmentPayload,
-                    batch_name: batchName,
-                    batch_count: batchCount,
-                    barangay_cluster: cluster,
-                    program_sub_category: subCategory
-                };
-
-                if (targetSlot) {
-                    targetSlot.scheduling_mode = 'Batch';
-                    targetSlot.batch_name = batchName;
-                    targetSlot.batch_count = batchCount;
-                    targetSlot.barangay_cluster = cluster;
-                    targetSlot.program_sub_category = subCategory;
-                    targetSlot.remarks = remarks;
-                }
-            }
-
-            // Sync with Supabase Database and Notify Beneficiary
-            (async () => {
                 if (typeof DataService !== 'undefined' && DataService.interviews) {
-                    try {
-                        const targetBen = beneficiariesList.find(b =>
-                            b.name.toLowerCase() === (assignmentPayload.beneficiary_name || '').toLowerCase() ||
-                            b.qr_code === assignmentPayload.beneficiary_qr ||
-                            b.id === assignmentPayload.beneficiary_qr
-                        );
-                        const benQr = targetBen ? targetBen.qr_code : (assignmentPayload.beneficiary_qr || 'QR-BEN-ACTIVE');
-                        const officerProfile = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
-                        const officerId = officerProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
-
-                        const interviewPayload = {
-                            beneficiary_qr: benQr,
-                            program_id: targetSlot?.program_id || 1,
-                            officer_id: officerId,
-                            interview_date: date,
-                            interview_time: time,
-                            venue_location: venue || 'PESO Main Office - Interview Room A',
-                            status: 'Scheduled',
-                            attendance_status: 'Unmarked',
-                            remarks: remarks || `Scheduled in ${mode} mode`
-                        };
-
-                        if (targetSlot && targetSlot.dbId) {
-                            await DataService.interviews.update(targetSlot.dbId, interviewPayload);
-                        } else {
-                            const createRes = await DataService.interviews.create(interviewPayload);
-                            if (createRes?.data && targetSlot) {
-                                targetSlot.dbId = createRes.data.id;
-                            }
-                        }
-
-                        // Trigger In-App Notification for Beneficiary
-                        if (DataService.notifications && benQr) {
-                            await DataService.notifications.create({
-                                beneficiary_qr: benQr,
-                                title: 'New Interview / Training Scheduled',
-                                message: `You have an activity scheduled on ${date} at ${time}. Venue: ${venue || 'PESO Main Office - Interview Room A'}.`
-                            });
-                        }
-
-                        // Multi-channel external dispatch (SMS & Email)
-                        if (typeof window.sendExternalSms === 'function' && assignmentPayload.beneficiary_phone) {
-                            window.sendExternalSms({
-                                recipientPhone: assignmentPayload.beneficiary_phone,
-                                message: `PESO Koronadal: You are scheduled for an interview on ${date} at ${time} at ${venue || 'PESO Main Office'}. Please bring valid ID.`
-                            });
-                        }
-                    } catch (schedErr) {
-                        console.warn('[OFFICER_ASSIGN] Supabase interview sync error:', schedErr);
-                    }
+                    await DataService.interviews.update(act.dbId || activityId, payload);
+                } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    await supabaseClient.from('interview_schedules').update(payload).eq('id', act.dbId || activityId);
                 }
-            })();
 
-            logOfficerAction('ASSIGN_BENEFICIARY', `Assigned ${mode} mode to slot ${slotId} (${mode === 'Individual' ? assignmentPayload.beneficiary_name : assignmentPayload.batch_name})`);
+                act.status = 'Completed';
+                act.slot_status = 'Completed';
+                act.attendance = 'Present';
 
-            if (bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal'))) {
-                bootstrap.Modal.getInstance(document.getElementById('scheduleNewInterviewModal')).hide();
-            }
+                const modal = bootstrap.Modal.getInstance(document.getElementById('officerExecuteScheduleModal'));
+                if (modal) modal.hide();
 
-            renderDailySchedules();
-
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Assignment Saved',
-                    message: `Beneficiary assignment saved for slot ${slotId} (${mode} Mode).`,
-                    type: 'success'
-                });
-            } else {
-                alert(`Beneficiary assignment saved successfully for slot ${slotId}.`);
+                alert(`Success: Activity "${act.title}" marked as Completed (⚫) and synchronized in real-time.`);
+                renderDailySchedules();
+            } catch (err) {
+                console.error('[OFFICER_EXEC] Complete error:', err);
+                alert(`Error completing activity: ${err.message || err}`);
+            } finally {
+                if (btn) btn.disabled = false;
             }
         }
+        window.submitMarkActivityCompleted = submitMarkActivityCompleted;
 
-        function exportDailyScheduleCSV() {
-            const dateSchedules = dailySchedulesList.filter(s => (s.interviewDate || s.slot_date) === currentScheduleDate);
-            if (dateSchedules.length === 0) {
-                alert(`No schedule records found for date ${currentScheduleDate} to export.`);
-                return;
-            }
-
-            const headers = ['Slot ID', 'Mode', 'Beneficiary / Batch Name', 'Masked Contact', 'Barangay / Cluster', 'Program Code', 'Program Name', 'Sub-Category', 'Date', 'Time Slot', 'Venue', 'Status', 'Attendance', 'Lock Status', 'Remarks'];
-            const rows = dateSchedules.map(s => {
-                const isBatch = s.scheduling_mode === 'Batch' || (s.batch_count && s.batch_count > 1);
-                const name = isBatch ? (s.batch_name || 'Batch') : (s.beneficiaryName || s.beneficiary_name || 'Unassigned');
-                const phone = isBatch ? 'N/A' : maskContact(s.beneficiaryPhone || s.beneficiary_phone || '09XX-***-XXXX');
-                const brgy = isBatch ? (s.barangay_cluster || 'Cluster') : (s.barangay || 'Poblacion');
-
-                return [
-                    s.id || s.slot_id,
-                    s.scheduling_mode || 'Individual',
-                    `"${name}"`,
-                    `"${phone}"`,
-                    `"${brgy}"`,
-                    `"${s.programCode || s.program_code || 'TUPAD'}"`,
-                    `"${s.programName || s.program_name || 'Assistance Program'}"`,
-                    `"${s.program_sub_category || s.projectType || 'General'}"`,
-                    `"${s.interviewDate || s.slot_date}"`,
-                    `"${s.scheduleTime || s.schedule_time}"`,
-                    `"${s.venue}"`,
-                    `"${s.status || s.slot_status || 'Pending'}"`,
-                    `"${s.attendance || 'Unmarked'}"`,
-                    `"${s.is_locked ? 'Locked' : 'Active'}"`,
-                    `"${(s.remarks || s.admin_remarks || '').replace(/"/g, '""')}"`
-                ];
-            });
-
-            const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `PESO_Officer_Daily_Schedule_${currentScheduleDate}.csv`;
-            link.click();
-
-            logOfficerAction('EXPORT_SCHEDULE_CSV', `Exported CSV daily schedule report for date ${currentScheduleDate}`);
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Daily Roster Exported',
-                    message: `Daily schedule for ${currentScheduleDate} (${dateSchedules.length} records) exported to CSV successfully.`,
-                    type: 'success'
-                });
-            }
-        }
-
-        // ---------------------------------------------------------------------
-        // BENEFICIARIES TABLE CONTROLLER (REQ068 - REQ073)
-        // ---------------------------------------------------------------------
         function renderBeneficiaryTable() {
             const tbody = document.getElementById('beneficiaryTableBody');
             if (!tbody) return;
@@ -6986,6 +6873,36 @@
             }
         }
         window.openAuditModal = openAuditModal;
+
+        function setupOfficerRealtimeSync() {
+            if (typeof supabaseClient === 'undefined' || !supabaseClient || typeof supabaseClient.channel !== 'function') return;
+            try {
+                supabaseClient
+                    .channel('peso_officer_realtime_sync')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'interview_schedules' }, () => {
+                        console.log('[PESO Officer Realtime] interview_schedules update received');
+                        loadAllOfficerData();
+                    })
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => {
+                        loadAllOfficerData();
+                    })
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, () => {
+                        loadAllOfficerData();
+                    })
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+                        loadAllOfficerData();
+                    })
+                    .subscribe();
+            } catch (err) {
+                console.warn('[PESO Officer Realtime] Subscription warning:', err);
+            }
+        }
+        window.setupOfficerRealtimeSync = setupOfficerRealtimeSync;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllOfficerData();
+            setupOfficerRealtimeSync();
+        });
 
 </script>
 </body>
