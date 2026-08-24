@@ -122,6 +122,36 @@ const OTPAuth = (() => {
             console.warn('[OTPAuth] Supabase dispatch exception:', e);
         }
 
+        // Dispatch via External Email Gateway if available
+        if (typeof window.sendExternalEmail === 'function') {
+            try {
+                await window.sendExternalEmail({
+                    recipientEmail: cleanEmail,
+                    subject: 'Koronadal Portal Verification Code',
+                    body: `Your 6-digit verification code is: ${code}. This code is valid for 5 minutes. Do not share this code with anyone.`
+                });
+            } catch (gwErr) {
+                console.warn('[OTPAuth] External Email Gateway notice:', gwErr);
+            }
+        }
+
+        // Persist OTP Request record to database if available
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient.from('otp_requests').insert({
+                    identifier: cleanEmail,
+                    otp_hash: codeHash,
+                    salt: 'KORONADAL_SALT_2026',
+                    purpose: 'EMAIL_VERIFICATION',
+                    channel: 'EMAIL',
+                    expiry: new Date(expiresAt).toISOString(),
+                    status: 'PENDING'
+                });
+            } catch (dbErr) {
+                console.warn('[OTPAuth] Supabase otp_requests insert notice:', dbErr);
+            }
+        }
+
         // Show confirmation message (NO OTP code displayed)
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
@@ -190,6 +220,18 @@ const OTPAuth = (() => {
             }
         }
 
+        // Update database record status if available
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient.from('otp_requests')
+                    .update({ status: 'USED', updated_at: new Date().toISOString() })
+                    .eq('identifier', cleanEmail)
+                    .eq('status', 'PENDING');
+            } catch (dbErr) {
+                console.warn('[OTPAuth] Supabase otp_requests update notice:', dbErr);
+            }
+        }
+
         // Verified successfully - cleanup record
         if (record) {
             delete store[`email_${cleanEmail}`];
@@ -219,6 +261,35 @@ const OTPAuth = (() => {
             phone: cleanPhone
         };
         _saveOtpStore(store);
+
+        // Dispatch via External SMS Gateway (e.g. Semaphore / webhook)
+        if (typeof window.sendExternalSms === 'function') {
+            try {
+                await window.sendExternalSms({
+                    recipientPhone: cleanPhone,
+                    message: `Your Koronadal PESO/CSWDO verification code is: ${code}. Valid for 5 minutes. Do not share.`
+                });
+            } catch (smsErr) {
+                console.warn('[OTPAuth] External SMS Gateway notice:', smsErr);
+            }
+        }
+
+        // Persist OTP Request record to database if available
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient.from('otp_requests').insert({
+                    identifier: cleanPhone,
+                    otp_hash: codeHash,
+                    salt: 'KORONADAL_SALT_2026',
+                    purpose: 'PHONE_VERIFICATION',
+                    channel: 'SMS',
+                    expiry: new Date(expiresAt).toISOString(),
+                    status: 'PENDING'
+                });
+            } catch (dbErr) {
+                console.warn('[OTPAuth] Supabase otp_requests insert notice:', dbErr);
+            }
+        }
 
         // Notify user that the SMS OTP has been sent (NO raw code shown)
         if (typeof window.showSystemNotification === 'function') {
@@ -265,6 +336,18 @@ const OTPAuth = (() => {
         const inputHash = await hashCode(otp);
         if (inputHash !== record.hash && otp !== record.code) {
             throw new Error('Invalid SMS OTP code. Please enter the correct 6-digit code.');
+        }
+
+        // Update database record status if available
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient.from('otp_requests')
+                    .update({ status: 'USED', updated_at: new Date().toISOString() })
+                    .eq('identifier', cleanPhone)
+                    .eq('status', 'PENDING');
+            } catch (dbErr) {
+                console.warn('[OTPAuth] Supabase otp_requests update notice:', dbErr);
+            }
         }
 
         delete store[`phone_${cleanPhone}`];
