@@ -234,38 +234,66 @@ const DataService = (() => {
         const qrCode = data.qr_code || generateQrCode();
         const payload = {
           qr_code: qrCode,
-          auth_id: data.auth_id,
+          auth_id: data.auth_id || null,
           username: data.username,
           first_name: data.first_name,
           middle_name: data.middle_name || null,
           last_name: data.last_name,
           suffix: data.suffix || null,
           age: parseInt(data.age) || 0,
-          date_of_birth: data.date_of_birth || null,
+          date_of_birth: data.date_of_birth || data.dob || null,
           sex: data.sex || null,
           nationality: data.nationality || 'Filipino',
-          marital_status: data.marital_status || null,
-          email: data.email,
-          phone: data.phone || null,
+          marital_status: data.marital_status || data.civil_status || null,
+          spouse_name: data.spouse_name || null,
+          number_of_children: parseInt(data.number_of_children) || 0,
+          purok: data.purok || null,
+          barangay: data.barangay || null,
           address: data.address || null,
+          program: data.program || data.program_sector || null,
+          department: data.department || null,
+          email: data.email,
+          phone: data.phone || data.phone_number || null,
+          verified_channel: data.verified_channel || 'EMAIL',
+          verified_at: data.verified_at || new Date().toISOString(),
           id_type: data.id_type || null,
           id_file_path: data.id_file_path || null,
           terms_agreed: data.terms_agreed !== undefined ? data.terms_agreed : true,
           data_consent: data.data_consent !== undefined ? data.data_consent : true,
           status: data.status || 'Active'
         };
-        const res = await client.from('beneficiaries').insert(payload).select().single();
+
+        // Check if a row already exists with this email or username (e.g. from Supabase auth trigger)
+        let existing = null;
+        try {
+          const { data: found } = await client
+            .from('beneficiaries')
+            .select('qr_code, email, username')
+            .or(`email.eq.${payload.email},username.eq.${payload.username}`)
+            .maybeSingle();
+          existing = found;
+        } catch (e) {}
+
+        let res = null;
+        if (existing && existing.qr_code) {
+          // Update the existing row with complete profile information
+          res = await client.from('beneficiaries').update(payload).eq('qr_code', existing.qr_code).select().single();
+        } else {
+          res = await client.from('beneficiaries').insert(payload).select().single();
+        }
+
         if (!res.error && res.data) {
           auditLogs.log({
-            beneficiaryQr: qrCode,
+            beneficiaryQr: res.data.qr_code || qrCode,
             action: 'CREATE_BENEFICIARY',
             entityType: 'beneficiary',
-            details: `Registered beneficiary ${payload.first_name} ${payload.last_name} (${qrCode})`
+            details: `Registered beneficiary ${payload.first_name} ${payload.last_name} (${res.data.qr_code || qrCode})`
           });
         }
         return res;
       });
     },
+
 
     async update(qrCode, data) {
       return withRetry(async (client) => {
@@ -1619,41 +1647,52 @@ const DataService = (() => {
      * @param {string|number} [params.excludeStaffId]
      * @returns {Promise<{ data: { isAvailable: boolean, isUsernameTaken: boolean, isEmailTaken: boolean, message: string|null, conflictTable: string|null }, error: any }>}
      */
-    async checkIdentifierAvailability({ username, email, excludeBeneficiaryId = null, excludeStaffId = null }) {
+    async checkIdentifierAvailability({ username, email, phone, excludeBeneficiaryId = null, excludeStaffId = null }) {
       return withRetry(async (client) => {
         let isUsernameTaken = false;
         let isEmailTaken = false;
+        let isPhoneTaken = false;
         let conflictMsg = null;
         let conflictTable = null;
 
         const cleanUsername = (username || '').trim().toLowerCase();
         const cleanEmail = (email || '').trim().toLowerCase();
+        const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
 
         // 1. Check in beneficiaries table
-        if (cleanUsername || cleanEmail) {
+        if (cleanUsername || cleanEmail || cleanPhone) {
           try {
-            let benQuery = client.from('beneficiaries').select('id, qr_code, username, email');
-            if (cleanUsername && cleanEmail) {
-              benQuery = benQuery.or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`);
-            } else if (cleanUsername) {
-              benQuery = benQuery.ilike('username', cleanUsername);
-            } else if (cleanEmail) {
-              benQuery = benQuery.ilike('email', cleanEmail);
-            }
-
-            const { data: benMatches } = await benQuery;
-            if (benMatches && benMatches.length > 0) {
-              for (const match of benMatches) {
-                if (excludeBeneficiaryId && (String(match.id) === String(excludeBeneficiaryId) || String(match.qr_code) === String(excludeBeneficiaryId))) {
-                  continue;
+            let benQuery = client.from('beneficiaries').select('id, qr_code, username, email, phone');
+            if (cleanEmail) {
+              const { data: emailMatches } = await client.from('beneficiaries').select('id, qr_code, email').ilike('email', cleanEmail);
+              if (emailMatches && emailMatches.length > 0) {
+                for (const match of emailMatches) {
+                  if (excludeBeneficiaryId && (String(match.id) === String(excludeBeneficiaryId) || String(match.qr_code) === String(excludeBeneficiaryId))) continue;
+                  isEmailTaken = true;
+                  conflictTable = 'beneficiaries';
                 }
-                if (cleanUsername && match.username && match.username.toLowerCase() === cleanUsername) {
+              }
+            }
+            if (cleanUsername) {
+              const { data: userMatches } = await client.from('beneficiaries').select('id, qr_code, username').ilike('username', cleanUsername);
+              if (userMatches && userMatches.length > 0) {
+                for (const match of userMatches) {
+                  if (excludeBeneficiaryId && (String(match.id) === String(excludeBeneficiaryId) || String(match.qr_code) === String(excludeBeneficiaryId))) continue;
                   isUsernameTaken = true;
                   conflictTable = 'beneficiaries';
                 }
-                if (cleanEmail && match.email && match.email.toLowerCase() === cleanEmail) {
-                  isEmailTaken = true;
-                  conflictTable = 'beneficiaries';
+              }
+            }
+            if (cleanPhone && cleanPhone.length >= 10) {
+              const { data: phoneMatches } = await client.from('beneficiaries').select('id, qr_code, phone');
+              if (phoneMatches && phoneMatches.length > 0) {
+                for (const match of phoneMatches) {
+                  if (excludeBeneficiaryId && (String(match.id) === String(excludeBeneficiaryId) || String(match.qr_code) === String(excludeBeneficiaryId))) continue;
+                  const dbPhone = (match.phone || '').replace(/[^0-9]/g, '');
+                  if (dbPhone && (dbPhone === cleanPhone || dbPhone.endsWith(cleanPhone.slice(-10)))) {
+                    isPhoneTaken = true;
+                    conflictTable = 'beneficiaries';
+                  }
                 }
               }
             }
@@ -1663,29 +1702,24 @@ const DataService = (() => {
         }
 
         // 2. Check in staff_profiles table
-        if (cleanUsername || cleanEmail) {
+        if (cleanUsername || cleanEmail || cleanPhone) {
           try {
-            let staffQuery = client.from('staff_profiles').select('id, auth_id, username, email');
-            if (cleanUsername && cleanEmail) {
-              staffQuery = staffQuery.or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`);
-            } else if (cleanUsername) {
-              staffQuery = staffQuery.ilike('username', cleanUsername);
-            } else if (cleanEmail) {
-              staffQuery = staffQuery.ilike('email', cleanEmail);
-            }
-
-            const { data: staffMatches } = await staffQuery;
-            if (staffMatches && staffMatches.length > 0) {
-              for (const match of staffMatches) {
-                if (excludeStaffId && (String(match.id) === String(excludeStaffId) || String(match.auth_id) === String(excludeStaffId))) {
-                  continue;
-                }
-                if (cleanUsername && match.username && match.username.toLowerCase() === cleanUsername) {
-                  isUsernameTaken = true;
+            if (cleanEmail) {
+              const { data: staffEmailMatches } = await client.from('staff_profiles').select('id, auth_id, email').ilike('email', cleanEmail);
+              if (staffEmailMatches && staffEmailMatches.length > 0) {
+                for (const match of staffEmailMatches) {
+                  if (excludeStaffId && (String(match.id) === String(excludeStaffId) || String(match.auth_id) === String(excludeStaffId))) continue;
+                  isEmailTaken = true;
                   conflictTable = 'staff_profiles';
                 }
-                if (cleanEmail && match.email && match.email.toLowerCase() === cleanEmail) {
-                  isEmailTaken = true;
+              }
+            }
+            if (cleanUsername) {
+              const { data: staffUserMatches } = await client.from('staff_profiles').select('id, auth_id, username').ilike('username', cleanUsername);
+              if (staffUserMatches && staffUserMatches.length > 0) {
+                for (const match of staffUserMatches) {
+                  if (excludeStaffId && (String(match.id) === String(excludeStaffId) || String(match.auth_id) === String(excludeStaffId))) continue;
+                  isUsernameTaken = true;
                   conflictTable = 'staff_profiles';
                 }
               }
@@ -1695,19 +1729,20 @@ const DataService = (() => {
           }
         }
 
-        if (isUsernameTaken && isEmailTaken) {
-          conflictMsg = `Both username "${username}" and email "${email}" are already registered. Please choose another username and email.`;
+        if (isEmailTaken) {
+          conflictMsg = `This email address is already registered to an existing account.`;
+        } else if (isPhoneTaken) {
+          conflictMsg = `This mobile number is already registered to an existing account.`;
         } else if (isUsernameTaken) {
           conflictMsg = `The username "${username}" is already taken. Please choose another username.`;
-        } else if (isEmailTaken) {
-          conflictMsg = `The email address "${email}" is already registered in the system. Please use a different email or log in.`;
         }
 
         return {
           data: {
-            isAvailable: !isUsernameTaken && !isEmailTaken,
+            isAvailable: !isUsernameTaken && !isEmailTaken && !isPhoneTaken,
             isUsernameTaken,
             isEmailTaken,
+            isPhoneTaken,
             message: conflictMsg,
             conflictTable
           },
@@ -1716,6 +1751,7 @@ const DataService = (() => {
       });
     }
   };
+
 
   return Object.freeze({
     getClient,

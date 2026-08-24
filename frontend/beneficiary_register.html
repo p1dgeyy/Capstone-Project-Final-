@@ -491,16 +491,18 @@
                         <div class="col-md-6">
                             <label class="form-label">Contact Number (SMS Verification Target) <span
                                     class="text-danger">*</span></label>
-                            <input  type="tel" class="form-control" id="regPhone" placeholder="e.g. 09171234567"
-                                required aria-label="09171234567">
+                            <input type="tel" class="form-control" id="regPhone" placeholder="e.g. 09171234567"
+                                required oninput="clearInlineError('regPhone', 'phoneConflictNotice')" onblur="checkPhoneAvailability()">
+                            <div id="phoneConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This mobile number is already registered to an existing account.</div>
                             <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>Used for SMS OTP verification or notifications.</div>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Email Address (Gmail Verification Target) <span
                                     class="text-danger">*</span></label>
-                            <input  type="email" class="form-control" id="regEmail" placeholder="e.g. juan@gmail.com"
-                                required aria-label="juan@gmail.com">
+                            <input type="email" class="form-control" id="regEmail" placeholder="e.g. juan@gmail.com"
+                                required oninput="clearInlineError('regEmail', 'emailConflictNotice')" onblur="checkEmailAvailability()">
+                            <div id="emailConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This email address is already registered to an existing account.</div>
                             <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>Must be a valid Gmail (@gmail.com) address.</div>
                         </div>
                     </div>
@@ -511,8 +513,10 @@
                         <div class="col-md-4">
                             <label for="regUsername" class="form-label">Username <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="regUsername" required
-                                placeholder="Choose a unique username">
+                                placeholder="Choose a unique username" oninput="clearInlineError('regUsername', 'usernameConflictNotice')" onblur="checkUsernameAvailability()">
+                            <div id="usernameConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This username is already taken.</div>
                         </div>
+
 
                         <!-- PASSWORD WITH STRENGTH METER & TOGGLE -->
                         <div class="col-md-4">
@@ -764,10 +768,11 @@
                             <div class="col-8 fw-bold text-dark font-monospace" id="summaryUsername">juan.delacruz</div>
 
                             <div class="col-4 text-muted">Gmail Address:</div>
-                            <div class="col-8"><span id="summaryEmail" class="fw-semibold text-dark">user@gmail.com</span> <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill"></i> Verified</span></div>
+                            <div class="col-8"><span id="summaryEmail" class="fw-semibold text-dark">user@gmail.com</span> <span id="summaryEmailBadge" class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill"></i> Verified</span></div>
 
                             <div class="col-4 text-muted">Mobile Number:</div>
-                            <div class="col-8"><span id="summaryPhone" class="fw-semibold text-dark">0917-***-2222</span> <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill"></i> Verified</span></div>
+                            <div class="col-8"><span id="summaryPhone" class="fw-semibold text-dark">0917-***-2222</span> <span id="summaryPhoneBadge" class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size: 0.65rem;"><i class="bi bi-telephone"></i> Provided</span></div>
+
 
                             <div class="col-4 text-muted">Barangay:</div>
                             <div class="col-8 fw-semibold text-dark" id="summaryBarangay">Morales, City of Koronadal</div>
@@ -809,8 +814,75 @@
         let otpExpiryInterval = null;
         let otpResendInterval = null;
 
+        // Inline error messaging helpers (Clean inline warning, no popup/toast)
+        function showInlineError(inputId, errorDivId, message) {
+            const input = document.getElementById(inputId);
+            const errDiv = document.getElementById(errorDivId);
+            if (input) {
+                input.classList.add('is-invalid');
+                input.focus();
+            }
+            if (errDiv) {
+                if (message) errDiv.innerHTML = `<i class="bi bi-exclamation-circle-fill me-1"></i> ${message}`;
+                errDiv.classList.remove('d-none');
+            }
+        }
+
+        function clearInlineError(inputId, errorDivId) {
+            const input = document.getElementById(inputId);
+            const errDiv = document.getElementById(errorDivId);
+            if (input) input.classList.remove('is-invalid');
+            if (errDiv) errDiv.classList.add('d-none');
+        }
+
+        async function checkEmailAvailability() {
+            const email = document.getElementById('regEmail')?.value.trim();
+            if (!email || !email.includes('@')) return;
+            if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+                try {
+                    const res = await DataService.auth.checkIdentifierAvailability({ email });
+                    if (res && res.data && res.data.isEmailTaken) {
+                        showInlineError('regEmail', 'emailConflictNotice', 'This email address is already registered to an existing account.');
+                    } else {
+                        clearInlineError('regEmail', 'emailConflictNotice');
+                    }
+                } catch (e) {}
+            }
+        }
+
+        async function checkPhoneAvailability() {
+            const phone = document.getElementById('regPhone')?.value.trim();
+            if (!phone || phone.length < 10) return;
+            if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+                try {
+                    const res = await DataService.auth.checkIdentifierAvailability({ phone });
+                    if (res && res.data && res.data.isPhoneTaken) {
+                        showInlineError('regPhone', 'phoneConflictNotice', 'This mobile number is already registered to an existing account.');
+                    } else {
+                        clearInlineError('regPhone', 'phoneConflictNotice');
+                    }
+                } catch (e) {}
+            }
+        }
+
+        async function checkUsernameAvailability() {
+            const username = document.getElementById('regUsername')?.value.trim();
+            if (!username) return;
+            if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+                try {
+                    const res = await DataService.auth.checkIdentifierAvailability({ username });
+                    if (res && res.data && res.data.isUsernameTaken) {
+                        showInlineError('regUsername', 'usernameConflictNotice', 'The username is already taken. Please choose another username.');
+                    } else {
+                        clearInlineError('regUsername', 'usernameConflictNotice');
+                    }
+                } catch (e) {}
+            }
+        }
+
         // Auto calculate age from Birthday input
         function autoCalculateAge() {
+
             const bdate = document.getElementById('regBirthday').value;
             if (!bdate) return;
             const b = new Date(bdate);
@@ -1114,27 +1186,34 @@
                 return;
             }
 
-            // Pre-flight Security Safeguard: Cross-check username and email uniqueness in Supabase
+            // Clear any lingering inline conflict errors
+            clearInlineError('regEmail', 'emailConflictNotice');
+            clearInlineError('regPhone', 'phoneConflictNotice');
+            clearInlineError('regUsername', 'usernameConflictNotice');
+
+            // Pre-flight Security Safeguard: Cross-check phone, username, and email uniqueness in Supabase
             if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
                 try {
-                    const checkRes = await DataService.auth.checkIdentifierAvailability({ username, email });
+                    const checkRes = await DataService.auth.checkIdentifierAvailability({ username, email, phone });
                     if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
-                        window.showSystemNotification({
-                            title: 'Account Conflict Detected',
-                            message: checkRes.data.message || 'The specified username or email is already registered in the system.',
-                            type: 'error'
-                        });
-                        if (checkRes.data.isUsernameTaken) {
-                            document.getElementById('regUsername').focus();
-                        } else if (checkRes.data.isEmailTaken) {
-                            document.getElementById('regEmail').focus();
+                        if (checkRes.data.isEmailTaken) {
+                            showInlineError('regEmail', 'emailConflictNotice', 'This email address is already registered to an existing account.');
+                            return;
                         }
-                        return;
+                        if (checkRes.data.isPhoneTaken) {
+                            showInlineError('regPhone', 'phoneConflictNotice', 'This mobile number is already registered to an existing account.');
+                            return;
+                        }
+                        if (checkRes.data.isUsernameTaken) {
+                            showInlineError('regUsername', 'usernameConflictNotice', 'The username is already taken. Please choose another username.');
+                            return;
+                        }
                     }
                 } catch (checkErr) {
                     console.warn('[REGISTRATION] Identifier uniqueness check warning:', checkErr);
                 }
             }
+
 
             registrationData = {
                 first_name: fn,
@@ -1295,7 +1374,7 @@
                     address: fullAddress,
                     purok: registrationData.purok,
                     barangay: registrationData.barangay,
-                    program_sector: registrationData.program_sector,
+                    program: registrationData.program_sector,
                     status: 'Active',
                     terms_agreed: true,
                     data_consent: true,
@@ -1304,14 +1383,22 @@
                 };
 
                 // Insert into Supabase beneficiaries table
-                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                if (typeof DataService !== 'undefined' && DataService.beneficiaries) {
+                    try {
+                        await DataService.beneficiaries.create(beneficiaryRecord);
+                    } catch (benErr) {
+                        console.warn('[REGISTRATION DB INSERT]:', benErr);
+                    }
+                } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     try {
                         await supabaseClient.from('beneficiaries').insert(beneficiaryRecord);
                     } catch (benErr) {
                         console.warn('[REGISTRATION DB INSERT]:', benErr);
                     }
+                }
 
-                    // Create user in Supabase Auth if applicable
+                // Create user in Supabase Auth if applicable
+                if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
                     try {
                         await supabaseClient.auth.signUp({
                             email: registrationData.email,
@@ -1328,6 +1415,7 @@
                         });
                     } catch (e) {}
                 }
+
 
                 // Save active beneficiary session with complete profile data
                 sessionStorage.setItem('beneficiaryLoggedIn', 'true');
@@ -1386,6 +1474,30 @@
                 document.getElementById('summaryPhone').textContent = registrationData.phone_number;
                 document.getElementById('summaryBarangay').textContent = `${registrationData.barangay}, City of Koronadal`;
                 document.getElementById('summarySector').textContent = registrationData.program_sector;
+
+                // Dynamically configure single-channel verification badge
+                const emailBadgeEl = document.getElementById('summaryEmailBadge');
+                const phoneBadgeEl = document.getElementById('summaryPhoneBadge');
+                if (activeVerificationChannel === 'EMAIL') {
+                    if (emailBadgeEl) {
+                        emailBadgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle ms-1';
+                        emailBadgeEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> Verified';
+                    }
+                    if (phoneBadgeEl) {
+                        phoneBadgeEl.className = 'badge bg-secondary-subtle text-secondary border ms-1';
+                        phoneBadgeEl.innerHTML = '<i class="bi bi-telephone"></i> Provided';
+                    }
+                } else {
+                    if (emailBadgeEl) {
+                        emailBadgeEl.className = 'badge bg-secondary-subtle text-secondary border ms-1';
+                        emailBadgeEl.innerHTML = '<i class="bi bi-envelope"></i> Provided';
+                    }
+                    if (phoneBadgeEl) {
+                        phoneBadgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle ms-1';
+                        phoneBadgeEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> Verified';
+                    }
+                }
+
 
                 // Render Dynamic Visual QR Code
                 const qrContainer = document.getElementById('summaryQrCanvas');

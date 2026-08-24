@@ -438,54 +438,22 @@ CREATE POLICY "Allow staff profile creation on signup"
 
 -- ---- beneficiaries policies ----
 
--- Beneficiaries can view their own profile
-CREATE POLICY "Beneficiary can view own profile"
+-- Beneficiaries and public can view/read beneficiary profiles
+CREATE POLICY "Allow public read beneficiaries"
   ON beneficiaries FOR SELECT
-  USING (auth_id = auth.uid());
+  USING (true);
 
--- Staff can view all beneficiary profiles
-CREATE POLICY "Staff can view all beneficiaries"
-  ON beneficiaries FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM staff_profiles sp
-      WHERE sp.auth_id = auth.uid()
-      AND sp.role IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator')
-    )
-  );
-
--- Beneficiaries can update their own profile
-CREATE POLICY "Beneficiary can update own profile"
+-- Allow public and beneficiaries to update their profile
+CREATE POLICY "Allow public update beneficiaries"
   ON beneficiaries FOR UPDATE
-  USING (auth_id = auth.uid())
-  WITH CHECK (auth_id = auth.uid());
+  USING (true)
+  WITH CHECK (true);
 
--- Staff (officers/admins) can update beneficiary profiles
-CREATE POLICY "Staff can update beneficiary profiles"
-  ON beneficiaries FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM staff_profiles sp
-      WHERE sp.auth_id = auth.uid()
-      AND sp.role IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer')
-    )
-  );
-
--- Allow beneficiary profile creation on signup (via trigger, uses SECURITY DEFINER)
-CREATE POLICY "Allow beneficiary creation on signup"
+-- Allow public and staff to register/insert beneficiaries
+CREATE POLICY "Allow public beneficiary signup insert"
   ON beneficiaries FOR INSERT
-  WITH CHECK (auth_id = auth.uid());
+  WITH CHECK (true);
 
--- Staff (officers/admins) can manually register/insert beneficiaries
-CREATE POLICY "Staff can insert beneficiaries"
-  ON beneficiaries FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM staff_profiles sp
-      WHERE sp.auth_id = auth.uid()
-      AND sp.role IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer')
-    )
-  );
 
 
 -- ---- programs policies ----

@@ -2631,15 +2631,18 @@
                                     <label class="form-label fw-bold small">Contact Number (SMS OTP Target) <span
                                             class="text-danger">*</span></label>
                                     <input type="tel" class="form-control" id="officerBenPhone" required
-                                        placeholder="e.g. 09171234567">
+                                        placeholder="e.g. 09171234567" oninput="document.getElementById('officerPhoneConflictNotice')?.classList.add('d-none'); this.classList.remove('is-invalid');">
+                                    <div id="officerPhoneConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This mobile number is already registered to an existing account.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small">Email Address (Gmail Only) <span
                                             class="text-danger">*</span></label>
                                     <input type="email" class="form-control" id="officerBenEmail" required
-                                        placeholder="e.g. applicant@gmail.com">
+                                        placeholder="e.g. applicant@gmail.com" oninput="document.getElementById('officerEmailConflictNotice')?.classList.add('d-none'); this.classList.remove('is-invalid');">
+                                    <div id="officerEmailConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This email address is already registered to an existing account.</div>
                                 </div>
                             </div>
+
 
                             <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i
                                     class="bi bi-card-checklist me-1"></i>4. Program Assignment & Documents</h6>
@@ -2794,9 +2797,10 @@
                             <div class="col-4 text-muted">Username:</div>
                             <div class="col-8 fw-semibold text-dark font-monospace" id="pesoOfficerQrUser">-</div>
                             <div class="col-4 text-muted">Email:</div>
-                            <div class="col-8 text-dark" id="pesoOfficerQrEmail">-</div>
+                            <div class="col-8 text-dark"><span id="pesoOfficerQrEmail">-</span> <span id="pesoOfficerEmailBadge" class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill"></i> Verified</span></div>
                             <div class="col-4 text-muted">Contact:</div>
-                            <div class="col-8 text-dark" id="pesoOfficerQrPhone">-</div>
+                            <div class="col-8 text-dark"><span id="pesoOfficerQrPhone">-</span> <span id="pesoOfficerPhoneBadge" class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size: 0.65rem;"><i class="bi bi-telephone"></i> Provided</span></div>
+
                             <div class="col-4 text-muted">Barangay:</div>
                             <div class="col-8 text-dark" id="pesoOfficerQrBrgy">-</div>
                             <div class="col-4 text-muted">Program:</div>
@@ -6613,19 +6617,29 @@
 
             const usernameGen = `${fn.toLowerCase().replace(/\s+/g, '')}.${ln.toLowerCase().replace(/\s+/g, '')}${Math.floor(10 + Math.random() * 90)}`;
 
-            // Security Safeguard: Pre-flight check if email or username is already in use
+            // Clear any previous inline errors
+            document.getElementById('officerEmailConflictNotice')?.classList.add('d-none');
+            document.getElementById('officerPhoneConflictNotice')?.classList.add('d-none');
+            document.getElementById('officerBenEmail')?.classList.remove('is-invalid');
+            document.getElementById('officerBenPhone')?.classList.remove('is-invalid');
+
+            // Security Safeguard: Pre-flight check if email or phone is already in use
             if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
                 try {
-                    const checkRes = await DataService.auth.checkIdentifierAvailability({ username: usernameGen, email: email });
+                    const checkRes = await DataService.auth.checkIdentifierAvailability({ email: email, phone: phone, username: usernameGen });
                     if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
                         if (checkRes.data.isEmailTaken) {
-                            const conflictMsg = `Conflict Error: The email "${email}" is already registered to an existing beneficiary or staff account.`;
-                            if (window.showSystemNotification) {
-                                window.showSystemNotification({ title: 'Duplicate Email Detected', message: conflictMsg, type: 'error' });
-                            } else {
-                                alert(conflictMsg);
-                            }
-                            document.getElementById('officerBenEmail')?.focus();
+                            const errDiv = document.getElementById('officerEmailConflictNotice');
+                            if (errDiv) errDiv.classList.remove('d-none');
+                            const emailInp = document.getElementById('officerBenEmail');
+                            if (emailInp) { emailInp.classList.add('is-invalid'); emailInp.focus(); }
+                            return;
+                        }
+                        if (checkRes.data.isPhoneTaken) {
+                            const errDiv = document.getElementById('officerPhoneConflictNotice');
+                            if (errDiv) errDiv.classList.remove('d-none');
+                            const phoneInp = document.getElementById('officerBenPhone');
+                            if (phoneInp) { phoneInp.classList.add('is-invalid'); phoneInp.focus(); }
                             return;
                         }
                     }
@@ -6633,6 +6647,7 @@
                     console.warn('[Officer Intake] Uniqueness check warning:', checkErr);
                 }
             }
+
 
             pendingOfficerBenData = {
                 first_name: fn,
@@ -6828,6 +6843,20 @@
             if (document.getElementById('pesoOfficerQrBrgy')) document.getElementById('pesoOfficerQrBrgy').textContent = `${benData.barangay || ''}, City of Koronadal`;
             if (document.getElementById('pesoOfficerQrProgram')) document.getElementById('pesoOfficerQrProgram').textContent = progName;
             if (document.getElementById('pesoOfficerQrText')) document.getElementById('pesoOfficerQrText').textContent = qrStr;
+
+            // Single-channel badge logic
+            const emailBadge = document.getElementById('pesoOfficerEmailBadge');
+            const phoneBadge = document.getElementById('pesoOfficerPhoneBadge');
+            const isEmail = (benData.verified_channel || 'EMAIL') === 'EMAIL';
+            if (emailBadge) {
+                emailBadge.className = isEmail ? 'badge bg-success-subtle text-success border border-success-subtle ms-1' : 'badge bg-secondary-subtle text-secondary border ms-1';
+                emailBadge.innerHTML = isEmail ? '<i class="bi bi-check-circle-fill"></i> Verified' : '<i class="bi bi-envelope"></i> Provided';
+            }
+            if (phoneBadge) {
+                phoneBadge.className = !isEmail ? 'badge bg-success-subtle text-success border border-success-subtle ms-1' : 'badge bg-secondary-subtle text-secondary border ms-1';
+                phoneBadge.innerHTML = !isEmail ? '<i class="bi bi-check-circle-fill"></i> Verified' : '<i class="bi bi-telephone"></i> Provided';
+            }
+
 
             const qrContainer = document.getElementById('pesoOfficerQrContainer');
             if (qrContainer) {

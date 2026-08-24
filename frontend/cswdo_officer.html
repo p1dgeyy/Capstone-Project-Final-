@@ -1812,11 +1812,13 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Contact Number (SMS OTP Target) <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="cswdoBenPhone" required placeholder="e.g. 09171234567">
+                                <input type="tel" class="form-control" id="cswdoBenPhone" required placeholder="e.g. 09171234567" oninput="document.getElementById('cswdoPhoneConflictNotice')?.classList.add('d-none'); this.classList.remove('is-invalid');">
+                                <div id="cswdoPhoneConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This mobile number is already registered to an existing account.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Email Address (Gmail Only) <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="cswdoBenEmail" required placeholder="e.g. applicant@gmail.com">
+                                <input type="email" class="form-control" id="cswdoBenEmail" required placeholder="e.g. applicant@gmail.com" oninput="document.getElementById('cswdoEmailConflictNotice')?.classList.add('d-none'); this.classList.remove('is-invalid');">
+                                <div id="cswdoEmailConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This email address is already registered to an existing account.</div>
                             </div>
                         </div>
 
@@ -1938,9 +1940,9 @@
                         <div class="col-4 text-muted">Username:</div>
                         <div class="col-8 fw-semibold text-dark font-monospace" id="cswdoQrBenUser">elena.garcia</div>
                         <div class="col-4 text-muted">Email:</div>
-                        <div class="col-8 text-dark" id="cswdoQrBenEmail">elena@gmail.com</div>
+                        <div class="col-8 text-dark"><span id="cswdoQrBenEmail">elena@gmail.com</span> <span id="cswdoEmailBadge" class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill"></i> Verified</span></div>
                         <div class="col-4 text-muted">Contact:</div>
-                        <div class="col-8 text-dark" id="cswdoQrBenPhone">0917-***-1234</div>
+                        <div class="col-8 text-dark"><span id="cswdoQrBenPhone">0917-***-1234</span> <span id="cswdoPhoneBadge" class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size: 0.65rem;"><i class="bi bi-telephone"></i> Provided</span></div>
                         <div class="col-4 text-muted">Barangay:</div>
                         <div class="col-8 text-dark" id="cswdoQrBenBrgy">Morales</div>
                         <div class="col-4 text-muted">Assistance:</div>
@@ -4381,9 +4383,42 @@
             const program = document.getElementById('cswdoBenProgram').value;
 
             if (!email.endsWith('@gmail.com')) {
-                alert('Invalid Email: Beneficiary email must be a valid Gmail (@gmail.com) address.');
-                document.getElementById('cswdoBenEmail')?.focus();
+                const errDiv = document.getElementById('cswdoEmailConflictNotice');
+                if (errDiv) { errDiv.textContent = 'Invalid Email: Must be a valid Gmail (@gmail.com) address.'; errDiv.classList.remove('d-none'); }
+                const emailInp = document.getElementById('cswdoBenEmail');
+                if (emailInp) { emailInp.classList.add('is-invalid'); emailInp.focus(); }
                 return;
+            }
+
+            // Clear previous inline errors
+            document.getElementById('cswdoEmailConflictNotice')?.classList.add('d-none');
+            document.getElementById('cswdoPhoneConflictNotice')?.classList.add('d-none');
+            document.getElementById('cswdoBenEmail')?.classList.remove('is-invalid');
+            document.getElementById('cswdoBenPhone')?.classList.remove('is-invalid');
+
+            // Security Safeguard: Pre-flight check if email or phone is already in use
+            if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+                try {
+                    const checkRes = await DataService.auth.checkIdentifierAvailability({ email: email, phone: phone });
+                    if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
+                        if (checkRes.data.isEmailTaken) {
+                            const errDiv = document.getElementById('cswdoEmailConflictNotice');
+                            if (errDiv) { errDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i> This email address is already registered to an existing account.'; errDiv.classList.remove('d-none'); }
+                            const emailInp = document.getElementById('cswdoBenEmail');
+                            if (emailInp) { emailInp.classList.add('is-invalid'); emailInp.focus(); }
+                            return;
+                        }
+                        if (checkRes.data.isPhoneTaken) {
+                            const errDiv = document.getElementById('cswdoPhoneConflictNotice');
+                            if (errDiv) { errDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i> This mobile number is already registered to an existing account.'; errDiv.classList.remove('d-none'); }
+                            const phoneInp = document.getElementById('cswdoBenPhone');
+                            if (phoneInp) { phoneInp.classList.add('is-invalid'); phoneInp.focus(); }
+                            return;
+                        }
+                    }
+                } catch (checkErr) {
+                    console.warn('[CSWDO Intake] Uniqueness check warning:', checkErr);
+                }
             }
 
             pendingCswdoBenData = {
@@ -4560,6 +4595,19 @@
             if (document.getElementById('cswdoQrBenBrgy')) document.getElementById('cswdoQrBenBrgy').textContent = `${benData.barangay || ''}, City of Koronadal`;
             if (document.getElementById('cswdoQrBenId')) document.getElementById('cswdoQrBenId').textContent = `QR: ${qrStr}`;
             if (document.getElementById('cswdoQrBenProgram')) document.getElementById('cswdoQrBenProgram').textContent = progName;
+
+            // Single-channel badge logic
+            const emailBadge = document.getElementById('cswdoEmailBadge');
+            const phoneBadge = document.getElementById('cswdoPhoneBadge');
+            const isEmail = (benData.verified_channel || 'EMAIL') === 'EMAIL';
+            if (emailBadge) {
+                emailBadge.className = isEmail ? 'badge bg-success-subtle text-success border border-success-subtle ms-1' : 'badge bg-secondary-subtle text-secondary border ms-1';
+                emailBadge.innerHTML = isEmail ? '<i class="bi bi-check-circle-fill"></i> Verified' : '<i class="bi bi-envelope"></i> Provided';
+            }
+            if (phoneBadge) {
+                phoneBadge.className = !isEmail ? 'badge bg-success-subtle text-success border border-success-subtle ms-1' : 'badge bg-secondary-subtle text-secondary border ms-1';
+                phoneBadge.innerHTML = !isEmail ? '<i class="bi bi-check-circle-fill"></i> Verified' : '<i class="bi bi-telephone"></i> Provided';
+            }
 
             const qrContainer = document.getElementById('cswdoQrCanvasContainer');
             if (qrContainer) {
