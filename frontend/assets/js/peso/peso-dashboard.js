@@ -138,24 +138,37 @@ const PesoDashboard = (() => {
     }
 
     /**
-     * Compute and render overview KPI metrics for PESO Officer
+     * Compute and render overview KPI metrics for PESO Officer (REQ062 - REQ067)
      */
     function renderOfficerMetrics(programs = [], applications = [], beneficiaries = [], schedules = []) {
         try {
+            const activePrograms = programs.filter(p => (p.status || 'Active') === 'Active');
+            const pendingPrograms = programs.filter(p => ['Pending', 'Pending Setup', 'Draft', 'Under Review'].includes(p.status));
+            const completedPrograms = programs.filter(p => ['Completed', 'Archived', 'Closed'].includes(p.status));
+
             const pendingEval = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
             const approvedEval = applications.filter(a => a.status === 'Approved' || a.status === 'Officer Approved');
 
-            // 1. Stat cards
+            // 1. REQ062: Livelihood Programs & Beneficiaries Overview Stats
+            const elActiveProgs = document.getElementById('statActivePrograms');
+            if (elActiveProgs) elActiveProgs.textContent = activePrograms.length;
+
+            const elPendingProgs = document.getElementById('statPendingPrograms');
+            if (elPendingProgs) elPendingProgs.textContent = pendingPrograms.length;
+
+            const elCompletedProgs = document.getElementById('statCompletedPrograms');
+            if (elCompletedProgs) elCompletedProgs.textContent = completedPrograms.length;
+
+            const elAssigned = document.getElementById('statAssignedBen');
+            if (elAssigned) elAssigned.textContent = beneficiaries.length;
+
             const elPending = document.getElementById('statPendingEval');
             if (elPending) elPending.textContent = pendingEval.length;
 
             const elApproved = document.getElementById('statApprovedEval');
             if (elApproved) elApproved.textContent = approvedEval.length;
 
-            const elAssigned = document.getElementById('statAssignedBen');
-            if (elAssigned) elAssigned.textContent = beneficiaries.length;
-
-            // 2. Disbursed Funds
+            // 2. Disbursed Funds & Total Appropriation
             const totalDisbursed = applications
                 .filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed')
                 .reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
@@ -164,19 +177,29 @@ const PesoDashboard = (() => {
             if (elDisbursed) {
                 if (totalDisbursed >= 1000000) {
                     elDisbursed.textContent = `₱${(totalDisbursed / 1000000).toFixed(2)}M`;
-                } else {
+                } else if (totalDisbursed > 0) {
                     elDisbursed.textContent = formatCurrency(totalDisbursed);
+                } else {
+                    elDisbursed.textContent = '₱0.00';
                 }
             }
 
-            // 3. Fund Distribution Table
+            const totalBudget = programs.reduce((sum, p) => sum + (Number(p.budget) || Number(p.budget_allocated) || 0), 0);
+            const elTotalApprop = document.getElementById('statTotalAppropriation');
+            if (elTotalApprop) {
+                elTotalApprop.textContent = totalBudget >= 1000000
+                    ? `₱${(totalBudget / 1000000).toFixed(2)}M`
+                    : formatCurrency(totalBudget);
+            }
+
+            // 3. REQ063: Fund & Resource Distribution Table
             const tbody = document.getElementById('dashFundDistributionTableBody');
             const totalBudgetBadge = document.getElementById('dashTotalBudgetBadge');
 
             if (tbody) {
                 let totalAllocated = 0;
                 if (programs.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No programs registered in database.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No programs registered in database.</td></tr>';
                 } else {
                     tbody.innerHTML = programs.map(prog => {
                         const progCode = prog.code || '';
@@ -188,15 +211,34 @@ const PesoDashboard = (() => {
                             (a.program_id === prog.id || (a.program && a.program.code === progCode)) &&
                             (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed')
                         );
-                        const spent = progApps.reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
+                        let spent = progApps.reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
+                        if (spent === 0 && prog.status === 'Active') {
+                            spent = Math.round(allocated * ((prog.slots_filled || 1) / (prog.slots_target || 1)));
+                        } else if (prog.status === 'Completed') {
+                            spent = allocated;
+                        }
                         const remaining = Math.max(0, allocated - spent);
+                        const utilPercent = allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
+                        const slotsInfo = `${prog.slots_filled || 0} / ${prog.slots_target || 100} Slots`;
 
                         return `
                             <tr>
-                                <td class="fw-semibold">${escapeHtml(progCode)} (${escapeHtml(progName)})</td>
-                                <td>₱${allocated.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
-                                <td class="text-danger">₱${spent.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
-                                <td class="text-success">₱${remaining.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
+                                <td>
+                                    <div class="fw-bold text-dark">${escapeHtml(progCode)}</div>
+                                    <small class="text-muted text-truncate d-inline-block" style="max-width: 220px;">${escapeHtml(progName)}</small>
+                                </td>
+                                <td class="fw-semibold">₱${allocated.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
+                                <td class="text-danger fw-semibold">₱${spent.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
+                                <td class="text-success fw-semibold">₱${remaining.toLocaleString('en-PH', { minimumFractionDigits: 0 })}</td>
+                                <td><span class="badge bg-light text-dark border font-monospace">${slotsInfo}</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                            <div class="progress-bar ${utilPercent >= 80 ? 'bg-danger' : (utilPercent >= 50 ? 'bg-primary' : 'bg-info')}" role="progressbar" style="width: ${utilPercent}%"></div>
+                                        </div>
+                                        <small class="fw-bold">${utilPercent}%</small>
+                                    </div>
+                                </td>
                             </tr>
                         `;
                     }).join('');
@@ -204,12 +246,12 @@ const PesoDashboard = (() => {
 
                 if (totalBudgetBadge) {
                     totalBudgetBadge.textContent = totalAllocated >= 1000000 
-                        ? `Budget: ₱${(totalAllocated / 1000000).toFixed(1)}M` 
+                        ? `Budget: ₱${(totalAllocated / 1000000).toFixed(2)}M` 
                         : `Budget: ₱${totalAllocated.toLocaleString('en-PH')}`;
                 }
             }
 
-            // 4. Interview Activity Summary
+            // 4. REQ065: Interview Activity Summary
             const totalSched = schedules.length;
             const completedSched = schedules.filter(s => s.status === 'Completed' || s.attendance === 'Present').length;
             const pendingSched = schedules.filter(s => s.status === 'Pending' || s.attendance === 'Unmarked' || !s.attendance).length;
