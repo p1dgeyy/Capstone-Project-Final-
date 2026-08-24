@@ -97,17 +97,26 @@ async function initSchedulingModuleData() {
 }
 
 /**
- * Populate Dropdowns for Filters and Modals
+ * Populate Dropdowns for Filters and Modals strictly from live Supabase DataService
  */
-function populateSchedulingDropdowns() {
-    // 1. Program Filter & Modal Program Select
+async function populateSchedulingDropdowns() {
+    // 1. Live Programs
+    let programs = Array.isArray(window.programsList) && window.programsList.length > 0 ? window.programsList : [];
+    if (programs.length === 0 && typeof DataService !== 'undefined' && DataService.programs) {
+        try {
+            const progRes = await DataService.programs.getAll({ agency: 'PESO' });
+            if (progRes.data && Array.isArray(progRes.data)) {
+                programs = progRes.data;
+                window.programsList = programs;
+            }
+        } catch (e) {
+            console.warn('[SCHEDULING] Live programs query notice:', e);
+        }
+    }
+
     const progFilter = document.getElementById('schedProgramFilter');
     const actProgSelect = document.getElementById('actTargetProgramSelect');
     const editProgSelect = document.getElementById('editActTargetProgramSelect');
-
-    const programs = Array.isArray(window.programsList) && window.programsList.length > 0 
-        ? window.programsList 
-        : [{ id: 1, code: 'TUPAD', name: 'TUPAD Emergency Employment' }, { id: 2, code: 'SPES', name: 'Special Program for Employment of Students' }, { id: 3, code: 'LIVELIHOOD', name: 'Livelihood Assistance Program' }];
 
     if (progFilter) {
         let opts = '<option value="ALL">All Programs</option>';
@@ -118,6 +127,9 @@ function populateSchedulingDropdowns() {
     }
 
     const buildProgOptions = () => {
+        if (programs.length === 0) {
+            return '<option value="">No Active Programs Available</option>';
+        }
         let opts = '<option value="">Select Target Program...</option>';
         programs.forEach(p => {
             opts += `<option value="${p.id}" data-code="${escapeHtml(p.code)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>`;
@@ -128,14 +140,23 @@ function populateSchedulingDropdowns() {
     if (actProgSelect) actProgSelect.innerHTML = buildProgOptions();
     if (editProgSelect) editProgSelect.innerHTML = buildProgOptions();
 
-    // 2. Officers Filter & Modal Officer Select (Optional)
+    // 2. Live PESO Officers
+    let officers = Array.isArray(window.officersList) && window.officersList.length > 0 ? window.officersList : [];
+    if (officers.length === 0 && typeof DataService !== 'undefined' && DataService.staffProfiles) {
+        try {
+            const offRes = await DataService.staffProfiles.getAll({ role: 'PESO Officer' });
+            if (offRes.data && Array.isArray(offRes.data)) {
+                officers = offRes.data;
+                window.officersList = officers;
+            }
+        } catch (e) {
+            console.warn('[SCHEDULING] Live officers query notice:', e);
+        }
+    }
+
     const offFilter = document.getElementById('schedOfficerFilter');
     const actOffSelect = document.getElementById('actOfficerSelect');
     const editOffSelect = document.getElementById('editActOfficerSelect');
-
-    const officers = Array.isArray(window.officersList) && window.officersList.length > 0 
-        ? window.officersList 
-        : (Array.isArray(window.usersList) ? window.usersList.filter(u => u.role && u.role.includes('Officer')) : []);
 
     if (offFilter) {
         let opts = '<option value="ALL">All Officers</option>';
