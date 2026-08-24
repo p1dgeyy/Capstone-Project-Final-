@@ -1834,10 +1834,6 @@
                 <i class="bi bi-house-door"></i>
                 <span data-translate="nav_dashboard">Dashboard</span>
             </a>
-            <a href="#" class="nav-link-custom" data-section="applications" onclick="navigateTo('applications')">
-                <i class="bi bi-file-earmark-text"></i>
-                <span data-translate="nav_applications">Applications</span>
-            </a>
             <a href="#" class="nav-link-custom" data-section="documents" onclick="navigateTo('documents')">
                 <i class="bi bi-folder"></i>
                 <span data-translate="nav_documents">Documents</span>
@@ -1906,7 +1902,7 @@
             <!-- Overview Stat & Summary Cards (4 Standardized Metrics) -->
             <div class="row g-3 mb-4">
                 <div class="col-sm-6 col-xl-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid var(--rose-primary) !important; cursor: pointer;" onclick="navigateTo('applications')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid var(--rose-primary) !important; cursor: pointer;" onclick="scrollToElement('recentApplicationsSection')">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Submitted Applications</span>
                             <div class="stat-icon-wrapper pending p-2 rounded-3 bg-primary-subtle text-primary">
@@ -1918,7 +1914,7 @@
                     </div>
                 </div>
                 <div class="col-sm-6 col-xl-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #f59e0b !important; cursor: pointer;" onclick="navigateTo('applications')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #f59e0b !important; cursor: pointer;" onclick="scrollToElement('recentApplicationsSection')">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Pending / Requirements</span>
                             <div class="stat-icon-wrapper pending p-2 rounded-3 bg-warning-subtle text-warning">
@@ -1930,7 +1926,7 @@
                     </div>
                 </div>
                 <div class="col-sm-6 col-xl-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #10b981 !important; cursor: pointer;" onclick="navigateTo('applications')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #10b981 !important; cursor: pointer;" onclick="scrollToElement('recentApplicationsSection')">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Approved Requests</span>
                             <div class="stat-icon-wrapper approved p-2 rounded-3 bg-success-subtle text-success">
@@ -1942,7 +1938,7 @@
                     </div>
                 </div>
                 <div class="col-sm-6 col-xl-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #64748b !important; cursor: pointer;" onclick="navigateTo('applications')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #64748b !important; cursor: pointer;" onclick="scrollToElement('recentApplicationsSection')">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Completed Applications</span>
                             <div class="stat-icon-wrapper notifications p-2 rounded-3 bg-secondary-subtle text-secondary">
@@ -2036,7 +2032,7 @@
                 <button class="btn-quick-action" onclick="openModal('applyModal')">
                     <i class="bi bi-plus-circle-fill"></i> <span data-translate="action_apply">Apply for Assistance</span>
                 </button>
-                <button class="btn-quick-action" onclick="navigateTo('applications')">
+                <button class="btn-quick-action" onclick="scrollToElement('recentApplicationsSection')">
                     <i class="bi bi-file-earmark-text-fill"></i> <span data-translate="action_view_status">View Application Status</span>
                 </button>
                 <button class="btn-quick-action" onclick="openModal('profileModal')">
@@ -2048,7 +2044,7 @@
             </div>
 
             <!-- Recent Applications Table -->
-            <h3 class="section-title">Recent Applications</h3>
+            <h3 class="section-title" id="recentApplicationsSection">Recent Applications</h3>
             <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
                 <div class="search-box-custom" style="position: relative; max-width: 300px; width: 100%;">
                     <input type="text" class="form-control form-control-sm ps-4" id="appSearchInput" placeholder="Search applications..." onkeyup="filterRecentApplications()" aria-label="Search applications">
@@ -2092,20 +2088,6 @@
             <h3 class="section-title">Latest Notifications</h3>
             <div class="card p-3 mb-4" id="benDashboardNotificationsFeed">
                 <div class="text-center py-3 text-muted small">Loading notifications...</div>
-            </div>
-        </section>
-
-        <!-- APPLICATIONS SECTION -->
-        <section id="applications" class="section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h2 class="section-title" style="margin-bottom: 0;">My Applications</h2>
-                <button class="btn-primary-rose btn-sm-rose" onclick="openModal('applyModal')">
-                    <i class="bi bi-plus"></i> New Application
-                </button>
-            </div>
-
-            <div id="userApplicationsContainer">
-                <!-- Loaded dynamically -->
             </div>
         </section>
 
@@ -2822,23 +2804,21 @@
 
         // Navigation
         function navigateTo(section) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.getElementById(section).classList.add('active');
-            
-            document.querySelectorAll('.nav-link-custom').forEach(link => link.classList.remove('active'));
-            const matchingLink = document.querySelector(`.nav-link-custom[data-section="${section}"]`);
-            if (matchingLink) matchingLink.classList.add('active');
-            
+            switchSection(section);
             if (window.innerWidth <= 768) {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('sidebarOverlay').classList.remove('active');
+                const sb = document.getElementById('sidebar');
+                if (sb) sb.classList.remove('open');
+                const sbo = document.getElementById('sidebarOverlay');
+                if (sbo) sbo.classList.remove('active');
             }
-            
-            if (section === 'programs') {
-                renderBeneficiaryPrograms();
+        }
+
+        // Smooth scroll helper
+        function scrollToElement(elId) {
+            const el = document.getElementById(elId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-            
-            window.scrollTo(0, 0);
         }
 
         // Sidebar toggle (mobile)
@@ -3060,6 +3040,10 @@
             const targetSection = document.getElementById(sectionId);
             if (targetSection) targetSection.classList.add('active');
 
+            if (sectionId === 'programs') {
+                renderBeneficiaryPrograms();
+            }
+
             if (sectionId === 'training') {
                 const username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
                 loadBeneficiarySchedules(username);
@@ -3268,12 +3252,9 @@
             handleFileSelect(input, listId);
         }
 
-        // Render full Applications tab dynamically based on current user's applications
+        // Populate upload modal select dropdown if needed (Applications tab is removed)
         function renderApplicationsTab(profile) {
-            const container = document.getElementById('userApplicationsContainer');
-            if (!container) return;
-
-            container.innerHTML = '';
+            if (!profile) return;
             const appIds = profile.appIds || [];
 
             // Populate the select option dropdown inside uploadModal dynamically
@@ -3287,109 +3268,6 @@
                     }
                 });
             }
-
-            if (appIds.length === 0) {
-                container.innerHTML = `
-                    <div class="card text-center p-5">
-                        <i class="bi bi-folder-x" style="font-size: 3rem; color: var(--rose-dark); opacity: 0.5; margin-bottom: 15px;"></i>
-                        <h4>No Applications Found</h4>
-                        <p class="text-muted">You have not submitted any assistance requests yet.</p>
-                        <button class="btn-primary-rose mt-2" onclick="openModal('applyModal')" style="width: auto; margin: 0 auto;">
-                            Apply Now
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-
-            appIds.forEach(appId => {
-                const app = applications[appId];
-                if (!app) return;
-
-                // Determine progress fill percentage
-                let completedCount = 0;
-                app.steps.forEach(s => { if (s.completed) completedCount++; });
-                const progressPercent = Math.round((completedCount / app.steps.length) * 100);
-
-                let remarksHtml = '';
-                if (app.remarks) {
-                    const isSuccess = app.status.toLowerCase() === 'approved' || app.status.toLowerCase() === 'completed';
-                    const alertBg = isSuccess ? 'rgba(40, 167, 69, 0.1)' : 'rgba(233, 30, 99, 0.05)';
-                    const alertBorder = isSuccess ? 'var(--success)' : 'var(--rose-primary)';
-                    const alertTitleColor = isSuccess ? '#155724' : 'var(--rose-dark)';
-                    
-                    remarksHtml = `
-                        <div class="evaluator-remarks" style="background: ${alertBg}; border-left: 3px solid ${alertBorder}; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                            <div class="remarks-label" style="color: ${alertTitleColor}; font-weight: 600; margin-bottom: 5px;">
-                                <i class="bi ${isSuccess ? 'bi-check-circle' : 'bi-exclamation-triangle'}"></i> ${isSuccess ? 'Approval / Release Notes' : 'Evaluator Remarks'}:
-                            </div>
-                            <div style="font-size: 0.9rem;">"${app.remarks}"</div>
-                        </div>
-                    `;
-                }
-
-                let missingDocsHtml = '';
-                if (app.missingDocs && app.missingDocs.length > 0) {
-                    missingDocsHtml = `
-                        <div class="pending-requirements" style="margin-top: 15px;">
-                            <div class="pending-requirements-title">
-                                <i class="bi bi-exclamation-triangle"></i> Missing Requirements
-                            </div>
-                            ${app.missingDocs.map(doc => `
-                                <div class="requirement-item">
-                                    <i class="bi bi-file-earmark-text"></i> ${doc}
-                                </div>
-                            `).join('')}
-                            <button class="btn-outline-rose btn-sm-rose" style="margin-top: 10px;" onclick="openModal('uploadModal')">
-                                <i class="bi bi-upload"></i> Upload Missing Document
-                            </button>
-                        </div>
-                    `;
-                }
-
-                let statusClass = app.status.toLowerCase() === 'pending' || app.status.toLowerCase() === 'processing' 
-                    ? 'processing' 
-                    : (app.status.toLowerCase() === 'approved' ? 'approved' : 'completed');
-
-                // Color-code the progress bar
-                let progressBarColor = 'var(--rose-primary)';
-                if (app.status.toLowerCase() === 'approved') progressBarColor = 'var(--success)';
-                if (app.status.toLowerCase() === 'completed') progressBarColor = 'var(--success)';
-                if (progressPercent > 30 && progressPercent < 100) progressBarColor = 'var(--warning)';
-
-                container.innerHTML += `
-                    <div class="card mb-4">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                            <div>
-                                <h4 style="margin-bottom: 5px; font-weight: 700;">${app.type} Application</h4>
-                                <div style="font-size: 0.85rem; color: var(--text-muted);">
-                                    #${appId} • Filed: ${app.date}
-                                </div>
-                            </div>
-                            <span class="status-pill ${statusClass}">${app.status}</span>
-                        </div>
-
-                        <div class="progress mb-2" style="height: 16px; background-color: var(--rose-light); border-radius: 8px;">
-                            <div class="progress-bar progress-bar-striped ${app.status.toLowerCase() === 'pending' ? 'progress-bar-animated' : ''}" role="progressbar" style="width: ${progressPercent}%; background-color: ${progressBarColor}; border-radius: 8px; font-size: 0.75rem; font-weight: bold; line-height: 16px;" aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100">${progressPercent}%</div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 20px; color: var(--text-muted);">
-                            <span>Submitted</span>
-                            <span>Under Eval</span>
-                            <span>For Review</span>
-                            <span>Decision</span>
-                        </div>
-
-                        ${missingDocsHtml}
-                        ${remarksHtml}
-
-                        <div style="display: flex; gap: 10px; margin-top: 20px;">
-                            <button class="btn-primary-rose" style="flex: 1;" onclick="viewFullTracking('${appId}')">
-                                View Full Tracking
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
         }
 
         // Formats a number as a comma-separated peso amount without the currency symbol
