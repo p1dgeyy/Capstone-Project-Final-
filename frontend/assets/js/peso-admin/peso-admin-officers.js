@@ -523,6 +523,26 @@ async function handleCreateOfficerSubmit(e) {
     const { role, firstName, middleName, lastName, suffix, dob, age, address, phone, email, username, password } = validation.data;
     const department = 'PESO';
 
+    // Pre-flight Security Safeguard: Verify that username and email are unique across system
+    if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+        try {
+            const checkRes = await DataService.auth.checkIdentifierAvailability({ username, email });
+            if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
+                showOfficerModalAlert(form, checkRes.data.message || 'The specified username or email is already registered.');
+                if (typeof window.showSystemNotification === 'function') {
+                    window.showSystemNotification({
+                        title: 'Officer Creation Blocked',
+                        message: checkRes.data.message || 'The specified username or email already exists.',
+                        type: 'error'
+                    });
+                }
+                return false;
+            }
+        } catch (cErr) {
+            console.warn('[OFFICERS] Identifier uniqueness check warning:', cErr);
+        }
+    }
+
     const btn = document.getElementById('btnSubmitCreateOfficer') || form.querySelector('button[type="submit"]');
     if (btn) {
         btn.disabled = true;

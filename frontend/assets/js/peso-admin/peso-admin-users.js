@@ -240,7 +240,22 @@ async function handleCreateUserSubmit(e) {
         }
     }
 
-    if (usersList.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+    // Pre-flight Security Safeguard: Cross-check username and email uniqueness in Supabase
+    if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+        try {
+            const checkRes = await DataService.auth.checkIdentifierAvailability({ username, email });
+            if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
+                window.showSystemNotification({
+                    title: 'Identifier Conflict',
+                    message: checkRes.data.message || 'The specified username or email is already registered.',
+                    type: 'error'
+                });
+                return;
+            }
+        } catch (cErr) {
+            console.warn('[USERS] Identifier uniqueness check warning:', cErr);
+        }
+    } else if (usersList.some(u => u.username.toLowerCase() === username.toLowerCase())) {
         window.showSystemNotification({
             title: 'Username Exists',
             message: `A user account with username "${username}" already exists.`,

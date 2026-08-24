@@ -1606,6 +1606,117 @@ const DataService = (() => {
     }
   };
 
+  // =========================================================================
+  // 13. AUTH & IDENTIFIER UNIQUENESS VALIDATION DOMAIN
+  // =========================================================================
+  const auth = {
+    /**
+     * Cross-verifies username and email availability across beneficiaries and staff_profiles tables
+     * @param {Object} params
+     * @param {string} [params.username]
+     * @param {string} [params.email]
+     * @param {string|number} [params.excludeBeneficiaryId]
+     * @param {string|number} [params.excludeStaffId]
+     * @returns {Promise<{ data: { isAvailable: boolean, isUsernameTaken: boolean, isEmailTaken: boolean, message: string|null, conflictTable: string|null }, error: any }>}
+     */
+    async checkIdentifierAvailability({ username, email, excludeBeneficiaryId = null, excludeStaffId = null }) {
+      return withRetry(async (client) => {
+        let isUsernameTaken = false;
+        let isEmailTaken = false;
+        let conflictMsg = null;
+        let conflictTable = null;
+
+        const cleanUsername = (username || '').trim().toLowerCase();
+        const cleanEmail = (email || '').trim().toLowerCase();
+
+        // 1. Check in beneficiaries table
+        if (cleanUsername || cleanEmail) {
+          try {
+            let benQuery = client.from('beneficiaries').select('id, qr_code, username, email');
+            if (cleanUsername && cleanEmail) {
+              benQuery = benQuery.or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`);
+            } else if (cleanUsername) {
+              benQuery = benQuery.ilike('username', cleanUsername);
+            } else if (cleanEmail) {
+              benQuery = benQuery.ilike('email', cleanEmail);
+            }
+
+            const { data: benMatches } = await benQuery;
+            if (benMatches && benMatches.length > 0) {
+              for (const match of benMatches) {
+                if (excludeBeneficiaryId && (String(match.id) === String(excludeBeneficiaryId) || String(match.qr_code) === String(excludeBeneficiaryId))) {
+                  continue;
+                }
+                if (cleanUsername && match.username && match.username.toLowerCase() === cleanUsername) {
+                  isUsernameTaken = true;
+                  conflictTable = 'beneficiaries';
+                }
+                if (cleanEmail && match.email && match.email.toLowerCase() === cleanEmail) {
+                  isEmailTaken = true;
+                  conflictTable = 'beneficiaries';
+                }
+              }
+            }
+          } catch (benErr) {
+            console.warn('[DATA_SERVICE] Beneficiary uniqueness check note:', benErr);
+          }
+        }
+
+        // 2. Check in staff_profiles table
+        if (cleanUsername || cleanEmail) {
+          try {
+            let staffQuery = client.from('staff_profiles').select('id, auth_id, username, email');
+            if (cleanUsername && cleanEmail) {
+              staffQuery = staffQuery.or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`);
+            } else if (cleanUsername) {
+              staffQuery = staffQuery.ilike('username', cleanUsername);
+            } else if (cleanEmail) {
+              staffQuery = staffQuery.ilike('email', cleanEmail);
+            }
+
+            const { data: staffMatches } = await staffQuery;
+            if (staffMatches && staffMatches.length > 0) {
+              for (const match of staffMatches) {
+                if (excludeStaffId && (String(match.id) === String(excludeStaffId) || String(match.auth_id) === String(excludeStaffId))) {
+                  continue;
+                }
+                if (cleanUsername && match.username && match.username.toLowerCase() === cleanUsername) {
+                  isUsernameTaken = true;
+                  conflictTable = 'staff_profiles';
+                }
+                if (cleanEmail && match.email && match.email.toLowerCase() === cleanEmail) {
+                  isEmailTaken = true;
+                  conflictTable = 'staff_profiles';
+                }
+              }
+            }
+          } catch (staffErr) {
+            console.warn('[DATA_SERVICE] Staff uniqueness check note:', staffErr);
+          }
+        }
+
+        if (isUsernameTaken && isEmailTaken) {
+          conflictMsg = `Both username "${username}" and email "${email}" are already registered. Please choose another username and email.`;
+        } else if (isUsernameTaken) {
+          conflictMsg = `The username "${username}" is already taken. Please choose another username.`;
+        } else if (isEmailTaken) {
+          conflictMsg = `The email address "${email}" is already registered in the system. Please use a different email or log in.`;
+        }
+
+        return {
+          data: {
+            isAvailable: !isUsernameTaken && !isEmailTaken,
+            isUsernameTaken,
+            isEmailTaken,
+            message: conflictMsg,
+            conflictTable
+          },
+          error: null
+        };
+      });
+    }
+  };
+
   return Object.freeze({
     getClient,
     withRetry,
@@ -1625,7 +1736,8 @@ const DataService = (() => {
     activityLog,
     batches,
     realtime,
-    tracking
+    tracking,
+    auth
   });
 })();
 

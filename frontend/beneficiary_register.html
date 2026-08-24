@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/api-config.js"></script>
     <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/supabase-data.js"></script>
     <script src="assets/js/google-auth.js"></script>
     <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/session-manager.js"></script>
@@ -1077,6 +1078,28 @@
                     type: 'error'
                 });
                 return;
+            }
+
+            // Pre-flight Security Safeguard: Cross-check username and email uniqueness in Supabase
+            if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+                try {
+                    const checkRes = await DataService.auth.checkIdentifierAvailability({ username, email });
+                    if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
+                        window.showSystemNotification({
+                            title: 'Account Conflict Detected',
+                            message: checkRes.data.message || 'The specified username or email is already registered in the system.',
+                            type: 'error'
+                        });
+                        if (checkRes.data.isUsernameTaken) {
+                            document.getElementById('regUsername').focus();
+                        } else if (checkRes.data.isEmailTaken) {
+                            document.getElementById('regEmail').focus();
+                        }
+                        return;
+                    }
+                } catch (checkErr) {
+                    console.warn('[REGISTRATION] Identifier uniqueness check warning:', checkErr);
+                }
             }
 
             registrationData = {

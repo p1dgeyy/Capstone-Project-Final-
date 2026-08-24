@@ -468,11 +468,27 @@ const PesoOfficerApp = (() => {
             return;
         }
 
+        const targetEmail = email || `${firstName.toLowerCase().replace(/\s+/g, '')}.${lastName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
+        const targetUsername = `${firstName.toLowerCase().replace(/\s+/g, '')}.${lastName.toLowerCase().replace(/\s+/g, '')}${Math.floor(10 + Math.random() * 90)}`;
+
+        if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+            try {
+                const checkRes = await DataService.auth.checkIdentifierAvailability({ username: targetUsername, email: targetEmail });
+                if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
+                    alert(checkRes.data.message || 'Beneficiary email or username already registered in the system.');
+                    return;
+                }
+            } catch (cErr) {
+                console.warn('[PesoOfficerApp] Uniqueness check warning:', cErr);
+            }
+        }
+
         state.pendingIntakeData = {
             first_name: firstName,
             last_name: lastName,
             phone: phone,
-            email: email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@gmail.com`,
+            email: targetEmail,
+            username: targetUsername,
             barangay: barangay,
             address: address,
             category: category,

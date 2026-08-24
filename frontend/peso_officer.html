@@ -6443,10 +6443,27 @@
             const email = document.getElementById('officerBenEmail').value.trim().toLowerCase();
             const program = document.getElementById('officerBenProgram').value;
 
-            if (!email.endsWith('@gmail.com')) {
-                alert('Invalid Email: Beneficiary email must be a valid Gmail (@gmail.com) address.');
-                document.getElementById('officerBenEmail')?.focus();
-                return;
+            const usernameGen = `${fn.toLowerCase().replace(/\s+/g, '')}.${ln.toLowerCase().replace(/\s+/g, '')}${Math.floor(10 + Math.random() * 90)}`;
+
+            // Security Safeguard: Pre-flight check if email or username is already in use
+            if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+                try {
+                    const checkRes = await DataService.auth.checkIdentifierAvailability({ username: usernameGen, email: email });
+                    if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
+                        if (checkRes.data.isEmailTaken) {
+                            const conflictMsg = `Conflict Error: The email "${email}" is already registered to an existing beneficiary or staff account.`;
+                            if (window.showSystemNotification) {
+                                window.showSystemNotification({ title: 'Duplicate Email Detected', message: conflictMsg, type: 'error' });
+                            } else {
+                                alert(conflictMsg);
+                            }
+                            document.getElementById('officerBenEmail')?.focus();
+                            return;
+                        }
+                    }
+                } catch (checkErr) {
+                    console.warn('[Officer Intake] Uniqueness check warning:', checkErr);
+                }
             }
 
             pendingOfficerBenData = {
@@ -6465,7 +6482,7 @@
                 address: `${purok}, ${barangay}, City of Koronadal`,
                 phone: phone,
                 email: email,
-                username: `${fn.toLowerCase().replace(/\s+/g, '')}.${ln.toLowerCase().replace(/\s+/g, '')}${Math.floor(10 + Math.random() * 90)}`,
+                username: usernameGen,
                 program: program
             };
 

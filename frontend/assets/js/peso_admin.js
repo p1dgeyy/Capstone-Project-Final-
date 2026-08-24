@@ -1553,6 +1553,20 @@
 
         const { role, firstName, middleName, lastName, suffix, dob, age, address, phone, email, username, password } = validation.data;
 
+        // Pre-flight Security Safeguard: Verify that username and email are unique across system
+        if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
+            try {
+                const checkRes = await DataService.auth.checkIdentifierAvailability({ username, email });
+                if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
+                    showOfficerModalAlert(form, checkRes.data.message || 'The specified username or email is already registered.');
+                    notify('Officer Creation Blocked', checkRes.data.message || 'The specified username or email already exists.', 'error');
+                    return false;
+                }
+            } catch (cErr) {
+                console.warn('[PESO_ADMIN] Identifier uniqueness check warning:', cErr);
+            }
+        }
+
         try {
             // Provision Supabase Auth User with metadata using isolated client
             let authId = null;
