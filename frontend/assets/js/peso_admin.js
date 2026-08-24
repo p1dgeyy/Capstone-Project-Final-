@@ -4318,7 +4318,7 @@
         }
     };
 
-    // Auto-boot on DOMContentLoaded
+    // Auto-boot on DOMContentLoaded with Real-time synchronization
     document.addEventListener('DOMContentLoaded', async () => {
         initAllCurrencyInputs();
         try {
@@ -4327,6 +4327,24 @@
         } catch (e) {
             console.warn('[PESO Admin] Initial boot notice:', e);
         }
+
+        // Live Real-Time Multi-Portal Sync
+        if (typeof OTPAuth !== 'undefined' && OTPAuth.onRealtimeEvent) {
+            OTPAuth.onRealtimeEvent(async (event) => {
+                console.log('[PESO ADMIN LIVE SYNC]:', event);
+                try {
+                    await refreshAllData();
+                    if (AdminStore.currentTab === 'overview') renderDashboardOverview();
+                    else if (AdminStore.currentTab === 'applications') renderApplicationsTable();
+                    else if (AdminStore.currentTab === 'schedules') renderCalendarEvents();
+                    else if (AdminStore.currentTab === 'funds') renderFundSummaryTable();
+                    else if (AdminStore.currentTab === 'distribution') renderAssistanceRecords();
+                } catch (reErr) {
+                    console.warn('[PESO ADMIN LIVE SYNC REFRESH NOTE]:', reErr);
+                }
+            });
+        }
     });
+
 
 })(window, document);

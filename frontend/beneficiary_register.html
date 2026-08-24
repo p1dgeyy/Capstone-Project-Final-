@@ -648,46 +648,46 @@
                     <i class="bi bi-shield-check" id="verifyHeaderIcon"></i>
                 </div>
 
-                <h3 class="fw-bold text-dark mb-1">Verify Your Identity</h3>
-                <p class="text-muted mb-4">Choose whether you prefer to verify your account via <strong>Gmail</strong> or <strong>SMS Number</strong>.</p>
+                <h3 class="fw-bold text-dark mb-1">Choose Verification Method</h3>
+                <p class="text-muted mb-4">Please select which channel you would like to receive your 6-digit verification code:</p>
 
                 <!-- METHOD SELECTOR CARDS -->
                 <div class="row g-3 justify-content-center mb-4 mx-auto" style="max-width: 580px;">
                     <div class="col-6">
-                        <div class="card p-3 h-100 border-2 text-start position-relative cursor-pointer transition-all"
+                        <div class="card p-3 h-100 border-2 text-start position-relative cursor-pointer transition-all shadow-sm"
                             id="cardMethodEmail" onclick="selectVerificationChannel('EMAIL')"
-                            style="cursor: pointer; border-color: var(--step-purple); background: #FAF5FF; border-radius: 14px;">
+                            style="cursor: pointer; border-color: #CBD5E1; background: #FFFFFF; border-radius: 14px;">
                             <div class="d-flex align-items-center mb-2">
-                                <div class="p-2 rounded-circle me-2 bg-white text-purple shadow-sm" style="color: var(--step-purple);">
+                                <div class="p-2 rounded-circle me-2 bg-light text-purple shadow-sm" style="color: var(--step-purple);">
                                     <i class="bi bi-envelope-fill fs-5"></i>
                                 </div>
-                                <span class="fw-bold text-dark fs-6">Via Gmail</span>
+                                <span class="fw-bold text-dark fs-6">Verify via Gmail</span>
                             </div>
-                            <p class="text-muted small mb-0 font-monospace" id="displayMaskedEmail">user@gmail.com</p>
-                            <span class="badge bg-purple position-absolute top-0 end-0 m-2 d-none" id="badgeEmailSelected" style="background-color: var(--step-purple);"><i class="bi bi-check2"></i> Selected</span>
+                            <p class="text-muted small mb-0 font-monospace text-truncate" id="displayMaskedEmail">user@gmail.com</p>
+                            <span class="badge position-absolute top-0 end-0 m-2 d-none" id="badgeEmailSelected" style="background-color: var(--step-purple);"><i class="bi bi-check2"></i> Active</span>
                         </div>
                     </div>
 
                     <div class="col-6">
-                        <div class="card p-3 h-100 border-2 text-start position-relative cursor-pointer transition-all"
+                        <div class="card p-3 h-100 border-2 text-start position-relative cursor-pointer transition-all shadow-sm"
                             id="cardMethodSms" onclick="selectVerificationChannel('SMS')"
-                            style="cursor: pointer; border-color: #E2E8F0; background: #FFFFFF; border-radius: 14px;">
+                            style="cursor: pointer; border-color: #CBD5E1; background: #FFFFFF; border-radius: 14px;">
                             <div class="d-flex align-items-center mb-2">
                                 <div class="p-2 rounded-circle me-2 bg-light text-success shadow-sm">
                                     <i class="bi bi-phone-fill fs-5 text-success"></i>
                                 </div>
-                                <span class="fw-bold text-dark fs-6">Via SMS Phone</span>
+                                <span class="fw-bold text-dark fs-6">Verify via SMS</span>
                             </div>
                             <p class="text-muted small mb-0 font-monospace" id="displayMaskedPhone">09XX-***-XXXX</p>
-                            <span class="badge bg-success position-absolute top-0 end-0 m-2 d-none" id="badgeSmsSelected"><i class="bi bi-check2"></i> Selected</span>
+                            <span class="badge bg-success position-absolute top-0 end-0 m-2 d-none" id="badgeSmsSelected"><i class="bi bi-check2"></i> Active</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- VERIFICATION BOX -->
-                <div class="card p-4 mx-auto bg-light border-0 rounded-4 mb-4 text-center" style="max-width: 540px;">
+                <!-- VERIFICATION BOX (Revealed after selecting method) -->
+                <div class="card p-4 mx-auto bg-light border-0 rounded-4 mb-4 text-center d-none shadow-sm" id="activeOtpInputArea" style="max-width: 540px;">
                     <p class="text-muted small mb-2" id="verifyInstructionMsg">
-                        We sent a 6-digit verification code to your Gmail. Enter it below to activate your account.
+                        We sent a 6-digit verification code. Enter it below to activate your account:
                     </p>
 
                     <div class="alert alert-danger py-2 px-3 small mx-auto d-none mb-3" style="max-width: 480px;"
@@ -717,7 +717,7 @@
                     <!-- VERIFY & COMPLETE BUTTON -->
                     <button type="button" class="btn btn-purple w-100 py-3 mb-2 fw-bold fs-6" id="btnConfirmActiveOtp" onclick="handleVerifyActiveOtp()">
                         <span class="spinner-border spinner-border-sm me-2 d-none" id="otpVerifySpinner"></span>
-                        <i class="bi bi-check-circle-fill me-1"></i> Verify & Open Dashboard
+                        <i class="bi bi-check-circle-fill me-1"></i> Complete Verification & Save Account
                     </button>
                 </div>
 
@@ -727,6 +727,7 @@
                     </button>
                 </div>
             </div>
+
 
             <!-- ============================================================== -->
             <!-- STEP 3: FINALIZATION & DIGITAL PASS CONFIRMATION -->
@@ -1247,17 +1248,29 @@
                 document.getElementById('displayMaskedEmail').textContent = email;
                 document.getElementById('displayMaskedPhone').textContent = OTPAuth.maskPhone(phone);
 
-                // Default initial verification method is Email
-                activeVerificationChannel = 'EMAIL';
-                await OTPAuth.sendEmailCode(email);
+                // Reset Step 2 verification channel selection
+                activeVerificationChannel = null;
+                const cardEmail = document.getElementById('cardMethodEmail');
+                const cardSms = document.getElementById('cardMethodSms');
+                if (cardEmail) {
+                    cardEmail.style.borderColor = '#CBD5E1';
+                    cardEmail.style.background = '#FFFFFF';
+                }
+                if (cardSms) {
+                    cardSms.style.borderColor = '#CBD5E1';
+                    cardSms.style.background = '#FFFFFF';
+                }
+                document.getElementById('badgeEmailSelected')?.classList.add('d-none');
+                document.getElementById('badgeSmsSelected')?.classList.add('d-none');
+                document.getElementById('activeOtpInputArea')?.classList.add('d-none');
 
-                // Advance to Step 2 (Verification Hub)
+                // Advance to Step 2 (Verification Hub - Choice Screen First)
                 goToStep(2);
 
             } catch (err) {
                 window.showSystemNotification({
                     title: 'Registration Notice',
-                    message: err.message || 'Could not dispatch verification code.',
+                    message: err.message || 'Could not prepare verification step.',
                     type: 'error'
                 });
             } finally {
@@ -1267,8 +1280,75 @@
         }
 
         // -------------------------------------------------------------
-        // STEP 2: OTP TIMER & DISPATCH
+        // STEP 2: CHANNEL SELECTION & OTP TIMER
         // -------------------------------------------------------------
+        async function selectVerificationChannel(channel) {
+            activeVerificationChannel = channel;
+            const cardEmail = document.getElementById('cardMethodEmail');
+            const cardSms = document.getElementById('cardMethodSms');
+            const badgeEmail = document.getElementById('badgeEmailSelected');
+            const badgeSms = document.getElementById('badgeSmsSelected');
+            const otpInputArea = document.getElementById('activeOtpInputArea');
+            const verifyInstruction = document.getElementById('verifyInstructionMsg');
+
+            if (channel === 'EMAIL') {
+                if (cardEmail) {
+                    cardEmail.style.borderColor = 'var(--step-purple)';
+                    cardEmail.style.background = '#FAF5FF';
+                }
+                if (cardSms) {
+                    cardSms.style.borderColor = '#CBD5E1';
+                    cardSms.style.background = '#FFFFFF';
+                }
+                if (badgeEmail) badgeEmail.classList.remove('d-none');
+                if (badgeSms) badgeSms.classList.add('d-none');
+                if (verifyInstruction) {
+                    verifyInstruction.innerHTML = `We dispatched a 6-digit verification code to your Gmail (<strong>${registrationData.email}</strong>). Enter it below to activate your account:`;
+                }
+
+                try {
+                    await OTPAuth.sendEmailCode(registrationData.email);
+                    window.showSystemNotification({
+                        title: 'Code Dispatched',
+                        message: `Verification code sent to ${registrationData.email}`,
+                        type: 'info'
+                    });
+                } catch (e) {
+                    console.warn('[EMAIL DISPATCH]:', e);
+                }
+            } else {
+                if (cardSms) {
+                    cardSms.style.borderColor = '#10B981';
+                    cardSms.style.background = '#ECFDF5';
+                }
+                if (cardEmail) {
+                    cardEmail.style.borderColor = '#CBD5E1';
+                    cardEmail.style.background = '#FFFFFF';
+                }
+                if (badgeSms) badgeSms.classList.remove('d-none');
+                if (badgeEmail) badgeEmail.classList.add('d-none');
+                if (verifyInstruction) {
+                    verifyInstruction.innerHTML = `We dispatched a 6-digit SMS verification code to your mobile phone (<strong>${OTPAuth.maskPhone(registrationData.phone_number)}</strong>). Enter it below to activate your account:`;
+                }
+
+                try {
+                    await OTPAuth.sendSmsOtp(registrationData.phone_number);
+                    window.showSystemNotification({
+                        title: 'SMS Code Dispatched',
+                        message: `Verification code sent to ${OTPAuth.maskPhone(registrationData.phone_number)}`,
+                        type: 'info'
+                    });
+                } catch (e) {
+                    console.warn('[SMS DISPATCH]:', e);
+                }
+            }
+
+            if (otpInputArea) otpInputArea.classList.remove('d-none');
+            startOtpTimers();
+            setupSegmentedInputs('otpCodeBoxes', 6);
+            setTimeout(() => document.getElementById('otpDigit1')?.focus(), 150);
+        }
+
         function startOtpTimers() {
             if (otpExpiryInterval) clearInterval(otpExpiryInterval);
             let expirySecs = 300;
@@ -1304,6 +1384,7 @@
         }
 
         async function resendActiveOtpCode() {
+            if (!activeVerificationChannel) return;
             try {
                 if (activeVerificationChannel === 'EMAIL') {
                     await OTPAuth.sendEmailCode(registrationData.email);
@@ -1322,6 +1403,11 @@
         }
 
         async function handleVerifyActiveOtp() {
+            if (!activeVerificationChannel) {
+                alert('Please select a verification method first (Gmail or SMS).');
+                return;
+            }
+
             let code = '';
             for (let i = 1; i <= 6; i++) {
                 const el = document.getElementById(`otpDigit${i}`);
@@ -1356,8 +1442,34 @@
                 const fullAddress = `${registrationData.purok}, ${registrationData.barangay}, City of Koronadal`;
                 const fullName = `${registrationData.first_name} ${registrationData.middle_name ? registrationData.middle_name + ' ' : ''}${registrationData.last_name} ${registrationData.suffix || ''}`.trim();
 
+                // 1. Create or link user in Supabase Auth FIRST
+                let createdAuthId = null;
+                if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
+                    try {
+                        const { data: authData } = await supabaseClient.auth.signUp({
+                            email: registrationData.email,
+                            password: registrationData.password,
+                            options: {
+                                data: {
+                                    username: registrationData.username,
+                                    first_name: registrationData.first_name,
+                                    last_name: registrationData.last_name,
+                                    role: 'Beneficiary',
+                                    qr_code: uniqueQr
+                                }
+                            }
+                        });
+                        if (authData && authData.user) {
+                            createdAuthId = authData.user.id;
+                        }
+                    } catch (e) {
+                        console.warn('[AUTH SIGNUP NOTE]:', e);
+                    }
+                }
+
                 const beneficiaryRecord = {
                     qr_code: uniqueQr,
+                    auth_id: createdAuthId,
                     username: registrationData.username,
                     first_name: registrationData.first_name,
                     middle_name: registrationData.middle_name || null,
@@ -1382,7 +1494,7 @@
                     verified_at: new Date().toISOString()
                 };
 
-                // Insert into Supabase beneficiaries table
+                // 2. Insert/Update into Supabase beneficiaries table with EXACT registration username
                 if (typeof DataService !== 'undefined' && DataService.beneficiaries) {
                     try {
                         await DataService.beneficiaries.create(beneficiaryRecord);
@@ -1391,30 +1503,25 @@
                     }
                 } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     try {
-                        await supabaseClient.from('beneficiaries').insert(beneficiaryRecord);
+                        await supabaseClient.from('beneficiaries').upsert(beneficiaryRecord, { onConflict: 'email' });
                     } catch (benErr) {
                         console.warn('[REGISTRATION DB INSERT]:', benErr);
                     }
                 }
 
-                // Create user in Supabase Auth if applicable
-                if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
+                // Explicit guarantee: Update username in beneficiaries to match user input
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     try {
-                        await supabaseClient.auth.signUp({
-                            email: registrationData.email,
-                            password: registrationData.password,
-                            options: {
-                                data: {
-                                    username: registrationData.username,
-                                    first_name: registrationData.first_name,
-                                    last_name: registrationData.last_name,
-                                    role: 'Beneficiary',
-                                    qr_code: uniqueQr
-                                }
-                            }
-                        });
-                    } catch (e) {}
+                        await supabaseClient.from('beneficiaries').update({
+                            username: registrationData.username,
+                            first_name: registrationData.first_name,
+                            last_name: registrationData.last_name,
+                            phone: registrationData.phone_number,
+                            status: 'Active'
+                        }).eq('email', registrationData.email);
+                    } catch (syncErr) {}
                 }
+
 
 
                 // Save active beneficiary session with complete profile data
