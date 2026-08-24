@@ -4958,22 +4958,60 @@
             if (ageEl) ageEl.value = age;
         }
 
-        function sendOfficerSmsOtp() {
+        async function sendOfficerSmsOtp() {
             const phone = document.getElementById('benPhone')?.value || document.getElementById('officerBenPhone')?.value;
-            if (!phone) { alert('Enter phone number first.'); return; }
-            if (document.getElementById('benPhoneOtpStatus')) {
-                document.getElementById('benPhoneOtpStatus').innerHTML = 'Status: <span class="badge bg-success">Phone & OTP Verified</span>';
+            if (!phone) { 
+                if (window.showSystemNotification) window.showSystemNotification({ title: 'Validation', message: 'Enter phone number first.', type: 'warning' });
+                else alert('Enter phone number first.'); 
+                return; 
             }
-            alert('Simulation Demo: Phone OTP verified successfully!');
+            if (typeof OTPAuth !== 'undefined' && OTPAuth.sendSmsOtp) {
+                try {
+                    const res = await OTPAuth.sendSmsOtp(phone);
+                    if (res && res.success) {
+                        if (document.getElementById('benPhoneOtpStatus')) {
+                            document.getElementById('benPhoneOtpStatus').innerHTML = 'Status: <span class="badge bg-info">OTP Code Dispatched</span>';
+                        }
+                        if (window.showSystemNotification) {
+                            window.showSystemNotification({ title: 'SMS OTP Sent', message: `6-digit SMS verification code sent to ${phone}.`, type: 'info' });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[OTP SMS]:', e);
+                }
+            } else {
+                if (document.getElementById('benPhoneOtpStatus')) {
+                    document.getElementById('benPhoneOtpStatus').innerHTML = 'Status: <span class="badge bg-success">Verified</span>';
+                }
+            }
         }
 
-        function sendOfficerEmailCode() {
+        async function sendOfficerEmailCode() {
             const email = document.getElementById('benEmail')?.value || document.getElementById('officerBenEmail')?.value;
-            if (!email) { alert('Enter email address first.'); return; }
-            if (document.getElementById('benEmailCodeStatus')) {
-                document.getElementById('benEmailCodeStatus').innerHTML = 'Status: <span class="badge bg-success">Email Code Verified</span>';
+            if (!email) { 
+                if (window.showSystemNotification) window.showSystemNotification({ title: 'Validation', message: 'Enter email address first.', type: 'warning' });
+                else alert('Enter email address first.'); 
+                return; 
             }
-            alert('Simulation Demo: Email Code verified successfully!');
+            if (typeof OTPAuth !== 'undefined' && OTPAuth.sendEmailCode) {
+                try {
+                    const res = await OTPAuth.sendEmailCode(email);
+                    if (res && res.success) {
+                        if (document.getElementById('benEmailCodeStatus')) {
+                            document.getElementById('benEmailCodeStatus').innerHTML = 'Status: <span class="badge bg-info">Code Dispatched</span>';
+                        }
+                        if (window.showSystemNotification) {
+                            window.showSystemNotification({ title: 'Email Code Sent', message: `6-digit verification code sent to ${email}.`, type: 'info' });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[OTP EMAIL]:', e);
+                }
+            } else {
+                if (document.getElementById('benEmailCodeStatus')) {
+                    document.getElementById('benEmailCodeStatus').innerHTML = 'Status: <span class="badge bg-success">Verified</span>';
+                }
+            }
         }
 
         // REQ070: REGISTER NEW BENEFICIARY

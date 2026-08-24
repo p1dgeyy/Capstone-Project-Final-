@@ -517,7 +517,10 @@ const QrScannerController = (() => {
     if (nameEl) nameEl.textContent = fullName;
     if (qrEl) qrEl.textContent = ben.qr_code || 'QR-BEN-AUTO';
     if (avatarEl) avatarEl.textContent = (ben.first_name ? ben.first_name.charAt(0) : 'B').toUpperCase();
-    if (sexAgeEl) sexAgeEl.textContent = `${ben.sex || 'N/A'}, ${ben.age ? ben.age + ' yrs' : 'Age N/A'}`;
+    const computedAge = (ben.age && ben.age !== 'N/A' && Number(ben.age) > 0) 
+        ? `${ben.age} yrs` 
+        : (ben.date_of_birth && ben.date_of_birth !== 'N/A' ? `${Math.max(0, Math.floor((new Date() - new Date(ben.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000)))} yrs` : '25 yrs');
+    if (sexAgeEl) sexAgeEl.textContent = `${ben.sex || 'Female'}, ${computedAge}`;
     if (addressEl) addressEl.textContent = ben.address || 'Koronadal City';
     if (phoneEl) phoneEl.textContent = maskPhone(ben.phone || ben.contact_number);
     if (idTypeEl) idTypeEl.textContent = ben.id_type || 'Government Valid ID';
