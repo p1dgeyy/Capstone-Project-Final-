@@ -1,13 +1,27 @@
 /**
- * PESO Admin Portal - Scheduling Management Module (Tab 3)
- * Module: Scheduling (peso-admin-scheduling.js)
+ * PESO Admin Portal - Scheduling Management Module
+ * File: frontend/assets/js/peso-admin/peso-admin-scheduling.js
+ * 
+ * Provides complete streamlined schedule slot management for Livelihood Program Activities:
+ * - Assistance Distribution activities
+ * - Certificate Distribution with qualified recipient auto-pull
+ * - Custom specified activities
+ * Features:
+ * - 5 Overview Stat Cards (Total, Active/Scheduled, Postponed, Completed, Cancelled)
+ * - Monthly Calendar with 5-color status indicators (🟢 Today, 🔵 Scheduled, 🟡 Postponed, 🔴 Cancelled, ⚫ Completed)
+ * - Slots List View toggle
+ * - Dual Right-Side Panels (Upcoming Activities Agenda & Archive Box)
+ * - Streamlined creation form (optional officer, auto-populated program name, date range, start/end time, optional notes)
+ * - Conflict & Past-Date Validation
+ * - Edit / Reschedule / Postpone / Cancel Lifecycle
+ * - Realtime Supabase Data Synchronization
  */
 
 let activitiesList = [];
 let adminScheduleViewMode = 'calendar'; // 'calendar' or 'list'
-let currentCalendarYear = 2026;
-let currentCalendarMonth = 7; // August (0-indexed: 7 = August)
-let focusedCalendarDay = 8;
+let currentCalendarYear = new Date().getFullYear();
+let currentCalendarMonth = new Date().getMonth(); // 0-indexed
+let focusedCalendarDay = new Date().getDate();
 let activeViewingActivityId = null;
 
 const MONTH_NAMES = [
@@ -15,168 +29,256 @@ const MONTH_NAMES = [
     'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+/**
+ * Initialize and load scheduling data from DataService / Supabase
+ */
 async function initSchedulingData() {
     await initSchedulingModuleData();
 }
 
 async function initSchedulingModuleData() {
-    if (typeof DataService !== 'undefined' && DataService.interviews) {
-        try {
+    try {
+        if (typeof DataService !== 'undefined' && DataService.interviews) {
             const res = await DataService.interviews.getAll({ agency: 'PESO' });
-            if (res.data && Array.isArray(res.data)) {
+            if (res && res.data && Array.isArray(res.data)) {
                 activitiesList = res.data.map(i => {
-                    const schedDate = i.interview_date || i.scheduled_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : new Date().toISOString().substring(0, 10));
-                    const schedTime = i.interview_time || i.scheduled_time || '09:00 AM';
-                    const officerFullName = i.officer ? `${i.officer.first_name || ''} ${i.officer.last_name || ''}`.trim() : 'Unassigned Officer';
+                    const schedStartDate = i.interview_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : new Date().toISOString().substring(0, 10));
+                    const schedEndDate = i.end_date || schedStartDate;
+                    const schedStartTime = i.interview_time || '09:00 AM';
+                    const schedEndTime = i.end_time || '11:00 AM';
+                    const officerFullName = i.officer ? `${i.officer.first_name || ''} ${i.officer.last_name || ''}`.trim() : (i.officer_name || '');
                     const progCode = (i.program && i.program.code) || 'PESO';
                     const progName = (i.program && i.program.name) || 'Assistance Program';
 
                     return {
                         id: i.id,
                         slot_id: `SLOT-${i.id}`,
+                        title: i.title || `${progCode} Scheduled Activity Slot`,
+                        category: i.category || 'Assistance Distribution',
+                        category_other: i.category_other || '',
                         program_id: i.program_id,
                         program_code: progCode,
                         program_name: progName,
-                        program_sub_category: 'Program Activity',
-                        barangay_cluster: 'Koronadal Central',
-                        title: i.title || `${progCode} Assessment Session`,
-                        category: i.category || 'Interview',
-                        date: schedDate,
-                        start_datetime: `${schedDate}T09:00`,
-                        end_datetime: `${schedDate}T12:00`,
-                        time: schedTime,
-                        schedule_time: schedTime,
-                        duration: '3 Hours',
-                        venue: i.venue_location || i.location || 'PESO Office, Koronadal City',
-                        location: i.venue_location || i.location || 'PESO Office, Koronadal City',
+                        date: schedStartDate,
+                        start_date: schedStartDate,
+                        end_date: schedEndDate,
+                        start_datetime: `${schedStartDate}T${schedStartTime.replace(/[^0-9:]/g, '') || '09:00'}`,
+                        end_datetime: `${schedEndDate}T${schedEndTime.replace(/[^0-9:]/g, '') || '11:00'}`,
+                        time: `${schedStartTime} - ${schedEndTime}`,
+                        start_time: schedStartTime,
+                        end_time: schedEndTime,
+                        duration: i.duration || '2 Hours',
+                        venue: i.venue_location || i.location || 'PESO Main Office - Multi-Purpose Hall',
+                        location: i.venue_location || i.location || 'PESO Main Office - Multi-Purpose Hall',
+                        location_other: i.location_other || '',
                         officer_id: i.officer_id || null,
-                        officer_name: officerFullName,
-                        assigned_officer_id: i.officer_id || null,
-                        assigned_officer_name: i.officer ? `${officerFullName} (${i.officer.role || 'PESO Officer'})` : 'Unassigned Officer',
-                        remarks: i.remarks || i.notes || '',
-                        slot_status: i.status || 'Active',
-                        status: i.status || 'Active',
-                        is_locked: false,
-                        lock_status: 'Unlocked',
-                        scheduling_mode: i.beneficiary_qr ? 'Individual' : 'Unassigned',
-                        beneficiary_name: i.beneficiary ? `${i.beneficiary.first_name || ''} ${i.beneficiary.last_name || ''}`.trim() : '',
-                        beneficiary_phone: i.beneficiary ? i.beneficiary.phone || i.beneficiary.contact_number || '' : '',
-                        attendance_status: i.attendance_status || (i.status === 'Completed' ? 'Present' : (i.status === 'Cancelled' ? 'Cancelled' : 'Pending')),
-                        batch_name: '',
-                        batch_count: 0,
-                        created_at: i.created_at || new Date().toISOString(),
-                        created_by: 'PESO Admin',
-                        updated_at: i.created_at || new Date().toISOString()
+                        officer_name: officerFullName || 'Unassigned / General',
+                        status: i.status || 'Scheduled',
+                        attendance_status: i.attendance_status || 'Unmarked',
+                        remarks: i.remarks || '',
+                        postponed_at: i.postponed_at || null,
+                        postponed_by: i.postponed_by || null,
+                        postponement_reason: i.postponement_reason || null,
+                        cancelled_at: i.cancelled_at || null,
+                        cancelled_by: i.cancelled_by || null,
+                        cancellation_reason: i.cancellation_reason || null,
+                        recipient_count: i.recipient_count || 0,
+                        created_at: i.created_at || new Date().toISOString()
                     };
                 });
                 renderSchedulingModule();
-                populateSchedulingDropdowns();
                 return;
             }
-        } catch (e) {
-            console.warn('[SCHEDULING] Supabase fetch notice:', e);
         }
+    } catch (e) {
+        console.warn('[SCHEDULING] Data fetch notice:', e);
     }
-    activitiesList = [];
-    populateSchedulingDropdowns();
     renderSchedulingModule();
 }
 
+/**
+ * Populate Dropdowns for Filters and Modals
+ */
 function populateSchedulingDropdowns() {
+    // 1. Program Filter & Modal Program Select
     const progFilter = document.getElementById('schedProgramFilter');
+    const actProgSelect = document.getElementById('actTargetProgramSelect');
+    const editProgSelect = document.getElementById('editActTargetProgramSelect');
+
+    const programs = Array.isArray(window.programsList) && window.programsList.length > 0 
+        ? window.programsList 
+        : [{ id: 1, code: 'TUPAD', name: 'TUPAD Emergency Employment' }, { id: 2, code: 'SPES', name: 'Special Program for Employment of Students' }, { id: 3, code: 'LIVELIHOOD', name: 'Livelihood Assistance Program' }];
+
     if (progFilter) {
-        let opts = '<option value="ALL">All Program Types</option>';
-        if (Array.isArray(programsList) && programsList.length > 0) {
-            programsList.forEach(p => {
-                opts += `<option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} (${escapeHtml(p.name)})</option>`;
-            });
-        }
+        let opts = '<option value="ALL">All Programs</option>';
+        programs.forEach(p => {
+            opts += `<option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>`;
+        });
         progFilter.innerHTML = opts;
     }
 
-    const offFilter = document.getElementById('schedOfficerFilter');
-    const actOff = document.getElementById('actOfficer');
-    const editActOff = document.getElementById('editActOfficer');
+    const buildProgOptions = () => {
+        let opts = '<option value="">Select Target Program...</option>';
+        programs.forEach(p => {
+            opts += `<option value="${p.id}" data-code="${escapeHtml(p.code)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>`;
+        });
+        return opts;
+    };
 
-    const sourceOfficers = Array.isArray(officersList) && officersList.length > 0
-        ? officersList
-        : (Array.isArray(usersList) ? usersList.filter(u => u.role && (u.role.includes('Officer') || u.role === 'Staff')) : []);
+    if (actProgSelect) actProgSelect.innerHTML = buildProgOptions();
+    if (editProgSelect) editProgSelect.innerHTML = buildProgOptions();
+
+    // 2. Officers Filter & Modal Officer Select (Optional)
+    const offFilter = document.getElementById('schedOfficerFilter');
+    const actOffSelect = document.getElementById('actOfficerSelect');
+    const editOffSelect = document.getElementById('editActOfficerSelect');
+
+    const officers = Array.isArray(window.officersList) && window.officersList.length > 0 
+        ? window.officersList 
+        : (Array.isArray(window.usersList) ? window.usersList.filter(u => u.role && u.role.includes('Officer')) : []);
 
     if (offFilter) {
-        offFilter.innerHTML = '<option value="ALL">All Assigned Officers</option>';
-        sourceOfficers.forEach(o => {
+        let opts = '<option value="ALL">All Officers</option>';
+        officers.forEach(o => {
             const name = `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.username;
-            offFilter.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)} (${o.role || 'Officer'})</option>`;
+            opts += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
         });
+        offFilter.innerHTML = opts;
     }
 
-    if (actOff) {
-        actOff.innerHTML = '<option value="">Select Officer...</option>';
-        sourceOfficers.forEach(o => {
+    const buildOfficerOptions = () => {
+        let opts = '<option value="">Unassigned / General Schedule (Optional)</option>';
+        officers.forEach(o => {
             const name = `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.username;
-            actOff.innerHTML += `<option value="${o.id}" data-name="${escapeHtml(name)}">${escapeHtml(name)} (${o.role || 'Officer'})</option>`;
+            opts += `<option value="${o.id}" data-name="${escapeHtml(name)}">${escapeHtml(name)} (${o.role || 'Officer'})</option>`;
         });
-    }
+        return opts;
+    };
 
-    if (editActOff) {
-        editActOff.innerHTML = '<option value="">Select Officer...</option>';
-        sourceOfficers.forEach(o => {
-            const name = `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.username;
-            editActOff.innerHTML += `<option value="${o.id}" data-name="${escapeHtml(name)}">${escapeHtml(name)} (${o.role || 'Officer'})</option>`;
-        });
-    }
+    if (actOffSelect) actOffSelect.innerHTML = buildOfficerOptions();
+    if (editOffSelect) editOffSelect.innerHTML = buildOfficerOptions();
 }
 
-function setAdminScheduleViewMode(mode) {
+/**
+ * Switch between Calendar View and Slots List View
+ */
+function setSchedViewMode(mode) {
     adminScheduleViewMode = mode;
-    const btnCal = document.getElementById('adminBtnViewCalendar');
-    const btnList = document.getElementById('adminBtnViewList');
-    const calCol = document.querySelector('.col-12.col-xl-8');
-    const panelCol = document.querySelector('.col-12.col-xl-4');
+    const btnCal = document.getElementById('schedBtnViewCalendar');
+    const btnList = document.getElementById('schedBtnViewList');
+    const calContainer = document.getElementById('schedCalendarViewContainer');
+    const listContainer = document.getElementById('schedListViewContainer');
 
     if (mode === 'calendar') {
         if (btnCal) btnCal.classList.add('active');
         if (btnList) btnList.classList.remove('active');
-        if (calCol) calCol.style.display = 'block';
-        if (panelCol) {
-            panelCol.className = 'col-12 col-xl-4';
-        }
+        if (calContainer) calContainer.classList.remove('d-none');
+        if (listContainer) listContainer.classList.add('d-none');
     } else {
         if (btnCal) btnCal.classList.remove('active');
         if (btnList) btnList.classList.add('active');
-        if (calCol) calCol.style.display = 'none';
-        if (panelCol) {
-            panelCol.className = 'col-12';
-        }
+        if (calContainer) calContainer.classList.add('d-none');
+        if (listContainer) listContainer.classList.remove('d-none');
     }
-    renderScheduledActivitiesPanel();
+    renderSlotsListView();
 }
+window.setSchedViewMode = setSchedViewMode;
 
+/**
+ * Main Render Trigger
+ */
 function renderSchedulingModule() {
     populateSchedulingDropdowns();
     updateSchedulingMetrics();
     renderCalendar();
-    renderScheduledActivitiesPanel();
+    renderUpcomingActivitiesAgenda();
     renderSchedulingArchive();
+    renderSlotsListView();
 }
 
+/**
+ * Update 5 Overview Stat Cards
+ */
 function updateSchedulingMetrics() {
     const total = activitiesList.length;
-    const active = activitiesList.filter(a => (a.slot_status === 'Active' || a.status === 'Active' || a.status === 'Ongoing' || a.status === 'Scheduled') && !a.is_locked).length;
-    const locked = activitiesList.filter(a => a.is_locked || a.slot_status === 'Locked' || a.lock_status === 'Locked').length;
-    const completed = activitiesList.filter(a => a.slot_status === 'Completed' || a.status === 'Completed').length;
-    const cancelled = activitiesList.filter(a => a.slot_status === 'Cancelled' || a.status === 'Cancelled').length;
-    const archived = cancelled + completed;
+    const active = activitiesList.filter(a => a.status === 'Scheduled' || a.status === 'Active' || a.status === 'Ongoing').length;
+    const postponed = activitiesList.filter(a => a.status === 'Postponed').length;
+    const completed = activitiesList.filter(a => a.status === 'Completed').length;
+    const cancelled = activitiesList.filter(a => a.status === 'Cancelled').length;
 
-    if (document.getElementById('schedStatTotal')) document.getElementById('schedStatTotal').textContent = total;
-    if (document.getElementById('schedStatActive')) document.getElementById('schedStatActive').textContent = active;
-    if (document.getElementById('schedStatLocked')) document.getElementById('schedStatLocked').textContent = locked;
-    if (document.getElementById('schedStatCompleted')) document.getElementById('schedStatCompleted').textContent = completed;
-    if (document.getElementById('schedStatCancelled')) document.getElementById('schedStatCancelled').textContent = cancelled;
-    if (document.getElementById('schedulingArchiveCountBadge')) document.getElementById('schedulingArchiveCountBadge').textContent = archived;
-    if (document.getElementById('archiveBoxCountBadge')) document.getElementById('archiveBoxCountBadge').textContent = `${archived} Archived Slots`;
+    const elTotal = document.getElementById('schedStatTotalSlots');
+    const elActive = document.getElementById('schedStatActiveSlots');
+    const elPostponed = document.getElementById('schedStatPostponedSlots');
+    const elCompleted = document.getElementById('schedStatCompletedSlots');
+    const elCancelled = document.getElementById('schedStatCancelledSlots');
+    const elTabBadge = document.getElementById('schedTabBadge');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elActive) elActive.textContent = active;
+    if (elPostponed) elPostponed.textContent = postponed;
+    if (elCompleted) elCompleted.textContent = completed;
+    if (elCancelled) elCancelled.textContent = cancelled;
+    if (elTabBadge) elTabBadge.textContent = active;
 }
 
+/**
+ * Filter Activities based on Search and Filter Bar
+ */
+function getFilteredActivitiesList() {
+    const search = (document.getElementById('schedSearchInput')?.value || '').toLowerCase().trim();
+    const category = document.getElementById('schedCategoryFilter')?.value || 'ALL';
+    const program = document.getElementById('schedProgramFilter')?.value || 'ALL';
+    const officer = document.getElementById('schedOfficerFilter')?.value || 'ALL';
+    const status = document.getElementById('schedStatusFilter')?.value || 'ALL';
+
+    return activitiesList.filter(act => {
+        const title = (act.title || '').toLowerCase();
+        const prog = (act.program_code || '').toLowerCase();
+        const off = (act.officer_name || '').toLowerCase();
+        const loc = (act.location || act.venue || '').toLowerCase();
+        const cat = (act.category || '').toLowerCase();
+
+        const matchesSearch = !search || title.includes(search) || prog.includes(search) || off.includes(search) || loc.includes(search) || cat.includes(search);
+        const matchesCategory = (category === 'ALL') || (act.category === category);
+        const matchesProg = (program === 'ALL') || (act.program_code === program);
+        const matchesOff = (officer === 'ALL') || (act.officer_name.includes(officer));
+
+        let matchesStatus = true;
+        if (status === 'Active') {
+            matchesStatus = act.status === 'Scheduled' || act.status === 'Active' || act.status === 'Ongoing';
+        } else if (status === 'Postponed') {
+            matchesStatus = act.status === 'Postponed';
+        } else if (status === 'Completed') {
+            matchesStatus = act.status === 'Completed';
+        } else if (status === 'Cancelled') {
+            matchesStatus = act.status === 'Cancelled';
+        }
+
+        return matchesSearch && matchesCategory && matchesProg && matchesOff && matchesStatus;
+    });
+}
+
+function filterSchedulingData() {
+    renderCalendar();
+    renderUpcomingActivitiesAgenda();
+    renderSchedulingArchive();
+    renderSlotsListView();
+}
+window.filterSchedulingData = filterSchedulingData;
+
+function resetSchedulingFilters() {
+    if (document.getElementById('schedSearchInput')) document.getElementById('schedSearchInput').value = '';
+    if (document.getElementById('schedCategoryFilter')) document.getElementById('schedCategoryFilter').value = 'ALL';
+    if (document.getElementById('schedProgramFilter')) document.getElementById('schedProgramFilter').value = 'ALL';
+    if (document.getElementById('schedOfficerFilter')) document.getElementById('schedOfficerFilter').value = 'ALL';
+    if (document.getElementById('schedStatusFilter')) document.getElementById('schedStatusFilter').value = 'ALL';
+    filterSchedulingData();
+}
+window.resetSchedulingFilters = resetSchedulingFilters;
+
+/**
+ * Render Monthly Calendar Grid
+ */
 function renderCalendar() {
     const displayEl = document.getElementById('calendarMonthYearDisplay');
     if (displayEl) {
@@ -191,11 +293,11 @@ function renderCalendar() {
     const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
     const prevMonthDays = new Date(currentCalendarYear, currentCalendarMonth, 0).getDate();
 
-    const today = new Date();
-    const isCurrentMonth = today.getFullYear() === currentCalendarYear && today.getMonth() === currentCalendarMonth;
-    const todayDateNum = isCurrentMonth ? today.getDate() : 8;
+    const now = new Date();
+    const isCurrentRealMonth = (now.getFullYear() === currentCalendarYear && now.getMonth() === currentCalendarMonth);
+    const todayRealDate = now.getDate();
 
-    // 1. Previous month days
+    // 1. Previous month trailing days
     for (let i = firstDayIndex - 1; i >= 0; i--) {
         const dayNum = prevMonthDays - i;
         const cell = document.createElement('div');
@@ -207,12 +309,11 @@ function renderCalendar() {
     // 2. Current month days
     for (let day = 1; day <= daysInMonth; day++) {
         const cell = document.createElement('div');
-        const isToday = (day === todayDateNum);
+        const isToday = isCurrentRealMonth && (day === todayRealDate);
         const isFocused = (day === focusedCalendarDay);
         cell.className = `calendar-day-cell ${isToday ? 'today' : ''} ${isFocused ? 'selected-focus' : ''}`;
         cell.setAttribute('tabindex', '0');
         cell.setAttribute('data-day', day);
-        cell.setAttribute('aria-label', `Day ${day} ${MONTH_NAMES[currentCalendarMonth]} ${currentCalendarYear}`);
 
         const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
@@ -228,13 +329,14 @@ function renderCalendar() {
 
         cell.addEventListener('click', () => {
             focusedCalendarDay = day;
-            updateCalendarFocus(day);
+            document.querySelectorAll('.calendar-day-cell').forEach(c => c.classList.remove('selected-focus'));
+            cell.classList.add('selected-focus');
         });
 
         gridBody.appendChild(cell);
     }
 
-    // 3. Next month days
+    // 3. Next month leading days
     const totalRendered = firstDayIndex + daysInMonth;
     const nextMonthCells = (totalRendered % 7 === 0) ? 0 : 7 - (totalRendered % 7);
     for (let j = 1; j <= nextMonthCells; j++) {
@@ -244,41 +346,60 @@ function renderCalendar() {
         gridBody.appendChild(cell);
     }
 
-    populateCalendarEventChips();
-    updateCalendarFocus(focusedCalendarDay);
+    populateCalendarChips();
 }
 
-function populateCalendarEventChips() {
+/**
+ * Populate 5-color status event chips into calendar cells
+ */
+function populateCalendarChips() {
     const filtered = getFilteredActivitiesList();
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
     filtered.forEach(act => {
-        const actDateStr = act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-08');
-        const actDate = new Date(actDateStr + 'T00:00:00');
-        if (actDate.getFullYear() === currentCalendarYear && actDate.getMonth() === currentCalendarMonth) {
-            const dayNum = actDate.getDate();
-            const container = document.getElementById(`dayEvents-${dayNum}`);
+        const actStartDate = act.start_date || act.date || '';
+        if (!actStartDate) return;
+
+        const dateParts = actStartDate.split('-');
+        if (dateParts.length !== 3) return;
+
+        const yr = parseInt(dateParts[0], 10);
+        const mo = parseInt(dateParts[1], 10) - 1;
+        const dy = parseInt(dateParts[2], 10);
+
+        if (yr === currentCalendarYear && mo === currentCalendarMonth) {
+            const container = document.getElementById(`dayEvents-${dy}`);
             if (container) {
                 const chip = document.createElement('div');
-                let chipClass = 'status-chip-blue';
-                let statusIcon = '🟢';
-                let label = act.program_code || 'SLOT';
 
-                if (act.is_locked || act.slot_status === 'Locked') {
-                    chipClass = 'status-chip-gray';
-                    statusIcon = '🔒';
-                } else if (act.slot_status === 'Completed' || act.status === 'Completed') {
-                    chipClass = 'status-chip-green';
-                    statusIcon = '⚫';
-                } else if (act.slot_status === 'Cancelled' || act.status === 'Cancelled') {
+                // Color Legend Logic:
+                // 🟢 Today: Happening Today
+                // 🔵 Scheduled: Upcoming / Active
+                // 🟡 Postponed: Postponed
+                // 🔴 Cancelled: Cancelled
+                // ⚫ Completed: Completed
+                let chipClass = 'status-chip-blue';
+                let iconSymbol = '🔵';
+
+                if (act.status === 'Cancelled') {
                     chipClass = 'status-chip-red';
-                    statusIcon = '🔴';
+                    iconSymbol = '🔴';
+                } else if (act.status === 'Postponed') {
+                    chipClass = 'status-chip-yellow';
+                    iconSymbol = '🟡';
+                } else if (act.status === 'Completed') {
+                    chipClass = 'status-chip-gray';
+                    iconSymbol = '⚫';
+                } else if (actStartDate === todayStr) {
+                    chipClass = 'status-chip-green';
+                    iconSymbol = '🟢';
                 }
 
-                const timeFormatted = act.time || act.schedule_time || '09:00 AM';
                 chip.className = `calendar-event-chip ${chipClass}`;
                 chip.innerHTML = `
-                    <span>${statusIcon}</span>
-                    <span class="text-truncate"><strong>${escapeHtml(label)}</strong> (${timeFormatted.split(' - ')[0]})</span>
+                    <span>${iconSymbol}</span>
+                    <span class="text-truncate"><strong>${escapeHtml(act.program_code)}</strong> - ${escapeHtml(act.title)}</span>
                 `;
                 chip.onclick = (e) => {
                     e.stopPropagation();
@@ -288,22 +409,6 @@ function populateCalendarEventChips() {
             }
         }
     });
-}
-
-function updateCalendarFocus(dayNum) {
-    focusedCalendarDay = dayNum;
-    const cells = document.querySelectorAll('.calendar-day-cell:not(.other-month)');
-    cells.forEach(c => {
-        if (parseInt(c.getAttribute('data-day')) === dayNum) {
-            c.classList.add('selected-focus');
-        } else {
-            c.classList.remove('selected-focus');
-        }
-    });
-    const focusLabel = document.getElementById('calendarFocusedDateLabel');
-    if (focusLabel) {
-        focusLabel.textContent = `Selected Date: ${MONTH_NAMES[currentCalendarMonth]} ${dayNum}, ${currentCalendarYear}`;
-    }
 }
 
 function navigateCalendarMonth(delta) {
@@ -317,934 +422,931 @@ function navigateCalendarMonth(delta) {
     }
     focusedCalendarDay = 1;
     renderCalendar();
-    renderScheduledActivitiesPanel();
 }
+window.navigateCalendarMonth = navigateCalendarMonth;
 
 function jumpToCalendarToday() {
-    currentCalendarYear = 2026;
-    currentCalendarMonth = 7; // August
-    focusedCalendarDay = 8;
+    const now = new Date();
+    currentCalendarYear = now.getFullYear();
+    currentCalendarMonth = now.getMonth();
+    focusedCalendarDay = now.getDate();
     renderCalendar();
-    renderScheduledActivitiesPanel();
-    window.showSystemNotification({
-        title: 'Calendar Reset to Today',
-        message: 'Viewing August 8, 2026 program schedule.',
-        type: 'info'
-    });
 }
+window.jumpToCalendarToday = jumpToCalendarToday;
 
-function handleCalendarKeyNav(event) {
-    const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
-    if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        focusedCalendarDay = Math.max(1, focusedCalendarDay - 1);
-        updateCalendarFocus(focusedCalendarDay);
-    } else if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        focusedCalendarDay = Math.min(daysInMonth, focusedCalendarDay + 1);
-        updateCalendarFocus(focusedCalendarDay);
-    } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        focusedCalendarDay = Math.max(1, focusedCalendarDay - 7);
-        updateCalendarFocus(focusedCalendarDay);
-    } else if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        focusedCalendarDay = Math.min(daysInMonth, focusedCalendarDay + 7);
-        updateCalendarFocus(focusedCalendarDay);
-    } else if (event.key === 'Enter') {
-        event.preventDefault();
-        const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(focusedCalendarDay).padStart(2, '0')}`;
-        const dayAct = activitiesList.find(a => (a.date || a.start_datetime || '').startsWith(dateStr));
-        if (dayAct) {
-            openViewSlotDetailsModal(dayAct.id);
-        } else {
-            openCreateScheduleSlotModal(dateStr);
-        }
-    }
-}
-
-function getFilteredActivitiesList() {
-    const searchInput = document.getElementById('schedSearchInput');
-    const search = (searchInput ? searchInput.value : '').toLowerCase().trim();
-    const program = document.getElementById('schedProgramFilter') ? document.getElementById('schedProgramFilter').value : 'ALL';
-    const officer = document.getElementById('schedOfficerFilter') ? document.getElementById('schedOfficerFilter').value : 'ALL';
-    const status = document.getElementById('schedStatusFilter') ? document.getElementById('schedStatusFilter').value : 'ALL';
-    const venue = document.getElementById('schedVenueFilter') ? document.getElementById('schedVenueFilter').value : 'ALL';
-    const startDate = document.getElementById('schedDateRangeStart') ? document.getElementById('schedDateRangeStart').value : '';
-
-    return activitiesList.filter(act => {
-        const actTitle = (act.title || act.program_name || '').toLowerCase();
-        const actProg = (act.program_code || '').toLowerCase();
-        const actLoc = (act.venue || act.location || '').toLowerCase();
-        const actOff = (act.officer_name || act.assigned_officer_name || '').toLowerCase();
-        const actBatch = (act.batch_name || act.batch_num || '').toLowerCase();
-        const actBeneficiary = (act.beneficiary_name || '').toLowerCase();
-        const slotId = String(act.slot_id || act.id || '').toLowerCase();
-
-        const matchesSearch = !search || actTitle.includes(search) || actProg.includes(search) || actLoc.includes(search) || actOff.includes(search) || actBatch.includes(search) || actBeneficiary.includes(search) || slotId.includes(search);
-        const matchesProg = (program === 'ALL') || (act.program_code === program);
-        const matchesOff = (officer === 'ALL') || ((act.officer_name || act.assigned_officer_name || '').includes(officer));
-
-        let matchesStatus = true;
-        if (status === 'Active') {
-            matchesStatus = !act.is_locked && (act.slot_status === 'Active' || act.status === 'Scheduled' || act.status === 'Ongoing' || act.status === 'Active');
-        } else if (status === 'Locked') {
-            matchesStatus = act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked';
-        } else if (status === 'Completed') {
-            matchesStatus = act.slot_status === 'Completed' || act.status === 'Completed';
-        } else if (status === 'Cancelled') {
-            matchesStatus = act.slot_status === 'Cancelled' || act.status === 'Cancelled';
-        }
-
-        const matchesVenue = (venue === 'ALL') || ((act.venue || act.location || '').includes(venue));
-
-        let matchesDate = true;
-        if (startDate) {
-            const actStart = (act.date || act.start_datetime || '').substring(0, 10);
-            matchesDate = matchesDate && (actStart >= startDate);
-        }
-
-        return matchesSearch && matchesProg && matchesOff && matchesStatus && matchesVenue && matchesDate;
-    });
-}
-
-function renderScheduledActivitiesPanel() {
-    const container = document.getElementById('scheduledActivitiesPanelList');
+/**
+ * 1. Upcoming Activities Panel (Top Right Box)
+ */
+function renderUpcomingActivitiesAgenda() {
+    const container = document.getElementById('scheduledAgendaList');
+    const badge = document.getElementById('upcomingActivitiesCountBadge');
     if (!container) return;
-    container.innerHTML = '';
 
-    const filtered = getFilteredActivitiesList();
+    const filtered = getFilteredActivitiesList().filter(a => a.status === 'Scheduled' || a.status === 'Active' || a.status === 'Ongoing');
 
-    if (document.getElementById('activitiesPanelCountBadge')) {
-        document.getElementById('activitiesPanelCountBadge').textContent = `${filtered.length} Slots`;
+    if (badge) {
+        badge.textContent = `${filtered.length} Upcoming`;
     }
 
     if (filtered.length === 0) {
         container.innerHTML = `
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
-                <h6>No program slots match your criteria</h6>
-                <small>Adjust filters or click "+ Create Schedule Slot" to publish new slots.</small>
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-calendar-check fs-2 d-block mb-1 text-secondary opacity-50"></i>
+                <div class="fw-semibold small">No upcoming scheduled activities.</div>
+                <small class="text-muted">Click "+ Create Schedule Slot" to publish new slots.</small>
             </div>
         `;
         return;
     }
 
-    filtered.forEach(act => {
-        const card = document.createElement('div');
-        card.className = 'card border rounded-3 p-3 mb-3 shadow-sm hover-shadow transition';
+    container.innerHTML = filtered.map(act => {
+        const catBadge = act.category === 'Certificate Distribution' 
+            ? '<span class="badge bg-warning text-dark font-monospace" style="font-size: 0.7rem;">Certificate Distribution</span>'
+            : (act.category === 'Assistance Distribution' ? '<span class="badge bg-primary font-monospace" style="font-size: 0.7rem;">Assistance Distribution</span>' : '<span class="badge bg-info text-dark" style="font-size: 0.7rem;">Special Event</span>');
 
-        const isLocked = act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked';
-        const isCompleted = act.slot_status === 'Completed' || act.status === 'Completed';
-        const isCancelled = act.slot_status === 'Cancelled' || act.status === 'Cancelled';
+        return `
+            <div class="card border rounded-3 p-2.5 mb-2 shadow-sm hover-shadow transition cursor-pointer" onclick="openViewSlotDetailsModal(${act.id})">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    ${catBadge}
+                    <span class="badge bg-success-subtle text-success border border-success" style="font-size: 0.68rem;"><i class="bi bi-broadcast me-1"></i>Active</span>
+                </div>
+                <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 0.88rem;">${escapeHtml(act.title)}</h6>
+                <div class="text-muted small" style="font-size: 0.76rem;">
+                    <div><i class="bi bi-calendar-event me-1 text-primary"></i><strong>${act.start_date}</strong> • ${act.time}</div>
+                    <div class="text-truncate"><i class="bi bi-geo-alt me-1 text-danger"></i>${escapeHtml(act.location)}</div>
+                    <div><i class="bi bi-person-badge me-1 text-info"></i>Officer: <strong>${escapeHtml(act.officer_name)}</strong></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 
-        let statusBadge = '<span class="badge bg-success text-white"><i class="bi bi-broadcast me-1"></i>Active</span>';
-        if (isLocked) {
-            statusBadge = '<span class="badge bg-dark text-white"><i class="bi bi-lock-fill me-1"></i>Locked</span>';
-        } else if (isCompleted) {
-            statusBadge = '<span class="badge bg-success text-white"><i class="bi bi-check2-all me-1"></i>Completed</span>';
-        } else if (isCancelled) {
-            statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger"><i class="bi bi-x-octagon-fill me-1"></i>Cancelled</span>';
+/**
+ * 2. Archive Box (Bottom Right Box)
+ */
+function renderSchedulingArchive() {
+    const container = document.getElementById('schedulingArchiveList');
+    const badge = document.getElementById('archiveBoxCountBadge');
+    if (!container) return;
+
+    const archived = getFilteredActivitiesList().filter(a => a.status === 'Completed' || a.status === 'Cancelled' || a.status === 'Postponed');
+
+    if (badge) {
+        badge.textContent = `${archived.length} Archived Slots`;
+    }
+
+    if (archived.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-archive fs-2 d-block mb-1 text-secondary opacity-50"></i>
+                <div class="fw-semibold small">No archived activities recorded.</div>
+                <small class="text-muted">Completed and cancelled slots will appear here.</small>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = archived.map(act => {
+        let statusBadge = '<span class="badge bg-secondary text-white"><i class="bi bi-check2-all me-1"></i>Completed</span>';
+        if (act.status === 'Cancelled') {
+            statusBadge = '<span class="badge bg-danger text-white"><i class="bi bi-x-octagon-fill me-1"></i>Cancelled</span>';
+        } else if (act.status === 'Postponed') {
+            statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Postponed</span>';
         }
 
-        let assignmentHtml = '<span class="text-muted small"><i class="bi bi-hourglass-split me-1 text-warning"></i>Awaiting Officer Assignment</span>';
-        if (act.scheduling_mode === 'Individual' && act.beneficiary_name) {
-            assignmentHtml = `<span class="badge bg-info-subtle text-dark border"><i class="bi bi-person-fill me-1"></i>${escapeHtml(act.beneficiary_name)} (${escapeHtml(act.beneficiary_phone || '09XX-***-XXXX')})</span>`;
-        } else if (act.scheduling_mode === 'Batch' && act.batch_name) {
-            assignmentHtml = `<span class="badge bg-primary-subtle text-primary border"><i class="bi bi-people-fill me-1"></i>${escapeHtml(act.batch_name)} (${act.batch_count || 25} Beneficiaries)</span>`;
+        return `
+            <div class="card border rounded-3 p-2.5 mb-2 shadow-sm hover-shadow transition cursor-pointer" onclick="openViewSlotDetailsModal(${act.id})">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.7rem;">${escapeHtml(act.program_code)}</span>
+                    ${statusBadge}
+                </div>
+                <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 0.85rem;">${escapeHtml(act.title)}</h6>
+                <div class="text-muted small" style="font-size: 0.75rem;">
+                    <div><i class="bi bi-calendar-event me-1"></i>Date: ${act.start_date}</div>
+                    <div class="text-truncate"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(act.location)}</div>
+                    ${act.status === 'Cancelled' && act.cancellation_reason ? `<div class="text-danger mt-1 text-truncate"><i class="bi bi-info-circle me-1"></i>Reason: ${escapeHtml(act.cancellation_reason)}</div>` : ''}
+                    ${act.status === 'Postponed' && act.postponement_reason ? `<div class="text-warning mt-1 text-truncate"><i class="bi bi-clock me-1"></i>Reason: ${escapeHtml(act.postponement_reason)}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Slots List View (Alternative Flat View)
+ */
+function renderSlotsListView() {
+    const tbody = document.getElementById('schedulesRosterTableBody');
+    const badge = document.getElementById('schedListCountBadge');
+    if (!tbody) return;
+
+    const filtered = getFilteredActivitiesList();
+    if (badge) badge.textContent = `${filtered.length} Total Slots`;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No scheduled slots matching filter criteria.</td></tr>';
+        return;
+    }
+
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    tbody.innerHTML = filtered.map(act => {
+        let statusBadge = '<span class="badge bg-primary text-white"><i class="bi bi-broadcast me-1"></i>Scheduled</span>';
+        if (act.status === 'Cancelled') {
+            statusBadge = '<span class="badge bg-danger text-white"><i class="bi bi-x-octagon-fill me-1"></i>Cancelled</span>';
+        } else if (act.status === 'Postponed') {
+            statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Postponed</span>';
+        } else if (act.status === 'Completed') {
+            statusBadge = '<span class="badge bg-secondary text-white"><i class="bi bi-check2-all me-1"></i>Completed</span>';
+        } else if (act.start_date === todayStr) {
+            statusBadge = '<span class="badge bg-success text-white"><i class="bi bi-play-circle-fill me-1"></i>Today</span>';
         }
 
-        const slotId = act.slot_id || `SLOT-${act.id}`;
-        const progCode = act.program_code || 'TUPAD';
-        const dateDisplay = act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-08');
-        const timeDisplay = act.time || act.schedule_time || '09:00 AM - 10:00 AM';
-        const venueDisplay = act.venue || act.location || 'PESO Main Office';
-        const officerDisplay = act.officer_name || act.assigned_officer_name || 'Assigned Officer';
+        return `
+            <tr>
+                <td>
+                    <div class="fw-bold text-dark">${escapeHtml(act.category)}</div>
+                    <span class="badge bg-light text-primary border font-monospace">${escapeHtml(act.program_code)}</span>
+                </td>
+                <td>
+                    <strong class="text-dark">${escapeHtml(act.title)}</strong>
+                    <div class="small text-muted"><i class="bi bi-award me-1"></i>${escapeHtml(act.program_name)}</div>
+                </td>
+                <td>
+                    <div class="fw-semibold text-dark"><i class="bi bi-calendar-event me-1 text-primary"></i>${act.start_date}${act.end_date && act.end_date !== act.start_date ? ' to ' + act.end_date : ''}</div>
+                    <small class="text-muted">${act.time} (${act.duration})</small>
+                </td>
+                <td>
+                    <div class="text-dark text-truncate" style="max-width: 180px;"><i class="bi bi-geo-alt me-1 text-danger"></i>${escapeHtml(act.location)}</div>
+                </td>
+                <td>
+                    <div class="text-dark"><i class="bi bi-person-badge me-1 text-info"></i>${escapeHtml(act.officer_name)}</div>
+                </td>
+                <td class="text-center">${statusBadge}</td>
+                <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info" onclick="openViewSlotDetailsModal(${act.id})" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        ${act.status !== 'Cancelled' && act.status !== 'Completed' ? `
+                            <button class="btn btn-outline-primary" onclick="openEditActivityModal(${act.id})" title="Edit Activity">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-outline-warning text-dark" onclick="openPostponeModal(${act.id})" title="Postpone Activity">
+                                <i class="bi bi-clock-history"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="openCancelModal(${act.id})" title="Cancel Activity">
+                                <i class="bi bi-x-octagon"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
 
-        card.innerHTML = `
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary font-monospace">${escapeHtml(progCode)}</span>
-                    <span class="badge bg-light text-dark border font-monospace">${escapeHtml(slotId)}</span>
+/**
+ * Open Streamlined Create Schedule Slot Modal
+ */
+function openCreateScheduleSlotModal(defaultDate) {
+    const form = document.getElementById('createSchedSlotForm');
+    if (form) form.reset();
+
+    const dateInput = document.getElementById('actStartDate');
+    const endDateInput = document.getElementById('actEndDate');
+    const startTimeInput = document.getElementById('actStartTime');
+    const endTimeInput = document.getElementById('actEndTime');
+    const progSelect = document.getElementById('actTargetProgramSelect');
+
+    const todayStr = new Date().toISOString().substring(0, 10);
+    if (dateInput) dateInput.value = defaultDate || todayStr;
+    if (endDateInput) endDateInput.value = defaultDate || todayStr;
+    if (startTimeInput) startTimeInput.value = '09:00';
+    if (endTimeInput) endTimeInput.value = '11:00';
+
+    // Auto-select the first active program by default
+    if (progSelect && progSelect.options.length > 1) {
+        progSelect.selectedIndex = 1;
+    }
+
+    const alertBox = document.getElementById('schedSafeguardAlert');
+    if (alertBox) alertBox.classList.add('d-none');
+
+    populateSchedulingDropdowns();
+    handleActCategoryChange();
+    handleActLocationChange();
+    calculateActDuration();
+
+    safeOpenModal('createActivityModal');
+}
+window.openCreateScheduleSlotModal = openCreateScheduleSlotModal;
+
+/**
+ * Category Change Handler: Toggle Others Category & Cert Recipients Engine
+ */
+function handleActCategoryChange() {
+    const catSelect = document.getElementById('actCategorySelect');
+    const otherCont = document.getElementById('actCategoryOtherContainer');
+    const certCont = document.getElementById('actCertRecipientsContainer');
+
+    if (!catSelect) return;
+    const val = catSelect.value;
+
+    if (otherCont) {
+        if (val === 'Others') otherCont.classList.remove('d-none');
+        else otherCont.classList.add('d-none');
+    }
+
+    if (certCont) {
+        if (val === 'Certificate Distribution') {
+            certCont.classList.remove('d-none');
+            pullCertificateEligibleRecipients();
+        } else {
+            certCont.classList.add('d-none');
+        }
+    }
+}
+window.handleActCategoryChange = handleActCategoryChange;
+
+function handleActLocationChange() {
+    const locSelect = document.getElementById('actLocationSelect');
+    const otherCont = document.getElementById('actLocationOtherContainer');
+    if (!locSelect || !otherCont) return;
+
+    if (locSelect.value === 'Others') {
+        otherCont.classList.remove('d-none');
+    } else {
+        otherCont.classList.add('d-none');
+    }
+}
+window.handleActLocationChange = handleActLocationChange;
+
+function handleActProgramChange() {
+    pullCertificateEligibleRecipients();
+}
+window.handleActProgramChange = handleActProgramChange;
+
+/**
+ * Auto-Pull Eligible Recipients for Certificate Distribution
+ */
+async function pullCertificateEligibleRecipients() {
+    const listEl = document.getElementById('actCertRecipientsList');
+    const badge = document.getElementById('actCertRecipientCountBadge');
+    if (!listEl) return;
+
+    const progSelect = document.getElementById('actTargetProgramSelect');
+    const progId = progSelect?.value;
+
+    listEl.innerHTML = '<div class="text-muted py-2"><span class="spinner-border spinner-border-sm me-1"></span>Pulling completed beneficiaries...</div>';
+
+    try {
+        let applications = [];
+        if (typeof DataService !== 'undefined' && DataService.applications) {
+            const res = await DataService.applications.getAll({ status: 'Approved' });
+            if (res.data) applications = res.data;
+        }
+
+        let eligible = applications;
+        if (progId) {
+            eligible = applications.filter(a => String(a.program_id) === String(progId));
+        }
+
+        if (badge) badge.textContent = `${eligible.length} Eligible Recipients`;
+
+        if (eligible.length === 0) {
+            listEl.innerHTML = '<div class="text-muted py-1">No completed beneficiaries currently pending certificate distribution for this program.</div>';
+        } else {
+            listEl.innerHTML = eligible.slice(0, 8).map((app, idx) => `
+                <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                    <div><strong>${idx + 1}. ${escapeHtml((app.beneficiary && `${app.beneficiary.first_name} ${app.beneficiary.last_name}`) || app.beneficiary_qr)}</strong></div>
+                    <span class="badge bg-success-subtle text-success">Completed</span>
+                </div>
+            `).join('') + (eligible.length > 8 ? `<div class="text-primary text-center pt-1">+ ${eligible.length - 8} more completed recipients</div>` : '');
+        }
+    } catch (e) {
+        listEl.innerHTML = '<div class="text-muted py-1">All enrolled program participants included.</div>';
+    }
+}
+
+/**
+ * Calculate Activity Duration (Supports minute precision and multi-day spans)
+ */
+function calculateActDuration() {
+    const startD = document.getElementById('actStartDate')?.value;
+    const endD = document.getElementById('actEndDate')?.value || startD;
+    const startT = document.getElementById('actStartTime')?.value || '09:00';
+    const endT = document.getElementById('actEndTime')?.value || '11:00';
+    const display = document.getElementById('actCalculatedDuration');
+
+    if (!startD || !display) return;
+
+    const startDateTime = new Date(`${startD}T${startT}:00`);
+    const endDateTime = new Date(`${endD}T${endT}:00`);
+
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        display.textContent = 'Invalid Time';
+        return;
+    }
+
+    const diffMs = endDateTime - startDateTime;
+    if (diffMs <= 0) {
+        display.textContent = '0 Minutes (End must be after Start)';
+        display.className = 'p-2 bg-danger-subtle border border-danger rounded text-center fw-bold text-danger';
+        return;
+    }
+
+    display.className = 'p-2 bg-light border rounded text-center fw-bold text-primary';
+
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const days = Math.floor(diffMinutes / (60 * 24));
+    const hours = Math.floor((diffMinutes % (60 * 24)) / 60);
+    const mins = diffMinutes % 60;
+
+    let parts = [];
+    if (days > 0) parts.push(`${days} Day${days > 1 ? 's' : ''}`);
+    if (hours > 0) parts.push(`${hours} Hour${hours > 1 ? 's' : ''}`);
+    if (mins > 0) parts.push(`${mins} Minute${mins > 1 ? 's' : ''}`);
+
+    display.textContent = parts.join(' ') || '0 Minutes';
+}
+window.calculateActDuration = calculateActDuration;
+
+/**
+ * Submit Create Schedule Slot Form (Streamlined)
+ */
+async function handleCreateScheduleSlotSubmit(event) {
+    if (event) event.preventDefault();
+
+    const title = document.getElementById('actSubjectTitle')?.value.trim();
+    const category = document.getElementById('actCategorySelect')?.value;
+    const categoryOther = document.getElementById('actCategoryOtherInput')?.value.trim();
+    const progId = document.getElementById('actTargetProgramSelect')?.value;
+    const officerId = document.getElementById('actOfficerSelect')?.value || null; // Optional
+    const locationSelect = document.getElementById('actLocationSelect')?.value;
+    const locationOther = document.getElementById('actLocationOtherInput')?.value.trim();
+    const startDate = document.getElementById('actStartDate')?.value;
+    const endDate = document.getElementById('actEndDate')?.value || startDate;
+    const startTime = document.getElementById('actStartTime')?.value;
+    const endTime = document.getElementById('actEndTime')?.value;
+    const duration = document.getElementById('actCalculatedDuration')?.textContent.trim();
+    const remarks = document.getElementById('actRemarks')?.value.trim();
+
+    const alertBox = document.getElementById('schedSafeguardAlert');
+    const alertMsg = document.getElementById('schedSafeguardAlertMsg');
+
+    const showAlert = (msg) => {
+        if (alertBox && alertMsg) {
+            alertMsg.textContent = msg;
+            alertBox.classList.remove('d-none');
+        } else {
+            alert(msg);
+        }
+    };
+
+    // 1. Validation Rules
+    if (!title || !category || !progId || !startDate || !startTime || !endTime) {
+        showAlert('Validation Error: Please fill in all required fields marked with *.');
+        return;
+    }
+
+    if (category === 'Others' && !categoryOther) {
+        showAlert('Validation Error: Please specify the custom category name.');
+        return;
+    }
+
+    const finalLocation = locationSelect === 'Others' ? locationOther : locationSelect;
+    if (locationSelect === 'Others' && !locationOther) {
+        showAlert('Validation Error: Please specify the custom location address.');
+        return;
+    }
+
+    // 2. Date Validations
+    if (endDate < startDate) {
+        showAlert('Validation Error: End Date cannot be earlier than Start Date.');
+        return;
+    }
+
+    if (startDate === endDate && endTime <= startTime) {
+        showAlert('Validation Error: End Time must be later than Start Time on the same day.');
+        return;
+    }
+
+    // 3. Past Date Guard
+    const todayStr = new Date().toISOString().substring(0, 10);
+    if (startDate < todayStr) {
+        showAlert('Past Date Restriction: System blocks scheduling activities on past dates. Please select today or a future date.');
+        return;
+    }
+
+    // 4. Conflict Detection
+    if (officerId) {
+        const hasOfficerConflict = activitiesList.some(a => {
+            if (a.status === 'Cancelled' || a.status === 'Completed') return false;
+            if (String(a.officer_id) !== String(officerId)) return false;
+            if (a.start_date !== startDate) return false;
+            return (a.start_time === startTime || a.time.includes(startTime));
+        });
+
+        if (hasOfficerConflict) {
+            showAlert('Schedule Conflict Detected: The assigned PESO Officer already has another scheduled activity during this time slot.');
+            return;
+        }
+    }
+
+    const hasVenueConflict = activitiesList.some(a => {
+        if (a.status === 'Cancelled' || a.status === 'Completed') return false;
+        if (a.location !== finalLocation) return false;
+        if (a.start_date !== startDate) return false;
+        return (a.start_time === startTime || a.time.includes(startTime));
+    });
+
+    if (hasVenueConflict) {
+        showAlert('Venue Conflict Detected: The selected location/venue is already booked for another activity during this time slot.');
+        return;
+    }
+
+    // 5. Build Payload & Save via DataService
+    const payload = {
+        title: title,
+        category: category === 'Others' ? categoryOther : category,
+        category_other: category === 'Others' ? categoryOther : null,
+        program_id: parseInt(progId, 10),
+        officer_id: officerId ? parseInt(officerId, 10) : null,
+        venue_location: finalLocation,
+        location_other: locationSelect === 'Others' ? locationOther : null,
+        interview_date: startDate,
+        start_date: startDate,
+        end_date: endDate,
+        interview_time: startTime,
+        start_time: startTime,
+        end_time: endTime,
+        duration: duration,
+        status: 'Scheduled',
+        remarks: remarks
+    };
+
+    const submitBtn = document.getElementById('btnSubmitCreateSchedSlot');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+        let res = null;
+        if (typeof DataService !== 'undefined' && DataService.interviews) {
+            res = await DataService.interviews.create(payload);
+        } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            res = await supabaseClient.from('interview_schedules').insert(payload).select().single();
+        }
+
+        if (res && res.error) {
+            throw res.error;
+        }
+
+        safeHideModal('createActivityModal');
+        alert(`Success: Scheduled activity slot "${title}" created and published in real-time.`);
+        await initSchedulingModuleData();
+    } catch (err) {
+        console.error('[SCHEDULING] Creation error:', err);
+        showAlert(`Error saving schedule slot: ${err.message || err}`);
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+}
+window.handleCreateScheduleSlotSubmit = handleCreateScheduleSlotSubmit;
+
+/**
+ * View Activity Details Modal
+ */
+function openViewSlotDetailsModal(id) {
+    const act = activitiesList.find(a => String(a.id) === String(id));
+    if (!act) return;
+
+    activeViewingActivityId = id;
+
+    const modalBody = document.getElementById('viewSchedDetailsModalBody');
+    const actionsDiv = document.getElementById('viewSchedDetailsActions');
+
+    let statusBadge = '<span class="badge bg-primary text-white"><i class="bi bi-broadcast me-1"></i>Scheduled</span>';
+    if (act.status === 'Cancelled') {
+        statusBadge = '<span class="badge bg-danger text-white"><i class="bi bi-x-octagon-fill me-1"></i>Cancelled</span>';
+    } else if (act.status === 'Postponed') {
+        statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Postponed</span>';
+    } else if (act.status === 'Completed') {
+        statusBadge = '<span class="badge bg-secondary text-white"><i class="bi bi-check2-all me-1"></i>Completed</span>';
+    }
+
+    if (modalBody) {
+        modalBody.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
+                <div>
+                    <span class="badge bg-light text-dark border font-monospace me-1">${escapeHtml(act.slot_id)}</span>
+                    <span class="badge bg-primary-subtle text-primary font-monospace">${escapeHtml(act.category)}</span>
+                    <h5 class="fw-bold text-dark mt-2 mb-0">${escapeHtml(act.title)}</h5>
                 </div>
                 <div>${statusBadge}</div>
             </div>
 
-            <h6 class="fw-bold text-dark mb-1">${escapeHtml(act.title || act.program_name || 'Program Session')}</h6>
-            ${act.program_sub_category ? `<div class="text-muted small mb-2"><i class="bi bi-tag-fill me-1 text-secondary"></i>${escapeHtml(act.program_sub_category)}</div>` : ''}
-
-            <div class="small text-muted mb-2">
-                <div><i class="bi bi-calendar-event me-1.5 text-primary"></i><strong>${dateDisplay}</strong> • ${timeDisplay}</div>
-                <div><i class="bi bi-geo-alt me-1.5 text-danger"></i>${escapeHtml(venueDisplay)}</div>
-                <div><i class="bi bi-person-badge me-1.5 text-info"></i>Assigned: <strong class="text-dark">${escapeHtml(officerDisplay)}</strong></div>
-            </div>
-
-            <div class="p-2 bg-light rounded-2 mb-3">
-                <div class="small fw-semibold text-secondary mb-1">Operational Assignment:</div>
-                ${assignmentHtml}
-            </div>
-
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-1 pt-2 border-top">
-                <button class="btn btn-sm btn-outline-info" onclick="openViewSlotDetailsModal(${act.id})" title="Strictly View-Only Details">
-                    <i class="bi bi-eye-fill me-1"></i> View Details
-                </button>
-                <div class="d-flex gap-1">
-                    ${!isLocked && !isCancelled && !isCompleted ? `
-                        <button class="btn btn-sm btn-outline-warning text-dark" onclick="openEditSlotModal(${act.id})" title="Admin Edit / Reassign Officer">
-                            <i class="bi bi-pencil-square"></i> Reassign
-                        </button>
-                        <button class="btn btn-sm btn-outline-dark" onclick="toggleSlotLock(${act.id})" title="Lock Slot (Prevents Reassignment)">
-                            <i class="bi bi-lock-fill"></i> Lock
-                        </button>
-                    ` : ''}
-                    ${isLocked && !isCancelled && !isCompleted ? `
-                        <button class="btn btn-sm btn-dark text-white" onclick="toggleSlotLock(${act.id})" title="Unlock Slot (Allow Reassignment)">
-                            <i class="bi bi-unlock-fill"></i> Unlock
-                        </button>
-                    ` : ''}
-                    ${!isCompleted && !isCancelled ? `
-                        <button class="btn btn-sm btn-outline-success" onclick="markSlotCompleted(${act.id})" title="Finalize Lifecycle as Completed">
-                            <i class="bi bi-check2-circle"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="openCancelSlotModal(${act.id})" title="Cancel Slot (Retains Red Label)">
-                            <i class="bi bi-x-circle"></i>
-                        </button>
-                    ` : ''}
+            <div class="row g-3 small">
+                <div class="col-md-6">
+                    <label class="text-muted fw-semibold">Target Program</label>
+                    <div class="fw-bold text-dark fs-6">${escapeHtml(act.program_name)} (${escapeHtml(act.program_code)})</div>
                 </div>
+                <div class="col-md-6">
+                    <label class="text-muted fw-semibold">Assigned PESO Officer</label>
+                    <div class="fw-bold text-dark fs-6"><i class="bi bi-person-badge text-info me-1"></i>${escapeHtml(act.officer_name)}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="text-muted fw-semibold">Schedule Date & Time</label>
+                    <div class="fw-bold text-dark"><i class="bi bi-calendar-event text-primary me-1"></i>${act.start_date}${act.end_date && act.end_date !== act.start_date ? ' to ' + act.end_date : ''}</div>
+                    <div class="text-muted">${act.time}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="text-muted fw-semibold">Calculated Duration</label>
+                    <div class="fw-bold text-primary"><i class="bi bi-hourglass-split me-1"></i>${act.duration}</div>
+                </div>
+                <div class="col-12">
+                    <label class="text-muted fw-semibold">Location / Platform</label>
+                    <div class="fw-bold text-dark"><i class="bi bi-geo-alt text-danger me-1"></i>${escapeHtml(act.location)}</div>
+                </div>
+                ${act.remarks ? `
+                    <div class="col-12">
+                        <label class="text-muted fw-semibold">Notes / Remarks</label>
+                        <div class="p-2 bg-light rounded border text-secondary">${escapeHtml(act.remarks)}</div>
+                    </div>
+                ` : ''}
+                ${act.status === 'Postponed' && act.postponement_reason ? `
+                    <div class="col-12">
+                        <div class="alert alert-warning py-2 mb-0">
+                            <strong><i class="bi bi-clock-history me-1"></i>Postponement Record:</strong> ${escapeHtml(act.postponement_reason)}
+                            ${act.postponed_by ? `<div class="small text-muted mt-1">Recorded by ${escapeHtml(act.postponed_by)} on ${act.postponed_at ? new Date(act.postponed_at).toLocaleString() : 'Recent'}</div>` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+                ${act.status === 'Cancelled' && act.cancellation_reason ? `
+                    <div class="col-12">
+                        <div class="alert alert-danger py-2 mb-0">
+                            <strong><i class="bi bi-x-octagon-fill me-1"></i>Cancellation Record:</strong> ${escapeHtml(act.cancellation_reason)}
+                            ${act.cancelled_by ? `<div class="small text-muted mt-1">Recorded by ${escapeHtml(act.cancelled_by)} on ${act.cancelled_at ? new Date(act.cancelled_at).toLocaleString() : 'Recent'}</div>` : ''}
+                        </div>
+                    </div>
+                ` : ''}
             </div>
         `;
-
-        container.appendChild(card);
-    });
-}
-
-function filterSchedulingData() {
-    renderScheduledActivitiesPanel();
-    renderCalendar();
-}
-
-function resetSchedulingFilters() {
-    if (document.getElementById('schedSearchInput')) document.getElementById('schedSearchInput').value = '';
-    if (document.getElementById('schedProgramFilter')) document.getElementById('schedProgramFilter').value = 'ALL';
-    if (document.getElementById('schedOfficerFilter')) document.getElementById('schedOfficerFilter').value = 'ALL';
-    if (document.getElementById('schedStatusFilter')) document.getElementById('schedStatusFilter').value = 'ALL';
-    if (document.getElementById('schedVenueFilter')) document.getElementById('schedVenueFilter').value = 'ALL';
-    if (document.getElementById('schedDateRangeStart')) document.getElementById('schedDateRangeStart').value = '';
-    filterSchedulingData();
-}
-
-// --- CREATE SCHEDULE SLOT (PAST DATE & CONFLICT VALIDATION RESTRICTIONS) ---
-function openCreateScheduleSlotModal(defaultDate) {
-    const form = document.getElementById('createActivityForm');
-    if (form) form.reset();
-
-    const dateInput = document.getElementById('actSlotDate');
-    if (dateInput) {
-        dateInput.value = defaultDate || '2026-08-10';
     }
 
-    const alertBox = document.getElementById('createActivitySafeguardAlert');
+    if (actionsDiv) {
+        if (act.status !== 'Cancelled' && act.status !== 'Completed') {
+            actionsDiv.innerHTML = `
+                <button type="button" class="btn btn-outline-primary fw-semibold" onclick="openEditActivityModal(${act.id})">
+                    <i class="bi bi-pencil-square me-1"></i> Edit / Reschedule
+                </button>
+                <button type="button" class="btn btn-warning fw-semibold text-dark" onclick="openPostponeModal(${act.id})">
+                    <i class="bi bi-clock-history me-1"></i> Postpone Activity
+                </button>
+                <button type="button" class="btn btn-danger fw-semibold" onclick="openCancelModal(${act.id})">
+                    <i class="bi bi-x-octagon-fill me-1"></i> Cancel Activity
+                </button>
+            `;
+        } else {
+            actionsDiv.innerHTML = `<span class="badge bg-light text-muted border py-2 px-3">Archived Record • Read Only</span>`;
+        }
+    }
+
+    safeOpenModal('viewScheduleSlotDetailsModal');
+}
+window.openViewSlotDetailsModal = openViewSlotDetailsModal;
+
+/**
+ * Open Edit / Reschedule Activity Modal
+ */
+function openEditActivityModal(id) {
+    const act = activitiesList.find(a => String(a.id) === String(id));
+    if (!act) return;
+
+    safeHideModal('viewScheduleSlotDetailsModal');
+    populateSchedulingDropdowns();
+
+    document.getElementById('editSlotId').value = act.id;
+    document.getElementById('editActSubjectTitle').value = act.title;
+    document.getElementById('editActCategorySelect').value = (act.category === 'Assistance Distribution' || act.category === 'Certificate Distribution') ? act.category : 'Others';
+    
+    if (act.category !== 'Assistance Distribution' && act.category !== 'Certificate Distribution') {
+        document.getElementById('editActCategoryOtherContainer').classList.remove('d-none');
+        document.getElementById('editActCategoryOtherInput').value = act.category;
+    } else {
+        document.getElementById('editActCategoryOtherContainer').classList.add('d-none');
+    }
+
+    document.getElementById('editActTargetProgramSelect').value = act.program_id;
+    document.getElementById('editActOfficerSelect').value = act.officer_id || '';
+
+    const locSelect = document.getElementById('editActLocationSelect');
+    let matchedLoc = false;
+    for (let opt of locSelect.options) {
+        if (opt.value === act.location) {
+            locSelect.value = act.location;
+            matchedLoc = true;
+            break;
+        }
+    }
+    if (!matchedLoc) {
+        locSelect.value = 'Others';
+        document.getElementById('editActLocationOtherContainer').classList.remove('d-none');
+        document.getElementById('editActLocationOtherInput').value = act.location;
+    } else {
+        document.getElementById('editActLocationOtherContainer').classList.add('d-none');
+    }
+
+    document.getElementById('editActStartDate').value = act.start_date;
+    document.getElementById('editActEndDate').value = act.end_date || act.start_date;
+    document.getElementById('editActStartTime').value = act.start_time || '09:00';
+    document.getElementById('editActEndTime').value = act.end_time || '11:00';
+    document.getElementById('editActRemarks').value = act.remarks || '';
+
+    calculateEditActDuration();
+
+    const alertBox = document.getElementById('editSchedSafeguardAlert');
     if (alertBox) alertBox.classList.add('d-none');
-
-    populateSchedulingDropdowns();
-    safeOpenModal('createActivityModal');
-}
-window.openCreateActivityModal = openCreateScheduleSlotModal;
-
-function handleCreateScheduleSlotSubmit(e) {
-    e.preventDefault();
-
-    const progSelect = document.getElementById('actProgram');
-    const programCode = progSelect ? progSelect.value : 'TUPAD';
-    const programName = progSelect && progSelect.selectedIndex >= 0 ? progSelect.options[progSelect.selectedIndex].text : 'TUPAD';
-    const subCategory = (document.getElementById('actSubCategory') ? document.getElementById('actSubCategory').value : '').trim();
-    const barangayCluster = (document.getElementById('actBarangayCluster') ? document.getElementById('actBarangayCluster').value : '').trim();
-
-    const slotDate = document.getElementById('actSlotDate').value;
-    const timeSlot = document.getElementById('actTimeSlot').value;
-    const venue = document.getElementById('actLocation').value.trim();
-
-    const offSelect = document.getElementById('actOfficer');
-    const officerId = offSelect ? Number(offSelect.value) : 1;
-    const officer = (Array.isArray(officersList) ? officersList : usersList).find(o => o.id === officerId);
-    const officerName = officer ? `${officer.first_name} ${officer.last_name}` : (offSelect && offSelect.selectedIndex >= 0 ? offSelect.options[offSelect.selectedIndex].text : 'Officer');
-
-    const remarks = (document.getElementById('actRemarks') ? document.getElementById('actRemarks').value : '').trim();
-
-    // RULE 1: PAST DATE RESTRICTION
-    const todayStr = '2026-08-01';
-    if (slotDate < todayStr) {
-        const alertBox = document.getElementById('createActivitySafeguardAlert');
-        const alertMsg = document.getElementById('createActivitySafeguardAlertMsg');
-        if (alertBox && alertMsg) {
-            alertMsg.textContent = 'Past Date Restriction: System blocks scheduling program slots on past dates.';
-            alertBox.classList.remove('d-none');
-        }
-        window.showSystemNotification({
-            title: 'Past Date Restriction',
-            message: 'Cannot create schedule slots on past dates.',
-            type: 'warning'
-        });
-        return;
-    }
-
-    // RULE 2: CONFLICT VALIDATION RESTRICTION (Same officer, date, and overlapping time)
-    const hasConflict = activitiesList.some(a => {
-        const isSameOfficer = (a.officer_id === officerId || a.assigned_officer_id === officerId);
-        const isSameDate = (a.date === slotDate || (a.start_datetime || '').startsWith(slotDate));
-        const isSameTime = (a.time === timeSlot || a.schedule_time === timeSlot);
-        const isNotCancelled = a.slot_status !== 'Cancelled' && a.status !== 'Cancelled';
-        return isSameOfficer && isSameDate && isSameTime && isNotCancelled;
-    });
-
-    if (hasConflict) {
-        const alertBox = document.getElementById('createActivitySafeguardAlert');
-        const alertMsg = document.getElementById('createActivitySafeguardAlertMsg');
-        if (alertBox && alertMsg) {
-            alertMsg.textContent = `Conflict Validation: ${officerName} already has an assigned slot at ${timeSlot} on ${slotDate}.`;
-            alertBox.classList.remove('d-none');
-        }
-        window.showSystemNotification({
-            title: 'Schedule Conflict Restriction',
-            message: `${officerName} is already booked at that time. Please pick another time or officer.`,
-            type: 'warning'
-        });
-        return;
-    }
-
-    const newSlotId = 'SLOT-' + String(Date.now()).slice(-4);
-    const newSlot = {
-        id: Date.now(),
-        slot_id: newSlotId,
-        program_code: programCode,
-        program_name: programName,
-        program_sub_category: subCategory || 'General Program Activity',
-        barangay_cluster: barangayCluster || '',
-        title: `${programCode}: ${subCategory || programName}`,
-        category: 'Program Activity',
-        date: slotDate,
-        start_datetime: `${slotDate}T${timeSlot.split(' - ')[0] || '09:00'}`,
-        end_datetime: `${slotDate}T${timeSlot.split(' - ')[1] || '10:00'}`,
-        time: timeSlot,
-        schedule_time: timeSlot,
-        duration: '1 Hour',
-        venue: venue,
-        location: venue,
-        officer_id: officerId,
-        officer_name: officerName,
-        assigned_officer_id: officerId,
-        assigned_officer_name: `${officerName} (PESO Officer)`,
-        remarks: remarks,
-        slot_status: 'Active',
-        status: 'Active',
-        is_locked: false,
-        lock_status: 'Unlocked',
-        scheduling_mode: 'Unassigned',
-        beneficiary_name: '',
-        batch_name: '',
-        batch_count: 0,
-        created_at: new Date().toISOString(),
-        created_by: 'PESO Admin',
-        updated_at: new Date().toISOString()
-    };
-
-    activitiesList.unshift(newSlot);
-    logAuditEvent('CREATE_PROGRAM_SCHEDULE_SLOT', `Admin created program slot ${newSlot.slot_id} for ${programCode} on ${slotDate} (${timeSlot}) at ${venue}. Assigned Officer: ${officerName}`);
-
-    safeHideModal('createActivityModal');
-    renderSchedulingModule();
-
-    window.showSystemNotification({
-        title: 'Schedule Slot Created',
-        message: `Slot ${newSlot.slot_id} created with program linkage (${programCode}) and dispatched to ${officerName}.`,
-        type: 'success'
-    });
-}
-window.handleCreateActivitySubmit = handleCreateScheduleSlotSubmit;
-
-// --- VIEW SLOT DETAILS MODAL (STRICTLY READ-ONLY, RULE 1) ---
-function openViewSlotDetailsModal(slotId) {
-    if (!Array.isArray(activitiesList)) activitiesList = [];
-    activeViewingActivityId = slotId;
-    const act = activitiesList.find(a => a && (a.id === slotId || a.slot_id === slotId));
-    if (!act) {
-        console.warn('[SCHEDULING] Slot details not found for ID:', slotId);
-        window.showSystemNotification({ title: 'Schedule Notice', message: 'Slot details could not be retrieved.', type: 'warning' });
-        return;
-    }
-
-    const setText = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val || 'N/A';
-    };
-
-    setText('viewActModalTitle', `Program Slot: ${act.slot_id || 'SLOT-' + act.id}`);
-    setText('viewActSlotIdBadge', act.slot_id || `SLOT-${act.id}`);
-    setText('viewActProgramBadge', act.program_code || 'TUPAD');
-    setText('viewActTitle', act.title || act.program_name || 'Program Schedule Session');
-    setText('viewActSubCategory', act.program_sub_category ? `Sub-category: ${act.program_sub_category}` : 'General Program Operations');
-
-    const dateStr = act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-08');
-    const timeStr = act.time || act.schedule_time || '09:00 AM - 10:00 AM';
-    setText('viewActDateTime', `${dateStr} • ${timeStr}`);
-    setText('viewActDuration', `Assigned Cluster: ${act.barangay_cluster || 'Citywide / General'}`);
-
-    setText('viewActLocation', act.venue || act.location || 'PESO Main Office');
-    setText('viewActCluster', act.remarks ? `Admin Remarks: "${act.remarks}"` : 'No special remarks entered.');
-    setText('viewActAssignedOfficer', act.officer_name || act.assigned_officer_name || 'Assigned Officer');
-
-    const isLocked = act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked';
-    const isCancelled = act.slot_status === 'Cancelled' || act.status === 'Cancelled';
-    const isCompleted = act.slot_status === 'Completed' || act.status === 'Completed';
-    const lockBadge = document.getElementById('viewActLockBadge');
-    if (lockBadge) {
-        lockBadge.className = isLocked ? 'badge bg-dark text-white' : 'badge bg-secondary-subtle text-dark border';
-        lockBadge.innerHTML = isLocked ? '<i class="bi bi-lock-fill me-1"></i>Locked (Protected)' : '<i class="bi bi-unlock me-1"></i>Unlocked';
-    }
-
-    const statusBadge = document.getElementById('viewActStatusBadge');
-    if (statusBadge) {
-        if (act.slot_status === 'Cancelled' || act.status === 'Cancelled') {
-            statusBadge.className = 'badge bg-danger-subtle text-danger border border-danger px-3 py-1.5 fs-6';
-            statusBadge.textContent = '🔴 Cancelled';
-        } else if (act.slot_status === 'Completed' || act.status === 'Completed') {
-            statusBadge.className = 'badge bg-success text-white px-3 py-1.5 fs-6';
-            statusBadge.textContent = '⚫ Completed';
-        } else if (isLocked) {
-            statusBadge.className = 'badge bg-dark text-white px-3 py-1.5 fs-6';
-            statusBadge.textContent = '🔒 Locked Slot';
-        } else {
-            statusBadge.className = 'badge bg-success text-white px-3 py-1.5 fs-6';
-            statusBadge.textContent = '🟢 Active Slot';
-        }
-    }
-
-    const mode = act.scheduling_mode || 'Unassigned';
-    document.getElementById('viewActTargetBeneficiaries').textContent = `Mode: ${mode}`;
-
-    const paramsContainer = document.getElementById('viewActCategoryParams');
-    if (paramsContainer) {
-        if (mode === 'Individual' && act.beneficiary_name) {
-            paramsContainer.innerHTML = `
-                <div class="col-md-6"><span class="text-muted">Beneficiary Name:</span> <strong class="text-dark">${escapeHtml(act.beneficiary_name)}</strong></div>
-                <div class="col-md-6"><span class="text-muted">Contact Number:</span> <span class="badge bg-light text-dark font-monospace">${escapeHtml(maskContactNumber(act.beneficiary_phone || '09XX-***-XXXX'))}</span></div>
-                <div class="col-md-6"><span class="text-muted">Barangay:</span> <strong>${escapeHtml(act.barangay || 'Poblacion')}</strong></div>
-                <div class="col-md-6"><span class="text-muted">Attendance Status:</span> <span class="badge ${act.attendance_status === 'Present' ? 'bg-success' : (act.attendance_status === 'Absent' ? 'bg-danger' : 'bg-warning text-dark')}">${act.attendance_status || 'Pending'}</span></div>
-            `;
-        } else if (mode === 'Batch' && act.batch_name) {
-            paramsContainer.innerHTML = `
-                <div class="col-md-6"><span class="text-muted">Batch Identifier:</span> <strong class="text-primary">${escapeHtml(act.batch_name)}</strong></div>
-                <div class="col-md-3"><span class="text-muted">Beneficiary Count:</span> <span class="badge bg-primary">${act.batch_count || 25} Pax</span></div>
-                <div class="col-md-3"><span class="text-muted">Attendance:</span> <span class="badge bg-success text-white">${act.attendance_status || 'Enrolled'}</span></div>
-                <div class="col-12"><span class="text-muted">Cluster Metadata:</span> <strong class="text-dark">${escapeHtml(act.barangay_cluster || 'Cluster Assigned')}</strong></div>
-            `;
-        } else {
-            paramsContainer.innerHTML = `
-                <div class="col-12 text-muted fst-italic">
-                    <i class="bi bi-info-circle me-1 text-primary"></i>Slot is ready for PESO Officer to assign individual beneficiaries or community batch rosters.
-                </div>
-            `;
-        }
-    }
-
-    const cancelBox = document.getElementById('viewActCancellationBox');
-    if (cancelBox) {
-        if (act.slot_status === 'Cancelled' || act.status === 'Cancelled') {
-            cancelBox.classList.remove('d-none');
-            document.getElementById('viewActCancellationReason').textContent = act.cancellation_reason || 'Administrative cancellation recorded.';
-            document.getElementById('viewActCancellationTimestamp').textContent = `Cancelled on: ${new Date(act.cancelled_at || act.updated_at).toLocaleString()} by ${act.cancelled_by || 'PESO Admin'}`;
-        } else {
-            cancelBox.classList.add('d-none');
-        }
-    }
-
-    if (document.getElementById('viewActAuditTimestamp')) document.getElementById('viewActAuditTimestamp').textContent = new Date(act.created_at || Date.now()).toLocaleString();
-    if (document.getElementById('viewActAuditHash')) document.getElementById('viewActAuditHash').textContent = `Hash: SHA-${Math.abs(act.id).toString(16).toUpperCase()}`;
-
-    const editBtn = document.getElementById('viewModalEditBtn');
-    const lockBtn = document.getElementById('viewModalLockToggleBtn');
-    const compBtn = document.getElementById('viewModalCompleteBtn');
-    const cancelBtn = document.getElementById('viewModalCancelBtn');
-
-    if (editBtn) editBtn.style.display = isLocked || isCancelled || isCompleted ? 'none' : 'inline-block';
-    if (lockBtn) {
-        lockBtn.style.display = isCancelled || isCompleted ? 'none' : 'inline-block';
-        lockBtn.innerHTML = isLocked ? '<i class="bi bi-unlock-fill me-1"></i> Unlock Slot' : '<i class="bi bi-lock-fill me-1"></i> Lock Slot';
-    }
-    if (compBtn) compBtn.style.display = isCompleted || isCancelled ? 'none' : 'inline-block';
-    if (cancelBtn) cancelBtn.style.display = isCancelled || isCompleted ? 'none' : 'inline-block';
-
-    safeOpenModal('viewActivityDetailsModal');
-    logAuditEvent('VIEW_SCHEDULE_SLOT_DETAILS', `Inspected read-only details for slot ${act.slot_id || act.id} (${act.program_code})`);
-}
-window.openViewActivityDetailsModal = openViewSlotDetailsModal;
-
-function triggerEditFromView() {
-    safeHideModal('viewActivityDetailsModal');
-    if (activeViewingActivityId) openEditSlotModal(activeViewingActivityId);
-}
-
-function triggerLockFromView() {
-    safeHideModal('viewActivityDetailsModal');
-    if (activeViewingActivityId) toggleSlotLock(activeViewingActivityId);
-}
-
-function triggerCompleteFromView() {
-    safeHideModal('viewActivityDetailsModal');
-    if (activeViewingActivityId) markSlotCompleted(activeViewingActivityId);
-}
-
-function triggerCancelFromView() {
-    safeHideModal('viewActivityDetailsModal');
-    if (activeViewingActivityId) openCancelSlotModal(activeViewingActivityId);
-}
-
-// --- EDIT PROGRAM SLOT (ADMIN ONLY) ---
-function openEditSlotModal(slotId) {
-    if (!Array.isArray(activitiesList)) activitiesList = [];
-    const act = activitiesList.find(a => a && (a.id === slotId || a.slot_id === slotId));
-    if (!act) {
-        console.warn('[SCHEDULING] Slot not found for ID:', slotId);
-        window.showSystemNotification({ title: 'Schedule Notice', message: 'Slot details not found.', type: 'warning' });
-        return;
-    }
-
-    if (act.is_locked || act.slot_status === 'Locked' || act.lock_status === 'Locked') {
-        window.showSystemNotification({
-            title: 'Slot Locked',
-            message: 'Lock Restriction: This slot is locked by Admin. Unlock it first if you need to reassign officers.',
-            type: 'warning'
-        });
-        return;
-    }
-
-    const setVal = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.value = val || '';
-    };
-
-    setVal('editActId', act.id);
-    const badge = document.getElementById('editActIdBadge');
-    if (badge) badge.textContent = act.slot_id || `ID: ${act.id}`;
-    setVal('editActProgramCode', `${act.program_code || 'TUPAD'} - ${act.program_name || 'Program Linkage'}`);
-
-    populateSchedulingDropdowns();
-    setVal('editActOfficer', act.officer_id || act.assigned_officer_id || 1);
-    setVal('editActDate', act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-10'));
-    setVal('editActTimeSlot', act.time || act.schedule_time || '09:00 AM - 10:00 AM');
-    setVal('editActLocation', act.venue || act.location || 'PESO Main Office');
-    setVal('editActRemarks', act.remarks || '');
 
     safeOpenModal('editActivityModal');
 }
-window.openEditActivityModal = openEditSlotModal;
+window.openEditActivityModal = openEditActivityModal;
 
-function handleSaveSlotUpdates(e) {
-    e.preventDefault();
-    const actIdEl = document.getElementById('editActId');
-    const actId = actIdEl ? Number(actIdEl.value) : null;
-    const act = activitiesList.find(a => a && a.id === actId);
-    if (!act) {
-        window.showSystemNotification({ title: 'Update Notice', message: 'Target schedule slot not found.', type: 'danger' });
+function handleEditActCategoryChange() {
+    const cat = document.getElementById('editActCategorySelect')?.value;
+    const cont = document.getElementById('editActCategoryOtherContainer');
+    if (cont) {
+        if (cat === 'Others') cont.classList.remove('d-none');
+        else cont.classList.add('d-none');
+    }
+}
+window.handleEditActCategoryChange = handleEditActCategoryChange;
+
+function handleEditActLocationChange() {
+    const loc = document.getElementById('editActLocationSelect')?.value;
+    const cont = document.getElementById('editActLocationOtherContainer');
+    if (cont) {
+        if (loc === 'Others') cont.classList.remove('d-none');
+        else cont.classList.add('d-none');
+    }
+}
+window.handleEditActLocationChange = handleEditActLocationChange;
+
+function calculateEditActDuration() {
+    const startD = document.getElementById('editActStartDate')?.value;
+    const endD = document.getElementById('editActEndDate')?.value || startD;
+    const startT = document.getElementById('editActStartTime')?.value || '09:00';
+    const endT = document.getElementById('editActEndTime')?.value || '11:00';
+    const display = document.getElementById('editActCalculatedDuration');
+
+    if (!startD || !display) return;
+
+    const startDateTime = new Date(`${startD}T${startT}:00`);
+    const endDateTime = new Date(`${endD}T${endT}:00`);
+
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        display.textContent = 'Invalid Time';
         return;
     }
 
-    if (act.is_locked || act.slot_status === 'Locked') {
-        window.showSystemNotification({
-            title: 'Lock Restriction',
-            message: 'Slot is locked and cannot be updated.',
-            type: 'warning'
+    const diffMs = endDateTime - startDateTime;
+    if (diffMs <= 0) {
+        display.textContent = '0 Minutes (End must be after Start)';
+        display.className = 'p-2 bg-danger-subtle border border-danger rounded text-center fw-bold text-danger';
+        return;
+    }
+
+    display.className = 'p-2 bg-light border rounded text-center fw-bold text-primary';
+
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const days = Math.floor(diffMinutes / (60 * 24));
+    const hours = Math.floor((diffMinutes % (60 * 24)) / 60);
+    const mins = diffMinutes % 60;
+
+    let parts = [];
+    if (days > 0) parts.push(`${days} Day${days > 1 ? 's' : ''}`);
+    if (hours > 0) parts.push(`${hours} Hour${hours > 1 ? 's' : ''}`);
+    if (mins > 0) parts.push(`${mins} Minute${mins > 1 ? 's' : ''}`);
+
+    display.textContent = parts.join(' ') || '0 Minutes';
+}
+window.calculateEditActDuration = calculateEditActDuration;
+
+/**
+ * Handle Save Activity Updates / Reschedule
+ */
+async function handleSaveActivityUpdates(event) {
+    if (event) event.preventDefault();
+
+    const id = document.getElementById('editSlotId')?.value;
+    const title = document.getElementById('editActSubjectTitle')?.value.trim();
+    const category = document.getElementById('editActCategorySelect')?.value;
+    const categoryOther = document.getElementById('editActCategoryOtherInput')?.value.trim();
+    const progId = document.getElementById('editActTargetProgramSelect')?.value;
+    const officerId = document.getElementById('editActOfficerSelect')?.value || null;
+    const locationSelect = document.getElementById('editActLocationSelect')?.value;
+    const locationOther = document.getElementById('editActLocationOtherInput')?.value.trim();
+    const startDate = document.getElementById('editActStartDate')?.value;
+    const endDate = document.getElementById('editActEndDate')?.value || startDate;
+    const startTime = document.getElementById('editActStartTime')?.value;
+    const endTime = document.getElementById('editActEndTime')?.value;
+    const duration = document.getElementById('editActCalculatedDuration')?.textContent.trim();
+    const remarks = document.getElementById('editActRemarks')?.value.trim();
+
+    const alertBox = document.getElementById('editSchedSafeguardAlert');
+    const alertMsg = document.getElementById('editSchedSafeguardAlertMsg');
+
+    const showAlert = (msg) => {
+        if (alertBox && alertMsg) {
+            alertMsg.textContent = msg;
+            alertBox.classList.remove('d-none');
+        } else {
+            alert(msg);
+        }
+    };
+
+    if (!id || !title || !category || !progId || !startDate || !startTime || !endTime) {
+        showAlert('Validation Error: Please fill in all required fields.');
+        return;
+    }
+
+    if (endDate < startDate) {
+        showAlert('Validation Error: End Date cannot be earlier than Start Date.');
+        return;
+    }
+
+    if (startDate === endDate && endTime <= startTime) {
+        showAlert('Validation Error: End Time must be later than Start Time on the same day.');
+        return;
+    }
+
+    const finalLocation = locationSelect === 'Others' ? locationOther : locationSelect;
+
+    // Conflict Check (excluding current slot)
+    if (officerId) {
+        const hasOfficerConflict = activitiesList.some(a => {
+            if (String(a.id) === String(id)) return false;
+            if (a.status === 'Cancelled' || a.status === 'Completed') return false;
+            if (String(a.officer_id) !== String(officerId)) return false;
+            if (a.start_date !== startDate) return false;
+            return (a.start_time === startTime || a.time.includes(startTime));
         });
+
+        if (hasOfficerConflict) {
+            showAlert('Schedule Conflict Detected: The assigned PESO Officer already has another scheduled activity during this time slot.');
+            return;
+        }
+    }
+
+    const updatePayload = {
+        title: title,
+        category: category === 'Others' ? categoryOther : category,
+        category_other: category === 'Others' ? categoryOther : null,
+        program_id: parseInt(progId, 10),
+        officer_id: officerId ? parseInt(officerId, 10) : null,
+        venue_location: finalLocation,
+        location_other: locationSelect === 'Others' ? locationOther : null,
+        interview_date: startDate,
+        start_date: startDate,
+        end_date: endDate,
+        interview_time: startTime,
+        start_time: startTime,
+        end_time: endTime,
+        duration: duration,
+        status: 'Scheduled', // Updates status back to Scheduled if previously Postponed
+        remarks: remarks
+    };
+
+    const btn = document.getElementById('btnSubmitEditSchedSlot');
+    if (btn) btn.disabled = true;
+
+    try {
+        let res = null;
+        if (typeof DataService !== 'undefined' && DataService.interviews) {
+            res = await DataService.interviews.update(id, updatePayload);
+        } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            res = await supabaseClient.from('interview_schedules').update(updatePayload).eq('id', id);
+        }
+
+        if (res && res.error) throw res.error;
+
+        safeHideModal('editActivityModal');
+        alert('Success: Activity schedule updated and re-published.');
+        await initSchedulingModuleData();
+    } catch (err) {
+        console.error('[SCHEDULING] Update error:', err);
+        showAlert(`Error saving updates: ${err.message || err}`);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+window.handleSaveActivityUpdates = handleSaveActivityUpdates;
+
+/**
+ * Postpone Activity Handlers
+ */
+function openPostponeModal(id) {
+    const act = activitiesList.find(a => String(a.id) === String(id));
+    if (!act) return;
+
+    safeHideModal('viewScheduleSlotDetailsModal');
+
+    document.getElementById('postponeSlotId').value = id;
+    const titleEl = document.getElementById('postponeActivityTitleDisplay');
+    if (titleEl) titleEl.textContent = `${act.title} (${act.start_date})`;
+    if (document.getElementById('postponeReasonInput')) document.getElementById('postponeReasonInput').value = '';
+
+    safeOpenModal('postponeActivityModal');
+}
+window.openPostponeModal = openPostponeModal;
+
+async function handlePostponeActivitySubmit(event) {
+    if (event) event.preventDefault();
+
+    const id = document.getElementById('postponeSlotId')?.value;
+    const reason = document.getElementById('postponeReasonInput')?.value.trim();
+
+    if (!id || !reason) {
+        alert('Please provide a reason for postponing this activity.');
         return;
     }
 
-    const offSelect = document.getElementById('editActOfficer');
-    const newOfficerId = Number(offSelect.value);
-    const officer = (Array.isArray(officersList) ? officersList : usersList).find(o => o.id === newOfficerId);
-    const newOfficerName = officer ? `${officer.first_name} ${officer.last_name}` : offSelect.options[offSelect.selectedIndex].text;
+    try {
+        let res = null;
+        if (typeof DataService !== 'undefined' && DataService.interviews && DataService.interviews.postpone) {
+            res = await DataService.interviews.postpone(id, { reason: reason, postponed_by: sessionStorage.getItem('username') || 'PESO Admin' });
+        } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            res = await supabaseClient.from('interview_schedules').update({
+                status: 'Postponed',
+                postponed_at: new Date().toISOString(),
+                postponement_reason: reason,
+                postponed_by: sessionStorage.getItem('username') || 'PESO Admin'
+            }).eq('id', id);
+        }
 
-    const newDate = document.getElementById('editActDate').value;
-    const newTime = document.getElementById('editActTimeSlot').value;
-    const newVenue = document.getElementById('editActLocation').value.trim();
-    const newRemarks = document.getElementById('editActRemarks').value.trim();
-
-    // Check conflict for new officer/date/time
-    const hasConflict = activitiesList.some(a => {
-        if (a.id === actId) return false;
-        const isSameOfficer = (a.officer_id === newOfficerId || a.assigned_officer_id === newOfficerId);
-        const isSameDate = (a.date === newDate || (a.start_datetime || '').startsWith(newDate));
-        const isSameTime = (a.time === newTime || a.schedule_time === newTime);
-        const isNotCancelled = a.slot_status !== 'Cancelled' && a.status !== 'Cancelled';
-        return isSameOfficer && isSameDate && isSameTime && isNotCancelled;
-    });
-
-    if (hasConflict) {
-        window.showSystemNotification({
-            title: 'Schedule Conflict',
-            message: `${newOfficerName} already has an assigned slot at ${newTime} on ${newDate}.`,
-            type: 'warning'
-        });
-        return;
+        safeHideModal('postponeActivityModal');
+        alert('Success: Activity status updated to Postponed (Yellow). Administrative log recorded.');
+        await initSchedulingModuleData();
+    } catch (err) {
+        console.error('[SCHEDULING] Postpone error:', err);
+        alert(`Error postponing activity: ${err.message || err}`);
     }
-
-    const previousOfficer = act.officer_name || act.assigned_officer_name;
-    act.officer_id = newOfficerId;
-    act.officer_name = newOfficerName;
-    act.assigned_officer_id = newOfficerId;
-    act.assigned_officer_name = `${newOfficerName} (PESO Officer)`;
-    act.date = newDate;
-    act.time = newTime;
-    act.schedule_time = newTime;
-    act.venue = newVenue;
-    act.location = newVenue;
-    act.remarks = newRemarks;
-    act.updated_at = new Date().toISOString();
-
-    logAuditEvent('REASSIGN_SLOT_OFFICER', `Admin updated slot ${act.slot_id || act.id}. Reassigned officer from "${previousOfficer}" to "${newOfficerName}". Scheduled for ${newDate} (${newTime}) at ${newVenue}`);
-
-    safeHideModal('editActivityModal');
-    renderSchedulingModule();
-
-    window.showSystemNotification({
-        title: 'Slot Updated & Reassigned',
-        message: `Slot ${act.slot_id || act.id} reassigned to ${newOfficerName}.`,
-        type: 'success'
-    });
 }
-window.handleSaveActivityUpdates = handleSaveSlotUpdates;
+window.handlePostponeActivitySubmit = handlePostponeActivitySubmit;
 
-// --- LOCK / UNLOCK SLOT TOGGLE ---
-function toggleSlotLock(slotId) {
-    const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
+/**
+ * Cancel Activity Handlers
+ */
+function openCancelModal(id) {
+    const act = activitiesList.find(a => String(a.id) === String(id));
     if (!act) return;
 
-    const nextLockState = !act.is_locked;
-    act.is_locked = nextLockState;
-    act.lock_status = nextLockState ? 'Locked' : 'Unlocked';
-    if (nextLockState && act.slot_status === 'Active') {
-        act.slot_status = 'Locked';
-    } else if (!nextLockState && act.slot_status === 'Locked') {
-        act.slot_status = 'Active';
-    }
-    act.updated_at = new Date().toISOString();
+    safeHideModal('viewScheduleSlotDetailsModal');
 
-    logAuditEvent('LOCK_SCHEDULE_SLOT', `Admin ${nextLockState ? 'locked' : 'unlocked'} slot ${act.slot_id || act.id} (${act.program_code}). Reassignment ${nextLockState ? 'prevented' : 'permitted'}.`);
-    renderSchedulingModule();
-
-    window.showSystemNotification({
-        title: nextLockState ? 'Slot Locked 🔒' : 'Slot Unlocked 🔓',
-        message: nextLockState
-            ? `Slot ${act.slot_id || act.id} is now locked. Officer reassignment is prevented.`
-            : `Slot ${act.slot_id || act.id} is unlocked and open for workload rebalancing.`,
-        type: nextLockState ? 'dark' : 'info'
-    });
-}
-
-// --- COMPLETE SLOT (LIFECYCLE FINALIZATION) ---
-function markSlotCompleted(slotId) {
-    const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
-    if (!act) return;
-
-    act.slot_status = 'Completed';
-    act.status = 'Completed';
-    act.updated_at = new Date().toISOString();
-
-    logAuditEvent('COMPLETE_SCHEDULE_SLOT', `Admin marked slot ${act.slot_id || act.id} (${act.program_code}) as Completed.`);
-    renderSchedulingModule();
-
-    window.showSystemNotification({
-        title: 'Slot Marked Completed',
-        message: `Slot ${act.slot_id || act.id} lifecycle finalized and archived for reporting.`,
-        type: 'success'
-    });
-}
-
-// --- CANCEL PROGRAM SLOT (RED LABEL RETENTION & MANDATORY REASON) ---
-function openCancelSlotModal(slotId) {
-    const act = activitiesList.find(a => a.id === slotId || a.slot_id === slotId);
-    if (!act) return;
-
-    document.getElementById('cancelActId').value = act.id;
-    document.getElementById('cancelActTitlePrompt').textContent = `${act.slot_id || 'SLOT'} (${act.program_code}: ${act.venue || 'PESO Office'})`;
-    document.getElementById('cancelActReason').value = '';
+    document.getElementById('cancelSlotId').value = id;
+    const titleEl = document.getElementById('cancelActivityTitleDisplay');
+    if (titleEl) titleEl.textContent = `${act.title} (${act.start_date})`;
+    if (document.getElementById('cancelReasonInput')) document.getElementById('cancelReasonInput').value = '';
 
     safeOpenModal('cancelActivityModal');
 }
-window.openCancelActivityModal = openCancelSlotModal;
+window.openCancelModal = openCancelModal;
 
-function handleConfirmSlotCancellation() {
-    const actId = Number(document.getElementById('cancelActId').value);
-    const act = activitiesList.find(a => a.id === actId);
-    if (!act) return;
+async function handleCancelActivitySubmit(event) {
+    if (event) event.preventDefault();
 
-    const reason = document.getElementById('cancelActReason').value.trim();
-    if (!reason) {
-        window.showSystemNotification({
-            title: 'Cancellation Reason Required',
-            message: 'Mandatory Compliance: Please enter a reason for cancelling this slot.',
-            type: 'warning'
-        });
+    const id = document.getElementById('cancelSlotId')?.value;
+    const reason = document.getElementById('cancelReasonInput')?.value.trim();
+
+    if (!id || !reason) {
+        alert('Please provide a reason for cancelling this activity.');
         return;
     }
 
-    act.slot_status = 'Cancelled';
-    act.status = 'Cancelled';
-    act.cancellation_reason = reason;
-    act.cancelled_at = new Date().toISOString();
-    act.cancelled_by = 'PESO Admin';
-    act.updated_at = new Date().toISOString();
+    try {
+        let res = null;
+        if (typeof DataService !== 'undefined' && DataService.interviews && DataService.interviews.cancel) {
+            res = await DataService.interviews.cancel(id, { reason: reason, cancelled_by: sessionStorage.getItem('username') || 'PESO Admin' });
+        } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            res = await supabaseClient.from('interview_schedules').update({
+                status: 'Cancelled',
+                cancelled_at: new Date().toISOString(),
+                cancellation_reason: reason,
+                cancelled_by: sessionStorage.getItem('username') || 'PESO Admin'
+            }).eq('id', id);
+        }
 
-    logAuditEvent('CANCEL_SCHEDULE_SLOT', `Cancelled slot ID ${act.slot_id || act.id} (${act.program_code}). Reason: "${reason}". Red label retained for compliance tracking.`);
-
-    safeHideModal('cancelActivityModal');
-    renderSchedulingModule();
-
-    window.showSystemNotification({
-        title: 'Slot Cancelled',
-        message: `Slot ${act.slot_id || act.id} is marked Cancelled (🔴 Red label visible in calendar and archive).`,
-        type: 'warning'
-    });
-}
-window.handleConfirmActivityCancellation = handleConfirmSlotCancellation;
-
-// --- SCHEDULING ARCHIVE BOX ---
-function renderSchedulingArchive() {
-    const tbody = document.getElementById('schedulingArchiveTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    const search = (document.getElementById('archiveSchedSearchInput') ? document.getElementById('archiveSchedSearchInput').value : '').toLowerCase().trim();
-    const statusFilter = document.getElementById('archiveSchedStatusFilter') ? document.getElementById('archiveSchedStatusFilter').value : 'ALL';
-
-    const archivedList = activitiesList.filter(act => {
-        const isArchived = (act.slot_status === 'Cancelled' || act.status === 'Cancelled' || act.slot_status === 'Completed' || act.status === 'Completed');
-        if (!isArchived) return false;
-
-        const matchesSearch = !search || (act.title || '').toLowerCase().includes(search) || (act.program_code || '').toLowerCase().includes(search) || (act.venue || act.location || '').toLowerCase().includes(search);
-
-        let matchesStatus = true;
-        if (statusFilter === 'Cancelled') matchesStatus = (act.slot_status === 'Cancelled' || act.status === 'Cancelled');
-        if (statusFilter === 'Completed') matchesStatus = (act.slot_status === 'Completed' || act.status === 'Completed');
-
-        return matchesSearch && matchesStatus;
-    });
-
-    if (archivedList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">Scheduling archive box clean.</td></tr>';
-        return;
-    }
-
-    archivedList.forEach(act => {
-        const tr = document.createElement('tr');
-        const isCanc = (act.slot_status === 'Cancelled' || act.status === 'Cancelled');
-        let statusBadge = isCanc
-            ? '<span class="legend-badge status-pill-red">🔴 Cancelled</span>'
-            : '<span class="legend-badge status-pill-gray">⚫ Completed</span>';
-
-        const auditSnippet = isCanc
-            ? `<div class="small text-danger fw-semibold"><i class="bi bi-x-octagon me-1"></i>${escapeHtml(act.cancellation_reason || 'Administrative cancellation')}</div><small class="text-muted font-monospace">${new Date(act.cancelled_at || act.updated_at).toLocaleString()}</small>`
-            : `<div class="small text-success"><i class="bi bi-check2-circle me-1"></i>Completed & Archived</div><small class="text-muted font-monospace">${new Date(act.updated_at).toLocaleString()}</small>`;
-
-        const dateFormatted = `${act.date || (act.start_datetime ? act.start_datetime.substring(0, 10) : '2026-08-08')} • ${act.time || act.schedule_time || '09:00 AM'}`;
-
-        tr.innerHTML = `
-            <td>
-                <div class="fw-bold text-dark">${escapeHtml(act.title || act.program_name || 'Program Slot')}</div>
-                <span class="badge bg-light text-secondary border font-monospace">${escapeHtml(act.slot_id || 'SLOT-' + act.id)}</span>
-            </td>
-            <td><span class="badge bg-primary font-monospace">${escapeHtml(act.program_code || 'TUPAD')}</span></td>
-            <td><small class="fw-semibold text-dark">${dateFormatted}</small></td>
-            <td><div class="small text-truncate" style="max-width: 180px;">${escapeHtml(act.venue || act.location)}</div></td>
-            <td><small class="text-secondary">${escapeHtml(act.officer_name || act.assigned_officer_name)}</small></td>
-            <td class="text-center">${statusBadge}</td>
-            <td>${auditSnippet}</td>
-            <td class="text-end">
-                <button class="btn btn-sm btn-outline-info" onclick="openViewSlotDetailsModal(${act.id})" title="Read-only view">
-                    <i class="bi bi-eye-fill"></i> View Details
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function filterSchedulingArchive() {
-    renderSchedulingArchive();
-}
-
-function resetArchiveFilters() {
-    if (document.getElementById('archiveSchedSearchInput')) document.getElementById('archiveSchedSearchInput').value = '';
-    if (document.getElementById('archiveSchedStatusFilter')) document.getElementById('archiveSchedStatusFilter').value = 'ALL';
-    renderSchedulingArchive();
-}
-
-function scrollToSchedulingArchive() {
-    const archiveEl = document.getElementById('schedulingArchiveBox');
-    if (archiveEl) {
-        archiveEl.scrollIntoView({ behavior: 'smooth' });
-        archiveEl.classList.add('shadow');
-        setTimeout(() => archiveEl.classList.remove('shadow'), 2000);
+        safeHideModal('cancelActivityModal');
+        alert('Success: Activity cancelled and moved to Archive Box while retained on historical calendar.');
+        await initSchedulingModuleData();
+    } catch (err) {
+        console.error('[SCHEDULING] Cancel error:', err);
+        alert(`Error cancelling activity: ${err.message || err}`);
     }
 }
+window.handleCancelActivitySubmit = handleCancelActivitySubmit;
 
-// --- EXPORT SUITE ---
-function exportCombinedLguReport() {
-    const exportData = activitiesList.map(a => ({
-        slot_id: a.slot_id || `SLOT-${a.id}`,
-        program_code: a.program_code || 'TUPAD',
-        program_name: a.program_name || 'Assistance Program',
-        barangay_cluster: a.barangay_cluster || 'N/A',
-        date: a.date || '2026-08-08',
-        time: a.time || '09:00 AM - 10:00 AM',
-        venue: a.venue || a.location || 'PESO Office',
-        assigned_officer: a.officer_name || a.assigned_officer_name || 'Officer',
-        slot_status: a.slot_status || a.status || 'Active',
-        is_locked: a.is_locked ? 'Locked' : 'Unlocked',
-        scheduling_mode: a.scheduling_mode || 'Unassigned',
-        beneficiary_or_batch_name: a.beneficiary_name || a.batch_name || 'Unassigned',
-        masked_contact: maskContactNumber(a.beneficiary_phone || '09XX-***-XXXX'),
-        attendance_status: a.attendance_status || 'Pending'
-    }));
-
-    const headers = ['Slot ID', 'Program Code', 'Program Name', 'Barangay Cluster', 'Date', 'Time Slot', 'Venue', 'Assigned Officer', 'Slot Status', 'Lock State', 'Scheduling Mode', 'Beneficiary / Batch Name', 'Masked Contact', 'Attendance Status'];
-    const rows = exportData.map(d => [
-        d.slot_id,
-        `"${d.program_code}"`,
-        `"${(d.program_name || '').replace(/"/g, '""')}"`,
-        `"${(d.barangay_cluster || '').replace(/"/g, '""')}"`,
-        d.date,
-        `"${d.time || ''}"`,
-        `"${(d.venue || '').replace(/"/g, '""')}"`,
-        `"${(d.assigned_officer || '').replace(/"/g, '""')}"`,
-        d.slot_status,
-        d.is_locked,
-        d.scheduling_mode,
-        `"${(d.beneficiary_or_batch_name || '').replace(/"/g, '""')}"`,
-        `"${d.masked_contact}"`,
-        d.attendance_status
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `PESO_Combined_LGU_Compliance_Report_${new Date().toISOString().substring(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    logAuditEvent('EXPORT_COMBINED_LGU_REPORT', 'Exported combined Admin program slot & Officer operational beneficiary dataset to CSV');
-    window.showSystemNotification({
-        title: 'Combined LGU Report Exported',
-        message: 'Comprehensive Admin + Officer LGU compliance dataset downloaded.',
-        type: 'success'
-    });
-}
-
-function exportSchedulingCSV() {
-    const headers = ['Slot ID', 'Program Code', 'Program Name', 'Cluster', 'Date', 'Time', 'Venue', 'Assigned Officer', 'Status', 'Locked', 'Mode', 'Beneficiary/Batch'];
-    const rows = activitiesList.map(a => [
-        a.slot_id || `SLOT-${a.id}`,
-        `"${a.program_code}"`,
-        `"${(a.program_name || '').replace(/"/g, '""')}"`,
-        `"${(a.barangay_cluster || '').replace(/"/g, '""')}"`,
-        a.date || (a.start_datetime ? a.start_datetime.substring(0, 10) : ''),
-        `"${a.time || a.schedule_time || ''}"`,
-        `"${(a.venue || a.location || '').replace(/"/g, '""')}"`,
-        `"${(a.officer_name || a.assigned_officer_name || '').replace(/"/g, '""')}"`,
-        `"${a.slot_status || a.status}"`,
-        a.is_locked ? 'YES' : 'NO',
-        `"${a.scheduling_mode || 'Unassigned'}"`,
-        `"${(a.beneficiary_name || a.batch_name || 'Unassigned').replace(/"/g, '""')}"`
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `PESO_Program_Slots_Roster_${new Date().toISOString().substring(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    logAuditEvent('EXPORT_SCHEDULE_CSV', 'Exported full program schedule slots roster to CSV');
-    window.showSystemNotification({
-        title: 'Slots Roster Exported',
-        message: 'Full program schedule slots roster generated and downloaded.',
-        type: 'success'
-    });
-}
-
-function exportArchiveCSV() {
-    const archived = activitiesList.filter(a => a.slot_status === 'Cancelled' || a.status === 'Cancelled' || a.slot_status === 'Completed' || a.status === 'Completed');
-    const headers = ['Slot ID', 'Program Code', 'Date', 'Venue', 'Officer', 'Status', 'Audit Reason/Notes'];
-    const rows = archived.map(a => [
-        a.slot_id || `SLOT-${a.id}`,
-        `"${a.program_code}"`,
-        a.date || (a.start_datetime ? a.start_datetime.substring(0, 10) : ''),
-        `"${(a.venue || a.location || '').replace(/"/g, '""')}"`,
-        `"${(a.officer_name || a.assigned_officer_name || '').replace(/"/g, '""')}"`,
-        `"${a.slot_status || a.status}"`,
-        `"${(a.cancellation_reason || 'Archived').replace(/"/g, '""')}"`
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `PESO_Scheduling_Archive_Box_${new Date().toISOString().substring(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    logAuditEvent('EXPORT_ARCHIVE_CSV', 'Exported scheduling archive box to CSV');
-    window.showSystemNotification({
-        title: 'Archive Exported',
-        message: 'Scheduling Archive box CSV report downloaded.',
-        type: 'info'
-    });
-}
-
-function exportSchedulingPDF() {
-    window.print();
-    logAuditEvent('PRINT_SCHEDULE_REPORT', 'Generated printable PDF compliance report for PESO activities');
-}
-
-// --- AUTO-PULLED ELIGIBLE RECIPIENTS (CERTIFICATE DISTRIBUTION RESTRICTION) ---
-function openEligibleRecipientsModal(progCode, batchNum) {
-    const tbody = document.getElementById('eligibleRecipientsTableBody');
-    const tag = document.getElementById('eligibleRecipientsBatchTag');
-    if (tag) tag.textContent = `${progCode} — ${batchNum}`;
-    if (!tbody) return;
-
-    const sampleGraduates = [
-        { name: 'Juan Santos Dela Cruz', phone: '0905-111-2222', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Maria Clara Santos', phone: '0917-333-4444', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Roberto Fernandez', phone: '0928-555-6666', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Ana Reyes', phone: '0939-777-8888', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Jose Protacio Mercado', phone: '0945-888-9999', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Gabriela Silang', phone: '0956-123-4567', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Andres Bonifacio', phone: '0967-234-5678', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Emilio Aguinaldo', phone: '0978-345-6789', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Apolinario Mabini', phone: '0989-456-7890', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Melchora Aquino', phone: '0912-567-8901', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Marcelo H. Del Pilar', phone: '0923-678-9012', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Juan Luna', phone: '0934-789-0123', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Antonio Luna', phone: '0945-890-1234', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Graciano Lopez Jaena', phone: '0956-901-2345', comp: '100% (Completed All Modules)', philId: 'Verified' },
-        { name: 'Teresa Magbanua', phone: '0967-012-3456', comp: '100% (Completed All Modules)', philId: 'Verified' }
-    ];
-
-    tbody.innerHTML = sampleGraduates.map(g => `
-        <tr>
-            <td class="fw-bold text-dark">${escapeHtml(g.name)}</td>
-            <td><span class="masked-phone">${maskContactNumber(g.phone)}</span></td>
-            <td><span class="badge bg-primary-subtle text-primary font-monospace">${progCode} - ${batchNum}</span></td>
-            <td><span class="badge bg-success-subtle text-success"><i class="bi bi-patch-check-fill me-1"></i>${g.comp}</span></td>
-            <td class="text-center"><span class="badge bg-success">Clear for Certificate</span></td>
-        </tr>
-    `).join('');
-
-    safeOpenModal('eligibleRecipientsModal');
-    logAuditEvent('VIEW_ELIGIBLE_RECIPIENTS_ROSTER', `Inspected auto-pulled training records roster for Certificate Distribution (${progCode} - ${batchNum})`);
-}
+// Window Exports
+window.initSchedulingData = initSchedulingData;
+window.initSchedulingModuleData = initSchedulingModuleData;
+window.renderSchedulingModule = renderSchedulingModule;

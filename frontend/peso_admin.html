@@ -171,7 +171,7 @@
             <i class="bi bi-file-earmark-check-fill me-1.5"></i> Application Evaluation <span class="tab-count-badge ms-1" id="evalTabBadge">0</span>
         </button>
         <button class="nav-link text-nowrap" id="tabNavScheduling" onclick="switchTab('scheduling')">
-            <i class="bi bi-calendar3 me-1.5"></i> Scheduling & Training <span class="tab-count-badge ms-1" id="schedTabBadge">0</span>
+            <i class="bi bi-calendar3 me-1.5"></i> Scheduling Management <span class="tab-count-badge ms-1" id="schedTabBadge">0</span>
         </button>
         <button class="nav-link text-nowrap" id="tabNavFunds" onclick="switchTab('funds')">
             <i class="bi bi-cash-coin me-1.5"></i> Fund Allocation & Distribution
@@ -878,31 +878,40 @@
         <!-- MODULE 5: SCHEDULING & TRAINING RECORDS (REQ030 – REQ041)           -->
         <!-- =================================================================== -->
         <div id="sectionScheduling" class="d-none">
+            <!-- Header Banner -->
             <div class="ordinance-banner mb-4">
                 <div>
                     <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                        <span class="badge bg-warning text-dark px-2.5 py-1 font-monospace fw-bold">UNIFIED SCHEDULING & TRAINING MANAGEMENT</span>
+                        <span class="badge bg-warning text-dark px-2.5 py-1 font-monospace fw-bold">SCHEDULING MANAGEMENT MODULE</span>
                         <span class="badge bg-info text-white px-2 py-1"><i class="bi bi-shield-check me-1"></i>Conflict & Past-Date Protected</span>
+                        <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-broadcast me-1"></i>Real-Time Sync</span>
                     </div>
-                    <h4 class="fw-bold mb-1">Interview & Activity Scheduling Control</h4>
+                    <h4 class="fw-bold mb-1">Livelihood Assistance & Distribution Scheduling</h4>
                     <p class="text-white-50 mb-0 small">
-                        <i class="bi bi-calendar2-range-fill me-1"></i> Program schedule slots, venue bookings, officer assignments, training records, and certificate distribution auto-pull.
+                        <i class="bi bi-calendar2-range-fill me-1"></i> Create, view, update, postpone, and cancel scheduled activities for assistance distribution, certificate distribution, and special events.
                     </p>
                 </div>
-                <div class="d-flex gap-2 flex-wrap">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
                     <button class="btn btn-light fw-bold text-primary shadow-sm px-3" onclick="openCreateScheduleSlotModal()">
                         <i class="bi bi-plus-circle-fill me-1"></i> + Create Schedule Slot
                     </button>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-light active" id="schedBtnViewCalendar" onclick="setSchedViewMode('calendar')"><i class="bi bi-calendar3 me-1"></i> Calendar</button>
-                        <button type="button" class="btn btn-outline-light" id="schedBtnViewList" onclick="setSchedViewMode('list')"><i class="bi bi-list-ul me-1"></i> Slots List</button>
+                    <div class="btn-group" role="group" aria-label="View toggle">
+                        <button type="button" class="btn btn-outline-light active" id="schedBtnViewCalendar" onclick="setSchedViewMode('calendar')">
+                            <i class="bi bi-calendar3 me-1"></i> Calendar
+                        </button>
+                        <button type="button" class="btn btn-outline-light" id="schedBtnViewList" onclick="setSchedViewMode('list')">
+                            <i class="bi bi-list-ul me-1"></i> Slots List
+                        </button>
                     </div>
-                    <button class="btn btn-outline-light fw-semibold px-3" onclick="jumpToCalendarToday()"><i class="bi bi-calendar-day me-1"></i> Today</button>
+                    <button class="btn btn-outline-light fw-semibold px-3" onclick="jumpToCalendarToday()">
+                        <i class="bi bi-calendar-day me-1"></i> Today
+                    </button>
                 </div>
             </div>
 
-            <!-- Scheduling Metrics Summary Row -->
+            <!-- Overview Stat Cards (5 Cards) -->
             <div class="row g-3 mb-4">
+                <!-- 1. Total Slots -->
                 <div class="col-12 col-sm-6 col-xl">
                     <div class="stat-card blue">
                         <div class="d-flex justify-content-between align-items-start">
@@ -912,19 +921,36 @@
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-calendar-event"></i></div>
                         </div>
+                        <div class="mt-2 text-muted small" style="font-size: 0.72rem;">Total scheduled in system</div>
                     </div>
                 </div>
+                <!-- 2. Active / Scheduled -->
                 <div class="col-12 col-sm-6 col-xl">
                     <div class="stat-card green">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="stat-value text-success" id="schedStatActiveSlots">0</div>
+                                <div class="stat-value text-primary" id="schedStatActiveSlots">0</div>
                                 <div class="stat-label">Active / Scheduled</div>
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-broadcast"></i></div>
                         </div>
+                        <div class="mt-2 text-muted small" style="font-size: 0.72rem;">Upcoming / Ongoing activities</div>
                     </div>
                 </div>
+                <!-- 3. Postponed Slots -->
+                <div class="col-12 col-sm-6 col-xl">
+                    <div class="stat-card orange" style="border-left: 4px solid var(--warning);">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-value text-warning" id="schedStatPostponedSlots">0</div>
+                                <div class="stat-label">Postponed Slots</div>
+                            </div>
+                            <div class="icon-wrapper"><i class="bi bi-clock-history"></i></div>
+                        </div>
+                        <div class="mt-2 text-muted small" style="font-size: 0.72rem;">Postponed / Reschedule pending</div>
+                    </div>
+                </div>
+                <!-- 4. Completed Slots -->
                 <div class="col-12 col-sm-6 col-xl">
                     <div class="stat-card teal">
                         <div class="d-flex justify-content-between align-items-start">
@@ -934,10 +960,12 @@
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-check2-all"></i></div>
                         </div>
+                        <div class="mt-2 text-muted small" style="font-size: 0.72rem;">Already taken place</div>
                     </div>
                 </div>
+                <!-- 5. Cancelled Slots -->
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="stat-card orange" style="border-left: 4px solid var(--danger);">
+                    <div class="stat-card red" style="border-left: 4px solid var(--danger);">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="stat-value text-danger" id="schedStatCancelledSlots">0</div>
@@ -945,29 +973,75 @@
                             </div>
                             <div class="icon-wrapper"><i class="bi bi-x-octagon"></i></div>
                         </div>
+                        <div class="mt-2 text-muted small" style="font-size: 0.72rem;">Cancelled / Archived</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Calendar & Agenda View Layout -->
+            <!-- Filter Controls Bar -->
+            <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="schedSearchInput" placeholder="Search activity title, program, officer, venue..." oninput="filterSchedulingData()">
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <select class="form-select form-select-sm" id="schedCategoryFilter" onchange="filterSchedulingData()">
+                            <option value="ALL">All Categories</option>
+                            <option value="Assistance Distribution">Assistance Distribution</option>
+                            <option value="Certificate Distribution">Certificate Distribution</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <select class="form-select form-select-sm" id="schedProgramFilter" onchange="filterSchedulingData()">
+                            <option value="ALL">All Programs</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <select class="form-select form-select-sm" id="schedOfficerFilter" onchange="filterSchedulingData()">
+                            <option value="ALL">All Officers</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <select class="form-select form-select-sm" id="schedStatusFilter" onchange="filterSchedulingData()">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Active">Active / Scheduled</option>
+                            <option value="Postponed">Postponed</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-1 text-end">
+                        <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetSchedulingFilters()" title="Reset all filters">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar & Right Panels Layout -->
             <div id="schedCalendarViewContainer" class="row g-4 mb-4">
-                <!-- Left: Calendar Grid -->
+                <!-- Left: Calendar Grid (8 cols) -->
                 <div class="col-12 col-xl-8">
-                    <div class="calendar-card">
-                        <div class="calendar-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="calendar-card shadow-sm rounded-4 bg-white p-3 h-100">
+                        <div class="calendar-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
                             <div class="d-flex align-items-center gap-2">
                                 <div class="btn-group">
-                                    <button class="btn btn-outline-primary btn-sm px-3" onclick="navigateCalendarMonth(-1)"><i class="bi bi-chevron-left"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm px-3" onclick="navigateCalendarMonth(1)"><i class="bi bi-chevron-right"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm px-2.5" onclick="navigateCalendarMonth(-1)" title="Previous Month"><i class="bi bi-chevron-left"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm px-2.5" onclick="navigateCalendarMonth(1)" title="Next Month"><i class="bi bi-chevron-right"></i></button>
                                 </div>
                                 <button class="btn btn-sm btn-primary px-3 fw-semibold" onclick="jumpToCalendarToday()">Today</button>
                                 <h4 class="fw-bold text-dark mb-0 ms-2 font-monospace" id="calendarMonthYearDisplay">August 2026</h4>
                             </div>
                             <div class="d-flex flex-wrap gap-1.5 align-items-center">
-                                <span class="legend-badge status-pill-green">🟢 Today</span>
-                                <span class="legend-badge status-pill-blue">🔵 Scheduled</span>
-                                <span class="legend-badge status-pill-red">🔴 Cancelled</span>
-                                <span class="legend-badge status-pill-gray">⚫ Completed</span>
+                                <span class="legend-badge status-pill-green" title="Happening Today">🟢 Today</span>
+                                <span class="legend-badge status-pill-blue" title="Upcoming / Scheduled">🔵 Scheduled</span>
+                                <span class="legend-badge status-pill-yellow" title="Postponed Activity">🟡 Postponed</span>
+                                <span class="legend-badge status-pill-red" title="Cancelled Activity">🔴 Cancelled</span>
+                                <span class="legend-badge status-pill-gray" title="Completed Activity">⚫ Completed</span>
                             </div>
                         </div>
 
@@ -988,73 +1062,58 @@
                     </div>
                 </div>
 
-                <!-- Right: Agenda List Panel -->
-                <div class="col-12 col-xl-4">
-                    <div class="content-card h-100 d-flex flex-column mb-0">
-                        <div class="card-header-custom bg-light d-flex justify-content-between align-items-center">
+                <!-- Right: Two Vertically Stacked Panels (4 cols) -->
+                <div class="col-12 col-xl-4 d-flex flex-column gap-3">
+                    <!-- 1. Upcoming Activities Panel (Top Right Box) -->
+                    <div class="content-card shadow-sm rounded-4 mb-0 flex-fill">
+                        <div class="card-header-custom bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
                             <div>
-                                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-list-check text-primary me-1.5"></i>Upcoming Activities</h5>
-                                <small class="text-muted">Agenda roster of active schedules.</small>
+                                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-calendar-check text-primary me-1.5"></i>Upcoming Activities</h6>
+                                <small class="text-muted" style="font-size: 0.72rem;">Agenda roster of active schedules</small>
                             </div>
-                            <span class="badge bg-primary px-2.5 py-1 rounded-pill" id="activitiesCountBadge">0</span>
+                            <span class="badge bg-primary px-2.5 py-1 rounded-pill" id="upcomingActivitiesCountBadge">0 Upcoming</span>
                         </div>
-                        <div class="p-3 flex-grow-1" id="scheduledAgendaList" style="max-height: 560px; overflow-y: auto;">
+                        <div class="p-3" id="scheduledAgendaList" style="max-height: 280px; overflow-y: auto;">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- 2. Archive Box (Bottom Right Box — Located directly under Upcoming Activities) -->
+                    <div class="content-card shadow-sm rounded-4 mb-0 flex-fill">
+                        <div class="card-header-custom bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-archive-fill text-secondary me-1.5"></i>Archive Box</h6>
+                                <small class="text-muted" style="font-size: 0.72rem;">Completed and cancelled activity records</small>
+                            </div>
+                            <span class="badge bg-secondary px-2.5 py-1 rounded-pill" id="archiveBoxCountBadge">0 Archived Slots</span>
+                        </div>
+                        <div class="p-3" id="schedulingArchiveList" style="max-height: 280px; overflow-y: auto;">
                             <!-- Populated dynamically -->
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- List View Container (Alternative) -->
-            <div id="schedListViewContainer" class="content-card d-none mb-4">
-                <div class="card-header-custom">
-                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-table me-2 text-primary"></i>All Schedule Records Roster</h5>
+            <!-- List View Container (Alternative View) -->
+            <div id="schedListViewContainer" class="content-card d-none mb-4 shadow-sm rounded-4 bg-white">
+                <div class="card-header-custom d-flex justify-content-between align-items-center p-3 border-bottom">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-table me-2 text-primary"></i>All Schedule Slots Roster</h5>
+                    <span class="badge bg-light text-dark border" id="schedListCountBadge">0 Total Slots</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-custom align-middle mb-0" id="schedulesRosterTable">
-                        <thead>
+                    <table class="table table-custom table-hover align-middle mb-0" id="schedulesRosterTable">
+                        <thead class="table-light">
                             <tr>
-                                <th>Schedule Date & Time</th>
-                                <th>Target Program</th>
-                                <th>Beneficiary / Group</th>
-                                <th>Assigned Officer</th>
-                                <th>Venue / Location</th>
+                                <th>Activity Type & Category</th>
+                                <th>Activity Subject Title</th>
+                                <th>Date & Time</th>
+                                <th>Location / Platform</th>
+                                <th>Assigned PESO Officer</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="schedulesRosterTableBody">
-                            <!-- Populated dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Training Records & Certificate Distribution Auto-pull Section (REQ040 – REQ041) -->
-            <div class="content-card mb-0">
-                <div class="card-header-custom bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div>
-                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-award-fill text-warning me-2"></i>Training Records & Certificate Auto-Pull Engine</h5>
-                        <small class="text-muted">Automatically aggregates qualified attendees from completed training sessions for Certificate Issuance.</small>
-                    </div>
-                    <button class="btn btn-warning fw-bold text-dark shadow-sm px-3" onclick="autoPullCertificateRecipients()">
-                        <i class="bi bi-magic me-1"></i> Auto-Pull Certificate Recipients
-                    </button>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-custom align-middle mb-0" id="trainingRecordsTable">
-                        <thead>
-                            <tr>
-                                <th>Training Session</th>
-                                <th>Beneficiary Name</th>
-                                <th>Contact (Masked)</th>
-                                <th>Attendance Status</th>
-                                <th>Session Date</th>
-                                <th class="text-center">Certificate Status</th>
-                                <th class="text-end">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="trainingRecordsTableBody">
                             <!-- Populated dynamically -->
                         </tbody>
                     </table>
@@ -2371,70 +2430,364 @@
         </div>
     </div>
 
-    <!-- Modal 8: Create Schedule Slot Modal (Past-Date & Conflict Protected) -->
+    <!-- Modal 8: Create Schedule Slot Modal (Streamlined Design Prompt) -->
     <div class="modal fade" id="createActivityModal" tabindex="-1" aria-labelledby="createSchedSlotModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header modal-header-custom py-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-calendar-plus-fill text-warning fs-4"></i>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="createSchedSlotModalTitle">Create Program Schedule Slot</h5>
-                            <small class="text-white-50">Past-date blocked & conflict validated</small>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="createSchedSlotModalTitle">Create Program Scheduled Activity Slot</h5>
+                            <small class="text-white-50">Livelihood Assistance & Certificate Distribution Scheduling</small>
                         </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="createSchedSlotForm" onsubmit="handleCreateScheduleSlotSubmit(event)">
                     <div class="modal-body p-4">
-                        <div id="schedSafeguardAlert" class="alert alert-warning py-2 mb-3 d-none align-items-center gap-2 small">
-                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
-                            <div id="schedSafeguardAlertMsg">Warning text</div>
+                        <!-- Validation Alert Banner -->
+                        <div id="schedSafeguardAlert" class="alert alert-warning py-2.5 px-3 mb-3 d-none align-items-center gap-2 rounded-3 small">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0"></i>
+                            <div id="schedSafeguardAlertMsg" class="fw-semibold">Warning message</div>
                         </div>
 
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="schedProgSelect" class="form-label fw-semibold">Target Program <span class="text-danger">*</span></label>
-                                <select class="form-select" id="schedProgSelect" required>
-                                    <!-- Populated dynamically -->
+                            <!-- 1. Activity Subject Title -->
+                            <div class="col-12">
+                                <label for="actSubjectTitle" class="form-label fw-semibold">Activity Subject Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control fw-bold" id="actSubjectTitle" placeholder="e.g. TUPAD Financial Assistance Release & Orientation" required>
+                            </div>
+
+                            <!-- 2. Activity Category -->
+                            <div class="col-12 col-md-6">
+                                <label for="actCategorySelect" class="form-label fw-semibold">Activity Category <span class="text-danger">*</span></label>
+                                <select class="form-select" id="actCategorySelect" required onchange="handleActCategoryChange()">
+                                    <option value="Assistance Distribution" selected>Assistance Distribution</option>
+                                    <option value="Certificate Distribution">Certificate Distribution</option>
+                                    <option value="Others">Others (please specify)</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label for="schedOfficerSelect" class="form-label fw-semibold">Assigned Officer <span class="text-danger">*</span></label>
-                                <select class="form-select" id="schedOfficerSelect" required>
+
+                            <!-- Others Category Specify Input (Conditional) -->
+                            <div class="col-12 col-md-6 d-none" id="actCategoryOtherContainer">
+                                <label for="actCategoryOtherInput" class="form-label fw-semibold text-primary">Specify Custom Category <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="actCategoryOtherInput" placeholder="Enter custom activity type...">
+                            </div>
+
+                            <!-- 3. Program Name (Auto-populated from Active Context / Selectable) -->
+                            <div class="col-12 col-md-6" id="actProgramContainer">
+                                <label for="actTargetProgramSelect" class="form-label fw-semibold">Target Program Name <span class="text-danger">*</span></label>
+                                <select class="form-select" id="actTargetProgramSelect" required onchange="handleActProgramChange()">
+                                    <option value="">Select Target Program...</option>
                                     <!-- Populated dynamically -->
                                 </select>
+                                <small class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-info-circle me-1"></i>Auto-populated from active livelihood programs</small>
                             </div>
-                            <div class="col-md-6">
-                                <label for="schedSlotDate" class="form-label fw-semibold">Schedule Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="schedSlotDate" required>
+
+                            <!-- 4. Assigned PESO Officer (Optional) -->
+                            <div class="col-12 col-md-6">
+                                <label for="actOfficerSelect" class="form-label fw-semibold">Assigned PESO Officer <span class="text-muted small">(Optional)</span></label>
+                                <select class="form-select" id="actOfficerSelect">
+                                    <option value="">Unassigned / General Schedule (Optional)</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <small class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-person-check me-1"></i>Officer will receive schedule in their Daily Schedule module</small>
+                            </div>
+
+                            <!-- 5. Location or Platform -->
+                            <div class="col-12 col-md-6">
+                                <label for="actLocationSelect" class="form-label fw-semibold">Location or Platform <span class="text-danger">*</span></label>
+                                <select class="form-select" id="actLocationSelect" required onchange="handleActLocationChange()">
+                                    <option value="PESO Main Office - Multi-Purpose Hall" selected>PESO Main Office - Multi-Purpose Hall</option>
+                                    <option value="City of Koronadal Gymnasium">City of Koronadal Gymnasium</option>
+                                    <option value="Barangay Multi-Purpose Center">Barangay Multi-Purpose Center</option>
+                                    <option value="City Hall Lobby - Distribution Desk">City Hall Lobby - Distribution Desk</option>
+                                    <option value="Online / Virtual Orientation Platform">Online / Virtual Orientation Platform</option>
+                                    <option value="Others">Others (please specify)</option>
+                                </select>
+                            </div>
+
+                            <!-- Custom Location Input (Conditional) -->
+                            <div class="col-12 d-none" id="actLocationOtherContainer">
+                                <label for="actLocationOtherInput" class="form-label fw-semibold text-primary">Specify Specific Location Address / Venue <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="actLocationOtherInput" placeholder="Enter venue name, building, room or street address...">
+                            </div>
+
+                            <!-- 6. Date Range (From - To) -->
+                            <div class="col-12 col-md-6">
+                                <label for="actStartDate" class="form-label fw-semibold">Date Range (From) <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="actStartDate" required onchange="calculateActDuration()">
                                 <small class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-shield-lock me-1"></i>Past date selection blocked</small>
                             </div>
-                            <div class="col-md-6">
-                                <label for="schedTimeSlot" class="form-label fw-semibold">Time Slot Window <span class="text-danger">*</span></label>
-                                <select class="form-select" id="schedTimeSlot" required>
-                                    <option value="08:00 AM - 09:00 AM">08:00 AM - 09:00 AM</option>
-                                    <option value="09:00 AM - 10:00 AM" selected>09:00 AM - 10:00 AM</option>
-                                    <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
-                                    <option value="01:00 PM - 02:00 PM">01:00 PM - 02:00 PM</option>
-                                    <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM</option>
-                                    <option value="08:00 AM - 12:00 PM (Block)">08:00 AM - 12:00 PM (Batch Block)</option>
-                                    <option value="01:00 PM - 05:00 PM (Block)">01:00 PM - 05:00 PM (Batch Block)</option>
-                                </select>
+
+                            <div class="col-12 col-md-6">
+                                <label for="actEndDate" class="form-label fw-semibold">Date Range (To) <span class="text-muted small">(Single or Multi-Day)</span></label>
+                                <input type="date" class="form-control" id="actEndDate" onchange="calculateActDuration()">
                             </div>
-                            <div class="col-12">
-                                <label for="schedVenueLocation" class="form-label fw-semibold">Venue / Location <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="schedVenueLocation" value="PESO Main Office - Interview Room A" required>
+
+                            <!-- 7. Time Range (Start Time - End Time) with Minute Precision -->
+                            <div class="col-12 col-md-4">
+                                <label for="actStartTime" class="form-label fw-semibold">Start Time <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="actStartTime" value="09:00" required onchange="calculateActDuration()">
                             </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="actEndTime" class="form-label fw-semibold">End Time <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="actEndTime" value="11:00" required onchange="calculateActDuration()">
+                            </div>
+
+                            <!-- Auto-calculated Duration -->
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-semibold">Calculated Duration</label>
+                                <div class="p-2 bg-light border rounded text-center fw-bold text-primary" id="actCalculatedDuration" style="font-size: 0.9rem;">
+                                    2 Hours
+                                </div>
+                            </div>
+
+                            <!-- Certificate Distribution Auto-Pull Preview Section -->
+                            <div class="col-12 d-none" id="actCertRecipientsContainer">
+                                <div class="card border-warning bg-warning-subtle p-3 rounded-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-award-fill text-warning me-1"></i>Certificate Distribution Recipient Engine</h6>
+                                        <span class="badge bg-warning text-dark" id="actCertRecipientCountBadge">0 Eligible Recipients</span>
+                                    </div>
+                                    <p class="small text-muted mb-2">Automatically pulls qualified beneficiaries who completed this program.</p>
+                                    <div class="bg-white rounded border p-2" id="actCertRecipientsList" style="max-height: 120px; overflow-y: auto; font-size: 0.8rem;">
+                                        <!-- Populated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 8. Notes / Remarks (Optional) -->
                             <div class="col-12">
-                                <label for="schedRemarks" class="form-label fw-semibold">Remarks / Activity Scope</label>
-                                <input type="text" class="form-control" id="schedRemarks" placeholder="e.g. Batch orientation and beneficiary onboarding">
+                                <label for="actRemarks" class="form-label fw-semibold">Notes / Remarks <span class="text-muted small">(Optional)</span></label>
+                                <textarea class="form-control" id="actRemarks" rows="2" placeholder="Optional instructions, guidelines, or logistics details for the assigned officer and beneficiaries..."></textarea>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-calendar-check me-1"></i> Create Schedule Slot</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4" id="btnSubmitCreateSchedSlot">
+                            <i class="bi bi-calendar-check-fill me-1"></i> Schedule Activity
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 8B: View Activity Details Modal -->
+    <div class="modal fade" id="viewScheduleSlotDetailsModal" tabindex="-1" aria-labelledby="viewSchedDetailsModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill text-info fs-4"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="viewSchedDetailsModalTitle">Activity Slot Details</h5>
+                            <small class="text-white-50">PESO Operational Scheduling Control</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="viewSchedDetailsModalBody">
+                    <!-- Populated dynamically -->
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between flex-wrap gap-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <div class="d-flex gap-2" id="viewSchedDetailsActions">
+                        <!-- Populated dynamically based on slot status -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 8C: Postpone Activity Modal -->
+    <div class="modal fade" id="postponeActivityModal" tabindex="-1" aria-labelledby="postponeModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-warning text-dark rounded-top-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history fs-4"></i>
+                        <h5 class="modal-title fw-bold mb-0" id="postponeModalTitle">Postpone Scheduled Activity</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="postponeActivityForm" onsubmit="handlePostponeActivitySubmit(event)">
+                    <div class="modal-body p-4">
+                        <input type="hidden" id="postponeSlotId">
+                        <div class="alert alert-warning py-2 mb-3 small">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i> Postponing changes the activity status to <strong>Postponed (Yellow)</strong>. A timestamped administrative log will be recorded.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Activity Subject</label>
+                            <div class="fw-bold text-dark p-2 bg-light rounded border" id="postponeActivityTitleDisplay">-</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="postponeReasonInput" class="form-label fw-semibold">Postponement Reason / Remarks <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="postponeReasonInput" rows="3" placeholder="State the official reason (e.g. Inclement weather, venue maintenance, officer rescheduling)..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning fw-bold px-4"><i class="bi bi-clock-history me-1"></i> Confirm Postponement</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 8D: Cancel Activity Modal -->
+    <div class="modal fade" id="cancelActivityModal" tabindex="-1" aria-labelledby="cancelModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-danger text-white rounded-top-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-x-octagon-fill fs-4 text-warning"></i>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="cancelModalTitle">Cancel Scheduled Activity</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="cancelActivityForm" onsubmit="handleCancelActivitySubmit(event)">
+                    <div class="modal-body p-4">
+                        <input type="hidden" id="cancelSlotId">
+                        <div class="alert alert-danger py-2 mb-3 small">
+                            <i class="bi bi-exclamation-octagon-fill me-1"></i> Cancelling marks the activity as <strong>Cancelled (Red)</strong> and moves it to the <strong>Archive Box</strong> while retaining it on the historical calendar.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Activity Subject</label>
+                            <div class="fw-bold text-dark p-2 bg-light rounded border" id="cancelActivityTitleDisplay">-</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cancelReasonInput" class="form-label fw-semibold">Cancellation Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="cancelReasonInput" rows="3" placeholder="Provide the administrative justification for cancelling this activity slot..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Activity</button>
+                        <button type="submit" class="btn btn-danger fw-bold px-4"><i class="bi bi-x-circle-fill me-1"></i> Confirm Cancellation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 8E: Edit / Reschedule Activity Modal -->
+    <div class="modal fade" id="editActivityModal" tabindex="-1" aria-labelledby="editActivityModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header modal-header-custom py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-pencil-square text-warning fs-4"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="editActivityModalTitle">Edit Scheduled Activity Slot</h5>
+                            <small class="text-white-50">Update schedule parameters & re-validate conflicts</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editActivityForm" onsubmit="handleSaveActivityUpdates(event)">
+                    <div class="modal-body p-4">
+                        <input type="hidden" id="editSlotId">
+
+                        <!-- Validation Alert Banner -->
+                        <div id="editSchedSafeguardAlert" class="alert alert-warning py-2.5 px-3 mb-3 d-none align-items-center gap-2 rounded-3 small">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0"></i>
+                            <div id="editSchedSafeguardAlertMsg" class="fw-semibold">Warning message</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="editActSubjectTitle" class="form-label fw-semibold">Activity Subject Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control fw-bold" id="editActSubjectTitle" required>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="editActCategorySelect" class="form-label fw-semibold">Activity Category <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editActCategorySelect" required onchange="handleEditActCategoryChange()">
+                                    <option value="Assistance Distribution">Assistance Distribution</option>
+                                    <option value="Certificate Distribution">Certificate Distribution</option>
+                                    <option value="Others">Others (please specify)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-6 d-none" id="editActCategoryOtherContainer">
+                                <label for="editActCategoryOtherInput" class="form-label fw-semibold text-primary">Specify Custom Category <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editActCategoryOtherInput" placeholder="Enter custom activity type...">
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="editActTargetProgramSelect" class="form-label fw-semibold">Target Program Name <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editActTargetProgramSelect" required>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="editActOfficerSelect" class="form-label fw-semibold">Assigned PESO Officer <span class="text-muted small">(Optional)</span></label>
+                                <select class="form-select" id="editActOfficerSelect">
+                                    <option value="">Unassigned / General Schedule (Optional)</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="editActLocationSelect" class="form-label fw-semibold">Location or Platform <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editActLocationSelect" required onchange="handleEditActLocationChange()">
+                                    <option value="PESO Main Office - Multi-Purpose Hall">PESO Main Office - Multi-Purpose Hall</option>
+                                    <option value="City of Koronadal Gymnasium">City of Koronadal Gymnasium</option>
+                                    <option value="Barangay Multi-Purpose Center">Barangay Multi-Purpose Center</option>
+                                    <option value="City Hall Lobby - Distribution Desk">City Hall Lobby - Distribution Desk</option>
+                                    <option value="Online / Virtual Orientation Platform">Online / Virtual Orientation Platform</option>
+                                    <option value="Others">Others (please specify)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 d-none" id="editActLocationOtherContainer">
+                                <label for="editActLocationOtherInput" class="form-label fw-semibold text-primary">Specify Specific Location Address / Venue <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editActLocationOtherInput" placeholder="Enter venue name, building, room or street address...">
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="editActStartDate" class="form-label fw-semibold">Date Range (From) <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="editActStartDate" required onchange="calculateEditActDuration()">
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="editActEndDate" class="form-label fw-semibold">Date Range (To) <span class="text-muted small">(Single or Multi-Day)</span></label>
+                                <input type="date" class="form-control" id="editActEndDate" onchange="calculateEditActDuration()">
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="editActStartTime" class="form-label fw-semibold">Start Time <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="editActStartTime" required onchange="calculateEditActDuration()">
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="editActEndTime" class="form-label fw-semibold">End Time <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="editActEndTime" required onchange="calculateEditActDuration()">
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-semibold">Calculated Duration</label>
+                                <div class="p-2 bg-light border rounded text-center fw-bold text-primary" id="editActCalculatedDuration" style="font-size: 0.9rem;">
+                                    2 Hours
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="editActRemarks" class="form-label fw-semibold">Notes / Remarks <span class="text-muted small">(Optional)</span></label>
+                                <textarea class="form-control" id="editActRemarks" rows="2" placeholder="Optional instructions, guidelines, or logistics details..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4" id="btnSubmitEditSchedSlot">
+                            <i class="bi bi-floppy-fill me-1"></i> Save Changes
+                        </button>
                     </div>
                 </form>
             </div>

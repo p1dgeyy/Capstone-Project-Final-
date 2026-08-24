@@ -876,7 +876,7 @@ const DataService = (() => {
   };
 
   // =========================================================================
-  // 5. INTERVIEWS & SCHEDULES DOMAIN
+  // 5. INTERVIEWS / ACTIVITY SCHEDULES DOMAIN
   // =========================================================================
   const interviews = {
     async getAll(filters = {}) {
@@ -885,7 +885,8 @@ const DataService = (() => {
           *,
           beneficiary:beneficiaries!beneficiary_qr(*),
           program:programs!program_id(*),
-          officer:staff_profiles!officer_id(id, username, first_name, last_name)
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
+          batch:batches!batch_id(*)
         `).order('interview_date', { ascending: true });
 
         if (filters.agency) {
@@ -904,6 +905,9 @@ const DataService = (() => {
             query = query.eq('status', filters.status);
           }
         }
+        if (filters.category) {
+          query = query.eq('category', filters.category);
+        }
         if (filters.date) {
           query = query.eq('interview_date', filters.date);
         }
@@ -917,7 +921,8 @@ const DataService = (() => {
           *,
           beneficiary:beneficiaries!beneficiary_qr(*),
           program:programs!program_id(*),
-          officer:staff_profiles!officer_id(id, username, first_name, last_name)
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
+          batch:batches!batch_id(*)
         `).eq('id', id).maybeSingle();
       });
     },
@@ -927,7 +932,7 @@ const DataService = (() => {
         return await client.from('interview_schedules').select(`
           *,
           program:programs!program_id(*),
-          officer:staff_profiles!officer_id(id, username, first_name, last_name)
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role)
         `).eq('beneficiary_qr', beneficiaryQr).order('interview_date', { ascending: true });
       });
     },
@@ -936,30 +941,53 @@ const DataService = (() => {
       return withRetry(async (client) => {
         const payload = {
           application_id: data.application_id || null,
-          beneficiary_qr: data.beneficiary_qr,
+          beneficiary_qr: data.beneficiary_qr || null,
           program_id: data.program_id,
           officer_id: data.officer_id,
-          interview_date: data.interview_date,
-          interview_time: data.interview_time,
-          venue_location: data.venue_location || 'PESO Main Office',
+          title: data.title || 'Program Scheduled Activity Slot',
+          category: data.category || 'Assistance Distribution',
+          category_other: data.category_other || null,
+          interview_date: data.interview_date || data.start_date || new Date().toISOString().substring(0, 10),
+          end_date: data.end_date || data.interview_date || data.start_date || new Date().toISOString().substring(0, 10),
+          interview_time: data.interview_time || data.start_time || '09:00 AM',
+          end_time: data.end_time || '10:00 AM',
+          duration: data.duration || '1 Hour',
+          venue_location: data.venue_location || data.location || 'PESO Main Office',
+          location_other: data.location_other || null,
+          batch_id: data.batch_id || null,
+          recipient_count: data.recipient_count || 0,
           status: data.status || 'Scheduled',
           attendance_status: data.attendance_status || 'Unmarked',
           remarks: data.remarks || null
         };
-        const res = await client.from('interview_schedules').insert(payload).select().single();
+        const res = await client.from('interview_schedules').insert(payload).select(`
+          *,
+          beneficiary:beneficiaries!beneficiary_qr(*),
+          program:programs!program_id(*),
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
+          batch:batches!batch_id(*)
+        `).single();
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: data.officer_id,
-            action: 'SCHEDULE_INTERVIEW',
-            entityType: 'interview_schedule',
+            action: 'CREATE_SCHEDULE_SLOT',
+            entityType: 'schedule_slot',
             entityId: res.data.id,
-            details: `Scheduled interview on ${data.interview_date} ${data.interview_time} at ${payload.venue_location}`
+            details: `Created activity slot "${payload.title}" (${payload.category}) on ${payload.interview_date} at ${payload.venue_location}`
           });
-          notifications.create({
-            beneficiary_qr: data.beneficiary_qr,
-            title: 'New Interview / Activity Schedule',
-            message: `You have an activity scheduled on ${data.interview_date} at ${data.interview_time}. Venue: ${payload.venue_location}.`
+          activityLog.log({
+            action: 'SCHEDULE_SLOT_CREATED',
+            action_title: 'New Activity Slot Scheduled',
+            program: (res.data.program && res.data.program.name) || 'Assistance Program',
+            details: `Scheduled "${payload.title}" for ${payload.interview_date} (${payload.interview_time})`
           });
+          if (data.beneficiary_qr) {
+            notifications.create({
+              beneficiary_qr: data.beneficiary_qr,
+              title: 'New Scheduled Activity Slot',
+              message: `You have an activity scheduled: "${payload.title}" on ${payload.interview_date} at ${payload.interview_time}. Location: ${payload.venue_location}.`
+            });
+          }
         }
         return res;
       });
@@ -970,7 +998,27 @@ const DataService = (() => {
         const updateData = { ...data };
         delete updateData.id;
         delete updateData.created_at;
-        return await client.from('interview_schedules').update(updateData).eq('id', id).select().single();
+        delete updateData.beneficiary;
+        delete updateData.program;
+        delete updateData.officer;
+        delete updateData.batch;
+        updateData.updated_at = new Date().toISOString();
+        const res = await client.from('interview_schedules').update(updateData).eq('id', id).select(`
+          *,
+          beneficiary:beneficiaries!beneficiary_qr(*),
+          program:programs!program_id(*),
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
+          batch:batches!batch_id(*)
+        `).single();
+        if (!res.error && res.data) {
+          auditLogs.log({
+            action: 'UPDATE_SCHEDULE_SLOT',
+            entityType: 'schedule_slot',
+            entityId: id,
+            details: `Updated schedule slot #${id} (${res.data.title || 'Activity'})`
+          });
+        }
+        return res;
       });
     },
 
@@ -980,15 +1028,16 @@ const DataService = (() => {
         const payload = {
           attendance_status: attendanceData.attendance_status,
           status: attendanceData.status || status,
-          remarks: attendanceData.remarks || null
+          remarks: attendanceData.remarks || null,
+          updated_at: new Date().toISOString()
         };
         const res = await client.from('interview_schedules').update(payload).eq('id', id).select().single();
         if (!res.error && res.data) {
           auditLogs.log({
             action: 'MARK_ATTENDANCE',
-            entityType: 'interview_schedule',
+            entityType: 'schedule_slot',
             entityId: id,
-            details: `Marked attendance for interview #${id} as ${attendanceData.attendance_status}`
+            details: `Marked attendance for schedule slot #${id} as ${attendanceData.attendance_status}`
           });
         }
         return res;
@@ -999,42 +1048,98 @@ const DataService = (() => {
       return withRetry(async (client) => {
         const payload = {
           interview_date: rescheduleData.interview_date,
+          end_date: rescheduleData.end_date || rescheduleData.interview_date,
           interview_time: rescheduleData.interview_time,
+          end_time: rescheduleData.end_time || rescheduleData.interview_time,
+          duration: rescheduleData.duration || undefined,
           venue_location: rescheduleData.venue_location || undefined,
           status: 'Scheduled',
-          remarks: rescheduleData.remarks || 'Rescheduled'
+          remarks: rescheduleData.remarks || 'Rescheduled',
+          updated_at: new Date().toISOString()
         };
-        const res = await client.from('interview_schedules').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*)`).single();
+        const res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
+          *,
+          beneficiary:beneficiaries!beneficiary_qr(*),
+          program:programs!program_id(*),
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
+          batch:batches!batch_id(*)
+        `).single();
         if (!res.error && res.data) {
           auditLogs.log({
-            action: 'RESCHEDULE_INTERVIEW',
-            entityType: 'interview_schedule',
+            action: 'RESCHEDULE_ACTIVITY',
+            entityType: 'schedule_slot',
             entityId: id,
-            details: `Rescheduled interview #${id} to ${rescheduleData.interview_date} (${rescheduleData.interview_time})`
-          });
-          notifications.create({
-            beneficiary_qr: res.data.beneficiary_qr,
-            title: 'Schedule Updated',
-            message: `Your interview schedule was updated to ${rescheduleData.interview_date} at ${rescheduleData.interview_time}.`
+            details: `Rescheduled activity #${id} to ${rescheduleData.interview_date} (${rescheduleData.interview_time})`
           });
         }
         return res;
       });
     },
 
-    async cancel(id, cancelData) {
+    async postpone(id, postponeData = {}) {
+      return withRetry(async (client) => {
+        const payload = {
+          status: 'Postponed',
+          postponed_at: new Date().toISOString(),
+          postponed_by: postponeData.postponed_by || sessionStorage.getItem('username') || 'PESO Admin',
+          postponement_reason: postponeData.reason || 'Postponed by Administrator',
+          remarks: postponeData.reason || 'Activity Postponed',
+          updated_at: new Date().toISOString()
+        };
+        const res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
+          *,
+          beneficiary:beneficiaries!beneficiary_qr(*),
+          program:programs!program_id(*),
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
+          batch:batches!batch_id(*)
+        `).single();
+        if (!res.error && res.data) {
+          auditLogs.log({
+            action: 'POSTPONE_ACTIVITY',
+            entityType: 'schedule_slot',
+            entityId: id,
+            details: `Postponed activity slot #${id} ("${res.data.title}"). Reason: ${payload.postponement_reason}`
+          });
+          activityLog.log({
+            action: 'ACTIVITY_POSTPONED',
+            action_title: 'Scheduled Activity Postponed',
+            program: (res.data.program && res.data.program.name) || 'Assistance Program',
+            details: `Postponed "${res.data.title}" by ${payload.postponed_by}. Reason: ${payload.postponement_reason}`
+          });
+        }
+        return res;
+      });
+    },
+
+    async cancel(id, cancelData = {}) {
       return withRetry(async (client) => {
         const payload = {
           status: 'Cancelled',
-          remarks: cancelData.reason || 'Cancelled by Admin'
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: cancelData.cancelled_by || sessionStorage.getItem('username') || 'PESO Admin',
+          cancellation_reason: cancelData.reason || 'Cancelled by Administrator',
+          remarks: cancelData.reason || 'Activity Cancelled',
+          updated_at: new Date().toISOString()
         };
-        const res = await client.from('interview_schedules').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*)`).single();
+        const res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
+          *,
+          beneficiary:beneficiaries!beneficiary_qr(*),
+          program:programs!program_id(*),
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
+          batch:batches!batch_id(*)
+        `).single();
         if (!res.error && res.data) {
           auditLogs.log({
-            action: 'CANCEL_INTERVIEW',
-            entityType: 'interview_schedule',
+            action: 'CANCEL_ACTIVITY',
+            entityType: 'schedule_slot',
             entityId: id,
-            details: `Cancelled interview #${id}. Reason: ${cancelData.reason || 'None'}`
+            details: `Cancelled activity slot #${id} ("${res.data.title}"). Reason: ${payload.cancellation_reason}`
+          });
+          activityLog.log({
+            action: 'ACTIVITY_CANCELLED',
+            action_title: 'Scheduled Activity Cancelled',
+            program: (res.data.program && res.data.program.name) || 'Assistance Program',
+            details: `Cancelled "${res.data.title}" by ${payload.cancelled_by}. Moved to Archive.`
           });
         }
         return res;
@@ -1775,6 +1880,7 @@ const DataService = (() => {
     staffProfiles,
     applications,
     interviews,
+    schedules: interviews,
     notifications,
     distributions,
     approvedAssistance,

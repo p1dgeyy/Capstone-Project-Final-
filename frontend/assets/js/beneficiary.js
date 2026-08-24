@@ -679,6 +679,20 @@
     renderNotificationsFeed();
   }
 
+  function setupRealtimeTracking() {
+    try {
+      if (typeof DataService !== 'undefined' && DataService.realtime && !window.__beneficiaryRealtimeActive) {
+        window.__beneficiaryRealtimeActive = true;
+        DataService.realtime.subscribeMulti(['applications', 'notifications', 'interview_schedules', 'approved_assistance', 'distributions'], (payload) => {
+          console.log('[Beneficiary Realtime Event]:', payload.table, payload.eventType);
+          fetchBeneficiaryData();
+        });
+      }
+    } catch (e) {
+      console.warn('[Beneficiary Realtime Init Notice]:', e);
+    }
+  }
+
   // Global Scope Exports
   window.submitAssistanceRequest = submitAssistanceRequest;
   window.viewCompletionCertificate = viewCompletionCertificate;

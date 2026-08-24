@@ -255,13 +255,12 @@ function safeCloseModal(modalId) {
 // --- AUTOMATED BATCH TESTING TOOL FOR ALL MODALS ---
 window.runModalBatchTest = async function () {
     const modalIds = [
-        'createProgramModal', 'programDetailsViewModal', 'programEditModal',
-        'uploadOrdinanceModal', 'ordinanceReferenceModal', 'newUserModal',
-        'userDetailsModal', 'editUserModal', 'userActionConfirmModal',
-        'createActivityModal', 'viewActivityDetailsModal', 'editActivityModal',
-        'cancelActivityModal', 'eligibleRecipientsModal', 'reviewCaseFileModal',
-        'docPreviewModal', 'beneficiaryProfileModal', 'auditLogsModal',
-        'restrictionWarningModal'
+        'createProgramModal', 'programDetailsViewModal',
+        'uploadOrdinanceModal', 'ordinanceReferenceModal', 'createOfficerModal',
+        'editOfficerModal', 'createActivityModal', 'viewScheduleSlotDetailsModal',
+        'editActivityModal', 'postponeActivityModal', 'cancelActivityModal',
+        'reviewCaseFileModal', 'docPreviewModal', 'beneficiaryProfileModal',
+        'auditLogsModal', 'fundAllocationModal', 'composeNotificationModal'
     ];
 
     console.log(`[Batch Modal Test] Starting automated sequence on ${modalIds.length} modals...`);

@@ -272,22 +272,40 @@ CREATE INDEX IF NOT EXISTS idx_ast_program ON approved_assistance(program_id);
 CREATE INDEX IF NOT EXISTS idx_ast_date ON approved_assistance(approval_date);
 
 -- =============================================================================
--- 9. INTERVIEW SCHEDULES TABLE
--- beneficiary_qr → beneficiaries(qr_code)
+-- 9. INTERVIEW & ACTIVITY SCHEDULES TABLE
+-- beneficiary_qr → beneficiaries(qr_code) (nullable for group / program level slots)
 -- officer_id → staff_profiles(id)
+-- batch_id → batches(id)
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS interview_schedules (
   id BIGSERIAL PRIMARY KEY,
   application_id BIGINT DEFAULT NULL REFERENCES applications(id) ON DELETE SET NULL,
-  beneficiary_qr VARCHAR(20) NOT NULL REFERENCES beneficiaries(qr_code) ON DELETE CASCADE,
+  beneficiary_qr VARCHAR(20) DEFAULT NULL REFERENCES beneficiaries(qr_code) ON DELETE CASCADE,
   program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
   officer_id BIGINT NOT NULL REFERENCES staff_profiles(id) ON DELETE CASCADE,
+  batch_id BIGINT DEFAULT NULL REFERENCES batches(id) ON DELETE SET NULL,
+  title VARCHAR(255) DEFAULT 'Assistance Activity Slot',
+  category VARCHAR(50) DEFAULT 'Assistance Distribution',
+  category_other TEXT DEFAULT NULL,
   interview_date DATE NOT NULL,
+  start_date DATE DEFAULT NULL,
+  end_date DATE DEFAULT NULL,
   interview_time VARCHAR(50) NOT NULL,
-  venue_location VARCHAR(255) NOT NULL DEFAULT 'PESO Main Office - Interview Room A',
-  status VARCHAR(20) DEFAULT 'Scheduled' CHECK (status IN ('Scheduled', 'Pending', 'Completed', 'Missed', 'Cancelled')),
+  start_time VARCHAR(50) DEFAULT NULL,
+  end_time VARCHAR(50) DEFAULT NULL,
+  duration VARCHAR(50) DEFAULT '2 Hours',
+  venue_location VARCHAR(255) NOT NULL DEFAULT 'PESO Main Office - Multi-Purpose Hall',
+  location_other TEXT DEFAULT NULL,
+  recipient_count INT DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'Scheduled' CHECK (status IN ('Scheduled', 'Active', 'Postponed', 'Completed', 'Cancelled', 'Pending', 'Missed')),
   attendance_status VARCHAR(20) DEFAULT 'Unmarked' CHECK (attendance_status IN ('Unmarked', 'Present', 'Absent')),
   remarks TEXT DEFAULT NULL,
+  postponed_at TIMESTAMPTZ DEFAULT NULL,
+  postponed_by VARCHAR(100) DEFAULT NULL,
+  postponement_reason TEXT DEFAULT NULL,
+  cancelled_at TIMESTAMPTZ DEFAULT NULL,
+  cancelled_by VARCHAR(100) DEFAULT NULL,
+  cancellation_reason TEXT DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -295,6 +313,9 @@ CREATE TABLE IF NOT EXISTS interview_schedules (
 CREATE INDEX IF NOT EXISTS idx_int_beneficiary ON interview_schedules(beneficiary_qr);
 CREATE INDEX IF NOT EXISTS idx_int_date ON interview_schedules(interview_date);
 CREATE INDEX IF NOT EXISTS idx_int_status ON interview_schedules(status);
+CREATE INDEX IF NOT EXISTS idx_int_category ON interview_schedules(category);
+CREATE INDEX IF NOT EXISTS idx_int_batch ON interview_schedules(batch_id);
+CREATE INDEX IF NOT EXISTS idx_int_officer ON interview_schedules(officer_id);
 
 -- =============================================================================
 -- TRIGGER: Auto-create staff_profiles OR beneficiaries on Supabase auth signup
