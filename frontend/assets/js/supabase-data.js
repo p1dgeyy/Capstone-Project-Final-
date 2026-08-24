@@ -960,13 +960,15 @@ const DataService = (() => {
           attendance_status: data.attendance_status || 'Unmarked',
           remarks: data.remarks || null
         };
-        const res = await client.from('interview_schedules').insert(payload).select(`
+        let res = await client.from('interview_schedules').insert(payload).select(`
           *,
-          beneficiary:beneficiaries!beneficiary_qr(*),
           program:programs!program_id(*),
-          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
-          batch:batches!batch_id(*)
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role)
         `).single();
+        if (res.error) {
+          // Fallback simple select if foreign join encounters cache mismatch
+          res = await client.from('interview_schedules').insert(payload).select().single();
+        }
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: data.officer_id,
@@ -1003,13 +1005,14 @@ const DataService = (() => {
         delete updateData.officer;
         delete updateData.batch;
         updateData.updated_at = new Date().toISOString();
-        const res = await client.from('interview_schedules').update(updateData).eq('id', id).select(`
+        let res = await client.from('interview_schedules').update(updateData).eq('id', id).select(`
           *,
-          beneficiary:beneficiaries!beneficiary_qr(*),
           program:programs!program_id(*),
-          officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
-          batch:batches!batch_id(*)
+          officer:staff_profiles!officer_id(id, username, first_name, last_name, role)
         `).single();
+        if (res.error) {
+          res = await client.from('interview_schedules').update(updateData).eq('id', id).select().single();
+        }
         if (!res.error && res.data) {
           auditLogs.log({
             action: 'UPDATE_SCHEDULE_SLOT',

@@ -1371,3 +1371,27 @@ window.handleCancelActivitySubmit = handleCancelActivitySubmit;
 window.initSchedulingData = initSchedulingData;
 window.initSchedulingModuleData = initSchedulingModuleData;
 window.renderSchedulingModule = renderSchedulingModule;
+window.handleCreateScheduleSlotSubmit = handleCreateScheduleSlotSubmit;
+window.handleSaveActivityUpdates = handleSaveActivityUpdates;
+window.handlePostponeActivitySubmit = handlePostponeActivitySubmit;
+window.handleCancelActivitySubmit = handleCancelActivitySubmit;
+
+// Explicit Form Event Binding on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    const createForm = document.getElementById('createSchedSlotForm');
+    if (createForm) {
+        createForm.addEventListener('submit', handleCreateScheduleSlotSubmit);
+    }
+    const editForm = document.getElementById('editActivityForm');
+    if (editForm) {
+        editForm.addEventListener('submit', handleSaveActivityUpdates);
+    }
+    const postponeForm = document.getElementById('postponeActivityForm');
+    if (postponeForm) {
+        postponeForm.addEventListener('submit', handlePostponeActivitySubmit);
+    }
+    const cancelForm = document.getElementById('cancelActivityForm');
+    if (cancelForm) {
+        cancelForm.addEventListener('submit', handleCancelActivitySubmit);
+    }
+});
