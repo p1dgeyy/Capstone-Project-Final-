@@ -80,48 +80,16 @@ const SessionManager = (() => {
     if (!uId && !uName) return { isAlreadyActive: false };
 
     try {
-      let query = supabaseClient.from('active_user_sessions').select('*');
-      if (uId && uName) {
-        query = query.or(`user_id.eq.${uId},user_identifier.ilike.${uName}`);
-      } else if (uId) {
-        query = query.eq('user_id', uId);
-      } else {
-        query = query.ilike('user_identifier', uName);
+      // Auto-clean any previous session locks for this user so they can log in seamlessly
+      if (uId) {
+        await supabaseClient.from('active_user_sessions').delete().eq('user_id', uId);
       }
-
-      const { data, error } = await query.maybeSingle();
-
-      if (error || !data) {
-        return { isAlreadyActive: false };
+      if (uName) {
+        await supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', uName);
       }
-
-      // Check if current browser already owns this session ID (e.g. same browser window / tab refresh)
-      const currentLocalSessionId = getSessionId();
-      if (currentLocalSessionId && data.session_id === currentLocalSessionId) {
-        return { isAlreadyActive: false, isOwnSession: true };
-      }
-
-      const lastActivityTime = new Date(data.last_activity_at || data.created_at).getTime();
-      const now = Date.now();
-      const elapsedMs = now - lastActivityTime;
-
-      // If active within the 20-minute inactivity threshold -> Block login on another device
-      if (elapsedMs < INACTIVITY_TIMEOUT_MS) {
-        const remainingMinutes = Math.max(1, Math.ceil((INACTIVITY_TIMEOUT_MS - elapsedMs) / 60000));
-        return {
-          isAlreadyActive: true,
-          minutesRemaining: remainingMinutes,
-          deviceInfo: data.device_info || 'another device',
-          lastActivity: data.last_activity_at,
-          sessionId: data.session_id
-        };
-      } else {
-        // Session is older than 20 minutes (inactive/abandoned) -> Delete stale record immediately
-        await supabaseClient.from('active_user_sessions').delete().eq('user_id', data.user_id);
-        return { isAlreadyActive: false };
-      }
+      return { isAlreadyActive: false };
     } catch (e) {
-      console.warn('[SessionManager] checkAccountAlreadyActive warning:', e.message);
+      console.warn('[SessionManager] checkAccountAlreadyActive notice:', e.message);
       return { isAlreadyActive: false };
     }
   }
@@ -682,25 +650,32 @@ const SessionManager = (() => {
     return _cachedProfile;
   }
 
+  async function clearActiveSessionRemote(userId) {
+    if (typeof supabaseClient === 'undefined' || !supabaseClient || !userId) return;
+    try {
+      await supabaseClient.from('active_user_sessions').delete().or(`user_id.eq.${userId},user_identifier.eq.${userId}`);
+    } catch (e) {
+      console.warn('[SessionManager] clearActiveSessionRemote notice:', e);
+    }
+  }
+
   return Object.freeze({
     save,
-    registerSession,
-    checkAccountAlreadyActive,
+    init,
+    destroy,
     getSessionId,
-    getToken,
-    getTokenAsync,
-    getUserId,
-    getRole,
-    authHeaders,
-    clear,
-    logout,
-    forceLogout,
-    verify,
-    touchActiveSession,
-    startInactivityTimer,
-    startPeriodicVerification,
-    checkAndDisplayLoginNotice,
-    getCachedProfile
+    checkAccountAlreadyActive,
+    clearActiveSessionRemote,
+    checkAndDisplayLoginNotice: (errId, alertId) => {
+      const notice = sessionStorage.getItem('loginNotice');
+      if (notice) {
+        sessionStorage.removeItem('loginNotice');
+        const errEl = document.getElementById(errId);
+        const alertEl = document.getElementById(alertId);
+        if (errEl) errEl.innerHTML = notice;
+        if (alertEl) alertEl.style.display = 'block';
+      }
+    }
   });
 })();
 
