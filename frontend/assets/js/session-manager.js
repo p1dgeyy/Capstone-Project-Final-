@@ -661,21 +661,19 @@ const SessionManager = (() => {
 
   return Object.freeze({
     save,
-    init,
-    destroy,
+    logout,
+    forceLogout,
+    verify,
+    startPeriodicVerification,
+    init: startPeriodicVerification,
+    destroy: forceLogout,
     getSessionId,
     checkAccountAlreadyActive,
     clearActiveSessionRemote,
-    checkAndDisplayLoginNotice: (errId, alertId) => {
-      const notice = sessionStorage.getItem('loginNotice');
-      if (notice) {
-        sessionStorage.removeItem('loginNotice');
-        const errEl = document.getElementById(errId);
-        const alertEl = document.getElementById(alertId);
-        if (errEl) errEl.innerHTML = notice;
-        if (alertEl) alertEl.style.display = 'block';
-      }
-    }
+    getCachedProfile,
+    touchActiveSession,
+    recordUserActivity,
+    checkAndDisplayLoginNotice
   });
 })();
 
