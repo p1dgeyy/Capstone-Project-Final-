@@ -511,6 +511,18 @@ const OTPAuth = (() => {
         return { success: true, message: 'Password updated successfully! You can now log in.' };
     }
 
+    return {
+        generateNumericCode,
+        maskEmail,
+        maskPhone,
+        sendEmailCode,
+        verifyEmailCode,
+        sendSmsOtp,
+        verifySmsOtp,
+        sendPasswordResetOtp,
+        verifyPasswordResetOtp,
+        resetBeneficiaryPassword,
+
         // Real-time Event Broadcaster for Multi-Tab Sync & Live Transactions
         broadcastRealtimeEvent: function(eventType, payload = {}) {
             const eventData = {
@@ -556,3 +568,4 @@ if (typeof window !== 'undefined') {
     window.broadcastRealtimeEvent = OTPAuth.broadcastRealtimeEvent;
     window.onRealtimeEvent = OTPAuth.onRealtimeEvent;
 }
+
