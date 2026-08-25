@@ -371,62 +371,132 @@ function renderCalendar() {
 }
 
 /**
- * Populate 5-color status event chips into calendar cells
+ * Populate continuous Multi-Day status bars & event chips into calendar cells
+ * Strict User Requirements:
+ * - Date Range (Start Day - End Day) renders as a SINGLE continuous status bar
+ * - Start Day cell: Rounded left cap, shows name, CLICKABLE -> opens detail modal
+ * - End Day cell: Rounded right cap, shows name (End), NOT clickable
+ * - In-between days: Connecting colored strip, no repeated text, NOT clickable
+ * - Single-day: Rounded on both sides, shows name, CLICKABLE -> opens detail modal
+ * - No duplication: De-duplicated by activity ID per cell
+ * - Solid consistent status color across every day it touches:
+ *   🔵 Scheduled (#0284c7) | 🟡 Postponed (#eab308) | 🔴 Cancelled (#ef4444) | ⚫ Completed (#64748b) | 🟢 Today (#10b981)
+ * - Postponed stays on live calendar grid, editable ("reschedule pending"), NOT archived
+ * - Cancelled gets strikethrough, moves to Archive Box, remains visible on grid for audit
  */
 function populateCalendarChips() {
     const filtered = getFilteredActivitiesList();
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
 
-    filtered.forEach(act => {
+    // Map of day -> Set of rendered activity IDs to enforce zero duplication per cell
+    const renderedActivityIdsByDay = {};
+    for (let d = 1; d <= daysInMonth; d++) {
+        renderedActivityIdsByDay[d] = new Set();
+        const container = document.getElementById(`dayEvents-${d}`);
+        if (container) container.innerHTML = '';
+    }
+
+    // Sort activities consistently
+    const sortedActivities = [...filtered].sort((a, b) => {
+        const aStart = a.start_date || a.date || '';
+        const bStart = b.start_date || b.date || '';
+        if (aStart !== bStart) return aStart.localeCompare(bStart);
+        return (a.id || 0) - (b.id || 0);
+    });
+
+    sortedActivities.forEach(act => {
         const actStartDate = act.start_date || act.date || '';
         if (!actStartDate) return;
+        let actEndDate = act.end_date || actStartDate;
+        if (actEndDate < actStartDate) actEndDate = actStartDate;
 
-        const dateParts = actStartDate.split('-');
-        if (dateParts.length !== 3) return;
+        const isMultiDay = (actStartDate !== actEndDate);
 
-        const yr = parseInt(dateParts[0], 10);
-        const mo = parseInt(dateParts[1], 10) - 1;
-        const dy = parseInt(dateParts[2], 10);
+        // Solid Color Determination (One uniform color across all days)
+        let barColorClass = 'bar-blue';
+        let statusEmoji = '🔵';
+        let isCancelled = (act.status === 'Cancelled');
 
-        if (yr === currentCalendarYear && mo === currentCalendarMonth) {
-            const container = document.getElementById(`dayEvents-${dy}`);
-            if (container) {
-                const chip = document.createElement('div');
+        if (act.status === 'Cancelled') {
+            barColorClass = 'bar-red';
+            statusEmoji = '🔴';
+        } else if (act.status === 'Postponed') {
+            barColorClass = 'bar-yellow';
+            statusEmoji = '🟡';
+        } else if (act.status === 'Completed') {
+            barColorClass = 'bar-gray';
+            statusEmoji = '⚫';
+        } else if (!isMultiDay && actStartDate === todayStr) {
+            barColorClass = 'bar-green';
+            statusEmoji = '🟢';
+        }
 
-                // Color Legend Logic:
-                // 🟢 Today: Happening Today
-                // 🔵 Scheduled: Upcoming / Active
-                // 🟡 Postponed: Postponed
-                // 🔴 Cancelled: Cancelled
-                // ⚫ Completed: Completed
-                let chipClass = 'status-chip-blue';
-                let iconSymbol = '🔵';
+        // Check every day of the active month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const currDateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-                if (act.status === 'Cancelled') {
-                    chipClass = 'status-chip-red';
-                    iconSymbol = '🔴';
-                } else if (act.status === 'Postponed') {
-                    chipClass = 'status-chip-yellow';
-                    iconSymbol = '🟡';
-                } else if (act.status === 'Completed') {
-                    chipClass = 'status-chip-gray';
-                    iconSymbol = '⚫';
-                } else if (actStartDate === todayStr) {
-                    chipClass = 'status-chip-green';
-                    iconSymbol = '🟢';
+            if (currDateStr >= actStartDate && currDateStr <= actEndDate) {
+                const container = document.getElementById(`dayEvents-${day}`);
+                if (!container) continue;
+
+                // De-duplicate by activity ID
+                if (renderedActivityIdsByDay[day].has(act.id)) continue;
+                renderedActivityIdsByDay[day].add(act.id);
+
+                const isStartDay = (currDateStr === actStartDate);
+                const isEndDay = (currDateStr === actEndDate);
+
+                const bar = document.createElement('div');
+
+                if (!isMultiDay) {
+                    // Single Day: Rounded on both sides, fully clickable
+                    bar.className = `calendar-multi-bar bar-single ${barColorClass} ${isCancelled ? 'text-decoration-line-through' : ''}`;
+                    bar.setAttribute('title', `${escapeHtml(act.title)} (${act.time}) - Status: ${act.status}`);
+                    bar.innerHTML = `
+                        <span class="me-1">${statusEmoji}</span>
+                        <span class="text-truncate fw-bold ${isCancelled ? 'strikethrough-title' : ''}">${escapeHtml(act.program_code)} - ${escapeHtml(act.title)}</span>
+                    `;
+                    bar.onclick = (e) => {
+                        e.stopPropagation();
+                        openViewSlotDetailsModal(act.id);
+                    };
+                } else if (isStartDay) {
+                    // Multi-Day Start Day: Rounded left cap, shows name, ONLY clickable entry point
+                    bar.className = `calendar-multi-bar bar-start ${barColorClass} ${isCancelled ? 'text-decoration-line-through' : ''}`;
+                    bar.setAttribute('title', `Start: ${escapeHtml(act.title)} (${act.start_date} to ${act.end_date}). Click here to view/manage.`);
+                    bar.innerHTML = `
+                        <span class="me-1">${statusEmoji}</span>
+                        <span class="text-truncate fw-bold ${isCancelled ? 'strikethrough-title' : ''}">${escapeHtml(act.program_code)} - ${escapeHtml(act.title)}</span>
+                        <span class="badge bg-dark bg-opacity-25 ms-1 py-0 px-1" style="font-size: 0.62rem;">Start</span>
+                    `;
+                    bar.onclick = (e) => {
+                        e.stopPropagation();
+                        openViewSlotDetailsModal(act.id);
+                    };
+                } else if (isEndDay) {
+                    // Multi-Day End Day: Rounded right cap, shows name (End), NOT clickable
+                    bar.className = `calendar-multi-bar bar-end ${barColorClass} ${isCancelled ? 'text-decoration-line-through' : ''}`;
+                    bar.setAttribute('title', `End of activity: ${escapeHtml(act.title)} (Ends today). Click start date (${act.start_date}) to view/manage.`);
+                    bar.innerHTML = `
+                        <span class="text-truncate fw-bold ${isCancelled ? 'strikethrough-title' : ''}">${escapeHtml(act.title)}</span>
+                        <span class="badge bg-dark bg-opacity-25 ms-1 py-0 px-1" style="font-size: 0.62rem;">End</span>
+                    `;
+                    bar.onclick = (e) => {
+                        e.stopPropagation();
+                    };
+                } else {
+                    // Multi-Day In-between Days: Connecting solid strip, no repeated text, NOT clickable
+                    bar.className = `calendar-multi-bar bar-mid ${barColorClass}`;
+                    bar.setAttribute('title', `Activity in progress: ${escapeHtml(act.title)} (${act.start_date} to ${act.end_date}). Click start date (${act.start_date}) to view/manage.`);
+                    bar.innerHTML = `&nbsp;`;
+                    bar.onclick = (e) => {
+                        e.stopPropagation();
+                    };
                 }
 
-                chip.className = `calendar-event-chip ${chipClass}`;
-                chip.innerHTML = `
-                    <span>${iconSymbol}</span>
-                    <span class="text-truncate"><strong>${escapeHtml(act.program_code)}</strong> - ${escapeHtml(act.title)}</span>
-                `;
-                chip.onclick = (e) => {
-                    e.stopPropagation();
-                    openViewSlotDetailsModal(act.id);
-                };
-                container.appendChild(chip);
+                container.appendChild(bar);
             }
         }
     });
@@ -457,16 +527,17 @@ window.jumpToCalendarToday = jumpToCalendarToday;
 
 /**
  * 1. Upcoming Activities Panel (Top Right Box)
+ * Displays active and postponed (pending reschedule) activities
  */
 function renderUpcomingActivitiesAgenda() {
     const container = document.getElementById('scheduledAgendaList');
     const badge = document.getElementById('upcomingActivitiesCountBadge');
     if (!container) return;
 
-    const filtered = getFilteredActivitiesList().filter(a => a.status === 'Scheduled' || a.status === 'Active' || a.status === 'Ongoing');
+    const filtered = getFilteredActivitiesList().filter(a => a.status === 'Scheduled' || a.status === 'Active' || a.status === 'Ongoing' || a.status === 'Postponed');
 
     if (badge) {
-        badge.textContent = `${filtered.length} Upcoming`;
+        badge.textContent = `${filtered.length} Upcoming / Active`;
     }
 
     if (filtered.length === 0) {
@@ -485,15 +556,22 @@ function renderUpcomingActivitiesAgenda() {
             ? '<span class="badge bg-warning text-dark font-monospace" style="font-size: 0.7rem;">Certificate Distribution</span>'
             : (act.category === 'Assistance Distribution' ? '<span class="badge bg-primary font-monospace" style="font-size: 0.7rem;">Assistance Distribution</span>' : '<span class="badge bg-info text-dark" style="font-size: 0.7rem;">Special Event</span>');
 
+        let statusBadge = '<span class="badge bg-success-subtle text-success border border-success" style="font-size: 0.68rem;"><i class="bi bi-broadcast me-1"></i>Active</span>';
+        if (act.status === 'Postponed') {
+            statusBadge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning" style="font-size: 0.68rem;"><i class="bi bi-clock-history me-1"></i>Postponed</span>';
+        }
+
+        const dateDisplay = (act.start_date !== act.end_date && act.end_date) ? `${act.start_date} to ${act.end_date}` : act.start_date;
+
         return `
             <div class="card border rounded-3 p-2.5 mb-2 shadow-sm hover-shadow transition cursor-pointer" onclick="openViewSlotDetailsModal(${act.id})">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     ${catBadge}
-                    <span class="badge bg-success-subtle text-success border border-success" style="font-size: 0.68rem;"><i class="bi bi-broadcast me-1"></i>Active</span>
+                    ${statusBadge}
                 </div>
                 <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 0.88rem;">${escapeHtml(act.title)}</h6>
                 <div class="text-muted small" style="font-size: 0.76rem;">
-                    <div><i class="bi bi-calendar-event me-1 text-primary"></i><strong>${act.start_date}</strong> • ${act.time}</div>
+                    <div><i class="bi bi-calendar-event me-1 text-primary"></i><strong>${dateDisplay}</strong> • ${act.time}</div>
                     <div class="text-truncate"><i class="bi bi-geo-alt me-1 text-danger"></i>${escapeHtml(act.location)}</div>
                     <div><i class="bi bi-person-badge me-1 text-info"></i>Officer: <strong>${escapeHtml(act.officer_name)}</strong></div>
                 </div>
@@ -504,13 +582,16 @@ function renderUpcomingActivitiesAgenda() {
 
 /**
  * 2. Archive Box (Bottom Right Box)
+ * Strict Requirement: Contains ONLY terminal Cancelled and Completed activities.
+ * Postponed activities are NOT archived; they remain on the live calendar and in stat counters.
  */
 function renderSchedulingArchive() {
     const container = document.getElementById('schedulingArchiveList');
     const badge = document.getElementById('archiveBoxCountBadge');
     if (!container) return;
 
-    const archived = getFilteredActivitiesList().filter(a => a.status === 'Completed' || a.status === 'Cancelled' || a.status === 'Postponed');
+    // Strict Segregation: Only Completed and Cancelled
+    const archived = getFilteredActivitiesList().filter(a => a.status === 'Completed' || a.status === 'Cancelled');
 
     if (badge) {
         badge.textContent = `${archived.length} Archived Slots`;
@@ -529,11 +610,13 @@ function renderSchedulingArchive() {
 
     container.innerHTML = archived.map(act => {
         let statusBadge = '<span class="badge bg-secondary text-white"><i class="bi bi-check2-all me-1"></i>Completed</span>';
+        let titleClass = '';
         if (act.status === 'Cancelled') {
             statusBadge = '<span class="badge bg-danger text-white"><i class="bi bi-x-octagon-fill me-1"></i>Cancelled</span>';
-        } else if (act.status === 'Postponed') {
-            statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Postponed</span>';
+            titleClass = 'text-decoration-line-through text-danger';
         }
+
+        const dateRangeDisplay = (act.start_date !== act.end_date && act.end_date) ? `${act.start_date} – ${act.end_date}` : act.start_date;
 
         return `
             <div class="card border rounded-3 p-2.5 mb-2 shadow-sm hover-shadow transition cursor-pointer" onclick="openViewSlotDetailsModal(${act.id})">
@@ -541,12 +624,11 @@ function renderSchedulingArchive() {
                     <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.7rem;">${escapeHtml(act.program_code)}</span>
                     ${statusBadge}
                 </div>
-                <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 0.85rem;">${escapeHtml(act.title)}</h6>
+                <h6 class="fw-bold mb-1 text-truncate ${titleClass || 'text-dark'}" style="font-size: 0.85rem;">${escapeHtml(act.title)}</h6>
                 <div class="text-muted small" style="font-size: 0.75rem;">
-                    <div><i class="bi bi-calendar-event me-1"></i>Date: ${act.start_date}</div>
+                    <div><i class="bi bi-calendar-event me-1"></i><strong>${dateRangeDisplay}</strong> • ${act.time}</div>
                     <div class="text-truncate"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(act.location)}</div>
                     ${act.status === 'Cancelled' && act.cancellation_reason ? `<div class="text-danger mt-1 text-truncate"><i class="bi bi-info-circle me-1"></i>Reason: ${escapeHtml(act.cancellation_reason)}</div>` : ''}
-                    ${act.status === 'Postponed' && act.postponement_reason ? `<div class="text-warning mt-1 text-truncate"><i class="bi bi-clock me-1"></i>Reason: ${escapeHtml(act.postponement_reason)}</div>` : ''}
                 </div>
             </div>
         `;

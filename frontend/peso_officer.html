@@ -499,6 +499,77 @@
         .status-pill-red { background-color: #EF4444; color: #FFFFFF; font-weight: 600; font-size: 0.75rem; border-radius: 9999px; padding: 2px 8px; }
         .status-pill-gray { background-color: #475569; color: #FFFFFF; font-weight: 600; font-size: 0.75rem; border-radius: 9999px; padding: 2px 8px; }
 
+        /* Multi-Day Activity Bar Rendering (Officer Calendar View) */
+        .calendar-multi-bar {
+            display: flex;
+            align-items: center;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            height: 24px;
+            min-height: 24px;
+            box-sizing: border-box;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+            margin-bottom: 3px;
+            position: relative;
+            user-select: none;
+        }
+        .calendar-multi-bar.bar-single {
+            border-radius: 6px;
+            margin-left: 0;
+            margin-right: 0;
+            cursor: pointer;
+        }
+        .calendar-multi-bar.bar-single:hover {
+            filter: brightness(0.92);
+            transform: translateY(-1px);
+        }
+        .calendar-multi-bar.bar-start {
+            border-top-left-radius: 6px;
+            border-bottom-left-radius: 6px;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-right: -7px;
+            margin-left: 0;
+            z-index: 2;
+            cursor: pointer;
+        }
+        .calendar-multi-bar.bar-start:hover {
+            filter: brightness(0.92);
+        }
+        .calendar-multi-bar.bar-end {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+            margin-left: -7px;
+            margin-right: 0;
+            z-index: 2;
+            cursor: default;
+            opacity: 0.95;
+        }
+        .calendar-multi-bar.bar-mid {
+            border-radius: 0;
+            margin-left: -7px;
+            margin-right: -7px;
+            z-index: 1;
+            cursor: default;
+            opacity: 0.95;
+            height: 24px;
+            min-height: 24px;
+            justify-content: center;
+        }
+        .calendar-multi-bar.bar-blue { background-color: #0284c7 !important; color: #ffffff !important; border: 1px solid #0369a1 !important; }
+        .calendar-multi-bar.bar-yellow { background-color: #eab308 !important; color: #451a03 !important; border: 1px solid #ca8a04 !important; font-weight: 700 !important; }
+        .calendar-multi-bar.bar-red { background-color: #ef4444 !important; color: #ffffff !important; border: 1px solid #dc2626 !important; }
+        .calendar-multi-bar.bar-red .activity-title-text,
+        .calendar-multi-bar.bar-red.text-decoration-line-through,
+        .calendar-multi-bar.bar-red .strikethrough-title { text-decoration: line-through !important; }
+        .calendar-multi-bar.bar-gray { background-color: #64748b !important; color: #ffffff !important; border: 1px solid #475569 !important; }
+        .calendar-multi-bar.bar-green { background-color: #10b981 !important; color: #ffffff !important; border: 1px solid #059669 !important; }
+
         .officer-cal-chip {
             padding: 3px 6px;
             font-size: 0.72rem;
@@ -4625,26 +4696,74 @@
 
                     const dayActivities = filteredList.filter(a => {
                         const aStart = a.startDate || a.start_date || a.interviewDate || a.slot_date;
-                        const aEnd = a.endDate || a.end_date || aStart;
+                        let aEnd = a.endDate || a.end_date || aStart;
+                        if (aEnd < aStart) aEnd = aStart;
                         return cellDateStr >= aStart && cellDateStr <= aEnd;
                     });
 
+                    // Sort and de-duplicate by activity ID
+                    const seenIds = new Set();
                     let chipsHtml = '';
-                    dayActivities.forEach(act => {
-                        let chipColor = 'blue';
-                        if (act.status === 'Completed') chipColor = 'gray';
-                        else if (act.status === 'Cancelled') chipColor = 'red';
-                        else if (act.status === 'Postponed') chipColor = 'yellow';
-                        else if (isToday) chipColor = 'green';
 
-                        const batchTag = act.batchName || (act.batch_id ? `B#${act.batch_id}` : 'Blank');
-                        chipsHtml += `
-                            <div class="officer-cal-chip officer-cal-chip-${chipColor}" onclick="handleOfficerActivityClick(${act.dbId || act.numId || act.id})" title="${escapeHtml(act.title)} (${act.category}) - ${act.status}">
-                                <i class="bi bi-circle-fill" style="font-size: 0.55rem;"></i>
-                                <span class="fw-bold text-truncate" style="max-width: 90px;">${escapeHtml(act.title)}</span>
-                                <small class="ms-auto opacity-75">[${escapeHtml(batchTag)}]</small>
-                            </div>
-                        `;
+                    dayActivities.forEach(act => {
+                        const actId = act.dbId || act.numId || act.id;
+                        if (seenIds.has(actId)) return;
+                        seenIds.add(actId);
+
+                        const aStart = act.startDate || act.start_date || act.interviewDate || act.slot_date;
+                        let aEnd = act.endDate || act.end_date || aStart;
+                        if (aEnd < aStart) aEnd = aStart;
+                        const isMultiDay = (aStart !== aEnd);
+                        const isStartDay = (cellDateStr === aStart);
+                        const isEndDay = (cellDateStr === aEnd);
+
+                        let barColorClass = 'bar-blue';
+                        let statusEmoji = '🔵';
+                        let isCancelled = (act.status === 'Cancelled');
+
+                        if (act.status === 'Cancelled') {
+                            barColorClass = 'bar-red';
+                            statusEmoji = '🔴';
+                        } else if (act.status === 'Postponed') {
+                            barColorClass = 'bar-yellow';
+                            statusEmoji = '🟡';
+                        } else if (act.status === 'Completed') {
+                            barColorClass = 'bar-gray';
+                            statusEmoji = '⚫';
+                        } else if (!isMultiDay && isToday) {
+                            barColorClass = 'bar-green';
+                            statusEmoji = '🟢';
+                        }
+
+                        if (!isMultiDay) {
+                            chipsHtml += `
+                                <div class="calendar-multi-bar bar-single ${barColorClass} ${isCancelled ? 'text-decoration-line-through' : ''}" onclick="handleOfficerActivityClick(${actId})" title="${escapeHtml(act.title)} (${act.scheduleTime || act.time || ''}) - ${act.status}">
+                                    <span class="me-1">${statusEmoji}</span>
+                                    <span class="fw-bold text-truncate ${isCancelled ? 'strikethrough-title' : ''}">${escapeHtml(act.title)}</span>
+                                </div>
+                            `;
+                        } else if (isStartDay) {
+                            chipsHtml += `
+                                <div class="calendar-multi-bar bar-start ${barColorClass} ${isCancelled ? 'text-decoration-line-through' : ''}" onclick="handleOfficerActivityClick(${actId})" title="Start: ${escapeHtml(act.title)} (${aStart} to ${aEnd}). Click to view details.">
+                                    <span class="me-1">${statusEmoji}</span>
+                                    <span class="fw-bold text-truncate ${isCancelled ? 'strikethrough-title' : ''}">${escapeHtml(act.title)}</span>
+                                    <span class="badge bg-dark bg-opacity-25 ms-1 py-0 px-1" style="font-size: 0.62rem;">Start</span>
+                                </div>
+                            `;
+                        } else if (isEndDay) {
+                            chipsHtml += `
+                                <div class="calendar-multi-bar bar-end ${barColorClass} ${isCancelled ? 'text-decoration-line-through' : ''}" title="End of activity: ${escapeHtml(act.title)}. View details from start date (${aStart}).">
+                                    <span class="fw-bold text-truncate ${isCancelled ? 'strikethrough-title' : ''}">${escapeHtml(act.title)}</span>
+                                    <span class="badge bg-dark bg-opacity-25 ms-1 py-0 px-1" style="font-size: 0.62rem;">End</span>
+                                </div>
+                            `;
+                        } else {
+                            chipsHtml += `
+                                <div class="calendar-multi-bar bar-mid ${barColorClass}" title="Multi-day activity in progress: ${escapeHtml(act.title)} (${aStart} to ${aEnd}). View details from start date (${aStart}).">
+                                    &nbsp;
+                                </div>
+                            `;
+                        }
                     });
 
                     html += `
