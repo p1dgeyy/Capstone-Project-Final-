@@ -1547,13 +1547,27 @@ const DataService = (() => {
         let query = client.from('batches').select(`
           *,
           program:programs!program_id(*),
-          applications:applications(id, beneficiary_qr, status, amount_approved)
+          creator:staff_profiles!created_by(id, username, first_name, last_name, role),
+          applications:applications(
+            id,
+            application_number,
+            status,
+            date_applied,
+            amount_approved,
+            beneficiary_qr,
+            beneficiary:beneficiaries!beneficiary_qr(
+              id, qr_code, first_name, middle_name, last_name, suffix, username, barangay, address, phone, contact_number, email, category
+            )
+          )
         `).order('created_at', { ascending: false });
         if (filters.program_code) {
           query = query.eq('program_code', filters.program_code);
         }
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
+        }
+        if (filters.status) {
+          query = query.eq('status', filters.status);
         }
         return await query;
       });
@@ -1564,13 +1578,17 @@ const DataService = (() => {
         return await client.from('batches').select(`
           *,
           program:programs!program_id(*),
+          creator:staff_profiles!created_by(id, username, first_name, last_name, role),
           applications:applications(
             id,
             application_number,
             status,
             date_applied,
             amount_approved,
-            beneficiary:beneficiaries!beneficiary_qr(*)
+            beneficiary_qr,
+            beneficiary:beneficiaries!beneficiary_qr(
+              id, qr_code, first_name, middle_name, last_name, suffix, username, barangay, address, phone, contact_number, email, category
+            )
           )
         `).eq('id', id).maybeSingle();
       });
@@ -1581,17 +1599,149 @@ const DataService = (() => {
         const payload = {
           name: data.name || data.batch_num,
           program_id: data.program_id || null,
-          program_code: data.program_code || null,
+          program_code: data.program_code || 'PESO',
           capacity: data.capacity || data.total || 50,
+          status: data.status || 'Active',
+          notes: data.notes || null,
           created_by: data.created_by || null
         };
-        return await client.from('batches').insert(payload).select().single();
+        const res = await client.from('batches').insert(payload).select().single();
+        if (!res.error && res.data) {
+          auditLogs.log({
+            staffUserId: data.created_by,
+            action: 'CREATE_BATCH',
+            entityType: 'batch',
+            entityId: res.data.id,
+            details: `Created new batch "${payload.name}" for program ${payload.program_code}`
+          });
+        }
+        return res;
       });
     },
 
-    async assignApplication(applicationId, batchId) {
+    async createWithBeneficiaries(data) {
       return withRetry(async (client) => {
-        return await client.from('applications').update({ batch_id: batchId }).eq('id', applicationId);
+        const payload = {
+          name: data.name,
+          program_id: data.program_id || null,
+          program_code: data.program_code || 'PESO',
+          capacity: data.capacity || 50,
+          status: 'Active',
+          notes: data.notes || null,
+          created_by: data.created_by || null
+        };
+
+        // 1. Create Batch
+        const batchRes = await client.from('batches').insert(payload).select().single();
+        if (batchRes.error) return batchRes;
+
+        const newBatchId = batchRes.data.id;
+        const appIds = Array.isArray(data.application_ids) ? data.application_ids : [];
+
+        // 2. Assign Applications to the new Batch
+        if (appIds.length > 0) {
+          const updateRes = await client.from('applications')
+            .update({ batch_id: newBatchId, updated_at: new Date().toISOString() })
+            .in('id', appIds);
+
+          if (updateRes.error) {
+            console.warn('[BATCH] Error assigning applications to new batch:', updateRes.error);
+          }
+        }
+
+        // 3. Audit Logging
+        auditLogs.log({
+          staffUserId: data.created_by,
+          action: 'CREATE_LIVELIHOOD_BATCH',
+          entityType: 'batch',
+          entityId: newBatchId,
+          details: `Created livelihood batch "${payload.name}" (${payload.program_code}) with ${appIds.length} approved beneficiaries assigned.`
+        });
+
+        // 4. Activity Log
+        activityLog.log({
+          action: 'BATCH_CREATED',
+          action_title: 'Livelihood Batch Created',
+          program: payload.program_code,
+          admin_id: data.officer_name || 'PESO Officer',
+          details: `Batch "${payload.name}" created with ${appIds.length} beneficiaries assigned.`
+        });
+
+        return { data: { ...batchRes.data, assignedCount: appIds.length }, error: null };
+      });
+    },
+
+    async getUnbatchedApproved(filters = {}) {
+      return withRetry(async (client) => {
+        let query = client.from('applications').select(`
+          *,
+          beneficiary:beneficiaries!beneficiary_qr(
+            id, qr_code, first_name, middle_name, last_name, suffix, username, barangay, address, phone, contact_number, email, category, date_of_birth, age, sex
+          ),
+          program:programs!program_id(*)
+        `)
+        .is('batch_id', null)
+        .in('status', ['Approved', 'Officer Approved']);
+
+        if (filters.program_code) {
+          query = query.or(`program_code.eq.${filters.program_code},program.code.eq.${filters.program_code}`);
+        }
+        if (filters.program_id) {
+          query = query.eq('program_id', filters.program_id);
+        }
+        if (filters.agency) {
+          query = query.eq('program.agency', filters.agency);
+        }
+
+        return await query.order('created_at', { ascending: false });
+      });
+    },
+
+    async assignApplications(applicationIds, batchId) {
+      return withRetry(async (client) => {
+        const ids = Array.isArray(applicationIds) ? applicationIds : [applicationIds];
+        const res = await client.from('applications')
+          .update({ batch_id: batchId, updated_at: new Date().toISOString() })
+          .in('id', ids);
+
+        if (!res.error) {
+          auditLogs.log({
+            action: 'ASSIGN_BENEFICIARIES_TO_BATCH',
+            entityType: 'batch',
+            entityId: batchId,
+            details: `Assigned ${ids.length} application(s) to batch #${batchId}`
+          });
+        }
+        return res;
+      });
+    },
+
+    async unassignApplications(applicationIds) {
+      return withRetry(async (client) => {
+        const ids = Array.isArray(applicationIds) ? applicationIds : [applicationIds];
+        return await client.from('applications')
+          .update({ batch_id: null, updated_at: new Date().toISOString() })
+          .in('id', ids);
+      });
+    },
+
+    async update(id, data) {
+      return withRetry(async (client) => {
+        const payload = { ...data, updated_at: new Date().toISOString() };
+        delete payload.id;
+        delete payload.created_at;
+        delete payload.applications;
+        delete payload.program;
+        delete payload.creator;
+        return await client.from('batches').update(payload).eq('id', id).select().single();
+      });
+    },
+
+    async delete(id) {
+      return withRetry(async (client) => {
+        // Unassign applications first
+        await client.from('applications').update({ batch_id: null }).eq('batch_id', id);
+        return await client.from('batches').delete().eq('id', id);
       });
     }
   };

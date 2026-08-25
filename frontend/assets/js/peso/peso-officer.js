@@ -854,8 +854,8 @@ window.dispatchSMSNotification = PesoOfficerApp.dispatchSMSNotification;
 // Modal & action bridges
 window.openIntakeModal = () => PesoOfficerApp.safeOpenModal('beneficiaryIntakeModal');
 window.openAddBeneficiaryModal = () => PesoOfficerApp.safeOpenModal('addBeneficiaryModal');
-window.openRecordAssistanceModal = () => PesoOfficerApp.safeOpenModal('recordAssistanceModal');
-window.openCreateBatchModal = () => PesoOfficerApp.safeOpenModal('createBatchModal');
+window.openRecordAssistanceModal = () => (typeof window.openRecordAssistanceModalCustom === 'function' ? window.openRecordAssistanceModalCustom() : PesoOfficerApp.safeOpenModal('recordAssistanceModal'));
+window.openCreateBatchModal = (prog) => (typeof window.openCreateBatchModalCustom === 'function' ? window.openCreateBatchModalCustom(prog) : (window.openCreateBatchModal && window.openCreateBatchModal !== PesoOfficerApp.openCreateBatchModal ? window.openCreateBatchModal(prog) : PesoOfficerApp.safeOpenModal('createBatchModal')));
 window.openBatchAssignModal = (id) => { PesoOfficerApp.state.selectedEvalAppId = id; PesoOfficerApp.safeOpenModal('batchAssignModal'); };
 window.openBeneficiaryInfoCardModal = (id) => PesoOfficerApp.viewBeneficiaryProfile(id);
 window.openInterviewScheduleDetail = (slotId) => alert(`Interview Schedule #${slotId}\nDetails are view-only.`);
@@ -868,16 +868,16 @@ window.confirmDenyApplication = () => { if (PesoOfficerApp.state.selectedEvalApp
 window.confirmPendingApplication = () => { if (PesoOfficerApp.state.selectedEvalAppId) PesoOfficerApp.evaluateApplication(PesoOfficerApp.state.selectedEvalAppId, 'Pending Requirements'); };
 window.quickMarkAttendance = (id, status) => PesoOfficerApp.markInterviewAttendance(id, status);
 window.saveInterviewDetailUpdates = (id) => { alert(`Interview #${id} attendance updated.`); PesoOfficerApp.safeCloseModal('interviewDetailModal'); };
-window.submitAssistanceRecord = (e) => { if (e) e.preventDefault(); alert('Assistance record submitted for administrative disbursement review.'); PesoOfficerApp.safeCloseModal('recordAssistanceModal'); };
+window.submitAssistanceRecord = (e) => { if (typeof window.submitAssistanceRecordCustom === 'function') return window.submitAssistanceRecordCustom(e); if (e) e.preventDefault(); alert('Assistance record submitted for administrative disbursement review.'); PesoOfficerApp.safeCloseModal('recordAssistanceModal'); };
 window.submitBatchAssignment = () => { alert('Beneficiaries assigned to batch.'); PesoOfficerApp.safeCloseModal('batchAssignModal'); };
-window.submitCreateBatch = () => { alert('New batch group created.'); PesoOfficerApp.safeCloseModal('createBatchModal'); };
+window.submitCreateBatch = () => { if (typeof window.submitSaveAndCreateBatch === 'function') return window.submitSaveAndCreateBatch(); alert('New batch group created.'); PesoOfficerApp.safeCloseModal('createBatchModal'); };
 window.submitNewInterviewSchedule = (e) => { if (e) e.preventDefault(); alert('Interview schedule booked.'); PesoOfficerApp.safeCloseModal('scheduleInterviewModal'); };
 
 // Filters & Navigation
 window.filterBeneficiariesTable = PesoOfficerApp.renderBeneficiariesTable;
 window.filterDailySchedules = PesoOfficerApp.renderDailySchedulesTable;
 window.filterEvaluationQueue = PesoOfficerApp.renderOfficerEvaluationTable;
-window.filterLivelihoodMasterTable = PesoOfficerApp.renderLivelihoodBatchesTable;
+window.filterLivelihoodMasterTable = () => (typeof window.filterLivelihoodViews === 'function' ? window.filterLivelihoodViews() : PesoOfficerApp.renderLivelihoodBatchesTable());
 window.filterAssistanceTable = PesoOfficerApp.renderApprovedAssistanceTable;
 window.filterOfficerRosterTable = PesoOfficerApp.renderOfficerRosterTable;
 window.resetBeneficiaryFilters = () => {
@@ -891,7 +891,7 @@ window.resetBeneficiaryFilters = () => {
 };
 window.resetDailyScheduleFilters = PesoOfficerApp.renderDailySchedulesTable;
 window.resetEvalFilters = PesoOfficerApp.renderOfficerEvaluationTable;
-window.resetLivelihoodFilters = PesoOfficerApp.renderLivelihoodBatchesTable;
+window.resetLivelihoodFilters = () => (typeof window.resetLivelihoodFiltersCustom === 'function' ? window.resetLivelihoodFiltersCustom() : (typeof window.filterLivelihoodViews === 'function' ? window.filterLivelihoodViews() : PesoOfficerApp.renderLivelihoodBatchesTable()));
 window.resetOfficerRosterFilters = PesoOfficerApp.renderOfficerRosterTable;
 window.navigateScheduleDate = (dir) => { alert(`Schedule date shifted ${dir > 0 ? '+1 day' : '-1 day'}.`); };
 window.onScheduleDatePickerChange = (val) => { PesoOfficerApp.state.currentScheduleDate = val; PesoOfficerApp.renderDailySchedulesTable(); };

@@ -148,15 +148,38 @@ CREATE INDEX IF NOT EXISTS idx_program_agency ON programs(agency);
 CREATE INDEX IF NOT EXISTS idx_program_status ON programs(status);
 
 -- =============================================================================
+-- 3.1 BATCHES TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS batches (
+  id BIGSERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  program_id BIGINT DEFAULT NULL REFERENCES programs(id) ON DELETE SET NULL,
+  program_code VARCHAR(50) NOT NULL DEFAULT 'PESO',
+  capacity INT NOT NULL DEFAULT 50,
+  status VARCHAR(30) NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'In Training', 'Completed', 'Archived', 'Cancelled')),
+  notes TEXT DEFAULT NULL,
+  created_by BIGINT DEFAULT NULL REFERENCES staff_profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_batches_program_code ON batches(program_code);
+CREATE INDEX IF NOT EXISTS idx_batches_program_id ON batches(program_id);
+CREATE INDEX IF NOT EXISTS idx_batches_status ON batches(status);
+CREATE INDEX IF NOT EXISTS idx_batches_created_by ON batches(created_by);
+
+-- =============================================================================
 -- 4. APPLICATIONS TABLE
 -- beneficiary_qr → beneficiaries(qr_code)
 -- officer_id / admin_id → staff_profiles(id)
+-- batch_id → batches(id)
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS applications (
   id BIGSERIAL PRIMARY KEY,
   application_number VARCHAR(50) NOT NULL UNIQUE,
   beneficiary_qr VARCHAR(20) NOT NULL REFERENCES beneficiaries(qr_code) ON DELETE CASCADE,
   program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+  batch_id BIGINT DEFAULT NULL REFERENCES batches(id) ON DELETE SET NULL,
   date_applied DATE NOT NULL DEFAULT CURRENT_DATE,
   status VARCHAR(30) DEFAULT 'Pending' CHECK (status IN (
     'Pending', 'Pending Requirements', 'Under Review', 'Interview Scheduled',
@@ -178,6 +201,7 @@ CREATE TABLE IF NOT EXISTS applications (
 
 CREATE INDEX IF NOT EXISTS idx_app_number ON applications(application_number);
 CREATE INDEX IF NOT EXISTS idx_app_status ON applications(status);
+CREATE INDEX IF NOT EXISTS idx_app_batch_id ON applications(batch_id);
 CREATE INDEX IF NOT EXISTS idx_app_beneficiary ON applications(beneficiary_qr);
 
 -- =============================================================================

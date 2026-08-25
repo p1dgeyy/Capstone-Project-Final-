@@ -521,7 +521,21 @@
         .officer-cal-chip-blue { background: #DBEAFE; color: #1D4ED8; border: 1px solid #93C5FD; }
         .officer-cal-chip-yellow { background: #FEF3C7; color: #B45309; border: 1px solid #FCD34D; }
         .officer-cal-chip-red { background: #FEE2E2; color: #B91C1C; border: 1px solid #FCA5A5; }
-        .officer-cal-chip-gray { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+        .program-select-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-color: rgba(200, 125, 135, 0.25) !important;
+            background-color: var(--bg-surface, #ffffff);
+        }
+        .program-select-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important;
+            border-color: var(--primary, #c87d87) !important;
+        }
+        .program-select-card.selected-program {
+            border-color: var(--primary, #c87d87) !important;
+            background-color: rgba(200, 125, 135, 0.08) !important;
+            box-shadow: 0 0 0 2px var(--primary, #c87d87) !important;
+        }
 
         @media print {
             body * {
@@ -1196,109 +1210,258 @@
             </div>
         </section>
 
-        <!-- 4. LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT TAB -->
+        <!-- 4. LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT TAB (REQ079, REQ080, REQ081) -->
         <section id="tab-livelihood-mgmt" class="tab-section d-none">
-            <div class="page-header">
+            <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                 <div>
-                    <h1 class="page-title">Livelihood Application Management & Batches</h1>
-                    <p class="text-muted">Receive new intake applications, manage program projects, and assign
-                        beneficiaries to batches</p>
+                    <h1 class="page-title fw-bold text-dark mb-1"><i class="bi bi-diagram-3 text-primary me-2"></i>Livelihood Application Management</h1>
+                    <p class="text-muted mb-0">Receive, record, filter, and manage approved livelihood applications and operational batches</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" onclick="openCreateBatchModal()"><i
-                            class="bi bi-folder-plus me-1"></i> Create New Batch</button>
-                    <button class="btn btn-primary" onclick="openIntakeModal()"><i
-                            class="bi bi-file-earmark-plus me-1"></i> Record Intake Application</button>
+                    <button class="btn btn-primary fw-bold shadow-sm px-3 d-flex align-items-center gap-2" onclick="openCreateBatchModal()">
+                        <i class="bi bi-plus-circle-fill fs-6"></i> + Create Batch
+                    </button>
+                    <button class="btn btn-outline-primary fw-semibold px-3 d-flex align-items-center gap-2" onclick="openIntakeModal()">
+                        <i class="bi bi-file-earmark-plus"></i> Record Intake Application
+                    </button>
                 </div>
             </div>
 
-            <!-- Batches Summary Cards -->
-            <div class="row g-4 mb-4" id="batchesCardContainer">
-                <!-- Dynamically loaded -->
-            </div>
+            <!-- Overview Stat Cards -->
+            <div class="row g-3 mb-4" id="livelihoodOverviewStatCards">
+                <!-- 1. Total Applications -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted small fw-semibold d-block mb-1">Total Applications</span>
+                                <h3 class="fw-bold mb-0 text-dark" id="statTotalLivelihoodApps">0</h3>
+                                <small class="text-muted">Recorded in system</small>
+                            </div>
+                            <div class="p-3 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-folder2-open fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- Searchable & Filterable Control Bar -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label for="livelihoodSearchInput"
-                                class="form-label small fw-semibold text-muted mb-1">Search Beneficiary / ID</label>
-                            <input type="text" class="form-control" id="livelihoodSearchInput"
-                                placeholder="Beneficiary name, App ID, or QR..."
-                                onkeyup="filterLivelihoodMasterTable()">
+                <!-- 2. Pending Admin Approval -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted small fw-semibold d-block mb-1">Pending Admin Approval</span>
+                                <h3 class="fw-bold mb-0 text-warning" id="statPendingAdminApproval">0</h3>
+                                <small class="text-muted">Applications under review</small>
+                            </div>
+                            <div class="p-3 rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-hourglass-split fs-4"></i>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <label for="livelihoodProgramFilter"
-                                class="form-label small fw-semibold text-muted mb-1">Filter by Program</label>
-                            <select class="form-select" id="livelihoodProgramFilter"
-                                onchange="filterLivelihoodMasterTable()">
-                                <option value="">All Programs</option>
-                                <option value="TUPAD">TUPAD (Emergency Employment)</option>
-                                <option value="PFAS">PFAS (Pangkabuhayan Assistance)</option>
-                                <option value="CKGIP">CKGIP (City Internship)</option>
-                            </select>
+                    </div>
+                </div>
+
+                <!-- 3. Unbatched (Ready for Batching) -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted small fw-semibold d-block mb-1">Unbatched (Ready for Batching)</span>
+                                <h3 class="fw-bold mb-0 text-success" id="statUnbatchedApproved">0</h3>
+                                <small class="text-muted">Admin-Approved awaiting batch</small>
+                            </div>
+                            <div class="p-3 rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-person-check-fill fs-4"></i>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <label for="livelihoodProjectFilter"
-                                class="form-label small fw-semibold text-muted mb-1">Filter by Project Type</label>
-                            <select class="form-select" id="livelihoodProjectFilter"
-                                onchange="filterLivelihoodMasterTable()">
-                                <option value="">All Project Types</option>
-                                <option value="Environmental Sanitation">Environmental Sanitation</option>
-                                <option value="Micro-Enterprise">Micro-Enterprise / Food Cart</option>
-                                <option value="Administrative Internship">Administrative Internship</option>
-                                <option value="Skills Training">Skills Training</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="livelihoodStatusFilter"
-                                class="form-label small fw-semibold text-muted mb-1">Filter Status</label>
-                            <select class="form-select" id="livelihoodStatusFilter"
-                                onchange="filterLivelihoodMasterTable()">
-                                <option value="">All Statuses</option>
-                                <option value="Pending">Pending (Yellow)</option>
-                                <option value="Approved">Approved (Green)</option>
-                                <option value="Denied">Denied (Red)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-1 d-flex align-items-end">
-                            <button class="btn btn-outline-secondary w-100" onclick="resetLivelihoodFilters()"><i
-                                    class="bi bi-arrow-counterclockwise"></i></button>
+                    </div>
+                </div>
+
+                <!-- 4. Batched Beneficiaries -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted small fw-semibold d-block mb-1">Batched Beneficiaries</span>
+                                <h3 class="fw-bold mb-0 text-info" id="statBatchedBeneficiaries">0</h3>
+                                <small class="text-muted">Assigned to operational batches</small>
+                            </div>
+                            <div class="p-3 rounded-circle bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-diagram-3-fill fs-4"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Master Applications Table -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-list-task me-2 text-primary"></i>Livelihood Applications
-                        Master List</h5>
-                    <button class="btn btn-sm btn-primary" onclick="openBatchAssignModal()"><i
-                            class="bi bi-box-seam me-1"></i> Assign Selected to Batch</button>
+            <!-- Primary View Tabs (REQ081) -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 border-bottom pb-2">
+                <ul class="nav nav-pills gap-2" id="livelihoodViewPills" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillUnbatchedTab" onclick="switchLivelihoodSubTab('unbatched')">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
+                            🟢 Unbatched Approved Beneficiaries
+                            <span class="badge bg-success text-white rounded-pill ms-1" id="pillUnbatchedCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillBatchedTab" onclick="switchLivelihoodSubTab('batched')">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
+                            🔵 Batched Beneficiaries & Groups
+                            <span class="badge bg-primary text-white rounded-pill ms-1" id="pillBatchedCount">0</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Global Filter Controls -->
+            <div class="card border-0 shadow-sm mb-4 rounded-3">
+                <div class="card-body py-3">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-4">
+                            <label for="livelihoodSearchInput" class="form-label small fw-semibold text-muted mb-1">Search Beneficiary / Ref #</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="livelihoodSearchInput"
+                                    placeholder="Search by name, Ref #, App ID, or QR..."
+                                    onkeyup="filterLivelihoodViews()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="livelihoodProgramFilter" class="form-label small fw-semibold text-muted mb-1">Applied Program</label>
+                            <select class="form-select" id="livelihoodProgramFilter" onchange="filterLivelihoodViews()">
+                                <option value="">All Programs</option>
+                                <option value="SPES">SPES Program</option>
+                                <option value="TUPAD">TUPAD Program</option>
+                                <option value="Starter Kit">Livelihood Starter Kit</option>
+                                <option value="Micro-Enterprise">Micro-Enterprise Assistance</option>
+                                <option value="PFAS">PFAS (Pangkabuhayan Assistance)</option>
+                                <option value="CKGIP">CKGIP (City Internship)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="livelihoodBarangayFilter" class="form-label small fw-semibold text-muted mb-1">Barangay</label>
+                            <select class="form-select" id="livelihoodBarangayFilter" onchange="filterLivelihoodViews()">
+                                <option value="">All Barangays</option>
+                                <option value="San Vicente">Brgy. San Vicente</option>
+                                <option value="Central">Brgy. Central</option>
+                                <option value="Damayan">Brgy. Damayan</option>
+                                <option value="Zone I">Brgy. Zone I (Poblacion)</option>
+                                <option value="Zone II">Brgy. Zone II</option>
+                                <option value="Zone III">Brgy. Zone III</option>
+                                <option value="Zone IV">Brgy. Zone IV</option>
+                                <option value="General Paulino Santos">Brgy. GPS</option>
+                                <option value="Carpenter Hill">Brgy. Carpenter Hill</option>
+                                <option value="Esperanza">Brgy. Esperanza</option>
+                                <option value="Concepcion">Brgy. Concepcion</option>
+                                <option value="Mabini">Brgy. Mabini</option>
+                                <option value="Morales">Brgy. Morales</option>
+                                <option value="Saravia">Brgy. Saravia</option>
+                                <option value="Sta. Cruz">Brgy. Sta. Cruz</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary w-100 py-2" onclick="resetLivelihoodFilters()">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th><input type="checkbox" id="selectAllAppsCheckbox"
-                                            onclick="toggleSelectAllApps(this)" aria-label="All Apps Checkbox"></th>
-                                    <th>App ID</th>
-                                    <th>Beneficiary Name</th>
-                                    <th>Program</th>
-                                    <th>Project Type</th>
-                                    <th>Submission Date</th>
-                                    <th>Status</th>
-                                    <th>Batch Assignment</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="livelihoodMasterTableBody">
-                                <!-- Loaded dynamically -->
-                            </tbody>
-                        </table>
+            </div>
+
+            <!-- SUB-VIEW 1: 🟢 UNBATCHED APPROVED BENEFICIARIES (Ready for Batching) -->
+            <div id="subview-unbatched-beneficiaries">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>
+                                Unbatched Candidates Roster (Ready for Batch Creation)
+                            </h5>
+                            <small class="text-muted">Admin-Approved livelihood applicants awaiting grouping into operational batches</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-primary fw-bold shadow-sm" onclick="openCreateBatchWithSelected()">
+                                <i class="bi bi-plus-circle me-1"></i> Create Batch with Selected
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openBatchAssignModal()">
+                                <i class="bi bi-box-seam me-1"></i> Assign to Existing Batch
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="unbatchedApprovedTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px;" class="text-center">
+                                            <input type="checkbox" class="form-check-input" id="selectAllUnbatchedCheckbox"
+                                                onclick="toggleSelectAllUnbatched(this)" aria-label="Select all unbatched candidates">
+                                        </th>
+                                        <th>Beneficiary Ref #</th>
+                                        <th>Full Name</th>
+                                        <th>Applied Program</th>
+                                        <th>Barangay</th>
+                                        <th>Admin Approval Date</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="unbatchedApprovedTableBody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-VIEW 2: 🔵 BATCHED BENEFICIARIES & GROUPS -->
+            <div id="subview-batched-groups" class="d-none">
+                <!-- Batches Cards Summary Grid -->
+                <div class="row g-4 mb-4" id="batchesCardContainer">
+                    <!-- Dynamically loaded batch cards -->
+                </div>
+
+                <!-- Batched Beneficiaries Master Roster Table -->
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-diagram-3-fill text-primary"></i>
+                                Batched Beneficiaries Roster
+                            </h5>
+                            <small class="text-muted">Beneficiaries currently allocated to operational training & disbursement batches</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-success" onclick="exportBatchesRosterCSV()">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Batches CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="printBatchesRoster()">
+                                <i class="bi bi-printer me-1"></i> Print Roster
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="batchedBeneficiariesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Beneficiary Ref #</th>
+                                        <th>Full Name</th>
+                                        <th>Assigned Batch</th>
+                                        <th>Applied Program</th>
+                                        <th>Barangay</th>
+                                        <th>Batch Date</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="batchedBeneficiariesTableBody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2037,40 +2200,206 @@
         </div>
     </div>
 
-    <!-- CREATE BATCH MODAL -->
-    <div class="modal fade" id="createBatchModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-folder-plus me-2"></i>Create New Livelihood Program
-                        Batch</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <!-- INTERACTIVE 2-STEP BATCH CREATION MODAL (REQ080, REQ081) -->
+    <div class="modal fade" id="createBatchModal" tabindex="-1" aria-labelledby="createBatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white py-3 px-4 rounded-top-4">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="createBatchModalLabel">
+                            <i class="bi bi-folder-plus me-2"></i>Create Livelihood Program Batch
+                        </h5>
+                        <small class="text-white-50" id="batchModalStepSubtitle">Step 1 of 2: Select Applied Program & Target Beneficiaries</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label for="batchNameInput" class="form-label fw-bold">Batch Name / Title <span
-                                class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="batchNameInput"
-                            placeholder="e.g. Batch 1 – TUPAD Morales Clean-up">
+                    <!-- ======================================================= -->
+                    <!-- STEP 1: SELECT TARGET PROGRAM -->
+                    <!-- ======================================================= -->
+                    <div id="batchCreationStep1">
+                        <div class="text-center mb-4">
+                            <h5 class="fw-bold text-dark mb-1">Step 1: Select Target Livelihood Program</h5>
+                            <p class="text-muted small mb-0">Choose the specific livelihood program to query and load all Admin-Approved unbatched candidates.</p>
+                        </div>
+
+                        <!-- Program Selection Cards Grid -->
+                        <div class="row g-3 mb-4" id="batchProgramCardsGrid">
+                            <!-- 1. SPES Program -->
+                            <div class="col-md-6 col-lg-3">
+                                <div class="card h-100 border-2 rounded-3 program-select-card cursor-pointer shadow-sm p-3 position-relative"
+                                     id="progCard-SPES" onclick="selectBatchProgramCard('SPES', 'SPES Program', 'Special Program for Employment of Students')">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="p-2 rounded-circle bg-primary-subtle text-primary">
+                                            <i class="bi bi-mortarboard-fill fs-4"></i>
+                                        </div>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace" id="badgeCount-SPES">0 Available</span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">SPES Program</h6>
+                                    <p class="text-muted small mb-0" style="font-size: 0.8rem;">Special Program for Employment of Students & Out-of-School Youths</p>
+                                </div>
+                            </div>
+
+                            <!-- 2. TUPAD Program -->
+                            <div class="col-md-6 col-lg-3">
+                                <div class="card h-100 border-2 rounded-3 program-select-card cursor-pointer shadow-sm p-3 position-relative"
+                                     id="progCard-TUPAD" onclick="selectBatchProgramCard('TUPAD', 'TUPAD Program', 'Community Displaced & Disadvantaged Workers')">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="p-2 rounded-circle bg-warning-subtle text-warning">
+                                            <i class="bi bi-people-fill fs-4"></i>
+                                        </div>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace" id="badgeCount-TUPAD">0 Available</span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">TUPAD Program</h6>
+                                    <p class="text-muted small mb-0" style="font-size: 0.8rem;">Emergency Employment for Community Displaced & Informal Workers</p>
+                                </div>
+                            </div>
+
+                            <!-- 3. Livelihood Starter Kit -->
+                            <div class="col-md-6 col-lg-3">
+                                <div class="card h-100 border-2 rounded-3 program-select-card cursor-pointer shadow-sm p-3 position-relative"
+                                     id="progCard-STARTER" onclick="selectBatchProgramCard('Starter Kit', 'Livelihood Starter Kit', 'Equipment & Toolkits Distribution')">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="p-2 rounded-circle bg-info-subtle text-info">
+                                            <i class="bi bi-tools fs-4"></i>
+                                        </div>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace" id="badgeCount-STARTER">0 Available</span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">Livelihood Starter Kit</h6>
+                                    <p class="text-muted small mb-0" style="font-size: 0.8rem;">Tools, motorized equipment, and skill kits for self-employment</p>
+                                </div>
+                            </div>
+
+                            <!-- 4. Micro-Enterprise Assistance -->
+                            <div class="col-md-6 col-lg-3">
+                                <div class="card h-100 border-2 rounded-3 program-select-card cursor-pointer shadow-sm p-3 position-relative"
+                                     id="progCard-MICRO" onclick="selectBatchProgramCard('Micro-Enterprise', 'Micro-Enterprise Assistance', 'Seed Capital & Business Support')">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="p-2 rounded-circle bg-success-subtle text-success">
+                                            <i class="bi bi-shop-window fs-4"></i>
+                                        </div>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace" id="badgeCount-MICRO">0 Available</span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">Micro-Enterprise Assistance</h6>
+                                    <p class="text-muted small mb-0" style="font-size: 0.8rem;">Seed funding and coaching for food carts, trading, and artisan stores</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dropdown Alternative / Custom Program Selector -->
+                        <div class="card border-0 bg-light p-3 rounded-3 mb-4">
+                            <div class="row align-items-center g-3">
+                                <div class="col-md-5">
+                                    <label for="batchModalCustomProgramSelect" class="form-label small fw-bold text-dark mb-0">Or choose from all active programs:</label>
+                                </div>
+                                <div class="col-md-7">
+                                    <select class="form-select bg-white" id="batchModalCustomProgramSelect" onchange="onBatchCustomProgramSelectChange(this.value)">
+                                        <option value="">-- Choose Livelihood Program --</option>
+                                        <option value="SPES">SPES Program (Special Program for Employment of Students)</option>
+                                        <option value="TUPAD">TUPAD Program (Community Displaced Workers)</option>
+                                        <option value="Starter Kit">Livelihood Starter Kit (Equipment & Tools)</option>
+                                        <option value="Micro-Enterprise">Micro-Enterprise Assistance</option>
+                                        <option value="PFAS">PFAS (Pangkabuhayan Assistance)</option>
+                                        <option value="CKGIP">CKGIP (City Internship)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 1 Actions -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary px-4 fw-bold" id="btnBatchStep1Next" onclick="proceedToBatchStep2()" disabled>
+                                Next: Load Beneficiaries <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="batchProgramInput" class="form-label fw-bold">Program <span
-                                class="text-danger">*</span></label>
-                        <select class="form-select" id="batchProgramInput">
-                            <option value="TUPAD">TUPAD</option>
-                            <option value="CKGIP">CKGIP</option>
-                            <option value="PFAS">PFAS</option>
-                        </select>
+
+                    <!-- ======================================================= -->
+                    <!-- STEP 2: SELECT BENEFICIARIES & CONFIRM BATCH -->
+                    <!-- ======================================================= -->
+                    <div id="batchCreationStep2" class="d-none">
+                        <!-- Program Indicator Banner -->
+                        <div class="alert alert-primary d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 rounded-3 py-2 px-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+                                <div>
+                                    <span class="fw-bold" id="batchStep2BannerProgram">Program Selected: SPES Program</span>
+                                    <span class="badge bg-white text-primary border border-primary-subtle ms-2 font-monospace" id="batchStep2BannerCount">0 Approved Beneficiaries Found</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary bg-white text-primary fw-semibold" onclick="backToBatchStep1()">
+                                <i class="bi bi-arrow-left me-1"></i> Change Program
+                            </button>
+                        </div>
+
+                        <!-- Batch Meta Configuration Fields -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-8">
+                                <label for="batchNameInput" class="form-label small fw-bold text-dark mb-1">
+                                    Batch Title / Identifier <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="batchNameInput"
+                                    placeholder="e.g. SPES — Batch 1 [Summer Recipients]" required>
+                                <div class="form-text small text-muted">A clear descriptive title for administrative scheduling and disbursement tracking.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="batchCapacityInput" class="form-label small fw-bold text-dark mb-1">
+                                    Target Capacity / Slot Count
+                                </label>
+                                <input type="number" class="form-control" id="batchCapacityInput" value="50" min="1">
+                                <div class="form-text small text-muted">Maximum beneficiaries planned for this batch.</div>
+                            </div>
+                        </div>
+
+                        <!-- Beneficiary Selection Table (Program-Filtered) -->
+                        <div class="card border rounded-3 mb-3">
+                            <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-dark small"><i class="bi bi-people-fill me-1 text-primary"></i>Program-Filtered Approved Candidates</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold" id="batchSelectionCounterBadge">
+                                    Selected: 0 / 0 Beneficiaries
+                                </span>
+                            </div>
+                            <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                                <table class="table table-hover table-sm align-middle mb-0" id="batchModalBeneficiariesTable">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 140px;" class="text-nowrap">
+                                                <div class="form-check d-flex align-items-center gap-1 mb-0">
+                                                    <input type="checkbox" class="form-check-input" id="masterToggleBatchModalCheckbox"
+                                                        onclick="toggleSelectAllBatchModal(this.checked)" aria-label="Master Select All Candidates">
+                                                    <label class="form-check-label fw-bold text-primary small cursor-pointer" for="masterToggleBatchModalCheckbox">SELECT ALL</label>
+                                                </div>
+                                            </th>
+                                            <th>Beneficiary Ref #</th>
+                                            <th>Full Name</th>
+                                            <th>Applied Program</th>
+                                            <th>Barangay</th>
+                                            <th>Admin Approval Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="batchModalBeneficiariesTableBody">
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 Actions -->
+                        <div class="d-flex justify-content-between align-items-center pt-2">
+                            <button type="button" class="btn btn-outline-secondary" onclick="backToBatchStep1()">
+                                <i class="bi bi-arrow-left me-1"></i> Back: Select Program
+                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" id="btnSaveAndCreateBatch" onclick="submitSaveAndCreateBatch()">
+                                    <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerSaveBatch"></span>
+                                    <i class="bi bi-check-circle-fill me-1" id="iconSaveBatch"></i> Save & Create Batch
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="batchCapacityInput" class="form-label fw-bold">Max Capacity / Slot Count</label>
-                        <input type="number" class="form-control" id="batchCapacityInput" value="50" min="1">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitCreateBatch()"><i
-                            class="bi bi-plus-circle me-1"></i> Create Batch</button>
                 </div>
             </div>
         </div>
@@ -3106,8 +3435,7 @@
                 // Render views
                 renderBeneficiaryTable();
                 renderEvaluationQueueTable();
-                renderBatchesCards();
-                renderLivelihoodMasterTable();
+                renderLivelihoodManagementModule();
                 renderDailySchedules();
                 renderApprovedAssistanceTable();
                 renderOfficerNotificationsFeed();
@@ -6028,93 +6356,761 @@
         }
 
         // ---------------------------------------------------------------------
-        // LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT
+        // LIVELIHOOD APPLICATION MANAGEMENT & BATCH CREATION MODULE
+        // (REQ079, REQ080, REQ081)
         // ---------------------------------------------------------------------
-        function renderBatchesCards() {
-            const container = document.getElementById('batchesCardContainer');
-            if (!container) return;
-            container.innerHTML = batchesList.map(b => `
-                <div class="col-md-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="fw-bold mb-0">${b.name}</h5>
-                                <span class="badge bg-primary">${b.program}</span>
-                            </div>
-                            <p class="text-muted small mb-2">Created: ${b.dateCreated} | Assigned: ${b.assignedCount} / ${b.capacity} slots</p>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-success" style="width: ${Math.min(100, (b.assignedCount / b.capacity) * 100)}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+        let currentLivelihoodSubTab = 'unbatched'; // 'unbatched' or 'batched'
+        let selectedBatchCreationProgramCode = '';
+        let selectedBatchCreationProgramName = '';
+        let selectedBatchCandidateAppIds = new Set();
+        let selectedUnbatchedTableAppIds = new Set();
+
+        function switchLivelihoodSubTab(subTab) {
+            currentLivelihoodSubTab = subTab;
+            const unbatchedView = document.getElementById('subview-unbatched-beneficiaries');
+            const batchedView = document.getElementById('subview-batched-groups');
+            const pillUnbatched = document.getElementById('pillUnbatchedTab');
+            const pillBatched = document.getElementById('pillBatchedTab');
+
+            if (subTab === 'unbatched') {
+                if (unbatchedView) unbatchedView.classList.remove('d-none');
+                if (batchedView) batchedView.classList.add('d-none');
+                if (pillUnbatched) pillUnbatched.classList.add('active');
+                if (pillBatched) pillBatched.classList.remove('active');
+                renderUnbatchedApprovedTable();
+            } else {
+                if (unbatchedView) unbatchedView.classList.add('d-none');
+                if (batchedView) batchedView.classList.remove('d-none');
+                if (pillUnbatched) pillUnbatched.classList.remove('active');
+                if (pillBatched) pillBatched.classList.add('active');
+                renderBatchedGroupsView();
+            }
+        }
+        window.switchLivelihoodSubTab = switchLivelihoodSubTab;
+
+        function getLivelihoodFilterValues() {
+            const search = (document.getElementById('livelihoodSearchInput')?.value || '').toLowerCase().trim();
+            const program = document.getElementById('livelihoodProgramFilter')?.value || '';
+            const brgy = document.getElementById('livelihoodBarangayFilter')?.value || '';
+            return { search, program, brgy };
         }
 
-        function renderLivelihoodMasterTable(listToRender) {
-            const tbody = document.getElementById('livelihoodMasterTableBody');
+        function filterLivelihoodViews() {
+            if (currentLivelihoodSubTab === 'unbatched') {
+                renderUnbatchedApprovedTable();
+            } else {
+                renderBatchedGroupsView();
+            }
+        }
+        window.filterLivelihoodViews = filterLivelihoodViews;
+        window.filterLivelihoodMasterTable = filterLivelihoodViews;
+
+        function resetLivelihoodFilters() {
+            if (document.getElementById('livelihoodSearchInput')) document.getElementById('livelihoodSearchInput').value = '';
+            if (document.getElementById('livelihoodProgramFilter')) document.getElementById('livelihoodProgramFilter').value = '';
+            if (document.getElementById('livelihoodBarangayFilter')) document.getElementById('livelihoodBarangayFilter').value = '';
+            filterLivelihoodViews();
+        }
+        window.resetLivelihoodFilters = resetLivelihoodFilters;
+
+        function renderLivelihoodManagementModule() {
+            // 1. Overview Stat Cards
+            const totalApps = evaluationList.length;
+            const pendingApps = evaluationList.filter(a => a.status === 'Pending' || a.rawStatus === 'Pending' || a.rawStatus === 'Under Review').length;
+            const unbatchedApprovedApps = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved' || a.rawStatus === 'Officer Approved') && !a.batchId && (!a.batchName || a.batchName.trim() === ''));
+            const batchedBeneficiaries = evaluationList.filter(a => (a.batchId || (a.batchName && a.batchName.trim() !== '')) && (a.status === 'Approved' || a.rawStatus === 'Approved' || a.rawStatus === 'Officer Approved'));
+
+            if (document.getElementById('statTotalLivelihoodApps')) {
+                document.getElementById('statTotalLivelihoodApps').textContent = totalApps;
+            }
+            if (document.getElementById('statPendingAdminApproval')) {
+                document.getElementById('statPendingAdminApproval').textContent = pendingApps;
+            }
+            if (document.getElementById('statUnbatchedApproved')) {
+                document.getElementById('statUnbatchedApproved').textContent = unbatchedApprovedApps.length;
+            }
+            if (document.getElementById('statBatchedBeneficiaries')) {
+                document.getElementById('statBatchedBeneficiaries').textContent = batchedBeneficiaries.length;
+            }
+
+            // Update sub-tab badge counts
+            if (document.getElementById('pillUnbatchedCount')) {
+                document.getElementById('pillUnbatchedCount').textContent = unbatchedApprovedApps.length;
+            }
+            if (document.getElementById('pillBatchedCount')) {
+                document.getElementById('pillBatchedCount').textContent = batchedBeneficiaries.length;
+            }
+
+            // Update Step 1 Program Card Badges
+            updateProgramCardBadges(unbatchedApprovedApps);
+
+            // Render active subtab
+            if (currentLivelihoodSubTab === 'unbatched') {
+                renderUnbatchedApprovedTable();
+            } else {
+                renderBatchedGroupsView();
+            }
+        }
+        window.renderLivelihoodManagementModule = renderLivelihoodManagementModule;
+
+        function updateProgramCardBadges(unbatchedList) {
+            const list = unbatchedList || evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved' || a.rawStatus === 'Officer Approved') && !a.batchId && (!a.batchName || a.batchName.trim() === ''));
+            
+            const countSPES = list.filter(a => (a.program || '').toUpperCase().includes('SPES') || (a.programCode || '').toUpperCase().includes('SPES')).length;
+            const countTUPAD = list.filter(a => (a.program || '').toUpperCase().includes('TUPAD') || (a.programCode || '').toUpperCase().includes('TUPAD')).length;
+            const countStarter = list.filter(a => (a.program || '').toLowerCase().includes('starter') || (a.projectType || '').toLowerCase().includes('starter')).length;
+            const countMicro = list.filter(a => (a.program || '').toLowerCase().includes('micro') || (a.projectType || '').toLowerCase().includes('micro') || (a.program || '').toLowerCase().includes('pfas')).length;
+
+            if (document.getElementById('badgeCount-SPES')) document.getElementById('badgeCount-SPES').textContent = `${countSPES} Available`;
+            if (document.getElementById('badgeCount-TUPAD')) document.getElementById('badgeCount-TUPAD').textContent = `${countTUPAD} Available`;
+            if (document.getElementById('badgeCount-STARTER')) document.getElementById('badgeCount-STARTER').textContent = `${countStarter} Available`;
+            if (document.getElementById('badgeCount-MICRO')) document.getElementById('badgeCount-MICRO').textContent = `${countMicro} Available`;
+        }
+
+        function renderUnbatchedApprovedTable() {
+            const tbody = document.getElementById('unbatchedApprovedTableBody');
             if (!tbody) return;
 
-            const list = listToRender || evaluationList;
+            const { search, program, brgy } = getLivelihoodFilterValues();
 
-            if (list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No livelihood applications match the filter criteria.</td></tr>`;
+            const unbatched = evaluationList.filter(item => {
+                const isApproved = item.status === 'Approved' || item.rawStatus === 'Approved' || item.rawStatus === 'Officer Approved';
+                const isUnbatched = !item.batchId && (!item.batchName || item.batchName.trim() === '');
+                if (!isApproved || !isUnbatched) return false;
+
+                if (search) {
+                    const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
+                    const matchId = (item.id || '').toLowerCase().includes(search);
+                    const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
+                    if (!matchName && !matchId && !matchQr) return false;
+                }
+
+                if (program) {
+                    const progUpper = program.toUpperCase();
+                    const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
+                    if (!itemProgUpper.includes(progUpper)) return false;
+                }
+
+                if (brgy) {
+                    const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
+                    const itemBrgy = (ben ? ben.barangay : '') || '';
+                    if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
+                }
+
+                return true;
+            });
+
+            if (unbatched.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                            <span class="fw-semibold">No unbatched approved beneficiaries found.</span>
+                            <p class="small text-muted mb-0">All approved applicants have been assigned to batches, or no applications match current filters.</p>
+                        </td>
+                    </tr>
+                `;
                 return;
             }
 
-            tbody.innerHTML = list.map(item => {
-                let badgeClass = item.status === 'Approved' ? 'badge-approved' : item.status === 'Denied' ? 'badge-denied' : 'badge-pending';
-                let batchBadge = item.batchName
-                    ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-box-seam me-1"></i>${item.batchName}</span>`
-                    : `<span class="badge bg-secondary-subtle text-secondary">Unassigned</span>`;
+            tbody.innerHTML = unbatched.map(item => {
+                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                const barangayName = ben.barangay || 'Brgy. San Vicente';
+                const isChecked = selectedUnbatchedTableAppIds.has(item.dbId || item.id);
 
                 return `
-                    <tr>
-                        <td><input  type="checkbox" class="app-row-checkbox" value="${item.id}" aria-label="Input"></td>
-                        <td class="fw-bold text-primary">${item.id}</td>
-                        <td class="fw-semibold">${item.beneficiaryName}</td>
-                        <td><span class="badge bg-light text-dark border">${item.program}</span></td>
-                        <td>${item.projectType || 'N/A'}</td>
-                        <td>${item.dateSubmitted}</td>
-                        <td><span class="badge ${badgeClass}">${item.status}</span></td>
-                        <td>${batchBadge}</td>
+                    <tr class="${isChecked ? 'table-primary' : ''}">
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input row-unbatched-checkbox"
+                                value="${item.dbId || item.id}" ${isChecked ? 'checked' : ''}
+                                onchange="onUnbatchedRowCheckChange('${item.dbId || item.id}', this.checked)">
+                        </td>
+                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                        <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
+                        <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
+                        <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
+                        <td><small class="text-muted font-monospace">${escapeHtml(item.dateSubmitted || 'Aug 25, 2026')}</small></td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Approved</span></td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="openApplicationDetail('${item.id}')"><i class="bi bi-eye"></i> Details</button>
-                            ${item.status === 'Approved' ? `<button class="btn btn-sm btn-outline-primary" onclick="openBatchAssignModal('${item.id}')"><i class="bi bi-box-seam"></i> Assign Batch</button>` : ''}
+                            <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="openCreateBatchModal('${escapeHtml(item.programCode || item.program || 'SPES')}')">
+                                <i class="bi bi-folder-plus me-1"></i>Create Batch
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="openApplicationDetail('${item.id}')">
+                                <i class="bi bi-eye"></i> Details
+                            </button>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function filterLivelihoodMasterTable() {
-            const search = document.getElementById('livelihoodSearchInput') ? document.getElementById('livelihoodSearchInput').value.toLowerCase() : '';
-            const program = document.getElementById('livelihoodProgramFilter') ? document.getElementById('livelihoodProgramFilter').value : '';
-            const project = document.getElementById('livelihoodProjectFilter') ? document.getElementById('livelihoodProjectFilter').value : '';
-            const status = document.getElementById('livelihoodStatusFilter') ? document.getElementById('livelihoodStatusFilter').value : '';
+        function renderBatchedGroupsView() {
+            const cardContainer = document.getElementById('batchesCardContainer');
+            const tbody = document.getElementById('batchedBeneficiariesTableBody');
+            const { search, program, brgy } = getLivelihoodFilterValues();
 
-            const filtered = evaluationList.filter(item => {
-                const matchSearch = !search || item.beneficiaryName.toLowerCase().includes(search) || item.id.toLowerCase().includes(search) || (item.qrCodeId && item.qrCodeId.toLowerCase().includes(search));
-                const matchProg = !program || (item.program && item.program.includes(program));
-                const matchProj = !project || (item.projectType && item.projectType.toLowerCase().includes(project.toLowerCase()));
-                const matchStat = !status || item.status === status;
-                return matchSearch && matchProg && matchProj && matchStat;
+            // 1. Render Batches Cards
+            if (cardContainer) {
+                if (batchesList.length === 0) {
+                    cardContainer.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm p-4 text-center text-muted">
+                                <i class="bi bi-folder-x fs-2 mb-2 opacity-50"></i>
+                                <h6 class="fw-bold mb-1">No Batches Created Yet</h6>
+                                <p class="small text-muted mb-3">Click "+ Create Batch" to group approved beneficiaries into your first operational batch.</p>
+                                <div>
+                                    <button class="btn btn-primary btn-sm fw-bold" onclick="openCreateBatchModal()">
+                                        <i class="bi bi-plus-circle me-1"></i> + Create Batch
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    cardContainer.innerHTML = batchesList.map(b => {
+                        const assigned = Number(b.assignedCount) || 0;
+                        const cap = Number(b.capacity) || 50;
+                        const pct = Math.min(100, Math.round((assigned / cap) * 100));
+
+                        return `
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card border-0 shadow-sm rounded-3 h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1">${escapeHtml(b.program || 'PESO')}</span>
+                                                <h6 class="fw-bold mb-0 text-dark">${escapeHtml(b.name)}</h6>
+                                            </div>
+                                            <span class="badge bg-success font-monospace">${escapeHtml(b.status || 'Active')}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center small text-muted my-2">
+                                            <span><i class="bi bi-calendar-event me-1"></i>${escapeHtml(b.dateCreated || '2026-08-25')}</span>
+                                            <span class="fw-bold text-dark font-monospace">${assigned} / ${cap} slots (${pct}%)</span>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 6px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%;"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                            <small class="text-muted"><i class="bi bi-person-badge me-1"></i>PESO Officer</small>
+                                            <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold" onclick="filterBatchedTableByBatch('${escapeHtml(b.name)}')">
+                                                View Roster <i class="bi bi-chevron-right ms-1"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // 2. Render Batched Beneficiaries Roster Table
+            if (tbody) {
+                const batchedApps = evaluationList.filter(item => {
+                    const isBatched = (item.batchId || (item.batchName && item.batchName.trim() !== ''));
+                    if (!isBatched) return false;
+
+                    if (search) {
+                        const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
+                        const matchId = (item.id || '').toLowerCase().includes(search);
+                        const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
+                        const matchBatch = (item.batchName || '').toLowerCase().includes(search);
+                        if (!matchName && !matchId && !matchQr && !matchBatch) return false;
+                    }
+
+                    if (program) {
+                        const progUpper = program.toUpperCase();
+                        const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
+                        if (!itemProgUpper.includes(progUpper)) return false;
+                    }
+
+                    if (brgy) {
+                        const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
+                        const itemBrgy = (ben ? ben.barangay : '') || '';
+                        if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
+                    }
+
+                    return true;
+                });
+
+                if (batchedApps.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>
+                                No batched beneficiaries found matching filter criteria.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = batchedApps.map(item => {
+                    const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                    const barangayName = ben.barangay || 'Brgy. Central';
+
+                    return `
+                        <tr>
+                            <td><span class="font-monospace fw-bold text-primary">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                            <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
+                            <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold"><i class="bi bi-box-seam me-1"></i>${escapeHtml(item.batchName || 'Active Batch')}</span></td>
+                            <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
+                            <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
+                            <td><small class="text-muted font-monospace">${escapeHtml(item.dateSubmitted || '2026-08-25')}</small></td>
+                            <td><span class="badge bg-success-subtle text-success border border-success-subtle">Batched</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary py-1 px-2 me-1" onclick="openApplicationDetail('${item.id}')">
+                                    <i class="bi bi-eye"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        function openCreateBatchModal(preselectedProg) {
+            // Reset wizard to Step 1
+            selectedBatchCandidateAppIds.clear();
+            selectedBatchCreationProgramCode = '';
+            selectedBatchCreationProgramName = '';
+
+            const step1 = document.getElementById('batchCreationStep1');
+            const step2 = document.getElementById('batchCreationStep2');
+            const subtitle = document.getElementById('batchModalStepSubtitle');
+            const btnNext = document.getElementById('btnBatchStep1Next');
+
+            if (step1) step1.classList.remove('d-none');
+            if (step2) step2.classList.add('d-none');
+            if (subtitle) subtitle.textContent = 'Step 1 of 2: Select Applied Program & Target Beneficiaries';
+            if (btnNext) btnNext.disabled = true;
+
+            // Clear selected card styles
+            document.querySelectorAll('.program-select-card').forEach(card => card.classList.remove('selected-program'));
+            if (document.getElementById('batchModalCustomProgramSelect')) document.getElementById('batchModalCustomProgramSelect').value = '';
+
+            // Update live available badges
+            const unbatchedApprovedApps = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved' || a.rawStatus === 'Officer Approved') && !a.batchId && (!a.batchName || a.batchName.trim() === ''));
+            updateProgramCardBadges(unbatchedApprovedApps);
+
+            // If preselected, auto-select
+            if (preselectedProg) {
+                const progUpper = preselectedProg.toUpperCase();
+                if (progUpper.includes('SPES')) selectBatchProgramCard('SPES', 'SPES Program', 'Special Program for Employment of Students');
+                else if (progUpper.includes('TUPAD')) selectBatchProgramCard('TUPAD', 'TUPAD Program', 'Community Displaced & Disadvantaged Workers');
+                else if (progUpper.includes('STARTER')) selectBatchProgramCard('Starter Kit', 'Livelihood Starter Kit', 'Equipment & Toolkits Distribution');
+                else if (progUpper.includes('MICRO') || progUpper.includes('PFAS')) selectBatchProgramCard('Micro-Enterprise', 'Micro-Enterprise Assistance', 'Seed Capital & Business Support');
+            }
+
+            const modalEl = document.getElementById('createBatchModal');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+        window.openCreateBatchModal = openCreateBatchModal;
+
+        function selectBatchProgramCard(progCode, progName, progDesc) {
+            selectedBatchCreationProgramCode = progCode;
+            selectedBatchCreationProgramName = progName;
+
+            document.querySelectorAll('.program-select-card').forEach(card => card.classList.remove('selected-program'));
+
+            let cardId = '';
+            if (progCode === 'SPES') cardId = 'progCard-SPES';
+            else if (progCode === 'TUPAD') cardId = 'progCard-TUPAD';
+            else if (progCode === 'Starter Kit') cardId = 'progCard-STARTER';
+            else if (progCode === 'Micro-Enterprise') cardId = 'progCard-MICRO';
+
+            const selectedCard = document.getElementById(cardId);
+            if (selectedCard) selectedCard.classList.add('selected-program');
+
+            if (document.getElementById('batchModalCustomProgramSelect')) {
+                document.getElementById('batchModalCustomProgramSelect').value = progCode;
+            }
+
+            const btnNext = document.getElementById('btnBatchStep1Next');
+            if (btnNext) btnNext.disabled = false;
+        }
+        window.selectBatchProgramCard = selectBatchProgramCard;
+
+        function onBatchCustomProgramSelectChange(val) {
+            if (!val) {
+                selectedBatchCreationProgramCode = '';
+                selectedBatchCreationProgramName = '';
+                document.querySelectorAll('.program-select-card').forEach(card => card.classList.remove('selected-program'));
+                const btnNext = document.getElementById('btnBatchStep1Next');
+                if (btnNext) btnNext.disabled = true;
+                return;
+            }
+
+            let name = val;
+            if (val === 'SPES') name = 'SPES Program';
+            else if (val === 'TUPAD') name = 'TUPAD Program';
+            else if (val === 'Starter Kit') name = 'Livelihood Starter Kit';
+            else if (val === 'Micro-Enterprise') name = 'Micro-Enterprise Assistance';
+            else if (val === 'PFAS') name = 'PFAS (Pangkabuhayan Assistance)';
+            else if (val === 'CKGIP') name = 'CKGIP (City Internship)';
+
+            selectBatchProgramCard(val, name, '');
+        }
+        window.onBatchCustomProgramSelectChange = onBatchCustomProgramSelectChange;
+
+        function proceedToBatchStep2() {
+            if (!selectedBatchCreationProgramCode) {
+                alert('Please select a livelihood program to proceed.');
+                return;
+            }
+
+            const step1 = document.getElementById('batchCreationStep1');
+            const step2 = document.getElementById('batchCreationStep2');
+            const subtitle = document.getElementById('batchModalStepSubtitle');
+
+            if (step1) step1.classList.add('d-none');
+            if (step2) step2.classList.remove('d-none');
+            if (subtitle) subtitle.textContent = 'Step 2 of 2: Select Beneficiaries & Confirm Batch Creation';
+
+            // Query program candidates
+            loadCandidatesForBatchStep2();
+        }
+        window.proceedToBatchStep2 = proceedToBatchStep2;
+
+        function backToBatchStep1() {
+            const step1 = document.getElementById('batchCreationStep1');
+            const step2 = document.getElementById('batchCreationStep2');
+            const subtitle = document.getElementById('batchModalStepSubtitle');
+
+            if (step1) step1.classList.remove('d-none');
+            if (step2) step2.classList.add('d-none');
+            if (subtitle) subtitle.textContent = 'Step 1 of 2: Select Applied Program & Target Beneficiaries';
+        }
+        window.backToBatchStep1 = backToBatchStep1;
+
+        function loadCandidatesForBatchStep2() {
+            const tbody = document.getElementById('batchModalBeneficiariesTableBody');
+            const bannerProg = document.getElementById('batchStep2BannerProgram');
+            const bannerCount = document.getElementById('batchStep2BannerCount');
+            const batchNameInput = document.getElementById('batchNameInput');
+
+            const progCode = selectedBatchCreationProgramCode;
+            const progName = selectedBatchCreationProgramName || `${progCode} Program`;
+
+            // Filter approved unbatched candidates matching program
+            const candidates = evaluationList.filter(item => {
+                const isApproved = item.status === 'Approved' || item.rawStatus === 'Approved' || item.rawStatus === 'Officer Approved';
+                const isUnbatched = !item.batchId && (!item.batchName || item.batchName.trim() === '');
+                if (!isApproved || !isUnbatched) return false;
+
+                const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
+                const progUpper = progCode.toUpperCase();
+
+                if (progUpper === 'STARTER KIT') {
+                    return itemProgUpper.includes('STARTER') || (item.projectType || '').toLowerCase().includes('starter');
+                }
+                if (progUpper === 'MICRO-ENTERPRISE') {
+                    return itemProgUpper.includes('MICRO') || (item.projectType || '').toLowerCase().includes('micro') || itemProgUpper.includes('PFAS');
+                }
+                return itemProgUpper.includes(progUpper);
             });
 
-            renderLivelihoodMasterTable(filtered);
+            // Set banner
+            if (bannerProg) bannerProg.textContent = `Program Selected: ${progName}`;
+            if (bannerCount) bannerCount.textContent = `${candidates.length} Approved Beneficiaries Found`;
+
+            // Suggested batch name
+            const currentYear = new Date().getFullYear();
+            const existingBatchCount = batchesList.filter(b => (b.program || '').toUpperCase().includes(progCode.toUpperCase())).length;
+            const nextBatchNum = existingBatchCount + 1;
+            if (batchNameInput && (!batchNameInput.value || batchNameInput.value.includes('Batch') || batchNameInput.value === '')) {
+                batchNameInput.value = `${progCode} — Batch ${nextBatchNum} [${currentYear} Recipients]`;
+            }
+
+            // Select all by default
+            selectedBatchCandidateAppIds.clear();
+            candidates.forEach(c => selectedBatchCandidateAppIds.add(String(c.dbId || c.id)));
+
+            const masterCheckbox = document.getElementById('masterToggleBatchModalCheckbox');
+            if (masterCheckbox) masterCheckbox.checked = candidates.length > 0;
+
+            if (!tbody) return;
+
+            if (candidates.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="bi bi-info-circle fs-4 d-block mb-1 text-primary"></i>
+                            No unbatched approved beneficiaries found for <strong>${escapeHtml(progName)}</strong>.
+                        </td>
+                    </tr>
+                `;
+                updateBatchSelectionCounter(0, 0);
+                return;
+            }
+
+            tbody.innerHTML = candidates.map(c => {
+                const ben = beneficiariesList.find(b => b.qr_code === c.qrCodeId || b.name === c.beneficiaryName) || {};
+                const barangayName = ben.barangay || 'Brgy. San Vicente';
+                const refNum = c.qrCodeId || `BEN-${c.dbId || c.id}`;
+                const approvalDate = c.dateSubmitted || 'Aug 25, 2026';
+                const candidateKey = String(c.dbId || c.id);
+                const isChecked = selectedBatchCandidateAppIds.has(candidateKey);
+
+                return `
+                    <tr class="${isChecked ? 'table-primary' : ''}">
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input modal-candidate-checkbox"
+                                value="${candidateKey}" ${isChecked ? 'checked' : ''}
+                                onchange="onBatchCandidateCheckboxChange('${candidateKey}', this.checked)">
+                        </td>
+                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(refNum)}</span></td>
+                        <td><strong class="text-dark">${escapeHtml(c.beneficiaryName)}</strong></td>
+                        <td><span class="badge bg-light text-dark border">${escapeHtml(c.program || progName)}</span></td>
+                        <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
+                        <td><small class="text-muted font-monospace">${escapeHtml(approvalDate)}</small></td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateBatchSelectionCounter(selectedBatchCandidateAppIds.size, candidates.length);
         }
 
-        function resetLivelihoodFilters() {
-            if (document.getElementById('livelihoodSearchInput')) document.getElementById('livelihoodSearchInput').value = '';
-            if (document.getElementById('livelihoodProgramFilter')) document.getElementById('livelihoodProgramFilter').value = '';
-            if (document.getElementById('livelihoodProjectFilter')) document.getElementById('livelihoodProjectFilter').value = '';
-            if (document.getElementById('livelihoodStatusFilter')) document.getElementById('livelihoodStatusFilter').value = '';
-            renderLivelihoodMasterTable();
+        function toggleSelectAllBatchModal(checked) {
+            document.querySelectorAll('.modal-candidate-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const tr = cb.closest('tr');
+                if (tr) {
+                    if (checked) tr.classList.add('table-primary');
+                    else tr.classList.remove('table-primary');
+                }
+                const val = String(cb.value);
+                if (checked) selectedBatchCandidateAppIds.add(val);
+                else selectedBatchCandidateAppIds.delete(val);
+            });
+
+            const total = document.querySelectorAll('.modal-candidate-checkbox').length;
+            updateBatchSelectionCounter(selectedBatchCandidateAppIds.size, total);
+        }
+        window.toggleSelectAllBatchModal = toggleSelectAllBatchModal;
+
+        function onBatchCandidateCheckboxChange(appId, checked) {
+            const strId = String(appId);
+            if (checked) {
+                selectedBatchCandidateAppIds.add(strId);
+            } else {
+                selectedBatchCandidateAppIds.delete(strId);
+            }
+
+            const total = document.querySelectorAll('.modal-candidate-checkbox').length;
+            const masterCheckbox = document.getElementById('masterToggleBatchModalCheckbox');
+            if (masterCheckbox) {
+                masterCheckbox.checked = (selectedBatchCandidateAppIds.size === total && total > 0);
+            }
+
+            updateBatchSelectionCounter(selectedBatchCandidateAppIds.size, total);
+        }
+        window.onBatchCandidateCheckboxChange = onBatchCandidateCheckboxChange;
+
+        function updateBatchSelectionCounter(selected, total) {
+            const badge = document.getElementById('batchSelectionCounterBadge');
+            if (badge) {
+                badge.textContent = `Selected: ${selected} / ${total} Beneficiaries`;
+            }
         }
 
-        function toggleSelectAllApps(mainCheckbox) {
-            document.querySelectorAll('.app-row-checkbox').forEach(cb => cb.checked = mainCheckbox.checked);
+        async function submitSaveAndCreateBatch() {
+            const batchName = document.getElementById('batchNameInput')?.value.trim();
+            const capacity = parseInt(document.getElementById('batchCapacityInput')?.value) || 50;
+
+            if (!batchName) {
+                alert('Validation Error: Please provide a Batch Title / Identifier.');
+                return;
+            }
+
+            if (selectedBatchCandidateAppIds.size === 0) {
+                alert('Validation Error: Please select at least 1 approved beneficiary to assign to this batch.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSaveAndCreateBatch');
+            const spinner = document.getElementById('spinnerSaveBatch');
+            const icon = document.getElementById('iconSaveBatch');
+
+            if (btn) btn.disabled = true;
+            if (spinner) spinner.classList.remove('d-none');
+            if (icon) icon.classList.add('d-none');
+
+            try {
+                const officerProfile = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+                const officerId = officerProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
+                const officerName = officerProfile ? `${officerProfile.first_name || ''} ${officerProfile.last_name || ''}`.trim() : 'PESO Officer';
+
+                // Collect numeric DB IDs of applications
+                const appIds = [];
+                selectedBatchCandidateAppIds.forEach(idVal => {
+                    const matchedApp = evaluationList.find(a => String(a.dbId) === String(idVal) || String(a.id) === String(idVal));
+                    if (matchedApp && matchedApp.dbId) {
+                        appIds.push(matchedApp.dbId);
+                    } else if (Number.isInteger(Number(idVal))) {
+                        appIds.push(Number(idVal));
+                    }
+                });
+
+                let createdBatch = null;
+
+                if (typeof DataService !== 'undefined' && DataService.batches && DataService.batches.createWithBeneficiaries) {
+                    const res = await DataService.batches.createWithBeneficiaries({
+                        name: batchName,
+                        program_code: selectedBatchCreationProgramCode || 'PESO',
+                        capacity: capacity,
+                        created_by: officerId,
+                        officer_name: officerName,
+                        application_ids: appIds
+                    });
+                    if (res && res.data) createdBatch = res.data;
+                } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    const { data: bData, error: bErr } = await supabaseClient
+                        .from('batches')
+                        .insert({
+                            name: batchName,
+                            program_code: selectedBatchCreationProgramCode || 'PESO',
+                            capacity: capacity,
+                            created_by: officerId
+                        })
+                        .select()
+                        .single();
+
+                    if (!bErr && bData) {
+                        createdBatch = bData;
+                        if (appIds.length > 0) {
+                            await supabaseClient
+                                .from('applications')
+                                .update({ batch_id: bData.id, updated_at: new Date().toISOString() })
+                                .in('id', appIds);
+                        }
+                    }
+                }
+
+                const batchDbId = createdBatch ? createdBatch.id : Date.now();
+
+                // Update in-memory state
+                batchesList.unshift({
+                    id: `BAT-${batchDbId}`,
+                    dbId: batchDbId,
+                    name: batchName,
+                    program: selectedBatchCreationProgramCode || 'PESO',
+                    capacity: capacity,
+                    assignedCount: appIds.length,
+                    dateCreated: new Date().toISOString().substring(0, 10),
+                    status: 'Active'
+                });
+
+                // Update applications in-memory
+                selectedBatchCandidateAppIds.forEach(idVal => {
+                    const app = evaluationList.find(a => String(a.dbId) === String(idVal) || String(a.id) === String(idVal));
+                    if (app) {
+                        app.batchId = batchDbId;
+                        app.batchName = batchName;
+                    }
+                });
+
+                // Close modal
+                const modalEl = document.getElementById('createBatchModal');
+                if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+
+                // Switch to Tab 2
+                switchLivelihoodSubTab('batched');
+
+                // Render views
+                renderLivelihoodManagementModule();
+
+                // System Notification
+                const successMsg = `Batch "${batchName}" created with ${appIds.length} approved beneficiaries. Master schedule view updated in real-time.`;
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Batch Created Successfully',
+                        message: successMsg,
+                        type: 'success'
+                    });
+                } else {
+                    alert(successMsg);
+                }
+
+                logOfficerAction('CREATE_LIVELIHOOD_BATCH', `Created batch "${batchName}" (${selectedBatchCreationProgramCode}) with ${appIds.length} beneficiaries.`);
+            } catch (err) {
+                console.error('[PESO OFFICER] Error creating batch:', err);
+                alert(`Error creating batch: ${err.message || err}`);
+            } finally {
+                if (btn) btn.disabled = false;
+                if (spinner) spinner.classList.add('d-none');
+                if (icon) icon.classList.remove('d-none');
+            }
         }
+        window.submitSaveAndCreateBatch = submitSaveAndCreateBatch;
+        window.submitCreateBatch = submitSaveAndCreateBatch;
+
+        function openCreateBatchWithSelected() {
+            if (selectedUnbatchedTableAppIds.size === 0) {
+                alert('Please check at least one unbatched beneficiary from the table to create a batch.');
+                return;
+            }
+            openCreateBatchModal();
+        }
+        window.openCreateBatchWithSelected = openCreateBatchWithSelected;
+
+        function toggleSelectAllUnbatched(mainCheckbox) {
+            const isChecked = mainCheckbox.checked;
+            document.querySelectorAll('.row-unbatched-checkbox').forEach(cb => {
+                cb.checked = isChecked;
+                const tr = cb.closest('tr');
+                if (tr) {
+                    if (isChecked) tr.classList.add('table-primary');
+                    else tr.classList.remove('table-primary');
+                }
+                const val = cb.value;
+                if (isChecked) selectedUnbatchedTableAppIds.add(val);
+                else selectedUnbatchedTableAppIds.delete(val);
+            });
+        }
+        window.toggleSelectAllUnbatched = toggleSelectAllUnbatched;
+
+        function onUnbatchedRowCheckChange(id, checked) {
+            if (checked) selectedUnbatchedTableAppIds.add(id);
+            else selectedUnbatchedTableAppIds.delete(id);
+        }
+        window.onUnbatchedRowCheckChange = onUnbatchedRowCheckChange;
+
+        function filterBatchedTableByBatch(batchName) {
+            const searchInput = document.getElementById('livelihoodSearchInput');
+            if (searchInput) {
+                searchInput.value = batchName;
+                filterLivelihoodViews();
+            }
+        }
+        window.filterBatchedTableByBatch = filterBatchedTableByBatch;
+
+        function exportBatchesRosterCSV() {
+            const batched = evaluationList.filter(item => item.batchId || (item.batchName && item.batchName.trim() !== ''));
+            if (batched.length === 0) {
+                alert('No batched beneficiaries to export.');
+                return;
+            }
+            let csv = 'Beneficiary Ref #,Full Name,Assigned Batch,Applied Program,Barangay,Date Approved\n';
+            batched.forEach(item => {
+                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                csv += `"${item.qrCodeId || item.id}","${item.beneficiaryName}","${item.batchName || 'Batch'}","${item.program || 'PESO'}","${ben.barangay || 'Koronadal'}","${item.dateSubmitted || '2026-08-25'}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `PESO_Batched_Roster_${new Date().toISOString().substring(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        window.exportBatchesRosterCSV = exportBatchesRosterCSV;
+
+        function printBatchesRoster() {
+            window.print();
+        }
+        window.printBatchesRoster = printBatchesRoster;
 
         // ---------------------------------------------------------------------
         // TAB 5: APPROVED ASSISTANCE & MONITORING REPORTS CONTROLLER
