@@ -875,17 +875,24 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(15, 23, 42, 0.45);
-            backdrop-filter: blur(12px);
-            z-index: 2000;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 10050;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            box-sizing: border-box;
             transition: var(--transition-smooth);
         }
 
-        .modal-overlay.active {
-            display: flex;
+        .modal-overlay.active,
+        .modal-overlay.show {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
 
         .modal-content-custom {
@@ -1944,10 +1951,6 @@
                 <i class="bi bi-calendar-check"></i>
                 <span>Interview Schedules</span>
             </a>
-            <a href="javascript:void(0)" class="nav-link-custom" onclick="openQrSlipModal()">
-                <i class="bi bi-qr-code"></i>
-                <span>My QR Pass</span>
-            </a>
             <a href="#" class="nav-link-custom" data-section="notifications" onclick="navigateTo('notifications')">
                 <i class="bi bi-bell"></i>
                 <span data-translate="nav_notifications">Notifications</span>
@@ -1986,11 +1989,10 @@
                         <h1 id="welcomeUser" class="mb-1">Welcome, Beneficiary!</h1>
                         <p class="mb-0" data-translate="hero_description">Track your applications, document requirements, and scheduled activities in real time.</p>
                     </div>
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm d-flex align-items-center gap-1 fw-semibold" onclick="openQrSlipModal()" id="btnHeroShowQr" title="View & Print Official QR Pass">
-                            <i class="bi bi-qr-code-scan"></i> <span>Show QR Pass</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-2 fw-semibold" onclick="openQrModal()" id="btnHeroShowQr" title="View & Print Official QR Pass">
+                            <i class="bi bi-qr-code"></i> <span>Show QR Pass</span>
                         </button>
-                        <span class="badge bg-white text-dark px-3 py-2 border shadow-sm font-monospace" id="benPortalQrBadge" onclick="openQrSlipModal()" style="cursor: pointer;" title="Click to view QR Code"><i class="bi bi-person-badge text-primary me-1"></i>QR-BEN-ACTIVE</span>
                     </div>
                 </div>
             </div>
@@ -2858,34 +2860,99 @@
         </div>
     </div>
 
-    <!-- QR Code Modal -->
-    <div class="modal-overlay" id="qrModal">
-        <div class="modal-content-custom" style="max-width: 380px; text-align: center;">
-            <button class="modal-close-custom" onclick="closeModal('qrModal')" style="position: absolute; right: 15px; top: 15px;">&times;</button>
-            
-            <div style="width: 180px; height: 180px; background: white; border: 3px solid var(--rose-primary); border-radius: 12px; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center; position: relative;">
-                <i class="bi bi-qr-code" style="font-size: 6rem; color: var(--rose-primary);"></i>
-            </div>
-            
-            <div class="status-pill" style="background: var(--rose-primary); color: white; padding: 8px 15px; border-radius: 20px; font-weight: 600; display: inline-block; margin-bottom: 10px;">BEN-2026-001</div>
-            
-            <h4 style="margin-bottom: 5px;">Maria dela Santos</h4>
-            <p style="font-size: 0.85rem; color: var(--text-muted);">Verified Beneficiary</p>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                <div style="background: var(--light-bg); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 0.75rem; color: #888;">Date Registered</div>
-                    <div style="font-weight: 600;">January 15, 2026</div>
+    <!-- Beneficiary Comprehensive QR Pass & Real-Time Master Modal -->
+    <div class="modal-overlay" id="qrModal" style="z-index: 10050;">
+        <div class="modal-content-custom shadow-lg" style="max-width: 680px; width: 95%; max-height: 90vh; border-radius: 20px; overflow: hidden; background: #ffffff; display: flex; flex-direction: column; position: relative;">
+            <!-- Modal Header -->
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-dark text-white" style="border-bottom: 3px solid var(--rose-primary);">
+                <div class="d-flex align-items-center gap-2">
+                    <img src="assets/koronadalseal.png" alt="Seal" style="width: 34px; height: 34px;">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-white fs-6"><i class="bi bi-qr-code-scan text-primary me-2"></i>Official QR Transaction Pass</h5>
+                        <small class="text-white-50" style="font-size: 0.72rem;">City Government of Koronadal • Real-Time Beneficiary Master Record</small>
+                    </div>
                 </div>
-                <div style="background: var(--light-bg); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 0.75rem; color: #888;">Status</div>
-                    <div style="font-weight: 600; color: var(--success);">Active</div>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('qrModal')" aria-label="Close" style="filter: invert(1); cursor: pointer;"></button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-4" style="overflow-y: auto; flex: 1;" id="qrPassPrintSection">
+                <!-- QR Code Hero Card -->
+                <div class="text-center p-3 rounded-4 mb-4 border" style="background: linear-gradient(180deg, #FFF5F7 0%, #FFFFFF 100%); border-color: var(--rose-light) !important;">
+                    <div id="modalQrCanvasBox" class="p-3 bg-white d-inline-block rounded-4 shadow-sm border mb-2" style="border: 2px solid var(--rose-primary) !important;"></div>
+                    <div class="d-block mb-1">
+                        <span class="badge font-monospace fs-6 px-3 py-1 shadow-sm" id="modalBenQrCode" style="background: var(--rose-primary); color: white; border-radius: 20px;">QR-BEN-ACTIVE</span>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-0 mt-2" id="modalBenFullName">Maria Santos</h4>
+                    <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill mt-1" id="modalBenStatusBadge"><i class="bi bi-patch-check-fill me-1"></i>Verified Beneficiary</span>
+                    <p class="text-muted small mb-0 mt-2"><i class="bi bi-info-circle me-1"></i>Present this official digital QR pass to PESO/CSWDO officers during intake, interview, and assistance release.</p>
+                </div>
+
+                <!-- 1. Full Personal & Account Details -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                        <i class="bi bi-person-lines-fill text-primary"></i> Real-Time Beneficiary Information
+                    </h6>
+                    <div class="row g-2 p-3 bg-light rounded-3 border">
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Username / Identifier</small>
+                            <span class="fw-semibold text-dark" id="modalDetailUsername">@mariasantos</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Email Address</small>
+                            <span class="fw-semibold text-dark" id="modalDetailEmail">maria.santos@gmail.com</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Contact Number</small>
+                            <span class="fw-semibold text-dark" id="modalDetailPhone">0919-***-0199</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Civil Status / Sex / Age</small>
+                            <span class="fw-semibold text-dark" id="modalDetailDemographics">Single • Female • 28 yrs</span>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted d-block">Residential Address (Purok / Barangay)</small>
+                            <span class="fw-semibold text-dark" id="modalDetailAddress">Purok Pag-asa, Brgy. Morales, Koronadal City</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Date of Registration</small>
+                            <span class="fw-semibold text-dark" id="modalDetailDateReg">January 15, 2026</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Account Status</small>
+                            <span class="badge bg-success" id="modalDetailStatus">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Attached Documents & Verification Checklist -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                        <i class="bi bi-folder-check text-primary"></i> Uploaded Documents & Verification Records
+                    </h6>
+                    <div id="modalDocumentsListContainer" class="d-flex flex-column gap-2">
+                        <!-- Loaded dynamically via renderQrPassCard() -->
+                    </div>
+                </div>
+
+                <!-- 3. Program Application History -->
+                <div class="mb-2">
+                    <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history text-primary"></i> Applied Programs & Assistance History
+                    </h6>
+                    <div id="modalApplicationHistoryContainer" class="table-responsive border rounded-3 bg-white">
+                        <!-- Table loaded dynamically via renderQrPassCard() -->
+                    </div>
                 </div>
             </div>
-            
-            <p style="font-size: 0.75rem; color: #888; margin-top: 20px;">
-                <i class="bi bi-info-circle"></i> Show this QR code when receiving assistance
-            </p>
+
+            <!-- Modal Footer -->
+            <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="closeModal('qrModal')">Close</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm d-flex align-items-center gap-2" onclick="printQrPassSlip()">
+                    <i class="bi bi-printer-fill"></i> Print / Save PDF Pass
+                </button>
+            </div>
         </div>
     </div>
 
@@ -3092,12 +3159,34 @@
 
         // Modal controls
         function openModal(id) {
-            document.getElementById(id).classList.add('active');
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.add('active');
+            el.classList.add('show');
+            el.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
         }
 
         function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('active');
+            el.classList.remove('show');
+            el.style.display = 'none';
+            document.body.style.overflow = '';
         }
+
+        function printQrPassSlip() {
+            window.print();
+        }
+        window.printQrPassSlip = printQrPassSlip;
+
+        // Auto close any modal overlay on background backdrop click
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.classList && (e.target.classList.contains('modal-overlay') || e.target.classList.contains('custom-modal-overlay'))) {
+                closeModal(e.target.id);
+            }
+        });
 
         // Notifications
         function toggleNotifications() {
@@ -6830,40 +6919,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    <!-- Download / Print Official QR Pass Modal -->
-    <div class="modal fade" id="qrSlipModal" tabindex="-1" aria-labelledby="qrSlipModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md">
-            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="modal-header bg-dark text-white py-3 px-4">
-                    <h5 class="modal-title fw-bold fs-6" id="qrSlipModalLabel"><i class="bi bi-qr-code me-2"></i>Official QR Transaction Pass</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 bg-white" id="qrSlipPrintArea">
-                    <div class="border rounded-4 p-4 text-center" style="border: 2px dashed #CBD5E1 !important; background: #FAFAFA;">
-                        <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
-                            <img src="assets/koronadalseal.png" alt="Seal" style="width: 44px; height: 44px;">
-                            <div class="text-start">
-                                <div class="fw-bold text-dark small">CITY GOVERNMENT OF KORONADAL</div>
-                                <div class="text-muted" style="font-size: 0.72rem;">PESO & CSWDO Assistance Portal</div>
-                            </div>
-                        </div>
-                        <hr class="my-2 opacity-25">
-                        <div id="modalQrCanvasBox" class="p-3 bg-white d-inline-block rounded-3 shadow-sm border my-2"></div>
-                        <h5 class="fw-bold text-dark mb-0" id="modalBenName">Maria Dela Cruz</h5>
-                        <div class="badge bg-dark font-monospace fs-6 px-3 py-1 my-2" id="modalBenQrCode">QR-BEN-XXXX</div>
-                        <p class="text-muted small mb-0 px-3">Present this digital QR pass or printed slip to PESO/CSWDO officers during intake, interviews, and assistance release to track your transaction.</p>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light border-0 d-flex justify-content-between">
-                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-4 fw-semibold shadow-sm" onclick="window.print()">
-                        <i class="bi bi-printer me-1"></i> Print / Save PDF
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
