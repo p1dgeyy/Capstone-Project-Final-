@@ -3315,14 +3315,16 @@
                 }
 
                 // 7. System Notifications for Officer Feed
-                if (DataService.notifications) {
+                if (DataService && DataService.notifications) {
                     try {
-                        const notifRes = await DataService.notifications.getAll();
+                        const notifRes = typeof DataService.notifications.getAll === 'function'
+                            ? await DataService.notifications.getAll()
+                            : (typeof DataService.notifications.getByStaff === 'function' ? await DataService.notifications.getByStaff(officerId) : { data: [] });
                         if (notifRes && Array.isArray(notifRes.data)) {
                             officerNotificationsList = notifRes.data;
                         }
                     } catch (nErr) {
-                        console.warn('[PESO Officer] notifications fetch note:', nErr);
+                        // Silent fallback for empty or unmigrated notifications table
                     }
                 }
 

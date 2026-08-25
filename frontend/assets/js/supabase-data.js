@@ -1268,6 +1268,16 @@ const DataService = (() => {
   // 6. NOTIFICATIONS DOMAIN
   // =========================================================================
   const notifications = {
+    async getAll(options = {}) {
+      return withRetry(async (client) => {
+        let query = client.from('notifications').select('*').order('created_at', { ascending: false });
+        if (options.limit) {
+          query = query.limit(options.limit);
+        }
+        return await query;
+      });
+    },
+
     async getByBeneficiary(beneficiaryQr) {
       return withRetry(async (client) => {
         return await client.from('notifications').select('*').eq('beneficiary_qr', beneficiaryQr).order('created_at', { ascending: false });
