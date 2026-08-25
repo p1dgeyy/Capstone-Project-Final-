@@ -221,11 +221,16 @@
                     throw new Error('Account has been deactivated. Please contact your administrator.');
                 }
 
-                // Active Device Session Takeover: Seamlessly take over and register new active session
-                if (typeof SessionManager !== 'undefined' && SessionManager.clearActiveSessionRemote) {
-                    try {
-                        await SessionManager.clearActiveSessionRemote(userProfile.qr_code || userProfile.id);
-                    } catch (e) {}
+                // Strict Single-Device Active Login Check: Prevent login if already active on another device
+                if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
+                    const activeCheck = await SessionManager.checkAccountAlreadyActive(userProfile.qr_code || userProfile.id, userProfile.username);
+                    if (activeCheck && activeCheck.isAlreadyActive) {
+                        try { await supabaseClient.auth.signOut(); } catch (e) {}
+                        const kickMsg = activeCheck.message || (lang === 'tg'
+                            ? 'Ang account na ito ay kasalukuyang ginagamit sa ibang device. Mag-logout muna sa device na iyon upang makapag-login dito.'
+                            : 'Current account is being used on another device. Simultaneous logins are not permitted. Please log out from that device first.');
+                        throw new Error(kickMsg);
+                    }
                 }
 
                 // Save session data & AuthGuard integration
