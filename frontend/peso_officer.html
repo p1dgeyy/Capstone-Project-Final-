@@ -536,6 +536,31 @@
             background-color: rgba(200, 125, 135, 0.08) !important;
             box-shadow: 0 0 0 2px var(--primary, #c87d87) !important;
         }
+        .inline-program-item {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border: 2px solid rgba(200, 125, 135, 0.2);
+            border-radius: 12px;
+            background: var(--bg-surface, #ffffff);
+            padding: 12px 14px;
+        }
+        .inline-program-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary, #c87d87);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        }
+        .inline-program-item.active {
+            border-color: var(--primary, #c87d87) !important;
+            background-color: rgba(200, 125, 135, 0.09) !important;
+            box-shadow: 0 0 0 2px var(--primary, #c87d87) !important;
+        }
+        .inline-selection-action-bar {
+            background: var(--bg-surface, #ffffff);
+            border: 1px solid var(--card-border, rgba(200, 125, 135, 0.22));
+            border-radius: 12px;
+            padding: 14px 20px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+        }
 
         @media print {
             body * {
@@ -1210,17 +1235,14 @@
             </div>
         </section>
 
-        <!-- 4. LIVELIHOOD APPLICATIONS & BATCH MANAGEMENT TAB (REQ079, REQ080, REQ081) -->
+        <!-- 4. LIVELIHOOD APPLICATIONS & INLINE SELECTION MODULE (REQ079, REQ080, REQ081) -->
         <section id="tab-livelihood-mgmt" class="tab-section d-none">
             <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                 <div>
                     <h1 class="page-title fw-bold text-dark mb-1"><i class="bi bi-diagram-3 text-primary me-2"></i>Livelihood Application Management</h1>
-                    <p class="text-muted mb-0">Receive, record, filter, and manage approved livelihood applications and operational batches</p>
+                    <p class="text-muted mb-0">Select applicant candidates inline by program, auto-generate group identity labels, and forward for Admin evaluation</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-primary fw-bold shadow-sm px-3 d-flex align-items-center gap-2" onclick="openCreateBatchModal()">
-                        <i class="bi bi-plus-circle-fill fs-6"></i> + Create Batch
-                    </button>
                     <button class="btn btn-outline-primary fw-semibold px-3 d-flex align-items-center gap-2" onclick="openIntakeModal()">
                         <i class="bi bi-file-earmark-plus"></i> Record Intake Application
                     </button>
@@ -1261,14 +1283,14 @@
                     </div>
                 </div>
 
-                <!-- 3. Unbatched (Ready for Batching) -->
+                <!-- 3. Available for Forwarding -->
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
-                                <span class="text-muted small fw-semibold d-block mb-1">Unbatched (Ready for Batching)</span>
+                                <span class="text-muted small fw-semibold d-block mb-1">Available for Forwarding</span>
                                 <h3 class="fw-bold mb-0 text-success" id="statUnbatchedApproved">0</h3>
-                                <small class="text-muted">Admin-Approved awaiting batch</small>
+                                <small class="text-muted">Candidates awaiting forward</small>
                             </div>
                             <div class="p-3 rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                                 <i class="bi bi-person-check-fill fs-4"></i>
@@ -1277,17 +1299,17 @@
                     </div>
                 </div>
 
-                <!-- 4. Batched Beneficiaries -->
+                <!-- 4. Forwarded Applications -->
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
-                                <span class="text-muted small fw-semibold d-block mb-1">Batched Beneficiaries</span>
+                                <span class="text-muted small fw-semibold d-block mb-1">Forwarded Applications</span>
                                 <h3 class="fw-bold mb-0 text-info" id="statBatchedBeneficiaries">0</h3>
-                                <small class="text-muted">Assigned to operational batches</small>
+                                <small class="text-muted">Forwarded in labeled sets</small>
                             </div>
                             <div class="p-3 rounded-circle bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                <i class="bi bi-diagram-3-fill fs-4"></i>
+                                <i class="bi bi-send-check-fill fs-4"></i>
                             </div>
                         </div>
                     </div>
@@ -1300,46 +1322,46 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillUnbatchedTab" onclick="switchLivelihoodSubTab('unbatched')">
                             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
-                            🟢 Unbatched Approved Beneficiaries
+                            🟢 Available Applicants (Inline Selection)
                             <span class="badge bg-success text-white rounded-pill ms-1" id="pillUnbatchedCount">0</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillBatchedTab" onclick="switchLivelihoodSubTab('batched')">
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
-                            🔵 Batched Beneficiaries & Groups
+                            🔵 Forwarded Applications
                             <span class="badge bg-primary text-white rounded-pill ms-1" id="pillBatchedCount">0</span>
                         </button>
                     </li>
                 </ul>
             </div>
 
-            <!-- Global Filter Controls -->
+            <!-- Global Filter Controls with Scalable Date Range (Gap 4 Resolution) -->
             <div class="card border-0 shadow-sm mb-4 rounded-3">
                 <div class="card-body py-3">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-4">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
                             <label for="livelihoodSearchInput" class="form-label small fw-semibold text-muted mb-1">Search Beneficiary / Ref #</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                                 <input type="text" class="form-control border-start-0 ps-0" id="livelihoodSearchInput"
-                                    placeholder="Search by name, Ref #, App ID, or QR..."
+                                    placeholder="Name, Ref #, App ID, or QR..."
                                     onkeyup="filterLivelihoodViews()">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="livelihoodProgramFilter" class="form-label small fw-semibold text-muted mb-1">Applied Program</label>
                             <select class="form-select" id="livelihoodProgramFilter" onchange="filterLivelihoodViews()">
                                 <option value="">All Programs</option>
                                 <option value="SPES">SPES Program</option>
                                 <option value="TUPAD">TUPAD Program</option>
                                 <option value="Starter Kit">Livelihood Starter Kit</option>
-                                <option value="Micro-Enterprise">Micro-Enterprise Assistance</option>
-                                <option value="PFAS">PFAS (Pangkabuhayan Assistance)</option>
-                                <option value="CKGIP">CKGIP (City Internship)</option>
+                                <option value="Micro-Enterprise">Micro-Enterprise</option>
+                                <option value="PFAS">PFAS Assistance</option>
+                                <option value="CKGIP">CKGIP Internship</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="livelihoodBarangayFilter" class="form-label small fw-semibold text-muted mb-1">Barangay</label>
                             <select class="form-select" id="livelihoodBarangayFilter" onchange="filterLivelihoodViews()">
                                 <option value="">All Barangays</option>
@@ -1360,82 +1382,190 @@
                                 <option value="Sta. Cruz">Brgy. Sta. Cruz</option>
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-outline-secondary w-100 py-2" onclick="resetLivelihoodFilters()">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                        <div class="col-md-2">
+                            <label for="livelihoodStartDateFilter" class="form-label small fw-semibold text-muted mb-1">Date From</label>
+                            <input type="date" class="form-control" id="livelihoodStartDateFilter" onchange="filterLivelihoodViews()">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="livelihoodEndDateFilter" class="form-label small fw-semibold text-muted mb-1">Date To</label>
+                            <input type="date" class="form-control" id="livelihoodEndDateFilter" onchange="filterLivelihoodViews()">
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-outline-secondary w-100 py-2" onclick="resetLivelihoodFilters()" title="Reset all filters">
+                                <i class="bi bi-arrow-counterclockwise"></i>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- SUB-VIEW 1: 🟢 UNBATCHED APPROVED BENEFICIARIES (Ready for Batching) -->
+            <!-- SUB-VIEW 1: 🟢 INLINE BENEFICIARY SELECTION (Replaces Modal Batch Creation) -->
             <div id="subview-unbatched-beneficiaries">
-                <div class="card border-0 shadow-sm rounded-3">
-                    <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                        <div>
-                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>
-                                Unbatched Candidates Roster (Ready for Batch Creation)
-                            </h5>
-                            <small class="text-muted">Admin-Approved livelihood applicants awaiting grouping into operational batches</small>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-primary fw-bold shadow-sm" onclick="openCreateBatchWithSelected()">
-                                <i class="bi bi-plus-circle me-1"></i> Create Batch with Selected
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="openBatchAssignModal()">
-                                <i class="bi bi-box-seam me-1"></i> Assign to Existing Batch
-                            </button>
+                <div class="row g-4">
+                    <!-- Left Panel: Programs Catalog with Live Applicant Counters -->
+                    <div class="col-lg-4 col-xl-3">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-collection me-2 text-primary"></i>1. Select Program</h6>
+                                <span class="badge bg-light text-muted border font-monospace small">Live Counts</span>
+                            </div>
+                            <div class="card-body p-3">
+                                <p class="small text-muted mb-3">Click a program to expand its eligible applicant roster in the right panel.</p>
+                                <div class="d-flex flex-column gap-2" id="inlineProgramSelectionList">
+                                    <!-- SPES Card -->
+                                    <div class="inline-program-item active" id="inlineCard-SPES" onclick="selectInlineProgram('SPES')">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <div class="fw-bold text-dark"><i class="bi bi-mortarboard-fill text-primary me-1.5"></i>SPES Program</div>
+                                            <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeCount-SPES">0 Available</span>
+                                        </div>
+                                        <small class="text-muted d-block" style="font-size: 0.78rem;">Special Program for Employment of Students</small>
+                                    </div>
+
+                                    <!-- TUPAD Card -->
+                                    <div class="inline-program-item" id="inlineCard-TUPAD" onclick="selectInlineProgram('TUPAD')">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <div class="fw-bold text-dark"><i class="bi bi-people-fill text-warning me-1.5"></i>TUPAD Program</div>
+                                            <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeCount-TUPAD">0 Available</span>
+                                        </div>
+                                        <small class="text-muted d-block" style="font-size: 0.78rem;">Emergency Employment for Displaced Workers</small>
+                                    </div>
+
+                                    <!-- Starter Kit Card -->
+                                    <div class="inline-program-item" id="inlineCard-STARTER" onclick="selectInlineProgram('Starter Kit')">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <div class="fw-bold text-dark"><i class="bi bi-tools text-info me-1.5"></i>Starter Kit</div>
+                                            <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeCount-STARTER">0 Available</span>
+                                        </div>
+                                        <small class="text-muted d-block" style="font-size: 0.78rem;">Equipment, toolkits & livelihood starter packages</small>
+                                    </div>
+
+                                    <!-- Micro-Enterprise Card -->
+                                    <div class="inline-program-item" id="inlineCard-MICRO" onclick="selectInlineProgram('Micro-Enterprise')">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <div class="fw-bold text-dark"><i class="bi bi-shop-window text-success me-1.5"></i>Micro-Enterprise</div>
+                                            <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeCount-MICRO">0 Available</span>
+                                        </div>
+                                        <small class="text-muted d-block" style="font-size: 0.78rem;">Seed capital & micro-business financial support</small>
+                                    </div>
+
+                                    <!-- PFAS Card -->
+                                    <div class="inline-program-item" id="inlineCard-PFAS" onclick="selectInlineProgram('PFAS')">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <div class="fw-bold text-dark"><i class="bi bi-heart-pulse-fill text-danger me-1.5"></i>PFAS Assistance</div>
+                                            <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeCount-PFAS">0 Available</span>
+                                        </div>
+                                        <small class="text-muted d-block" style="font-size: 0.78rem;">Pangkabuhayan financial assistance grants</small>
+                                    </div>
+
+                                    <!-- CKGIP Card -->
+                                    <div class="inline-program-item" id="inlineCard-CKGIP" onclick="selectInlineProgram('CKGIP')">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <div class="fw-bold text-dark"><i class="bi bi-buildings-fill text-secondary me-1.5"></i>CKGIP Internship</div>
+                                            <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeCount-CKGIP">0 Available</span>
+                                        </div>
+                                        <small class="text-muted d-block" style="font-size: 0.78rem;">City of Koronadal Graduate Internship Program</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" id="unbatchedApprovedTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width: 40px;" class="text-center">
-                                            <input type="checkbox" class="form-check-input" id="selectAllUnbatchedCheckbox"
-                                                onclick="toggleSelectAllUnbatched(this)" aria-label="Select all unbatched candidates">
-                                        </th>
-                                        <th>Beneficiary Ref #</th>
-                                        <th>Full Name</th>
-                                        <th>Applied Program</th>
-                                        <th>Barangay</th>
-                                        <th>Admin Approval Date</th>
-                                        <th>Status</th>
-                                        <th class="text-end">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="unbatchedApprovedTableBody">
-                                    <!-- Loaded dynamically -->
-                                </tbody>
-                            </table>
+
+                    <!-- Right Panel: Inline Beneficiary Selection Table & Submission Bar -->
+                    <div class="col-lg-8 col-xl-9">
+                        <div class="card border-0 shadow-sm rounded-3 mb-3">
+                            <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold font-monospace" id="inlineSelectedProgBadge">SPES</span>
+                                        <h5 class="mb-0 fw-bold text-dark" id="inlineSelectedProgTitle">SPES Program Candidates Roster</h5>
+                                    </div>
+                                    <small class="text-muted" id="inlineSelectedProgSubtitle">Select candidate beneficiaries inline to forward to the Admin Application Evaluation queue.</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-light text-dark border px-3 py-1.5 fs-6" id="inlineRosterAvailableCountBadge">
+                                        0 Eligible Candidates
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="min-height: 280px; max-height: 480px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0" id="inlineApplicantsTable">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th style="width: 44px;" class="text-center">
+                                                    <input type="checkbox" class="form-check-input" id="selectAllInlineCheckbox"
+                                                        onclick="toggleSelectAllInline(this)" aria-label="Select all candidate beneficiaries">
+                                                </th>
+                                                <th>Beneficiary Ref #</th>
+                                                <th>Full Name</th>
+                                                <th>Applied Program</th>
+                                                <th>Barangay</th>
+                                                <th>Date Recorded</th>
+                                                <th>Status</th>
+                                                <th class="text-end">Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="inlineApplicantsTableBody">
+                                            <!-- Dynamically rendered inline rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sticky/Docked Submission & Group Identity Bar (Gap 1 & Core Workflow) -->
+                        <div class="inline-selection-action-bar d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <div class="badge bg-primary text-white px-3 py-2 fs-6 rounded-pill fw-bold" id="inlineSelectionCounterBadge">
+                                    Selected: 0 / 0 Beneficiaries
+                                </div>
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <span class="small fw-semibold text-muted">Auto-Generated Group Label:</span>
+                                    <span class="badge bg-light text-primary border border-primary-subtle px-2.5 py-1.5 font-monospace fw-bold fs-6" id="inlineGroupLabelPreview">
+                                        SPES — 2026-08-25
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-primary fw-bold px-4 py-2 shadow-sm d-flex align-items-center gap-2" id="btnForwardToAdmin" onclick="submitForwardSelectedApplications()" disabled>
+                                    <span class="spinner-border spinner-border-sm d-none" id="spinnerForwardApps"></span>
+                                    <i class="bi bi-send-fill" id="iconForwardApps"></i> Forward Selected to Admin
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- SUB-VIEW 2: 🔵 BATCHED BENEFICIARIES & GROUPS -->
+            <!-- SUB-VIEW 2: 🔵 FORWARDED APPLICATIONS (Gap 2: Terminology Consistency & Banner) -->
             <div id="subview-batched-groups" class="d-none">
-                <!-- Batches Cards Summary Grid -->
-                <div class="row g-4 mb-4" id="batchesCardContainer">
-                    <!-- Dynamically loaded batch cards -->
+                <!-- Mandatory Forwarded Applications Banner (Gap 2 Resolution) -->
+                <div class="alert alert-info d-flex align-items-center gap-3 mb-4 border-0 shadow-sm rounded-3 py-3 px-4" style="background: rgba(79, 70, 229, 0.08); border-left: 5px solid #4f46e5 !important;">
+                    <i class="bi bi-info-circle-fill fs-3 text-primary"></i>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-1">Applications forwarded to Admin for evaluation — editable until Admin acts.</h6>
+                        <p class="small text-muted mb-0">Officer-managed submission sets can be modified or recalled while awaiting Admin evaluation. Once the PESO Administrator records an approval or denial decision, records become locked.</p>
+                    </div>
                 </div>
 
-                <!-- Batched Beneficiaries Master Roster Table -->
+                <!-- Forwarded Submissions Summary Grid -->
+                <div class="row g-4 mb-4" id="batchesCardContainer">
+                    <!-- Dynamically loaded forwarded group cards -->
+                </div>
+
+                <!-- Forwarded Beneficiaries Master Roster Table -->
                 <div class="card border-0 shadow-sm rounded-3">
                     <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
                         <div>
                             <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
                                 <i class="bi bi-diagram-3-fill text-primary"></i>
-                                Batched Beneficiaries Roster
+                                Forwarded Applications Roster
                             </h5>
-                            <small class="text-muted">Beneficiaries currently allocated to operational training & disbursement batches</small>
+                            <small class="text-muted">Full list of beneficiary applications submitted to Admin under auto-generated group identities</small>
                         </div>
                         <div class="d-flex gap-2">
                             <button class="btn btn-sm btn-outline-success" onclick="exportBatchesRosterCSV()">
-                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Batches CSV
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Roster CSV
                             </button>
                             <button class="btn btn-sm btn-outline-secondary" onclick="printBatchesRoster()">
                                 <i class="bi bi-printer me-1"></i> Print Roster
@@ -1447,13 +1577,14 @@
                             <table class="table table-hover align-middle mb-0" id="batchedBeneficiariesTable">
                                 <thead class="table-light">
                                     <tr>
+                                        <th>Group Identity Label</th>
                                         <th>Beneficiary Ref #</th>
                                         <th>Full Name</th>
-                                        <th>Assigned Batch</th>
                                         <th>Applied Program</th>
                                         <th>Barangay</th>
-                                        <th>Batch Date</th>
-                                        <th>Status</th>
+                                        <th>Forwarded Date</th>
+                                        <th>Evaluation Status</th>
+                                        <th>Edit Status</th>
                                         <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
@@ -6356,14 +6487,14 @@
         }
 
         // ---------------------------------------------------------------------
-        // LIVELIHOOD APPLICATION MANAGEMENT & BATCH CREATION MODULE
-        // (REQ079, REQ080, REQ081)
+        // LIVELIHOOD APPLICATION MANAGEMENT & INLINE SELECTION MODULE
+        // (REQ079, REQ080, REQ081 + Gap Resolutions 1-6)
         // ---------------------------------------------------------------------
-        let currentLivelihoodSubTab = 'unbatched'; // 'unbatched' or 'batched'
-        let selectedBatchCreationProgramCode = '';
-        let selectedBatchCreationProgramName = '';
-        let selectedBatchCandidateAppIds = new Set();
-        let selectedUnbatchedTableAppIds = new Set();
+        let currentLivelihoodSubTab = 'unbatched'; // 'unbatched' (Inline Selection) or 'batched' (Forwarded Applications)
+        let selectedInlineProgramCode = 'SPES';
+        let selectedInlineProgramName = 'SPES Program';
+        let selectedInlineAppIds = new Set();
+        let selectedUnbatchedTableAppIds = selectedInlineAppIds; // backward compatibility
 
         function switchLivelihoodSubTab(subTab) {
             currentLivelihoodSubTab = subTab;
@@ -6377,14 +6508,13 @@
                 if (batchedView) batchedView.classList.add('d-none');
                 if (pillUnbatched) pillUnbatched.classList.add('active');
                 if (pillBatched) pillBatched.classList.remove('active');
-                renderUnbatchedApprovedTable();
             } else {
                 if (unbatchedView) unbatchedView.classList.add('d-none');
                 if (batchedView) batchedView.classList.remove('d-none');
                 if (pillUnbatched) pillUnbatched.classList.remove('active');
                 if (pillBatched) pillBatched.classList.add('active');
-                renderBatchedGroupsView();
             }
+            renderLivelihoodManagementModule();
         }
         window.switchLivelihoodSubTab = switchLivelihoodSubTab;
 
@@ -6392,15 +6522,13 @@
             const search = (document.getElementById('livelihoodSearchInput')?.value || '').toLowerCase().trim();
             const program = document.getElementById('livelihoodProgramFilter')?.value || '';
             const brgy = document.getElementById('livelihoodBarangayFilter')?.value || '';
-            return { search, program, brgy };
+            const startDate = document.getElementById('livelihoodStartDateFilter')?.value || '';
+            const endDate = document.getElementById('livelihoodEndDateFilter')?.value || '';
+            return { search, program, brgy, startDate, endDate };
         }
 
         function filterLivelihoodViews() {
-            if (currentLivelihoodSubTab === 'unbatched') {
-                renderUnbatchedApprovedTable();
-            } else {
-                renderBatchedGroupsView();
-            }
+            renderLivelihoodManagementModule();
         }
         window.filterLivelihoodViews = filterLivelihoodViews;
         window.filterLivelihoodMasterTable = filterLivelihoodViews;
@@ -6409,158 +6537,482 @@
             if (document.getElementById('livelihoodSearchInput')) document.getElementById('livelihoodSearchInput').value = '';
             if (document.getElementById('livelihoodProgramFilter')) document.getElementById('livelihoodProgramFilter').value = '';
             if (document.getElementById('livelihoodBarangayFilter')) document.getElementById('livelihoodBarangayFilter').value = '';
+            if (document.getElementById('livelihoodStartDateFilter')) document.getElementById('livelihoodStartDateFilter').value = '';
+            if (document.getElementById('livelihoodEndDateFilter')) document.getElementById('livelihoodEndDateFilter').value = '';
             filterLivelihoodViews();
         }
         window.resetLivelihoodFilters = resetLivelihoodFilters;
 
+        function generateSubmissionGroupLabel(progCode, customDate) {
+            const code = progCode || selectedInlineProgramCode || 'PESO';
+            const dateStr = customDate || new Date().toISOString().substring(0, 10);
+            return `${code} — ${dateStr}`;
+        }
+        window.generateSubmissionGroupLabel = generateSubmissionGroupLabel;
+
+        function selectInlineProgram(progCode) {
+            selectedInlineProgramCode = progCode;
+            
+            let fullName = `${progCode} Program`;
+            let desc = 'Select candidate beneficiaries inline to forward to the Admin Application Evaluation queue.';
+            if (progCode === 'SPES') {
+                fullName = 'SPES Program Candidates Roster';
+                desc = 'Special Program for Employment of Students & Out-of-School Youths';
+            } else if (progCode === 'TUPAD') {
+                fullName = 'TUPAD Program Candidates Roster';
+                desc = 'Emergency Employment for Community Displaced & Informal Workers';
+            } else if (progCode === 'Starter Kit') {
+                fullName = 'Livelihood Starter Kit Candidates Roster';
+                desc = 'Motorized tools, sewing, and craftsmanship starter kits';
+            } else if (progCode === 'Micro-Enterprise') {
+                fullName = 'Micro-Enterprise Assistance Candidates Roster';
+                desc = 'Seed capital & business support for registered micro-ventures';
+            } else if (progCode === 'PFAS') {
+                fullName = 'PFAS Assistance Candidates Roster';
+                desc = 'Pangkabuhayan financial assistance grants for vulnerable households';
+            } else if (progCode === 'CKGIP') {
+                fullName = 'CKGIP Internship Candidates Roster';
+                desc = 'City of Koronadal Graduate Internship Program placements';
+            }
+            selectedInlineProgramName = fullName;
+
+            // Update UI card selection styling
+            document.querySelectorAll('.inline-program-item').forEach(card => card.classList.remove('active'));
+            const cardId = progCode === 'Starter Kit' ? 'inlineCard-STARTER' :
+                           progCode === 'Micro-Enterprise' ? 'inlineCard-MICRO' :
+                           `inlineCard-${progCode}`;
+            const targetCard = document.getElementById(cardId);
+            if (targetCard) targetCard.classList.add('active');
+
+            // Update Right Panel Header
+            if (document.getElementById('inlineSelectedProgBadge')) document.getElementById('inlineSelectedProgBadge').textContent = progCode;
+            if (document.getElementById('inlineSelectedProgTitle')) document.getElementById('inlineSelectedProgTitle').textContent = fullName;
+            if (document.getElementById('inlineSelectedProgSubtitle')) document.getElementById('inlineSelectedProgSubtitle').textContent = desc;
+
+            // Update Group Label Preview
+            const previewLabel = generateSubmissionGroupLabel(progCode);
+            if (document.getElementById('inlineGroupLabelPreview')) {
+                document.getElementById('inlineGroupLabelPreview').textContent = previewLabel;
+            }
+
+            // Clear previous checked IDs for fresh selection
+            selectedInlineAppIds.clear();
+            const masterCheckbox = document.getElementById('selectAllInlineCheckbox');
+            if (masterCheckbox) masterCheckbox.checked = false;
+
+            renderInlineSelectionView();
+        }
+        window.selectInlineProgram = selectInlineProgram;
+
         function renderLivelihoodManagementModule() {
-            // 1. Overview Stat Cards
+            // 1. Overview Stat Cards Calculations
             const totalApps = evaluationList.length;
-            const pendingApps = evaluationList.filter(a => a.status === 'Pending' || a.rawStatus === 'Pending' || a.rawStatus === 'Under Review').length;
-            const unbatchedApprovedApps = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved' || a.rawStatus === 'Officer Approved') && !a.batchId && (!a.batchName || a.batchName.trim() === ''));
-            const batchedBeneficiaries = evaluationList.filter(a => (a.batchId || (a.batchName && a.batchName.trim() !== '')) && (a.status === 'Approved' || a.rawStatus === 'Approved' || a.rawStatus === 'Officer Approved'));
+            
+            // Pending Admin Evaluation: applications forwarded or submitted awaiting Admin action
+            const pendingAdminApps = evaluationList.filter(a => 
+                a.status === 'Forwarded to Admin' || a.rawStatus === 'Forwarded to Admin' ||
+                a.status === 'Pending' || a.rawStatus === 'Pending' || a.rawStatus === 'Under Review' || a.rawStatus === 'Officer Approved'
+            );
+
+            // Available for Forwarding: applications not yet forwarded or approved
+            const availableApps = evaluationList.filter(a => {
+                const isForwarded = a.status === 'Forwarded to Admin' || a.rawStatus === 'Forwarded to Admin' || a.batchId || (a.batchName && a.batchName.trim() !== '');
+                const isActedByAdmin = a.status === 'Approved' || a.status === 'Denied' || a.rawStatus === 'Approved' || a.rawStatus === 'Denied';
+                return !isForwarded && !isActedByAdmin;
+            });
+
+            // Forwarded Applications: applications in forwarded sets / batches
+            const forwardedApps = evaluationList.filter(a => 
+                a.status === 'Forwarded to Admin' || a.rawStatus === 'Forwarded to Admin' ||
+                a.batchId || (a.batchName && a.batchName.trim() !== '')
+            );
 
             if (document.getElementById('statTotalLivelihoodApps')) {
                 document.getElementById('statTotalLivelihoodApps').textContent = totalApps;
             }
             if (document.getElementById('statPendingAdminApproval')) {
-                document.getElementById('statPendingAdminApproval').textContent = pendingApps;
+                document.getElementById('statPendingAdminApproval').textContent = pendingAdminApps.length;
             }
             if (document.getElementById('statUnbatchedApproved')) {
-                document.getElementById('statUnbatchedApproved').textContent = unbatchedApprovedApps.length;
+                document.getElementById('statUnbatchedApproved').textContent = availableApps.length;
             }
             if (document.getElementById('statBatchedBeneficiaries')) {
-                document.getElementById('statBatchedBeneficiaries').textContent = batchedBeneficiaries.length;
+                document.getElementById('statBatchedBeneficiaries').textContent = forwardedApps.length;
             }
 
             // Update sub-tab badge counts
             if (document.getElementById('pillUnbatchedCount')) {
-                document.getElementById('pillUnbatchedCount').textContent = unbatchedApprovedApps.length;
+                document.getElementById('pillUnbatchedCount').textContent = availableApps.length;
             }
             if (document.getElementById('pillBatchedCount')) {
-                document.getElementById('pillBatchedCount').textContent = batchedBeneficiaries.length;
+                document.getElementById('pillBatchedCount').textContent = forwardedApps.length;
             }
 
-            // Update Step 1 Program Card Badges
-            updateProgramCardBadges(unbatchedApprovedApps);
+            // Update Live Counters on Program Cards
+            updateInlineProgramBadges();
 
-            // Render active subtab
+            // Render Active Sub-View
             if (currentLivelihoodSubTab === 'unbatched') {
-                renderUnbatchedApprovedTable();
+                renderInlineSelectionView();
             } else {
-                renderBatchedGroupsView();
+                renderForwardedApplicationsView();
             }
         }
         window.renderLivelihoodManagementModule = renderLivelihoodManagementModule;
 
-        function updateProgramCardBadges(unbatchedList) {
-            const list = unbatchedList || evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved' || a.rawStatus === 'Officer Approved') && !a.batchId && (!a.batchName || a.batchName.trim() === ''));
-            
+        function updateInlineProgramBadges() {
+            const list = evaluationList.filter(a => {
+                const isForwarded = a.status === 'Forwarded to Admin' || a.rawStatus === 'Forwarded to Admin' || a.batchId || (a.batchName && a.batchName.trim() !== '');
+                const isActedByAdmin = a.status === 'Approved' || a.status === 'Denied' || a.rawStatus === 'Approved' || a.rawStatus === 'Denied';
+                return !isForwarded && !isActedByAdmin;
+            });
+
             const countSPES = list.filter(a => (a.program || '').toUpperCase().includes('SPES') || (a.programCode || '').toUpperCase().includes('SPES')).length;
             const countTUPAD = list.filter(a => (a.program || '').toUpperCase().includes('TUPAD') || (a.programCode || '').toUpperCase().includes('TUPAD')).length;
             const countStarter = list.filter(a => (a.program || '').toLowerCase().includes('starter') || (a.projectType || '').toLowerCase().includes('starter')).length;
-            const countMicro = list.filter(a => (a.program || '').toLowerCase().includes('micro') || (a.projectType || '').toLowerCase().includes('micro') || (a.program || '').toLowerCase().includes('pfas')).length;
+            const countMicro = list.filter(a => (a.program || '').toLowerCase().includes('micro') || (a.projectType || '').toLowerCase().includes('micro')).length;
+            const countPFAS = list.filter(a => (a.program || '').toUpperCase().includes('PFAS') || (a.projectType || '').toUpperCase().includes('PFAS')).length;
+            const countCKGIP = list.filter(a => (a.program || '').toUpperCase().includes('CKGIP') || (a.projectType || '').toUpperCase().includes('CKGIP')).length;
 
             if (document.getElementById('badgeCount-SPES')) document.getElementById('badgeCount-SPES').textContent = `${countSPES} Available`;
             if (document.getElementById('badgeCount-TUPAD')) document.getElementById('badgeCount-TUPAD').textContent = `${countTUPAD} Available`;
             if (document.getElementById('badgeCount-STARTER')) document.getElementById('badgeCount-STARTER').textContent = `${countStarter} Available`;
             if (document.getElementById('badgeCount-MICRO')) document.getElementById('badgeCount-MICRO').textContent = `${countMicro} Available`;
+            if (document.getElementById('badgeCount-PFAS')) document.getElementById('badgeCount-PFAS').textContent = `${countPFAS} Available`;
+            if (document.getElementById('badgeCount-CKGIP')) document.getElementById('badgeCount-CKGIP').textContent = `${countCKGIP} Available`;
         }
 
-        function renderUnbatchedApprovedTable() {
-            const tbody = document.getElementById('unbatchedApprovedTableBody');
+        function renderInlineSelectionView() {
+            const tbody = document.getElementById('inlineApplicantsTableBody') || document.getElementById('unbatchedApprovedTableBody');
             if (!tbody) return;
 
-            const { search, program, brgy } = getLivelihoodFilterValues();
+            const { search, program, brgy, startDate, endDate } = getLivelihoodFilterValues();
+            const targetProg = selectedInlineProgramCode.toUpperCase();
 
-            const unbatched = evaluationList.filter(item => {
-                const isApproved = item.status === 'Approved' || item.rawStatus === 'Approved' || item.rawStatus === 'Officer Approved';
-                const isUnbatched = !item.batchId && (!item.batchName || item.batchName.trim() === '');
-                if (!isApproved || !isUnbatched) return false;
+            const candidates = evaluationList.filter(item => {
+                const isForwarded = item.status === 'Forwarded to Admin' || item.rawStatus === 'Forwarded to Admin' || item.batchId || (item.batchName && item.batchName.trim() !== '');
+                const isActedByAdmin = item.status === 'Approved' || item.status === 'Denied' || item.rawStatus === 'Approved' || item.rawStatus === 'Denied';
+                if (isForwarded || isActedByAdmin) return false;
 
+                // Match Program
+                const itemProg = (item.program || item.programCode || '').toUpperCase();
+                if (targetProg === 'STARTER KIT') {
+                    if (!itemProg.includes('STARTER') && !(item.projectType || '').toLowerCase().includes('starter')) return false;
+                } else if (targetProg === 'MICRO-ENTERPRISE') {
+                    if (!itemProg.includes('MICRO') && !(item.projectType || '').toLowerCase().includes('micro')) return false;
+                } else if (!itemProg.includes(targetProg)) {
+                    return false;
+                }
+
+                // Global Program filter override if set
+                if (program) {
+                    if (!itemProg.includes(program.toUpperCase())) return false;
+                }
+
+                // Search query
                 if (search) {
                     const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
-                    const matchId = (item.id || '').toLowerCase().includes(search);
+                    const matchId = (String(item.id || '')).toLowerCase().includes(search);
                     const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
                     if (!matchName && !matchId && !matchQr) return false;
                 }
 
-                if (program) {
-                    const progUpper = program.toUpperCase();
-                    const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
-                    if (!itemProgUpper.includes(progUpper)) return false;
-                }
-
+                // Barangay filter
                 if (brgy) {
                     const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
                     const itemBrgy = (ben ? ben.barangay : '') || '';
                     if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
                 }
 
+                // Date Range filter (Gap 4)
+                if (startDate || endDate) {
+                    const itemDate = item.dateSubmitted || item.created_at || '2026-08-25';
+                    const parsedDate = new Date(itemDate);
+                    if (startDate) {
+                        const start = new Date(startDate);
+                        if (parsedDate < start) return false;
+                    }
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        if (parsedDate > end) return false;
+                    }
+                }
+
                 return true;
             });
 
-            if (unbatched.length === 0) {
+            // Update eligible badge
+            if (document.getElementById('inlineRosterAvailableCountBadge')) {
+                document.getElementById('inlineRosterAvailableCountBadge').textContent = `${candidates.length} Eligible Candidates`;
+            }
+
+            // Update group label preview
+            const previewLabel = generateSubmissionGroupLabel(selectedInlineProgramCode);
+            if (document.getElementById('inlineGroupLabelPreview')) {
+                document.getElementById('inlineGroupLabelPreview').textContent = previewLabel;
+            }
+
+            if (candidates.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="8" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
-                            <span class="fw-semibold">No unbatched approved beneficiaries found.</span>
-                            <p class="small text-muted mb-0">All approved applicants have been assigned to batches, or no applications match current filters.</p>
+                            <i class="bi bi-person-check fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                            <span class="fw-semibold">No available applicants for ${escapeHtml(selectedInlineProgramName)}.</span>
+                            <p class="small text-muted mb-0">All applicants for this program have been forwarded to Admin or no records match current filters.</p>
                         </td>
                     </tr>
                 `;
+                updateInlineSelectionBar(0, 0);
                 return;
             }
 
-            tbody.innerHTML = unbatched.map(item => {
+            tbody.innerHTML = candidates.map(item => {
                 const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
                 const barangayName = ben.barangay || 'Brgy. San Vicente';
-                const isChecked = selectedUnbatchedTableAppIds.has(item.dbId || item.id);
+                const key = String(item.dbId || item.id);
+                const isChecked = selectedInlineAppIds.has(key);
+                const refNum = item.qrCodeId || `QR-BEN-${item.id}`;
 
                 return `
                     <tr class="${isChecked ? 'table-primary' : ''}">
                         <td class="text-center">
-                            <input type="checkbox" class="form-check-input row-unbatched-checkbox"
-                                value="${item.dbId || item.id}" ${isChecked ? 'checked' : ''}
-                                onchange="onUnbatchedRowCheckChange('${item.dbId || item.id}', this.checked)">
+                            <input type="checkbox" class="form-check-input row-inline-checkbox"
+                                value="${key}" ${isChecked ? 'checked' : ''}
+                                onchange="onInlineRowCheckChange('${key}', this.checked)">
                         </td>
-                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(refNum)}</span></td>
                         <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
-                        <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
+                        <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || selectedInlineProgramCode)}</span></td>
                         <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
-                        <td><small class="text-muted font-monospace">${escapeHtml(item.dateSubmitted || 'Aug 25, 2026')}</small></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Approved</span></td>
+                        <td><small class="text-muted font-monospace">${escapeHtml(item.dateSubmitted || '2026-08-25')}</small></td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-circle-fill me-1" style="font-size: 6px;"></i>Available</span></td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="openCreateBatchModal('${escapeHtml(item.programCode || item.program || 'SPES')}')">
-                                <i class="bi bi-folder-plus me-1"></i>Create Batch
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="openApplicationDetail('${item.id}')">
+                            <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="openApplicationDetail('${item.id}')" title="View Application Details (Read-only)">
                                 <i class="bi bi-eye"></i> Details
                             </button>
                         </td>
                     </tr>
                 `;
             }).join('');
+
+            const masterCheckbox = document.getElementById('selectAllInlineCheckbox');
+            if (masterCheckbox) {
+                masterCheckbox.checked = (selectedInlineAppIds.size === candidates.length && candidates.length > 0);
+            }
+
+            updateInlineSelectionBar(selectedInlineAppIds.size, candidates.length);
+        }
+        window.renderInlineSelectionView = renderInlineSelectionView;
+        window.renderUnbatchedApprovedTable = renderInlineSelectionView;
+
+        function toggleSelectAllInline(mainCheckbox) {
+            const isChecked = mainCheckbox.checked;
+            document.querySelectorAll('.row-inline-checkbox').forEach(cb => {
+                cb.checked = isChecked;
+                const tr = cb.closest('tr');
+                if (tr) {
+                    if (isChecked) tr.classList.add('table-primary');
+                    else tr.classList.remove('table-primary');
+                }
+                const val = String(cb.value);
+                if (isChecked) selectedInlineAppIds.add(val);
+                else selectedInlineAppIds.delete(val);
+            });
+
+            const total = document.querySelectorAll('.row-inline-checkbox').length;
+            updateInlineSelectionBar(selectedInlineAppIds.size, total);
+        }
+        window.toggleSelectAllInline = toggleSelectAllInline;
+        window.toggleSelectAllUnbatched = toggleSelectAllInline;
+
+        function onInlineRowCheckChange(id, checked) {
+            const strId = String(id);
+            if (checked) {
+                selectedInlineAppIds.add(strId);
+            } else {
+                selectedInlineAppIds.delete(strId);
+            }
+
+            const total = document.querySelectorAll('.row-inline-checkbox').length;
+            const masterCheckbox = document.getElementById('selectAllInlineCheckbox');
+            if (masterCheckbox) {
+                masterCheckbox.checked = (selectedInlineAppIds.size === total && total > 0);
+            }
+
+            updateInlineSelectionBar(selectedInlineAppIds.size, total);
+        }
+        window.onInlineRowCheckChange = onInlineRowCheckChange;
+        window.onUnbatchedRowCheckChange = onInlineRowCheckChange;
+
+        function updateInlineSelectionBar(selectedCount, totalCount) {
+            const badge = document.getElementById('inlineSelectionCounterBadge');
+            const btnForward = document.getElementById('btnForwardToAdmin');
+
+            if (badge) {
+                badge.textContent = `Selected: ${selectedCount} / ${totalCount} Beneficiaries`;
+            }
+            if (btnForward) {
+                btnForward.disabled = (selectedCount === 0);
+            }
         }
 
-        function renderBatchedGroupsView() {
+        async function submitForwardSelectedApplications() {
+            if (selectedInlineAppIds.size === 0) {
+                alert('Selection Required: Please select at least one beneficiary to forward to Admin.');
+                return;
+            }
+
+            const officerProfile = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+            const officerId = officerProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
+            const officerName = officerProfile ? `${officerProfile.first_name || ''} ${officerProfile.last_name || ''}`.trim() : 'PESO Officer';
+            const timestamp = new Date().toISOString();
+            const groupLabel = generateSubmissionGroupLabel(selectedInlineProgramCode);
+
+            const btn = document.getElementById('btnForwardToAdmin');
+            const spinner = document.getElementById('spinnerForwardApps');
+            const icon = document.getElementById('iconForwardApps');
+
+            if (btn) btn.disabled = true;
+            if (spinner) spinner.classList.remove('d-none');
+            if (icon) icon.classList.add('d-none');
+
+            try {
+                // Collect target apps & reference numbers
+                const targetAppIds = [];
+                const refNumbers = [];
+                selectedInlineAppIds.forEach(idVal => {
+                    const matched = evaluationList.find(a => String(a.dbId) === String(idVal) || String(a.id) === String(idVal));
+                    if (matched) {
+                        targetAppIds.push(matched.dbId || matched.id);
+                        refNumbers.push(matched.qrCodeId || `QR-BEN-${matched.id}`);
+                    } else {
+                        targetAppIds.push(idVal);
+                        refNumbers.push(`QR-BEN-${idVal}`);
+                    }
+                });
+
+                let batchDbId = Date.now();
+
+                // 1. Data Layer Sync
+                if (typeof DataService !== 'undefined' && DataService.applications && DataService.applications.forwardBatchToAdmin) {
+                    const forwardRes = await DataService.applications.forwardBatchToAdmin({
+                        application_ids: targetAppIds,
+                        program_code: selectedInlineProgramCode,
+                        officer_id: officerId,
+                        officer_name: officerName,
+                        group_label: groupLabel,
+                        beneficiary_ref_numbers: refNumbers
+                    });
+                    if (forwardRes && forwardRes.data && forwardRes.data.batch) {
+                        batchDbId = forwardRes.data.batch.id;
+                    }
+                } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    const { data: bData } = await supabaseClient
+                        .from('batches')
+                        .insert({
+                            name: groupLabel,
+                            program_code: selectedInlineProgramCode,
+                            capacity: targetAppIds.length,
+                            created_by: officerId,
+                            status: 'Forwarded to Admin'
+                        })
+                        .select()
+                        .single();
+                    if (bData) batchDbId = bData.id;
+                    
+                    await supabaseClient
+                        .from('applications')
+                        .update({
+                            batch_id: batchDbId,
+                            status: 'Forwarded to Admin',
+                            officer_id: officerId,
+                            officer_action_at: timestamp
+                        })
+                        .in('id', targetAppIds.filter(id => Number.isInteger(Number(id))));
+                }
+
+                // 2. Update In-Memory Evaluation List
+                selectedInlineAppIds.forEach(idVal => {
+                    const app = evaluationList.find(a => String(a.dbId) === String(idVal) || String(a.id) === String(idVal));
+                    if (app) {
+                        app.batchId = batchDbId;
+                        app.batchName = groupLabel;
+                        app.status = 'Forwarded to Admin';
+                        app.rawStatus = 'Forwarded to Admin';
+                        app.officer_id = officerId;
+                        app.officer_name = officerName;
+                        app.forwarded_at = timestamp;
+                        app.isEditable = true; // Editable until Admin acts
+                    }
+                });
+
+                // 3. Add to Batches List
+                batchesList.unshift({
+                    id: `BAT-${batchDbId}`,
+                    dbId: batchDbId,
+                    name: groupLabel,
+                    group_label: groupLabel,
+                    program: selectedInlineProgramCode,
+                    capacity: targetAppIds.length,
+                    assignedCount: targetAppIds.length,
+                    dateCreated: timestamp.substring(0, 10),
+                    created_at: timestamp,
+                    officer_id: officerId,
+                    officer_name: officerName,
+                    status: 'Forwarded to Admin',
+                    beneficiary_ref_numbers: refNumbers,
+                    isEditable: true
+                });
+
+                // 4. Granular Audit Logging (Gap 3 Resolution)
+                logOfficerAction('FORWARD_LIVELIHOOD_APPLICATIONS', `Forwarded ${targetAppIds.length} beneficiaries under Group Identity "${groupLabel}" to Admin. Officer: ${officerName} (ID: ${officerId}). Timestamp: ${timestamp}. Ref Numbers: [${refNumbers.join(', ')}]`);
+
+                // 5. System Notification & View Transition
+                const successMsg = `Successfully forwarded ${targetAppIds.length} applications under group label "${groupLabel}" to Admin's Evaluation Queue.`;
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Applications Forwarded',
+                        message: successMsg,
+                        type: 'success'
+                    });
+                } else {
+                    alert(successMsg);
+                }
+
+                selectedInlineAppIds.clear();
+                switchLivelihoodSubTab('batched');
+            } catch (err) {
+                console.error('[PESO OFFICER] Error forwarding applications:', err);
+                alert(`Error forwarding applications: ${err.message || err}`);
+            } finally {
+                if (btn) btn.disabled = false;
+                if (spinner) spinner.classList.add('d-none');
+                if (icon) icon.classList.remove('d-none');
+            }
+        }
+        window.submitForwardSelectedApplications = submitForwardSelectedApplications;
+        window.submitSaveAndCreateBatch = submitForwardSelectedApplications;
+        window.submitCreateBatch = submitForwardSelectedApplications;
+        window.openCreateBatchWithSelected = submitForwardSelectedApplications;
+
+        function renderForwardedApplicationsView() {
             const cardContainer = document.getElementById('batchesCardContainer');
             const tbody = document.getElementById('batchedBeneficiariesTableBody');
-            const { search, program, brgy } = getLivelihoodFilterValues();
+            const { search, program, brgy, startDate, endDate } = getLivelihoodFilterValues();
 
-            // 1. Render Batches Cards
+            // 1. Render Forwarded Submissions Summary Grid
             if (cardContainer) {
                 if (batchesList.length === 0) {
                     cardContainer.innerHTML = `
                         <div class="col-12">
                             <div class="card border-0 shadow-sm p-4 text-center text-muted">
-                                <i class="bi bi-folder-x fs-2 mb-2 opacity-50"></i>
-                                <h6 class="fw-bold mb-1">No Batches Created Yet</h6>
-                                <p class="small text-muted mb-3">Click "+ Create Batch" to group approved beneficiaries into your first operational batch.</p>
+                                <i class="bi bi-send-x fs-2 mb-2 opacity-50"></i>
+                                <h6 class="fw-bold mb-1">No Forwarded Applications Yet</h6>
+                                <p class="small text-muted mb-3">Select eligible applicants from the Inline Selection tab to forward your first labeled submission group.</p>
                                 <div>
-                                    <button class="btn btn-primary btn-sm fw-bold" onclick="openCreateBatchModal()">
-                                        <i class="bi bi-plus-circle me-1"></i> + Create Batch
+                                    <button class="btn btn-primary btn-sm fw-bold" onclick="switchLivelihoodSubTab('unbatched')">
+                                        <i class="bi bi-arrow-left me-1"></i> Go to Inline Selection
                                     </button>
                                 </div>
                             </div>
@@ -6568,33 +7020,39 @@
                     `;
                 } else {
                     cardContainer.innerHTML = batchesList.map(b => {
-                        const assigned = Number(b.assignedCount) || 0;
-                        const cap = Number(b.capacity) || 50;
-                        const pct = Math.min(100, Math.round((assigned / cap) * 100));
+                        const assigned = Number(b.assignedCount) || (b.beneficiary_ref_numbers ? b.beneficiary_ref_numbers.length : 1);
+                        const groupLabel = b.group_label || b.name || `${b.program || 'PESO'} — ${b.dateCreated || '2026-08-25'}`;
+                        const officerStr = b.officer_name || 'PESO Officer';
+                        const isLocked = b.status === 'Approved' || b.status === 'Denied';
 
                         return `
                             <div class="col-md-6 col-lg-4">
-                                <div class="card border-0 shadow-sm rounded-3 h-100">
+                                <div class="card border-0 shadow-sm rounded-3 h-100 position-relative">
                                     <div class="card-body p-3">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <div>
                                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1">${escapeHtml(b.program || 'PESO')}</span>
-                                                <h6 class="fw-bold mb-0 text-dark">${escapeHtml(b.name)}</h6>
+                                                <h6 class="fw-bold mb-0 text-dark font-monospace">${escapeHtml(groupLabel)}</h6>
                                             </div>
-                                            <span class="badge bg-success font-monospace">${escapeHtml(b.status || 'Active')}</span>
+                                            <span class="badge ${isLocked ? 'bg-success' : 'bg-primary'} font-monospace">
+                                                ${escapeHtml(b.status || 'Forwarded to Admin')}
+                                            </span>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center small text-muted my-2">
-                                            <span><i class="bi bi-calendar-event me-1"></i>${escapeHtml(b.dateCreated || '2026-08-25')}</span>
-                                            <span class="fw-bold text-dark font-monospace">${assigned} / ${cap} slots (${pct}%)</span>
-                                        </div>
-                                        <div class="progress mb-2" style="height: 6px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%;"></div>
+                                            <span><i class="bi bi-calendar-event me-1"></i>${escapeHtml(b.dateCreated || b.created_at?.substring(0, 10) || '2026-08-25')}</span>
+                                            <span class="fw-bold text-dark font-monospace">${assigned} Beneficiaries</span>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                                            <small class="text-muted"><i class="bi bi-person-badge me-1"></i>PESO Officer</small>
-                                            <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold" onclick="filterBatchedTableByBatch('${escapeHtml(b.name)}')">
-                                                View Roster <i class="bi bi-chevron-right ms-1"></i>
-                                            </button>
+                                            <small class="text-muted"><i class="bi bi-person-badge me-1"></i>${escapeHtml(officerStr)}</small>
+                                            <div class="d-flex gap-1">
+                                                ${!isLocked ? `
+                                                    <button class="btn btn-sm btn-outline-danger py-0 px-2 small" onclick="recallForwardedSubmission('${b.dbId || b.id || groupLabel}')" title="Recall submission set (Editable while pending Admin evaluation)">
+                                                        <i class="bi bi-arrow-counterclockwise"></i> Recall
+                                                    </button>
+                                                ` : `
+                                                    <span class="badge bg-light text-muted border py-1 px-2 small"><i class="bi bi-lock-fill me-1"></i>Locked</span>
+                                                `}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -6604,15 +7062,15 @@
                 }
             }
 
-            // 2. Render Batched Beneficiaries Roster Table
+            // 2. Render Forwarded Beneficiaries Roster Table
             if (tbody) {
-                const batchedApps = evaluationList.filter(item => {
-                    const isBatched = (item.batchId || (item.batchName && item.batchName.trim() !== ''));
-                    if (!isBatched) return false;
+                const forwardedApps = evaluationList.filter(item => {
+                    const isForwarded = item.status === 'Forwarded to Admin' || item.rawStatus === 'Forwarded to Admin' || item.batchId || (item.batchName && item.batchName.trim() !== '');
+                    if (!isForwarded) return false;
 
                     if (search) {
                         const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
-                        const matchId = (item.id || '').toLowerCase().includes(search);
+                        const matchId = (String(item.id || '')).toLowerCase().includes(search);
                         const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
                         const matchBatch = (item.batchName || '').toLowerCase().includes(search);
                         if (!matchName && !matchId && !matchQr && !matchBatch) return false;
@@ -6630,36 +7088,53 @@
                         if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
                     }
 
+                    if (startDate || endDate) {
+                        const itemDate = item.forwarded_at || item.dateSubmitted || item.created_at || '2026-08-25';
+                        const parsedDate = new Date(itemDate);
+                        if (startDate && parsedDate < new Date(startDate)) return false;
+                        if (endDate) {
+                            const end = new Date(endDate);
+                            end.setHours(23, 59, 59, 999);
+                            if (parsedDate > end) return false;
+                        }
+                    }
+
                     return true;
                 });
 
-                if (batchedApps.length === 0) {
+                if (forwardedApps.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">
+                            <td colspan="9" class="text-center py-4 text-muted">
                                 <i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>
-                                No batched beneficiaries found matching filter criteria.
+                                No forwarded applications found matching filter criteria.
                             </td>
                         </tr>
                     `;
                     return;
                 }
 
-                tbody.innerHTML = batchedApps.map(item => {
+                tbody.innerHTML = forwardedApps.map(item => {
                     const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
                     const barangayName = ben.barangay || 'Brgy. Central';
+                    const groupLabel = item.batchName || `${item.program || 'PESO'} — ${item.dateSubmitted || '2026-08-25'}`;
+                    const isLocked = item.status === 'Approved' || item.status === 'Denied';
+                    const editStatusBadge = isLocked
+                        ? `<span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-lock-fill me-1"></i>Locked (Admin Acted)</span>`
+                        : `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-pencil-square me-1"></i>Editable</span>`;
 
                     return `
                         <tr>
-                            <td><span class="font-monospace fw-bold text-primary">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                            <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace fw-bold"><i class="bi bi-tag-fill me-1"></i>${escapeHtml(groupLabel)}</span></td>
+                            <td><span class="font-monospace fw-bold text-dark">${escapeHtml(item.qrCodeId || item.id)}</span></td>
                             <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
-                            <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold"><i class="bi bi-box-seam me-1"></i>${escapeHtml(item.batchName || 'Active Batch')}</span></td>
                             <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
                             <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
-                            <td><small class="text-muted font-monospace">${escapeHtml(item.dateSubmitted || '2026-08-25')}</small></td>
-                            <td><span class="badge bg-success-subtle text-success border border-success-subtle">Batched</span></td>
+                            <td><small class="text-muted font-monospace">${escapeHtml(item.forwarded_at?.substring(0, 10) || item.dateSubmitted || '2026-08-25')}</small></td>
+                            <td><span class="badge ${item.status === 'Approved' ? 'bg-success' : item.status === 'Denied' ? 'bg-danger' : 'bg-primary'}">${escapeHtml(item.status || 'Forwarded to Admin')}</span></td>
+                            <td>${editStatusBadge}</td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-outline-secondary py-1 px-2 me-1" onclick="openApplicationDetail('${item.id}')">
+                                <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="openApplicationDetail('${item.id}')" title="View Details (Read-only)">
                                     <i class="bi bi-eye"></i> Details
                                 </button>
                             </td>
@@ -6668,413 +7143,90 @@
                 }).join('');
             }
         }
+        window.renderForwardedApplicationsView = renderForwardedApplicationsView;
+        window.renderBatchedGroupsView = renderForwardedApplicationsView;
 
-        function openCreateBatchModal(preselectedProg) {
-            // Reset wizard to Step 1
-            selectedBatchCandidateAppIds.clear();
-            selectedBatchCreationProgramCode = '';
-            selectedBatchCreationProgramName = '';
+        async function recallForwardedSubmission(groupIdOrName) {
+            // Check if group is locked by Admin
+            const appsInGroup = evaluationList.filter(a => String(a.batchId) === String(groupIdOrName) || a.batchName === groupIdOrName);
+            const hasAdminDecision = appsInGroup.some(a => a.status === 'Approved' || a.status === 'Denied');
 
-            const step1 = document.getElementById('batchCreationStep1');
-            const step2 = document.getElementById('batchCreationStep2');
-            const subtitle = document.getElementById('batchModalStepSubtitle');
-            const btnNext = document.getElementById('btnBatchStep1Next');
-
-            if (step1) step1.classList.remove('d-none');
-            if (step2) step2.classList.add('d-none');
-            if (subtitle) subtitle.textContent = 'Step 1 of 2: Select Applied Program & Target Beneficiaries';
-            if (btnNext) btnNext.disabled = true;
-
-            // Clear selected card styles
-            document.querySelectorAll('.program-select-card').forEach(card => card.classList.remove('selected-program'));
-            if (document.getElementById('batchModalCustomProgramSelect')) document.getElementById('batchModalCustomProgramSelect').value = '';
-
-            // Update live available badges
-            const unbatchedApprovedApps = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved' || a.rawStatus === 'Officer Approved') && !a.batchId && (!a.batchName || a.batchName.trim() === ''));
-            updateProgramCardBadges(unbatchedApprovedApps);
-
-            // If preselected, auto-select
-            if (preselectedProg) {
-                const progUpper = preselectedProg.toUpperCase();
-                if (progUpper.includes('SPES')) selectBatchProgramCard('SPES', 'SPES Program', 'Special Program for Employment of Students');
-                else if (progUpper.includes('TUPAD')) selectBatchProgramCard('TUPAD', 'TUPAD Program', 'Community Displaced & Disadvantaged Workers');
-                else if (progUpper.includes('STARTER')) selectBatchProgramCard('Starter Kit', 'Livelihood Starter Kit', 'Equipment & Toolkits Distribution');
-                else if (progUpper.includes('MICRO') || progUpper.includes('PFAS')) selectBatchProgramCard('Micro-Enterprise', 'Micro-Enterprise Assistance', 'Seed Capital & Business Support');
-            }
-
-            const modalEl = document.getElementById('createBatchModal');
-            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
-        }
-        window.openCreateBatchModal = openCreateBatchModal;
-
-        function selectBatchProgramCard(progCode, progName, progDesc) {
-            selectedBatchCreationProgramCode = progCode;
-            selectedBatchCreationProgramName = progName;
-
-            document.querySelectorAll('.program-select-card').forEach(card => card.classList.remove('selected-program'));
-
-            let cardId = '';
-            if (progCode === 'SPES') cardId = 'progCard-SPES';
-            else if (progCode === 'TUPAD') cardId = 'progCard-TUPAD';
-            else if (progCode === 'Starter Kit') cardId = 'progCard-STARTER';
-            else if (progCode === 'Micro-Enterprise') cardId = 'progCard-MICRO';
-
-            const selectedCard = document.getElementById(cardId);
-            if (selectedCard) selectedCard.classList.add('selected-program');
-
-            if (document.getElementById('batchModalCustomProgramSelect')) {
-                document.getElementById('batchModalCustomProgramSelect').value = progCode;
-            }
-
-            const btnNext = document.getElementById('btnBatchStep1Next');
-            if (btnNext) btnNext.disabled = false;
-        }
-        window.selectBatchProgramCard = selectBatchProgramCard;
-
-        function onBatchCustomProgramSelectChange(val) {
-            if (!val) {
-                selectedBatchCreationProgramCode = '';
-                selectedBatchCreationProgramName = '';
-                document.querySelectorAll('.program-select-card').forEach(card => card.classList.remove('selected-program'));
-                const btnNext = document.getElementById('btnBatchStep1Next');
-                if (btnNext) btnNext.disabled = true;
+            if (hasAdminDecision) {
+                alert('Editing Restricted: This submission group has already been acted upon (Approved/Denied) by the PESO Administrator and is strictly locked.');
                 return;
             }
 
-            let name = val;
-            if (val === 'SPES') name = 'SPES Program';
-            else if (val === 'TUPAD') name = 'TUPAD Program';
-            else if (val === 'Starter Kit') name = 'Livelihood Starter Kit';
-            else if (val === 'Micro-Enterprise') name = 'Micro-Enterprise Assistance';
-            else if (val === 'PFAS') name = 'PFAS (Pangkabuhayan Assistance)';
-            else if (val === 'CKGIP') name = 'CKGIP (City Internship)';
-
-            selectBatchProgramCard(val, name, '');
-        }
-        window.onBatchCustomProgramSelectChange = onBatchCustomProgramSelectChange;
-
-        function proceedToBatchStep2() {
-            if (!selectedBatchCreationProgramCode) {
-                alert('Please select a livelihood program to proceed.');
+            if (!confirm(`Are you sure you want to recall submission group "${groupIdOrName}"? The candidate applications will return to the Available Applicants pool for re-selection.`)) {
                 return;
             }
 
-            const step1 = document.getElementById('batchCreationStep1');
-            const step2 = document.getElementById('batchCreationStep2');
-            const subtitle = document.getElementById('batchModalStepSubtitle');
-
-            if (step1) step1.classList.add('d-none');
-            if (step2) step2.classList.remove('d-none');
-            if (subtitle) subtitle.textContent = 'Step 2 of 2: Select Beneficiaries & Confirm Batch Creation';
-
-            // Query program candidates
-            loadCandidatesForBatchStep2();
-        }
-        window.proceedToBatchStep2 = proceedToBatchStep2;
-
-        function backToBatchStep1() {
-            const step1 = document.getElementById('batchCreationStep1');
-            const step2 = document.getElementById('batchCreationStep2');
-            const subtitle = document.getElementById('batchModalStepSubtitle');
-
-            if (step1) step1.classList.remove('d-none');
-            if (step2) step2.classList.add('d-none');
-            if (subtitle) subtitle.textContent = 'Step 1 of 2: Select Applied Program & Target Beneficiaries';
-        }
-        window.backToBatchStep1 = backToBatchStep1;
-
-        function loadCandidatesForBatchStep2() {
-            const tbody = document.getElementById('batchModalBeneficiariesTableBody');
-            const bannerProg = document.getElementById('batchStep2BannerProgram');
-            const bannerCount = document.getElementById('batchStep2BannerCount');
-            const batchNameInput = document.getElementById('batchNameInput');
-
-            const progCode = selectedBatchCreationProgramCode;
-            const progName = selectedBatchCreationProgramName || `${progCode} Program`;
-
-            // Filter approved unbatched candidates matching program
-            const candidates = evaluationList.filter(item => {
-                const isApproved = item.status === 'Approved' || item.rawStatus === 'Approved' || item.rawStatus === 'Officer Approved';
-                const isUnbatched = !item.batchId && (!item.batchName || item.batchName.trim() === '');
-                if (!isApproved || !isUnbatched) return false;
-
-                const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
-                const progUpper = progCode.toUpperCase();
-
-                if (progUpper === 'STARTER KIT') {
-                    return itemProgUpper.includes('STARTER') || (item.projectType || '').toLowerCase().includes('starter');
-                }
-                if (progUpper === 'MICRO-ENTERPRISE') {
-                    return itemProgUpper.includes('MICRO') || (item.projectType || '').toLowerCase().includes('micro') || itemProgUpper.includes('PFAS');
-                }
-                return itemProgUpper.includes(progUpper);
+            // Restore in-memory applications
+            appsInGroup.forEach(a => {
+                a.status = 'Pending';
+                a.rawStatus = 'Pending';
+                a.batchId = null;
+                a.batchName = null;
+                a.isEditable = true;
             });
 
-            // Set banner
-            if (bannerProg) bannerProg.textContent = `Program Selected: ${progName}`;
-            if (bannerCount) bannerCount.textContent = `${candidates.length} Approved Beneficiaries Found`;
-
-            // Suggested batch name
-            const currentYear = new Date().getFullYear();
-            const existingBatchCount = batchesList.filter(b => (b.program || '').toUpperCase().includes(progCode.toUpperCase())).length;
-            const nextBatchNum = existingBatchCount + 1;
-            if (batchNameInput && (!batchNameInput.value || batchNameInput.value.includes('Batch') || batchNameInput.value === '')) {
-                batchNameInput.value = `${progCode} — Batch ${nextBatchNum} [${currentYear} Recipients]`;
+            // Remove from batches list
+            const batchIdx = batchesList.findIndex(b => String(b.dbId) === String(groupIdOrName) || String(b.id) === String(groupIdOrName) || b.name === groupIdOrName || b.group_label === groupIdOrName);
+            if (batchIdx !== -1) {
+                batchesList.splice(batchIdx, 1);
             }
 
-            // Select all by default
-            selectedBatchCandidateAppIds.clear();
-            candidates.forEach(c => selectedBatchCandidateAppIds.add(String(c.dbId || c.id)));
+            // Audit log
+            logOfficerAction('RECALL_FORWARDED_SUBMISSION', `Recalled submission group "${groupIdOrName}". ${appsInGroup.length} applications returned to available candidate pool.`);
 
-            const masterCheckbox = document.getElementById('masterToggleBatchModalCheckbox');
-            if (masterCheckbox) masterCheckbox.checked = candidates.length > 0;
+            // Re-render
+            renderLivelihoodManagementModule();
 
-            if (!tbody) return;
+            if (window.showSystemNotification) {
+                window.showSystemNotification({
+                    title: 'Submission Recalled',
+                    message: `Submission group "${groupIdOrName}" has been recalled. Candidates are now available for re-selection.`,
+                    type: 'info'
+                });
+            }
+        }
+        window.recallForwardedSubmission = recallForwardedSubmission;
 
-            if (candidates.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">
-                            <i class="bi bi-info-circle fs-4 d-block mb-1 text-primary"></i>
-                            No unbatched approved beneficiaries found for <strong>${escapeHtml(progName)}</strong>.
-                        </td>
-                    </tr>
-                `;
-                updateBatchSelectionCounter(0, 0);
+        function filterBatchedTableByBatch(batchName) {
+            const searchInput = document.getElementById('livelihoodSearchInput');
+            if (searchInput) {
+                searchInput.value = batchName;
+                filterLivelihoodViews();
+            }
+        }
+        window.filterBatchedTableByBatch = filterBatchedTableByBatch;
+
+        function exportBatchesRosterCSV() {
+            const forwarded = evaluationList.filter(item => item.status === 'Forwarded to Admin' || item.rawStatus === 'Forwarded to Admin' || item.batchId || (item.batchName && item.batchName.trim() !== ''));
+            if (forwarded.length === 0) {
+                alert('No forwarded applications to export.');
                 return;
             }
-
-            tbody.innerHTML = candidates.map(c => {
-                const ben = beneficiariesList.find(b => b.qr_code === c.qrCodeId || b.name === c.beneficiaryName) || {};
-                const barangayName = ben.barangay || 'Brgy. San Vicente';
-                const refNum = c.qrCodeId || `BEN-${c.dbId || c.id}`;
-                const approvalDate = c.dateSubmitted || 'Aug 25, 2026';
-                const candidateKey = String(c.dbId || c.id);
-                const isChecked = selectedBatchCandidateAppIds.has(candidateKey);
-
-                return `
-                    <tr class="${isChecked ? 'table-primary' : ''}">
-                        <td class="text-center">
-                            <input type="checkbox" class="form-check-input modal-candidate-checkbox"
-                                value="${candidateKey}" ${isChecked ? 'checked' : ''}
-                                onchange="onBatchCandidateCheckboxChange('${candidateKey}', this.checked)">
-                        </td>
-                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(refNum)}</span></td>
-                        <td><strong class="text-dark">${escapeHtml(c.beneficiaryName)}</strong></td>
-                        <td><span class="badge bg-light text-dark border">${escapeHtml(c.program || progName)}</span></td>
-                        <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
-                        <td><small class="text-muted font-monospace">${escapeHtml(approvalDate)}</small></td>
-                    </tr>
-                `;
-            }).join('');
-
-            updateBatchSelectionCounter(selectedBatchCandidateAppIds.size, candidates.length);
-        }
-
-        function toggleSelectAllBatchModal(checked) {
-            document.querySelectorAll('.modal-candidate-checkbox').forEach(cb => {
-                cb.checked = checked;
-                const tr = cb.closest('tr');
-                if (tr) {
-                    if (checked) tr.classList.add('table-primary');
-                    else tr.classList.remove('table-primary');
-                }
-                const val = String(cb.value);
-                if (checked) selectedBatchCandidateAppIds.add(val);
-                else selectedBatchCandidateAppIds.delete(val);
+            let csv = 'Group Identity Label,Beneficiary Ref #,Full Name,Applied Program,Barangay,Forwarded Date,Status\n';
+            forwarded.forEach(item => {
+                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                const groupLabel = item.batchName || `${item.program || 'PESO'} — ${item.dateSubmitted || '2026-08-25'}`;
+                csv += `"${groupLabel}","${item.qrCodeId || item.id}","${item.beneficiaryName}","${item.program || 'PESO'}","${ben.barangay || 'Koronadal'}","${item.forwarded_at?.substring(0,10) || item.dateSubmitted || '2026-08-25'}","${item.status || 'Forwarded'}"\n`;
             });
-
-            const total = document.querySelectorAll('.modal-candidate-checkbox').length;
-            updateBatchSelectionCounter(selectedBatchCandidateAppIds.size, total);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `PESO_Forwarded_Applications_${new Date().toISOString().substring(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
-        window.toggleSelectAllBatchModal = toggleSelectAllBatchModal;
+        window.exportBatchesRosterCSV = exportBatchesRosterCSV;
 
-        function onBatchCandidateCheckboxChange(appId, checked) {
-            const strId = String(appId);
-            if (checked) {
-                selectedBatchCandidateAppIds.add(strId);
-            } else {
-                selectedBatchCandidateAppIds.delete(strId);
-            }
-
-            const total = document.querySelectorAll('.modal-candidate-checkbox').length;
-            const masterCheckbox = document.getElementById('masterToggleBatchModalCheckbox');
-            if (masterCheckbox) {
-                masterCheckbox.checked = (selectedBatchCandidateAppIds.size === total && total > 0);
-            }
-
-            updateBatchSelectionCounter(selectedBatchCandidateAppIds.size, total);
+        function printBatchesRoster() {
+            window.print();
         }
-        window.onBatchCandidateCheckboxChange = onBatchCandidateCheckboxChange;
-
-        function updateBatchSelectionCounter(selected, total) {
-            const badge = document.getElementById('batchSelectionCounterBadge');
-            if (badge) {
-                badge.textContent = `Selected: ${selected} / ${total} Beneficiaries`;
-            }
-        }
-
-        async function submitSaveAndCreateBatch() {
-            const batchName = document.getElementById('batchNameInput')?.value.trim();
-            const capacity = parseInt(document.getElementById('batchCapacityInput')?.value) || 50;
-
-            if (!batchName) {
-                alert('Validation Error: Please provide a Batch Title / Identifier.');
-                return;
-            }
-
-            if (selectedBatchCandidateAppIds.size === 0) {
-                alert('Validation Error: Please select at least 1 approved beneficiary to assign to this batch.');
-                return;
-            }
-
-            const btn = document.getElementById('btnSaveAndCreateBatch');
-            const spinner = document.getElementById('spinnerSaveBatch');
-            const icon = document.getElementById('iconSaveBatch');
-
-            if (btn) btn.disabled = true;
-            if (spinner) spinner.classList.remove('d-none');
-            if (icon) icon.classList.add('d-none');
-
-            try {
-                const officerProfile = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
-                const officerId = officerProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
-                const officerName = officerProfile ? `${officerProfile.first_name || ''} ${officerProfile.last_name || ''}`.trim() : 'PESO Officer';
-
-                // Collect numeric DB IDs of applications
-                const appIds = [];
-                selectedBatchCandidateAppIds.forEach(idVal => {
-                    const matchedApp = evaluationList.find(a => String(a.dbId) === String(idVal) || String(a.id) === String(idVal));
-                    if (matchedApp && matchedApp.dbId) {
-                        appIds.push(matchedApp.dbId);
-                    } else if (Number.isInteger(Number(idVal))) {
-                        appIds.push(Number(idVal));
-                    }
-                });
-
-                let createdBatch = null;
-
-                if (typeof DataService !== 'undefined' && DataService.batches && DataService.batches.createWithBeneficiaries) {
-                    const res = await DataService.batches.createWithBeneficiaries({
-                        name: batchName,
-                        program_code: selectedBatchCreationProgramCode || 'PESO',
-                        capacity: capacity,
-                        created_by: officerId,
-                        officer_name: officerName,
-                        application_ids: appIds
-                    });
-                    if (res && res.data) createdBatch = res.data;
-                } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    const { data: bData, error: bErr } = await supabaseClient
-                        .from('batches')
-                        .insert({
-                            name: batchName,
-                            program_code: selectedBatchCreationProgramCode || 'PESO',
-                            capacity: capacity,
-                            created_by: officerId
-                        })
-                        .select()
-                        .single();
-
-                    if (!bErr && bData) {
-                        createdBatch = bData;
-                        if (appIds.length > 0) {
-                            await supabaseClient
-                                .from('applications')
-                                .update({ batch_id: bData.id, updated_at: new Date().toISOString() })
-                                .in('id', appIds);
-                        }
-                    }
-                }
-
-                const batchDbId = createdBatch ? createdBatch.id : Date.now();
-
-                // Update in-memory state
-                batchesList.unshift({
-                    id: `BAT-${batchDbId}`,
-                    dbId: batchDbId,
-                    name: batchName,
-                    program: selectedBatchCreationProgramCode || 'PESO',
-                    capacity: capacity,
-                    assignedCount: appIds.length,
-                    dateCreated: new Date().toISOString().substring(0, 10),
-                    status: 'Active'
-                });
-
-                // Update applications in-memory
-                selectedBatchCandidateAppIds.forEach(idVal => {
-                    const app = evaluationList.find(a => String(a.dbId) === String(idVal) || String(a.id) === String(idVal));
-                    if (app) {
-                        app.batchId = batchDbId;
-                        app.batchName = batchName;
-                    }
-                });
-
-                // Close modal
-                const modalEl = document.getElementById('createBatchModal');
-                if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
-
-                // Switch to Tab 2
-                switchLivelihoodSubTab('batched');
-
-                // Render views
-                renderLivelihoodManagementModule();
-
-                // System Notification
-                const successMsg = `Batch "${batchName}" created with ${appIds.length} approved beneficiaries. Master schedule view updated in real-time.`;
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({
-                        title: 'Batch Created Successfully',
-                        message: successMsg,
-                        type: 'success'
-                    });
-                } else {
-                    alert(successMsg);
-                }
-
-                logOfficerAction('CREATE_LIVELIHOOD_BATCH', `Created batch "${batchName}" (${selectedBatchCreationProgramCode}) with ${appIds.length} beneficiaries.`);
-            } catch (err) {
-                console.error('[PESO OFFICER] Error creating batch:', err);
-                alert(`Error creating batch: ${err.message || err}`);
-            } finally {
-                if (btn) btn.disabled = false;
-                if (spinner) spinner.classList.add('d-none');
-                if (icon) icon.classList.remove('d-none');
-            }
-        }
-        window.submitSaveAndCreateBatch = submitSaveAndCreateBatch;
-        window.submitCreateBatch = submitSaveAndCreateBatch;
-
-        function openCreateBatchWithSelected() {
-            if (selectedUnbatchedTableAppIds.size === 0) {
-                alert('Please check at least one unbatched beneficiary from the table to create a batch.');
-                return;
-            }
-            openCreateBatchModal();
-        }
-        window.openCreateBatchWithSelected = openCreateBatchWithSelected;
-
-        function toggleSelectAllUnbatched(mainCheckbox) {
-            const isChecked = mainCheckbox.checked;
-            document.querySelectorAll('.row-unbatched-checkbox').forEach(cb => {
-                cb.checked = isChecked;
-                const tr = cb.closest('tr');
-                if (tr) {
-                    if (isChecked) tr.classList.add('table-primary');
-                    else tr.classList.remove('table-primary');
-                }
-                const val = cb.value;
-                if (isChecked) selectedUnbatchedTableAppIds.add(val);
-                else selectedUnbatchedTableAppIds.delete(val);
-            });
-        }
-        window.toggleSelectAllUnbatched = toggleSelectAllUnbatched;
-
-        function onUnbatchedRowCheckChange(id, checked) {
-            if (checked) selectedUnbatchedTableAppIds.add(id);
-            else selectedUnbatchedTableAppIds.delete(id);
-        }
-        window.onUnbatchedRowCheckChange = onUnbatchedRowCheckChange;
+        window.printBatchesRoster = printBatchesRoster;
 
         function filterBatchedTableByBatch(batchName) {
             const searchInput = document.getElementById('livelihoodSearchInput');

@@ -872,6 +872,89 @@ const DataService = (() => {
         }
         return res;
       });
+    },
+
+    async forwardBatchToAdmin(data) {
+      return withRetry(async (client) => {
+        const appIds = Array.isArray(data.application_ids) ? data.application_ids : [];
+        const progCode = data.program_code || 'PESO';
+        const dateStr = data.date || new Date().toISOString().split('T')[0];
+        const groupLabel = data.group_label || `${progCode} — ${dateStr}`;
+        const officerId = data.officer_id || parseInt(sessionStorage.getItem('userId')) || 2;
+        const officerName = data.officer_name || sessionStorage.getItem('userName') || sessionStorage.getItem('username') || 'PESO Officer';
+        const refNumbers = Array.isArray(data.beneficiary_ref_numbers) ? data.beneficiary_ref_numbers : [];
+
+        // 1. Create or ensure a batch/group record for this submission
+        let batchId = data.batch_id || null;
+        let createdBatch = null;
+        try {
+          const { data: batchData, error: batchErr } = await client.from('batches').insert({
+            name: groupLabel,
+            program_code: progCode,
+            capacity: Math.max(50, appIds.length),
+            created_by: officerId,
+            status: 'Forwarded to Admin'
+          }).select().maybeSingle();
+          if (batchData) {
+            batchId = batchData.id;
+            createdBatch = batchData;
+          }
+        } catch (bErr) {
+          console.warn('[DataService] Batch group insert notice:', bErr);
+        }
+
+        // 2. Update applications status to Forwarded to Admin and stamp officer / group
+        const updatePayload = {
+          status: 'Forwarded to Admin',
+          officer_id: officerId,
+          officer_decision: 'Forwarded to Admin',
+          officer_action_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        if (batchId) {
+          updatePayload.batch_id = batchId;
+        }
+
+        if (appIds.length > 0) {
+          try {
+            await client.from('applications').update(updatePayload).in('id', appIds);
+          } catch (appErr) {
+            console.warn('[DataService] Applications update notice:', appErr);
+          }
+        }
+
+        // 3. Granular Audit Logging: Officer ID, Timestamp, Auto-generated group label, Full beneficiary reference numbers
+        const refStr = refNumbers.length > 0 ? refNumbers.join(', ') : `${appIds.length} candidate applications`;
+        auditLogs.log({
+          staffUserId: officerId,
+          action: 'FORWARD_LIVELIHOOD_APPLICATIONS',
+          entityType: 'livelihood_submission',
+          entityId: batchId || (appIds[0] || null),
+          details: `Officer #${officerId} (${officerName}) forwarded group "${groupLabel}" with ${appIds.length} beneficiaries to Admin for evaluation. Reference Numbers: [${refStr}]`
+        });
+
+        activityLog.log({
+          action: 'APPLICATIONS_FORWARDED',
+          action_title: 'Applications Forwarded to Admin',
+          program: progCode,
+          admin_id: officerName,
+          details: `Forwarded submission group "${groupLabel}" with ${appIds.length} candidates (${refStr}) for Admin evaluation.`
+        });
+
+        return {
+          data: {
+            batchId: batchId,
+            groupLabel: groupLabel,
+            programCode: progCode,
+            count: appIds.length,
+            refNumbers: refNumbers,
+            officerId: officerId,
+            officerName: officerName,
+            timestamp: new Date().toISOString()
+          },
+          error: null
+        };
+      });
     }
   };
 
@@ -1656,12 +1739,14 @@ const DataService = (() => {
         }
 
         // 3. Audit Logging
+        const refNumbers = Array.isArray(data.beneficiary_ref_numbers) ? data.beneficiary_ref_numbers : [];
+        const refStr = refNumbers.length > 0 ? ` Reference Numbers: [${refNumbers.join(', ')}]` : '';
         auditLogs.log({
           staffUserId: data.created_by,
           action: 'CREATE_LIVELIHOOD_BATCH',
           entityType: 'batch',
           entityId: newBatchId,
-          details: `Created livelihood batch "${payload.name}" (${payload.program_code}) with ${appIds.length} approved beneficiaries assigned.`
+          details: `Created livelihood batch "${payload.name}" (${payload.program_code}) with ${appIds.length} approved beneficiaries assigned.${refStr}`
         });
 
         // 4. Activity Log
@@ -1670,7 +1755,7 @@ const DataService = (() => {
           action_title: 'Livelihood Batch Created',
           program: payload.program_code,
           admin_id: data.officer_name || 'PESO Officer',
-          details: `Batch "${payload.name}" created with ${appIds.length} beneficiaries assigned.`
+          details: `Batch "${payload.name}" created with ${appIds.length} beneficiaries assigned.${refStr}`
         });
 
         return { data: { ...batchRes.data, assignedCount: appIds.length }, error: null };
