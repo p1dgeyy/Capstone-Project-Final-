@@ -1187,7 +1187,7 @@
                     <td class="text-center">
                         <div class="d-inline-flex align-items-center justify-content-center gap-2">
                             <div class="form-check form-switch mb-0" title="Toggle status (Active / Deactivated)">
-                                <input class="form-check-input" type="checkbox" role="switch" id="officerSwitch-${o.id}" ${!isDeactivated ? 'checked' : ''} onchange="toggleOfficerStatus(${o.id}, this.checked)" aria-label="Toggle Status for ${escapeHtml(fullName)}">
+                                <input class="form-check-input" type="checkbox" role="switch" id="officerSwitch-${o.id}" ${!isDeactivated ? 'checked' : ''} onchange="handleOfficerSwitchToggle(event, ${o.id})" aria-label="Toggle Status for ${escapeHtml(fullName)}">
                             </div>
                             <span class="badge ${badgeClass} px-2.5 py-1 text-white fw-semibold" id="officerStatusLabel-${o.id}">
                                 ${statusLabel}
@@ -1207,12 +1207,36 @@
         updateOfficerMetricCounters();
     }
 
+    async function handleOfficerSwitchToggle(event, id) {
+        const checkbox = event.target;
+        const isTurningActive = checkbox.checked;
+        const officer = AdminStore.officers ? AdminStore.officers.find(o => o.id === id) : null;
+        const offName = officer ? `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || officer.username : `Officer #${id}`;
+
+        if (isTurningActive) {
+            const confirmed = confirm(`Confirm Reactivation: Are you sure you want to reactivate and restore officer account "${offName}"?`);
+            if (!confirmed) {
+                event.preventDefault();
+                checkbox.checked = false;
+                return;
+            }
+        } else {
+            const confirmed = confirm(`Confirm Deactivation: Are you sure you want to deactivate officer account "${offName}"? This user will not be able to log in until reactivated.`);
+            if (!confirmed) {
+                event.preventDefault();
+                checkbox.checked = true;
+                return;
+            }
+        }
+
+        await toggleOfficerStatus(id, isTurningActive);
+    }
+
     function updateOfficerMetricCounters() {
         const officers = AdminStore.officers || [];
         const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         setTxt('statTotalStaffCount', officers.length);
-        setTxt('statActiveOfficersCount', officers.filter(o => o.role === 'PESO Officer' && o.status === 'Active').length);
-        setTxt('statActiveEvaluatorsCount', officers.filter(o => o.role === 'Evaluator' && o.status === 'Active').length);
+        setTxt('statActiveOfficersCount', officers.filter(o => o.status === 'Active').length);
         setTxt('statDeactivatedStaffCount', officers.filter(o => o.status !== 'Active').length);
     }
 
@@ -4319,6 +4343,7 @@
     window.openEditOfficerModal = openEditOfficerModal;
     window.handleSaveOfficerUpdates = handleSaveOfficerUpdates;
     window.toggleOfficerStatus = toggleOfficerStatus;
+    window.handleOfficerSwitchToggle = handleOfficerSwitchToggle;
     window.filterOfficersList = filterOfficersList;
     window.exportOfficersCsv = () => {
         const rows = [['Username', 'Name', 'Email', 'Role', 'Phone', 'Status', 'Created']];
@@ -4333,6 +4358,9 @@
     window.openProgramEditModal = openProgramEditModal;
     window.handleSaveProgramUpdates = handleSaveProgramUpdates;
     window.handleProgramStatusToggle = handleProgramStatusToggle;
+    window.handleConfirmProgramDeactivation = handleConfirmProgramDeactivation;
+    window.cancelProgramDeactivationToggle = cancelProgramDeactivationToggle;
+    window.setProgramStatusFilter = setProgramStatusFilter;
     window.filterProgramsCatalog = filterProgramsCatalog;
     window.showProgramsLevel1 = showProgramsLevel1;
     window.showProgramsLevel2 = showProgramsLevel2;

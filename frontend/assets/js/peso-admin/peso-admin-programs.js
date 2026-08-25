@@ -1522,7 +1522,39 @@ async function permanentlyDeleteProgram(progId) {
     renderDashboardTables();
 }
 
+function setProgramStatusFilter(status) {
+    const select = document.getElementById('programsStatusFilter');
+    if (select) {
+        select.value = status;
+        if (typeof filterProgramsCatalog === 'function') {
+            filterProgramsCatalog();
+        }
+    }
+    ['chipFilterAll', 'chipFilterActive', 'chipFilterInactive'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.classList.remove('btn-primary', 'btn-danger', 'active');
+            if (id === 'chipFilterInactive') {
+                btn.classList.add('btn-outline-danger');
+            } else {
+                btn.classList.add('btn-outline-primary');
+            }
+        }
+    });
+    if (status === 'ALL') {
+        const btn = document.getElementById('chipFilterAll');
+        if (btn) { btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary', 'active'); }
+    } else if (status === 'Active') {
+        const btn = document.getElementById('chipFilterActive');
+        if (btn) { btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary', 'active'); }
+    } else if (status === 'Inactive' || status === 'Deactivated') {
+        const btn = document.getElementById('chipFilterInactive');
+        if (btn) { btn.classList.remove('btn-outline-danger'); btn.classList.add('btn-danger', 'active'); }
+    }
+}
+
 // Global window exposure
+window.setProgramStatusFilter = setProgramStatusFilter;
 window.openCreateProgramModal = openCreateProgramModal;
 window.handleCreateProgramSubmit = handleCreateProgramSubmit;
 window.openProgramDetailsViewModal = openProgramDetailsViewModal;

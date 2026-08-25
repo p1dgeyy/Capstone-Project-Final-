@@ -96,20 +96,29 @@ DROP POLICY IF EXISTS "active_user_sessions_select_policy" ON active_user_sessio
 CREATE POLICY "active_user_sessions_select_policy" ON active_user_sessions FOR SELECT USING (true);
 CREATE POLICY "active_user_sessions_all_policy" ON active_user_sessions FOR ALL USING (true) WITH CHECK (true);
 
--- 5. SUPABASE REALTIME REPLICATION PUBLICATION
+-- 5. SUPABASE REALTIME REPLICATION PUBLICATION (SAFE IDEMPOTENT BLOCK)
 DO $$
+DECLARE
+  tbl TEXT;
+  tbls TEXT[] := ARRAY['programs', 'interview_schedules', 'applications', 'funds', 'notifications', 'audit_logs', 'active_user_sessions'];
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime'
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
     CREATE PUBLICATION supabase_realtime;
   END IF;
-END $$;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE programs;
-ALTER PUBLICATION supabase_realtime ADD TABLE interview_schedules;
-ALTER PUBLICATION supabase_realtime ADD TABLE applications;
-ALTER PUBLICATION supabase_realtime ADD TABLE funds;
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE audit_logs;
-ALTER PUBLICATION supabase_realtime ADD TABLE active_user_sessions;
+  FOREACH tbl IN ARRAY tbls LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = tbl
+    ) THEN
+      BEGIN
+        EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', tbl);
+      EXCEPTION 
+        WHEN duplicate_object THEN NULL;
+        WHEN undefined_table THEN NULL;
+      END;
+    END IF;
+  END LOOP;
+END $$;
