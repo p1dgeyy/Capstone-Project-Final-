@@ -148,7 +148,7 @@ const DataService = (() => {
         const updateData = { ...data };
         delete updateData.id;
         delete updateData.created_at;
-        const res = await client.from('programs').update(updateData).eq('id', id).select().single();
+        const res = await client.from('programs').update(updateData).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             action: 'UPDATE_PROGRAM',
@@ -161,15 +161,29 @@ const DataService = (() => {
       });
     },
 
-    async toggleStatus(id, newStatus) {
+    async toggleStatus(id, newStatus, extra = {}) {
       return withRetry(async (client) => {
-        const res = await client.from('programs').update({ status: newStatus }).eq('id', id).select().single();
+        const payload = { 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        };
+        if (newStatus === 'Inactive' || newStatus === 'Deactivated') {
+          payload.deactivated_at = new Date().toISOString();
+          payload.deactivated_by = extra.deactivated_by || sessionStorage.getItem('username') || 'PESO Admin';
+          payload.deactivation_reason = extra.reason || 'Deactivated by Administrator';
+        } else if (newStatus === 'Active') {
+          payload.deactivated_at = null;
+          payload.deactivated_by = null;
+          payload.deactivation_reason = null;
+        }
+
+        const res = await client.from('programs').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             action: newStatus === 'Active' ? 'ACTIVATE_PROGRAM' : 'DEACTIVATE_PROGRAM',
             entityType: 'program',
             entityId: id,
-            details: `Set program ${res.data.code} status to ${newStatus}`
+            details: `Set program ${res.data.code} status to ${newStatus}${payload.deactivation_reason ? ' | Reason: ' + payload.deactivation_reason : ''}`
           });
         }
         return res;
@@ -732,7 +746,7 @@ const DataService = (() => {
           status: evaluationData.status || newStatus
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).single();
+        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: evaluationData.officer_id || null,
@@ -760,10 +774,11 @@ const DataService = (() => {
           amount_approved: approveData.amount_approved || null,
           admin_id: approveData.admin_id || null,
           admin_notes: approveData.notes || 'Approved by Administrator',
-          progress_percent: 100
+          progress_percent: 100,
+          updated_at: new Date().toISOString()
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).single();
+        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: approveData.admin_id || null,
@@ -795,20 +810,26 @@ const DataService = (() => {
 
     async adminDeny(id, denyData) {
       return withRetry(async (client) => {
+        const reason = denyData.reason || denyData.rejection_reason || 'Disapproved by Administrator';
         const payload = {
           status: 'Denied',
           admin_id: denyData.admin_id || null,
-          admin_notes: denyData.reason || 'Disapproved by Administrator'
+          admin_notes: reason,
+          rejection_reason: reason,
+          rejection_category: denyData.rejection_category || 'Incomplete Eligibility Requirements',
+          evaluated_by: denyData.admin_username || sessionStorage.getItem('username') || 'PESO Admin',
+          evaluated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).single();
+        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: denyData.admin_id || null,
             action: 'ADMIN_DENY_APPLICATION',
             entityType: 'application',
             entityId: id,
-            details: `Admin denied application ${res.data.application_number}. Reason: ${denyData.reason || 'None'}`
+            details: `Admin denied application ${res.data.application_number}. Reason: ${reason}`
           });
 
           activityLog.log({
@@ -818,13 +839,13 @@ const DataService = (() => {
             beneficiary_name: `${res.data.beneficiary?.first_name || ''} ${res.data.beneficiary?.last_name || ''}`.trim(),
             program: res.data.program?.name || 'Assistance',
             admin_id: denyData.admin_username || 'Admin',
-            details: `Disapproved application. Reason: ${denyData.reason || 'N/A'}`
+            details: `Disapproved application. Reason: ${reason}`
           });
 
           notifications.create({
             beneficiary_qr: res.data.beneficiary_qr,
             title: 'Application Update: Disapproved',
-            message: `Your application (${res.data.application_number}) was not approved. Reason: ${denyData.reason || 'Contact office for details.'}`
+            message: `Your application (${res.data.application_number}) was not approved. Reason: ${reason}`
           });
         }
         return res;
@@ -835,10 +856,11 @@ const DataService = (() => {
       return withRetry(async (client) => {
         const payload = {
           status: 'Released',
-          admin_notes: releaseData.notes || 'Funds released at disbursement desk'
+          admin_notes: releaseData.notes || 'Funds released at disbursement desk',
+          updated_at: new Date().toISOString()
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).single();
+        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).maybeSingle();
         if (!res.error && res.data) {
           const amount = Number(res.data.amount_approved || res.data.amount_requested || 0);
           const progCode = res.data.program?.code;
@@ -1092,9 +1114,9 @@ const DataService = (() => {
           *,
           program:programs!program_id(*),
           officer:staff_profiles!officer_id(id, username, first_name, last_name, role)
-        `).single();
-        if (res.error) {
-          res = await client.from('interview_schedules').update(updateData).eq('id', id).select().single();
+        `).maybeSingle();
+        if (res.error || !res.data) {
+          res = await client.from('interview_schedules').update(updateData).eq('id', id).select().maybeSingle();
         }
         if (!res.error && res.data) {
           auditLogs.log({
@@ -1117,7 +1139,7 @@ const DataService = (() => {
           remarks: attendanceData.remarks || null,
           updated_at: new Date().toISOString()
         };
-        const res = await client.from('interview_schedules').update(payload).eq('id', id).select().single();
+        const res = await client.from('interview_schedules').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             action: 'MARK_ATTENDANCE',
@@ -1143,13 +1165,16 @@ const DataService = (() => {
           remarks: rescheduleData.remarks || 'Rescheduled',
           updated_at: new Date().toISOString()
         };
-        const res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
+        let res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
           *,
           beneficiary:beneficiaries!beneficiary_qr(*),
           program:programs!program_id(*),
           officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
           batch:batches!batch_id(*)
-        `).single();
+        `).maybeSingle();
+        if (res.error || !res.data) {
+          res = await client.from('interview_schedules').update(payload).eq('id', id).select().maybeSingle();
+        }
         if (!res.error && res.data) {
           auditLogs.log({
             action: 'RESCHEDULE_ACTIVITY',
@@ -1172,25 +1197,28 @@ const DataService = (() => {
           remarks: postponeData.reason || 'Activity Postponed',
           updated_at: new Date().toISOString()
         };
-        const res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
+        let res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
           *,
           beneficiary:beneficiaries!beneficiary_qr(*),
           program:programs!program_id(*),
           officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
           batch:batches!batch_id(*)
-        `).single();
+        `).maybeSingle();
+        if (res.error || !res.data) {
+          res = await client.from('interview_schedules').update(payload).eq('id', id).select().maybeSingle();
+        }
         if (!res.error && res.data) {
           auditLogs.log({
             action: 'POSTPONE_ACTIVITY',
             entityType: 'schedule_slot',
             entityId: id,
-            details: `Postponed activity slot #${id} ("${res.data.title}"). Reason: ${payload.postponement_reason}`
+            details: `Postponed activity slot #${id} ("${res.data.title || 'Activity'}"). Reason: ${payload.postponement_reason}`
           });
           activityLog.log({
             action: 'ACTIVITY_POSTPONED',
             action_title: 'Scheduled Activity Postponed',
             program: (res.data.program && res.data.program.name) || 'Assistance Program',
-            details: `Postponed "${res.data.title}" by ${payload.postponed_by}. Reason: ${payload.postponement_reason}`
+            details: `Postponed "${res.data.title || 'Activity'}" by ${payload.postponed_by}. Reason: ${payload.postponement_reason}`
           });
         }
         return res;
@@ -1207,25 +1235,28 @@ const DataService = (() => {
           remarks: cancelData.reason || 'Activity Cancelled',
           updated_at: new Date().toISOString()
         };
-        const res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
+        let res = await client.from('interview_schedules').update(payload).eq('id', id).select(`
           *,
           beneficiary:beneficiaries!beneficiary_qr(*),
           program:programs!program_id(*),
           officer:staff_profiles!officer_id(id, username, first_name, last_name, role),
           batch:batches!batch_id(*)
-        `).single();
+        `).maybeSingle();
+        if (res.error || !res.data) {
+          res = await client.from('interview_schedules').update(payload).eq('id', id).select().maybeSingle();
+        }
         if (!res.error && res.data) {
           auditLogs.log({
             action: 'CANCEL_ACTIVITY',
             entityType: 'schedule_slot',
             entityId: id,
-            details: `Cancelled activity slot #${id} ("${res.data.title}"). Reason: ${payload.cancellation_reason}`
+            details: `Cancelled activity slot #${id} ("${res.data.title || 'Activity'}"). Reason: ${payload.cancellation_reason}`
           });
           activityLog.log({
             action: 'ACTIVITY_CANCELLED',
             action_title: 'Scheduled Activity Cancelled',
             program: (res.data.program && res.data.program.name) || 'Assistance Program',
-            details: `Cancelled "${res.data.title}" by ${payload.cancelled_by}. Moved to Archive.`
+            details: `Cancelled "${res.data.title || 'Activity'}" by ${payload.cancelled_by}. Moved to Archive.`
           });
         }
         return res;
@@ -1425,7 +1456,7 @@ const DataService = (() => {
           return await client.from('funds').update({
             released_amount: newReleased,
             updated_at: new Date().toISOString()
-          }).eq('id', fundRes.data.id).select().single();
+          }).eq('id', fundRes.data.id).select().maybeSingle();
         }
         return fundRes;
       });

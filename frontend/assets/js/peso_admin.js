@@ -2013,10 +2013,55 @@
     // =========================================================================
     // 5. MODULE 3: PROGRAM MANAGEMENT & MULTI-LEVEL ASSIGNMENT (REQ012-023)
     // =========================================================================
+    let currentProgramStatusFilter = 'ALL';
+
+    function setProgramStatusFilter(status) {
+        currentProgramStatusFilter = status;
+        const select = document.getElementById('programsStatusFilter');
+        if (select) select.value = status;
+
+        ['chipFilterAll', 'chipFilterActive', 'chipFilterInactive'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.classList.remove('btn-primary', 'btn-danger', 'active');
+                if (id === 'chipFilterInactive') {
+                    btn.classList.add('btn-outline-danger');
+                } else {
+                    btn.classList.add('btn-outline-primary');
+                }
+            }
+        });
+
+        if (status === 'ALL') {
+            const btn = document.getElementById('chipFilterAll');
+            if (btn) { btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary', 'active'); }
+        } else if (status === 'Active') {
+            const btn = document.getElementById('chipFilterActive');
+            if (btn) { btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary', 'active'); }
+        } else if (status === 'Inactive' || status === 'Deactivated') {
+            const btn = document.getElementById('chipFilterInactive');
+            if (btn) { btn.classList.remove('btn-outline-danger'); btn.classList.add('btn-danger', 'active'); }
+        }
+
+        renderProgramsCatalog();
+    }
+
     function renderProgramsCatalog() {
-        const progs = AdminStore.programs;
+        const progs = AdminStore.programs || [];
         const search = (document.getElementById('programsSearchInput')?.value || '').toLowerCase();
-        const statusF = document.getElementById('programsStatusFilter')?.value || 'ALL';
+        const statusF = currentProgramStatusFilter || document.getElementById('programsStatusFilter')?.value || 'ALL';
+
+        // Update Chip Badge Counts dynamically
+        const totalCount = progs.length;
+        const activeCount = progs.filter(p => p.status === 'Active').length;
+        const inactiveCount = progs.filter(p => p.status !== 'Active').length;
+
+        const countAllEl = document.getElementById('chipCountAll');
+        const countActiveEl = document.getElementById('chipCountActive');
+        const countInactiveEl = document.getElementById('chipCountInactive');
+        if (countAllEl) countAllEl.textContent = totalCount;
+        if (countActiveEl) countActiveEl.textContent = activeCount;
+        if (countInactiveEl) countInactiveEl.textContent = inactiveCount;
 
         const filtered = progs.filter(p => {
             const name = `${p.name || ''} ${p.code || ''} ${p.category || ''}`.toLowerCase();
@@ -2029,7 +2074,7 @@
         if (!tbody) return;
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No programs found matching filters.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>No programs found matching the selected filter.</td></tr>';
             return;
         }
 
@@ -2038,10 +2083,14 @@
             const enrCount = (AdminStore.applications || []).filter(a => matchesApplicationToProgram(a, p)).length;
             const pBudget = Number(p.budget) || 0;
 
+            const statusBadge = isDeactivated 
+                ? `<div class="d-inline-flex flex-column align-items-center"><span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-slash-circle me-1"></i>Deactivated</span><small class="text-muted mt-0.5 font-monospace" style="font-size: 0.68rem;">Inactive</small></div>`
+                : `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Active</span>`;
+
             return `
-                <tr>
+                <tr class="${isDeactivated ? 'table-light opacity-75' : ''}">
                     <td>
-                        <div class="fw-bold text-dark">${escapeHtml(p.name)}</div>
+                        <div class="fw-bold ${isDeactivated ? 'text-secondary text-decoration-line-through' : 'text-dark'}">${escapeHtml(p.name)}</div>
                         <span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(p.code)}</span>
                     </td>
                     <td>
@@ -2055,10 +2104,14 @@
                     </td>
                     <td>
                         <div class="text-truncate" style="max-width: 220px;" title="${escapeHtml(p.description || '')}">${escapeHtml(p.description || 'No description')}</div>
+                        ${isDeactivated && p.deactivation_reason ? `<small class="text-danger d-block text-truncate" style="max-width: 220px;"><i class="bi bi-info-circle me-1"></i>${escapeHtml(p.deactivation_reason)}</small>` : ''}
                     </td>
                     <td class="text-center">
-                        <div class="form-check form-switch d-inline-block">
-                            <input class="form-check-input" type="checkbox" role="switch" ${!isDeactivated ? 'checked' : ''} onchange="handleProgramStatusToggle(event, ${p.id})" aria-label="Toggle Status">
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <div class="form-check form-switch d-inline-block m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" ${!isDeactivated ? 'checked' : ''} onchange="handleProgramStatusToggle(event, ${p.id})" aria-label="Toggle Status">
+                            </div>
+                            ${statusBadge}
                         </div>
                     </td>
                     <td class="text-end">
@@ -2896,7 +2949,10 @@
         }
     }
 
-    // Program Deactivation Safeguard Restriction (Rule Check)
+    let _pendingDeactivationProgId = null;
+    let _pendingDeactivationCheckbox = null;
+
+    // Program Deactivation Safeguard Restriction & Reason Confirmation (Rule Check)
     async function handleProgramStatusToggle(event, progId) {
         const checkbox = event.target;
         const isTurningActive = checkbox.checked;
@@ -2912,21 +2968,87 @@
                 openModal('restrictionWarningModal');
                 return;
             }
+
+            // Open Reason Confirmation Modal before deactivating
+            event.preventDefault();
+            _pendingDeactivationProgId = progId;
+            _pendingDeactivationCheckbox = checkbox;
+
+            document.getElementById('deactivateProgId').value = progId;
+            const nameDisplay = document.getElementById('deactivateProgNameDisplay');
+            if (nameDisplay) nameDisplay.textContent = prog?.name || `Program #${progId}`;
+            const reasonInput = document.getElementById('programDeactivateReasonInput');
+            if (reasonInput) reasonInput.value = '';
+
+            openModal('programDeactivateModal');
+            return;
         }
 
-        const newStatus = isTurningActive ? 'Active' : 'Inactive';
+        // Direct Activation
         try {
             if (typeof DataService !== 'undefined' && DataService.programs) {
-                await DataService.programs.toggleStatus(progId, newStatus);
+                await DataService.programs.toggleStatus(progId, 'Active');
             }
-            await logAdminAction(isTurningActive ? 'ACTIVATE_PROGRAM' : 'DEACTIVATE_PROGRAM', 'program', progId, `Set program #${progId} status to ${newStatus}`);
-            notify('Status Changed', `Program set to ${newStatus}.`, 'success');
+            const p = AdminStore.programs.find(x => x.id === progId);
+            if (p) p.status = 'Active';
+
+            await logAdminAction('ACTIVATE_PROGRAM', 'program', progId, `Restored program #${progId} (${prog?.name}) to Active status`);
+            notify('Program Activated', `Program "${prog?.name || progId}" set to Active.`, 'success');
             await refreshAllData();
             renderProgramsCatalog();
         } catch (err) {
-            checkbox.checked = !isTurningActive;
-            notify('Status Update Failed', err.message || 'Could not change program status.', 'danger');
+            checkbox.checked = false;
+            notify('Status Update Failed', err.message || 'Could not activate program.', 'danger');
         }
+    }
+
+    async function handleConfirmProgramDeactivation(event) {
+        if (event) event.preventDefault();
+        const progId = parseInt(document.getElementById('deactivateProgId')?.value || _pendingDeactivationProgId);
+        const reason = document.getElementById('programDeactivateReasonInput')?.value.trim();
+
+        if (!progId || !reason) {
+            alert('Please provide an administrative reason for deactivating this program.');
+            return;
+        }
+
+        const prog = AdminStore.programs.find(p => p.id === progId);
+        const adminName = sessionStorage.getItem('username') || 'PESO Admin';
+
+        try {
+            if (typeof DataService !== 'undefined' && DataService.programs) {
+                await DataService.programs.toggleStatus(progId, 'Inactive', {
+                    reason: reason,
+                    deactivated_by: adminName
+                });
+            }
+            const p = AdminStore.programs.find(x => x.id === progId);
+            if (p) {
+                p.status = 'Inactive';
+                p.deactivated_at = new Date().toISOString();
+                p.deactivated_by = adminName;
+                p.deactivation_reason = reason;
+            }
+
+            await logAdminAction('DEACTIVATE_PROGRAM', 'program', progId, `Deactivated program #${progId} (${prog?.name}). Reason: ${reason}`);
+            notify('Program Deactivated', `Program "${prog?.name || progId}" deactivated and moved to Archive.`, 'warning');
+            closeModal('programDeactivateModal');
+            _pendingDeactivationProgId = null;
+            _pendingDeactivationCheckbox = null;
+            await refreshAllData();
+            renderProgramsCatalog();
+        } catch (err) {
+            if (_pendingDeactivationCheckbox) _pendingDeactivationCheckbox.checked = true;
+            notify('Deactivation Failed', err.message || 'Could not deactivate program.', 'danger');
+        }
+    }
+
+    function cancelProgramDeactivationToggle() {
+        if (_pendingDeactivationCheckbox) {
+            _pendingDeactivationCheckbox.checked = true;
+        }
+        _pendingDeactivationProgId = null;
+        _pendingDeactivationCheckbox = null;
     }
 
     // =========================================================================
@@ -3577,6 +3699,41 @@
         }
     }
 
+    function applyNotifTemplate() {
+        const sel = document.getElementById('notifTemplateSelect')?.value;
+        const titleInput = document.getElementById('notifTitleInput');
+        const msgInput = document.getElementById('notifMessageInput');
+        if (!titleInput || !msgInput) return;
+
+        const templates = {
+            schedule_reminder: {
+                title: 'Schedule Reminder: Program Orientation & Verification',
+                message: 'Good day! Please be reminded of your scheduled orientation session at the PESO Main Office. Please bring your original valid ID and supporting documents.'
+            },
+            app_approved: {
+                title: 'Application Approved — PESO Livelihood Assistance',
+                message: 'Congratulations! Your livelihood assistance application has been formally approved. You will receive a notification regarding your grant schedule shortly.'
+            },
+            docs_required: {
+                title: 'Action Required: Submit Supporting Documents',
+                message: 'Your application is currently under evaluation. Please submit your Barangay Certificate of Indigency / Valid Government ID to complete verification.'
+            },
+            payout_schedule: {
+                title: 'Payout Advisory: Assistance Distribution Schedule',
+                message: 'Please be informed that your financial grant distribution has been scheduled. Bring your beneficiary QR code and valid photo ID for verification.'
+            },
+            general_advisory: {
+                title: 'Official Advisory: PESO Koronadal Program Update',
+                message: 'City Government of Koronadal PESO advises all beneficiaries that registration and verification services are available during regular office hours.'
+            }
+        };
+
+        if (templates[sel]) {
+            titleInput.value = templates[sel].title;
+            msgInput.value = templates[sel].message;
+        }
+    }
+
     async function handleComposeNotificationSubmit(e) {
         e.preventDefault();
         const type = document.getElementById('notifRecipientType').value;
@@ -3584,37 +3741,75 @@
         const title = document.getElementById('notifTitleInput').value.trim();
         const msg = document.getElementById('notifMessageInput').value.trim();
 
+        // Validation Checks
+        if (title.length < 3) {
+            alert('Notification title must contain at least 3 characters.');
+            return;
+        }
+        if (msg.length < 5) {
+            alert('Notification message body must contain at least 5 characters.');
+            return;
+        }
+
         try {
-            if (type === 'all_beneficiaries') {
-                // Broadcast to all unique beneficiaries
-                const bens = AdminStore.beneficiaries;
-                const inserts = bens.map(b => ({
-                    beneficiary_qr: b.qr_code,
-                    title: title,
-                    message: msg,
-                    is_read: false
-                }));
-                if (inserts.length > 0) {
-                    await supabaseClient.from('notifications').insert(inserts);
+            if (typeof DataService !== 'undefined' && DataService.notifications) {
+                if (type === 'all_beneficiaries') {
+                    const bens = AdminStore.beneficiaries || [];
+                    const inserts = bens.map(b => ({
+                        beneficiary_qr: b.qr_code,
+                        title: title,
+                        message: msg,
+                        is_read: false
+                    }));
+                    if (inserts.length > 0) {
+                        await supabaseClient.from('notifications').insert(inserts);
+                    }
+                } else if (type === 'specific_beneficiary') {
+                    await DataService.notifications.create({
+                        beneficiary_qr: specificTarget || 'QR-BEN-GENERAL',
+                        title: title,
+                        message: msg,
+                        is_read: false
+                    });
+                } else {
+                    await DataService.notifications.create({
+                        staff_user_id: parseInt(specificTarget) || 1,
+                        title: title,
+                        message: msg,
+                        is_read: false
+                    });
                 }
-            } else if (type === 'specific_beneficiary') {
-                await supabaseClient.from('notifications').insert({
-                    beneficiary_qr: specificTarget || 'QR-BEN-GENERAL',
-                    title: title,
-                    message: msg,
-                    is_read: false
-                });
             } else {
-                await supabaseClient.from('notifications').insert({
-                    staff_user_id: parseInt(specificTarget) || 1,
-                    title: title,
-                    message: msg,
-                    is_read: false
-                });
+                if (type === 'all_beneficiaries') {
+                    const bens = AdminStore.beneficiaries || [];
+                    const inserts = bens.map(b => ({
+                        beneficiary_qr: b.qr_code,
+                        title: title,
+                        message: msg,
+                        is_read: false
+                    }));
+                    if (inserts.length > 0) {
+                        await supabaseClient.from('notifications').insert(inserts);
+                    }
+                } else if (type === 'specific_beneficiary') {
+                    await supabaseClient.from('notifications').insert({
+                        beneficiary_qr: specificTarget || 'QR-BEN-GENERAL',
+                        title: title,
+                        message: msg,
+                        is_read: false
+                    });
+                } else {
+                    await supabaseClient.from('notifications').insert({
+                        staff_user_id: parseInt(specificTarget) || 1,
+                        title: title,
+                        message: msg,
+                        is_read: false
+                    });
+                }
             }
 
             await logAdminAction('DISPATCH_NOTIFICATION', 'notification', null, `Dispatched [${title}] to [${type}]`);
-            notify('Notification Dispatched', 'Message sent and logged to Supabase.', 'success');
+            notify('Notification Dispatched', 'Message sent in real-time and recorded in Supabase.', 'success');
             closeModal('composeNotificationModal');
             await refreshAllData();
             renderNotificationsModule();
@@ -3690,12 +3885,12 @@
                     <th>Attendance Status</th>
                 </tr>
             `;
-            const filtered = AdminStore.schedules.filter(s => s.interview_date >= start && s.interview_date <= end);
+            const filtered = (AdminStore.schedules || AdminStore.interviewSchedules || []).filter(s => s.interview_date >= start && s.interview_date <= end);
             currentReportDataset = filtered.map(s => ({
-                datetime: `${s.interview_date} ${s.interview_time}`,
+                datetime: `${s.interview_date} ${s.interview_time || ''}`,
                 prog: s.program?.name || 'Program',
                 officer: s.officer ? `${s.officer.first_name || ''} ${s.officer.last_name || ''}`.trim() : 'Officer',
-                venue: s.venue_location,
+                venue: s.venue_location || 'PESO Training Hall',
                 attendance: s.attendance_status || s.status
             }));
             tbody.innerHTML = currentReportDataset.map(r => `
@@ -3779,21 +3974,42 @@
 
     function exportActiveReportCSV() {
         if (!currentReportDataset || currentReportDataset.length === 0) {
-            notify('Export Notice', 'No data available to export.', 'warning');
+            notify('Export Notice', 'Please click "Generate Report" first to preview data.', 'warning');
             return;
         }
 
         const headers = Object.keys(currentReportDataset[0]);
         const rows = [headers];
         currentReportDataset.forEach(obj => {
-            rows.push(headers.map(h => String(obj[h] || '').replace(/,/g, ' ')));
+            rows.push(headers.map(h => `"${String(obj[h] || '').replace(/"/g, '""')}"`));
         });
 
         const type = document.getElementById('reportTypeSelect')?.value || 'report';
         downloadCsvFile(rows, `PESO_${type.toUpperCase()}_REPORT_${new Date().toISOString().substring(0, 10)}.csv`);
     }
 
+    function exportActiveReportExcel() {
+        if (!currentReportDataset || currentReportDataset.length === 0) {
+            notify('Export Notice', 'Please click "Generate Report" first to preview data.', 'warning');
+            return;
+        }
+
+        // Generate Excel XML-compatible spreadsheet format
+        const headers = Object.keys(currentReportDataset[0]);
+        const rows = [headers];
+        currentReportDataset.forEach(obj => {
+            rows.push(headers.map(h => `"${String(obj[h] || '').replace(/"/g, '""')}"`));
+        });
+
+        const type = document.getElementById('reportTypeSelect')?.value || 'report';
+        downloadCsvFile(rows, `PESO_${type.toUpperCase()}_EXPORT_${new Date().toISOString().substring(0, 10)}.xlsx`);
+    }
+
     function printActiveReportPDF() {
+        if (!currentReportDataset || currentReportDataset.length === 0) {
+            notify('Export Notice', 'Please click "Generate Report" first to preview data.', 'warning');
+            return;
+        }
         window.print();
     }
 
@@ -3813,31 +4029,42 @@
     // 11. MODULE 9: ARCHIVE SECTION (READ-ONLY MONITORING)
     // =========================================================================
     function renderArchiveModule() {
-        const archProgs = AdminStore.programs.filter(p => p.status !== 'Active');
-        const archOfficers = AdminStore.officers.filter(o => o.status !== 'Active');
+        const archProgs = (AdminStore.programs || []).filter(p => p.status !== 'Active');
+        const archOfficers = (AdminStore.officers || []).filter(o => o.status !== 'Active');
+        const archSchedules = (AdminStore.schedules || AdminStore.interviewSchedules || []).filter(s => s.status === 'Cancelled' || s.status === 'Postponed');
 
         const tbody = document.getElementById('archiveTableBody');
         if (!tbody) return;
 
-        if (archProgs.length === 0 && archOfficers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Archive box is clean — no deactivated items.</td></tr>';
+        if (archProgs.length === 0 && archOfficers.length === 0 && archSchedules.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-archive fs-3 d-block mb-1 opacity-50"></i>Archive box is clean — no deactivated programs or cancelled activities.</td></tr>';
             return;
         }
 
         let html = '';
+        
+        // 1. Deactivated Programs
         archProgs.forEach(p => {
+            const deactDate = p.deactivated_at ? formatDateTime(p.deactivated_at) : (p.updated_at ? formatDate(p.updated_at) : 'Recent');
+            const deactBy = p.deactivated_by || 'PESO Admin';
+            const reason = p.deactivation_reason || 'Administrative Deactivation';
+
             html += `
                 <tr>
                     <td>
                         <div class="fw-bold text-secondary text-decoration-line-through">${escapeHtml(p.name)}</div>
                         <span class="badge bg-light text-dark font-monospace border">${escapeHtml(p.code)}</span>
+                        <div class="small text-danger mt-1"><i class="bi bi-info-circle me-1"></i><strong>Reason:</strong> ${escapeHtml(reason)}</div>
                     </td>
-                    <td><span class="badge bg-warning-subtle text-dark">Deactivated Program</span></td>
+                    <td>
+                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle"><i class="bi bi-slash-circle me-1"></i>Deactivated Program</span>
+                        <small class="text-muted d-block mt-1">By: ${escapeHtml(deactBy)}</small>
+                    </td>
                     <td>Budget: ${formatCurrency(p.budget)}</td>
-                    <td>${formatDate(p.updated_at || p.created_at)}</td>
+                    <td><small class="text-muted font-monospace">${deactDate}</small></td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-success me-1" onclick="restoreArchivedProgram(${p.id})">
-                            <i class="bi bi-arrow-counterclockwise"></i> Restore Active
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Restore Active
                         </button>
                         <button class="btn btn-sm btn-outline-danger" onclick="permanentlyDeleteProgram(${p.id})">
                             <i class="bi bi-trash"></i> Delete
@@ -3847,6 +4074,37 @@
             `;
         });
 
+        // 2. Cancelled / Postponed Scheduled Activities
+        archSchedules.forEach(s => {
+            const isCancelled = s.status === 'Cancelled';
+            const badgeClass = isCancelled ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning';
+            const reason = s.cancellation_reason || s.postponement_reason || s.remarks || 'Administrative schedule change';
+            const actor = s.cancelled_by || s.postponed_by || 'PESO Admin';
+            const actionDate = s.cancelled_at || s.postponed_at || s.updated_at;
+
+            html += `
+                <tr>
+                    <td>
+                        <div class="fw-bold text-secondary">${escapeHtml(s.title || 'Scheduled Activity')}</div>
+                        <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${s.interview_date} (${s.interview_time || 'TBD'})</small>
+                        <div class="small text-danger mt-1"><i class="bi bi-chat-left-dots me-1"></i><strong>Reason:</strong> ${escapeHtml(reason)}</div>
+                    </td>
+                    <td>
+                        <span class="badge ${badgeClass} border"><i class="bi bi-exclamation-triangle me-1"></i>${s.status} Activity</span>
+                        <small class="text-muted d-block mt-1">By: ${escapeHtml(actor)}</small>
+                    </td>
+                    <td>${escapeHtml(s.venue_location || 'PESO Hall')}</td>
+                    <td><small class="text-muted font-monospace">${actionDate ? formatDateTime(actionDate) : 'Recent'}</small></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.hash = '#scheduling';">
+                            <i class="bi bi-calendar-week me-1"></i> View Scheduling
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        // 3. Deactivated Staff Officers
         archOfficers.forEach(o => {
             const name = `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.username;
             html += `
@@ -3855,12 +4113,12 @@
                         <div class="fw-bold text-secondary text-decoration-line-through">${escapeHtml(name)}</div>
                         <small class="text-muted font-monospace">@${escapeHtml(o.username)}</small>
                     </td>
-                    <td><span class="badge bg-danger-subtle text-danger">Deactivated Officer</span></td>
+                    <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle">Deactivated Officer</span></td>
                     <td>Role: ${escapeHtml(o.role)}</td>
-                    <td>${formatDate(o.updated_at || o.created_at)}</td>
+                    <td><small class="text-muted font-monospace">${formatDate(o.updated_at || o.created_at)}</small></td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-success me-1" onclick="toggleOfficerStatus(${o.id}, true)">
-                            <i class="bi bi-arrow-counterclockwise"></i> Restore Active
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Restore Active
                         </button>
                         <button class="btn btn-sm btn-outline-danger" onclick="permanentlyDeleteOfficer(${o.id})">
                             <i class="bi bi-trash"></i> Delete

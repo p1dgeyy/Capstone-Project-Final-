@@ -624,10 +624,27 @@ async function executeEvalDecision(decision) {
 
             if (typeof DataService !== 'undefined' && DataService.applications) {
                 try {
-                    await DataService.applications.update(app.id, {
-                        status: decision === 'Approved' ? 'Approved' : (decision === 'Denied' ? 'Denied' : 'Pending Requirements'),
-                        remarks: notes
-                    });
+                    if (decision === 'Approved') {
+                        await DataService.applications.adminApprove(app.id, {
+                            notes: notes || 'Approved by PESO Admin',
+                            admin_id: parseInt(sessionStorage.getItem('userId')) || 1,
+                            admin_username: sessionStorage.getItem('username') || 'PESO Admin'
+                        });
+                    } else if (decision === 'Denied') {
+                        await DataService.applications.adminDeny(app.id, {
+                            reason: notes,
+                            rejection_reason: notes,
+                            rejection_category: 'Incomplete Eligibility Requirements',
+                            admin_id: parseInt(sessionStorage.getItem('userId')) || 1,
+                            admin_username: sessionStorage.getItem('username') || 'PESO Admin'
+                        });
+                    } else {
+                        await DataService.applications.update(app.id, {
+                            status: 'Pending Requirements',
+                            remarks: notes,
+                            updated_at: new Date().toISOString()
+                        });
+                    }
                 } catch (err) {
                     console.warn('[EVALUATION] Supabase application update notice:', err);
                 }

@@ -1305,9 +1305,21 @@ async function handlePostponeActivitySubmit(event) {
             }).eq('id', id);
         }
 
+        const act = activitiesList.find(a => String(a.id) === String(id));
+        if (act) {
+            act.status = 'Postponed';
+            act.postponement_reason = reason;
+            act.postponed_at = new Date().toISOString();
+        }
+
         safeHideModal('postponeActivityModal');
-        alert('Success: Activity status updated to Postponed (Yellow). Administrative log recorded.');
+        if (window.showSystemNotification) {
+            window.showSystemNotification({ title: 'Activity Postponed', message: 'Activity marked as Postponed (Yellow).', type: 'warning' });
+        } else {
+            alert('Success: Activity status updated to Postponed (Yellow).');
+        }
         await initSchedulingModuleData();
+        if (typeof renderArchiveModule === 'function') renderArchiveModule();
     } catch (err) {
         console.error('[SCHEDULING] Postpone error:', err);
         alert(`Error postponing activity: ${err.message || err}`);
@@ -1357,9 +1369,21 @@ async function handleCancelActivitySubmit(event) {
             }).eq('id', id);
         }
 
+        const act = activitiesList.find(a => String(a.id) === String(id));
+        if (act) {
+            act.status = 'Cancelled';
+            act.cancellation_reason = reason;
+            act.cancelled_at = new Date().toISOString();
+        }
+
         safeHideModal('cancelActivityModal');
-        alert('Success: Activity cancelled and moved to Archive Box while retained on historical calendar.');
+        if (window.showSystemNotification) {
+            window.showSystemNotification({ title: 'Activity Cancelled', message: 'Activity cancelled and moved to Archive Box.', type: 'danger' });
+        } else {
+            alert('Success: Activity cancelled and moved to Archive Box.');
+        }
         await initSchedulingModuleData();
+        if (typeof renderArchiveModule === 'function') renderArchiveModule();
     } catch (err) {
         console.error('[SCHEDULING] Cancel error:', err);
         alert(`Error cancelling activity: ${err.message || err}`);

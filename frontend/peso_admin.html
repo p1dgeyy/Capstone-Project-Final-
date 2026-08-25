@@ -550,15 +550,29 @@
             <div id="programsLevel1View">
                 <div class="content-card">
                     <div class="card-header-custom d-flex flex-wrap align-items-center justify-content-between gap-3">
-                        <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 260px; max-width: 500px;">
+                        <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 260px; max-width: 480px;">
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
                                 <input type="text" class="form-control border-start-0 bg-light" id="programsSearchInput"
                                     placeholder="Search by program name, code, category..." oninput="filterProgramsCatalog()" aria-label="Search programs">
                             </div>
                         </div>
+                        
+                        <!-- Status Filter Chip Bar -->
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Program Status Filter Chips">
+                            <button type="button" class="btn btn-primary fw-semibold px-3 active" id="chipFilterAll" onclick="setProgramStatusFilter('ALL')">
+                                All <span class="badge bg-white text-primary ms-1" id="chipCountAll">14</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary fw-semibold px-3" id="chipFilterActive" onclick="setProgramStatusFilter('Active')">
+                                Active <span class="badge bg-primary text-white ms-1" id="chipCountActive">14</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger fw-semibold px-3" id="chipFilterInactive" onclick="setProgramStatusFilter('Inactive')">
+                                Deactivated <span class="badge bg-danger text-white ms-1" id="chipCountInactive">0</span>
+                            </button>
+                        </div>
+
                         <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <select class="form-select bg-light" id="programsStatusFilter" style="width: 140px;" onchange="filterProgramsCatalog()" aria-label="Programs Status Filter">
+                            <select class="form-select bg-light d-none" id="programsStatusFilter" style="width: 140px;" onchange="filterProgramsCatalog()" aria-label="Programs Status Filter">
                                 <option value="ALL">All Status</option>
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Deactivated</option>
@@ -1426,14 +1440,8 @@
                             <input type="date" class="form-control" id="reportEndDate" value="2026-12-31" onchange="generateReportData()">
                         </div>
                         <div class="col-12 col-md-4 d-flex gap-2">
-                            <button class="btn btn-primary fw-bold flex-grow-1" onclick="generateReportData()">
+                            <button class="btn btn-primary fw-bold w-100 py-2 shadow-sm" onclick="generateReportData()">
                                 <i class="bi bi-play-circle-fill me-1"></i> Generate Report
-                            </button>
-                            <button class="btn btn-outline-success fw-semibold" onclick="exportActiveReportCSV()" title="Export CSV">
-                                <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> CSV
-                            </button>
-                            <button class="btn btn-outline-danger fw-semibold" onclick="printActiveReportPDF()" title="Print / PDF View">
-                                <i class="bi bi-printer-fill me-1"></i> PDF
                             </button>
                         </div>
                     </div>
@@ -1442,12 +1450,39 @@
 
             <!-- Report Results View Canvas -->
             <div class="content-card mb-0">
-                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                <div class="card-header-custom d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
                         <h5 class="fw-bold mb-0 text-dark" id="reportTitleHeader">Generated Report Preview</h5>
                         <small class="text-muted" id="reportSubtitleHeader">Displaying matching live records from Supabase.</small>
                     </div>
-                    <span class="badge bg-light text-dark border px-3 py-1.5" id="reportTotalRecordsBadge">0 Records</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark border px-3 py-2 fw-bold" id="reportTotalRecordsBadge">0 Records</span>
+                        
+                        <!-- Post-Generation Export Dropdown Menu -->
+                        <div class="dropdown">
+                            <button class="btn btn-success fw-bold dropdown-toggle px-3 shadow-sm" type="button" id="exportReportDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-download me-1"></i> Export / Download
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" aria-labelledby="exportReportDropdownBtn">
+                                <li>
+                                    <button class="dropdown-item py-2 fw-semibold" onclick="exportActiveReportCSV()">
+                                        <i class="bi bi-file-earmark-spreadsheet text-success me-2 fs-5 align-middle"></i> Download CSV (.csv)
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item py-2 fw-semibold" onclick="exportActiveReportExcel()">
+                                        <i class="bi bi-file-earmark-excel text-primary me-2 fs-5 align-middle"></i> Download Excel (.xlsx)
+                                    </button>
+                                </li>
+                                <li><hr class="dropdown-divider my-1"></li>
+                                <li>
+                                    <button class="dropdown-item py-2 fw-semibold" onclick="printActiveReportPDF()">
+                                        <i class="bi bi-printer text-danger me-2 fs-5 align-middle"></i> Print / Export PDF
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
                 <div class="table-responsive p-2" id="reportCanvasContainer">
                     <table class="table table-custom align-middle mb-0" id="reportDisplayTable">
@@ -2864,6 +2899,17 @@
                             <input type="text" class="form-control font-monospace" id="notifSpecificRecipient" placeholder="e.g. QR-BEN-XXXXXXXX">
                         </div>
                         <div class="mb-3">
+                            <label for="notifTemplateSelect" class="form-label fw-semibold text-primary"><i class="bi bi-magic me-1"></i>Pre-Built Message Template (Optional)</label>
+                            <select class="form-select bg-primary-subtle border-primary-subtle" id="notifTemplateSelect" onchange="applyNotifTemplate()">
+                                <option value="">-- Choose a standard notification template --</option>
+                                <option value="schedule_reminder">Schedule Reminder: Orientation & Briefing</option>
+                                <option value="app_approved">Application Status: Approved for Assistance</option>
+                                <option value="docs_required">Action Required: Submit Additional Verification Documents</option>
+                                <option value="payout_schedule">Payout & Grant Distribution Notice</option>
+                                <option value="general_advisory">Official PESO Program Advisory</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label for="notifTitleInput" class="form-label fw-semibold">Notification Title <span class="text-danger">*</span></label>
                             <input type="text" class="form-control fw-bold" id="notifTitleInput" placeholder="e.g. Schedule Confirmation: TUPAD Orientation" required>
                         </div>
@@ -3020,6 +3066,80 @@
                 <div class="modal-footer bg-light rounded-bottom-4 justify-content-center">
                     <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Acknowledge</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 15: Program Deactivation Reason Confirmation Modal -->
+    <div class="modal fade" id="programDeactivateModal" tabindex="-1" aria-labelledby="progDeactModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-danger text-white rounded-top-4 py-3">
+                    <h5 class="modal-title fw-bold mb-0" id="progDeactModalTitle">
+                        <i class="bi bi-exclamation-octagon-fill me-2"></i>Confirm Program Deactivation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="programDeactivateForm" onsubmit="handleConfirmProgramDeactivation(event)">
+                    <input type="hidden" id="deactivateProgId">
+                    <div class="modal-body p-4">
+                        <div class="alert alert-warning border-warning-subtle d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-info-circle-fill fs-4 text-warning flex-shrink-0"></i>
+                            <div class="small">
+                                Deactivating <strong id="deactivateProgNameDisplay">this program</strong> will temporarily suspend intake and move it to the Archive view.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="programDeactivateReasonInput" class="form-label fw-bold">Reason for Deactivation <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="programDeactivateReasonInput" rows="3" placeholder="Specify administrative justification (e.g. Budget exhausted, Intake period concluded, Replaced by updated ordinance)..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelProgramDeactivationToggle()">Cancel</button>
+                        <button type="submit" class="btn btn-danger fw-bold px-4"><i class="bi bi-power me-1"></i> Confirm Deactivation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 16: Application Rejection Reason Modal -->
+    <div class="modal fade" id="evalRejectionModal" tabindex="-1" aria-labelledby="evalRejectionModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-danger text-white rounded-top-4 py-3">
+                    <h5 class="modal-title fw-bold mb-0" id="evalRejectionModalTitle">
+                        <i class="bi bi-x-circle-fill me-2"></i>Disapprove / Reject Application
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="evalRejectionForm" onsubmit="handleConfirmApplicationRejection(event)">
+                    <input type="hidden" id="rejectAppId">
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Applicant</label>
+                            <div class="form-control-plaintext fw-bold text-dark" id="rejectApplicantNameDisplay">-</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rejectCategorySelect" class="form-label fw-bold">Rejection Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="rejectCategorySelect" required>
+                                <option value="Incomplete Eligibility Requirements">Incomplete / Unverified Supporting Documents</option>
+                                <option value="Income / Qualification Ceiling Exceeded">Income / Qualification Ceiling Exceeded</option>
+                                <option value="Duplicate Program Enrollment">Duplicate Program Enrollment</option>
+                                <option value="Non-Resident / Outside Jurisdiction">Non-Resident / Outside Jurisdiction</option>
+                                <option value="Other Administrative Justification">Other Administrative Justification</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rejectReasonInput" class="form-label fw-bold">Specific Rejection Reason / Note <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="rejectReasonInput" rows="3" placeholder="State specific reason visible to beneficiary and recorded in audit trail..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger fw-bold px-4"><i class="bi bi-x-octagon-fill me-1"></i> Disapprove & Notify</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
