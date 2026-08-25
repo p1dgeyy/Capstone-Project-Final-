@@ -2729,70 +2729,63 @@
     </div>
 
     <!-- Apply for Assistance Modal -->
-    <div class="modal-overlay" id="applyModal">
-        <div class="modal-content-custom" style="max-width: 580px;">
-            <div class="modal-header-custom">
-                <h3 class="modal-title-custom"><i class="bi bi-plus-circle-fill text-primary me-2"></i>Apply for Assistance</h3>
+    <div class="modal-overlay" id="applyModal" style="z-index: 2600;">
+        <div class="modal-content-custom" style="max-width: 620px; max-height: 90vh; overflow-y: auto; border-radius: 16px;">
+            <div class="modal-header-custom d-flex justify-content-between align-items-center border-bottom pb-3" style="border-color: #ebdce2 !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-arrow-up-fill fs-4" style="color: var(--rose-primary);"></i>
+                    <h3 class="modal-title-custom m-0" style="font-size: 1.25rem;">Apply for Assistance</h3>
+                </div>
                 <button class="modal-close-custom" onclick="closeModal('applyModal')">&times;</button>
             </div>
-            <div class="modal-body-custom">
-                <div class="form-group mb-3">
-                    <label class="form-label-custom">Select Program or Assistance Type <span class="text-danger">*</span></label>
-                    <select class="form-control-custom" id="assistanceType" onchange="onAssistanceTypeChanged()" aria-label="Assistance Type" required>
-                        <option value="">Choose program / assistance...</option>
-                        <optgroup label="PESO Programs (Livelihood & Employment)">
-                            <option value="Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers">Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)</option>
-                            <option value="Special Program for Employment of Students">Special Program for Employment of Students (SPES)</option>
-                            <option value="Government Internship Program">Government Internship Program (GIP)</option>
-                            <option value="City of Koronadal Government Internship Program (CKGIP)">City of Koronadal Government Internship Program (CKGIP)</option>
-                            <option value="Koronadal Emergency Employment Program (KEEP)">Koronadal Emergency Employment Program (KEEP)</option>
-                            <option value="Pangkabuhayan Financial Assistance (PFAS)">Pangkabuhayan Financial Assistance (PFAS)</option>
-                            <option value="Support to DOLE Integrated Livelihood Program (DILP)">Support to DOLE Integrated Livelihood Program (DILP)</option>
-                            <option value="Livelihood/Skills Training Program">Livelihood/Skills Training Program</option>
-                            <option value="OFW Family Circle Day & Reintegration">OFW Family Circle Day & Reintegration</option>
-                            <option value="Support to Parokya ni OWN A Program">Support to Parokya ni OWWA Program</option>
-                            <option value="Support to Returning OFWs Program (ROFWS)">Support to Returning OFWs Program (ROFWS)</option>
-                            <option value="Job Placement & Referral Program">Job Placement & Referral Program</option>
-                            <option value="Association & Cooperative Facilitation">Association & Cooperative Facilitation</option>
-                            <option value="Conduct of Mega & Barangay Job Fairs">Conduct of Mega & Barangay Job Fairs</option>
-                            <option value="Development of Localized Job Portal">Development of Localized Job Portal</option>
-                            <option value="Skills Training Voucher Program">Skills Training Voucher Program</option>
-                            <option value="Livelihood Starter Kit Assistance Program">Livelihood Starter Kit Assistance Program</option>
-                        </optgroup>
-                        <optgroup label="CSWDO Assistance Applications (Social Welfare & Crisis)">
-                            <option value="Medical Assistance">Medical Assistance (Hospitalization, Medicines & Diagnostic Tests)</option>
-                            <option value="Burial Assistance">Burial Assistance (Funeral & Mortuary Support)</option>
-                            <option value="Financial Assistance">Financial Assistance (Crisis Intervention Emergency Relief)</option>
-                        </optgroup>
-                    </select>
-                </div>
-
-                <!-- Dynamic Program-Specific Required Documents Checklist -->
-                <div id="programRequiredDocsBox" class="required-docs-checklist" style="display: none;">
-                    <h6><i class="bi bi-file-earmark-check-fill"></i> Required Documents for <span id="reqDocsProgramName">Selected Program</span>:</h6>
-                    <ul id="reqDocsList"></ul>
-                    <small class="text-danger fw-semibold d-block mt-2"><i class="bi bi-asterisk"></i> Mandatory: You must attach at least one required document below before submission can proceed.</small>
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="form-label-custom">Reason / Purpose of Request <span class="text-danger">*</span></label>
-                    <textarea class="form-control-custom" id="assistanceReason" rows="3" placeholder="State your circumstances and reason for requesting assistance..." aria-label="Describe why you need assistance" required></textarea>
-                </div>
-
-                <div class="form-group mb-2">
-                    <label class="form-label-custom">Upload Supporting Documents <span class="text-danger">*</span></label>
-                    <div class="upload-zone" onclick="document.getElementById('fileInput').click()" id="applyUploadZone">
-                        <i class="bi bi-cloud-arrow-up text-primary fs-2"></i>
-                        <div class="upload-zone-text">Click to browse or drag & drop files</div>
-                        <small style="color: #888;">PDF, JPG, PNG (Max 5MB each)</small>
+            <div class="modal-body-custom p-4">
+                <!-- 1. Fixed Program Identification Header Banner (Replaces dropdown) -->
+                <div class="p-3 mb-3 rounded-3 border shadow-sm" style="border-color: #ebdce2 !important; background-color: #fff9fa !important;">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+                        <span class="office-badge peso" id="applyModalProgramAgency">PESO</span>
+                        <span class="font-monospace small text-muted"><i class="bi bi-tag-fill me-1 text-secondary"></i>Code: <strong class="text-dark" id="applyModalProgramCode">TUPAD</strong></span>
                     </div>
-                    <input type="file" id="fileInput" style="display: none;" multiple onchange="handleFileSelect(this, 'applySelectedFiles')" aria-label="File">
-                    <div class="selected-files-list mt-2" id="applySelectedFiles"></div>
+                    <h4 class="fw-bold mb-1" id="applyModalProgramTitle" style="color: var(--rose-dark); font-size: 1.15rem;">Program Name</h4>
+                    <small class="text-muted d-block" id="applyModalProgramCategory">Category</small>
+                    <input type="hidden" id="assistanceType" value="">
+                </div>
+
+                <!-- 2. Request Reason Field (Optional) -->
+                <div class="form-group mb-3">
+                    <label class="form-label-custom d-flex justify-content-between align-items-center">
+                        <span>Reason / Purpose of Request <span class="text-muted small fw-normal">(Optional)</span></span>
+                        <small class="text-muted" style="font-size: 0.75rem;">Describe circumstances if applicable</small>
+                    </label>
+                    <textarea class="form-control-custom" id="assistanceReason" rows="2" placeholder="State your circumstances or purpose (optional)..." aria-label="Describe why you need assistance"></textarea>
+                </div>
+
+                <!-- 3 & 4. Upload Documents Section & Dynamic Checklist -->
+                <div class="form-group mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label-custom mb-0 fw-bold text-dark">Upload Documents <span class="text-danger">*</span></label>
+                        <small class="text-muted" style="font-size: 0.75rem;">PDF, PNG, JPG (Max 5MB each)</small>
+                    </div>
+                    <p class="small text-muted mb-2">Upload each required document below. All items must turn green before submission is enabled.</p>
+                    
+                    <!-- Dynamic Checklist Container -->
+                    <div class="d-flex flex-column gap-2 mb-2" id="applyModalRequirementsList">
+                        <!-- Loaded dynamically based on selected program -->
+                    </div>
+
+                    <!-- Hidden File Input for Modal Checklist Uploader -->
+                    <input type="file" id="applyModalDocInput" style="display: none;" onchange="handleModalDocSelect(this)" accept=".pdf,.png,.jpg,.jpeg,image/png,image/jpeg,application/pdf" aria-label="Upload Required Document">
+
+                    <!-- Inline Global Error Banner if incomplete -->
+                    <div id="applyModalValidationMsg" class="alert alert-danger py-2 px-3 small mt-2 rounded-3" style="display: none;">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="applyModalValidationText">Please upload all required documents.</span>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer-custom">
+            <div class="modal-footer-custom d-flex justify-content-between align-items-center p-3 bg-light border-top" style="border-color: #ebdce2 !important;">
                 <button type="button" class="btn-outline-rose" style="width: auto;" onclick="closeModal('applyModal')">Cancel</button>
-                <button type="button" class="btn-primary-rose" style="width: auto;" onclick="submitApplication()">Submit Application</button>
+                <button type="button" class="btn-primary-rose" id="submitApplyBtn" style="width: auto;" onclick="submitApplication()">
+                    <i class="bi bi-send-check me-1"></i> Submit Application
+                </button>
             </div>
         </div>
     </div>
@@ -4810,69 +4803,284 @@
             'Financial Assistance': 'FINANCIAL'
         };
 
-        let selectedUploadedFilesBase64 = [];
+        // --- APPLICATION MODAL & DYNAMIC CHECKLIST STATE ---
+        let modalUploadedDocs = {};
+        let modalDocErrors = {};
+        let currentApplyProgram = null;
 
-        function handleFileSelect(input, targetDivId) {
-            const files = input.files;
-            const targetDiv = document.getElementById(targetDivId);
-            if (!targetDiv) return;
+        // Apply for program & initialize fixed Program Identification banner + Required Documents Checklist
+        function applyForProgram(programName) {
+            const catalog = liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
+            let program = null;
 
-            selectedUploadedFilesBase64 = [];
-            targetDiv.innerHTML = '';
+            if (programName) {
+                program = catalog.find(p => p.name === programName || p.code === programName || p.name.toLowerCase() === programName.toLowerCase() || p.code.toLowerCase() === programName.toLowerCase());
+                if (!program) {
+                    program = ALL_LIVELIHOOD_CATALOG.find(p => p.name === programName || p.code === programName || p.name.toLowerCase() === programName.toLowerCase() || p.code.toLowerCase() === programName.toLowerCase());
+                }
+            }
 
-            if (!files || files.length === 0) return;
+            if (!program) {
+                program = catalog[0] || ALL_LIVELIHOOD_CATALOG[0];
+            }
 
-            Array.from(files).forEach((file, index) => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    selectedUploadedFilesBase64.push({
+            currentApplyProgram = program;
+
+            // 1. Program Identification: Fixed Header/Title & Metadata
+            const hiddenType = document.getElementById('assistanceType');
+            if (hiddenType) hiddenType.value = program.name;
+
+            const titleEl = document.getElementById('applyModalProgramTitle');
+            if (titleEl) titleEl.textContent = program.name;
+
+            const agencyEl = document.getElementById('applyModalProgramAgency');
+            if (agencyEl) {
+                const isCswdo = program.agency === 'CSWDO';
+                agencyEl.textContent = program.agency || (isCswdo ? 'CSWDO' : 'PESO');
+                agencyEl.className = `office-badge ${isCswdo ? 'cswdo' : 'peso'}`;
+            }
+
+            const codeEl = document.getElementById('applyModalProgramCode');
+            if (codeEl) codeEl.textContent = program.code || 'LIVELIHOOD';
+
+            const catEl = document.getElementById('applyModalProgramCategory');
+            if (catEl) catEl.textContent = program.category || (program.agency === 'CSWDO' ? 'Crisis Assistance' : 'Employment & Livelihood');
+
+            // 2. Clear Reason Field (Optional)
+            const reasonEl = document.getElementById('assistanceReason');
+            if (reasonEl) reasonEl.value = '';
+
+            // 3. Clear Validation Banner
+            const errorBanner = document.getElementById('applyModalValidationMsg');
+            if (errorBanner) errorBanner.style.display = 'none';
+
+            // 4. Initialize modalUploadedDocs: auto-seed any pre-attached files from View Details
+            modalUploadedDocs = {};
+            modalDocErrors = {};
+
+            const requirements = program.requirements || ['Valid Government Photo ID', 'Barangay Certificate of Indigency'];
+            requirements.forEach(reqDoc => {
+                const viewDetailsKey = `${program.name}:::${reqDoc}`;
+                if (requirementUploadedDocs[viewDetailsKey]) {
+                    const pre = requirementUploadedDocs[viewDetailsKey];
+                    modalUploadedDocs[reqDoc] = {
+                        name: pre.name,
+                        size: pre.size,
+                        type: pre.type,
+                        dataUrl: pre.data || pre.dataUrl,
+                        status: 'Ready',
+                        requirementName: reqDoc
+                    };
+                }
+            });
+
+            // 5. Render dynamic checklist
+            renderApplyModalRequirements(program.name);
+
+            // 6. Open Modal
+            openModal('applyModal');
+        }
+        window.applyForProgram = applyForProgram;
+
+        // Render dynamic required documents checklist in Application Modal
+        function renderApplyModalRequirements(progName) {
+            const container = document.getElementById('applyModalRequirementsList');
+            if (!container) return;
+
+            const program = currentApplyProgram || ALL_LIVELIHOOD_CATALOG.find(p => p.name === progName || p.code === progName) || ALL_LIVELIHOOD_CATALOG[0];
+            const requirements = (program && program.requirements) ? program.requirements : ['Valid Government Photo ID', 'Barangay Certificate of Indigency'];
+
+            let attachedCount = 0;
+
+            const rowsHtml = requirements.map((reqDoc, idx) => {
+                const isAttached = Boolean(modalUploadedDocs[reqDoc]);
+                const doc = modalUploadedDocs[reqDoc];
+                const errorMsg = modalDocErrors[reqDoc];
+                const escapedReq = reqDoc.replace(/'/g, "\\'");
+
+                if (isAttached && doc) {
+                    attachedCount++;
+                    const shortName = doc.name.length > 28 ? (doc.name.substring(0, 25) + '...') : doc.name;
+                    return `
+                        <div class="p-2.5 px-3 border rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2 shadow-sm transition-all" style="border-color: #28a745 !important; background-color: #f0fff4 !important;">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                <div>
+                                    <div class="fw-bold text-success small">${reqDoc}</div>
+                                    <div class="text-success" style="font-size: 0.75rem;">
+                                        <i class="bi bi-file-earmark-check-fill me-1"></i>${shortName} <span class="text-muted">(${Math.round(doc.size / 1024)} KB)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-1.5">
+                                <button type="button" class="btn btn-sm btn-outline-success py-1 px-2.5 rounded-pill" onclick="triggerModalDocUpload('${escapedReq}')" title="Replace this document" style="font-size: 0.78rem;">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Replace
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2 rounded-circle" onclick="removeModalDoc('${escapedReq}')" title="Remove attached file" style="font-size: 0.78rem; line-height: 1;">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="p-2.5 px-3 border rounded-3 d-flex flex-column gap-1 shadow-sm transition-all" style="border-color: ${errorMsg ? '#dc3545' : '#cbd5e1'} !important; background-color: ${errorMsg ? '#fff5f5' : '#fafafa'} !important;">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-circle ${errorMsg ? 'text-danger' : 'text-secondary'} fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold ${errorMsg ? 'text-danger' : 'text-dark'} small">${reqDoc}</div>
+                                        <span class="badge ${errorMsg ? 'bg-danger-subtle text-danger border border-danger' : 'bg-light text-secondary border'}" style="font-size: 0.72rem;">
+                                            <i class="bi ${errorMsg ? 'bi-exclamation-circle' : 'bi-dash'} me-1"></i>${errorMsg ? 'Action Required' : 'Required - Not uploaded'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm ${errorMsg ? 'btn-danger' : 'btn-outline-dark'} py-1 px-3 rounded-pill fw-semibold shadow-sm" onclick="triggerModalDocUpload('${escapedReq}')" style="font-size: 0.8rem;">
+                                    <i class="bi bi-cloud-arrow-up me-1"></i> Upload File
+                                </button>
+                            </div>
+                            ${errorMsg ? `<div class="text-danger small mt-1 ps-4" style="font-size: 0.78rem;"><i class="bi bi-exclamation-triangle-fill me-1"></i>${errorMsg}</div>` : ''}
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            const allComplete = attachedCount === requirements.length;
+            const summaryBadge = `
+                <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                    <small class="fw-bold ${allComplete ? 'text-success' : 'text-muted'}">
+                        <i class="bi ${allComplete ? 'bi-check2-all text-success fs-6' : 'bi-card-checklist'} me-1"></i>
+                        Documents Attached: ${attachedCount} of ${requirements.length} Required
+                    </small>
+                    <span class="badge ${allComplete ? 'bg-success' : 'bg-secondary'} rounded-pill" style="font-size: 0.72rem;">
+                        ${allComplete ? 'All Ready for Submission' : 'Incomplete'}
+                    </span>
+                </div>
+            `;
+
+            container.innerHTML = summaryBadge + rowsHtml;
+        }
+        window.renderApplyModalRequirements = renderApplyModalRequirements;
+
+        // Trigger file picker for specific requirement in Application Modal
+        function triggerModalDocUpload(reqDoc) {
+            window._modalUploadingReqDoc = reqDoc;
+            const input = document.getElementById('applyModalDocInput');
+            if (input) {
+                input.value = '';
+                input.click();
+            }
+        }
+        window.triggerModalDocUpload = triggerModalDocUpload;
+
+        // Handle file selection and validate (File type: PDF/PNG/JPG, Max size: 5MB)
+        function handleModalDocSelect(input) {
+            if (!input || !input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const reqDoc = window._modalUploadingReqDoc;
+            if (!reqDoc) return;
+
+            // 1. File size validation (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                modalDocErrors[reqDoc] = `File "${file.name}" exceeds the 5MB limit (${(file.size / 1024 / 1024).toFixed(1)}MB). Please upload a smaller file.`;
+                delete modalUploadedDocs[reqDoc];
+                renderApplyModalRequirements(currentApplyProgram ? currentApplyProgram.name : '');
+                return;
+            }
+
+            // 2. File type validation (PDF, JPG, PNG)
+            const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            if (!allowedExtensions.includes(fileExt)) {
+                modalDocErrors[reqDoc] = `Invalid file format (.${fileExt}). Please upload a PDF, PNG, or JPG document.`;
+                delete modalUploadedDocs[reqDoc];
+                renderApplyModalRequirements(currentApplyProgram ? currentApplyProgram.name : '');
+                return;
+            }
+
+            // 3. File is valid: Read as Base64 DataURL and mark green
+            delete modalDocErrors[reqDoc];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                modalUploadedDocs[reqDoc] = {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type || 'application/octet-stream',
+                    dataUrl: e.target.result,
+                    requirementName: reqDoc,
+                    status: 'Ready'
+                };
+
+                // Also sync to View Details state so user sees it in both places
+                if (currentApplyProgram) {
+                    const key = `${currentApplyProgram.name}:::${reqDoc}`;
+                    requirementUploadedDocs[key] = {
                         name: file.name,
                         size: file.size,
-                        type: file.type || 'application/octet-stream',
-                        dataUrl: e.target.result,
-                        status: 'Submitted'
-                    });
-                };
-                reader.readAsDataURL(file);
+                        type: file.type || 'application/pdf',
+                        data: e.target.result,
+                        requirementName: reqDoc,
+                        programName: currentApplyProgram.name,
+                        status: 'Ready'
+                    };
+                    renderOverviewRequirements(currentApplyProgram.name);
+                }
 
-                const fileBadge = document.createElement('div');
-                fileBadge.className = 'badge bg-light text-dark border p-2 d-flex align-items-center justify-content-between mb-1';
-                fileBadge.innerHTML = `
-                    <div>
-                        <i class="bi bi-file-earmark-check text-primary me-1"></i>
-                        <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)
-                    </div>
-                `;
-                targetDiv.appendChild(fileBadge);
-            });
+                // Hide validation banner if all are now attached
+                const errorBanner = document.getElementById('applyModalValidationMsg');
+                if (errorBanner) errorBanner.style.display = 'none';
+
+                renderApplyModalRequirements(currentApplyProgram ? currentApplyProgram.name : '');
+            };
+            reader.readAsDataURL(file);
         }
-        window.handleFileSelect = handleFileSelect;
+        window.handleModalDocSelect = handleModalDocSelect;
 
-        // Submit application
+        // Remove an uploaded document from the modal checklist
+        function removeModalDoc(reqDoc) {
+            delete modalUploadedDocs[reqDoc];
+            delete modalDocErrors[reqDoc];
+            if (currentApplyProgram) {
+                const key = `${currentApplyProgram.name}:::${reqDoc}`;
+                delete requirementUploadedDocs[key];
+                renderOverviewRequirements(currentApplyProgram.name);
+            }
+            renderApplyModalRequirements(currentApplyProgram ? currentApplyProgram.name : '');
+        }
+        window.removeModalDoc = removeModalDoc;
+
+        // Submit Application with Dynamic Checklist Validation
         async function submitApplication() {
-            const type = document.getElementById('assistanceType').value;
-            const reason = document.getElementById('assistanceReason').value.trim();
-            const fileInput = document.getElementById('fileInput');
-            const files = fileInput ? fileInput.files : [];
+            const program = currentApplyProgram || ALL_LIVELIHOOD_CATALOG.find(p => p.name === document.getElementById('assistanceType').value) || ALL_LIVELIHOOD_CATALOG[0];
+            const type = program ? program.name : (document.getElementById('assistanceType').value || 'TUPAD');
+            const reason = document.getElementById('assistanceReason').value.trim(); // Optional!
+            const errorBanner = document.getElementById('applyModalValidationMsg');
+            const errorText = document.getElementById('applyModalValidationText');
 
-            // 1. Program selection validation
-            if (!type) {
-                alert('Validation Error: Please select an assistance program or assistance type.');
-                return;
-            }
-            
-            // 2. Reason validation
-            if (!reason) {
-                alert('Validation Error: Please describe the reason or purpose for your assistance request.');
+            // 1. Mandatory Document Upload Validation: Check that ALL required checklist items are marked green
+            const requirements = (program && program.requirements) ? program.requirements : ['Valid Government Photo ID', 'Barangay Certificate of Indigency'];
+            const missingDocs = [];
+
+            requirements.forEach(req => {
+                if (!modalUploadedDocs[req]) {
+                    missingDocs.push(req);
+                    modalDocErrors[req] = 'Please upload this required document before submitting.';
+                } else {
+                    delete modalDocErrors[req];
+                }
+            });
+
+            if (missingDocs.length > 0) {
+                renderApplyModalRequirements(type);
+                if (errorBanner && errorText) {
+                    errorText.textContent = `Incomplete Submission: ${missingDocs.length} required document(s) missing. Please upload all items marked in red.`;
+                    errorBanner.style.display = 'block';
+                }
+                alert(`Required Documents Missing:\n\nPlease upload all ${requirements.length} required documents for "${type}" before submitting:\n\n• ${missingDocs.join('\n• ')}`);
                 return;
             }
 
-            // 3. Mandatory Program-Specific Document Upload Validation
-            const hasUploadedFiles = (selectedUploadedFilesBase64 && selectedUploadedFilesBase64.length > 0) || (files && files.length > 0);
-            if (!hasUploadedFiles) {
-                alert('Required Document Missing: Beneficiaries must upload the required supporting documents specific to ' + type + ' before submitting this application.');
-                return;
-            }
+            if (errorBanner) errorBanner.style.display = 'none';
 
             // --- Write application via DataService / Supabase ---
             let newAppId = null;
@@ -4881,45 +5089,46 @@
             try {
                 const beneficiaryQr = sessionStorage.getItem('userId') || sessionStorage.getItem('beneficiaryQrCode') || 'QR-BEN-102938';
 
-                let programCode = PROGRAM_CODE_MAP[type];
-                if (!programCode) {
-                    const catalogItem = ALL_LIVELIHOOD_CATALOG.find(p => p.name === type || type.includes(p.name));
-                    if (catalogItem) programCode = catalogItem.code;
-                }
+                let programCode = (program && program.code) ? program.code : PROGRAM_CODE_MAP[type];
                 if (!programCode) programCode = 'LIVELIHOOD';
 
-                let program = null;
+                let dbProgram = null;
                 if (typeof DataService !== 'undefined' && DataService.programs) {
                     const progRes = await DataService.programs.getAll();
                     if (progRes && Array.isArray(progRes.data)) {
-                        program = progRes.data.find(p => p.code === programCode || p.name === type);
+                        dbProgram = progRes.data.find(p => p.code === programCode || p.name === type);
                     }
                 }
 
-                if (!program && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                if (!dbProgram && typeof supabaseClient !== 'undefined' && supabaseClient) {
                     const { data: progDb } = await supabaseClient
                         .from('programs')
                         .select('id, code, name')
                         .eq('code', programCode)
                         .maybeSingle();
-                    program = progDb;
+                    dbProgram = progDb;
                 }
 
-                let documentsJson = selectedUploadedFilesBase64 && selectedUploadedFilesBase64.length > 0
-                    ? selectedUploadedFilesBase64
-                    : Array.from(files).map(f => ({ name: f.name, size: f.size, type: f.type, status: 'Submitted' }));
+                const documentsJson = Object.values(modalUploadedDocs).map(d => ({
+                    name: d.name,
+                    size: d.size,
+                    type: d.type,
+                    dataUrl: d.dataUrl,
+                    requirementName: d.requirementName,
+                    status: 'Submitted'
+                }));
 
-                const isCswdo = type.includes('Medical') || type.includes('Burial') || type.includes('Financial') || type.includes('Educational') || type.includes('Solo Parent') || type.includes('Disability');
+                const isCswdo = program ? (program.agency === 'CSWDO') : (type.includes('Medical') || type.includes('Burial') || type.includes('Financial'));
                 const agency = isCswdo ? 'CSWDO' : 'PESO';
                 const applicationNumber = (agency === 'CSWDO' ? 'CSWDO-' : 'PESO-') + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
 
                 const payload = {
                     application_number: applicationNumber,
                     beneficiary_qr: beneficiaryQr,
-                    program_id: (program && program.id) ? program.id : 1,
+                    program_id: (dbProgram && dbProgram.id) ? dbProgram.id : ((program && program.id && typeof program.id === 'number') ? program.id : 1),
                     status: 'Pending',
                     progress_percent: 25,
-                    remarks: reason,
+                    remarks: reason || `Application for ${type}`,
                     documents_json: documentsJson,
                     agency: agency
                 };
@@ -4940,7 +5149,7 @@
                 }
             } catch (e) {
                 console.warn('[Beneficiary] Application created in local state:', e.message || e);
-                newAppId = (type.includes('Medical') || type.includes('Burial') || type.includes('Financial') ? 'CSWDO-' : 'PESO-') + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+                newAppId = ((program && program.agency === 'CSWDO') ? 'CSWDO-' : 'PESO-') + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
             }
 
             // Add new application to view-model
@@ -4949,63 +5158,29 @@
                 type: type,
                 date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
                 status: 'Pending',
-                amount: 'Awaiting Assessment',
+                remarks: reason || 'Application submitted with verified required documents.',
+                documents: Object.values(modalUploadedDocs).map(d => ({ name: d.name, size: d.size, status: 'Submitted', type: d.type })),
+                amount: 'Under Assessment',
                 steps: [
-                    { title: 'Application Submitted', desc: new Date().toLocaleDateString(), completed: true },
-                    { title: 'Document Review', desc: 'Under Review', completed: false, active: true },
-                    { title: 'Verification Interview', desc: 'Not Scheduled', completed: false },
-                    { title: 'Decision', desc: 'Awaiting', completed: false }
-                ],
-                remarks: 'Your application with required documents has been submitted and is currently undergoing preliminary review.'
+                    { title: 'Application Submitted', desc: `Submitted with ${Object.keys(modalUploadedDocs).length} required documents`, completed: true },
+                    { title: 'Document Verification', desc: 'Officer evaluating submitted credentials', active: true },
+                    { title: 'Interview & Assessment', desc: 'Scheduled verification session', completed: false },
+                    { title: 'Assistance Release', desc: 'Final payout or toolkit distribution', completed: false }
+                ]
             };
 
-            // Add the app ID to current user's profile appIds list
-            let username = sessionStorage.getItem('beneficiaryUsername') || 'maria_santos';
-            let profile = userStats[username] || userStats['maria_santos'];
-            if (!profile.appIds) {
-                profile.appIds = [];
-            }
-            profile.appIds.unshift(newAppId);
-            profile.pending = (profile.pending || 0) + 1;
-            
-            const isCswdoType = type.includes('Medical') || type.includes('Burial') || type.includes('Financial') || type.includes('Educational') || type.includes('Solo Parent') || type.includes('Disability');
-            const newRowHtml = `
-                <tr onclick="viewFullTracking('${newAppId}')" style="cursor: pointer;">
-                    <td>#${newAppId}</td>
-                    <td><strong>${type}</strong></td>
-                    <td><span class="office-badge ${isCswdoType ? 'cswdo' : 'peso'}">${isCswdoType ? 'CSWDO' : 'PESO'}</span></td>
-                    <td>${applications[newAppId].date}</td>
-                    <td>
-                        <div class="progress" style="height: 16px; background-color: var(--rose-light); border-radius: 8px; width: 120px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 25%; background-color: var(--rose-primary); border-radius: 8px; font-size: 0.75rem; font-weight: bold; line-height: 16px;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">25%</div>
-                        </div>
-                    </td>
-                    <td><span class="status-pill processing">Pending</span></td>
-                </tr>
-            `;
-            
-            profile.applicationsHtml = newRowHtml + (profile.applicationsHtml || '');
-
-            const recentBody = document.getElementById('recentApplicationsBody');
-            if (recentBody) {
-                recentBody.innerHTML = profile.applicationsHtml;
-            }
-
-            renderApplicationsTab(profile);
-
-            alert('Success: Application for "' + type + '" submitted successfully! Tracking ID: ' + newAppId);
-            
-            // Reset form fields
-            document.getElementById('assistanceType').value = '';
-            document.getElementById('assistanceReason').value = '';
-            if (fileInput) fileInput.value = '';
-            selectedUploadedFilesBase64 = [];
-            const selectedFilesDiv = document.getElementById('applySelectedFiles');
-            if (selectedFilesDiv) selectedFilesDiv.innerHTML = '';
-            const docsBox = document.getElementById('programRequiredDocsBox');
-            if (docsBox) docsBox.style.display = 'none';
-
+            // Reset modal state
+            modalUploadedDocs = {};
+            modalDocErrors = {};
             closeModal('applyModal');
+
+            // Success feedback
+            alert(`Application Submitted Successfully!\n\nYour application for "${type}" (Tracking ID: #${newAppId}) has been received with all required documents and is now under official review.`);
+
+            // Refresh UI tables
+            if (typeof renderRecentApplications === 'function') renderRecentApplications();
+            if (typeof updateDashboardStats === 'function') updateDashboardStats();
+            filterRecentApplications();
         }
 
         // Upload document
@@ -5097,11 +5272,7 @@
             reader.readAsDataURL(file);
         }
 
-        // Apply for program
-        function applyForProgram(programName) {
-            document.getElementById('assistanceType').value = programName;
-            openModal('applyModal');
-        }
+        
 
         // Inquire about program
         function inquireProgram(programName) {
