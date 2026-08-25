@@ -1544,32 +1544,38 @@ const DataService = (() => {
   const batches = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
-        let query = client.from('batches').select(`
-          *,
-          program:programs!program_id(*),
-          creator:staff_profiles!created_by(id, username, first_name, last_name, role),
-          applications:applications(
-            id,
-            application_number,
-            status,
-            date_applied,
-            amount_approved,
-            beneficiary_qr,
-            beneficiary:beneficiaries!beneficiary_qr(
-              id, qr_code, first_name, middle_name, last_name, suffix, username, barangay, address, phone, contact_number, email, category
-            )
-          )
-        `).order('created_at', { ascending: false });
-        if (filters.program_code) {
-          query = query.eq('program_code', filters.program_code);
+        if (filters.simple) {
+          let q = client.from('batches').select('*').order('created_at', { ascending: false });
+          if (filters.program_code) q = q.eq('program_code', filters.program_code);
+          if (filters.status) q = q.eq('status', filters.status);
+          return await q;
         }
-        if (filters.program_id) {
-          query = query.eq('program_id', filters.program_id);
+
+        try {
+          let query = client.from('batches').select(`
+            *,
+            program:programs!program_id(*),
+            creator:staff_profiles!created_by(id, username, first_name, last_name, role)
+          `).order('created_at', { ascending: false });
+          if (filters.program_code) {
+            query = query.eq('program_code', filters.program_code);
+          }
+          if (filters.program_id) {
+            query = query.eq('program_id', filters.program_id);
+          }
+          if (filters.status) {
+            query = query.eq('status', filters.status);
+          }
+          const res = await query;
+          if (res.error) throw res.error;
+          return res;
+        } catch (e) {
+          // Fallback to simple select without complex joins
+          let fallbackQ = client.from('batches').select('*').order('created_at', { ascending: false });
+          if (filters.program_code) fallbackQ = fallbackQ.eq('program_code', filters.program_code);
+          if (filters.status) fallbackQ = fallbackQ.eq('status', filters.status);
+          return await fallbackQ;
         }
-        if (filters.status) {
-          query = query.eq('status', filters.status);
-        }
-        return await query;
       });
     },
 
