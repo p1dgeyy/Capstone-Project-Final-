@@ -2334,7 +2334,7 @@
         </section>
 
         <!-- PROGRAM OVERVIEW SECTION -->
-        <section id="program-overview" class="section" style="display: none;">
+        <section id="program-overview" class="section">
             <div class="row mb-3">
                 <div class="col-12">
                     <button class="btn-outline-rose btn-sm-rose d-inline-flex align-items-center gap-1" onclick="switchSection('programs')" style="margin-bottom: 20px;">
@@ -2614,6 +2614,119 @@
             </div>
         </section>
     </main>
+
+    
+    <!-- View Program Details Modal (Strictly Read-Only per PESO Admin Specs + Interactive Document Upload) -->
+    <div class="modal-overlay" id="programDetailsModal" style="z-index: 2500;">
+        <div class="modal-content-custom" style="max-width: 860px; max-height: 90vh; overflow-y: auto; border-radius: 16px;">
+            <div class="modal-header-custom d-flex justify-content-between align-items-center border-bottom pb-3" style="border-color: #ebdce2 !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="office-badge peso" id="modalOverviewOffice">PESO</span>
+                    <h3 class="modal-title-custom m-0" id="modalOverviewProgramName" style="font-size: 1.25rem;">Program Title</h3>
+                </div>
+                <button class="modal-close-custom" onclick="closeModal('programDetailsModal')">&times;</button>
+            </div>
+            <div class="modal-body-custom p-4">
+                <!-- Top Meta Bar -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 p-3 bg-light rounded-3 border" style="border-color: #ebdce2 !important;">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div><small class="text-muted d-block" style="font-size: 0.75rem;">Program Code</small><strong class="font-monospace text-primary fs-6" id="modalOverviewProgramCode">TUPAD</strong></div>
+                        <div class="border-start ps-3"><small class="text-muted d-block" style="font-size: 0.75rem;">Category</small><strong class="text-dark" id="modalOverviewCategory">Employment</strong></div>
+                        <div class="border-start ps-3"><small class="text-muted d-block" style="font-size: 0.75rem;">Intake Venue</small><strong class="text-dark" id="modalOverviewLocation">Koronadal City Hall</strong></div>
+                    </div>
+                    <div>
+                        <span class="status-pill approved fs-6 py-1.5 px-3" id="modalOverviewProgramStatus">Active</span>
+                    </div>
+                </div>
+
+                <!-- Read-Only Notice -->
+                <div class="alert alert-info py-2 px-3 small mb-3 rounded-3" style="background-color: #f0f8ff; border-left: 4px solid #0d6efd; color: #084298;">
+                    <i class="bi bi-info-circle-fill me-1"></i><strong>Official Information:</strong> Program specifications, budget allocations, and eligibility criteria are synchronized with the PESO / CSWDO database.
+                </div>
+
+                <!-- 2-Col Metric Cards: Budget & Slots -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-white border rounded-3 shadow-sm h-100" style="border-color: #ebdce2 !important;">
+                            <small class="text-muted fw-bold d-block mb-1"><i class="bi bi-cash-stack text-success me-1"></i>Allocated Budget</small>
+                            <div class="fs-4 fw-bold text-success" id="modalOverviewBudget">₱ 0.00</div>
+                            <small class="text-muted" id="modalOverviewAnnualAlloc">Annual LGU Appropriation</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-white border rounded-3 shadow-sm h-100" style="border-color: #ebdce2 !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted fw-bold"><i class="bi bi-ticket-perforated text-primary me-1"></i>Slots & Capacity</small>
+                                <small class="fw-bold text-dark" id="modalOverviewSlotsLeft">0 Left</small>
+                            </div>
+                            <div class="progress mb-1" style="height: 10px; background-color: #ebdce2; border-radius: 5px;">
+                                <div class="progress-bar" id="modalOverviewSlotsProgress" role="progressbar" style="width: 0%; border-radius: 5px; background-color: var(--rose-primary);"></div>
+                            </div>
+                            <small class="text-muted d-block" id="modalOverviewSlotsTotal">0 Total Slots (0% remaining)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Program Description -->
+                <div class="mb-3 p-3 bg-white border rounded-3 shadow-sm" style="border-color: #ebdce2 !important;">
+                    <h6 class="fw-bold text-dark mb-1"><i class="bi bi-file-text-fill text-primary me-1"></i>Program Description</h6>
+                    <p class="text-dark small mb-0 lh-base" id="modalOverviewBackground">No description available.</p>
+                </div>
+
+                <!-- Assistance / Benefit Type -->
+                <div class="mb-3 p-3 bg-white border rounded-3 shadow-sm" style="border-color: #ebdce2 !important;">
+                    <h6 class="fw-bold text-dark mb-1"><i class="bi bi-gift-fill text-danger me-1"></i>Assistance / Benefit Package</h6>
+                    <p class="text-dark small mb-0" id="modalOverviewAssistanceType">Direct beneficiary package</p>
+                </div>
+
+                <!-- Eligibility & Target Beneficiaries Grid -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-white border rounded-3 h-100 shadow-sm" style="border-color: #ebdce2 !important;">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-shield-check text-success me-1"></i>Eligibility Criteria</h6>
+                            <ul class="ps-3 mb-0 small text-dark" id="modalOverviewEligibility" style="line-height: 1.6;">
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-white border rounded-3 h-100 shadow-sm" style="border-color: #ebdce2 !important;">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-people-fill text-warning me-1"></i>Target Beneficiaries & Priorities</h6>
+                            <ul class="ps-3 mb-0 small text-dark" id="modalOverviewPriorities" style="line-height: 1.6;">
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Required Application Documents with Interactive Upload Buttons -->
+                <div class="mb-3 p-3 bg-light border rounded-3 shadow-sm" style="border-color: #ebdce2 !important;">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2 flex-wrap gap-2">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-card-checklist text-primary me-1"></i>Required Application Documents</h6>
+                        <span class="badge bg-white text-muted border small"><i class="bi bi-cloud-arrow-up text-primary me-1"></i>Attach documents directly below</span>
+                    </div>
+                    <p class="small text-muted mb-2">Click the <strong>Upload</strong> button next to each document to attach your requirements in advance.</p>
+                    <div class="d-flex flex-column gap-2" id="modalOverviewRequirementsContainer">
+                        <!-- Rendered dynamically with direct upload buttons -->
+                    </div>
+                </div>
+
+                <!-- Steps to Apply -->
+                <div class="p-3 bg-white border rounded-3 shadow-sm" style="border-color: #ebdce2 !important;">
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-2"><i class="bi bi-list-ol text-primary me-1"></i>Steps to Apply & Avail</h6>
+                    <ol class="ps-3 mb-0 small text-dark" id="modalOverviewInstructions" style="line-height: 1.6;">
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer-custom d-flex justify-content-between align-items-center p-3 bg-light border-top" style="border-color: #ebdce2 !important;">
+                <div id="modalOverviewDocsNotice" class="small text-success fw-semibold" style="display: none;">
+                    <i class="bi bi-check2-circle me-1"></i><span id="modalOverviewDocsCount">0</span> Document(s) Pre-Attached
+                </div>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="button" class="btn-outline-rose" style="width: auto;" onclick="closeModal('programDetailsModal')">Close</button>
+                    <button type="button" class="btn-primary-rose" style="width: auto;" id="modalOverviewApplyBtn">Apply for this Program</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Apply for Assistance Modal -->
     <div class="modal-overlay" id="applyModal">
@@ -4094,116 +4207,190 @@
         // View Details Behavior (Matches PESO Admin Program Details exactly + Per-Document Upload Buttons)
         function viewBeneficiaryProgramOverview(id) {
             const catalog = liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
-            let program = catalog.find(p => p.id === id || p.code === id || p.name === id || String(p.dbId) === String(id));
+            let program = catalog.find(p => p.id === id || p.code === id || p.name === id || String(p.dbId) === String(id) || String(p.id) === String(id));
             if (!program) {
-                program = ALL_LIVELIHOOD_CATALOG.find(p => p.id === id || p.code === id || p.name === id);
+                program = ALL_LIVELIHOOD_CATALOG.find(p => p.id === id || p.code === id || p.name === id || String(p.id) === String(id));
             }
             if (!program) return;
 
             currentOverviewProgram = program;
             const isPeso = program.agency === 'PESO';
+            const statusStr = program.status || 'Active';
+            const isInactive = statusStr !== 'Active';
 
-            const officeEl = document.getElementById('beneOverviewOffice');
-            if (officeEl) {
-                officeEl.textContent = program.agency || (isPeso ? 'PESO' : 'CSWDO');
-                officeEl.className = `office-badge ${isPeso ? 'peso' : 'cswdo'} mb-2`;
-            }
-
-            document.getElementById('beneOverviewProgramName').textContent = program.name;
-            document.getElementById('beneOverviewProgramCode').textContent = program.code;
-            const catEl = document.getElementById('beneOverviewCategory');
-            if (catEl) catEl.textContent = program.category || (isPeso ? 'Employment & Livelihood' : 'Crisis Assistance');
-
-            document.getElementById('beneOverviewProgramStatus').textContent = program.status || 'Active';
-            document.getElementById('beneOverviewProgramStatus').className = `status-pill ${program.status === 'Active' ? 'approved' : 'pending'} fs-6 py-2 px-3`;
-            document.getElementById('beneOverviewProgramStatus').style.backgroundColor = '';
-            document.getElementById('beneOverviewProgramStatus').style.color = '';
-
-            document.getElementById('beneOverviewBackground').textContent = program.description || "No background details available.";
-            
-            // Budget & Allocation
             const budgetFormatted = program.budget ? `₱ ${formatCurrency(program.budget)}` : (isPeso ? '₱ 2,000,000.00' : '₱ 3,000,000.00');
-            const budgetEl = document.getElementById('beneOverviewBudget');
-            if (budgetEl) budgetEl.textContent = budgetFormatted;
-            document.getElementById('beneOverviewAnnualAlloc').textContent = program.annualAllocation || (isPeso ? "Annual PESO LGU Budgetary Appropriation" : "City Social Welfare Crisis Fund");
-
-            const assistTypeEl = document.getElementById('beneOverviewAssistanceType');
-            if (assistTypeEl) assistTypeEl.textContent = program.assistance_type || (isPeso ? 'Livelihood / Wage Subsidy Package' : 'Emergency Financial / Guarantee Grant');
-
-            document.getElementById('beneOverviewLocation').textContent = program.location || (isPeso ? "PESO Office, Koronadal City Hall" : "CSWDO Office, Koronadal City Hall");
+            const annualAllocStr = program.annualAllocation || (isPeso ? "Annual PESO LGU Budgetary Appropriation" : "City Social Welfare Crisis Fund");
+            const assistancePackageStr = program.assistance_type || (isPeso ? 'Livelihood / Wage Subsidy Package' : 'Emergency Financial / Guarantee Grant');
+            const categoryStr = program.category || (isPeso ? 'Employment & Livelihood' : 'Crisis Assistance');
+            const locationStr = program.location || (isPeso ? "PESO Office, Koronadal City Hall" : "CSWDO Office, Koronadal City Hall");
 
             const total = program.slotsTotal !== undefined ? program.slotsTotal : (program.slots_target || 100);
             const avail = program.slotsAvailable !== undefined ? program.slotsAvailable : 45;
-            document.getElementById('beneOverviewSlotsLeft').textContent = `${avail} Left`;
-            document.getElementById('beneOverviewSlotsTotal').textContent = `/ ${total} Total`;
-            
             const pct = total > 0 ? Math.round((avail / total) * 100) : 0;
-            const progressEl = document.getElementById('beneOverviewSlotsProgress');
-            if (progressEl) {
-                progressEl.className = `progress-fill ${avail === 0 ? 'bg-danger' : 'approved'}`;
-                progressEl.style.width = `${pct}%`;
-                progressEl.style.backgroundColor = '';
-            }
-            document.getElementById('beneOverviewSlotsPercentage').textContent = `${pct}% of slots remaining`;
+            const isNoSlots = avail === 0;
 
-            const applyBtn = document.getElementById('beneOverviewApplyBtn');
-            if (applyBtn) {
-                const isInactive = program.status !== 'Active';
-                const isNoSlots = avail === 0;
-                applyBtn.style.backgroundColor = '';
-                applyBtn.style.borderColor = '';
-                applyBtn.style.color = '';
-                applyBtn.style.cursor = '';
-                
+            const helperRenderList = (targetId, items, defaultText) => {
+                const el = document.getElementById(targetId);
+                if (!el) return;
+                el.innerHTML = '';
+                if (!items || items.length === 0) {
+                    el.innerHTML = `<li class="text-muted">${defaultText || 'None specified'}</li>`;
+                    return;
+                }
+                const arr = Array.isArray(items) ? items : [items];
+                arr.forEach(item => {
+                    el.innerHTML += `<li>${item}</li>`;
+                });
+            };
+
+            // 1. POPULATE SECTION (#program-overview)
+            const secOffice = document.getElementById('beneOverviewOffice');
+            if (secOffice) {
+                secOffice.textContent = program.agency || (isPeso ? 'PESO' : 'CSWDO');
+                secOffice.className = `office-badge ${isPeso ? 'peso' : 'cswdo'} mb-2`;
+            }
+            const secName = document.getElementById('beneOverviewProgramName');
+            if (secName) secName.textContent = program.name;
+            const secCode = document.getElementById('beneOverviewProgramCode');
+            if (secCode) secCode.textContent = program.code;
+            const secCat = document.getElementById('beneOverviewCategory');
+            if (secCat) secCat.textContent = categoryStr;
+
+            const secStatus = document.getElementById('beneOverviewProgramStatus');
+            if (secStatus) {
+                secStatus.textContent = statusStr;
+                secStatus.className = `status-pill ${statusStr === 'Active' ? 'approved' : 'pending'} fs-6 py-2 px-3`;
+            }
+
+            const secBg = document.getElementById('beneOverviewBackground');
+            if (secBg) secBg.textContent = program.description || "No background details available.";
+
+            const secBudget = document.getElementById('beneOverviewBudget');
+            if (secBudget) secBudget.textContent = budgetFormatted;
+            const secAlloc = document.getElementById('beneOverviewAnnualAlloc');
+            if (secAlloc) secAlloc.textContent = annualAllocStr;
+
+            const secAssist = document.getElementById('beneOverviewAssistanceType');
+            if (secAssist) secAssist.textContent = assistancePackageStr;
+
+            const secLoc = document.getElementById('beneOverviewLocation');
+            if (secLoc) secLoc.textContent = locationStr;
+
+            const secSlotsLeft = document.getElementById('beneOverviewSlotsLeft');
+            if (secSlotsLeft) secSlotsLeft.textContent = `${avail} Left`;
+            const secSlotsTotal = document.getElementById('beneOverviewSlotsTotal');
+            if (secSlotsTotal) secSlotsTotal.textContent = `/ ${total} Total`;
+
+            const secProgress = document.getElementById('beneOverviewSlotsProgress');
+            if (secProgress) {
+                secProgress.className = `progress-fill ${avail === 0 ? 'bg-danger' : 'approved'}`;
+                secProgress.style.width = `${pct}%`;
+            }
+            const secPct = document.getElementById('beneOverviewSlotsPercentage');
+            if (secPct) secPct.textContent = `${pct}% of slots remaining`;
+
+            const secApplyBtn = document.getElementById('beneOverviewApplyBtn');
+            if (secApplyBtn) {
                 if (isInactive) {
-                    applyBtn.textContent = 'Applications Closed (Inactive)';
-                    applyBtn.disabled = true;
-                    applyBtn.title = "Applications not available at the moment.";
-                    applyBtn.onclick = null;
+                    secApplyBtn.textContent = 'Applications Closed (Inactive)';
+                    secApplyBtn.disabled = true;
+                    secApplyBtn.onclick = null;
                 } else if (isNoSlots) {
-                    applyBtn.textContent = 'Applications Closed (No Slots)';
-                    applyBtn.disabled = true;
-                    applyBtn.title = "Applications not available at the moment.";
-                    applyBtn.onclick = null;
+                    secApplyBtn.textContent = 'Applications Closed (No Slots)';
+                    secApplyBtn.disabled = true;
+                    secApplyBtn.onclick = null;
                 } else {
-                    applyBtn.textContent = isPeso ? 'Apply for this PESO Program' : 'Apply for this CSWDO Assistance';
-                    applyBtn.disabled = false;
-                    applyBtn.title = "";
-                    applyBtn.onclick = function() {
+                    secApplyBtn.textContent = isPeso ? 'Apply for this PESO Program' : 'Apply for this CSWDO Assistance';
+                    secApplyBtn.disabled = false;
+                    secApplyBtn.onclick = function() {
                         applyForProgram(program.name);
                     };
                 }
             }
 
-            const renderList = (elementId, items, defaultText) => {
-                const ul = document.getElementById(elementId);
-                if (!ul) return;
-                ul.innerHTML = '';
-                if (!items || items.length === 0) {
-                    ul.innerHTML = `<li class="text-muted">${defaultText || 'None specified'}</li>`;
-                    return;
+            helperRenderList('beneOverviewEligibility', program.eligibility || program.eligibility_criteria, 'Bona fide resident of Koronadal City.');
+            helperRenderList('beneOverviewPriorities', program.priorities || program.target_beneficiaries, 'Qualified & displaced residents.');
+            helperRenderList('beneOverviewInstructions', program.instructions || ['Submit application with required documents.', 'Wait for intake assessment from official coordinators.'], 'Submit application and attend verification.');
+
+            // 2. POPULATE MODAL (#programDetailsModal)
+            const modalOffice = document.getElementById('modalOverviewOffice');
+            if (modalOffice) {
+                modalOffice.textContent = program.agency || (isPeso ? 'PESO' : 'CSWDO');
+                modalOffice.className = `office-badge ${isPeso ? 'peso' : 'cswdo'}`;
+            }
+            const modalName = document.getElementById('modalOverviewProgramName');
+            if (modalName) modalName.textContent = program.name;
+            const modalCode = document.getElementById('modalOverviewProgramCode');
+            if (modalCode) modalCode.textContent = program.code;
+            const modalCat = document.getElementById('modalOverviewCategory');
+            if (modalCat) modalCat.textContent = categoryStr;
+
+            const modalStatus = document.getElementById('modalOverviewProgramStatus');
+            if (modalStatus) {
+                modalStatus.textContent = statusStr;
+                modalStatus.className = `status-pill ${statusStr === 'Active' ? 'approved' : 'pending'} fs-6 py-1.5 px-3`;
+            }
+
+            const modalBg = document.getElementById('modalOverviewBackground');
+            if (modalBg) modalBg.textContent = program.description || "No background details available.";
+
+            const modalBudget = document.getElementById('modalOverviewBudget');
+            if (modalBudget) modalBudget.textContent = budgetFormatted;
+            const modalAlloc = document.getElementById('modalOverviewAnnualAlloc');
+            if (modalAlloc) modalAlloc.textContent = annualAllocStr;
+
+            const modalAssist = document.getElementById('modalOverviewAssistanceType');
+            if (modalAssist) modalAssist.textContent = assistancePackageStr;
+
+            const modalLoc = document.getElementById('modalOverviewLocation');
+            if (modalLoc) modalLoc.textContent = locationStr;
+
+            const modalSlotsLeft = document.getElementById('modalOverviewSlotsLeft');
+            if (modalSlotsLeft) modalSlotsLeft.textContent = `${avail} Left`;
+            const modalSlotsTotal = document.getElementById('modalOverviewSlotsTotal');
+            if (modalSlotsTotal) modalSlotsTotal.textContent = `${total} Total Slots (${pct}% remaining)`;
+
+            const modalProgress = document.getElementById('modalOverviewSlotsProgress');
+            if (modalProgress) {
+                modalProgress.className = `progress-bar ${avail === 0 ? 'bg-danger' : 'bg-primary'}`;
+                modalProgress.style.width = `${pct}%`;
+            }
+
+            const modalApplyBtn = document.getElementById('modalOverviewApplyBtn');
+            if (modalApplyBtn) {
+                if (isInactive) {
+                    modalApplyBtn.textContent = 'Applications Closed (Inactive)';
+                    modalApplyBtn.disabled = true;
+                    modalApplyBtn.onclick = null;
+                } else if (isNoSlots) {
+                    modalApplyBtn.textContent = 'Applications Closed (No Slots)';
+                    modalApplyBtn.disabled = true;
+                    modalApplyBtn.onclick = null;
+                } else {
+                    modalApplyBtn.textContent = isPeso ? 'Apply for this Program' : 'Apply for this Assistance';
+                    modalApplyBtn.disabled = false;
+                    modalApplyBtn.onclick = function() {
+                        closeModal('programDetailsModal');
+                        applyForProgram(program.name);
+                    };
                 }
-                const arr = Array.isArray(items) ? items : [items];
-                arr.forEach(item => {
-                    ul.innerHTML += `<li>${item}</li>`;
-                });
-            };
+            }
 
-            renderList('beneOverviewEligibility', program.eligibility || program.eligibility_criteria, 'Bona fide resident of Koronadal City.');
-            renderList('beneOverviewPriorities', program.priorities || program.target_beneficiaries, 'Qualified & displaced residents.');
-            renderList('beneOverviewInstructions', program.instructions || ['Submit application with required documents.', 'Wait for intake assessment from official coordinators.'], 'Submit application and attend verification.');
+            helperRenderList('modalOverviewEligibility', program.eligibility || program.eligibility_criteria, 'Bona fide resident of Koronadal City.');
+            helperRenderList('modalOverviewPriorities', program.priorities || program.target_beneficiaries, 'Qualified & displaced residents.');
+            helperRenderList('modalOverviewInstructions', program.instructions || ['Submit application with required documents.', 'Wait for intake assessment from official coordinators.'], 'Submit application and attend verification.');
 
-            // Render interactive requirement documents with upload buttons
+            // 3. RENDER INTERACTIVE REQUIRED DOCUMENTS FOR BOTH MODAL & SECTION
             renderOverviewRequirements(program.name);
 
-            // Switch view
-            switchSection('program-overview');
+            // 4. OPEN THE MODAL IMMEDIATELY
+            openModal('programDetailsModal');
         }
 
         // Render interactive required documents list with direct Upload button per document
         function renderOverviewRequirements(progName) {
-            const container = document.getElementById('beneOverviewRequirementsContainer');
-            if (!container) return;
+            const secContainer = document.getElementById('beneOverviewRequirementsContainer');
+            const modalContainer = document.getElementById('modalOverviewRequirementsContainer');
 
             const catalog = liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
             const program = catalog.find(p => p.name === progName || p.code === progName) || currentOverviewProgram;
@@ -4212,7 +4399,7 @@
             const requirements = program.requirements || ['Valid Government Photo ID', 'Barangay Certificate of Indigency'];
             let attachedCount = 0;
 
-            container.innerHTML = requirements.map((reqDoc, idx) => {
+            const renderedHtml = requirements.map((reqDoc, idx) => {
                 const key = `${program.name}:::${reqDoc}`;
                 const uploadedDoc = requirementUploadedDocs[key];
 
@@ -4258,15 +4445,30 @@
                 }
             }).join('');
 
-            // Update attached badge indicator in sidebar
-            const noticeEl = document.getElementById('beneOverviewDocsAttachedNotice');
-            const countEl = document.getElementById('beneOverviewDocsAttachedCount');
-            if (noticeEl && countEl) {
+            if (secContainer) secContainer.innerHTML = renderedHtml;
+            if (modalContainer) modalContainer.innerHTML = renderedHtml;
+
+            // Update attached badge indicator in section sidebar
+            const secNotice = document.getElementById('beneOverviewDocsAttachedNotice');
+            const secCount = document.getElementById('beneOverviewDocsAttachedCount');
+            if (secNotice && secCount) {
                 if (attachedCount > 0) {
-                    noticeEl.style.display = 'block';
-                    countEl.textContent = attachedCount;
+                    secNotice.style.display = 'block';
+                    secCount.textContent = attachedCount;
                 } else {
-                    noticeEl.style.display = 'none';
+                    secNotice.style.display = 'none';
+                }
+            }
+
+            // Update attached badge indicator in modal footer
+            const modalNotice = document.getElementById('modalOverviewDocsNotice');
+            const modalCount = document.getElementById('modalOverviewDocsCount');
+            if (modalNotice && modalCount) {
+                if (attachedCount > 0) {
+                    modalNotice.style.display = 'block';
+                    modalCount.textContent = attachedCount;
+                } else {
+                    modalNotice.style.display = 'none';
                 }
             }
         }
@@ -4306,7 +4508,7 @@
                     status: 'Ready'
                 };
 
-                // Re-render requirements list
+                // Re-render requirements list in both modal and section
                 renderOverviewRequirements(ctx.progName);
             };
             reader.readAsDataURL(file);
@@ -4318,130 +4520,6 @@
             delete requirementUploadedDocs[key];
             renderOverviewRequirements(progName);
         }
-
-        // Apply for program & auto-load required documents + pre-attached files
-        function applyForProgram(programName) {
-            const select = document.getElementById('assistanceType');
-            if (select) {
-                select.value = programName;
-                if (!select.value) {
-                    for (let i = 0; i < select.options.length; i++) {
-                        if (select.options[i].value.toLowerCase() === programName.toLowerCase() || 
-                            select.options[i].text.toLowerCase().includes(programName.toLowerCase())) {
-                            select.selectedIndex = i;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Sync any pre-attached files from View Details into the modal's selectedUploadedFilesBase64
-            const preAttachedForThisProg = Object.values(requirementUploadedDocs)
-                .filter(d => d.programName === programName);
-
-            if (preAttachedForThisProg.length > 0) {
-                selectedUploadedFilesBase64 = preAttachedForThisProg.map(d => ({
-                    name: d.name,
-                    size: d.size,
-                    type: d.type,
-                    data: d.data,
-                    status: 'Submitted'
-                }));
-
-                const selectedFilesDiv = document.getElementById('applySelectedFiles');
-                if (selectedFilesDiv) {
-                    selectedFilesDiv.innerHTML = selectedUploadedFilesBase64.map(f => `
-                        <div class="badge bg-success-subtle text-success border border-success p-2 d-inline-flex align-items-center gap-1 me-1 mb-1 rounded-3">
-                            <i class="bi bi-file-earmark-check-fill"></i> ${f.name} (${Math.round(f.size/1024)} KB)
-                        </div>
-                    `).join('');
-                }
-            }
-
-            onAssistanceTypeChanged();
-            openModal('applyModal');
-        }
-
-        // Handle Assistance Type selection change and render dynamic required document checklist
-        function onAssistanceTypeChanged() {
-            const select = document.getElementById('assistanceType');
-            const selectedVal = select ? select.value : '';
-            const docsBox = document.getElementById('programRequiredDocsBox');
-            const nameSpan = document.getElementById('reqDocsProgramName');
-            const listUl = document.getElementById('reqDocsList');
-
-            if (!selectedVal) {
-                if (docsBox) docsBox.style.display = 'none';
-                return;
-            }
-
-            const catalog = liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
-            const prog = catalog.find(p => 
-                p.name === selectedVal || 
-                p.code === selectedVal || 
-                selectedVal.toLowerCase().includes(p.name.toLowerCase()) || 
-                selectedVal.toLowerCase().includes(p.code.toLowerCase())
-            ) || ALL_LIVELIHOOD_CATALOG.find(p => 
-                p.name === selectedVal || 
-                p.code === selectedVal
-            );
-
-            if (prog && prog.requirements && prog.requirements.length > 0) {
-                if (docsBox) docsBox.style.display = 'block';
-                if (nameSpan) nameSpan.textContent = prog.name;
-                if (listUl) {
-                    listUl.innerHTML = prog.requirements.map(req => `<li><strong>${req}</strong></li>`).join('');
-                }
-            } else {
-                if (docsBox) docsBox.style.display = 'none';
-            }
-        }
-
-        // Setup Realtime Synchronization for Beneficiary Portal
-        function setupBeneficiaryRealtimeSync() {
-            // 1. Supabase Postgres Changes Channel
-            if (typeof supabaseClient !== 'undefined' && supabaseClient && typeof supabaseClient.channel === 'function') {
-                try {
-                    supabaseClient
-                        .channel('beneficiary_livelihood_sync')
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'programs' }, () => {
-                            console.log('[Realtime] Live program update received from database');
-                            fetchLiveLivelihoodPrograms();
-                        })
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, () => {
-                            console.log('[Realtime] Live batch update received');
-                            fetchLiveLivelihoodPrograms();
-                        })
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => {
-                            fetchLiveLivelihoodPrograms();
-                        })
-                        .subscribe();
-                } catch (e) {
-                    console.warn('[Realtime] Subscription warning:', e);
-                }
-            }
-
-            // 2. Storage event listener for cross-tab mutations
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'peso_programs' || e.key === 'cswdo_programs' || e.key === 'peso_batches' || e.key === 'applications') {
-                    console.log('[Realtime] Storage key modified:', e.key);
-                    fetchLiveLivelihoodPrograms();
-                }
-            });
-
-            // 3. Periodic polling fallback (every 15s)
-            setInterval(() => {
-                fetchLiveLivelihoodPrograms();
-            }, 15000);
-        }
-
-        window.onAssistanceTypeChanged = onAssistanceTypeChanged;
-        window.applyForProgram = applyForProgram;
-        window.setProgramAgencyFilter = setProgramAgencyFilter;
-        window.fetchLiveLivelihoodPrograms = fetchLiveLivelihoodPrograms;
-        window.setupBeneficiaryRealtimeSync = setupBeneficiaryRealtimeSync;
-        window.triggerDirectDocUpload = triggerDirectDocUpload;
-        window.handleDirectDocRequirementSelect = handleDirectDocRequirementSelect;
         window.removeRequirementDoc = removeRequirementDoc;
 
 
