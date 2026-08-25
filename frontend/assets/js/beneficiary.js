@@ -984,7 +984,9 @@
 
     alert(`Your assistance request (${appNumber}) for ${selectedProgramName} has been submitted successfully!\n\nStatus: Pending Officer evaluation.`);
 
-    if (window.closeModal) window.closeModal('requestIntakeModal');
+    if (window.closeModal) {
+      window.closeModal('applyModal');
+    }
     if (remarksInput) remarksInput.value = '';
 
     await fetchBeneficiaryData();
