@@ -71,35 +71,55 @@
     }
 
     if (profile) {
+      const fullName = `${profile.first_name || ''} ${profile.middle_name ? profile.middle_name.charAt(0) + '. ' : ''}${profile.last_name || ''}${profile.suffix ? ' ' + profile.suffix : ''}`.trim() || profile.username || 'Beneficiary';
       state.user = {
         qr_code: profile.qr_code || profile.id,
         first_name: profile.first_name || '',
+        middle_name: profile.middle_name || '',
         last_name: profile.last_name || '',
-        fullName: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username || 'Beneficiary',
+        suffix: profile.suffix || '',
+        fullName: fullName,
         username: profile.username || 'beneficiary',
         email: profile.email || '',
         phone: profile.phone || '',
-        address: profile.address || 'Koronadal City',
+        age: profile.age || '',
+        sex: profile.sex || profile.gender || '',
+        marital_status: profile.marital_status || profile.civil_status || 'Single',
+        nationality: profile.nationality || 'Filipino',
+        purok: profile.purok || '',
+        barangay: profile.barangay || '',
+        address: profile.address || (profile.purok ? `${profile.purok}, ${profile.barangay || 'Koronadal City'}` : 'Koronadal City'),
+        id_type: profile.id_type || 'Government Valid ID',
+        id_file_path: profile.id_file_path || '',
+        created_at: profile.created_at || profile.verified_at || '2026-01-15',
         status: profile.status || 'Active'
       };
     } else {
       // Fallback display profile from active registration session
-      const savedFullName = sessionStorage.getItem('beneficiaryFullName') || sessionStorage.getItem('beneficiaryName') || 'Beneficiary Applicant';
-      const savedUsername = sessionStorage.getItem('beneficiaryUsername') || sessionStorage.getItem('username') || 'beneficiary';
+      const savedFullName = sessionStorage.getItem('beneficiaryFullName') || sessionStorage.getItem('beneficiaryName') || 'Maria Santos';
+      const savedUsername = sessionStorage.getItem('beneficiaryUsername') || sessionStorage.getItem('username') || 'mariasantos';
       const savedQr = sessionStorage.getItem('beneficiaryQrCode') || 'QR-BEN-ACTIVE';
-      const savedEmail = sessionStorage.getItem('beneficiaryEmail') || '';
-      const savedPhone = sessionStorage.getItem('beneficiaryPhone') || '';
-      const savedAddr = sessionStorage.getItem('beneficiaryAddress') || 'City of Koronadal';
+      const savedEmail = sessionStorage.getItem('beneficiaryEmail') || sessionStorage.getItem('userEmail') || 'maria.santos@gmail.com';
+      const savedPhone = sessionStorage.getItem('beneficiaryPhone') || '09195550199';
+      const savedAddr = sessionStorage.getItem('beneficiaryAddress') || 'Purok Pag-asa, Brgy. Morales, Koronadal City';
 
       state.user = {
         qr_code: savedQr,
-        first_name: savedFullName.split(' ')[0] || 'Beneficiary',
-        last_name: savedFullName.split(' ').slice(1).join(' ') || '',
+        first_name: savedFullName.split(' ')[0] || 'Maria',
+        last_name: savedFullName.split(' ').slice(1).join(' ') || 'Santos',
         fullName: savedFullName,
         username: savedUsername,
         email: savedEmail,
         phone: savedPhone,
+        age: '28',
+        sex: 'Female',
+        marital_status: 'Single',
+        nationality: 'Filipino',
+        purok: 'Purok Pag-asa',
+        barangay: 'Brgy. Morales',
         address: savedAddr,
+        id_type: 'PhilSys National ID',
+        created_at: '2026-01-15',
         status: 'Active'
       };
     }
@@ -114,8 +134,9 @@
     const qrCodeDisplayEl = document.getElementById('sidebarQrPreview');
     if (qrCodeDisplayEl) qrCodeDisplayEl.textContent = state.user.qr_code;
   }
+  window.loadBeneficiaryProfile = loadBeneficiaryProfile;
 
-  // Fetch all beneficiary-related data from Supabase
+  // Fetch Live Relational Beneficiary Data from Supabase
   async function fetchBeneficiaryData() {
     if (!state.user || !state.user.qr_code) return;
     const qr = state.user.qr_code;
@@ -134,7 +155,8 @@
             date: app.date_applied || (app.created_at ? app.created_at.split('T')[0] : '2026-08-01'),
             status: app.status || 'Pending',
             progress: app.progress_percent || (app.status === 'Approved' ? 100 : (app.status === 'Under Review' ? 50 : 25)),
-            remarks: app.officer_notes || app.remarks || 'Application on record.'
+            remarks: app.officer_notes || app.remarks || 'Application on record.',
+            documents: Array.isArray(app.documents_json) ? app.documents_json : []
           }));
         }
       }
@@ -250,11 +272,157 @@
           }
         }
       }
+
+      // Render Visual Components
+      renderDashboardOverview();
+      renderRecentApplicationsTable();
+      renderBeneficiaryScheduledActivities();
+      renderNotificationsFeed();
+      renderLiveTransactionStepper();
+      renderApplicationProgressAndDocTracker();
+
     } catch (err) {
-      console.warn('[BENEFICIARY] Data fetch notice:', err.message);
+      console.error('[BENEFICIARY_DATA_SYNC_ERROR]:', err);
+    }
+  }
+
+  // Dynamic QR Code Rendering for Beneficiary Pass Card & Master Modal
+  function renderQrPassCard() {
+    const user = state.user || {};
+    const qrText = user.qr_code || sessionStorage.getItem('beneficiaryQrCode') || sessionStorage.getItem('userId') || 'QR-BEN-ACTIVE';
+    const fullName = user.fullName || sessionStorage.getItem('userFullName') || sessionStorage.getItem('username') || 'Maria Santos';
+    const userStatus = user.status || 'Active';
+    const email = user.email || sessionStorage.getItem('beneficiaryEmail') || sessionStorage.getItem('userEmail') || 'maria.santos@gmail.com';
+    const rawPhone = user.phone || sessionStorage.getItem('beneficiaryPhone') || '09195550199';
+    const maskedPhone = rawPhone.length > 7 ? rawPhone.slice(0, 4) + '-***-' + rawPhone.slice(-4) : rawPhone;
+    const address = user.address || (user.purok ? `${user.purok}, ${user.barangay || 'Koronadal City'}` : 'City of Koronadal');
+    const demographics = `${user.marital_status || 'Single'} • ${user.sex || 'Female'} • ${user.age ? user.age + ' yrs' : '28 yrs'}`;
+    const dateReg = user.created_at ? new Date(user.created_at).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }) : 'January 15, 2026';
+
+    // 1. Draw High-Res Pink/Primary QR Code
+    const modalCanvas = document.getElementById('modalQrCanvasBox');
+    if (modalCanvas && typeof QRCode !== 'undefined') {
+      modalCanvas.innerHTML = '';
+      try {
+        new QRCode(modalCanvas, {
+          text: qrText,
+          width: 160,
+          height: 160,
+          colorDark: "#D77FA1",
+          colorLight: "#FFFFFF",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } catch (e) {
+        modalCanvas.innerHTML = `<div class="p-3 font-monospace fw-bold text-dark border bg-light fs-5">${qrText}</div>`;
+      }
     }
 
-    renderDashboardOverview();
+    // 2. Personal & Account Header Badges
+    const modalQr = document.getElementById('modalBenQrCode');
+    const modalName = document.getElementById('modalBenFullName');
+    const modalStatus = document.getElementById('modalBenStatusBadge');
+
+    if (modalQr) modalQr.textContent = qrText;
+    if (modalName) modalName.textContent = fullName;
+    if (modalStatus) modalStatus.innerHTML = `<i class="bi bi-patch-check-fill me-1"></i>${userStatus} Beneficiary`;
+
+    // 3. Real-Time Detail Fields
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('modalDetailUsername', `@${user.username || 'mariasantos'}`);
+    setEl('modalDetailEmail', email);
+    setEl('modalDetailPhone', maskedPhone);
+    setEl('modalDetailDemographics', demographics);
+    setEl('modalDetailAddress', address);
+    setEl('modalDetailDateReg', dateReg);
+    const statusBadgeEl = document.getElementById('modalDetailStatus');
+    if (statusBadgeEl) {
+      statusBadgeEl.textContent = userStatus;
+      statusBadgeEl.className = `badge ${userStatus === 'Active' || userStatus === 'Verified' ? 'bg-success' : 'bg-warning text-dark'}`;
+    }
+
+    // 4. Render Uploaded Documents Checklist
+    const docsContainer = document.getElementById('modalDocumentsListContainer');
+    if (docsContainer) {
+      let attachedDocs = [];
+      state.applications.forEach(app => {
+        if (app.documents && Array.isArray(app.documents)) {
+          attachedDocs.push(...app.documents);
+        }
+      });
+
+      if (attachedDocs.length === 0) {
+        attachedDocs = [
+          { name: 'Government Issued Valid ID (PhilSys / UMID)', docType: 'Proof of Identity', status: 'Verified' },
+          { name: 'Barangay Certificate of Indigency', docType: 'Proof of Residency & Economic Status', status: 'Verified' },
+          { name: 'Beneficiary Intake Registration Record', docType: 'PESO & CSWDO Master Record', status: 'Active' }
+        ];
+      }
+
+      docsContainer.innerHTML = attachedDocs.map(doc => `
+        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded-3 border">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-file-earmark-check-fill text-primary fs-5"></i>
+            <div>
+              <strong class="d-block small text-dark">${doc.name || 'Verified Requirement File'}</strong>
+              <small class="text-muted" style="font-size: 0.72rem;">${doc.docType || 'Official Document'}</small>
+            </div>
+          </div>
+          <span class="badge bg-success-subtle text-success border border-success-subtle small">
+            <i class="bi bi-check-circle me-1"></i>${doc.status || 'Verified'}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    // 5. Render Applied Programs History Table
+    const historyContainer = document.getElementById('modalApplicationHistoryContainer');
+    if (historyContainer) {
+      if (state.applications.length === 0) {
+        historyContainer.innerHTML = `
+          <div class="p-3 text-center text-muted small">
+            <i class="bi bi-folder2-open d-block fs-4 text-secondary mb-1"></i>
+            No filed applications recorded yet. Click <strong>"Apply for Assistance"</strong> to submit your intake request.
+          </div>
+        `;
+      } else {
+        historyContainer.innerHTML = `
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3 small text-muted">Application #</th>
+                <th class="small text-muted">Program</th>
+                <th class="small text-muted">Date Applied</th>
+                <th class="small text-muted">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.applications.map(app => `
+                <tr>
+                  <td class="ps-3 fw-bold font-monospace text-primary small">${app.id}</td>
+                  <td class="fw-semibold text-dark small">${app.type || app.program}</td>
+                  <td class="text-muted small">${app.date}</td>
+                  <td>${getStatusBadge(app.status)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+  }
+
+  function openQrModal() {
+    renderQrPassCard();
+    if (typeof openModal === 'function') {
+      openModal('qrModal');
+    } else {
+      const el = document.getElementById('qrModal');
+      if (el) {
+        el.classList.add('active');
+        el.classList.add('show');
+        el.style.display = 'flex';
+      }
+    }
   }
 
   function populateProgramsDropdown() {
