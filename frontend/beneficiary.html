@@ -2902,6 +2902,14 @@
     </div>
 
     <script>
+        // Global Portal & Modal State Variables
+        var currentApplyProgram = null;
+        var modalUploadedDocs = {};
+        var modalDocErrors = {};
+        window.currentApplyProgram = currentApplyProgram;
+        window.modalUploadedDocs = modalUploadedDocs;
+        window.modalDocErrors = modalDocErrors;
+
         // Sample application data
         const applications = {
             'CSWDO-2026-0201': {
@@ -3919,10 +3927,23 @@
                 });
 
                 // Merge with live Database Programs from Supabase
-                dbPrograms.forEach(dp => {
-                    const codeKey = (dp.code || dp.name).toUpperCase();
-                    if (mergedMap.has(codeKey)) {
-                        const existing = mergedMap.get(codeKey);
+                if (dbPrograms.length > 0) {
+                    dbPrograms.forEach(dp => {
+                        const codeKey = (dp.code || dp.name).toUpperCase();
+                        const existing = mergedMap.get(codeKey) || {
+                            id: dp.id,
+                            code: dp.code || 'PROG',
+                            name: dp.name,
+                            agency: dp.agency || 'PESO',
+                            category: dp.category || 'Livelihood',
+                            description: dp.description || '',
+                            status: dp.status || 'Active',
+                            budget: dp.budget || 0,
+                            annualAllocation: dp.budget ? `₱ ${formatCurrency(dp.budget)} Live Allocation` : 'Annual LGU Budget',
+                            slotsTotal: dp.slots_target || 0,
+                            slotsAvailable: Math.max(0, (dp.slots_target || 0) - (dp.slots_filled || 0))
+                        };
+
                         mergedMap.set(codeKey, {
                             ...existing,
                             dbId: dp.id,
@@ -3932,22 +3953,37 @@
                             status: dp.status || existing.status,
                             agency: dp.agency || existing.agency,
                             budget: dp.budget !== undefined ? dp.budget : existing.budget,
-                            annualAllocation: dp.budget ? `₱ ${formatCurrency(dp.budget)} Live Allocation` : existing.annualAllocation
+                            annualAllocation: dp.budget ? `₱ ${formatCurrency(dp.budget)} Live Allocation` : existing.annualAllocation,
+                            slotsTotal: dp.slots_target !== undefined && dp.slots_target !== null ? dp.slots_target : existing.slotsTotal,
+                            slotsAvailable: (dp.slots_target !== undefined && dp.slots_filled !== undefined)
+                                ? Math.max(0, dp.slots_target - dp.slots_filled)
+                                : existing.slotsAvailable
                         });
-                    }
-                });
+                    });
+                }
 
                 // Apply live slot counts from real-time batches
                 if (dbBatches.length > 0) {
+                    const batchMap = new Map();
                     dbBatches.forEach(b => {
                         const codeKey = (b.program_code || '').toUpperCase();
-                        if (codeKey && mergedMap.has(codeKey)) {
+                        if (!codeKey) return;
+                        const cap = Number(b.capacity || 0);
+                        const assigned = Number(b.assigned_count || 0);
+                        if (!batchMap.has(codeKey)) {
+                            batchMap.set(codeKey, { capacity: 0, assigned: 0 });
+                        }
+                        const curr = batchMap.get(codeKey);
+                        curr.capacity += cap;
+                        curr.assigned += assigned;
+                    });
+
+                    batchMap.forEach((val, codeKey) => {
+                        if (mergedMap.has(codeKey)) {
                             const prog = mergedMap.get(codeKey);
-                            const batchCapacity = Number(b.capacity || 0);
-                            const batchAssigned = Number(b.assigned_count || 0);
-                            if (batchCapacity > 0) {
-                                prog.slotsTotal = Math.max(prog.slotsTotal || 0, batchCapacity);
-                                prog.slotsAvailable = Math.max(0, batchCapacity - batchAssigned);
+                            if (val.capacity > 0) {
+                                prog.slotsTotal = val.capacity;
+                                prog.slotsAvailable = Math.max(0, val.capacity - val.assigned);
                             }
                         }
                     });
@@ -4770,10 +4806,7 @@
             'Financial Assistance': 'FINANCIAL'
         };
 
-        // --- APPLICATION MODAL & DYNAMIC CHECKLIST STATE ---
-        let modalUploadedDocs = {};
-        let modalDocErrors = {};
-        let currentApplyProgram = null;
+        // --- APPLICATION MODAL & DYNAMIC CHECKLIST STATE (initialized globally) ---
 
         // Apply for program & initialize fixed Program Identification banner + Required Documents Checklist
         function applyForProgram(programIdentifier) {
