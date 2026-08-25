@@ -2996,6 +2996,7 @@
                 if (sbo) sbo.classList.remove('active');
             }
         }
+        window.navigateTo = navigateTo;
 
         // Smooth scroll helper
         function scrollToElement(elId) {
@@ -3004,12 +3005,16 @@
                 el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
+        window.scrollToElement = scrollToElement;
 
         // Sidebar toggle (mobile)
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebarOverlay').classList.toggle('active');
+            const sb = document.getElementById('sidebar');
+            if (sb) sb.classList.toggle('open');
+            const sbo = document.getElementById('sidebarOverlay');
+            if (sbo) sbo.classList.toggle('active');
         }
+        window.toggleSidebar = toggleSidebar;
 
         // Modal controls
         function openModal(id) {
@@ -3020,6 +3025,7 @@
             el.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
+        window.openModal = openModal;
 
         function closeModal(id) {
             const el = document.getElementById(id);
@@ -3029,6 +3035,7 @@
             el.style.display = 'none';
             document.body.style.overflow = '';
         }
+        window.closeModal = closeModal;
 
         function printQrPassSlip() {
             window.print();
@@ -4081,15 +4088,6 @@
 
                 return true;
             });
-
-            container.innerHTML = '';
-            filtered.forEach(p => {
-                const slotsTotal = p.slotsTotal !== undefined ? p.slotsTotal : 100;
-                const slotsAvailable = p.slotsAvailable !== undefined ? p.slotsAvailable : 45;
-                const locationText = p.location || (p.agency === 'PESO' ? 'PESO Office, Koronadal City Hall' : 'CSWDO Office, Koronadal City Hall');
-                const isInactive = p.status !== 'Active';
-                const isNoSlots = slotsAvailable === 0;
-                const isPeso = p.agency === 'PESO';
 
             let cardsHtml = [];
             filtered.forEach((p, idx) => {
