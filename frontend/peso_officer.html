@@ -678,6 +678,8 @@
             </li>
             <li class="nav-item"><a href="#" class="nav-link" id="navEvaluation" onclick="switchTab('evaluation')"><i
                         class="bi bi-clipboard-check"></i> Application Evaluation</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" id="navLivelihoodBatches" onclick="switchTab('livelihood-batches')"><i
+                        class="bi bi-diagram-3"></i> Livelihood Applications & Batches</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="navAssistance"
                     onclick="switchTab('approved-assistance')"><i class="bi bi-box-seam"></i> Approved Assistance &
                     Reports</a></li>
@@ -1564,6 +1566,284 @@
                     </div>
                 </div>
             </div>
+        <!-- 4. LIVELIHOOD APPLICATIONS & BATCHES MODULE (POST-ADMIN DECISION STAGE) -->
+        <section id="tab-livelihood-batches" class="tab-section d-none">
+            <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <div>
+                    <h1 class="page-title fw-bold text-dark mb-1"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Livelihood Applications & Batches</h1>
+                    <p class="text-muted mb-0">Organize Admin-Approved beneficiaries into operational batches for training sessions, starter kit distributions, and disbursement scheduling.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary fw-semibold px-3 d-flex align-items-center gap-2 shadow-sm" onclick="openPostApprovalCreateBatchModal()">
+                        <i class="bi bi-folder-plus"></i> + Create Batch
+                    </button>
+                </div>
+            </div>
+
+            <!-- Overview Stat Cards (4 Cards) -->
+            <div class="row g-3 mb-4" id="postApprovalStatCards">
+                <!-- 1. Pending Admin Approval -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted small fw-semibold d-block mb-1">Pending Admin Approval</span>
+                                <h3 class="fw-bold mb-0 text-warning" id="batchStatPendingAdmin">0</h3>
+                                <small class="text-muted">Awaiting Admin decision</small>
+                            </div>
+                            <div class="p-3 rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-hourglass-split fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Unbatched (Ready for Batching) -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted small fw-semibold d-block mb-1">Unbatched (Ready)</span>
+                                <h3 class="fw-bold mb-0 text-success" id="batchStatUnbatchedApproved">0</h3>
+                                <small class="text-muted">Admin-Approved candidates</small>
+                            </div>
+                            <div class="p-3 rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-check-circle-fill fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Batched Beneficiaries -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted small fw-semibold d-block mb-1">Batched Beneficiaries</span>
+                                <h3 class="fw-bold mb-0 text-primary" id="batchStatBatchedMembers">0</h3>
+                                <small class="text-muted">Assigned to active batches</small>
+                            </div>
+                            <div class="p-3 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-people-fill fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Denied (Returned) -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted small fw-semibold d-block mb-1">Denied (Returned)</span>
+                                <h3 class="fw-bold mb-0 text-danger" id="batchStatDeniedReturned">0</h3>
+                                <small class="text-muted">Routed back for follow-up</small>
+                            </div>
+                            <div class="p-3 rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-x-circle-fill fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Primary View Tabs (3 Tabs) -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 border-bottom pb-2">
+                <ul class="nav nav-pills gap-2" id="postApprovalBatchPills" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillUnbatchedApprovedTab" onclick="switchBatchSubTab('unbatched-approved')">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
+                            🟢 Unbatched Approved Beneficiaries
+                            <span class="badge bg-success text-white rounded-pill ms-1" id="badgeUnbatchedApprovedCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillBatchedGroupsTab" onclick="switchBatchSubTab('batched-groups')">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
+                            🔵 Batched Beneficiaries & Groups
+                            <span class="badge bg-primary text-white rounded-pill ms-1" id="badgeBatchedGroupsCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillDeniedReturnedTab" onclick="switchBatchSubTab('denied-returned')">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
+                            🔴 Denied — Returned from Admin
+                            <span class="badge bg-danger text-white rounded-pill ms-1" id="badgeDeniedReturnedCount">0</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Global Filters for Batches Module -->
+            <div class="card border-0 shadow-sm mb-4 rounded-3">
+                <div class="card-body py-3">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="postApprovalSearchInput" class="form-label small fw-semibold text-muted mb-1">Search Beneficiary / Ref # / Batch</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="postApprovalSearchInput"
+                                    placeholder="Search by name, ref #, or batch title..."
+                                    onkeyup="filterPostApprovalBatchViews()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="postApprovalProgramFilter" class="form-label small fw-semibold text-muted mb-1">Program</label>
+                            <select class="form-select" id="postApprovalProgramFilter" onchange="filterPostApprovalBatchViews()">
+                                <option value="">All Programs</option>
+                                <option value="SPES">SPES Program</option>
+                                <option value="TUPAD">TUPAD Program</option>
+                                <option value="Starter Kit">Livelihood Starter Kit</option>
+                                <option value="Micro-Enterprise">Micro-Enterprise</option>
+                                <option value="PFAS">PFAS Assistance</option>
+                                <option value="CKGIP">CKGIP Internship</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="postApprovalBarangayFilter" class="form-label small fw-semibold text-muted mb-1">Barangay</label>
+                            <select class="form-select" id="postApprovalBarangayFilter" onchange="filterPostApprovalBatchViews()">
+                                <option value="">All Barangays</option>
+                                <option value="San Vicente">Brgy. San Vicente</option>
+                                <option value="Central">Brgy. Central</option>
+                                <option value="Damayan">Brgy. Damayan</option>
+                                <option value="Zone I">Brgy. Zone I (Poblacion)</option>
+                                <option value="Zone II">Brgy. Zone II</option>
+                                <option value="Zone III">Brgy. Zone III</option>
+                                <option value="Zone IV">Brgy. Zone IV</option>
+                                <option value="General Paulino Santos">Brgy. GPS</option>
+                                <option value="Carpenter Hill">Brgy. Carpenter Hill</option>
+                                <option value="Esperanza">Brgy. Esperanza</option>
+                                <option value="Concepcion">Brgy. Concepcion</option>
+                                <option value="Mabini">Brgy. Mabini</option>
+                                <option value="Morales">Brgy. Morales</option>
+                                <option value="Saravia">Brgy. Saravia</option>
+                                <option value="Sta. Cruz">Brgy. Sta. Cruz</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-secondary w-100 py-2" onclick="resetPostApprovalBatchFilters()" title="Reset Filters">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 1 CONTENT: 🟢 UNBATCHED APPROVED BENEFICIARIES -->
+            <div id="view-unbatched-approved">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-check-circle-fill text-success"></i> Admin-Approved Candidates (Ready for Batching)
+                            </h5>
+                            <small class="text-muted">These beneficiaries have passed Admin evaluation and are ready to be grouped into operational batches.</small>
+                        </div>
+                        <button class="btn btn-sm btn-primary fw-bold" onclick="openPostApprovalCreateBatchModal()">
+                            <i class="bi bi-plus-lg me-1"></i> Create Batch from Approved
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="unbatchedApprovedMasterTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Beneficiary Ref #</th>
+                                        <th>Full Name</th>
+                                        <th>Approved Program</th>
+                                        <th>Barangay</th>
+                                        <th>Admin Approval Date</th>
+                                        <th>Evaluation Notes</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="unbatchedApprovedMasterTableBody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2 CONTENT: 🔵 BATCHED BENEFICIARIES & GROUPS -->
+            <div id="view-batched-groups" class="d-none">
+                <div class="row g-4 mb-4" id="operationalBatchesCardContainer">
+                    <!-- Loaded dynamically -->
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-diagram-3-fill text-primary"></i> Master Batched Beneficiaries Roster
+                            </h5>
+                            <small class="text-muted">Approved beneficiaries organized into active operational batches</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-success" onclick="exportOperationalBatchesCSV()">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="operationalBatchedTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Batch Name</th>
+                                        <th>Beneficiary Ref #</th>
+                                        <th>Full Name</th>
+                                        <th>Program</th>
+                                        <th>Barangay</th>
+                                        <th>Date Batched</th>
+                                        <th>Created By</th>
+                                        <th class="text-end">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="operationalBatchedTableBody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3 CONTENT: 🔴 DENIED — RETURNED FROM ADMIN -->
+            <div id="view-denied-returned" class="d-none">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-x-circle-fill text-danger"></i> Denied Applications (Returned from Admin)
+                            </h5>
+                            <small class="text-muted">Applications evaluated and disapproved by the PESO Administrator with official rejection reasons.</small>
+                        </div>
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 fs-6" id="badgeDeniedHeaderCount">0 Records</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="deniedReturnedTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>App ID / Ref #</th>
+                                        <th>Beneficiary Name</th>
+                                        <th>Program Applied</th>
+                                        <th>Barangay</th>
+                                        <th>Admin Evaluation Notes / Reason</th>
+                                        <th>Denial Date</th>
+                                        <th class="text-end">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deniedReturnedTableBody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- 5. APPROVED ASSISTANCE RECORDING & MONITORING TAB -->
@@ -2356,6 +2636,154 @@
                 </div>
                 <div class="modal-footer bg-light py-2 px-4 rounded-bottom-4">
                     <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- POST-APPROVAL BATCH CREATION MODAL -->
+    <div class="modal fade" id="postApprovalCreateBatchModal" tabindex="-1" aria-labelledby="postApprovalCreateBatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white py-3 px-4 rounded-top-4">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="postApprovalCreateBatchModalLabel">
+                            <i class="bi bi-folder-plus me-2"></i>Create Operational Program Batch
+                        </h5>
+                        <small class="text-white-50">Form a named batch for scheduling and distribution from Admin-Approved beneficiaries</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Batch Setup Controls -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="postBatchProgramSelect" class="form-label small fw-bold text-dark mb-1">
+                                1. Select Program <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select bg-light fw-semibold" id="postBatchProgramSelect" onchange="onPostBatchProgramChange(this.value)">
+                                <option value="">-- All Active Programs --</option>
+                                <option value="SPES">SPES Program</option>
+                                <option value="TUPAD">TUPAD Program</option>
+                                <option value="Starter Kit">Livelihood Starter Kit</option>
+                                <option value="Micro-Enterprise">Micro-Enterprise</option>
+                                <option value="PFAS">PFAS Assistance</option>
+                                <option value="CKGIP">CKGIP Internship</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="postBatchTitleInput" class="form-label small fw-bold text-dark mb-1">
+                                2. Batch Title / Identifier <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="postBatchTitleInput"
+                                placeholder="e.g. SPES — Training Batch, Aug 26, 2026" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold text-dark mb-1">Target Capacity</label>
+                            <input type="number" class="form-control" id="postBatchCapacityInput" value="50" min="1">
+                        </div>
+                    </div>
+
+                    <!-- Beneficiaries Selection Table -->
+                    <div class="card border rounded-3 mb-3">
+                        <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark small"><i class="bi bi-people-fill me-1 text-primary"></i>3. Select Admin-Approved Candidates</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold" id="postBatchSelectionCounterBadge">
+                                Selected: 0 / 0 Beneficiaries
+                            </span>
+                        </div>
+                        <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                            <table class="table table-hover table-sm align-middle mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 140px;" class="text-nowrap">
+                                            <div class="form-check d-flex align-items-center gap-1 mb-0">
+                                                <input type="checkbox" class="form-check-input" id="masterTogglePostBatchCheckbox"
+                                                    onclick="toggleSelectAllPostBatch(this.checked)" aria-label="Master Select All">
+                                                <label class="form-check-label fw-bold text-primary small cursor-pointer" for="masterTogglePostBatchCheckbox">SELECT ALL</label>
+                                            </div>
+                                        </th>
+                                        <th>Ref #</th>
+                                        <th>Full Name</th>
+                                        <th>Approved Program</th>
+                                        <th>Barangay</th>
+                                        <th>Approval Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="postBatchBeneficiariesTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-4 rounded-bottom-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" id="btnSavePostApprovalBatch" onclick="submitPostApprovalBatch()">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerSavePostBatch"></span>
+                        <i class="bi bi-check-circle-fill me-1" id="iconSavePostBatch"></i> Save & Create Batch
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPERATIONAL BATCH DETAIL MODAL -->
+    <div class="modal fade" id="operationalBatchDetailModal" tabindex="-1" aria-labelledby="operationalBatchDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white py-3 px-4 rounded-top-4">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="operationalBatchDetailModalLabel">
+                            <i class="bi bi-diagram-3-fill me-2"></i><span id="opBatchModalTitle">Batch Details</span>
+                        </h5>
+                        <small class="text-white-50" id="opBatchModalSubtitle">Operational batch roster</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Batch Metadata Cards -->
+                    <div class="row g-3 p-3 bg-light rounded-3 mb-3 border">
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block fw-semibold">Program</small>
+                            <span class="fw-bold text-dark" id="opBatchProgName">—</span>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block fw-semibold">Date Created</small>
+                            <span class="fw-bold text-dark font-monospace" id="opBatchDate">—</span>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block fw-semibold">Created By</small>
+                            <span class="fw-bold text-dark" id="opBatchOfficer">—</span>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block fw-semibold">Total Members</small>
+                            <span class="badge bg-primary fs-6 font-monospace" id="opBatchMemberCount">0</span>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-people-fill text-primary me-1"></i>Enrolled Beneficiaries</h6>
+                    <div class="table-responsive border rounded-3" style="max-height: 320px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Ref #</th>
+                                    <th>Full Name</th>
+                                    <th>Barangay</th>
+                                    <th>Approval Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="opBatchBeneficiariesTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-4 rounded-bottom-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-primary fw-bold" onclick="exportCurrentOpBatchCSV()">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Batch CSV
+                    </button>
                 </div>
             </div>
         </div>
@@ -3332,6 +3760,9 @@
                 renderBeneficiaryTable();
                 renderEvaluationQueueTable();
                 renderLivelihoodManagementModule();
+                if (typeof renderPostApprovalBatchesModule === 'function') {
+                    renderPostApprovalBatchesModule();
+                }
                 renderDailySchedules();
                 renderApprovedAssistanceTable();
                 renderOfficerNotificationsFeed();
@@ -7225,21 +7656,22 @@
         window.filterBatchedTableByBatch = filterBatchedTableByBatch;
 
         function exportBatchesRosterCSV() {
-            const batched = evaluationList.filter(item => item.batchId || (item.batchName && item.batchName.trim() !== ''));
-            if (batched.length === 0) {
-                alert('No batched beneficiaries to export.');
+            const forwarded = evaluationList.filter(item => item.status === 'Forwarded to Admin' || item.rawStatus === 'Forwarded to Admin' || item.batchId || (item.batchName && item.batchName.trim() !== ''));
+            if (forwarded.length === 0) {
+                alert('No forwarded applications to export.');
                 return;
             }
-            let csv = 'Beneficiary Ref #,Full Name,Assigned Batch,Applied Program,Barangay,Date Approved\n';
-            batched.forEach(item => {
+            let csv = 'Group Identity Label,Beneficiary Ref #,Full Name,Applied Program,Barangay,Forwarded Date,Status\n';
+            forwarded.forEach(item => {
                 const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
-                csv += `"${item.qrCodeId || item.id}","${item.beneficiaryName}","${item.batchName || 'Batch'}","${item.program || 'PESO'}","${ben.barangay || 'Koronadal'}","${item.dateSubmitted || '2026-08-25'}"\n`;
+                const groupLabel = item.batchName || `${item.program || 'PESO'} — ${item.dateSubmitted || '2026-08-25'}`;
+                csv += `"${groupLabel}","${item.qrCodeId || item.id}","${item.beneficiaryName}","${item.program || 'PESO'}","${ben.barangay || 'Koronadal'}","${item.forwarded_at?.substring(0,10) || item.dateSubmitted || '2026-08-25'}","${item.status || 'Forwarded'}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.setAttribute('href', url);
-            link.setAttribute('download', `PESO_Batched_Roster_${new Date().toISOString().substring(0, 10)}.csv`);
+            link.setAttribute('download', `PESO_Forwarded_Applications_${new Date().toISOString().substring(0, 10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -7250,6 +7682,698 @@
             window.print();
         }
         window.printBatchesRoster = printBatchesRoster;
+
+        // =====================================================================
+        // MODULE 4: LIVELIHOOD APPLICATIONS & BATCHES (POST-ADMIN DECISION STAGE)
+        // =====================================================================
+        let activeBatchSubTab = 'unbatched-approved'; // 'unbatched-approved', 'batched-groups', 'denied-returned'
+        let operationalBatchesList = []; // Stores operational batches created post-approval
+        let selectedPostBatchAppIds = new Set();
+        let currentInspectedOpBatchId = null;
+
+        function switchBatchSubTab(tabName) {
+            activeBatchSubTab = tabName;
+            
+            // Toggle Tab Buttons Active Class
+            document.querySelectorAll('#postApprovalBatchPills .nav-link').forEach(btn => btn.classList.remove('active'));
+            const activePill = document.getElementById(
+                tabName === 'unbatched-approved' ? 'pillUnbatchedApprovedTab' :
+                tabName === 'batched-groups' ? 'pillBatchedGroupsTab' : 'pillDeniedReturnedTab'
+            );
+            if (activePill) activePill.classList.add('active');
+
+            // Toggle Subview Divs
+            const viewUnbatched = document.getElementById('view-unbatched-approved');
+            const viewBatched = document.getElementById('view-batched-groups');
+            const viewDenied = document.getElementById('view-denied-returned');
+
+            if (viewUnbatched) viewUnbatched.classList.toggle('d-none', tabName !== 'unbatched-approved');
+            if (viewBatched) viewBatched.classList.toggle('d-none', tabName !== 'batched-groups');
+            if (viewDenied) viewDenied.classList.toggle('d-none', tabName !== 'denied-returned');
+
+            renderPostApprovalBatchesModule();
+        }
+        window.switchBatchSubTab = switchBatchSubTab;
+
+        function getPostApprovalFilterValues() {
+            return {
+                search: (document.getElementById('postApprovalSearchInput')?.value || '').trim().toLowerCase(),
+                program: (document.getElementById('postApprovalProgramFilter')?.value || '').trim(),
+                brgy: (document.getElementById('postApprovalBarangayFilter')?.value || '').trim()
+            };
+        }
+
+        function filterPostApprovalBatchViews() {
+            renderPostApprovalBatchesModule();
+        }
+        window.filterPostApprovalBatchViews = filterPostApprovalBatchViews;
+
+        function resetPostApprovalBatchFilters() {
+            const s = document.getElementById('postApprovalSearchInput');
+            const p = document.getElementById('postApprovalProgramFilter');
+            const b = document.getElementById('postApprovalBarangayFilter');
+            if (s) s.value = '';
+            if (p) p.value = '';
+            if (b) b.value = '';
+            renderPostApprovalBatchesModule();
+        }
+        window.resetPostApprovalBatchFilters = resetPostApprovalBatchFilters;
+
+        function renderPostApprovalBatchesModule() {
+            // 1. Metric Calculations
+            // Pending Admin: Forwarded to Admin / Under Review
+            const pendingAdminApps = evaluationList.filter(a => a.status === 'Forwarded to Admin' || a.rawStatus === 'Forwarded to Admin' || (a.status === 'Pending' && a.forwarded_at));
+            
+            // Approved Unbatched: Admin Approved but not yet placed in an operational batch
+            const approvedUnbatchedApps = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved') && (!a.is_operational_batch || !a.operational_batch_id));
+            
+            // Batched Approved: Admin Approved and placed in an operational batch
+            const batchedApprovedApps = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved') && a.is_operational_batch && a.operational_batch_id);
+            
+            // Denied Returned: Disapproved by Admin
+            const deniedReturnedApps = evaluationList.filter(a => a.status === 'Denied' || a.rawStatus === 'Denied');
+
+            // 2. Update 4 Stat Cards
+            const statPending = document.getElementById('batchStatPendingAdmin');
+            const statUnbatched = document.getElementById('batchStatUnbatchedApproved');
+            const statBatched = document.getElementById('batchStatBatchedMembers');
+            const statDenied = document.getElementById('batchStatDeniedReturned');
+
+            if (statPending) statPending.textContent = pendingAdminApps.length;
+            if (statUnbatched) statUnbatched.textContent = approvedUnbatchedApps.length;
+            if (statBatched) statBatched.textContent = batchedApprovedApps.length;
+            if (statDenied) statDenied.textContent = deniedReturnedApps.length;
+
+            // 3. Update Pill Badges
+            const badgeUnbatched = document.getElementById('badgeUnbatchedApprovedCount');
+            const badgeBatched = document.getElementById('badgeBatchedGroupsCount');
+            const badgeDenied = document.getElementById('badgeDeniedReturnedCount');
+            const badgeDeniedHeader = document.getElementById('badgeDeniedHeaderCount');
+
+            if (badgeUnbatched) badgeUnbatched.textContent = approvedUnbatchedApps.length;
+            if (badgeBatched) badgeBatched.textContent = operationalBatchesList.length || (batchedApprovedApps.length > 0 ? 1 : 0);
+            if (badgeDenied) badgeDenied.textContent = deniedReturnedApps.length;
+            if (badgeDeniedHeader) badgeDeniedHeader.textContent = `${deniedReturnedApps.length} Records`;
+
+            // 4. Render Active Tab Content
+            if (activeBatchSubTab === 'unbatched-approved') {
+                renderUnbatchedApprovedView(approvedUnbatchedApps);
+            } else if (activeBatchSubTab === 'batched-groups') {
+                renderOperationalBatchedView(batchedApprovedApps);
+            } else if (activeBatchSubTab === 'denied-returned') {
+                renderDeniedReturnedView(deniedReturnedApps);
+            }
+        }
+        window.renderPostApprovalBatchesModule = renderPostApprovalBatchesModule;
+
+        function renderUnbatchedApprovedView(approvedApps) {
+            const tbody = document.getElementById('unbatchedApprovedMasterTableBody');
+            if (!tbody) return;
+
+            const { search, program, brgy } = getPostApprovalFilterValues();
+
+            const filtered = approvedApps.filter(item => {
+                if (search) {
+                    const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
+                    const matchId = (String(item.id || '')).toLowerCase().includes(search);
+                    const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
+                    if (!matchName && !matchId && !matchQr) return false;
+                }
+                if (program) {
+                    const progUpper = program.toUpperCase();
+                    const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
+                    if (!itemProgUpper.includes(progUpper)) return false;
+                }
+                if (brgy) {
+                    const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
+                    const itemBrgy = (ben ? ben.barangay : '') || '';
+                    if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-folder-check fs-3 d-block mb-1 text-success opacity-75"></i>
+                            No unbatched Admin-Approved beneficiaries found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => {
+                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                const barangayName = ben.barangay || 'Brgy. Central';
+                const approvalDate = item.evaluated_at?.substring(0, 10) || item.approval_date || item.dateSubmitted || '2026-08-25';
+                const notes = item.admin_notes || item.evaluator_notes || item.rejection_reason || 'Approved by PESO Administrator';
+
+                return `
+                    <tr>
+                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                        <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">${escapeHtml(item.program || item.programCode || 'SPES')}</span></td>
+                        <td><span class="badge bg-light text-dark border">${escapeHtml(barangayName)}</span></td>
+                        <td><small class="text-muted font-monospace">${escapeHtml(approvalDate)}</small></td>
+                        <td><small class="text-muted text-truncate d-inline-block" style="max-width: 220px;" title="${escapeHtml(notes)}">${escapeHtml(notes)}</small></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-primary fw-semibold px-2.5 py-1" onclick="openPostApprovalCreateBatchModal('${escapeHtml(item.program || item.programCode || '')}')">
+                                <i class="bi bi-folder-plus me-1"></i> + Batch
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderOperationalBatchedView(batchedApps) {
+            const cardContainer = document.getElementById('operationalBatchesCardContainer');
+            const tbody = document.getElementById('operationalBatchedTableBody');
+            const { search, program, brgy } = getPostApprovalFilterValues();
+
+            // 1. Render Batches Cards Grid
+            if (cardContainer) {
+                if (operationalBatchesList.length === 0) {
+                    cardContainer.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm p-4 text-center text-muted">
+                                <i class="bi bi-diagram-3 fs-2 mb-2 text-primary opacity-50"></i>
+                                <h6 class="fw-bold mb-1">No Operational Batches Created Yet</h6>
+                                <p class="small text-muted mb-3">Group Admin-Approved beneficiaries into batches for training sessions, starter kits, or distribution.</p>
+                                <div>
+                                    <button class="btn btn-primary btn-sm fw-bold" onclick="openPostApprovalCreateBatchModal()">
+                                        <i class="bi bi-folder-plus me-1"></i> + Create Batch
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    cardContainer.innerHTML = operationalBatchesList.map(batch => {
+                        return `
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card border-0 shadow-sm rounded-3 h-100 position-relative">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1">${escapeHtml(batch.program || 'PESO')}</span>
+                                                <h6 class="fw-bold mb-0 text-dark font-monospace">${escapeHtml(batch.name)}</h6>
+                                            </div>
+                                            <span class="badge bg-success font-monospace">Operational Batch</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center small text-muted my-2">
+                                            <span><i class="bi bi-calendar-event me-1"></i>${escapeHtml(batch.dateCreated || '2026-08-25')}</span>
+                                            <span class="fw-bold text-dark font-monospace">${batch.memberCount || batch.members?.length || 0} Members</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                            <small class="text-muted"><i class="bi bi-person-badge me-1"></i>${escapeHtml(batch.officerName || 'PESO Officer')}</small>
+                                            <button class="btn btn-sm btn-outline-primary py-0 px-2.5 small fw-semibold" onclick="openOperationalBatchDetailModal('${escapeHtml(batch.id || batch.name)}')">
+                                                <i class="bi bi-eye"></i> View Roster
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // 2. Render Master Batched Table
+            if (tbody) {
+                const filtered = batchedApps.filter(item => {
+                    if (search) {
+                        const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
+                        const matchId = (String(item.id || '')).toLowerCase().includes(search);
+                        const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
+                        const matchBatch = (item.operational_batch_name || item.batchName || '').toLowerCase().includes(search);
+                        if (!matchName && !matchId && !matchQr && !matchBatch) return false;
+                    }
+                    if (program) {
+                        const progUpper = program.toUpperCase();
+                        const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
+                        if (!itemProgUpper.includes(progUpper)) return false;
+                    }
+                    if (brgy) {
+                        const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
+                        const itemBrgy = (ben ? ben.barangay : '') || '';
+                        if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
+                    }
+                    return true;
+                });
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>
+                                No batched beneficiaries found matching filter criteria.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = filtered.map(item => {
+                    const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                    const barangayName = ben.barangay || 'Brgy. Central';
+                    const batchTitle = item.operational_batch_name || item.batchName || 'Operational Batch';
+                    const dateBatched = item.batched_at?.substring(0, 10) || item.dateSubmitted || '2026-08-25';
+
+                    return `
+                        <tr>
+                            <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace fw-bold"><i class="bi bi-diagram-3 me-1"></i>${escapeHtml(batchTitle)}</span></td>
+                            <td><span class="font-monospace fw-bold text-dark">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                            <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
+                            <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
+                            <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
+                            <td><small class="text-muted font-monospace">${escapeHtml(dateBatched)}</small></td>
+                            <td><small class="text-muted">${escapeHtml(item.batched_by || 'PESO Officer')}</small></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="openOperationalBatchDetailModal('${escapeHtml(item.operational_batch_id || batchTitle)}')">
+                                    <i class="bi bi-file-text"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderDeniedReturnedView(deniedApps) {
+            const tbody = document.getElementById('deniedReturnedTableBody');
+            if (!tbody) return;
+
+            const { search, program, brgy } = getPostApprovalFilterValues();
+
+            const filtered = deniedApps.filter(item => {
+                if (search) {
+                    const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
+                    const matchId = (String(item.id || '')).toLowerCase().includes(search);
+                    const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
+                    if (!matchName && !matchId && !matchQr) return false;
+                }
+                if (program) {
+                    const progUpper = program.toUpperCase();
+                    const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
+                    if (!itemProgUpper.includes(progUpper)) return false;
+                }
+                if (brgy) {
+                    const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
+                    const itemBrgy = (ben ? ben.barangay : '') || '';
+                    if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-check2-circle fs-3 d-block mb-1 text-success opacity-75"></i>
+                            No denied applications returned from Admin.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => {
+                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                const barangayName = ben.barangay || 'Brgy. Central';
+                const reason = item.rejection_reason || item.admin_notes || item.evaluator_notes || 'Disapproved by Administrator during evaluation';
+                const denialDate = item.evaluated_at?.substring(0, 10) || item.dateSubmitted || '2026-08-25';
+
+                return `
+                    <tr>
+                        <td><span class="font-monospace fw-bold text-danger">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                        <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
+                        <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
+                        <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
+                        <td><span class="text-danger fw-semibold"><i class="bi bi-exclamation-octagon-fill me-1"></i>${escapeHtml(reason)}</span></td>
+                        <td><small class="text-muted font-monospace">${escapeHtml(denialDate)}</small></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger py-0 px-2.5 small" onclick="inspectApplicationDetails('${item.dbId || item.id}')">
+                                <i class="bi bi-eye"></i> View Case
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ---------------------------------------------------------------------
+        // POST-APPROVAL BATCH CREATION MODAL CONTROLLER
+        // ---------------------------------------------------------------------
+        function openPostApprovalCreateBatchModal(preselectedProgram = '') {
+            selectedPostBatchAppIds.clear();
+
+            const progSelect = document.getElementById('postBatchProgramSelect');
+            const titleInput = document.getElementById('postBatchTitleInput');
+            const toggleAll = document.getElementById('masterTogglePostBatchCheckbox');
+            if (toggleAll) toggleAll.checked = false;
+
+            if (progSelect) {
+                progSelect.value = preselectedProgram || '';
+            }
+
+            const today = new Date().toISOString().substring(0, 10);
+            const progName = preselectedProgram || 'Program';
+            if (titleInput) {
+                titleInput.value = `${progName} — Training Batch, ${today}`;
+            }
+
+            populatePostBatchBeneficiariesTable(preselectedProgram);
+            updatePostBatchSelectionBadge();
+            safeOpenModal('postApprovalCreateBatchModal');
+        }
+        window.openPostApprovalCreateBatchModal = openPostApprovalCreateBatchModal;
+
+        function onPostBatchProgramChange(programCode) {
+            const today = new Date().toISOString().substring(0, 10);
+            const progName = programCode || 'Program';
+            const titleInput = document.getElementById('postBatchTitleInput');
+            if (titleInput) {
+                titleInput.value = `${progName} — Training Batch, ${today}`;
+            }
+            selectedPostBatchAppIds.clear();
+            const toggleAll = document.getElementById('masterTogglePostBatchCheckbox');
+            if (toggleAll) toggleAll.checked = false;
+
+            populatePostBatchBeneficiariesTable(programCode);
+            updatePostBatchSelectionBadge();
+        }
+        window.onPostBatchProgramChange = onPostBatchProgramChange;
+
+        function populatePostBatchBeneficiariesTable(programCode) {
+            const tbody = document.getElementById('postBatchBeneficiariesTableBody');
+            if (!tbody) return;
+
+            // Filter unbatched approved beneficiaries
+            let approvedCandidates = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved') && (!a.is_operational_batch || !a.operational_batch_id));
+
+            if (programCode) {
+                const progUpper = programCode.toUpperCase();
+                approvedCandidates = approvedCandidates.filter(a => (a.program || a.programCode || '').toUpperCase().includes(progUpper));
+            }
+
+            if (approvedCandidates.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="bi bi-info-circle fs-3 d-block mb-1 opacity-50"></i>
+                            No unbatched Admin-Approved beneficiaries available for this program.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = approvedCandidates.map(item => {
+                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                const barangayName = ben.barangay || 'Brgy. Central';
+                const approvalDate = item.evaluated_at?.substring(0, 10) || item.approval_date || item.dateSubmitted || '2026-08-25';
+                const appId = item.dbId || item.id;
+                const isChecked = selectedPostBatchAppIds.has(String(appId));
+
+                return `
+                    <tr class="${isChecked ? 'table-primary' : ''}">
+                        <td>
+                            <div class="form-check d-flex align-items-center gap-1 mb-0">
+                                <input type="checkbox" class="form-check-input post-batch-row-checkbox" value="${escapeHtml(String(appId))}"
+                                    ${isChecked ? 'checked' : ''} onchange="togglePostBatchRow(this, '${escapeHtml(String(appId))}')">
+                                <span class="small font-monospace text-muted">Select</span>
+                            </div>
+                        </td>
+                        <td><span class="font-monospace fw-bold text-dark">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                        <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
+                        <td><span class="badge bg-success-subtle text-success border border-success-subtle">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
+                        <td><span class="badge bg-light text-dark border">${escapeHtml(barangayName)}</span></td>
+                        <td><small class="text-muted font-monospace">${escapeHtml(approvalDate)}</small></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function togglePostBatchRow(checkbox, appId) {
+            if (checkbox.checked) {
+                selectedPostBatchAppIds.add(String(appId));
+            } else {
+                selectedPostBatchAppIds.delete(String(appId));
+            }
+            updatePostBatchSelectionBadge();
+        }
+        window.togglePostBatchRow = togglePostBatchRow;
+
+        function toggleSelectAllPostBatch(checked) {
+            const checkboxes = document.querySelectorAll('.post-batch-row-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+                const row = cb.closest('tr');
+                if (row) row.classList.toggle('table-primary', checked);
+                if (checked) {
+                    selectedPostBatchAppIds.add(String(cb.value));
+                } else {
+                    selectedPostBatchAppIds.delete(String(cb.value));
+                }
+            });
+            updatePostBatchSelectionBadge();
+        }
+        window.toggleSelectAllPostBatch = toggleSelectAllPostBatch;
+
+        function updatePostBatchSelectionBadge() {
+            const badge = document.getElementById('postBatchSelectionCounterBadge');
+            const prog = document.getElementById('postBatchProgramSelect')?.value;
+            let totalAvailable = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved') && (!a.is_operational_batch || !a.operational_batch_id));
+            if (prog) {
+                totalAvailable = totalAvailable.filter(a => (a.program || a.programCode || '').toUpperCase().includes(prog.toUpperCase()));
+            }
+
+            if (badge) {
+                badge.textContent = `Selected: ${selectedPostBatchAppIds.size} / ${totalAvailable.length} Beneficiaries`;
+                badge.className = selectedPostBatchAppIds.size > 0 
+                    ? 'badge bg-success text-white fw-bold'
+                    : 'badge bg-primary-subtle text-primary border border-primary-subtle fw-bold';
+            }
+        }
+
+        async function submitPostApprovalBatch() {
+            const titleInput = document.getElementById('postBatchTitleInput');
+            const progSelect = document.getElementById('postBatchProgramSelect');
+            const batchTitle = titleInput?.value.trim();
+            const programCode = progSelect?.value || 'PESO';
+
+            if (!batchTitle) {
+                alert('Please provide a Batch Title / Identifier.');
+                if (titleInput) titleInput.focus();
+                return;
+            }
+
+            if (selectedPostBatchAppIds.size === 0) {
+                alert('Please select at least one Admin-Approved beneficiary to create this batch.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSavePostApprovalBatch');
+            const spinner = document.getElementById('spinnerSavePostBatch');
+            const icon = document.getElementById('iconSavePostBatch');
+
+            try {
+                if (btn) btn.disabled = true;
+                if (spinner) spinner.classList.remove('d-none');
+                if (icon) icon.classList.add('d-none');
+
+                const targetAppIds = Array.from(selectedPostBatchAppIds);
+                const timestamp = new Date().toISOString();
+                const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
+                const officerId = (currentUserProfile && currentUserProfile.id) || 'OFF-01';
+                const newBatchId = `OP-BAT-${Date.now()}`;
+
+                // 1. Sync with Supabase Database
+                if (typeof DataService !== 'undefined' && DataService.batches) {
+                    try {
+                        await DataService.batches.create({
+                            name: batchTitle,
+                            program: programCode,
+                            capacity: targetAppIds.length,
+                            assignedCount: targetAppIds.length,
+                            status: 'Active',
+                            is_operational: true
+                        });
+                    } catch (bErr) {
+                        console.warn('[PESO Officer] Batch DB creation note:', bErr);
+                    }
+                }
+
+                // 2. Update Applications in DB
+                for (const appId of targetAppIds) {
+                    try {
+                        if (typeof DataService !== 'undefined' && DataService.applications) {
+                            await DataService.applications.update(appId, {
+                                operational_batch_id: newBatchId,
+                                operational_batch_name: batchTitle,
+                                is_operational_batch: true,
+                                batched_at: timestamp,
+                                batched_by: officerName
+                            });
+                        }
+                    } catch (aErr) {
+                        console.warn('[PESO Officer] App batch update note:', aErr);
+                    }
+                }
+
+                // 3. Update in-memory evaluation list
+                const enrolledMembers = [];
+                targetAppIds.forEach(id => {
+                    const app = evaluationList.find(a => String(a.dbId) === String(id) || String(a.id) === String(id));
+                    if (app) {
+                        app.operational_batch_id = newBatchId;
+                        app.operational_batch_name = batchTitle;
+                        app.is_operational_batch = true;
+                        app.batched_at = timestamp;
+                        app.batched_by = officerName;
+                        enrolledMembers.push(app);
+                    }
+                });
+
+                // 4. Add to operationalBatchesList
+                operationalBatchesList.unshift({
+                    id: newBatchId,
+                    name: batchTitle,
+                    program: programCode,
+                    dateCreated: timestamp.substring(0, 10),
+                    created_at: timestamp,
+                    officerName: officerName,
+                    officerId: officerId,
+                    memberCount: enrolledMembers.length,
+                    members: enrolledMembers
+                });
+
+                // 5. Audit Log
+                logOfficerAction('CREATE_OPERATIONAL_BATCH', `Created operational batch "${batchTitle}" with ${enrolledMembers.length} Admin-Approved beneficiaries for ${programCode}. Officer: ${officerName}`);
+
+                // 6. Notification & Close Modal
+                const successMsg = `Successfully formed operational batch "${batchTitle}" with ${enrolledMembers.length} beneficiaries.`;
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Batch Created Successfully',
+                        message: successMsg,
+                        type: 'success'
+                    });
+                } else {
+                    alert(successMsg);
+                }
+
+                const modalEl = document.getElementById('postApprovalCreateBatchModal');
+                if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+
+                selectedPostBatchAppIds.clear();
+                switchBatchSubTab('batched-groups');
+            } catch (err) {
+                console.error('[PESO Officer] Error creating operational batch:', err);
+                alert(`Error creating batch: ${err.message || err}`);
+            } finally {
+                if (btn) btn.disabled = false;
+                if (spinner) spinner.classList.add('d-none');
+                if (icon) icon.classList.remove('d-none');
+            }
+        }
+        window.submitPostApprovalBatch = submitPostApprovalBatch;
+
+        function openOperationalBatchDetailModal(batchIdOrName) {
+            const batch = operationalBatchesList.find(b => b.id === batchIdOrName || b.name === batchIdOrName) || {
+                name: batchIdOrName,
+                program: 'PESO',
+                dateCreated: '2026-08-25',
+                officerName: 'PESO Officer',
+                members: evaluationList.filter(a => a.operational_batch_id === batchIdOrName || a.operational_batch_name === batchIdOrName)
+            };
+
+            currentInspectedOpBatchId = batchIdOrName;
+
+            const modalTitle = document.getElementById('opBatchModalTitle');
+            const progName = document.getElementById('opBatchProgName');
+            const dateSpan = document.getElementById('opBatchDate');
+            const officerSpan = document.getElementById('opBatchOfficer');
+            const countBadge = document.getElementById('opBatchMemberCount');
+            const tbody = document.getElementById('opBatchBeneficiariesTableBody');
+
+            if (modalTitle) modalTitle.textContent = batch.name;
+            if (progName) progName.textContent = batch.program || 'PESO';
+            if (dateSpan) dateSpan.textContent = batch.dateCreated || '2026-08-25';
+            if (officerSpan) officerSpan.textContent = batch.officerName || 'PESO Officer';
+            
+            const members = batch.members || evaluationList.filter(a => a.operational_batch_id === batchIdOrName || a.operational_batch_name === batchIdOrName);
+            if (countBadge) countBadge.textContent = members.length;
+
+            if (tbody) {
+                if (members.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-muted">No members enrolled.</td></tr>`;
+                } else {
+                    tbody.innerHTML = members.map(m => {
+                        const ben = beneficiariesList.find(b => b.qr_code === m.qrCodeId || b.name === m.beneficiaryName) || {};
+                        return `
+                            <tr>
+                                <td><span class="font-monospace fw-bold text-primary">${escapeHtml(m.qrCodeId || m.id)}</span></td>
+                                <td><strong class="text-dark">${escapeHtml(m.beneficiaryName)}</strong></td>
+                                <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(ben.barangay || 'Brgy. Central')}</span></td>
+                                <td><small class="text-muted font-monospace">${escapeHtml(m.evaluated_at?.substring(0, 10) || m.approval_date || '2026-08-25')}</small></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            safeOpenModal('operationalBatchDetailModal');
+        }
+        window.openOperationalBatchDetailModal = openOperationalBatchDetailModal;
+
+        function exportOperationalBatchesCSV() {
+            const batched = evaluationList.filter(item => (item.status === 'Approved' || item.rawStatus === 'Approved') && item.is_operational_batch);
+            if (batched.length === 0) {
+                alert('No batched beneficiaries to export.');
+                return;
+            }
+            let csv = 'Batch Name,Beneficiary Ref #,Full Name,Program,Barangay,Date Batched,Created By\n';
+            batched.forEach(item => {
+                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                csv += `"${item.operational_batch_name || item.batchName || 'Batch'}","${item.qrCodeId || item.id}","${item.beneficiaryName}","${item.program || 'PESO'}","${ben.barangay || 'Koronadal'}","${item.batched_at?.substring(0, 10) || item.dateSubmitted || '2026-08-25'}","${item.batched_by || 'PESO Officer'}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `PESO_Operational_Batches_${new Date().toISOString().substring(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        window.exportOperationalBatchesCSV = exportOperationalBatchesCSV;
+
+        function exportCurrentOpBatchCSV() {
+            if (!currentInspectedOpBatchId) return;
+            const members = evaluationList.filter(a => a.operational_batch_id === currentInspectedOpBatchId || a.operational_batch_name === currentInspectedOpBatchId);
+            if (members.length === 0) {
+                alert('No members to export.');
+                return;
+            }
+            let csv = 'Beneficiary Ref #,Full Name,Program,Barangay,Approval Date\n';
+            members.forEach(item => {
+                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                csv += `"${item.qrCodeId || item.id}","${item.beneficiaryName}","${item.program || 'PESO'}","${ben.barangay || 'Koronadal'}","${item.evaluated_at?.substring(0, 10) || item.approval_date || '2026-08-25'}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Batch_${currentInspectedOpBatchId}_Roster.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        window.exportCurrentOpBatchCSV = exportCurrentOpBatchCSV;
 
         // ---------------------------------------------------------------------
         // TAB 5: APPROVED ASSISTANCE & MONITORING REPORTS CONTROLLER
