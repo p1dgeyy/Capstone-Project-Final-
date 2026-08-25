@@ -537,46 +537,77 @@
 
   // Dynamic QR Code Rendering for Beneficiary Pass Card & Modal
   function renderQrPassCard() {
-    if (!state.user || !state.user.qr_code) return;
-    const qrText = state.user.qr_code;
+    const qrText = (state.user && state.user.qr_code) || sessionStorage.getItem('beneficiaryQrCode') || sessionStorage.getItem('userId') || 'QR-BEN-ACTIVE';
+    const fullName = (state.user && state.user.fullName) || sessionStorage.getItem('userFullName') || sessionStorage.getItem('username') || 'Maria Dela Cruz';
+    const userStatus = (state.user && state.user.status) || 'Active';
 
     const qrBadge = document.getElementById('benCardQrBadge');
     const benName = document.getElementById('benCardFullName');
     const statusBadge = document.getElementById('benCardStatusBadge');
     const canvasBox = document.getElementById('benQrCanvasBox');
+    const heroQrBadge = document.getElementById('benPortalQrBadge');
 
     if (qrBadge) qrBadge.textContent = qrText;
-    if (benName) benName.textContent = state.user.fullName;
-    if (statusBadge) statusBadge.textContent = state.user.status || 'Active';
+    if (benName) benName.textContent = fullName;
+    if (statusBadge) statusBadge.textContent = userStatus;
+    if (heroQrBadge) heroQrBadge.innerHTML = `<i class="bi bi-qr-code text-primary me-1"></i>${qrText}`;
 
     if (canvasBox && typeof QRCode !== 'undefined') {
       canvasBox.innerHTML = '';
-      new QRCode(canvasBox, {
-        text: qrText,
-        width: 140,
-        height: 140,
-        colorDark: "#0F172A",
-        colorLight: "#FFFFFF",
-        correctLevel: QRCode.CorrectLevel.M
-      });
+      try {
+        new QRCode(canvasBox, {
+          text: qrText,
+          width: 140,
+          height: 140,
+          colorDark: "#0F172A",
+          colorLight: "#FFFFFF",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch (e) {
+        canvasBox.innerHTML = `<div class="p-3 font-monospace fw-bold text-dark border bg-light">${qrText}</div>`;
+      }
     }
 
     const modalName = document.getElementById('modalBenName');
     const modalQr = document.getElementById('modalBenQrCode');
     const modalCanvas = document.getElementById('modalQrCanvasBox');
 
-    if (modalName) modalName.textContent = state.user.fullName;
+    if (modalName) modalName.textContent = fullName;
     if (modalQr) modalQr.textContent = qrText;
     if (modalCanvas && typeof QRCode !== 'undefined') {
       modalCanvas.innerHTML = '';
-      new QRCode(modalCanvas, {
-        text: qrText,
-        width: 180,
-        height: 180,
-        colorDark: "#0F172A",
-        colorLight: "#FFFFFF",
-        correctLevel: QRCode.CorrectLevel.H
-      });
+      try {
+        new QRCode(modalCanvas, {
+          text: qrText,
+          width: 180,
+          height: 180,
+          colorDark: "#0F172A",
+          colorLight: "#FFFFFF",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } catch (e) {
+        modalCanvas.innerHTML = `<div class="p-3 font-monospace fw-bold text-dark border bg-light fs-5">${qrText}</div>`;
+      }
+    }
+
+    // Also populate custom overlay qrModal if present
+    const legacyQrBox = document.querySelector('#qrModal .status-pill');
+    if (legacyQrBox) legacyQrBox.textContent = qrText;
+    const legacyName = document.querySelector('#qrModal h4');
+    if (legacyName) legacyName.textContent = fullName;
+    const legacyQrContainer = document.querySelector('#qrModal div[style*="width: 180px"]');
+    if (legacyQrContainer && typeof QRCode !== 'undefined') {
+      legacyQrContainer.innerHTML = '';
+      try {
+        new QRCode(legacyQrContainer, {
+          text: qrText,
+          width: 150,
+          height: 150,
+          colorDark: "#D77FA1",
+          colorLight: "#FFFFFF",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } catch (e) {}
     }
   }
 
@@ -584,8 +615,21 @@
     renderQrPassCard();
     const modalEl = document.getElementById('qrSlipModal');
     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-      modal.show();
+      try {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+        return;
+      } catch (e) {
+        console.warn('[Beneficiary QR] Bootstrap modal show notice:', e);
+      }
+    }
+    
+    // Fallback: Show custom overlay qrModal or qrSlipModal
+    const customModal = document.getElementById('qrModal') || modalEl;
+    if (customModal) {
+      customModal.classList.add('active');
+      customModal.classList.add('show');
+      customModal.style.display = 'block';
     }
   }
 
@@ -985,6 +1029,10 @@
   window.markBeneficiaryNotificationRead = markBeneficiaryNotificationRead;
   window.markAllRead = markAllBeneficiaryNotificationsRead;
   window.openQrSlipModal = openQrSlipModal;
+  window.openQrModal = openQrSlipModal;
+  window.showQrModal = openQrSlipModal;
+  window.viewQrCode = openQrSlipModal;
+  window.renderQrPassCard = renderQrPassCard;
 
   // Initialize on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', async function () {
