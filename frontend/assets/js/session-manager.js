@@ -50,7 +50,7 @@ const SessionManager = (() => {
    */
   function getSessionId() {
     try {
-      return sessionStorage.getItem('currentSessionId') || localStorage.getItem(STORAGE_ACTIVE_SESSION_KEY) || null;
+      return sessionStorage.getItem('currentSessionId') || null;
     } catch (e) {
       return null;
     }
@@ -67,34 +67,48 @@ const SessionManager = (() => {
 
   /**
    * Check if this account is currently active on another device.
-   * If active within 20 minutes (and not the same local session ID), returns { isAlreadyActive: true }
+   * If active within 20 minutes (and not the same local session ID), returns { isAlreadyActive: true, message: ... }
    * If stale (>20 minutes) or logged out, deletes stale record and returns { isAlreadyActive: false }
    */
-  async function checkAccountAlreadyActive(userId, identifier) {
+  async function checkAccountAlreadyActive(userId, identifier, extra = {}) {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
       return { isAlreadyActive: false };
     }
 
     const uId = String(userId || '').trim();
     const uName = String(identifier || '').trim();
-    if (!uId && !uName) return { isAlreadyActive: false };
+    const uEmail = String(extra.email || '').trim();
+    const uAuthId = String(extra.authId || '').trim();
+
+    if (!uId && !uName && !uEmail && !uAuthId) return { isAlreadyActive: false };
 
     try {
-      const localSessionId = getSessionId();
+      const localSessionId = sessionStorage.getItem('currentSessionId') || null;
       
-      let query = supabaseClient.from('active_user_sessions').select('*');
-      if (uId && uName) {
-        query = query.or(`user_id.eq.${uId},user_identifier.ilike.${uName}`);
-      } else if (uId) {
-        query = query.eq('user_id', uId);
-      } else {
-        query = query.ilike('user_identifier', uName);
+      const conditions = [];
+      if (uId) {
+        conditions.push(`user_id.eq.${uId}`);
+        conditions.push(`user_identifier.ilike.${uId}`);
+      }
+      if (uAuthId && uAuthId !== uId) {
+        conditions.push(`user_id.eq.${uAuthId}`);
+      }
+      if (uName) {
+        conditions.push(`user_identifier.ilike.${uName}`);
+        conditions.push(`user_id.eq.${uName}`);
+      }
+      if (uEmail) {
+        conditions.push(`user_identifier.ilike.${uEmail}`);
       }
 
-      const { data: existingSessions, error } = await query;
+      const orClause = [...new Set(conditions)].join(',');
+      const { data: existingSessions, error } = await supabaseClient
+        .from('active_user_sessions')
+        .select('*')
+        .or(orClause);
+
       if (error) {
-        console.warn('[SessionManager] checkAccountAlreadyActive query error:', error.message);
-        return { isAlreadyActive: false };
+        console.warn('[SessionManager] checkAccountAlreadyActive query warning:', error.message);
       }
 
       if (!existingSessions || existingSessions.length === 0) {
@@ -103,7 +117,7 @@ const SessionManager = (() => {
 
       const now = Date.now();
       for (const sess of existingSessions) {
-        // If this is the exact same session on this browser/tab, allow re-auth/refresh
+        // If this exact tab already holds this session ID, allow it
         if (localSessionId && sess.session_id === localSessionId) {
           continue;
         }
@@ -111,13 +125,14 @@ const SessionManager = (() => {
         const lastActivity = sess.last_activity_at ? new Date(sess.last_activity_at).getTime() : 0;
         const diffMs = now - lastActivity;
 
-        // If active within 20 minutes: BLOCK LOGIN
+        // If active within 20 minutes (INACTIVITY_TIMEOUT_MS): BLOCK LOGIN
         if (diffMs < INACTIVITY_TIMEOUT_MS) {
-          const minutesAgo = Math.max(1, Math.round(diffMs / 60000));
+          const minutesAgo = Math.max(0, Math.round(diffMs / 60000));
+          const timeText = minutesAgo === 0 ? 'just now' : `${minutesAgo}m ago`;
           return {
             isAlreadyActive: true,
             session: sess,
-            message: `Current account is being used on another device (active ${minutesAgo}m ago). Simultaneous logins are not permitted. Please log out from that device first or wait for the session to expire.`
+            message: `Current account is being used on another device (active ${timeText}). Simultaneous logins are not permitted. Please log out from that device first or wait for the session to expire.`
           };
         } else {
           // Stale session (> 20 mins): delete it
@@ -127,7 +142,7 @@ const SessionManager = (() => {
 
       return { isAlreadyActive: false };
     } catch (e) {
-      console.warn('[SessionManager] checkAccountAlreadyActive notice:', e.message);
+      console.warn('[SessionManager] checkAccountAlreadyActive error:', e.message);
       return { isAlreadyActive: false };
     }
   }
@@ -180,7 +195,7 @@ const SessionManager = (() => {
 
         // 1. Upsert active_user_sessions table
         if (uId) {
-          await supabaseClient
+          const { error: upsertErr } = await supabaseClient
             .from('active_user_sessions')
             .upsert({
               user_id: uId,
@@ -190,6 +205,9 @@ const SessionManager = (() => {
               device_info: userAgent,
               last_activity_at: nowIso
             }, { onConflict: 'user_id' });
+          if (upsertErr) {
+            console.warn('[SessionManager] Upsert active_user_sessions warning:', upsertErr.message);
+          }
         }
 
         // 2. Update profile table

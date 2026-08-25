@@ -53,7 +53,7 @@
         }
 
         // Clear any stale cached credentials/sessions on login portal load
-        ['userId', 'userRole', 'username', 'userFullName', 'department', 'jwtAccessToken', 'sessionToken'].forEach(k => sessionStorage.removeItem(k));
+        ['userId', 'userRole', 'username', 'userFullName', 'department', 'jwtAccessToken', 'sessionToken', 'currentSessionId'].forEach(k => sessionStorage.removeItem(k));
 
         // Reset form inputs so no credentials persist on page refresh
         const loginForm = document.getElementById('loginForm');
@@ -352,7 +352,10 @@
 
                 // Strict Single-Device Active Login Check: Prevent login if already active on another device
                 if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
-                    const activeCheck = await SessionManager.checkAccountAlreadyActive(userProfile.id, userProfile.username);
+                    const activeCheck = await SessionManager.checkAccountAlreadyActive(userProfile.id, userProfile.username, {
+                        email: userProfile.email || (authData.user ? authData.user.email : ''),
+                        authId: userProfile.auth_id || (authData.user ? authData.user.id : '')
+                    });
                     if (activeCheck && activeCheck.isAlreadyActive) {
                         try { await supabaseClient.auth.signOut(); } catch (e) {}
                         const kickMsg = activeCheck.message || (lang === 'tg'
@@ -372,7 +375,7 @@
                 sessionStorage.setItem('department', userProfile.department || 'PESO');
 
                 if (typeof SessionManager !== 'undefined' && SessionManager.save) {
-                    SessionManager.save(userProfile.id, accessToken, userProfile.role, {
+                    await SessionManager.save(userProfile.id, accessToken, userProfile.role, {
                         username: userProfile.username || identifier,
                         fullName: fullName,
                         department: userProfile.department || 'PESO',

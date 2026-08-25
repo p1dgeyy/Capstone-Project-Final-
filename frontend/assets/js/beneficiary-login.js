@@ -10,6 +10,9 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Clear any stale cached credentials/sessions on login portal load
+        ['userId', 'userRole', 'username', 'userFullName', 'jwtAccessToken', 'sessionToken', 'currentSessionId', 'beneficiaryLoggedIn'].forEach(k => sessionStorage.removeItem(k));
+
         // Check if redirected due to session kick or inactivity timeout
         if (typeof SessionManager !== 'undefined' && SessionManager.checkAndDisplayLoginNotice) {
             SessionManager.checkAndDisplayLoginNotice('errorMessage', 'errorAlert');
@@ -223,7 +226,10 @@
 
                 // Strict Single-Device Active Login Check: Prevent login if already active on another device
                 if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
-                    const activeCheck = await SessionManager.checkAccountAlreadyActive(userProfile.qr_code || userProfile.id, userProfile.username);
+                    const activeCheck = await SessionManager.checkAccountAlreadyActive(userProfile.qr_code || userProfile.id, userProfile.username, {
+                        email: userProfile.email || (authData.user ? authData.user.email : ''),
+                        authId: userProfile.auth_id || (authData.user ? authData.user.id : '')
+                    });
                     if (activeCheck && activeCheck.isAlreadyActive) {
                         try { await supabaseClient.auth.signOut(); } catch (e) {}
                         const kickMsg = activeCheck.message || (lang === 'tg'
@@ -236,7 +242,7 @@
                 // Save session data & AuthGuard integration
                 const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.username;
                 if (typeof SessionManager !== 'undefined' && SessionManager.save) {
-                    SessionManager.save(userProfile.qr_code || userProfile.id, accessToken, 'Beneficiary', {
+                    await SessionManager.save(userProfile.qr_code || userProfile.id, accessToken, 'Beneficiary', {
                         username: userProfile.username,
                         fullName: fullName,
                         qrCode: userProfile.qr_code,

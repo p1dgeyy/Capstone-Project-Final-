@@ -232,7 +232,7 @@ const GoogleAuth = (() => {
         sessionStorage.setItem('department', staffProfile.department || 'PESO');
 
         if (typeof SessionManager !== 'undefined' && SessionManager.save) {
-          SessionManager.save(staffProfile.id, session.access_token, staffProfile.role, {
+          await SessionManager.save(staffProfile.id, session.access_token, staffProfile.role, {
             username: staffProfile.username,
             fullName: fullName,
             department: staffProfile.department || 'PESO',
@@ -386,7 +386,7 @@ const GoogleAuth = (() => {
       if (profile.qr_code) sessionStorage.setItem('beneficiaryQrCode', profile.qr_code);
 
       if (typeof SessionManager !== 'undefined' && SessionManager.save) {
-        SessionManager.save(profile.id, session.access_token, 'Beneficiary', {
+        await SessionManager.save(profile.id, session.access_token, 'Beneficiary', {
           username: profile.username,
           fullName: fullName,
           email: profile.email
