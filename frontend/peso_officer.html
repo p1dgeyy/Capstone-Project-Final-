@@ -1567,62 +1567,57 @@
             </div>
         </section>
 
-        <!-- 4. LIVELIHOOD APPLICATIONS & BATCHES MODULE (POST-ADMIN DECISION STAGE) -->
+        <!-- 4. LIVELIHOOD APPLICATIONS & BATCHES MODULE (POST-ADMIN DECISION & SCHEDULING STAGE) -->
         <section id="tab-livelihood-batches" class="tab-section d-none">
             <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                 <div>
                     <h1 class="page-title fw-bold text-dark mb-1"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Livelihood Applications & Batches</h1>
-                    <p class="text-muted mb-0">Organize Admin-Approved beneficiaries into operational batches for training sessions, starter kit distributions, and disbursement scheduling.</p>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary fw-semibold px-3 d-flex align-items-center gap-2 shadow-sm" onclick="openPostApprovalCreateBatchModal()">
-                        <i class="bi bi-folder-plus"></i> + Create Batch
-                    </button>
+                    <p class="text-muted mb-0">Group Admin-Approved beneficiaries into operational batches and schedule downstream training sessions, kit distributions, and disbursements.</p>
                 </div>
             </div>
 
-            <!-- Overview Stat Cards (4 Cards) -->
+            <!-- Overview Stat Cards (4 User-Specified Cards) -->
             <div class="row g-3 mb-4" id="postApprovalStatCards">
-                <!-- 1. Pending Admin Approval -->
+                <!-- 1. Total Approved Beneficiaries -->
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
-                                <span class="text-muted small fw-semibold d-block mb-1">Pending Admin Approval</span>
-                                <h3 class="fw-bold mb-0 text-warning" id="batchStatPendingAdmin">0</h3>
-                                <small class="text-muted">Awaiting Admin decision</small>
+                                <span class="text-muted small fw-semibold d-block mb-1">Total Approved Beneficiaries</span>
+                                <h3 class="fw-bold mb-0 text-dark" id="statBatchTotalApproved">0</h3>
+                                <small class="text-muted">Admin-signed across programs</small>
                             </div>
-                            <div class="p-3 rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                <i class="bi bi-hourglass-split fs-4"></i>
+                            <div class="p-3 rounded-circle bg-dark-subtle text-dark d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-person-check-fill fs-4"></i>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 2. Unbatched (Ready for Batching) -->
+                <!-- 2. Unbatched -->
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
-                                <span class="text-muted small fw-semibold d-block mb-1">Unbatched (Ready)</span>
-                                <h3 class="fw-bold mb-0 text-success" id="batchStatUnbatchedApproved">0</h3>
-                                <small class="text-muted">Admin-Approved candidates</small>
+                                <span class="text-muted small fw-semibold d-block mb-1">Unbatched</span>
+                                <h3 class="fw-bold mb-0 text-success" id="statBatchUnbatched">0</h3>
+                                <small class="text-muted">Ready for batching</small>
                             </div>
                             <div class="p-3 rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                <i class="bi bi-check-circle-fill fs-4"></i>
+                                <i class="bi bi-folder-plus fs-4"></i>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 3. Batched Beneficiaries -->
+                <!-- 3. Batched -->
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
-                                <span class="text-muted small fw-semibold d-block mb-1">Batched Beneficiaries</span>
-                                <h3 class="fw-bold mb-0 text-primary" id="batchStatBatchedMembers">0</h3>
-                                <small class="text-muted">Assigned to active batches</small>
+                                <span class="text-muted small fw-semibold d-block mb-1">Batched</span>
+                                <h3 class="fw-bold mb-0 text-primary" id="statBatchBatched">0</h3>
+                                <small class="text-muted">In active batches (Unscheduled)</small>
                             </div>
                             <div class="p-3 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                                 <i class="bi bi-people-fill fs-4"></i>
@@ -1631,217 +1626,209 @@
                     </div>
                 </div>
 
-                <!-- 4. Denied (Returned) -->
+                <!-- 4. Scheduled -->
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm stat-card h-100 rounded-3">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
-                                <span class="text-muted small fw-semibold d-block mb-1">Denied (Returned)</span>
-                                <h3 class="fw-bold mb-0 text-danger" id="batchStatDeniedReturned">0</h3>
-                                <small class="text-muted">Routed back for follow-up</small>
+                                <span class="text-muted small fw-semibold d-block mb-1">Scheduled</span>
+                                <h3 class="fw-bold mb-0 text-info" id="statBatchScheduled">0</h3>
+                                <small class="text-muted">Event assigned & locked</small>
                             </div>
-                            <div class="p-3 rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                <i class="bi bi-x-circle-fill fs-4"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Primary View Tabs (3 Tabs) -->
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 border-bottom pb-2">
-                <ul class="nav nav-pills gap-2" id="postApprovalBatchPills" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillUnbatchedApprovedTab" onclick="switchBatchSubTab('unbatched-approved')">
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
-                            🟢 Unbatched Approved Beneficiaries
-                            <span class="badge bg-success text-white rounded-pill ms-1" id="badgeUnbatchedApprovedCount">0</span>
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillBatchedGroupsTab" onclick="switchBatchSubTab('batched-groups')">
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
-                            🔵 Batched Beneficiaries & Groups
-                            <span class="badge bg-primary text-white rounded-pill ms-1" id="badgeBatchedGroupsCount">0</span>
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" id="pillDeniedReturnedTab" onclick="switchBatchSubTab('denied-returned')">
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-circle p-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
-                            🔴 Denied — Returned from Admin
-                            <span class="badge bg-danger text-white rounded-pill ms-1" id="badgeDeniedReturnedCount">0</span>
-                        </button>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Global Filters for Batches Module -->
-            <div class="card border-0 shadow-sm mb-4 rounded-3">
-                <div class="card-body py-3">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label for="postApprovalSearchInput" class="form-label small fw-semibold text-muted mb-1">Search Beneficiary / Ref # / Batch</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0" id="postApprovalSearchInput"
-                                    placeholder="Search by name, ref #, or batch title..."
-                                    onkeyup="filterPostApprovalBatchViews()">
+                            <div class="p-3 rounded-circle bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-calendar-check-fill fs-4"></i>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <label for="postApprovalProgramFilter" class="form-label small fw-semibold text-muted mb-1">Program</label>
-                            <select class="form-select" id="postApprovalProgramFilter" onchange="filterPostApprovalBatchViews()">
-                                <option value="">All Programs</option>
-                                <option value="SPES">SPES Program</option>
-                                <option value="TUPAD">TUPAD Program</option>
-                                <option value="Starter Kit">Livelihood Starter Kit</option>
-                                <option value="Micro-Enterprise">Micro-Enterprise</option>
-                                <option value="PFAS">PFAS Assistance</option>
-                                <option value="CKGIP">CKGIP Internship</option>
-                            </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN WORKSPACE: LEFT PANEL (PROGRAMS) & RIGHT PANEL (APPROVED BENEFICIARIES) -->
+            <div class="row g-4 mb-4">
+                <!-- Left Panel: Programs List with Live Approved Unbatched Counters -->
+                <div class="col-lg-4 col-xl-3">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-collection-fill me-2 text-primary"></i>Program List</h6>
+                            <span class="badge bg-light text-muted border font-monospace small">Unbatched Pool</span>
                         </div>
-                        <div class="col-md-3">
-                            <label for="postApprovalBarangayFilter" class="form-label small fw-semibold text-muted mb-1">Barangay</label>
-                            <select class="form-select" id="postApprovalBarangayFilter" onchange="filterPostApprovalBatchViews()">
-                                <option value="">All Barangays</option>
-                                <option value="San Vicente">Brgy. San Vicente</option>
-                                <option value="Central">Brgy. Central</option>
-                                <option value="Damayan">Brgy. Damayan</option>
-                                <option value="Zone I">Brgy. Zone I (Poblacion)</option>
-                                <option value="Zone II">Brgy. Zone II</option>
-                                <option value="Zone III">Brgy. Zone III</option>
-                                <option value="Zone IV">Brgy. Zone IV</option>
-                                <option value="General Paulino Santos">Brgy. GPS</option>
-                                <option value="Carpenter Hill">Brgy. Carpenter Hill</option>
-                                <option value="Esperanza">Brgy. Esperanza</option>
-                                <option value="Concepcion">Brgy. Concepcion</option>
-                                <option value="Mabini">Brgy. Mabini</option>
-                                <option value="Morales">Brgy. Morales</option>
-                                <option value="Saravia">Brgy. Saravia</option>
-                                <option value="Sta. Cruz">Brgy. Sta. Cruz</option>
-                            </select>
+                        <div class="card-body p-3">
+                            <p class="small text-muted mb-3">Click a program to load its Admin-approved beneficiaries for batch creation.</p>
+                            <div class="d-flex flex-column gap-2" id="opBatchProgramSelectionList">
+                                <!-- SPES -->
+                                <div class="inline-program-item active" id="opBatchCard-SPES" onclick="selectOpBatchProgram('SPES')">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div class="fw-bold text-dark"><i class="bi bi-mortarboard-fill text-primary me-1.5"></i>SPES Program</div>
+                                        <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeOpUnbatched-SPES">0 approved, unbatched</span>
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.78rem;">Special Program for Employment of Students</small>
+                                </div>
+
+                                <!-- TUPAD -->
+                                <div class="inline-program-item" id="opBatchCard-TUPAD" onclick="selectOpBatchProgram('TUPAD')">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div class="fw-bold text-dark"><i class="bi bi-people-fill text-warning me-1.5"></i>TUPAD Program</div>
+                                        <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeOpUnbatched-TUPAD">0 approved, unbatched</span>
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.78rem;">Emergency Employment for Displaced Workers</small>
+                                </div>
+
+                                <!-- Starter Kit -->
+                                <div class="inline-program-item" id="opBatchCard-StarterKit" onclick="selectOpBatchProgram('Starter Kit')">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div class="fw-bold text-dark"><i class="bi bi-tools text-success me-1.5"></i>Livelihood Starter Kit</div>
+                                        <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeOpUnbatched-StarterKit">0 approved, unbatched</span>
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.78rem;">Self-Employment Toolkits & Equipment</small>
+                                </div>
+
+                                <!-- Micro-Enterprise -->
+                                <div class="inline-program-item" id="opBatchCard-MicroEnterprise" onclick="selectOpBatchProgram('Micro-Enterprise')">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div class="fw-bold text-dark"><i class="bi bi-shop text-info me-1.5"></i>Micro-Enterprise</div>
+                                        <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeOpUnbatched-MicroEnterprise">0 approved, unbatched</span>
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.78rem;">Financial Grants for Small Businesses</small>
+                                </div>
+
+                                <!-- PFAS -->
+                                <div class="inline-program-item" id="opBatchCard-PFAS" onclick="selectOpBatchProgram('PFAS')">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div class="fw-bold text-dark"><i class="bi bi-cash-coin text-danger me-1.5"></i>PFAS Assistance</div>
+                                        <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeOpUnbatched-PFAS">0 approved, unbatched</span>
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.78rem;">Pangkabuhayan Financial Assistance Scheme</small>
+                                </div>
+
+                                <!-- CKGIP -->
+                                <div class="inline-program-item" id="opBatchCard-CKGIP" onclick="selectOpBatchProgram('CKGIP')">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div class="fw-bold text-dark"><i class="bi bi-briefcase-fill text-secondary me-1.5"></i>CKGIP Internship</div>
+                                        <span class="badge bg-success text-white rounded-pill font-monospace" id="badgeOpUnbatched-CKGIP">0 approved, unbatched</span>
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.78rem;">City Government Internship Program</small>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-outline-secondary w-100 py-2" onclick="resetPostApprovalBatchFilters()" title="Reset Filters">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
-                            </button>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Approved Beneficiaries Table & Create Batch Action -->
+                <div class="col-lg-8 col-xl-9">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary px-2.5 py-1 font-monospace" id="opBatchActiveProgramBadge">SPES</span>
+                                    <h5 class="fw-bold mb-0 text-dark" id="opBatchActiveProgramTitle">SPES Approved Beneficiaries</h5>
+                                </div>
+                                <small class="text-muted">Select candidates to bundle into a named batch for training or distribution</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold fs-6" id="opBatchSelectionCounterBadge">
+                                    Selected: 0 / 0 Beneficiaries
+                                </span>
+                                <button class="btn btn-primary fw-bold px-3 d-flex align-items-center gap-1.5 shadow-sm" id="btnTriggerCreateBatch" onclick="openCreateBatchPromptModal()" disabled>
+                                    <i class="bi bi-folder-plus"></i> + Create Batch
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quick Filter Toolbar -->
+                        <div class="p-3 bg-light border-bottom">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-7">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                                        <input type="text" class="form-control" id="opBatchSearchInput"
+                                            placeholder="Search by Ref #, Beneficiary Name, or Barangay..."
+                                            onkeyup="filterOpBatchCandidateRoster()">
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <select class="form-select form-select-sm" id="opBatchBarangayFilter" onchange="filterOpBatchCandidateRoster()">
+                                        <option value="">All Barangays</option>
+                                        <option value="San Vicente">Brgy. San Vicente</option>
+                                        <option value="Central">Brgy. Central</option>
+                                        <option value="Damayan">Brgy. Damayan</option>
+                                        <option value="Zone I">Brgy. Zone I (Poblacion)</option>
+                                        <option value="Zone II">Brgy. Zone II</option>
+                                        <option value="Zone III">Brgy. Zone III</option>
+                                        <option value="Zone IV">Brgy. Zone IV</option>
+                                        <option value="General Paulino Santos">Brgy. GPS</option>
+                                        <option value="Carpenter Hill">Brgy. Carpenter Hill</option>
+                                        <option value="Esperanza">Brgy. Esperanza</option>
+                                        <option value="Concepcion">Brgy. Concepcion</option>
+                                        <option value="Mabini">Brgy. Mabini</option>
+                                        <option value="Morales">Brgy. Morales</option>
+                                        <option value="Saravia">Brgy. Saravia</option>
+                                        <option value="Sta. Cruz">Brgy. Sta. Cruz</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0" id="opBatchCandidatesTable">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 140px;" class="text-nowrap">
+                                                <div class="form-check d-flex align-items-center gap-1 mb-0">
+                                                    <input type="checkbox" class="form-check-input" id="masterToggleOpBatchCheckbox"
+                                                        onclick="toggleSelectAllOpBatch(this.checked)" aria-label="Master Select All">
+                                                    <label class="form-check-label fw-bold text-primary small cursor-pointer" for="masterToggleOpBatchCheckbox">SELECT ALL</label>
+                                                </div>
+                                            </th>
+                                            <th>Ref #</th>
+                                            <th>Full Name</th>
+                                            <th>Barangay</th>
+                                            <th>Admin Approval Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="opBatchCandidatesTableBody">
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 1 CONTENT: 🟢 UNBATCHED APPROVED BENEFICIARIES -->
-            <div id="view-unbatched-approved">
-                <div class="card border-0 shadow-sm rounded-3">
-                    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
-                        <div>
-                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                                <i class="bi bi-check-circle-fill text-success"></i> Admin-Approved Candidates (Ready for Batching)
-                            </h5>
-                            <small class="text-muted">These beneficiaries have passed Admin evaluation and are ready to be grouped into operational batches.</small>
-                        </div>
-                        <button class="btn btn-sm btn-primary fw-bold" onclick="openPostApprovalCreateBatchModal()">
-                            <i class="bi bi-plus-lg me-1"></i> Create Batch from Approved
+            <!-- BOTTOM SECTION: CREATED BATCHES PANEL & SCHEDULE CONTROLS -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-diagram-3-fill text-primary"></i> Created Batches Panel
+                        </h5>
+                        <small class="text-muted">Running list of operational batches created by the Officer. Unscheduled batches can be edited; scheduled batches are locked.</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-success" onclick="exportOperationalBatchesCSV()">
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Batches CSV
                         </button>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" id="unbatchedApprovedMasterTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Beneficiary Ref #</th>
-                                        <th>Full Name</th>
-                                        <th>Approved Program</th>
-                                        <th>Barangay</th>
-                                        <th>Admin Approval Date</th>
-                                        <th>Evaluation Notes</th>
-                                        <th class="text-end">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="unbatchedApprovedMasterTableBody">
-                                    <!-- Loaded dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
-            </div>
-
-            <!-- TAB 2 CONTENT: 🔵 BATCHED BENEFICIARIES & GROUPS -->
-            <div id="view-batched-groups" class="d-none">
-                <div class="row g-4 mb-4" id="operationalBatchesCardContainer">
-                    <!-- Loaded dynamically -->
-                </div>
-
-                <div class="card border-0 shadow-sm rounded-3">
-                    <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                        <div>
-                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                                <i class="bi bi-diagram-3-fill text-primary"></i> Master Batched Beneficiaries Roster
-                            </h5>
-                            <small class="text-muted">Approved beneficiaries organized into active operational batches</small>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-success" onclick="exportOperationalBatchesCSV()">
-                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" id="operationalBatchedTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Batch Name</th>
-                                        <th>Beneficiary Ref #</th>
-                                        <th>Full Name</th>
-                                        <th>Program</th>
-                                        <th>Barangay</th>
-                                        <th>Date Batched</th>
-                                        <th>Created By</th>
-                                        <th class="text-end">Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="operationalBatchedTableBody">
-                                    <!-- Loaded dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3 CONTENT: 🔴 DENIED — RETURNED FROM ADMIN -->
-            <div id="view-denied-returned" class="d-none">
-                <div class="card border-0 shadow-sm rounded-3">
-                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                                <i class="bi bi-x-circle-fill text-danger"></i> Denied Applications (Returned from Admin)
-                            </h5>
-                            <small class="text-muted">Applications evaluated and disapproved by the PESO Administrator with official rejection reasons.</small>
-                        </div>
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 fs-6" id="badgeDeniedHeaderCount">0 Records</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" id="deniedReturnedTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>App ID / Ref #</th>
-                                        <th>Beneficiary Name</th>
-                                        <th>Program Applied</th>
-                                        <th>Barangay</th>
-                                        <th>Admin Evaluation Notes / Reason</th>
-                                        <th>Denial Date</th>
-                                        <th class="text-end">Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="deniedReturnedTableBody">
-                                    <!-- Loaded dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="createdBatchesMasterTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Batch Name</th>
+                                    <th>Program</th>
+                                    <th>Members</th>
+                                    <th>Status</th>
+                                    <th>Event Schedule Details</th>
+                                    <th>Created Date</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="createdBatchesMasterTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -2642,120 +2629,77 @@
         </div>
     </div>
 
-    <!-- POST-APPROVAL BATCH CREATION MODAL -->
-    <div class="modal fade" id="postApprovalCreateBatchModal" tabindex="-1" aria-labelledby="postApprovalCreateBatchModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <!-- CREATE BATCH PROMPT MODAL -->
+    <div class="modal fade" id="createBatchPromptModal" tabindex="-1" aria-labelledby="createBatchPromptModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-primary text-white py-3 px-4 rounded-top-4">
                     <div>
-                        <h5 class="modal-title fw-bold mb-0" id="postApprovalCreateBatchModalLabel">
-                            <i class="bi bi-folder-plus me-2"></i>Create Operational Program Batch
+                        <h5 class="modal-title fw-bold mb-0" id="createBatchPromptModalLabel">
+                            <i class="bi bi-folder-plus me-2"></i>Create Operational Batch
                         </h5>
-                        <small class="text-white-50">Form a named batch for scheduling and distribution from Admin-Approved beneficiaries</small>
+                        <small class="text-white-50">Bundle selected Admin-Approved beneficiaries into a named batch</small>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <!-- Batch Setup Controls -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label for="postBatchProgramSelect" class="form-label small fw-bold text-dark mb-1">
-                                1. Select Program <span class="text-danger">*</span>
-                            </label>
-                            <select class="form-select bg-light fw-semibold" id="postBatchProgramSelect" onchange="onPostBatchProgramChange(this.value)">
-                                <option value="">-- All Active Programs --</option>
-                                <option value="SPES">SPES Program</option>
-                                <option value="TUPAD">TUPAD Program</option>
-                                <option value="Starter Kit">Livelihood Starter Kit</option>
-                                <option value="Micro-Enterprise">Micro-Enterprise</option>
-                                <option value="PFAS">PFAS Assistance</option>
-                                <option value="CKGIP">CKGIP Internship</option>
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <label for="postBatchTitleInput" class="form-label small fw-bold text-dark mb-1">
-                                2. Batch Title / Identifier <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" class="form-control" id="postBatchTitleInput"
-                                placeholder="e.g. SPES — Training Batch, Aug 26, 2026" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold text-dark mb-1">Target Capacity</label>
-                            <input type="number" class="form-control" id="postBatchCapacityInput" value="50" min="1">
+                    <div class="alert alert-primary-subtle border-0 rounded-3 mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-people-fill text-primary fs-5"></i>
+                        <div>
+                            <span class="fw-bold text-dark" id="promptBatchSelectedCountText">0 Beneficiaries Selected</span>
+                            <small class="text-muted d-block" id="promptBatchSelectedProgramText">Program: SPES</small>
                         </div>
                     </div>
-
-                    <!-- Beneficiaries Selection Table -->
-                    <div class="card border rounded-3 mb-3">
-                        <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-dark small"><i class="bi bi-people-fill me-1 text-primary"></i>3. Select Admin-Approved Candidates</span>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold" id="postBatchSelectionCounterBadge">
-                                Selected: 0 / 0 Beneficiaries
-                            </span>
-                        </div>
-                        <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
-                            <table class="table table-hover table-sm align-middle mb-0">
-                                <thead class="table-light sticky-top">
-                                    <tr>
-                                        <th style="width: 140px;" class="text-nowrap">
-                                            <div class="form-check d-flex align-items-center gap-1 mb-0">
-                                                <input type="checkbox" class="form-check-input" id="masterTogglePostBatchCheckbox"
-                                                    onclick="toggleSelectAllPostBatch(this.checked)" aria-label="Master Select All">
-                                                <label class="form-check-label fw-bold text-primary small cursor-pointer" for="masterTogglePostBatchCheckbox">SELECT ALL</label>
-                                            </div>
-                                        </th>
-                                        <th>Ref #</th>
-                                        <th>Full Name</th>
-                                        <th>Approved Program</th>
-                                        <th>Barangay</th>
-                                        <th>Approval Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="postBatchBeneficiariesTableBody">
-                                    <!-- Populated dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="mb-3">
+                        <label for="promptBatchTitleInput" class="form-label fw-bold text-dark small mb-1">
+                            Batch Title <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control form-control-lg fs-6" id="promptBatchTitleInput"
+                            placeholder="e.g. SPES — Training Batch, Aug 26, 2026" required>
+                        <small class="text-muted">Give this batch a descriptive operational name for tracking.</small>
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2 px-4 rounded-bottom-4 d-flex justify-content-between">
                     <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" id="btnSavePostApprovalBatch" onclick="submitPostApprovalBatch()">
-                        <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerSavePostBatch"></span>
-                        <i class="bi bi-check-circle-fill me-1" id="iconSavePostBatch"></i> Save & Create Batch
+                    <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" id="btnConfirmCreateBatchPrompt" onclick="confirmCreateBatchFromSelected()">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerCreateBatchPrompt"></span>
+                        <i class="bi bi-check-circle-fill me-1" id="iconCreateBatchPrompt"></i> Confirm & Create Batch
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- OPERATIONAL BATCH DETAIL MODAL -->
+    <!-- OPERATIONAL BATCH DETAIL & MANAGEMENT MODAL -->
     <div class="modal fade" id="operationalBatchDetailModal" tabindex="-1" aria-labelledby="operationalBatchDetailModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-primary text-white py-3 px-4 rounded-top-4">
                     <div>
                         <h5 class="modal-title fw-bold mb-0" id="operationalBatchDetailModalLabel">
                             <i class="bi bi-diagram-3-fill me-2"></i><span id="opBatchModalTitle">Batch Details</span>
                         </h5>
-                        <small class="text-white-50" id="opBatchModalSubtitle">Operational batch roster</small>
+                        <small class="text-white-50" id="opBatchModalSubtitle">Operational batch roster & scheduling control</small>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
+                    <!-- Status Banner / Lock Notice -->
+                    <div id="opBatchStatusBanner" class="mb-3"></div>
+
                     <!-- Batch Metadata Cards -->
                     <div class="row g-3 p-3 bg-light rounded-3 mb-3 border">
                         <div class="col-6 col-md-3">
                             <small class="text-muted d-block fw-semibold">Program</small>
-                            <span class="fw-bold text-dark" id="opBatchProgName">—</span>
+                            <span class="fw-bold text-dark font-monospace" id="opBatchProgName">—</span>
                         </div>
                         <div class="col-6 col-md-3">
-                            <small class="text-muted d-block fw-semibold">Date Created</small>
+                            <small class="text-muted d-block fw-semibold">Batch Status</small>
+                            <span id="opBatchStatusBadge"><span class="badge bg-success font-monospace">🟢 Editable</span></span>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block fw-semibold">Created Date</small>
                             <span class="fw-bold text-dark font-monospace" id="opBatchDate">—</span>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <small class="text-muted d-block fw-semibold">Created By</small>
-                            <span class="fw-bold text-dark" id="opBatchOfficer">—</span>
                         </div>
                         <div class="col-6 col-md-3">
                             <small class="text-muted d-block fw-semibold">Total Members</small>
@@ -2763,7 +2707,44 @@
                         </div>
                     </div>
 
-                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-people-fill text-primary me-1"></i>Enrolled Beneficiaries</h6>
+                    <!-- Scheduled Event Details Card (if Scheduled) -->
+                    <div id="opBatchScheduledInfoCard" class="d-none card border-info-subtle bg-info-subtle p-3 rounded-3 mb-3">
+                        <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-calendar-check-fill text-primary"></i> Scheduled Event Details
+                        </h6>
+                        <div class="row g-3 small">
+                            <div class="col-md-3">
+                                <span class="text-muted d-block">Event Type:</span>
+                                <strong class="text-dark" id="opBatchDisplayEventType">—</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-muted d-block">Event Date:</span>
+                                <strong class="text-dark" id="opBatchDisplayEventDate">—</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-muted d-block">Time:</span>
+                                <strong class="text-dark" id="opBatchDisplayEventTime">—</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-muted d-block">Venue / Location:</span>
+                                <strong class="text-dark" id="opBatchDisplayEventVenue">—</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Beneficiaries Header & Action Toolbar -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-people-fill text-primary me-1"></i>Enrolled Beneficiaries Roster</h6>
+                        <div class="d-flex gap-2" id="opBatchEditableActionToolbar">
+                            <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openAddBeneficiariesToBatchModal()">
+                                <i class="bi bi-person-plus me-1"></i> + Add Beneficiaries
+                            </button>
+                            <button class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="openScheduleBatchModal()">
+                                <i class="bi bi-calendar-check me-1"></i> 📅 Schedule Batch
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="table-responsive border rounded-3" style="max-height: 320px; overflow-y: auto;">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light sticky-top">
@@ -2772,6 +2753,7 @@
                                     <th>Full Name</th>
                                     <th>Barangay</th>
                                     <th>Approval Date</th>
+                                    <th class="text-end" id="opBatchActionHeaderTh">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="opBatchBeneficiariesTableBody">
@@ -2785,6 +2767,116 @@
                     <button type="button" class="btn btn-outline-primary fw-bold" onclick="exportCurrentOpBatchCSV()">
                         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Batch CSV
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD BENEFICIARIES TO EXISTING BATCH MODAL -->
+    <div class="modal fade" id="addBeneficiariesToBatchModal" tabindex="-1" aria-labelledby="addBeneficiariesToBatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white py-3 px-4 rounded-top-4">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="addBeneficiariesToBatchModalLabel">
+                            <i class="bi bi-person-plus me-2"></i>Add Beneficiaries to Batch
+                        </h5>
+                        <small class="text-white-50">Select from remaining Admin-Approved unbatched candidates</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive border rounded-3" style="max-height: 320px; overflow-y: auto;">
+                        <table class="table table-hover table-sm align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="width: 80px;">Select</th>
+                                    <th>Ref #</th>
+                                    <th>Full Name</th>
+                                    <th>Barangay</th>
+                                    <th>Approval Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="addMembersPickerTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-4 rounded-bottom-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" onclick="confirmAddMembersToBatch()">
+                        <i class="bi bi-check-circle-fill me-1"></i> Add Selected to Batch
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHEDULE BATCH EVENT MODAL -->
+    <div class="modal fade" id="scheduleBatchEventModal" tabindex="-1" aria-labelledby="scheduleBatchEventModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-success text-white py-3 px-4 rounded-top-4">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="scheduleBatchEventModalLabel">
+                            <i class="bi bi-calendar-check me-2"></i>Schedule Batch Event
+                        </h5>
+                        <small class="text-white-50">Assign event details and lock this operational batch</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning-subtle border-0 rounded-3 mb-3 d-flex align-items-center gap-2 small">
+                        <i class="bi bi-lock-fill text-warning fs-5"></i>
+                        <div>
+                            <strong>Locking Notice:</strong> Scheduling this batch will lock its member roster. Beneficiaries will receive real-time notifications with the event details.
+                        </div>
+                    </div>
+
+                    <form id="scheduleBatchForm" onsubmit="submitConfirmBatchSchedule(event)">
+                        <div class="mb-3">
+                            <label for="schedBatchEventType" class="form-label fw-bold text-dark small mb-1">
+                                Event Type <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="schedBatchEventType" required>
+                                <option value="Training Session">Training Session</option>
+                                <option value="Kit Distribution">Kit Distribution</option>
+                                <option value="Fund Disbursement">Fund Disbursement</option>
+                                <option value="Orientation & Briefing">Orientation & Briefing</option>
+                                <option value="Interview & Screening">Interview & Screening</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="schedBatchDate" class="form-label fw-bold text-dark small mb-1">
+                                    Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="schedBatchDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="schedBatchTime" class="form-label fw-bold text-dark small mb-1">
+                                    Time (Optional)
+                                </label>
+                                <input type="text" class="form-control" id="schedBatchTime" placeholder="e.g. 09:00 AM - 12:00 PM">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="schedBatchVenue" class="form-label fw-bold text-dark small mb-1">
+                                Venue / Location <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="schedBatchVenue" placeholder="e.g. City Gymnasium / Barangay Hall" required>
+                        </div>
+
+                        <div class="modal-footer bg-light py-2 px-0 rounded-bottom-4 d-flex justify-content-between mb-0 pb-0 border-top-0">
+                            <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success px-4 fw-bold shadow-sm" id="btnConfirmScheduleBatch">
+                                <i class="bi bi-calendar-check-fill me-1"></i> Confirm Schedule
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -7689,130 +7781,121 @@
         window.printBatchesRoster = printBatchesRoster;
 
         // =====================================================================
-        // MODULE 4: LIVELIHOOD APPLICATIONS & BATCHES (POST-ADMIN DECISION STAGE)
+        // MODULE 4: LIVELIHOOD APPLICATIONS & BATCHES (POST-ADMIN DECISION & SCHEDULING)
         // =====================================================================
-        let activeBatchSubTab = 'unbatched-approved'; // 'unbatched-approved', 'batched-groups', 'denied-returned'
-        let operationalBatchesList = []; // Stores operational batches created post-approval
-        let selectedPostBatchAppIds = new Set();
-        let currentInspectedOpBatchId = null;
+        let selectedOpBatchProgram = 'SPES'; // Active program for left panel
+        let selectedOpBatchAppIds = new Set(); // Checkbox selection for candidate roster
+        let operationalBatchesList = []; // Operational batches roster
+        let currentInspectedOpBatchId = null; // Currently inspected operational batch ID
 
-        function switchBatchSubTab(tabName) {
-            activeBatchSubTab = tabName;
-            
-            // Toggle Tab Buttons Active Class
-            document.querySelectorAll('#postApprovalBatchPills .nav-link').forEach(btn => btn.classList.remove('active'));
-            const activePill = document.getElementById(
-                tabName === 'unbatched-approved' ? 'pillUnbatchedApprovedTab' :
-                tabName === 'batched-groups' ? 'pillBatchedGroupsTab' : 'pillDeniedReturnedTab'
-            );
-            if (activePill) activePill.classList.add('active');
+        const OP_PROGRAM_CATALOG = [
+            { code: 'SPES', name: 'SPES Program', desc: 'Special Program for Employment of Students', id: 'SPES' },
+            { code: 'TUPAD', name: 'TUPAD Program', desc: 'Emergency Employment for Displaced Workers', id: 'TUPAD' },
+            { code: 'Starter Kit', name: 'Livelihood Starter Kit', desc: 'Self-Employment Toolkits & Equipment', id: 'StarterKit' },
+            { code: 'Micro-Enterprise', name: 'Micro-Enterprise', desc: 'Financial Grants for Small Businesses', id: 'MicroEnterprise' },
+            { code: 'PFAS', name: 'PFAS Assistance', desc: 'Pangkabuhayan Financial Assistance Scheme', id: 'PFAS' },
+            { code: 'CKGIP', name: 'CKGIP Internship', desc: 'City Government Internship Program', id: 'CKGIP' }
+        ];
 
-            // Toggle Subview Divs
-            const viewUnbatched = document.getElementById('view-unbatched-approved');
-            const viewBatched = document.getElementById('view-batched-groups');
-            const viewDenied = document.getElementById('view-denied-returned');
+        function selectOpBatchProgram(programCode) {
+            selectedOpBatchProgram = programCode;
+            selectedOpBatchAppIds.clear();
 
-            if (viewUnbatched) viewUnbatched.classList.toggle('d-none', tabName !== 'unbatched-approved');
-            if (viewBatched) viewBatched.classList.toggle('d-none', tabName !== 'batched-groups');
-            if (viewDenied) viewDenied.classList.toggle('d-none', tabName !== 'denied-returned');
+            // Update Left Panel active style
+            OP_PROGRAM_CATALOG.forEach(p => {
+                const card = document.getElementById(`opBatchCard-${p.id}`);
+                if (card) card.classList.toggle('active', p.code === programCode);
+            });
 
-            renderPostApprovalBatchesModule();
+            // Update Right Panel Header
+            const progObj = OP_PROGRAM_CATALOG.find(p => p.code === programCode) || { name: `${programCode} Program` };
+            const badgeEl = document.getElementById('opBatchActiveProgramBadge');
+            const titleEl = document.getElementById('opBatchActiveProgramTitle');
+            if (badgeEl) badgeEl.textContent = programCode;
+            if (titleEl) titleEl.textContent = `${progObj.name} Approved Beneficiaries`;
+
+            // Reset Right Panel Master Checkbox & Filters
+            const toggleAll = document.getElementById('masterToggleOpBatchCheckbox');
+            if (toggleAll) toggleAll.checked = false;
+            const searchInput = document.getElementById('opBatchSearchInput');
+            if (searchInput) searchInput.value = '';
+            const brgyFilter = document.getElementById('opBatchBarangayFilter');
+            if (brgyFilter) brgyFilter.value = '';
+
+            renderOpBatchCandidateRoster();
+            updateOpBatchSelectionCounter();
         }
-        window.switchBatchSubTab = switchBatchSubTab;
-
-        function getPostApprovalFilterValues() {
-            return {
-                search: (document.getElementById('postApprovalSearchInput')?.value || '').trim().toLowerCase(),
-                program: (document.getElementById('postApprovalProgramFilter')?.value || '').trim(),
-                brgy: (document.getElementById('postApprovalBarangayFilter')?.value || '').trim()
-            };
-        }
-
-        function filterPostApprovalBatchViews() {
-            renderPostApprovalBatchesModule();
-        }
-        window.filterPostApprovalBatchViews = filterPostApprovalBatchViews;
-
-        function resetPostApprovalBatchFilters() {
-            const s = document.getElementById('postApprovalSearchInput');
-            const p = document.getElementById('postApprovalProgramFilter');
-            const b = document.getElementById('postApprovalBarangayFilter');
-            if (s) s.value = '';
-            if (p) p.value = '';
-            if (b) b.value = '';
-            renderPostApprovalBatchesModule();
-        }
-        window.resetPostApprovalBatchFilters = resetPostApprovalBatchFilters;
+        window.selectOpBatchProgram = selectOpBatchProgram;
 
         function renderPostApprovalBatchesModule() {
             // 1. Metric Calculations
-            // Pending Admin: Forwarded to Admin / Under Review
-            const pendingAdminApps = evaluationList.filter(a => a.status === 'Forwarded to Admin' || a.rawStatus === 'Forwarded to Admin' || (a.status === 'Pending' && a.forwarded_at));
+            // Total Approved: All Admin Approved applications
+            const totalApprovedApps = evaluationList.filter(a => a.status === 'Approved' || a.rawStatus === 'Approved');
             
-            // Approved Unbatched: Admin Approved but not yet placed in an operational batch
-            const approvedUnbatchedApps = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved') && (!a.is_operational_batch || !a.operational_batch_id));
+            // Unbatched: Admin Approved but not in an operational batch
+            const unbatchedApps = totalApprovedApps.filter(a => !a.is_operational_batch || !a.operational_batch_id);
             
-            // Batched Approved: Admin Approved and placed in an operational batch
-            const batchedApprovedApps = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved') && a.is_operational_batch && a.operational_batch_id);
-            
-            // Denied Returned: Disapproved by Admin
-            const deniedReturnedApps = evaluationList.filter(a => a.status === 'Denied' || a.rawStatus === 'Denied');
+            // Batched: Assigned to a batch that is NOT yet scheduled (Editable)
+            const scheduledBatchIds = new Set(operationalBatchesList.filter(b => b.status === 'Scheduled').map(b => String(b.id || b.name)));
+            const batchedUnscheduledApps = totalApprovedApps.filter(a => a.is_operational_batch && a.operational_batch_id && !scheduledBatchIds.has(String(a.operational_batch_id)) && !scheduledBatchIds.has(String(a.operational_batch_name)));
 
-            // 2. Update 4 Stat Cards
-            const statPending = document.getElementById('batchStatPendingAdmin');
-            const statUnbatched = document.getElementById('batchStatUnbatchedApproved');
-            const statBatched = document.getElementById('batchStatBatchedMembers');
-            const statDenied = document.getElementById('batchStatDeniedReturned');
+            // Scheduled: In a batch that has been assigned an event date and locked
+            const scheduledApps = totalApprovedApps.filter(a => a.is_operational_batch && a.operational_batch_id && (scheduledBatchIds.has(String(a.operational_batch_id)) || scheduledBatchIds.has(String(a.operational_batch_name))));
 
-            if (statPending) statPending.textContent = pendingAdminApps.length;
-            if (statUnbatched) statUnbatched.textContent = approvedUnbatchedApps.length;
-            if (statBatched) statBatched.textContent = batchedApprovedApps.length;
-            if (statDenied) statDenied.textContent = deniedReturnedApps.length;
+            // 2. Update 4 Overview Stat Cards
+            const statTotal = document.getElementById('statBatchTotalApproved');
+            const statUnbatched = document.getElementById('statBatchUnbatched');
+            const statBatched = document.getElementById('statBatchBatched');
+            const statScheduled = document.getElementById('statBatchScheduled');
 
-            // 3. Update Pill Badges
-            const badgeUnbatched = document.getElementById('badgeUnbatchedApprovedCount');
-            const badgeBatched = document.getElementById('badgeBatchedGroupsCount');
-            const badgeDenied = document.getElementById('badgeDeniedReturnedCount');
-            const badgeDeniedHeader = document.getElementById('badgeDeniedHeaderCount');
+            if (statTotal) statTotal.textContent = totalApprovedApps.length;
+            if (statUnbatched) statUnbatched.textContent = unbatchedApps.length;
+            if (statBatched) statBatched.textContent = batchedUnscheduledApps.length;
+            if (statScheduled) statScheduled.textContent = scheduledApps.length;
 
-            if (badgeUnbatched) badgeUnbatched.textContent = approvedUnbatchedApps.length;
-            if (badgeBatched) badgeBatched.textContent = operationalBatchesList.length || (batchedApprovedApps.length > 0 ? 1 : 0);
-            if (badgeDenied) badgeDenied.textContent = deniedReturnedApps.length;
-            if (badgeDeniedHeader) badgeDeniedHeader.textContent = `${deniedReturnedApps.length} Records`;
+            // 3. Update Left Panel Program Live Counters
+            OP_PROGRAM_CATALOG.forEach(p => {
+                const progUpper = p.code.toUpperCase();
+                const count = unbatchedApps.filter(a => (a.program || a.programCode || '').toUpperCase().includes(progUpper)).length;
+                const badge = document.getElementById(`badgeOpUnbatched-${p.id}`);
+                if (badge) {
+                    badge.textContent = `${count} approved, unbatched`;
+                }
+            });
 
-            // 4. Render Active Tab Content
-            if (activeBatchSubTab === 'unbatched-approved') {
-                renderUnbatchedApprovedView(approvedUnbatchedApps);
-            } else if (activeBatchSubTab === 'batched-groups') {
-                renderOperationalBatchedView(batchedApprovedApps);
-            } else if (activeBatchSubTab === 'denied-returned') {
-                renderDeniedReturnedView(deniedReturnedApps);
-            }
+            // 4. Render Right Panel Candidate Roster & Bottom Created Batches Table
+            renderOpBatchCandidateRoster();
+            renderCreatedBatchesMasterTable();
         }
         window.renderPostApprovalBatchesModule = renderPostApprovalBatchesModule;
 
-        function renderUnbatchedApprovedView(approvedApps) {
-            const tbody = document.getElementById('unbatchedApprovedMasterTableBody');
+        function renderOpBatchCandidateRoster() {
+            const tbody = document.getElementById('opBatchCandidatesTableBody');
             if (!tbody) return;
 
-            const { search, program, brgy } = getPostApprovalFilterValues();
+            const search = (document.getElementById('opBatchSearchInput')?.value || '').trim().toLowerCase();
+            const brgy = (document.getElementById('opBatchBarangayFilter')?.value || '').trim().toLowerCase();
 
-            const filtered = approvedApps.filter(item => {
+            // Filter unbatched approved beneficiaries for selected program
+            const progUpper = selectedOpBatchProgram.toUpperCase();
+            let unbatchedPool = evaluationList.filter(a => 
+                (a.status === 'Approved' || a.rawStatus === 'Approved') && 
+                (!a.is_operational_batch || !a.operational_batch_id) &&
+                (a.program || a.programCode || '').toUpperCase().includes(progUpper)
+            );
+
+            // Filter by search & brgy
+            const filtered = unbatchedPool.filter(item => {
                 if (search) {
                     const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
                     const matchId = (String(item.id || '')).toLowerCase().includes(search);
                     const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
                     if (!matchName && !matchId && !matchQr) return false;
                 }
-                if (program) {
-                    const progUpper = program.toUpperCase();
-                    const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
-                    if (!itemProgUpper.includes(progUpper)) return false;
-                }
                 if (brgy) {
                     const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
                     const itemBrgy = (ben ? ben.barangay : '') || '';
-                    if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
+                    if (!itemBrgy.toLowerCase().includes(brgy)) return false;
                 }
                 return true;
             });
@@ -7820,391 +7903,159 @@
             if (filtered.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center py-4 text-muted">
+                        <td colspan="5" class="text-center py-4 text-muted">
                             <i class="bi bi-folder-check fs-3 d-block mb-1 text-success opacity-75"></i>
-                            No unbatched Admin-Approved beneficiaries found.
+                            No approved, unbatched beneficiaries found for <strong>${escapeHtml(selectedOpBatchProgram)}</strong>.
                         </td>
                     </tr>
                 `;
+                updateOpBatchSelectionCounter(0, 0);
                 return;
             }
 
             tbody.innerHTML = filtered.map(item => {
-                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
-                const barangayName = ben.barangay || 'Brgy. Central';
-                const approvalDate = item.evaluated_at?.substring(0, 10) || item.approval_date || item.dateSubmitted || '2026-08-25';
-                const notes = item.admin_notes || item.evaluator_notes || item.rejection_reason || 'Approved by PESO Administrator';
-
-                return `
-                    <tr>
-                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(item.qrCodeId || item.id)}</span></td>
-                        <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">${escapeHtml(item.program || item.programCode || 'SPES')}</span></td>
-                        <td><span class="badge bg-light text-dark border">${escapeHtml(barangayName)}</span></td>
-                        <td><small class="text-muted font-monospace">${escapeHtml(approvalDate)}</small></td>
-                        <td><small class="text-muted text-truncate d-inline-block" style="max-width: 220px;" title="${escapeHtml(notes)}">${escapeHtml(notes)}</small></td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-primary fw-semibold px-2.5 py-1" onclick="openPostApprovalCreateBatchModal('${escapeHtml(item.program || item.programCode || '')}')">
-                                <i class="bi bi-folder-plus me-1"></i> + Batch
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function renderOperationalBatchedView(batchedApps) {
-            const cardContainer = document.getElementById('operationalBatchesCardContainer');
-            const tbody = document.getElementById('operationalBatchedTableBody');
-            const { search, program, brgy } = getPostApprovalFilterValues();
-
-            // 1. Render Batches Cards Grid
-            if (cardContainer) {
-                if (operationalBatchesList.length === 0) {
-                    cardContainer.innerHTML = `
-                        <div class="col-12">
-                            <div class="card border-0 shadow-sm p-4 text-center text-muted">
-                                <i class="bi bi-diagram-3 fs-2 mb-2 text-primary opacity-50"></i>
-                                <h6 class="fw-bold mb-1">No Operational Batches Created Yet</h6>
-                                <p class="small text-muted mb-3">Group Admin-Approved beneficiaries into batches for training sessions, starter kits, or distribution.</p>
-                                <div>
-                                    <button class="btn btn-primary btn-sm fw-bold" onclick="openPostApprovalCreateBatchModal()">
-                                        <i class="bi bi-folder-plus me-1"></i> + Create Batch
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    cardContainer.innerHTML = operationalBatchesList.map(batch => {
-                        return `
-                            <div class="col-md-6 col-lg-4">
-                                <div class="card border-0 shadow-sm rounded-3 h-100 position-relative">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
-                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1">${escapeHtml(batch.program || 'PESO')}</span>
-                                                <h6 class="fw-bold mb-0 text-dark font-monospace">${escapeHtml(batch.name)}</h6>
-                                            </div>
-                                            <span class="badge bg-success font-monospace">Operational Batch</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center small text-muted my-2">
-                                            <span><i class="bi bi-calendar-event me-1"></i>${escapeHtml(batch.dateCreated || '2026-08-25')}</span>
-                                            <span class="fw-bold text-dark font-monospace">${batch.memberCount || batch.members?.length || 0} Members</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                                            <small class="text-muted"><i class="bi bi-person-badge me-1"></i>${escapeHtml(batch.officerName || 'PESO Officer')}</small>
-                                            <button class="btn btn-sm btn-outline-primary py-0 px-2.5 small fw-semibold" onclick="openOperationalBatchDetailModal('${escapeHtml(batch.id || batch.name)}')">
-                                                <i class="bi bi-eye"></i> View Roster
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            }
-
-            // 2. Render Master Batched Table
-            if (tbody) {
-                const filtered = batchedApps.filter(item => {
-                    if (search) {
-                        const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
-                        const matchId = (String(item.id || '')).toLowerCase().includes(search);
-                        const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
-                        const matchBatch = (item.operational_batch_name || item.batchName || '').toLowerCase().includes(search);
-                        if (!matchName && !matchId && !matchQr && !matchBatch) return false;
-                    }
-                    if (program) {
-                        const progUpper = program.toUpperCase();
-                        const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
-                        if (!itemProgUpper.includes(progUpper)) return false;
-                    }
-                    if (brgy) {
-                        const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
-                        const itemBrgy = (ben ? ben.barangay : '') || '';
-                        if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
-                    }
-                    return true;
-                });
-
-                if (filtered.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>
-                                No batched beneficiaries found matching filter criteria.
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                tbody.innerHTML = filtered.map(item => {
-                    const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
-                    const barangayName = ben.barangay || 'Brgy. Central';
-                    const batchTitle = item.operational_batch_name || item.batchName || 'Operational Batch';
-                    const dateBatched = item.batched_at?.substring(0, 10) || item.dateSubmitted || '2026-08-25';
-
-                    return `
-                        <tr>
-                            <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace fw-bold"><i class="bi bi-diagram-3 me-1"></i>${escapeHtml(batchTitle)}</span></td>
-                            <td><span class="font-monospace fw-bold text-dark">${escapeHtml(item.qrCodeId || item.id)}</span></td>
-                            <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
-                            <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
-                            <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
-                            <td><small class="text-muted font-monospace">${escapeHtml(dateBatched)}</small></td>
-                            <td><small class="text-muted">${escapeHtml(item.batched_by || 'PESO Officer')}</small></td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="openOperationalBatchDetailModal('${escapeHtml(item.operational_batch_id || batchTitle)}')">
-                                    <i class="bi bi-file-text"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-        }
-
-        function renderDeniedReturnedView(deniedApps) {
-            const tbody = document.getElementById('deniedReturnedTableBody');
-            if (!tbody) return;
-
-            const { search, program, brgy } = getPostApprovalFilterValues();
-
-            const filtered = deniedApps.filter(item => {
-                if (search) {
-                    const matchName = (item.beneficiaryName || '').toLowerCase().includes(search);
-                    const matchId = (String(item.id || '')).toLowerCase().includes(search);
-                    const matchQr = (item.qrCodeId || '').toLowerCase().includes(search);
-                    if (!matchName && !matchId && !matchQr) return false;
-                }
-                if (program) {
-                    const progUpper = program.toUpperCase();
-                    const itemProgUpper = (item.program || item.programCode || '').toUpperCase();
-                    if (!itemProgUpper.includes(progUpper)) return false;
-                }
-                if (brgy) {
-                    const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName);
-                    const itemBrgy = (ben ? ben.barangay : '') || '';
-                    if (!itemBrgy.toLowerCase().includes(brgy.toLowerCase())) return false;
-                }
-                return true;
-            });
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center py-4 text-muted">
-                            <i class="bi bi-check2-circle fs-3 d-block mb-1 text-success opacity-75"></i>
-                            No denied applications returned from Admin.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = filtered.map(item => {
-                const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
-                const barangayName = ben.barangay || 'Brgy. Central';
-                const reason = item.rejection_reason || item.admin_notes || item.evaluator_notes || 'Disapproved by Administrator during evaluation';
-                const denialDate = item.evaluated_at?.substring(0, 10) || item.dateSubmitted || '2026-08-25';
-
-                return `
-                    <tr>
-                        <td><span class="font-monospace fw-bold text-danger">${escapeHtml(item.qrCodeId || item.id)}</span></td>
-                        <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
-                        <td><span class="badge bg-light text-dark border">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
-                        <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(barangayName)}</span></td>
-                        <td><span class="text-danger fw-semibold"><i class="bi bi-exclamation-octagon-fill me-1"></i>${escapeHtml(reason)}</span></td>
-                        <td><small class="text-muted font-monospace">${escapeHtml(denialDate)}</small></td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-danger py-0 px-2.5 small" onclick="inspectApplicationDetails('${item.dbId || item.id}')">
-                                <i class="bi bi-eye"></i> View Case
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // ---------------------------------------------------------------------
-        // POST-APPROVAL BATCH CREATION MODAL CONTROLLER
-        // ---------------------------------------------------------------------
-        function openPostApprovalCreateBatchModal(preselectedProgram = '') {
-            selectedPostBatchAppIds.clear();
-
-            const progSelect = document.getElementById('postBatchProgramSelect');
-            const titleInput = document.getElementById('postBatchTitleInput');
-            const toggleAll = document.getElementById('masterTogglePostBatchCheckbox');
-            if (toggleAll) toggleAll.checked = false;
-
-            if (progSelect) {
-                progSelect.value = preselectedProgram || '';
-            }
-
-            const today = new Date().toISOString().substring(0, 10);
-            const progName = preselectedProgram || 'Program';
-            if (titleInput) {
-                titleInput.value = `${progName} — Training Batch, ${today}`;
-            }
-
-            populatePostBatchBeneficiariesTable(preselectedProgram);
-            updatePostBatchSelectionBadge();
-            safeOpenModal('postApprovalCreateBatchModal');
-        }
-        window.openPostApprovalCreateBatchModal = openPostApprovalCreateBatchModal;
-
-        function onPostBatchProgramChange(programCode) {
-            const today = new Date().toISOString().substring(0, 10);
-            const progName = programCode || 'Program';
-            const titleInput = document.getElementById('postBatchTitleInput');
-            if (titleInput) {
-                titleInput.value = `${progName} — Training Batch, ${today}`;
-            }
-            selectedPostBatchAppIds.clear();
-            const toggleAll = document.getElementById('masterTogglePostBatchCheckbox');
-            if (toggleAll) toggleAll.checked = false;
-
-            populatePostBatchBeneficiariesTable(programCode);
-            updatePostBatchSelectionBadge();
-        }
-        window.onPostBatchProgramChange = onPostBatchProgramChange;
-
-        function populatePostBatchBeneficiariesTable(programCode) {
-            const tbody = document.getElementById('postBatchBeneficiariesTableBody');
-            if (!tbody) return;
-
-            // Filter unbatched approved beneficiaries
-            let approvedCandidates = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved') && (!a.is_operational_batch || !a.operational_batch_id));
-
-            if (programCode) {
-                const progUpper = programCode.toUpperCase();
-                approvedCandidates = approvedCandidates.filter(a => (a.program || a.programCode || '').toUpperCase().includes(progUpper));
-            }
-
-            if (approvedCandidates.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">
-                            <i class="bi bi-info-circle fs-3 d-block mb-1 opacity-50"></i>
-                            No unbatched Admin-Approved beneficiaries available for this program.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = approvedCandidates.map(item => {
                 const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
                 const barangayName = ben.barangay || 'Brgy. Central';
                 const approvalDate = item.evaluated_at?.substring(0, 10) || item.approval_date || item.dateSubmitted || '2026-08-25';
                 const appId = item.dbId || item.id;
-                const isChecked = selectedPostBatchAppIds.has(String(appId));
+                const isChecked = selectedOpBatchAppIds.has(String(appId));
 
                 return `
                     <tr class="${isChecked ? 'table-primary' : ''}">
                         <td>
                             <div class="form-check d-flex align-items-center gap-1 mb-0">
-                                <input type="checkbox" class="form-check-input post-batch-row-checkbox" value="${escapeHtml(String(appId))}"
-                                    ${isChecked ? 'checked' : ''} onchange="togglePostBatchRow(this, '${escapeHtml(String(appId))}')">
+                                <input type="checkbox" class="form-check-input op-batch-candidate-checkbox" value="${escapeHtml(String(appId))}"
+                                    ${isChecked ? 'checked' : ''} onchange="toggleOpBatchRow(this, '${escapeHtml(String(appId))}')">
                                 <span class="small font-monospace text-muted">Select</span>
                             </div>
                         </td>
-                        <td><span class="font-monospace fw-bold text-dark">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                        <td><span class="font-monospace fw-bold text-primary">${escapeHtml(item.qrCodeId || item.id)}</span></td>
                         <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle">${escapeHtml(item.program || item.programCode || 'PESO')}</span></td>
                         <td><span class="badge bg-light text-dark border">${escapeHtml(barangayName)}</span></td>
                         <td><small class="text-muted font-monospace">${escapeHtml(approvalDate)}</small></td>
                     </tr>
                 `;
             }).join('');
+
+            updateOpBatchSelectionCounter(selectedOpBatchAppIds.size, filtered.length);
         }
 
-        function togglePostBatchRow(checkbox, appId) {
+        function toggleOpBatchRow(checkbox, appId) {
             if (checkbox.checked) {
-                selectedPostBatchAppIds.add(String(appId));
+                selectedOpBatchAppIds.add(String(appId));
             } else {
-                selectedPostBatchAppIds.delete(String(appId));
+                selectedOpBatchAppIds.delete(String(appId));
             }
-            updatePostBatchSelectionBadge();
-        }
-        window.togglePostBatchRow = togglePostBatchRow;
+            const row = checkbox.closest('tr');
+            if (row) row.classList.toggle('table-primary', checkbox.checked);
 
-        function toggleSelectAllPostBatch(checked) {
-            const checkboxes = document.querySelectorAll('.post-batch-row-checkbox');
+            const totalInView = document.querySelectorAll('.op-batch-candidate-checkbox').length;
+            updateOpBatchSelectionCounter(selectedOpBatchAppIds.size, totalInView);
+        }
+        window.toggleOpBatchRow = toggleOpBatchRow;
+
+        function toggleSelectAllOpBatch(checked) {
+            const checkboxes = document.querySelectorAll('.op-batch-candidate-checkbox');
             checkboxes.forEach(cb => {
                 cb.checked = checked;
                 const row = cb.closest('tr');
                 if (row) row.classList.toggle('table-primary', checked);
                 if (checked) {
-                    selectedPostBatchAppIds.add(String(cb.value));
+                    selectedOpBatchAppIds.add(String(cb.value));
                 } else {
-                    selectedPostBatchAppIds.delete(String(cb.value));
+                    selectedOpBatchAppIds.delete(String(cb.value));
                 }
             });
-            updatePostBatchSelectionBadge();
+            updateOpBatchSelectionCounter(selectedOpBatchAppIds.size, checkboxes.length);
         }
-        window.toggleSelectAllPostBatch = toggleSelectAllPostBatch;
+        window.toggleSelectAllOpBatch = toggleSelectAllOpBatch;
 
-        function updatePostBatchSelectionBadge() {
-            const badge = document.getElementById('postBatchSelectionCounterBadge');
-            const prog = document.getElementById('postBatchProgramSelect')?.value;
-            let totalAvailable = evaluationList.filter(a => (a.status === 'Approved' || a.rawStatus === 'Approved') && (!a.is_operational_batch || !a.operational_batch_id));
-            if (prog) {
-                totalAvailable = totalAvailable.filter(a => (a.program || a.programCode || '').toUpperCase().includes(prog.toUpperCase()));
+        function filterOpBatchCandidateRoster() {
+            renderOpBatchCandidateRoster();
+        }
+        window.filterOpBatchCandidateRoster = filterOpBatchCandidateRoster;
+
+        function updateOpBatchSelectionCounter(selectedCount = selectedOpBatchAppIds.size, totalCount = null) {
+            if (totalCount === null) {
+                const progUpper = selectedOpBatchProgram.toUpperCase();
+                totalCount = evaluationList.filter(a => 
+                    (a.status === 'Approved' || a.rawStatus === 'Approved') && 
+                    (!a.is_operational_batch || !a.operational_batch_id) &&
+                    (a.program || a.programCode || '').toUpperCase().includes(progUpper)
+                ).length;
             }
+
+            const badge = document.getElementById('opBatchSelectionCounterBadge');
+            const btn = document.getElementById('btnTriggerCreateBatch');
 
             if (badge) {
-                badge.textContent = `Selected: ${selectedPostBatchAppIds.size} / ${totalAvailable.length} Beneficiaries`;
-                badge.className = selectedPostBatchAppIds.size > 0 
-                    ? 'badge bg-success text-white fw-bold'
-                    : 'badge bg-primary-subtle text-primary border border-primary-subtle fw-bold';
+                badge.textContent = `Selected: ${selectedCount} / ${totalCount} Beneficiaries`;
+                badge.className = selectedCount > 0 
+                    ? 'badge bg-success text-white fw-bold fs-6'
+                    : 'badge bg-primary-subtle text-primary border border-primary-subtle fw-bold fs-6';
+            }
+
+            if (btn) {
+                btn.disabled = selectedCount === 0;
             }
         }
 
-        async function submitPostApprovalBatch() {
-            const titleInput = document.getElementById('postBatchTitleInput');
-            const progSelect = document.getElementById('postBatchProgramSelect');
+        function openCreateBatchPromptModal() {
+            if (selectedOpBatchAppIds.size === 0) {
+                alert('Please select at least one Admin-Approved beneficiary to create a batch.');
+                return;
+            }
+
+            const countText = document.getElementById('promptBatchSelectedCountText');
+            const progText = document.getElementById('promptBatchSelectedProgramText');
+            const titleInput = document.getElementById('promptBatchTitleInput');
+
+            if (countText) countText.textContent = `${selectedOpBatchAppIds.size} Beneficiaries Selected`;
+            if (progText) progText.textContent = `Program: ${selectedOpBatchProgram}`;
+
+            const todayFormatted = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            if (titleInput) {
+                titleInput.value = `${selectedOpBatchProgram} — Training Batch, ${todayFormatted}`;
+            }
+
+            safeOpenModal('createBatchPromptModal');
+        }
+        window.openCreateBatchPromptModal = openCreateBatchPromptModal;
+
+        async function confirmCreateBatchFromSelected() {
+            const titleInput = document.getElementById('promptBatchTitleInput');
             const batchTitle = titleInput?.value.trim();
-            const programCode = progSelect?.value || 'PESO';
 
             if (!batchTitle) {
-                alert('Please provide a Batch Title / Identifier.');
+                alert('Please enter a Batch Title.');
                 if (titleInput) titleInput.focus();
                 return;
             }
 
-            if (selectedPostBatchAppIds.size === 0) {
-                alert('Please select at least one Admin-Approved beneficiary to create this batch.');
-                return;
-            }
-
-            const btn = document.getElementById('btnSavePostApprovalBatch');
-            const spinner = document.getElementById('spinnerSavePostBatch');
-            const icon = document.getElementById('iconSavePostBatch');
+            const btn = document.getElementById('btnConfirmCreateBatchPrompt');
+            const spinner = document.getElementById('spinnerCreateBatchPrompt');
+            const icon = document.getElementById('iconCreateBatchPrompt');
 
             try {
                 if (btn) btn.disabled = true;
                 if (spinner) spinner.classList.remove('d-none');
                 if (icon) icon.classList.add('d-none');
 
-                const targetAppIds = Array.from(selectedPostBatchAppIds);
+                const targetAppIds = Array.from(selectedOpBatchAppIds);
                 const timestamp = new Date().toISOString();
                 const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
                 const officerId = (currentUserProfile && currentUserProfile.id) || 'OFF-01';
                 const newBatchId = `OP-BAT-${Date.now()}`;
 
-                // 1. Sync with Supabase Database
+                // 1. Sync with Supabase Database (Batches)
                 if (typeof DataService !== 'undefined' && DataService.batches) {
                     try {
                         await DataService.batches.create({
                             name: batchTitle,
-                            program: programCode,
+                            program: selectedOpBatchProgram,
                             capacity: targetAppIds.length,
                             assignedCount: targetAppIds.length,
-                            status: 'Active',
+                            status: 'Active', // Editable
                             is_operational: true
                         });
                     } catch (bErr) {
@@ -8212,7 +8063,7 @@
                     }
                 }
 
-                // 2. Update Applications in DB
+                // 2. Update Applications in DB & Send Beneficiary In-App Notifications
                 for (const appId of targetAppIds) {
                     try {
                         if (typeof DataService !== 'undefined' && DataService.applications) {
@@ -8226,6 +8077,23 @@
                         }
                     } catch (aErr) {
                         console.warn('[PESO Officer] App batch update note:', aErr);
+                    }
+
+                    // Send Notification: "Your documents have been approved and you've been included in batch [Batch Name]"
+                    const app = evaluationList.find(a => String(a.dbId) === String(appId) || String(a.id) === String(appId));
+                    if (app && app.qrCodeId) {
+                        try {
+                            if (typeof DataService !== 'undefined' && DataService.notifications && typeof DataService.notifications.create === 'function') {
+                                await DataService.notifications.create({
+                                    beneficiary_qr: app.qrCodeId,
+                                    title: 'Application Approved & Batched',
+                                    message: `Your documents have been approved and you've been included in batch "${batchTitle}".`,
+                                    is_read: false
+                                });
+                            }
+                        } catch (notifErr) {
+                            console.warn('[PESO Officer] Beneficiary notification note:', notifErr);
+                        }
                     }
                 }
 
@@ -8243,23 +8111,28 @@
                     }
                 });
 
-                // 4. Add to operationalBatchesList
+                // 4. Add to operationalBatchesList (Editable)
                 operationalBatchesList.unshift({
                     id: newBatchId,
                     name: batchTitle,
-                    program: programCode,
+                    program: selectedOpBatchProgram,
+                    status: 'Active', // Editable
                     dateCreated: timestamp.substring(0, 10),
                     created_at: timestamp,
                     officerName: officerName,
                     officerId: officerId,
                     memberCount: enrolledMembers.length,
-                    members: enrolledMembers
+                    members: enrolledMembers,
+                    eventType: null,
+                    eventDate: null,
+                    eventTime: null,
+                    venue: null
                 });
 
                 // 5. Audit Log
-                logOfficerAction('CREATE_OPERATIONAL_BATCH', `Created operational batch "${batchTitle}" with ${enrolledMembers.length} Admin-Approved beneficiaries for ${programCode}. Officer: ${officerName}`);
+                logOfficerAction('CREATE_OPERATIONAL_BATCH', `Created operational batch "${batchTitle}" with ${enrolledMembers.length} Admin-Approved beneficiaries for ${selectedOpBatchProgram}. Officer: ${officerName}`);
 
-                // 6. Notification & Close Modal
+                // 6. Feedback & UI Update
                 const successMsg = `Successfully formed operational batch "${batchTitle}" with ${enrolledMembers.length} beneficiaries.`;
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
@@ -8267,15 +8140,13 @@
                         message: successMsg,
                         type: 'success'
                     });
-                } else {
-                    alert(successMsg);
                 }
 
-                const modalEl = document.getElementById('postApprovalCreateBatchModal');
+                const modalEl = document.getElementById('createBatchPromptModal');
                 if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
 
-                selectedPostBatchAppIds.clear();
-                switchBatchSubTab('batched-groups');
+                selectedOpBatchAppIds.clear();
+                renderPostApprovalBatchesModule();
             } catch (err) {
                 console.error('[PESO Officer] Error creating operational batch:', err);
                 alert(`Error creating batch: ${err.message || err}`);
@@ -8285,46 +8156,172 @@
                 if (icon) icon.classList.remove('d-none');
             }
         }
-        window.submitPostApprovalBatch = submitPostApprovalBatch;
+        window.confirmCreateBatchFromSelected = confirmCreateBatchFromSelected;
+
+        function renderCreatedBatchesMasterTable() {
+            const tbody = document.getElementById('createdBatchesMasterTableBody');
+            if (!tbody) return;
+
+            if (operationalBatchesList.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-diagram-3 fs-3 d-block mb-1 text-primary opacity-50"></i>
+                            No operational batches created yet. Select Admin-Approved beneficiaries above and click <strong>+ Create Batch</strong>.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = operationalBatchesList.map(batch => {
+                const isScheduled = batch.status === 'Scheduled';
+                const statusBadge = isScheduled
+                    ? `<span class="badge bg-secondary font-monospace"><i class="bi bi-lock-fill me-1"></i>🔒 Scheduled</span>`
+                    : `<span class="badge bg-success font-monospace"><i class="bi bi-pencil-fill me-1"></i>🟢 Editable</span>`;
+
+                const scheduleDetails = isScheduled && batch.eventDate
+                    ? `<div class="small fw-semibold text-dark"><i class="bi bi-calendar-check text-primary me-1"></i>${escapeHtml(batch.eventType || 'Event')} — ${escapeHtml(batch.eventDate)}</div><small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(batch.venue || 'TBD')}</small>`
+                    : `<span class="badge bg-light text-muted border font-monospace">Unscheduled</span>`;
+
+                return `
+                    <tr>
+                        <td><strong class="text-dark font-monospace"><i class="bi bi-folder2 text-primary me-1.5"></i>${escapeHtml(batch.name)}</strong></td>
+                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(batch.program || 'PESO')}</span></td>
+                        <td><span class="badge bg-dark font-monospace">${batch.memberCount || (batch.members ? batch.members.length : 0)}</span></td>
+                        <td>${statusBadge}</td>
+                        <td>${scheduleDetails}</td>
+                        <td><small class="text-muted font-monospace">${escapeHtml(batch.dateCreated || '2026-08-25')}</small></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary fw-semibold px-2.5 py-1" onclick="openOperationalBatchDetailModal('${escapeHtml(batch.id || batch.name)}')">
+                                <i class="bi bi-gear-fill me-1"></i> Manage
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
 
         function openOperationalBatchDetailModal(batchIdOrName) {
             const batch = operationalBatchesList.find(b => b.id === batchIdOrName || b.name === batchIdOrName) || {
+                id: batchIdOrName,
                 name: batchIdOrName,
                 program: 'PESO',
+                status: 'Active',
                 dateCreated: '2026-08-25',
                 officerName: 'PESO Officer',
                 members: evaluationList.filter(a => a.operational_batch_id === batchIdOrName || a.operational_batch_name === batchIdOrName)
             };
 
-            currentInspectedOpBatchId = batchIdOrName;
+            currentInspectedOpBatchId = batch.id || batchIdOrName;
 
             const modalTitle = document.getElementById('opBatchModalTitle');
             const progName = document.getElementById('opBatchProgName');
+            const statusBadgeSpan = document.getElementById('opBatchStatusBadge');
             const dateSpan = document.getElementById('opBatchDate');
-            const officerSpan = document.getElementById('opBatchOfficer');
             const countBadge = document.getElementById('opBatchMemberCount');
+            const banner = document.getElementById('opBatchStatusBanner');
+            const schedInfoCard = document.getElementById('opBatchScheduledInfoCard');
+            const actionToolbar = document.getElementById('opBatchEditableActionToolbar');
+            const actionTh = document.getElementById('opBatchActionHeaderTh');
             const tbody = document.getElementById('opBatchBeneficiariesTableBody');
+
+            const isScheduled = batch.status === 'Scheduled';
 
             if (modalTitle) modalTitle.textContent = batch.name;
             if (progName) progName.textContent = batch.program || 'PESO';
             if (dateSpan) dateSpan.textContent = batch.dateCreated || '2026-08-25';
-            if (officerSpan) officerSpan.textContent = batch.officerName || 'PESO Officer';
-            
-            const members = batch.members || evaluationList.filter(a => a.operational_batch_id === batchIdOrName || a.operational_batch_name === batchIdOrName);
+
+            if (statusBadgeSpan) {
+                statusBadgeSpan.innerHTML = isScheduled
+                    ? `<span class="badge bg-secondary font-monospace"><i class="bi bi-lock-fill me-1"></i>🔒 Scheduled</span>`
+                    : `<span class="badge bg-success font-monospace">🟢 Editable</span>`;
+            }
+
+            // Banner & Lock Status
+            if (banner) {
+                if (isScheduled) {
+                    banner.innerHTML = `
+                        <div class="alert alert-secondary border-0 rounded-3 d-flex align-items-center gap-2 mb-0 py-2.5">
+                            <i class="bi bi-lock-fill text-dark fs-5"></i>
+                            <div>
+                                <strong class="text-dark">This batch has already been scheduled — editing restricted.</strong>
+                                <small class="text-muted d-block">Member additions and removals are locked to maintain event scheduling integrity.</small>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    banner.innerHTML = `
+                        <div class="alert alert-success-subtle border-0 rounded-3 d-flex align-items-center gap-2 mb-0 py-2">
+                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            <div>
+                                <strong class="text-dark">🟢 Editable Batch</strong>
+                                <small class="text-muted d-block">You can add remaining unbatched candidates or remove beneficiaries before scheduling.</small>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // Scheduled Event Card
+            if (schedInfoCard) {
+                if (isScheduled && batch.eventDate) {
+                    schedInfoCard.classList.remove('d-none');
+                    const evType = document.getElementById('opBatchDisplayEventType');
+                    const evDate = document.getElementById('opBatchDisplayEventDate');
+                    const evTime = document.getElementById('opBatchDisplayEventTime');
+                    const evVenue = document.getElementById('opBatchDisplayEventVenue');
+                    if (evType) evType.textContent = batch.eventType || 'Event';
+                    if (evDate) evDate.textContent = batch.eventDate || '—';
+                    if (evTime) evTime.textContent = batch.eventTime || '09:00 AM';
+                    if (evVenue) evVenue.textContent = batch.venue || 'Koronadal Venue';
+                } else {
+                    schedInfoCard.classList.add('d-none');
+                }
+            }
+
+            // Action Toolbar & Table Column Controls
+            if (actionToolbar) {
+                actionToolbar.classList.toggle('d-none', isScheduled);
+            }
+            if (actionTh) {
+                actionTh.classList.toggle('d-none', isScheduled);
+            }
+
+            // Populate Members
+            const members = evaluationList.filter(a => 
+                String(a.operational_batch_id) === String(currentInspectedOpBatchId) || 
+                a.operational_batch_name === batch.name
+            );
+
             if (countBadge) countBadge.textContent = members.length;
+            batch.memberCount = members.length;
+            batch.members = members;
 
             if (tbody) {
                 if (members.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-muted">No members enrolled.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">No beneficiaries enrolled in this batch.</td></tr>`;
                 } else {
                     tbody.innerHTML = members.map(m => {
                         const ben = beneficiariesList.find(b => b.qr_code === m.qrCodeId || b.name === m.beneficiaryName) || {};
+                        const approvalDate = m.evaluated_at?.substring(0, 10) || m.approval_date || '2026-08-25';
+                        const appId = m.dbId || m.id;
+
+                        const removeActionCell = isScheduled
+                            ? ''
+                            : `<td class="text-end">
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-2 small" onclick="removeBeneficiaryFromOpBatch('${escapeHtml(String(appId))}')" title="Return to Unbatched Pool">
+                                        <i class="bi bi-person-x"></i> Remove
+                                    </button>
+                               </td>`;
+
                         return `
                             <tr>
                                 <td><span class="font-monospace fw-bold text-primary">${escapeHtml(m.qrCodeId || m.id)}</span></td>
                                 <td><strong class="text-dark">${escapeHtml(m.beneficiaryName)}</strong></td>
                                 <td><span class="badge bg-secondary-subtle text-dark border">${escapeHtml(ben.barangay || 'Brgy. Central')}</span></td>
-                                <td><small class="text-muted font-monospace">${escapeHtml(m.evaluated_at?.substring(0, 10) || m.approval_date || '2026-08-25')}</small></td>
+                                <td><small class="text-muted font-monospace">${escapeHtml(approvalDate)}</small></td>
+                                ${removeActionCell}
                             </tr>
                         `;
                     }).join('');
@@ -8334,6 +8331,303 @@
             safeOpenModal('operationalBatchDetailModal');
         }
         window.openOperationalBatchDetailModal = openOperationalBatchDetailModal;
+
+        async function removeBeneficiaryFromOpBatch(appId) {
+            const batch = operationalBatchesList.find(b => String(b.id) === String(currentInspectedOpBatchId) || b.name === currentInspectedOpBatchId);
+            if (batch && batch.status === 'Scheduled') {
+                alert('Editing Restricted: This batch has already been scheduled and is locked.');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to remove this beneficiary from the batch? They will be returned to the Unbatched pool.')) {
+                return;
+            }
+
+            try {
+                // Update in DB
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    await DataService.applications.update(appId, {
+                        operational_batch_id: null,
+                        operational_batch_name: null,
+                        is_operational_batch: false,
+                        batched_at: null,
+                        batched_by: null
+                    });
+                }
+
+                // Update in-memory
+                const app = evaluationList.find(a => String(a.dbId) === String(appId) || String(a.id) === String(appId));
+                if (app) {
+                    app.operational_batch_id = null;
+                    app.operational_batch_name = null;
+                    app.is_operational_batch = false;
+                    app.batched_at = null;
+                    app.batched_by = null;
+                }
+
+                logOfficerAction('REMOVE_BENEFICIARY_FROM_BATCH', `Removed beneficiary ${app ? app.beneficiaryName : appId} from batch "${batch ? batch.name : currentInspectedOpBatchId}". Returned to Unbatched pool.`);
+
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Beneficiary Removed',
+                        message: 'Beneficiary returned to the Unbatched pool.',
+                        type: 'info'
+                    });
+                }
+
+                openOperationalBatchDetailModal(currentInspectedOpBatchId);
+                renderPostApprovalBatchesModule();
+            } catch (err) {
+                console.error('[PESO Officer] Error removing beneficiary from batch:', err);
+                alert(`Error: ${err.message || err}`);
+            }
+        }
+        window.removeBeneficiaryFromOpBatch = removeBeneficiaryFromOpBatch;
+
+        function openAddBeneficiariesToBatchModal() {
+            const batch = operationalBatchesList.find(b => String(b.id) === String(currentInspectedOpBatchId) || b.name === currentInspectedOpBatchId);
+            if (!batch) return;
+
+            const progUpper = (batch.program || 'PESO').toUpperCase();
+            const unbatchedCandidates = evaluationList.filter(a => 
+                (a.status === 'Approved' || a.rawStatus === 'Approved') && 
+                (!a.is_operational_batch || !a.operational_batch_id) &&
+                (a.program || a.programCode || '').toUpperCase().includes(progUpper)
+            );
+
+            const tbody = document.getElementById('addMembersPickerTableBody');
+            if (tbody) {
+                if (unbatchedCandidates.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No remaining unbatched candidates available for ${escapeHtml(batch.program)}.</td></tr>`;
+                } else {
+                    tbody.innerHTML = unbatchedCandidates.map(item => {
+                        const ben = beneficiariesList.find(b => b.qr_code === item.qrCodeId || b.name === item.beneficiaryName) || {};
+                        const appId = item.dbId || item.id;
+                        return `
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input add-member-picker-checkbox" value="${escapeHtml(String(appId))}">
+                                </td>
+                                <td><span class="font-monospace fw-bold text-primary">${escapeHtml(item.qrCodeId || item.id)}</span></td>
+                                <td><strong class="text-dark">${escapeHtml(item.beneficiaryName)}</strong></td>
+                                <td><span class="badge bg-light text-dark border">${escapeHtml(ben.barangay || 'Brgy. Central')}</span></td>
+                                <td><small class="text-muted font-monospace">${escapeHtml(item.evaluated_at?.substring(0, 10) || item.approval_date || '2026-08-25')}</small></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            safeOpenModal('addBeneficiariesToBatchModal');
+        }
+        window.openAddBeneficiariesToBatchModal = openAddBeneficiariesToBatchModal;
+
+        async function confirmAddMembersToBatch() {
+            const batch = operationalBatchesList.find(b => String(b.id) === String(currentInspectedOpBatchId) || b.name === currentInspectedOpBatchId);
+            if (!batch) return;
+
+            const checkedBoxes = document.querySelectorAll('.add-member-picker-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert('Please select at least one beneficiary to add.');
+                return;
+            }
+
+            const targetAppIds = Array.from(checkedBoxes).map(cb => cb.value);
+            const timestamp = new Date().toISOString();
+            const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
+
+            try {
+                for (const appId of targetAppIds) {
+                    if (typeof DataService !== 'undefined' && DataService.applications) {
+                        await DataService.applications.update(appId, {
+                            operational_batch_id: batch.id,
+                            operational_batch_name: batch.name,
+                            is_operational_batch: true,
+                            batched_at: timestamp,
+                            batched_by: officerName
+                        });
+                    }
+
+                    // Update in-memory
+                    const app = evaluationList.find(a => String(a.dbId) === String(appId) || String(a.id) === String(appId));
+                    if (app) {
+                        app.operational_batch_id = batch.id;
+                        app.operational_batch_name = batch.name;
+                        app.is_operational_batch = true;
+                        app.batched_at = timestamp;
+                        app.batched_by = officerName;
+                    }
+
+                    // Send notification to newly added beneficiary
+                    if (app && app.qrCodeId) {
+                        try {
+                            if (typeof DataService !== 'undefined' && DataService.notifications && typeof DataService.notifications.create === 'function') {
+                                await DataService.notifications.create({
+                                    beneficiary_qr: app.qrCodeId,
+                                    title: 'Application Approved & Batched',
+                                    message: `Your documents have been approved and you've been included in batch "${batch.name}".`,
+                                    is_read: false
+                                });
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                logOfficerAction('ADD_BENEFICIARIES_TO_BATCH', `Added ${targetAppIds.length} beneficiaries to batch "${batch.name}".`);
+
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Beneficiaries Added',
+                        message: `Added ${targetAppIds.length} beneficiaries to batch "${batch.name}".`,
+                        type: 'success'
+                    });
+                }
+
+                const modalEl = document.getElementById('addBeneficiariesToBatchModal');
+                if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+
+                openOperationalBatchDetailModal(currentInspectedOpBatchId);
+                renderPostApprovalBatchesModule();
+            } catch (err) {
+                console.error('[PESO Officer] Error adding members to batch:', err);
+                alert(`Error: ${err.message || err}`);
+            }
+        }
+        window.confirmAddMembersToBatch = confirmAddMembersToBatch;
+
+        function openScheduleBatchModal() {
+            const batch = operationalBatchesList.find(b => String(b.id) === String(currentInspectedOpBatchId) || b.name === currentInspectedOpBatchId);
+            if (!batch) return;
+
+            const dateInput = document.getElementById('schedBatchDate');
+            if (dateInput) {
+                dateInput.value = new Date().toISOString().substring(0, 10);
+            }
+            const timeInput = document.getElementById('schedBatchTime');
+            if (timeInput) {
+                timeInput.value = '09:00 AM - 12:00 PM';
+            }
+            const venueInput = document.getElementById('schedBatchVenue');
+            if (venueInput) {
+                venueInput.value = 'City Gymnasium, Koronadal City';
+            }
+
+            safeOpenModal('scheduleBatchEventModal');
+        }
+        window.openScheduleBatchModal = openScheduleBatchModal;
+
+        async function submitConfirmBatchSchedule(event) {
+            if (event) event.preventDefault();
+
+            const batch = operationalBatchesList.find(b => String(b.id) === String(currentInspectedOpBatchId) || b.name === currentInspectedOpBatchId);
+            if (!batch) return;
+
+            const eventType = document.getElementById('schedBatchEventType')?.value || 'Training Session';
+            const dateVal = document.getElementById('schedBatchDate')?.value;
+            const timeVal = document.getElementById('schedBatchTime')?.value?.trim() || '09:00 AM';
+            const venueVal = document.getElementById('schedBatchVenue')?.value?.trim() || 'City Gymnasium';
+
+            if (!dateVal || !venueVal) {
+                alert('Please provide an event date and venue.');
+                return;
+            }
+
+            const btn = document.getElementById('btnConfirmScheduleBatch');
+            try {
+                if (btn) btn.disabled = true;
+
+                const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
+                const timestamp = new Date().toISOString();
+
+                // 1. Update Batch Object (Status -> Scheduled & Locked)
+                batch.status = 'Scheduled';
+                batch.eventType = eventType;
+                batch.eventDate = dateVal;
+                batch.eventTime = timeVal;
+                batch.venue = venueVal;
+                batch.scheduled_at = timestamp;
+                batch.scheduled_by = officerName;
+
+                // 2. Persist to DB Batches
+                if (typeof DataService !== 'undefined' && DataService.batches) {
+                    try {
+                        await DataService.batches.update(batch.id || batch.dbId, {
+                            status: 'Scheduled',
+                            event_type: eventType,
+                            event_date: dateVal,
+                            event_time: timeVal,
+                            venue: venueVal
+                        });
+                    } catch (bErr) {
+                        console.warn('[PESO Officer] Batch schedule update note:', bErr);
+                    }
+                }
+
+                // 3. Create schedule entry in Daily Schedules / Interviews
+                if (typeof DataService !== 'undefined' && DataService.interviews) {
+                    try {
+                        await DataService.interviews.create({
+                            title: `${batch.name} (${eventType})`,
+                            category: eventType,
+                            interview_date: dateVal,
+                            start_time: timeVal.split('-')[0]?.trim() || '09:00 AM',
+                            end_time: timeVal.split('-')[1]?.trim() || '12:00 PM',
+                            venue: venueVal,
+                            status: 'Scheduled',
+                            agency: 'PESO',
+                            officer_id: currentUserProfile?.id || null
+                        });
+                    } catch (sErr) {
+                        console.warn('[PESO Officer] Schedule DB entry note:', sErr);
+                    }
+                }
+
+                // 4. Send Second Real-Time Notification to EVERY beneficiary in the batch
+                const members = evaluationList.filter(a => 
+                    String(a.operational_batch_id) === String(currentInspectedOpBatchId) || 
+                    a.operational_batch_name === batch.name
+                );
+
+                const notifMessage = `Batch "${batch.name}" has been scheduled — ${eventType} on ${dateVal} at ${timeVal}, ${venueVal}.`;
+                for (const member of members) {
+                    if (member.qrCodeId) {
+                        try {
+                            if (typeof DataService !== 'undefined' && DataService.notifications && typeof DataService.notifications.create === 'function') {
+                                await DataService.notifications.create({
+                                    beneficiary_qr: member.qrCodeId,
+                                    title: `Batch Scheduled - ${eventType}`,
+                                    message: notifMessage,
+                                    is_read: false
+                                });
+                            }
+                        } catch (nErr) {}
+                    }
+                }
+
+                // 5. Audit Log
+                logOfficerAction('SCHEDULE_OPERATIONAL_BATCH', `Scheduled operational batch "${batch.name}" for ${eventType} on ${dateVal} at ${timeVal}, Venue: ${venueVal}. Batch is now locked.`);
+
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Batch Scheduled Successfully',
+                        message: `Batch "${batch.name}" has been scheduled and locked. Beneficiaries have been notified.`,
+                        type: 'success'
+                    });
+                }
+
+                const modalEl = document.getElementById('scheduleBatchEventModal');
+                if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+
+                openOperationalBatchDetailModal(currentInspectedOpBatchId);
+                renderPostApprovalBatchesModule();
+            } catch (err) {
+                console.error('[PESO Officer] Error scheduling batch:', err);
+                alert(`Error: ${err.message || err}`);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+        window.submitConfirmBatchSchedule = submitConfirmBatchSchedule;
 
         function exportOperationalBatchesCSV() {
             const batched = evaluationList.filter(item => (item.status === 'Approved' || item.rawStatus === 'Approved') && item.is_operational_batch);
@@ -8359,7 +8653,10 @@
 
         function exportCurrentOpBatchCSV() {
             if (!currentInspectedOpBatchId) return;
-            const members = evaluationList.filter(a => a.operational_batch_id === currentInspectedOpBatchId || a.operational_batch_name === currentInspectedOpBatchId);
+            const members = evaluationList.filter(a => 
+                String(a.operational_batch_id) === String(currentInspectedOpBatchId) || 
+                a.operational_batch_name === currentInspectedOpBatchId
+            );
             if (members.length === 0) {
                 alert('No members to export.');
                 return;
