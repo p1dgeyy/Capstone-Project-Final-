@@ -4091,6 +4091,18 @@
                 const isNoSlots = slotsAvailable === 0;
                 const isPeso = p.agency === 'PESO';
 
+            let cardsHtml = [];
+            filtered.forEach((p, idx) => {
+                const isPeso = p.agency === 'PESO';
+                const statusStr = p.status || 'Active';
+                const isInactive = statusStr !== 'Active';
+
+                const slotsTotal = p.slotsTotal !== undefined ? p.slotsTotal : (p.slots_target || 100);
+                const slotsAvailable = p.slotsAvailable !== undefined ? p.slotsAvailable : 45;
+                const isNoSlots = slotsAvailable === 0;
+
+                let locationText = p.location || (isPeso ? "PESO Office / Koronadal City Hall" : "CSWDO Office / Koronadal City Hall");
+
                 let btnHtml = '';
                 if (isInactive) {
                     btnHtml = `
@@ -4109,10 +4121,10 @@
                             <span class="tooltip-custom-text">All available slots for this program are currently filled.</span>
                         </div>`;
                 } else {
-                    btnHtml = `<button class="btn-primary-rose btn-sm-rose w-100" onclick="applyForProgram('${p.name}')">Apply Now</button>`;
+                    btnHtml = `<button class="btn-primary-rose btn-sm-rose w-100" onclick="applyForProgram('${p.code || p.id}')">Apply Now</button>`;
                 }
 
-                container.innerHTML += `
+                cardsHtml.push(`
                     <div class="program-card">
                         <div>
                             <div class="d-flex justify-content-between align-items-start mb-3">
@@ -4141,14 +4153,16 @@
                         </div>
                         <div class="d-flex flex-column gap-2 mt-3">
                             ${btnHtml}
-                            <button class="btn-outline-rose btn-sm-rose w-100" onclick="viewBeneficiaryProgramOverview('${p.id || p.code}')">View Details</button>
+                            <button class="btn-outline-rose btn-sm-rose w-100" onclick="viewBeneficiaryProgramOverview('${p.code || p.id}')">View Details</button>
                         </div>
                     </div>
-                `;
+                `);
             });
 
             if (filtered.length === 0) {
                 container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; color: var(--text-muted);"><i class="bi bi-search fs-1 d-block mb-3 text-muted opacity-50"></i><h5>No programs or assistance found</h5><p class="small text-muted">Try adjusting your keyword search, location venue, or eligibility filter.</p></div>`;
+            } else {
+                container.innerHTML = cardsHtml.join('');
             }
         }
 
@@ -4764,14 +4778,24 @@
         let currentApplyProgram = null;
 
         // Apply for program & initialize fixed Program Identification banner + Required Documents Checklist
-        function applyForProgram(programName) {
-            const catalog = liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
+        function applyForProgram(programIdentifier) {
+            const catalog = (liveLivelihoodCatalog && liveLivelihoodCatalog.length > 0) ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
             let program = null;
 
-            if (programName) {
-                program = catalog.find(p => p.name === programName || p.code === programName || p.name.toLowerCase() === programName.toLowerCase() || p.code.toLowerCase() === programName.toLowerCase());
+            if (programIdentifier !== undefined && programIdentifier !== null) {
+                const s = String(programIdentifier).toLowerCase().trim();
+                program = catalog.find(p => 
+                    String(p.id) === s || 
+                    String(p.dbId) === s || 
+                    String(p.code).toLowerCase() === s || 
+                    String(p.name).toLowerCase() === s
+                );
                 if (!program) {
-                    program = ALL_LIVELIHOOD_CATALOG.find(p => p.name === programName || p.code === programName || p.name.toLowerCase() === programName.toLowerCase() || p.code.toLowerCase() === programName.toLowerCase());
+                    program = ALL_LIVELIHOOD_CATALOG.find(p => 
+                        String(p.id) === s || 
+                        String(p.code).toLowerCase() === s || 
+                        String(p.name).toLowerCase() === s
+                    );
                 }
             }
 
