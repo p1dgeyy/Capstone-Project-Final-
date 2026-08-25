@@ -47,8 +47,8 @@
             name: 'Assistance to Individuals in Crisis Situation (AICS)',
             category: 'Special Programs',
             budget: 1377882.00,
-            slots_target: 350,
-            slots_filled: 140,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Individuals & families in crisis, low-income heads of households, marginalized citizens',
@@ -79,8 +79,8 @@
             name: 'City of Koronadal Government Internship Program (CKGIP)',
             category: 'Employment Facilitation',
             budget: 500000.00,
-            slots_target: 50,
-            slots_filled: 28,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 30,
             target_beneficiaries: 'Fresh college & vocational graduates, tech-voc completers, and unemployed youth',
@@ -112,8 +112,8 @@
             name: 'Koronadal Emergency Employment Program (KEEP)',
             category: 'Employment Facilitation',
             budget: 1500000.00,
-            slots_target: 250,
-            slots_filled: 110,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Displaced local workers, underemployed informal laborers, calamity-affected breadwinners',
@@ -144,8 +144,8 @@
             name: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers',
             category: 'Employment Facilitation',
             budget: 40000.00,
-            slots_target: 40,
-            slots_filled: 18,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Displaced, underemployed, and seasonal informal sector workers',
@@ -175,8 +175,8 @@
             name: 'Pangkabuhayan Financial Assistance (PFAS)',
             category: 'Livelihood Programs',
             budget: 7000000.00,
-            slots_target: 700,
-            slots_filled: 310,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Individual micro-entrepreneurs, street vendors, home-based producers, skilled tradespersons',
@@ -208,8 +208,8 @@
             name: 'Support to DOLE Integrated Livelihood Program (DILP)',
             category: 'Livelihood Programs',
             budget: 500000.00,
-            slots_target: 50,
-            slots_filled: 22,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Organized community livelihood associations, worker cooperatives, vulnerable groups',
@@ -241,8 +241,8 @@
             name: 'Association Facilitation & Registration',
             category: 'Livelihood Programs',
             budget: 50000.00,
-            slots_target: 25,
-            slots_filled: 12,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Informal workers, community craftspeople, market vendor groups, transport operators',
@@ -272,8 +272,8 @@
             name: 'Conduct of Job Fairs & Career Expos',
             category: 'Employment Facilitation',
             budget: 100000.00,
-            slots_target: 1000,
-            slots_filled: 480,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Fresh graduates, displaced workers, licensed professionals, skilled tradespersons, jobseekers',
@@ -304,8 +304,8 @@
             name: 'Development of Localized Job Portal',
             category: 'Employment Facilitation',
             budget: 150000.00,
-            slots_target: 5000,
-            slots_filled: 1950,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Active jobseekers, tech-voc completers, accredited Koronadal employers and enterprises',
@@ -333,8 +333,8 @@
             name: 'Livelihood/Skills Training Program',
             category: 'Special Programs',
             budget: 150000.00,
-            slots_target: 150,
-            slots_filled: 85,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 60,
             target_beneficiaries: 'Out-of-school youth, unemployed adults, solo parents, PWDs, displaced workers',
@@ -365,8 +365,8 @@
             name: 'OFW Family Circle Day & Welfare Summit',
             category: 'Special Programs',
             budget: 200000.00,
-            slots_target: 200,
-            slots_filled: 95,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 70,
             target_beneficiaries: 'Active OFWs, vacationing OFWs, returning OFWs, and direct dependents (spouse, parents, children)',
@@ -395,8 +395,8 @@
             name: 'Special Program for Employment of Students (SPES)',
             category: 'Special Programs',
             budget: 2000000.00,
-            slots_target: 400,
-            slots_filled: 190,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 15,
             max_age: 30,
             target_beneficiaries: 'Poor but deserving high school, senior high, and college students, and Out-of-School Youth (OSY)',
@@ -428,8 +428,8 @@
             name: 'Support to Parokya ni OWWA Program',
             category: 'Special Programs',
             budget: 40000.00,
-            slots_target: 50,
-            slots_filled: 24,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Distressed OFWs, migrant returnees, families of OFWs in crisis',
@@ -457,8 +457,8 @@
             name: 'Support to Returning OFWs Program (ROFW’S)',
             category: 'Special Programs',
             budget: 100000.00,
-            slots_target: 50,
-            slots_filled: 26,
+            slots_target: 0,
+            slots_filled: 0,
             min_age: 18,
             max_age: 65,
             target_beneficiaries: 'Permanently returned, repatriated, or distressed Overseas Filipino Workers',
@@ -1994,7 +1994,14 @@
 
         tbody.innerHTML = filtered.map(p => {
             const isDeactivated = p.status !== 'Active';
-            const enrCount = AdminStore.applications.filter(a => a.program_id === p.id).length;
+            const enrCount = (AdminStore.applications || []).filter(a => {
+                if (!a) return false;
+                return a.program_id === p.id ||
+                       (p.id && String(a.program_id) === String(p.id)) ||
+                       (a.program && p.name && a.program.trim().toLowerCase() === p.name.trim().toLowerCase()) ||
+                       (a.assistance_type && p.name && a.assistance_type.trim().toLowerCase() === p.name.trim().toLowerCase()) ||
+                       (a.program_code && p.code && a.program_code.trim().toUpperCase() === p.code.trim().toUpperCase());
+            }).length;
             const pBudget = Number(p.budget) || 0;
 
             return `
@@ -2022,10 +2029,10 @@
                     </td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-info" onclick="openProgramDetailsViewModal(${p.id})" title="View Details">
+                            <button class="btn btn-outline-info" onclick="openProgramDetailsViewModal('${p.code || p.id}')" title="View Details">
                                 <i class="bi bi-eye"></i> Details
                             </button>
-                            <button class="btn btn-outline-primary" onclick="drilldownToBatches(${p.id})" title="View Batches">
+                            <button class="btn btn-outline-primary" onclick="drilldownToBatches('${p.code || p.id}')" title="View Batches">
                                 <i class="bi bi-layers"></i> Batches
                             </button>
                             <button class="btn btn-outline-warning" onclick="openProgramEditModal(${p.id})" title="Edit">
@@ -2059,7 +2066,10 @@
     }
 
     function drilldownToBatches(progId) {
-        const prog = AdminStore.programs.find(p => p.id === progId);
+        let prog = AdminStore.programs.find(p => p && (p.id === progId || p.code === progId || String(p.id) === String(progId)));
+        if (!prog) {
+            prog = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c && (c.id === progId || c.code === progId || String(c.id) === String(progId)));
+        }
         if (!prog) return;
         AdminStore.activeDrilldown.program = prog;
 
@@ -2067,14 +2077,49 @@
         document.getElementById('drilldownProgTitle').textContent = `Batches for: ${prog.name}`;
         document.getElementById('bcDrilldownBatchName').textContent = `${prog.code} Batches`;
 
-        const progBatches = AdminStore.batches.filter(b => b.program_id === prog.id || b.program_code === prog.code);
+        const progBatches = (AdminStore.batches || []).filter(b => {
+            if (!b) return false;
+            return b.program_id === prog.id ||
+                   (prog.id && String(b.program_id) === String(prog.id)) ||
+                   (b.program_code && prog.code && b.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase()) ||
+                   (b.program_name && prog.name && b.program_name.trim().toLowerCase() === prog.name.trim().toLowerCase());
+        });
+
+        const progApps = (AdminStore.applications || []).filter(a => {
+            if (!a) return false;
+            return a.program_id === prog.id ||
+                   (prog.id && String(a.program_id) === String(prog.id)) ||
+                   (a.program && prog.name && a.program.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
+                   (a.assistance_type && prog.name && a.assistance_type.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
+                   (a.program_code && prog.code && a.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase());
+        });
+
         const tbody = document.getElementById('drilldownBatchesTableBody');
         if (tbody) {
             if (progBatches.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No batches created for this program yet.</td></tr>`;
+                if (progApps.length > 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <div class="mb-3">
+                                    <i class="bi bi-people-fill text-primary fs-2 d-block mb-1"></i>
+                                    <h6 class="fw-bold mb-1">${progApps.length} Enrolled Applicant(s) in ${escapeHtml(prog.name)}</h6>
+                                    <p class="text-muted small mb-3">Applicants have applied directly through the portal and are currently awaiting formal batch group assignment.</p>
+                                </div>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button class="btn btn-sm btn-primary" onclick="drilldownToDirectBeneficiaries('${prog.code || prog.id}')">
+                                        <i class="bi bi-person-lines-fill me-1"></i> Inspect ${progApps.length} Enrolled Applicant(s)
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>No batches created for this program yet.</td></tr>`;
+                }
             } else {
                 tbody.innerHTML = progBatches.map(b => {
-                    const count = AdminStore.applications.filter(a => a.batch_id === b.id).length;
+                    const count = (AdminStore.applications || []).filter(a => a.batch_id === b.id || String(a.batch_id) === String(b.id)).length;
                     return `
                         <tr>
                             <td class="fw-bold text-dark">${escapeHtml(b.name || `Batch #${b.id}`)}</td>
@@ -2094,6 +2139,62 @@
 
         showProgramsLevel2();
     }
+
+    function drilldownToDirectBeneficiaries(progId) {
+        let prog = AdminStore.programs.find(p => p && (p.id === progId || p.code === progId || String(p.id) === String(progId)));
+        if (!prog) {
+            prog = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c && (c.id === progId || c.code === progId || String(c.id) === String(progId)));
+        }
+        if (!prog) return;
+
+        AdminStore.activeDrilldown.batch = 'direct_' + (prog.code || prog.id);
+        document.getElementById('drilldownBatchBadge').textContent = `${prog.code} DIRECT INTAKE`;
+        document.getElementById('drilldownBatchTitle').textContent = `Enrolled Applicants in ${prog.name}`;
+        document.getElementById('bcDrilldownBenName').textContent = `${prog.code} Direct Applicants`;
+
+        const progApps = (AdminStore.applications || []).filter(a => {
+            if (!a) return false;
+            return a.program_id === prog.id ||
+                   (prog.id && String(a.program_id) === String(prog.id)) ||
+                   (a.program && prog.name && a.program.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
+                   (a.assistance_type && prog.name && a.assistance_type.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
+                   (a.program_code && prog.code && a.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase());
+        });
+
+        const tbody = document.getElementById('drilldownBeneficiariesTableBody');
+        if (tbody) {
+            if (progApps.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No applicants enrolled in this program yet.</td></tr>`;
+            } else {
+                tbody.innerHTML = progApps.map(a => {
+                    const ben = a.beneficiary || {};
+                    const fullName = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Applicant';
+                    return `
+                        <tr>
+                            <td class="fw-bold text-dark">${escapeHtml(fullName)}</td>
+                            <td><span class="font-monospace badge bg-light text-dark border">${escapeHtml(a.beneficiary_qr || 'N/A')}</span></td>
+                            <td><span class="masked-phone">${escapeHtml(maskContactNumber(ben.phone || ben.contact_number || ''))}</span></td>
+                            <td>${formatDate(a.date_applied || a.created_at)}</td>
+                            <td class="text-center"><span class="badge bg-info text-white">${escapeHtml(a.status || 'Pending')}</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-info" onclick="inspectBeneficiaryProfile('${a.beneficiary_qr}')">
+                                    <i class="bi bi-person-vcard"></i> Full Profile
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        document.getElementById('programsLevel1View')?.classList.add('d-none');
+        document.getElementById('programsLevel2BatchesView')?.classList.add('d-none');
+        document.getElementById('programsLevel3BeneficiariesView')?.classList.remove('d-none');
+        document.getElementById('bcDrilldownBatchItem')?.classList.remove('d-none');
+        document.getElementById('bcDrilldownBenItem')?.classList.remove('d-none');
+    }
+
+    window.drilldownToDirectBeneficiaries = drilldownToDirectBeneficiaries;
 
     function drilldownToBeneficiaries(batchId, batchName) {
         AdminStore.activeDrilldown.batch = batchId;
@@ -2384,17 +2485,38 @@
     }
 
     function openProgramDetailsViewModal(progId) {
-        let prog = AdminStore.programs.find(p => p && (p.id === progId || p.code === progId));
+        let prog = AdminStore.programs.find(p => p && (p.id === progId || p.code === progId || String(p.id) === String(progId)));
         if (!prog) {
-            prog = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.id === progId || c.code === progId);
+            prog = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c && (c.id === progId || c.code === progId || String(c.id) === String(progId)));
         }
         if (!prog) return;
 
-        const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.code === prog.code || c.name === prog.name) || {};
-        const totalSlots = Number(prog.slots_target || prog.total_slots || canonical.slots_target || 100);
-        const filledSlots = Number(prog.slots_filled || prog.beneficiaries_count || canonical.slots_filled || 0);
-        const availableSlots = Math.max(0, totalSlots - filledSlots);
-        const percentSlots = totalSlots > 0 ? Math.min(100, Math.round((filledSlots / totalSlots) * 100)) : 0;
+        const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c && (c.code === prog.code || c.name === prog.name)) || {};
+
+        // Real-time live metrics from AdminStore
+        const progApps = (AdminStore.applications || []).filter(a => {
+            if (!a) return false;
+            return a.program_id === prog.id || 
+                   (prog.id && String(a.program_id) === String(prog.id)) ||
+                   (a.program && prog.name && a.program.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
+                   (a.assistance_type && prog.name && a.assistance_type.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
+                   (a.program_code && prog.code && a.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase());
+        });
+        const liveEnrolledCount = progApps.length;
+
+        const progBatches = (AdminStore.batches || []).filter(b => {
+            if (!b) return false;
+            return b.program_id === prog.id || 
+                   (prog.id && String(b.program_id) === String(prog.id)) ||
+                   (b.program_code && prog.code && b.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase()) ||
+                   (b.program_name && prog.name && b.program_name.trim().toLowerCase() === prog.name.trim().toLowerCase());
+        });
+        const batchTotalCapacity = progBatches.reduce((acc, b) => acc + Number(b.capacity || 0), 0);
+
+        const totalSlots = Number(prog.slots_target || batchTotalCapacity || 0);
+        const filledSlots = Number(prog.slots_filled !== undefined && prog.slots_filled !== null && prog.slots_filled > 0 ? prog.slots_filled : liveEnrolledCount);
+        const availableSlots = totalSlots > 0 ? Math.max(0, totalSlots - filledSlots) : 'Open';
+        const percentSlots = totalSlots > 0 ? Math.min(100, Math.round((filledSlots / totalSlots) * 100)) : (liveEnrolledCount > 0 ? Math.min(100, liveEnrolledCount * 10) : 0);
         const minAge = prog.min_age || canonical.min_age || 18;
         const maxAge = prog.max_age || canonical.max_age || 65;
 
@@ -2420,9 +2542,16 @@
         setText('viewProgBudget', formatCurrency(budgetAmount));
 
         // 3. Program Slots Counter & Progress (Requirement 2)
-        setText('viewProgSlotsBadge', `${filledSlots} / ${totalSlots} Filled`);
-        setText('viewProgSlotsCount', `${filledSlots} / ${totalSlots}`);
-        setText('viewProgAvailableSlots', `${availableSlots} available slots remaining (${percentSlots}% filled)`);
+        if (totalSlots > 0) {
+            setText('viewProgSlotsBadge', `${filledSlots} / ${totalSlots} filled`);
+            setText('viewProgSlotsCount', `${filledSlots} / ${totalSlots}`);
+            setText('viewProgAvailableSlots', `${availableSlots} available slots remaining (${percentSlots}% filled)`);
+        } else {
+            setText('viewProgSlotsBadge', `${filledSlots} Enrolled`);
+            setText('viewProgSlotsCount', `${filledSlots} Enrolled`);
+            setText('viewProgAvailableSlots', `Continuous intake • Open capacity`);
+        }
+
         const slotsProgressBar = document.getElementById('viewProgSlotsProgressBar');
         if (slotsProgressBar) {
             slotsProgressBar.style.width = `${percentSlots}%`;
