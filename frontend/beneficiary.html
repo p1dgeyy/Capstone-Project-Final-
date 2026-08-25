@@ -3740,7 +3740,250 @@
         ];
 
 
+        let liveLivelihoodCatalog = [];
         let currentAgencyFilter = 'all';
+        let isRealtimeSyncing = false;
+
+        // Fetch Live Real-Time Data from Supabase / DataService / LocalStorage
+        async function fetchLiveLivelihoodPrograms() {
+            if (isRealtimeSyncing) return;
+            isRealtimeSyncing = true;
+
+            try {
+                let dbPrograms = [];
+                let dbBatches = [];
+                let dbApps = [];
+
+                // 1. Fetch live programs from DataService or Supabase
+                if (typeof DataService !== 'undefined' && DataService.programs) {
+                    try {
+                        const pRes = await DataService.programs.getAll();
+                        if (pRes && Array.isArray(pRes.data)) {
+                            dbPrograms = pRes.data;
+                        }
+                    } catch (e) {
+                        console.warn('[Beneficiary Realtime] DataService.programs error:', e);
+                    }
+                }
+
+                if (dbPrograms.length === 0 && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    try {
+                        const { data } = await supabaseClient.from('programs').select('*');
+                        if (data && Array.isArray(data)) {
+                            dbPrograms = data;
+                        }
+                    } catch (e) {}
+                }
+
+                // 2. Fetch live batches for slot calculations
+                if (typeof DataService !== 'undefined' && DataService.batches) {
+                    try {
+                        const bRes = await DataService.batches.getAll();
+                        if (bRes && Array.isArray(bRes.data)) {
+                            dbBatches = bRes.data;
+                        }
+                    } catch (e) {}
+                }
+
+                if (dbBatches.length === 0) {
+                    try {
+                        dbBatches = JSON.parse(localStorage.getItem('peso_batches')) || [];
+                    } catch (e) {}
+                }
+
+                // 3. Fetch local storage cached programs (PESO & CSWDO)
+                let localPeso = [];
+                let localCswdo = [];
+                try {
+                    localPeso = JSON.parse(localStorage.getItem('peso_programs')) || [];
+                    localCswdo = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+                } catch (e) {}
+
+                // Build a unified dictionary of all baseline & database programs
+                let mergedMap = new Map();
+
+                // Start with baseline catalog
+                ALL_LIVELIHOOD_CATALOG.forEach(p => {
+                    mergedMap.set(p.code.toUpperCase(), { ...p });
+                });
+
+                // Merge with localStorage PESO
+                localPeso.forEach(lp => {
+                    const codeKey = (lp.code || lp.name).toUpperCase();
+                    if (mergedMap.has(codeKey)) {
+                        const existing = mergedMap.get(codeKey);
+                        mergedMap.set(codeKey, {
+                            ...existing,
+                            name: lp.name || existing.name,
+                            description: lp.description || existing.description,
+                            budget: lp.budget !== undefined ? lp.budget : existing.budget,
+                            annualAllocation: lp.budget ? `₱ ${formatCurrency(lp.budget)} Budget Allocation` : (lp.annualAllocation || existing.annualAllocation),
+                            slotsTotal: lp.slots_target || lp.slotsTotal || existing.slotsTotal,
+                            slotsAvailable: (lp.slots_target !== undefined && lp.slots_filled !== undefined) 
+                                ? Math.max(0, lp.slots_target - lp.slots_filled) 
+                                : (lp.slotsAvailable !== undefined ? lp.slotsAvailable : existing.slotsAvailable),
+                            status: lp.status || existing.status,
+                            location: lp.location || existing.location
+                        });
+                    } else {
+                        mergedMap.set(codeKey, {
+                            id: lp.id || lp.code || codeKey,
+                            code: lp.code || codeKey,
+                            name: lp.name || codeKey,
+                            agency: lp.agency || 'PESO',
+                            category: lp.category || 'Livelihood Program',
+                            location: lp.location || 'PESO Office, Koronadal City Hall',
+                            description: lp.description || 'Official City Livelihood Program.',
+                            eligibility: Array.isArray(lp.eligibility) ? lp.eligibility : (lp.eligibility_criteria ? [lp.eligibility_criteria] : ['Residents of Koronadal City']),
+                            priorities: Array.isArray(lp.priorities) ? lp.priorities : (lp.target_beneficiaries ? [lp.target_beneficiaries] : ['Indigent & displaced residents']),
+                            requirements: Array.isArray(lp.requirements) ? lp.requirements : ['Valid Government ID', 'Barangay Certificate of Indigency'],
+                            instructions: Array.isArray(lp.instructions) ? lp.instructions : ['Submit application and valid documents.'],
+                            annualAllocation: lp.budget ? `₱ ${formatCurrency(lp.budget)} Budget Allocation` : '₱ 1,000,000.00 City Allocation',
+                            slotsTotal: lp.slots_target || lp.slotsTotal || 100,
+                            slotsAvailable: (lp.slots_target !== undefined && lp.slots_filled !== undefined) ? Math.max(0, lp.slots_target - lp.slots_filled) : 50,
+                            status: lp.status || 'Active'
+                        });
+                    }
+                });
+
+                // Merge with localStorage CSWDO
+                localCswdo.forEach(lc => {
+                    const codeKey = (lc.code || lc.name).toUpperCase();
+                    if (mergedMap.has(codeKey)) {
+                        const existing = mergedMap.get(codeKey);
+                        mergedMap.set(codeKey, {
+                            ...existing,
+                            name: lc.name || existing.name,
+                            description: lc.description || existing.description,
+                            budget: lc.budget !== undefined ? lc.budget : existing.budget,
+                            annualAllocation: lc.budget ? `₱ ${formatCurrency(lc.budget)} City Social Welfare Fund` : (lc.annualAllocation || existing.annualAllocation),
+                            status: lc.status || existing.status
+                        });
+                    } else {
+                        mergedMap.set(codeKey, {
+                            id: lc.id || lc.code || codeKey,
+                            code: lc.code || codeKey,
+                            name: lc.name || codeKey,
+                            agency: 'CSWDO',
+                            category: lc.category || 'Social Welfare Assistance',
+                            location: lc.location || 'CSWDO Office, Koronadal City Hall',
+                            description: lc.description || 'Official City Social Welfare Assistance Program.',
+                            eligibility: Array.isArray(lc.eligibility) ? lc.eligibility : ['Indigent individuals and crisis-affected families in Koronadal City'],
+                            priorities: Array.isArray(lc.priorities) ? lc.priorities : ['Individuals and families in difficult circumstances'],
+                            requirements: Array.isArray(lc.requirements) ? lc.requirements : ['Valid Government ID', 'Barangay Certificate of Indigency'],
+                            instructions: Array.isArray(lc.instructions) ? lc.instructions : ['Submit request with supporting crisis documents.'],
+                            annualAllocation: lc.budget ? `₱ ${formatCurrency(lc.budget)} City Social Welfare Fund` : '₱ 2,000,000.00 Crisis Fund',
+                            slotsTotal: lc.slotsTotal || 300,
+                            slotsAvailable: lc.slotsAvailable || 180,
+                            status: lc.status || 'Active'
+                        });
+                    }
+                });
+
+                // Merge with live Database Programs from Supabase
+                dbPrograms.forEach(dp => {
+                    const codeKey = (dp.code || dp.name).toUpperCase();
+                    if (mergedMap.has(codeKey)) {
+                        const existing = mergedMap.get(codeKey);
+                        mergedMap.set(codeKey, {
+                            ...existing,
+                            dbId: dp.id,
+                            name: dp.name || existing.name,
+                            description: dp.description || existing.description,
+                            status: dp.status || existing.status,
+                            agency: dp.agency || existing.agency,
+                            budget: dp.budget !== undefined ? dp.budget : existing.budget,
+                            annualAllocation: dp.budget ? `₱ ${formatCurrency(dp.budget)} Live Allocation` : existing.annualAllocation
+                        });
+                    } else {
+                        const agency = dp.agency || (dp.name.includes('CSWDO') ? 'CSWDO' : 'PESO');
+                        mergedMap.set(codeKey, {
+                            id: dp.id || codeKey,
+                            dbId: dp.id,
+                            code: dp.code || codeKey,
+                            name: dp.name,
+                            agency: agency,
+                            category: dp.category || (agency === 'PESO' ? 'Livelihood & Employment' : 'Social Welfare Assistance'),
+                            location: dp.location || (agency === 'PESO' ? 'PESO Office, Koronadal City Hall' : 'CSWDO Office, Koronadal City Hall'),
+                            description: dp.description || `Official ${agency} program for Koronadal City.`,
+                            eligibility: dp.eligibility_criteria ? [dp.eligibility_criteria] : ['Bona fide residents of Koronadal City'],
+                            priorities: dp.target_beneficiaries ? [dp.target_beneficiaries] : ['Indigent and qualified applicants'],
+                            requirements: ['Valid Government Photo ID', 'Barangay Certificate of Indigency'],
+                            instructions: ['Submit application and attend intake verification.'],
+                            annualAllocation: dp.budget ? `₱ ${formatCurrency(dp.budget)} Live Allocation` : 'Active Allocation',
+                            slotsTotal: dp.slots_target || 100,
+                            slotsAvailable: (dp.slots_target !== undefined && dp.slots_filled !== undefined) ? Math.max(0, dp.slots_target - dp.slots_filled) : 50,
+                            status: dp.status || 'Active'
+                        });
+                    }
+                });
+
+                // Apply live slot counts from real-time batches
+                if (dbBatches.length > 0) {
+                    dbBatches.forEach(b => {
+                        const codeKey = (b.program_code || '').toUpperCase();
+                        if (codeKey && mergedMap.has(codeKey)) {
+                            const prog = mergedMap.get(codeKey);
+                            const batchCapacity = Number(b.capacity || 0);
+                            const batchAssigned = Number(b.assigned_count || 0);
+                            if (batchCapacity > 0) {
+                                prog.slotsTotal = Math.max(prog.slotsTotal || 0, batchCapacity);
+                                prog.slotsAvailable = Math.max(0, batchCapacity - batchAssigned);
+                            }
+                        }
+                    });
+                }
+
+                liveLivelihoodCatalog = Array.from(mergedMap.values());
+                console.log(`[Beneficiary Realtime] Synced ${liveLivelihoodCatalog.length} live programs (PESO + CSWDO).`);
+
+                // Dynamically update the application modal dropdown with live active programs
+                populateLiveAssistanceDropdown();
+
+                // Re-render UI
+                renderBeneficiaryPrograms();
+            } catch (err) {
+                console.warn('[Beneficiary Realtime] Sync notice:', err);
+                liveLivelihoodCatalog = [...ALL_LIVELIHOOD_CATALOG];
+                renderBeneficiaryPrograms();
+            } finally {
+                isRealtimeSyncing = false;
+            }
+        }
+
+        // Dynamically populate #assistanceType dropdown from live real-time programs catalog
+        function populateLiveAssistanceDropdown() {
+            const select = document.getElementById('assistanceType');
+            if (!select) return;
+
+            const selectedVal = select.value;
+            const activePrograms = (liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG)
+                .filter(p => p.status === 'Active');
+
+            const pesoPrograms = activePrograms.filter(p => p.agency === 'PESO');
+            const cswdoPrograms = activePrograms.filter(p => p.agency === 'CSWDO');
+
+            let html = '<option value="">Choose program / assistance...</option>';
+
+            if (pesoPrograms.length > 0) {
+                html += '<optgroup label="PESO Programs (Livelihood & Employment)">';
+                pesoPrograms.forEach(p => {
+                    html += `<option value="${p.name}">${p.name}</option>`;
+                });
+                html += '</optgroup>';
+            }
+
+            if (cswdoPrograms.length > 0) {
+                html += '<optgroup label="CSWDO Assistance Applications (Social Welfare & Crisis)">';
+                cswdoPrograms.forEach(p => {
+                    html += `<option value="${p.name}">${p.name}</option>`;
+                });
+                html += '</optgroup>';
+            }
+
+            select.innerHTML = html;
+            if (selectedVal) select.value = selectedVal;
+        }
 
         function setProgramAgencyFilter(agency) {
             currentAgencyFilter = agency || 'all';
@@ -3758,34 +4001,12 @@
             renderBeneficiaryPrograms();
         }
 
-        // Dynamic Programs Directory Logic
+        // Dynamic Programs Directory Logic (Using Live Real-time Data)
         function renderBeneficiaryPrograms() {
             const container = document.getElementById('beneficiary-programs-container');
             if (!container) return;
 
-            let programs = [...ALL_LIVELIHOOD_CATALOG];
-            
-            // Sync with local storage if available
-            try {
-                const localPeso = JSON.parse(localStorage.getItem('peso_programs')) || [];
-                const localCswdo = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
-                programs = programs.map(p => {
-                    const found = p.agency === 'PESO' 
-                        ? localPeso.find(lp => lp.code === p.code || lp.name === p.name)
-                        : localCswdo.find(lc => lc.code === p.code || lc.name === p.name);
-                    if (found) {
-                        return {
-                            ...p,
-                            slotsTotal: found.slots_target || found.slotsTotal || p.slotsTotal,
-                            slotsAvailable: (found.slots_target !== undefined && found.slots_filled !== undefined) 
-                                ? Math.max(0, found.slots_target - found.slots_filled) 
-                                : (found.slotsAvailable !== undefined ? found.slotsAvailable : p.slotsAvailable),
-                            status: found.status || p.status
-                        };
-                    }
-                    return p;
-                });
-            } catch (e) {}
+            const programs = liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
 
             // Update badge counters
             const countAll = programs.length;
@@ -3917,15 +4138,12 @@
             }
         }
 
+        // View Details Behavior (Pulls from Live Real-time Program Record)
         function viewBeneficiaryProgramOverview(id) {
-            let program = ALL_LIVELIHOOD_CATALOG.find(p => p.id === id || p.code === id || p.name === id);
+            const catalog = liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
+            let program = catalog.find(p => p.id === id || p.code === id || p.name === id || String(p.dbId) === String(id));
             if (!program) {
-                try {
-                    const localPeso = JSON.parse(localStorage.getItem('peso_programs')) || [];
-                    const localCswdo = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
-                    program = localPeso.find(p => p.id === id || p.code === id || p.name === id) ||
-                              localCswdo.find(p => p.id === id || p.code === id || p.name === id);
-                } catch (e) {}
+                program = ALL_LIVELIHOOD_CATALOG.find(p => p.id === id || p.code === id || p.name === id);
             }
             if (!program) return;
 
@@ -4044,11 +4262,15 @@
                 return;
             }
 
-            const prog = ALL_LIVELIHOOD_CATALOG.find(p => 
+            const catalog = liveLivelihoodCatalog.length > 0 ? liveLivelihoodCatalog : ALL_LIVELIHOOD_CATALOG;
+            const prog = catalog.find(p => 
                 p.name === selectedVal || 
                 p.code === selectedVal || 
                 selectedVal.toLowerCase().includes(p.name.toLowerCase()) || 
                 selectedVal.toLowerCase().includes(p.code.toLowerCase())
+            ) || ALL_LIVELIHOOD_CATALOG.find(p => 
+                p.name === selectedVal || 
+                p.code === selectedVal
             );
 
             if (prog && prog.requirements && prog.requirements.length > 0) {
@@ -4061,9 +4283,50 @@
                 if (docsBox) docsBox.style.display = 'none';
             }
         }
+
+        // Setup Realtime Synchronization for Beneficiary Portal
+        function setupBeneficiaryRealtimeSync() {
+            // 1. Supabase Postgres Changes Channel
+            if (typeof supabaseClient !== 'undefined' && supabaseClient && typeof supabaseClient.channel === 'function') {
+                try {
+                    supabaseClient
+                        .channel('beneficiary_livelihood_sync')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'programs' }, () => {
+                            console.log('[Realtime] Live program update received from database');
+                            fetchLiveLivelihoodPrograms();
+                        })
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, () => {
+                            console.log('[Realtime] Live batch update received');
+                            fetchLiveLivelihoodPrograms();
+                        })
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => {
+                            fetchLiveLivelihoodPrograms();
+                        })
+                        .subscribe();
+                } catch (e) {
+                    console.warn('[Realtime] Subscription warning:', e);
+                }
+            }
+
+            // 2. Storage event listener for cross-tab mutations
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'peso_programs' || e.key === 'cswdo_programs' || e.key === 'peso_batches' || e.key === 'applications') {
+                    console.log('[Realtime] Storage key modified:', e.key);
+                    fetchLiveLivelihoodPrograms();
+                }
+            });
+
+            // 3. Periodic polling fallback (every 15s)
+            setInterval(() => {
+                fetchLiveLivelihoodPrograms();
+            }, 15000);
+        }
+
         window.onAssistanceTypeChanged = onAssistanceTypeChanged;
         window.applyForProgram = applyForProgram;
         window.setProgramAgencyFilter = setProgramAgencyFilter;
+        window.fetchLiveLivelihoodPrograms = fetchLiveLivelihoodPrograms;
+        window.setupBeneficiaryRealtimeSync = setupBeneficiaryRealtimeSync;
 
 
         function switchSection(sectionId) {
@@ -5416,7 +5679,8 @@
                 if (typeof applyLanguage === 'function') applyLanguage(savedLang);
 
                 // Seed rendering on load
-                if (typeof renderBeneficiaryPrograms === 'function') renderBeneficiaryPrograms();
+                if (typeof fetchLiveLivelihoodPrograms === 'function') fetchLiveLivelihoodPrograms();
+                if (typeof setupBeneficiaryRealtimeSync === 'function') setupBeneficiaryRealtimeSync();
                 if (typeof loadBeneficiarySchedules === 'function') loadBeneficiarySchedules(username);
                 if (typeof renderBeneficiaryTrainingHistory === 'function') renderBeneficiaryTrainingHistory(username);
                 if (typeof renderBeneficiaryAssistance === 'function') renderBeneficiaryAssistance(username);
