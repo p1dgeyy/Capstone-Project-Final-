@@ -45,6 +45,14 @@ const server = http.createServer((req, res) => {
     pathname = '/index.html';
   }
 
+  // Legacy route deprecation redirect: evaluator.html -> peso_officer.html
+  if (pathname === '/evaluator' || pathname === '/evaluator.html') {
+    res.writeHead(302, { 'Location': '/peso_officer.html' });
+    res.end();
+    console.log(`[302 Redirect] ${pathname} -> /peso_officer.html`);
+    return;
+  }
+
   // Security check: prevent path traversal attacks
   let safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
   let filePath = path.join(PUBLIC_DIR, safePath);

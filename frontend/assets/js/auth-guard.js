@@ -385,6 +385,14 @@ const AuthGuard = (() => {
   async function autoGuard() {
     try {
       const page = getCurrentPage();
+
+      // Legacy Route Fallback Guard: redirect any stale /evaluator.html navigation to peso_officer.html
+      if (page === 'evaluator.html' || page === 'evaluator') {
+        console.info('[AUTH_GUARD] Redirecting deprecated evaluator.html request to Officers Evaluation module.');
+        window.location.replace('peso_officer.html');
+        return false;
+      }
+
       const allowedRoles = PAGE_ROLE_MAP[page];
 
       if (allowedRoles) {
