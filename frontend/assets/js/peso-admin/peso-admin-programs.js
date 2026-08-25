@@ -947,6 +947,47 @@ async function handleCreateProgramSubmit(e) {
     });
 }
 
+// Safe Application and Batch matchers for Program Catalog
+function matchesApplicationToProgram(a, p) {
+    if (!a || !p) return false;
+    if (a.program_id && (a.program_id === p.id || String(a.program_id) === String(p.id))) return true;
+    if (a.program && typeof a.program === 'object') {
+        if (a.program.id && (a.program.id === p.id || String(a.program.id) === String(p.id))) return true;
+        if (a.program.code && p.code && String(a.program.code).trim().toUpperCase() === String(p.code).trim().toUpperCase()) return true;
+        if (a.program.name && p.name && String(a.program.name).trim().toLowerCase() === String(p.name).trim().toLowerCase()) return true;
+    }
+    if (typeof a.program === 'string' && a.program.trim()) {
+        const progStr = a.program.trim().toLowerCase();
+        if (p.name && progStr === String(p.name).trim().toLowerCase()) return true;
+        if (p.code && progStr === String(p.code).trim().toLowerCase()) return true;
+    }
+    if (typeof a.assistance_type === 'string' && a.assistance_type.trim()) {
+        const assistStr = a.assistance_type.trim().toLowerCase();
+        if (p.name && assistStr === String(p.name).trim().toLowerCase()) return true;
+        if (p.code && assistStr === String(p.code).trim().toLowerCase()) return true;
+    }
+    if (typeof a.program_code === 'string' && a.program_code.trim() && p.code) {
+        if (a.program_code.trim().toUpperCase() === String(p.code).trim().toUpperCase()) return true;
+    }
+    return false;
+}
+
+function matchesBatchToProgram(b, p) {
+    if (!b || !p) return false;
+    if (b.program_id && (b.program_id === p.id || String(b.program_id) === String(p.id))) return true;
+    if (b.program && typeof b.program === 'object') {
+        if (b.program.id && (b.program.id === p.id || String(b.program.id) === String(p.id))) return true;
+        if (b.program.code && p.code && String(b.program.code).trim().toUpperCase() === String(p.code).trim().toUpperCase()) return true;
+    }
+    if (typeof b.program_code === 'string' && b.program_code.trim() && p.code) {
+        if (b.program_code.trim().toUpperCase() === String(p.code).trim().toUpperCase()) return true;
+    }
+    if (typeof b.program_name === 'string' && b.program_name.trim() && p.name) {
+        if (b.program_name.trim().toLowerCase() === String(p.name).trim().toLowerCase()) return true;
+    }
+    return false;
+}
+
 // --- DETAILS BUTTON: STRICTLY READ-ONLY PROGRAM DETAILS MODAL (RULE 1 & 8 REQUIREMENTS) ---
 function openProgramDetailsViewModal(progId) {
     if (!Array.isArray(programsList)) programsList = [];
@@ -968,24 +1009,11 @@ function openProgramDetailsViewModal(progId) {
     const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c && (c.code === prog.code || c.name === prog.name)) || {};
 
     const allApps = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.applications)) ? AdminStore.applications : [];
-    const progApps = allApps.filter(a => {
-        if (!a) return false;
-        return a.program_id === prog.id || 
-               (prog.id && String(a.program_id) === String(prog.id)) ||
-               (a.program && prog.name && a.program.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
-               (a.assistance_type && prog.name && a.assistance_type.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
-               (a.program_code && prog.code && a.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase());
-    });
+    const progApps = allApps.filter(a => matchesApplicationToProgram(a, prog));
     const liveEnrolledCount = progApps.length;
 
     const allBatches = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.batches)) ? AdminStore.batches : [];
-    const progBatches = allBatches.filter(b => {
-        if (!b) return false;
-        return b.program_id === prog.id || 
-               (prog.id && String(b.program_id) === String(prog.id)) ||
-               (b.program_code && prog.code && b.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase()) ||
-               (b.program_name && prog.name && b.program_name.trim().toLowerCase() === prog.name.trim().toLowerCase());
-    });
+    const progBatches = allBatches.filter(b => matchesBatchToProgram(b, prog));
     const batchTotalCapacity = progBatches.reduce((acc, b) => acc + Number(b.capacity || 0), 0);
 
     const totalSlots = Number(prog.slots_target || batchTotalCapacity || 0);
