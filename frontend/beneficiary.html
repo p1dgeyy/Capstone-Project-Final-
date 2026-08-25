@@ -3989,6 +3989,37 @@
                     });
                 }
 
+                // 4. Fetch live applications to calculate real-time applicant fill rate
+                let dbApps = [];
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    try {
+                        const aRes = await DataService.applications.getAll();
+                        if (aRes && Array.isArray(aRes.data)) dbApps = aRes.data;
+                    } catch (e) {}
+                }
+                if (dbApps.length === 0 && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    try {
+                        const { data } = await supabaseClient.from('applications').select('id, program, assistance_type, status');
+                        if (data && Array.isArray(data)) dbApps = data;
+                    } catch (e) {}
+                }
+
+                const appCountMap = new Map();
+                dbApps.forEach(app => {
+                    const pName = (app.program || app.assistance_type || '').toUpperCase();
+                    if (pName) {
+                        appCountMap.set(pName, (appCountMap.get(pName) || 0) + 1);
+                    }
+                });
+
+                mergedMap.forEach((prog, codeKey) => {
+                    const pNameKey = (prog.name || '').toUpperCase();
+                    const pCodeKey = (prog.code || '').toUpperCase();
+                    const countByName = appCountMap.get(pNameKey) || 0;
+                    const countByCode = pCodeKey !== pNameKey ? (appCountMap.get(pCodeKey) || 0) : 0;
+                    prog.appliedCount = Math.max(countByName, countByCode);
+                });
+
                 liveLivelihoodCatalog = Array.from(mergedMap.values());
                 console.log(`[Beneficiary Realtime] Synced ${liveLivelihoodCatalog.length} live programs (PESO: ${liveLivelihoodCatalog.filter(p=>p.agency==='PESO').length}, CSWDO: ${liveLivelihoodCatalog.filter(p=>p.agency==='CSWDO').length}).`);
 
@@ -4163,28 +4194,34 @@
                 }
 
                 let slotDisplayHtml = '';
+                const appliedCount = p.appliedCount || 0;
+
                 if (slotsTotal > 0) {
-                    const pct = Math.round((slotsAvailable / slotsTotal) * 100);
+                    const filledCount = Math.min(slotsTotal, Math.max(slotsTotal - slotsAvailable, appliedCount));
+                    const remainingSlots = Math.max(0, slotsTotal - filledCount);
+                    const fillPct = Math.min(100, Math.round((filledCount / slotsTotal) * 100));
+
                     slotDisplayHtml = `
                         <div>
                             <div class="d-flex align-items-center justify-content-between mb-1">
-                                <span class="small fw-semibold"><i class="bi bi-ticket-perforated me-1"></i> Slots: <strong class="${isNoSlots ? 'text-danger' : 'text-success'}">${slotsAvailable}</strong> / ${slotsTotal}</span>
-                                <span class="small text-muted">${pct}% left</span>
+                                <span class="small fw-semibold"><i class="bi bi-ticket-perforated me-1"></i> Slots: <strong class="${remainingSlots === 0 ? 'text-danger' : 'text-primary'}">${filledCount}</strong> / ${slotsTotal} filled</span>
+                                <span class="small text-muted">${remainingSlots} left (${fillPct}%)</span>
                             </div>
-                            <div class="progress-custom">
-                                <div class="progress-fill ${isNoSlots ? 'bg-danger' : 'approved'}" style="width: ${pct}%;"></div>
+                            <div class="progress-custom" style="background-color: #f1f5f9; height: 7px; border-radius: 4px; overflow: hidden;">
+                                <div class="progress-fill ${remainingSlots === 0 ? 'bg-danger' : 'approved'}" style="width: ${fillPct}%; transition: width 0.5s ease;"></div>
                             </div>
                         </div>
                     `;
                 } else {
+                    const fillPct = appliedCount > 0 ? Math.min(100, appliedCount * 10) : 0;
                     slotDisplayHtml = `
                         <div>
                             <div class="d-flex align-items-center justify-content-between mb-1">
-                                <span class="small fw-semibold text-success"><i class="bi bi-check-circle-fill me-1"></i> Continuous Intake</span>
-                                <span class="small badge bg-success-subtle text-success border border-success-subtle">Open</span>
+                                <span class="small fw-semibold text-primary"><i class="bi bi-people-fill me-1"></i> <strong>${appliedCount}</strong> ${appliedCount === 1 ? 'applicant' : 'applicants'} filed</span>
+                                <span class="small badge bg-success-subtle text-success border border-success-subtle">Open Intake</span>
                             </div>
-                            <div class="progress-custom">
-                                <div class="progress-fill approved" style="width: 100%;"></div>
+                            <div class="progress-custom" style="background-color: #f1f5f9; height: 7px; border-radius: 4px; overflow: hidden;">
+                                <div class="progress-fill approved" style="width: ${fillPct}%; transition: width 0.5s ease;"></div>
                             </div>
                         </div>
                     `;
