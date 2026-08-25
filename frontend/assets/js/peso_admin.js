@@ -1969,6 +1969,47 @@
         }
     }
 
+    // Safe Application and Batch matchers for Program Catalog
+    function matchesApplicationToProgram(a, p) {
+        if (!a || !p) return false;
+        if (a.program_id && (a.program_id === p.id || String(a.program_id) === String(p.id))) return true;
+        if (a.program && typeof a.program === 'object') {
+            if (a.program.id && (a.program.id === p.id || String(a.program.id) === String(p.id))) return true;
+            if (a.program.code && p.code && String(a.program.code).trim().toUpperCase() === String(p.code).trim().toUpperCase()) return true;
+            if (a.program.name && p.name && String(a.program.name).trim().toLowerCase() === String(p.name).trim().toLowerCase()) return true;
+        }
+        if (typeof a.program === 'string' && a.program.trim()) {
+            const progStr = a.program.trim().toLowerCase();
+            if (p.name && progStr === String(p.name).trim().toLowerCase()) return true;
+            if (p.code && progStr === String(p.code).trim().toLowerCase()) return true;
+        }
+        if (typeof a.assistance_type === 'string' && a.assistance_type.trim()) {
+            const assistStr = a.assistance_type.trim().toLowerCase();
+            if (p.name && assistStr === String(p.name).trim().toLowerCase()) return true;
+            if (p.code && assistStr === String(p.code).trim().toLowerCase()) return true;
+        }
+        if (typeof a.program_code === 'string' && a.program_code.trim() && p.code) {
+            if (a.program_code.trim().toUpperCase() === String(p.code).trim().toUpperCase()) return true;
+        }
+        return false;
+    }
+
+    function matchesBatchToProgram(b, p) {
+        if (!b || !p) return false;
+        if (b.program_id && (b.program_id === p.id || String(b.program_id) === String(p.id))) return true;
+        if (b.program && typeof b.program === 'object') {
+            if (b.program.id && (b.program.id === p.id || String(b.program.id) === String(p.id))) return true;
+            if (b.program.code && p.code && String(b.program.code).trim().toUpperCase() === String(p.code).trim().toUpperCase()) return true;
+        }
+        if (typeof b.program_code === 'string' && b.program_code.trim() && p.code) {
+            if (b.program_code.trim().toUpperCase() === String(p.code).trim().toUpperCase()) return true;
+        }
+        if (typeof b.program_name === 'string' && b.program_name.trim() && p.name) {
+            if (b.program_name.trim().toLowerCase() === String(p.name).trim().toLowerCase()) return true;
+        }
+        return false;
+    }
+
     // =========================================================================
     // 5. MODULE 3: PROGRAM MANAGEMENT & MULTI-LEVEL ASSIGNMENT (REQ012-023)
     // =========================================================================
@@ -1994,14 +2035,7 @@
 
         tbody.innerHTML = filtered.map(p => {
             const isDeactivated = p.status !== 'Active';
-            const enrCount = (AdminStore.applications || []).filter(a => {
-                if (!a) return false;
-                return a.program_id === p.id ||
-                       (p.id && String(a.program_id) === String(p.id)) ||
-                       (a.program && p.name && a.program.trim().toLowerCase() === p.name.trim().toLowerCase()) ||
-                       (a.assistance_type && p.name && a.assistance_type.trim().toLowerCase() === p.name.trim().toLowerCase()) ||
-                       (a.program_code && p.code && a.program_code.trim().toUpperCase() === p.code.trim().toUpperCase());
-            }).length;
+            const enrCount = (AdminStore.applications || []).filter(a => matchesApplicationToProgram(a, p)).length;
             const pBudget = Number(p.budget) || 0;
 
             return `
@@ -2077,22 +2111,8 @@
         document.getElementById('drilldownProgTitle').textContent = `Batches for: ${prog.name}`;
         document.getElementById('bcDrilldownBatchName').textContent = `${prog.code} Batches`;
 
-        const progBatches = (AdminStore.batches || []).filter(b => {
-            if (!b) return false;
-            return b.program_id === prog.id ||
-                   (prog.id && String(b.program_id) === String(prog.id)) ||
-                   (b.program_code && prog.code && b.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase()) ||
-                   (b.program_name && prog.name && b.program_name.trim().toLowerCase() === prog.name.trim().toLowerCase());
-        });
-
-        const progApps = (AdminStore.applications || []).filter(a => {
-            if (!a) return false;
-            return a.program_id === prog.id ||
-                   (prog.id && String(a.program_id) === String(prog.id)) ||
-                   (a.program && prog.name && a.program.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
-                   (a.assistance_type && prog.name && a.assistance_type.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
-                   (a.program_code && prog.code && a.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase());
-        });
+        const progBatches = (AdminStore.batches || []).filter(b => matchesBatchToProgram(b, prog));
+        const progApps = (AdminStore.applications || []).filter(a => matchesApplicationToProgram(a, prog));
 
         const tbody = document.getElementById('drilldownBatchesTableBody');
         if (tbody) {
@@ -2152,14 +2172,7 @@
         document.getElementById('drilldownBatchTitle').textContent = `Enrolled Applicants in ${prog.name}`;
         document.getElementById('bcDrilldownBenName').textContent = `${prog.code} Direct Applicants`;
 
-        const progApps = (AdminStore.applications || []).filter(a => {
-            if (!a) return false;
-            return a.program_id === prog.id ||
-                   (prog.id && String(a.program_id) === String(prog.id)) ||
-                   (a.program && prog.name && a.program.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
-                   (a.assistance_type && prog.name && a.assistance_type.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
-                   (a.program_code && prog.code && a.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase());
-        });
+        const progApps = (AdminStore.applications || []).filter(a => matchesApplicationToProgram(a, prog));
 
         const tbody = document.getElementById('drilldownBeneficiariesTableBody');
         if (tbody) {
@@ -2494,23 +2507,10 @@
         const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c && (c.code === prog.code || c.name === prog.name)) || {};
 
         // Real-time live metrics from AdminStore
-        const progApps = (AdminStore.applications || []).filter(a => {
-            if (!a) return false;
-            return a.program_id === prog.id || 
-                   (prog.id && String(a.program_id) === String(prog.id)) ||
-                   (a.program && prog.name && a.program.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
-                   (a.assistance_type && prog.name && a.assistance_type.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
-                   (a.program_code && prog.code && a.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase());
-        });
+        const progApps = (AdminStore.applications || []).filter(a => matchesApplicationToProgram(a, prog));
         const liveEnrolledCount = progApps.length;
 
-        const progBatches = (AdminStore.batches || []).filter(b => {
-            if (!b) return false;
-            return b.program_id === prog.id || 
-                   (prog.id && String(b.program_id) === String(prog.id)) ||
-                   (b.program_code && prog.code && b.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase()) ||
-                   (b.program_name && prog.name && b.program_name.trim().toLowerCase() === prog.name.trim().toLowerCase());
-        });
+        const progBatches = (AdminStore.batches || []).filter(b => matchesBatchToProgram(b, prog));
         const batchTotalCapacity = progBatches.reduce((acc, b) => acc + Number(b.capacity || 0), 0);
 
         const totalSlots = Number(prog.slots_target || batchTotalCapacity || 0);
