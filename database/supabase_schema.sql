@@ -459,201 +459,309 @@ RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE AS $$
 $$;
 
 -- Enable RLS on all tables
-ALTER TABLE staff_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE beneficiaries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE programs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE distributions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE approved_assistance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE interview_schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS staff_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS beneficiaries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS programs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS distributions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS approved_assistance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS interview_schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS active_user_sessions ENABLE ROW LEVEL SECURITY;
 
--- ---- staff_profiles policies (Non-Recursive) ----
+-- ---- staff_profiles policies ----
+DROP POLICY IF EXISTS "Allow read staff_profiles" ON staff_profiles;
+DROP POLICY IF EXISTS "Allow update staff_profiles" ON staff_profiles;
+DROP POLICY IF EXISTS "Allow insert staff_profiles" ON staff_profiles;
 DROP POLICY IF EXISTS "Staff can view own profile" ON staff_profiles;
 DROP POLICY IF EXISTS "Staff can view all staff profiles" ON staff_profiles;
 DROP POLICY IF EXISTS "Staff can update own profile" ON staff_profiles;
 DROP POLICY IF EXISTS "Admins can update any staff profile" ON staff_profiles;
 DROP POLICY IF EXISTS "Allow staff profile creation on signup" ON staff_profiles;
+DROP POLICY IF EXISTS "Admins can insert staff profiles" ON staff_profiles;
+DROP POLICY IF EXISTS "Admins can delete staff profiles" ON staff_profiles;
+DROP POLICY IF EXISTS "staff_profiles_select_policy" ON staff_profiles;
+DROP POLICY IF EXISTS "staff_profiles_insert_policy" ON staff_profiles;
+DROP POLICY IF EXISTS "staff_profiles_update_policy" ON staff_profiles;
+DROP POLICY IF EXISTS "staff_profiles_delete_policy" ON staff_profiles;
 
-CREATE POLICY "Allow read staff_profiles"
+CREATE POLICY "staff_profiles_select_policy"
   ON staff_profiles FOR SELECT
   USING (true);
 
-CREATE POLICY "Allow update staff_profiles"
+CREATE POLICY "staff_profiles_insert_policy"
+  ON staff_profiles FOR INSERT
+  WITH CHECK (
+    auth_id = auth.uid() OR
+    auth.role() = 'authenticated' OR
+    public.is_admin_user(auth.uid()) OR
+    auth.uid() IS NULL
+  );
+
+CREATE POLICY "staff_profiles_update_policy"
   ON staff_profiles FOR UPDATE
   USING (true)
   WITH CHECK (true);
 
-CREATE POLICY "Allow insert staff_profiles"
-  ON staff_profiles FOR INSERT
-  WITH CHECK (true);
+CREATE POLICY "staff_profiles_delete_policy"
+  ON staff_profiles FOR DELETE
+  USING (
+    public.is_admin_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  );
 
 -- ---- beneficiaries policies ----
+DROP POLICY IF EXISTS "Allow read beneficiaries" ON beneficiaries;
+DROP POLICY IF EXISTS "Allow update beneficiaries" ON beneficiaries;
+DROP POLICY IF EXISTS "Allow insert beneficiaries" ON beneficiaries;
 DROP POLICY IF EXISTS "Allow public read beneficiaries" ON beneficiaries;
 DROP POLICY IF EXISTS "Allow public update beneficiaries" ON beneficiaries;
 DROP POLICY IF EXISTS "Allow public beneficiary signup insert" ON beneficiaries;
 DROP POLICY IF EXISTS "Public can register as beneficiary" ON beneficiaries;
 DROP POLICY IF EXISTS "Secure beneficiary read" ON beneficiaries;
 DROP POLICY IF EXISTS "Secure beneficiary update" ON beneficiaries;
+DROP POLICY IF EXISTS "beneficiaries_select_policy" ON beneficiaries;
+DROP POLICY IF EXISTS "beneficiaries_insert_policy" ON beneficiaries;
+DROP POLICY IF EXISTS "beneficiaries_update_policy" ON beneficiaries;
+DROP POLICY IF EXISTS "beneficiaries_delete_policy" ON beneficiaries;
 
-CREATE POLICY "Allow read beneficiaries"
+CREATE POLICY "beneficiaries_select_policy"
   ON beneficiaries FOR SELECT
   USING (true);
 
-CREATE POLICY "Allow update beneficiaries"
+CREATE POLICY "beneficiaries_insert_policy"
+  ON beneficiaries FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "beneficiaries_update_policy"
   ON beneficiaries FOR UPDATE
   USING (true)
   WITH CHECK (true);
 
-CREATE POLICY "Allow insert beneficiaries"
-  ON beneficiaries FOR INSERT
+CREATE POLICY "beneficiaries_delete_policy"
+  ON beneficiaries FOR DELETE
+  USING (
+    public.is_admin_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  );
+
+-- ---- active_user_sessions policies ----
+DROP POLICY IF EXISTS "Allow select on active_user_sessions" ON active_user_sessions;
+DROP POLICY IF EXISTS "Allow insert/update on active_user_sessions" ON active_user_sessions;
+DROP POLICY IF EXISTS "active_user_sessions_select_policy" ON active_user_sessions;
+DROP POLICY IF EXISTS "active_user_sessions_all_policy" ON active_user_sessions;
+
+CREATE POLICY "active_user_sessions_select_policy"
+  ON active_user_sessions FOR SELECT
+  USING (true);
+
+CREATE POLICY "active_user_sessions_all_policy"
+  ON active_user_sessions FOR ALL
+  USING (true)
   WITH CHECK (true);
 
 -- ---- programs policies ----
 DROP POLICY IF EXISTS "Anyone can view programs" ON programs;
 DROP POLICY IF EXISTS "Admins can manage programs" ON programs;
+DROP POLICY IF EXISTS "programs_select_policy" ON programs;
+DROP POLICY IF EXISTS "programs_insert_policy" ON programs;
+DROP POLICY IF EXISTS "programs_update_policy" ON programs;
+DROP POLICY IF EXISTS "programs_delete_policy" ON programs;
 
-CREATE POLICY "Anyone can view programs"
+CREATE POLICY "programs_select_policy"
   ON programs FOR SELECT
   USING (true);
 
-CREATE POLICY "Admins can manage programs"
-  ON programs FOR ALL
+CREATE POLICY "programs_insert_policy"
+  ON programs FOR INSERT
+  WITH CHECK (
+    public.is_staff_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  );
+
+CREATE POLICY "programs_update_policy"
+  ON programs FOR UPDATE
+  USING (
+    public.is_staff_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  )
+  WITH CHECK (true);
+
+CREATE POLICY "programs_delete_policy"
+  ON programs FOR DELETE
+  USING (
+    public.is_staff_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  );
+
+-- ---- batches policies ----
+DROP POLICY IF EXISTS "Staff can read batches" ON batches;
+DROP POLICY IF EXISTS "Staff can create batches" ON batches;
+DROP POLICY IF EXISTS "Staff and beneficiaries can read batches" ON batches;
+DROP POLICY IF EXISTS "Staff can update batches" ON batches;
+DROP POLICY IF EXISTS "Staff can delete batches" ON batches;
+DROP POLICY IF EXISTS "batches_select_policy" ON batches;
+DROP POLICY IF EXISTS "batches_insert_policy" ON batches;
+DROP POLICY IF EXISTS "batches_update_policy" ON batches;
+DROP POLICY IF EXISTS "batches_delete_policy" ON batches;
+
+CREATE POLICY "batches_select_policy"
+  ON batches FOR SELECT
+  USING (true);
+
+CREATE POLICY "batches_insert_policy"
+  ON batches FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "batches_update_policy"
+  ON batches FOR UPDATE
   USING (true)
   WITH CHECK (true);
 
--- ---- applications policies (Non-Recursive) ----
+CREATE POLICY "batches_delete_policy"
+  ON batches FOR DELETE
+  USING (true);
+
+-- ---- applications policies ----
 DROP POLICY IF EXISTS "Beneficiaries view own applications" ON applications;
 DROP POLICY IF EXISTS "Staff can view all applications" ON applications;
 DROP POLICY IF EXISTS "Beneficiaries can create applications" ON applications;
 DROP POLICY IF EXISTS "Staff can update applications" ON applications;
+DROP POLICY IF EXISTS "Allow read applications" ON applications;
+DROP POLICY IF EXISTS "Allow insert applications" ON applications;
+DROP POLICY IF EXISTS "Allow update applications" ON applications;
+DROP POLICY IF EXISTS "applications_select_policy" ON applications;
+DROP POLICY IF EXISTS "applications_insert_policy" ON applications;
+DROP POLICY IF EXISTS "applications_update_policy" ON applications;
+DROP POLICY IF EXISTS "applications_delete_policy" ON applications;
 
-CREATE POLICY "Allow read applications"
+CREATE POLICY "applications_select_policy"
   ON applications FOR SELECT
   USING (true);
 
-CREATE POLICY "Allow insert applications"
+CREATE POLICY "applications_insert_policy"
   ON applications FOR INSERT
   WITH CHECK (true);
 
-CREATE POLICY "Allow update applications"
+CREATE POLICY "applications_update_policy"
   ON applications FOR UPDATE
   USING (true)
   WITH CHECK (true);
 
--- ---- notifications policies (Non-Recursive) ----
+CREATE POLICY "applications_delete_policy"
+  ON applications FOR DELETE
+  USING (
+    public.is_staff_user(auth.uid()) OR
+    public.is_admin_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  );
+
+-- ---- notifications policies ----
 DROP POLICY IF EXISTS "Staff view own notifications" ON notifications;
 DROP POLICY IF EXISTS "Beneficiaries view own notifications" ON notifications;
 DROP POLICY IF EXISTS "Staff update own notifications" ON notifications;
 DROP POLICY IF EXISTS "Beneficiaries update own notifications" ON notifications;
 DROP POLICY IF EXISTS "Staff can create notifications" ON notifications;
+DROP POLICY IF EXISTS "Allow read notifications" ON notifications;
+DROP POLICY IF EXISTS "Allow insert notifications" ON notifications;
+DROP POLICY IF EXISTS "Allow update notifications" ON notifications;
+DROP POLICY IF EXISTS "notifications_select_policy" ON notifications;
+DROP POLICY IF EXISTS "notifications_insert_policy" ON notifications;
+DROP POLICY IF EXISTS "notifications_update_policy" ON notifications;
+DROP POLICY IF EXISTS "notifications_delete_policy" ON notifications;
 
-CREATE POLICY "Allow read notifications"
+CREATE POLICY "notifications_select_policy"
   ON notifications FOR SELECT
   USING (true);
 
-CREATE POLICY "Allow insert notifications"
+CREATE POLICY "notifications_insert_policy"
   ON notifications FOR INSERT
   WITH CHECK (true);
 
-CREATE POLICY "Allow update notifications"
+CREATE POLICY "notifications_update_policy"
   ON notifications FOR UPDATE
   USING (true)
   WITH CHECK (true);
 
+CREATE POLICY "notifications_delete_policy"
+  ON notifications FOR DELETE
+  USING (true);
 
 -- ---- distributions policies ----
+DROP POLICY IF EXISTS "Beneficiaries view own distributions" ON distributions;
+DROP POLICY IF EXISTS "Staff can manage distributions" ON distributions;
+DROP POLICY IF EXISTS "distributions_select_policy" ON distributions;
+DROP POLICY IF EXISTS "distributions_manage_policy" ON distributions;
 
--- Beneficiaries can view distributions for their applications
-CREATE POLICY "Beneficiaries view own distributions"
+CREATE POLICY "distributions_select_policy"
   ON distributions FOR SELECT
-  USING (
-    application_id IN (
-      SELECT a.id FROM applications a
-      JOIN beneficiaries b ON a.beneficiary_qr = b.qr_code
-      WHERE b.auth_id = auth.uid()
-    )
-  );
+  USING (true);
 
--- Staff can view and manage all distributions
-CREATE POLICY "Staff can manage distributions"
+CREATE POLICY "distributions_manage_policy"
   ON distributions FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM staff_profiles sp
-      WHERE sp.auth_id = auth.uid()
-      AND sp.role IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer')
-    )
-  );
-
--- ---- audit_logs policies ----
-
--- Only admins can view audit logs
-CREATE POLICY "Admins can view audit logs"
-  ON audit_logs FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM staff_profiles sp
-      WHERE sp.auth_id = auth.uid()
-      AND sp.role IN ('PESO Admin', 'CSWDO Admin')
-    )
-  );
-
--- Staff can create audit log entries
-CREATE POLICY "Staff can create audit logs"
-  ON audit_logs FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM staff_profiles sp
-      WHERE sp.auth_id = auth.uid()
-      AND sp.role IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator')
-    )
-  );
+    public.is_staff_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  )
+  WITH CHECK (true);
 
 -- ---- approved_assistance policies ----
+DROP POLICY IF EXISTS "Beneficiaries view own assistance" ON approved_assistance;
+DROP POLICY IF EXISTS "Staff can manage assistance" ON approved_assistance;
+DROP POLICY IF EXISTS "approved_assistance_select_policy" ON approved_assistance;
+DROP POLICY IF EXISTS "approved_assistance_manage_policy" ON approved_assistance;
 
--- Beneficiaries can view their own approved assistance
-CREATE POLICY "Beneficiaries view own assistance"
+CREATE POLICY "approved_assistance_select_policy"
   ON approved_assistance FOR SELECT
-  USING (
-    beneficiary_qr IN (
-      SELECT qr_code FROM beneficiaries WHERE auth_id = auth.uid()
-    )
-  );
+  USING (true);
 
--- Staff can manage approved assistance
-CREATE POLICY "Staff can manage assistance"
+CREATE POLICY "approved_assistance_manage_policy"
   ON approved_assistance FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM staff_profiles sp
-      WHERE sp.auth_id = auth.uid()
-      AND sp.role IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer')
-    )
-  );
+    public.is_staff_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  )
+  WITH CHECK (true);
 
 -- ---- interview_schedules policies ----
+DROP POLICY IF EXISTS "Beneficiaries view own interviews" ON interview_schedules;
+DROP POLICY IF EXISTS "Staff can manage interviews" ON interview_schedules;
+DROP POLICY IF EXISTS "Allow all access to interview_schedules" ON interview_schedules;
+DROP POLICY IF EXISTS "interview_schedules_select_policy" ON interview_schedules;
+DROP POLICY IF EXISTS "interview_schedules_manage_policy" ON interview_schedules;
 
--- Beneficiaries can view their own interviews
-CREATE POLICY "Beneficiaries view own interviews"
+CREATE POLICY "interview_schedules_select_policy"
   ON interview_schedules FOR SELECT
-  USING (
-    beneficiary_qr IN (
-      SELECT qr_code FROM beneficiaries WHERE auth_id = auth.uid()
-    )
-  );
+  USING (true);
 
--- Staff can manage all interviews
-CREATE POLICY "Staff can manage interviews"
+CREATE POLICY "interview_schedules_manage_policy"
   ON interview_schedules FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM staff_profiles sp
-      WHERE sp.auth_id = auth.uid()
-      AND sp.role IN ('PESO Admin', 'PESO Officer', 'CSWDO Admin', 'CSWDO Officer', 'Evaluator')
-    )
+    public.is_staff_user(auth.uid()) OR
+    auth.role() = 'authenticated'
+  )
+  WITH CHECK (true);
+
+-- ---- audit_logs policies ----
+DROP POLICY IF EXISTS "Admins can view audit logs" ON audit_logs;
+DROP POLICY IF EXISTS "Staff can create audit logs" ON audit_logs;
+DROP POLICY IF EXISTS "Admins and officers can view audit logs" ON audit_logs;
+DROP POLICY IF EXISTS "Allow insert to audit logs" ON audit_logs;
+DROP POLICY IF EXISTS "audit_logs_select_policy" ON audit_logs;
+DROP POLICY IF EXISTS "audit_logs_insert_policy" ON audit_logs;
+
+CREATE POLICY "audit_logs_select_policy"
+  ON audit_logs FOR SELECT
+  USING (
+    public.is_staff_user(auth.uid()) OR
+    auth.role() = 'authenticated'
   );
+
+CREATE POLICY "audit_logs_insert_policy"
+  ON audit_logs FOR INSERT
+  WITH CHECK (true);
 
 -- =============================================================================
 -- REALTIME REPLICATION (SUPABASE REALTIME PUBLICATION)
