@@ -6,8 +6,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Assistance to Individuals in Crisis Situation (AICS)',
         category: 'Special Programs',
         budget: 1377882.00,
-        slots_target: 350,
-        slots_filled: 140,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Individuals & families in crisis, low-income heads of households, marginalized citizens',
@@ -38,8 +38,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'City of Koronadal Government Internship Program (CKGIP)',
         category: 'Employment Facilitation',
         budget: 500000.00,
-        slots_target: 50,
-        slots_filled: 28,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 30,
         target_beneficiaries: 'Fresh college & vocational graduates, tech-voc completers, and unemployed youth',
@@ -71,8 +71,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Koronadal Emergency Employment Program (KEEP)',
         category: 'Employment Facilitation',
         budget: 1500000.00,
-        slots_target: 250,
-        slots_filled: 110,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Displaced local workers, underemployed informal laborers, calamity-affected breadwinners',
@@ -103,8 +103,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers',
         category: 'Employment Facilitation',
         budget: 40000.00,
-        slots_target: 40,
-        slots_filled: 18,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Displaced, underemployed, and seasonal informal sector workers',
@@ -134,8 +134,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Pangkabuhayan Financial Assistance (PFAS)',
         category: 'Livelihood Programs',
         budget: 7000000.00,
-        slots_target: 700,
-        slots_filled: 310,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Individual micro-entrepreneurs, street vendors, home-based producers, skilled tradespersons',
@@ -167,8 +167,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Support to DOLE Integrated Livelihood Program (DILP)',
         category: 'Livelihood Programs',
         budget: 500000.00,
-        slots_target: 50,
-        slots_filled: 22,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Organized community livelihood associations, worker cooperatives, vulnerable groups',
@@ -200,8 +200,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Association Facilitation & Registration',
         category: 'Livelihood Programs',
         budget: 50000.00,
-        slots_target: 25,
-        slots_filled: 12,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Informal workers, community craftspeople, market vendor groups, transport operators',
@@ -231,8 +231,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Conduct of Job Fairs & Career Expos',
         category: 'Employment Facilitation',
         budget: 100000.00,
-        slots_target: 1000,
-        slots_filled: 480,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Fresh graduates, displaced workers, licensed professionals, skilled tradespersons, jobseekers',
@@ -263,8 +263,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Development of Localized Job Portal',
         category: 'Employment Facilitation',
         budget: 150000.00,
-        slots_target: 5000,
-        slots_filled: 1950,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Active jobseekers, tech-voc completers, accredited Koronadal employers and enterprises',
@@ -292,8 +292,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Livelihood/Skills Training Program',
         category: 'Special Programs',
         budget: 150000.00,
-        slots_target: 150,
-        slots_filled: 85,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 60,
         target_beneficiaries: 'Out-of-school youth, unemployed adults, solo parents, PWDs, displaced workers',
@@ -324,8 +324,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'OFW Family Circle Day & Welfare Summit',
         category: 'Special Programs',
         budget: 200000.00,
-        slots_target: 200,
-        slots_filled: 95,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 70,
         target_beneficiaries: 'Active OFWs, vacationing OFWs, returning OFWs, and direct dependents (spouse, parents, children)',
@@ -354,8 +354,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Special Program for Employment of Students (SPES)',
         category: 'Special Programs',
         budget: 2000000.00,
-        slots_target: 400,
-        slots_filled: 190,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 15,
         max_age: 30,
         target_beneficiaries: 'Poor but deserving high school, senior high, and college students, and Out-of-School Youth (OSY)',
@@ -387,8 +387,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Support to Parokya ni OWWA Program',
         category: 'Special Programs',
         budget: 40000.00,
-        slots_target: 50,
-        slots_filled: 24,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Distressed OFWs, migrant returnees, families of OFWs in crisis',
@@ -416,8 +416,8 @@ const CANONICAL_PESO_PROGRAM_CATALOG = [
         name: 'Support to Returning OFWs Program (ROFW’S)',
         category: 'Special Programs',
         budget: 100000.00,
-        slots_target: 50,
-        slots_filled: 26,
+        slots_target: 0,
+        slots_filled: 0,
         min_age: 18,
         max_age: 65,
         target_beneficiaries: 'Permanently returned, repatriated, or distressed Overseas Filipino Workers',
@@ -950,21 +950,48 @@ async function handleCreateProgramSubmit(e) {
 // --- DETAILS BUTTON: STRICTLY READ-ONLY PROGRAM DETAILS MODAL (RULE 1 & 8 REQUIREMENTS) ---
 function openProgramDetailsViewModal(progId) {
     if (!Array.isArray(programsList)) programsList = [];
-    let prog = programsList.find(p => p && p.id === progId);
+    let prog = programsList.find(p => p && (p.id === progId || p.code === progId || String(p.id) === String(progId)));
+    if (!prog && typeof AdminStore !== 'undefined' && AdminStore.programs) {
+        prog = AdminStore.programs.find(p => p && (p.id === progId || p.code === progId || String(p.id) === String(progId)));
+    }
     if (!prog) {
-        prog = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.id === progId || c.code === progId);
+        prog = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c && (c.id === progId || c.code === progId || String(c.id) === String(progId)));
     }
     if (!prog) {
         console.warn('[PROGRAMS] Program not found for ID:', progId);
-        window.showSystemNotification({ title: 'Program Notice', message: 'Requested program details could not be loaded.', type: 'warning' });
+        if (window.showSystemNotification) {
+            window.showSystemNotification({ title: 'Program Notice', message: 'Requested program details could not be loaded.', type: 'warning' });
+        }
         return;
     }
 
-    const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c.code === prog.code || c.name === prog.name) || {};
-    const totalSlots = Number(prog.slots_target || prog.total_slots || canonical.slots_target || 100);
-    const filledSlots = Number(prog.slots_filled || prog.beneficiaries_count || canonical.slots_filled || 0);
-    const availableSlots = Math.max(0, totalSlots - filledSlots);
-    const percentSlots = totalSlots > 0 ? Math.min(100, Math.round((filledSlots / totalSlots) * 100)) : 0;
+    const canonical = CANONICAL_PESO_PROGRAM_CATALOG.find(c => c && (c.code === prog.code || c.name === prog.name)) || {};
+
+    const allApps = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.applications)) ? AdminStore.applications : [];
+    const progApps = allApps.filter(a => {
+        if (!a) return false;
+        return a.program_id === prog.id || 
+               (prog.id && String(a.program_id) === String(prog.id)) ||
+               (a.program && prog.name && a.program.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
+               (a.assistance_type && prog.name && a.assistance_type.trim().toLowerCase() === prog.name.trim().toLowerCase()) ||
+               (a.program_code && prog.code && a.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase());
+    });
+    const liveEnrolledCount = progApps.length;
+
+    const allBatches = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.batches)) ? AdminStore.batches : [];
+    const progBatches = allBatches.filter(b => {
+        if (!b) return false;
+        return b.program_id === prog.id || 
+               (prog.id && String(b.program_id) === String(prog.id)) ||
+               (b.program_code && prog.code && b.program_code.trim().toUpperCase() === prog.code.trim().toUpperCase()) ||
+               (b.program_name && prog.name && b.program_name.trim().toLowerCase() === prog.name.trim().toLowerCase());
+    });
+    const batchTotalCapacity = progBatches.reduce((acc, b) => acc + Number(b.capacity || 0), 0);
+
+    const totalSlots = Number(prog.slots_target || batchTotalCapacity || 0);
+    const filledSlots = Number(prog.slots_filled !== undefined && prog.slots_filled !== null && prog.slots_filled > 0 ? prog.slots_filled : liveEnrolledCount);
+    const availableSlots = totalSlots > 0 ? Math.max(0, totalSlots - filledSlots) : 'Open';
+    const percentSlots = totalSlots > 0 ? Math.min(100, Math.round((filledSlots / totalSlots) * 100)) : (liveEnrolledCount > 0 ? Math.min(100, liveEnrolledCount * 10) : 0);
     const minAge = prog.min_age || canonical.min_age || 18;
     const maxAge = prog.max_age || canonical.max_age || 65;
 
@@ -990,9 +1017,16 @@ function openProgramDetailsViewModal(progId) {
     setText('viewProgBudget', '₱' + budgetAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
     // 3. Program Slots Counter & Progress (Requirement 2)
-    setText('viewProgSlotsBadge', `${filledSlots} / ${totalSlots} Filled`);
-    setText('viewProgSlotsCount', `${filledSlots} / ${totalSlots}`);
-    setText('viewProgAvailableSlots', `${availableSlots} available slots remaining (${percentSlots}% filled)`);
+    if (totalSlots > 0) {
+        setText('viewProgSlotsBadge', `${filledSlots} / ${totalSlots} filled`);
+        setText('viewProgSlotsCount', `${filledSlots} / ${totalSlots}`);
+        setText('viewProgAvailableSlots', `${availableSlots} available slots remaining (${percentSlots}% filled)`);
+    } else {
+        setText('viewProgSlotsBadge', `${filledSlots} Enrolled`);
+        setText('viewProgSlotsCount', `${filledSlots} Enrolled`);
+        setText('viewProgAvailableSlots', `Continuous intake • Open capacity`);
+    }
+
     const slotsProgressBar = document.getElementById('viewProgSlotsProgressBar');
     if (slotsProgressBar) {
         slotsProgressBar.style.width = `${percentSlots}%`;
