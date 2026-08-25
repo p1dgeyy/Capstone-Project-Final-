@@ -2017,6 +2017,39 @@
                 </div>
             </div>
 
+            <!-- CONNECTED OPERATIONAL BATCHES SOURCE (FROM LIVELIHOOD APPLICATIONS & BATCHES) -->
+            <div class="card border-0 shadow-sm mb-4 rounded-3">
+                <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-diagram-3-fill text-primary"></i> Operational Batches Scheduling Queue
+                        </h5>
+                        <small class="text-muted">Directly connected with Livelihood Applications & Batches. Select an Editable batch to assign event schedule and lock.</small>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary font-monospace fs-6" id="badgeSchedBatchesCount">0 Batches</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="schedOperationalBatchesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Batch Name</th>
+                                    <th>Program</th>
+                                    <th>Members</th>
+                                    <th>Batch Status</th>
+                                    <th>Scheduled Event Details</th>
+                                    <th>Created Date</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedOperationalBatchesTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Calendar View Container -->
             <div id="officerScheduleCalendarViewContainer" class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
@@ -3797,6 +3830,25 @@
                         assignedCount: Array.isArray(b.applications) ? b.applications.length : 0,
                         dateCreated: b.created_at ? b.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)
                     }));
+
+                    operationalBatchesList = bRes.data.filter(b => b.is_operational || b.status === 'Active' || b.status === 'Scheduled').map(b => {
+                        const batchMembers = evaluationList.filter(a => String(a.operational_batch_id) === String(b.id) || a.operational_batch_name === b.name || String(a.batchId) === String(b.id));
+                        return {
+                            id: b.id,
+                            name: b.name,
+                            program: b.program_code || (b.program && b.program.code) || 'PESO',
+                            status: b.status === 'Scheduled' ? 'Scheduled' : 'Active',
+                            dateCreated: b.created_at ? b.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10),
+                            created_at: b.created_at || new Date().toISOString(),
+                            officerName: 'PESO Officer',
+                            memberCount: batchMembers.length || b.assignedCount || b.capacity || 0,
+                            members: batchMembers,
+                            eventType: b.event_type || null,
+                            eventDate: b.event_date || null,
+                            eventTime: b.event_time || null,
+                            venue: b.venue || null
+                        };
+                    });
                 }
 
                 // 5. Approved Assistance Records
@@ -5057,6 +5109,57 @@
                                     <button class="btn btn-sm btn-primary me-1 fw-semibold" onclick="handleOfficerActivityClick(${actId})">
                                         <i class="bi ${hasBatch || status === 'Completed' ? 'bi-play-circle' : 'bi-gear-wide-connected'} me-1"></i>${hasBatch || status === 'Completed' ? 'Execute / Track' : 'Setup Roster'}
                                     </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // 4. Render Connected Operational Batches Queue (from Livelihood Applications & Batches)
+            const opSchedTbody = document.getElementById('schedOperationalBatchesTableBody');
+            const opSchedBadge = document.getElementById('badgeSchedBatchesCount');
+            if (opSchedBadge) opSchedBadge.textContent = `${operationalBatchesList.length} Batches`;
+
+            if (opSchedTbody) {
+                if (operationalBatchesList.length === 0) {
+                    opSchedTbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="bi bi-diagram-3 fs-3 d-block mb-1 text-primary opacity-50"></i>
+                                No operational batches found. Create batches in <strong>Livelihood Applications & Batches</strong> to schedule them here.
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    opSchedTbody.innerHTML = operationalBatchesList.map(batch => {
+                        const isScheduled = batch.status === 'Scheduled';
+                        const statusBadge = isScheduled
+                            ? `<span class="badge bg-secondary font-monospace"><i class="bi bi-lock-fill me-1"></i>🔒 Scheduled</span>`
+                            : `<span class="badge bg-success font-monospace"><i class="bi bi-pencil-fill me-1"></i>🟢 Editable</span>`;
+
+                        const scheduleDetails = isScheduled && batch.eventDate
+                            ? `<div class="small fw-semibold text-dark"><i class="bi bi-calendar-check text-primary me-1"></i>${escapeHtml(batch.eventType || 'Event')} — ${escapeHtml(batch.eventDate)}</div><small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(batch.venue || 'TBD')}</small>`
+                            : `<span class="badge bg-light text-muted border font-monospace">Unscheduled</span>`;
+
+                        const actionButton = isScheduled
+                            ? `<button class="btn btn-sm btn-outline-secondary fw-semibold px-2.5 py-1" onclick="openOperationalBatchDetailModal('${escapeHtml(batch.id || batch.name)}')">
+                                   <i class="bi bi-eye-fill me-1"></i> View Locked Roster
+                               </button>`
+                            : `<button class="btn btn-sm btn-success fw-bold px-2.5 py-1 shadow-sm" onclick="currentInspectedOpBatchId = '${escapeHtml(batch.id || batch.name)}'; openScheduleBatchModal()">
+                                   <i class="bi bi-calendar-check-fill me-1"></i> Schedule Batch
+                               </button>`;
+
+                        return `
+                            <tr>
+                                <td><strong class="text-dark font-monospace"><i class="bi bi-folder2 text-primary me-1.5"></i>${escapeHtml(batch.name)}</strong></td>
+                                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(batch.program || 'PESO')}</span></td>
+                                <td><span class="badge bg-dark font-monospace">${batch.memberCount || (batch.members ? batch.members.length : 0)}</span></td>
+                                <td>${statusBadge}</td>
+                                <td>${scheduleDetails}</td>
+                                <td><small class="text-muted font-monospace">${escapeHtml(batch.dateCreated || '2026-08-25')}</small></td>
+                                <td class="text-end text-nowrap">
+                                    ${actionButton}
                                 </td>
                             </tr>
                         `;
