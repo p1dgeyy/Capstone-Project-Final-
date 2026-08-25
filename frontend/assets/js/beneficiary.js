@@ -1537,16 +1537,6 @@
       return;
     }
 
-  // Applications Table Rendering
-  function renderApplicationsTable() {
-    const tbody = document.getElementById('benApplicationsTableBody') || document.getElementById('applicationsTableBody');
-    if (!tbody) return;
-
-    if (state.applications.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No applications submitted yet. Click "Apply for Assistance" to begin.</td></tr>`;
-      return;
-    }
-
     tbody.innerHTML = state.applications.map(a => `
       <tr>
         <td class="fw-bold text-dark">${a.id}</td>
