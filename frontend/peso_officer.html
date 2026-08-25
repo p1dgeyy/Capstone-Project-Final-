@@ -3635,6 +3635,34 @@
         let assistanceRecordsList = [];
         let auditLogs = [];
 
+        function logOfficerAction(actionType, details, metadata = {}) {
+            console.log(`[PESO Officer Audit] [${actionType}] ${details}`, metadata);
+            const entry = {
+                action: actionType,
+                details: details,
+                officer: (currentOfficerUser && currentOfficerUser.fullName) || 'PESO Officer',
+                timestamp: new Date().toISOString(),
+                ...metadata
+            };
+            if (Array.isArray(auditLogs)) {
+                auditLogs.unshift(entry);
+            }
+            if (typeof DataService !== 'undefined' && DataService.auditLogs && typeof DataService.auditLogs.log === 'function') {
+                try {
+                    DataService.auditLogs.log({
+                        action: actionType,
+                        details: details,
+                        officer: entry.officer,
+                        portal: 'PESO Officer Portal',
+                        metadata: metadata
+                    }).catch(e => console.warn('[Audit Log] Non-critical background sync note:', e));
+                } catch (err) {
+                    console.warn('[Audit Log] Sync warning:', err);
+                }
+            }
+        }
+        window.logOfficerAction = logOfficerAction;
+
         async function loadAllOfficerData() {
             if (typeof DataService === 'undefined') return;
 
