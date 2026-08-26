@@ -167,43 +167,23 @@ const OTPAuth = (() => {
             throw new Error('Email and verification code are required.');
         }
 
-        let verifiedViaSupabase = false;
-
-        // Try Supabase Auth verifyOtp first
-        try {
-            if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
-                const { data, error } = await supabaseClient.auth.verifyOtp({
-                    email: cleanEmail,
-                    token: code,
-                    type: 'email'
-                });
-                if (!error && data) {
-                    verifiedViaSupabase = true;
-                }
-            }
-        } catch (err) {
-            console.warn('[OTPAuth] Supabase verifyOtp check:', err);
-        }
-
-        // Check local store fallback if Supabase OTP was offline/fallback
+        // Verify via local sessionStorage hash (OTP was sent via Google OAuth/Gmail gateway)
         const store = _getOtpStore();
         const record = store[`email_${cleanEmail}`];
 
-        if (!verifiedViaSupabase) {
-            if (!record) {
-                throw new Error('No active verification code was requested for this email or it has expired.');
-            }
+        if (!record) {
+            throw new Error('No active verification code was requested for this email or it has expired.');
+        }
 
-            if (Date.now() > record.expiresAt) {
-                delete store[`email_${cleanEmail}`];
-                _saveOtpStore(store);
-                throw new Error('Verification code has expired. Please request a new code.');
-            }
+        if (Date.now() > record.expiresAt) {
+            delete store[`email_${cleanEmail}`];
+            _saveOtpStore(store);
+            throw new Error('Verification code has expired. Please request a new code.');
+        }
 
-            const inputHash = await hashCode(code);
-            if (inputHash !== record.hash && code !== record.code) {
-                throw new Error('Invalid verification code. Please check your Gmail and try again.');
-            }
+        const inputHash = await hashCode(code);
+        if (inputHash !== record.hash && code !== record.code) {
+            throw new Error('Invalid verification code. Please check your Gmail and try again.');
         }
 
         // Update database record status if available
