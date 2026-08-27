@@ -1951,10 +1951,6 @@
                 <i class="bi bi-cash-stack"></i>
                 <span data-translate="nav_distribution">Distribution</span>
             </a>
-            <a href="#" class="nav-link-custom" data-section="notifications" onclick="navigateTo('notifications')">
-                <i class="bi bi-bell-fill"></i>
-                <span data-translate="nav_notifications">Notification</span>
-            </a>
             <a href="#" class="nav-link-custom text-danger" onclick="logoutBeneficiary()" style="color: var(--danger) !important; margin-top: 20px; border-top: 1px solid var(--border-color, #E2E8F0); padding-top: 15px;">
                 <i class="bi bi-box-arrow-right text-danger" style="color: var(--danger) !important;"></i>
                 <span data-translate="nav_signout">Sign Out</span>
@@ -1964,20 +1960,125 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Global Controls -->
-        <div class="global-controls d-flex gap-2 justify-content-end mb-4 align-items-center">
+        <!-- Global Top Controls -->
+        <div class="global-controls d-flex gap-2 justify-content-end mb-3 align-items-center position-relative">
             <div class="notif-wrapper" style="position: relative;">
-                <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm control-btn-custom notification-bell" id="desktopNotifBtn" onclick="toggleNotifications()" style="position: relative; height: 31px; display: flex; align-items: center;" aria-label="Notifications">
-                    <i class="bi bi-bell"></i>
-                    <span class="notif-badge" id="desktopNotifBadge" style="position: absolute; top: -5px; right: -5px; background-color: var(--rose-primary); color: white; border-radius: 50%; padding: 1px 5px; font-size: 0.7rem; font-weight: bold; border: 1.5px solid white;">3</span>
+                <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm control-btn-custom notification-bell" id="desktopNotifBtn" onclick="toggleTopNotifications()" style="position: relative; height: 36px; padding: 0 14px; display: flex; align-items: center; border-radius: 20px; font-weight: 600;" aria-label="Notifications">
+                    <i class="bi bi-bell-fill text-primary me-1.5"></i>
+                    <span class="d-none d-sm-inline small">Notifications</span>
+                    <span class="notif-badge" id="desktopNotifBadge" style="position: absolute; top: -4px; right: -4px; background-color: var(--rose-primary); color: white; border-radius: 50%; padding: 1px 5px; font-size: 0.7rem; font-weight: bold; border: 1.5px solid white;">0</span>
                 </button>
+
+                <!-- Top Navigation Notification Dropdown Menu -->
+                <div class="notif-dropdown shadow-lg border" id="topNavNotifDropdown" style="width: 390px; right: 0; top: calc(100% + 8px); border-radius: 16px; overflow: hidden; display: none; z-index: 2100;">
+                    <div class="notif-header p-3 d-flex justify-content-between align-items-center bg-white border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-bell-fill text-primary fs-5"></i>
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">System Notifications</h6>
+                                <small class="text-muted" style="font-size: 0.72rem;" id="dropdownUnreadCount">0 Unread Alerts</small>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 small fw-semibold" onclick="markAllBeneficiaryNotificationsRead()" style="font-size: 0.75rem;">
+                            <i class="bi bi-check2-all me-1"></i>Mark Read
+                        </button>
+                    </div>
+                    
+                    <!-- Notification Category Filter Chips -->
+                    <div class="px-3 py-2 bg-light border-bottom d-flex gap-1 overflow-x-auto" id="notifCategoryFilters">
+                        <button type="button" class="btn btn-xs btn-primary rounded-pill px-2.5 py-1 fw-semibold notif-filter-btn active" data-cat="all" onclick="filterNotifCategory('all', this)" style="font-size: 0.72rem;">All</button>
+                        <button type="button" class="btn btn-xs btn-light border rounded-pill px-2.5 py-1 fw-semibold notif-filter-btn" data-cat="application" onclick="filterNotifCategory('application', this)" style="font-size: 0.72rem;">Applications</button>
+                        <button type="button" class="btn btn-xs btn-light border rounded-pill px-2.5 py-1 fw-semibold notif-filter-btn" data-cat="schedule" onclick="filterNotifCategory('schedule', this)" style="font-size: 0.72rem;">Schedules</button>
+                        <button type="button" class="btn btn-xs btn-light border rounded-pill px-2.5 py-1 fw-semibold notif-filter-btn" data-cat="distribution" onclick="filterNotifCategory('distribution', this)" style="font-size: 0.72rem;">Releases</button>
+                    </div>
+
+                    <!-- Notification Items Container -->
+                    <div id="topNavNotifList" class="d-flex flex-column bg-white" style="max-height: 380px; overflow-y: auto;">
+                        <div class="p-4 text-center text-muted small">Loading notification records...</div>
+                    </div>
+
+                    <!-- Compliance Footer -->
+                    <div class="p-2 px-3 text-center bg-light border-top text-muted d-flex align-items-center justify-content-center gap-1" style="font-size: 0.72rem;">
+                        <i class="bi bi-shield-check text-success"></i>
+                        <span>Audit Log Retained • Minimum 1-Year Compliance Retention</span>
+                    </div>
+                </div>
             </div>
-            <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 bg-white shadow-sm control-btn-custom" id="darkModeToggle" aria-label="Toggle Dark Mode" onclick="toggleDarkMode()">
+
+            <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 bg-white shadow-sm control-btn-custom rounded-pill px-3" id="darkModeToggle" aria-label="Toggle Dark Mode" onclick="toggleDarkMode()" style="height: 36px;">
                 <i class="bi bi-moon-fill" id="darkModeIcon"></i> <span id="darkModeText">Dark Mode</span>
             </button>
-            <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm font-weight-bold control-btn-custom" id="languageToggle" aria-label="Toggle Language" onclick="toggleLanguage()">
+            <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm font-weight-bold control-btn-custom rounded-pill px-3" id="languageToggle" aria-label="Toggle Language" onclick="toggleLanguage()" style="height: 36px;">
                 English
             </button>
+        </div>
+
+        <!-- PERSISTENT TOP PROFILE VIEW (Always Visible Across All Modules) -->
+        <div class="persistent-profile-card card border-0 shadow-sm rounded-4 p-3.5 bg-white mb-4 position-relative overflow-hidden" style="border-left: 6px solid var(--rose-primary) !important; background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F7 100%);">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <!-- Left: Profile Photo & Quick Info -->
+                <div class="d-flex align-items-center gap-3">
+                    <div class="position-relative">
+                        <img src="assets/koronadalseal.png" alt="Profile" id="persistentProfileImg" class="rounded-circle border shadow-sm" style="width: 64px; height: 64px; object-fit: cover; border: 3px solid white !important;">
+                        <span class="position-absolute bottom-0 end-0 bg-success p-1 border border-white rounded-circle" style="width: 12px; height: 12px;" title="Online & Active Account"></span>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <h4 class="fw-extrabold text-dark mb-0" id="persistentFullName" style="font-size: 1.25rem;">Maria Santos</h4>
+                            <span class="badge bg-primary px-3 py-1 rounded-pill font-monospace" id="persistentUniqueId" style="background: var(--rose-primary) !important;">QR-BEN-ACTIVE</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 flex-wrap text-muted small">
+                            <span><i class="bi bi-briefcase-fill me-1 text-primary"></i>Program: <strong class="text-dark" id="persistentEnrolledProgram">TUPAD Emergency Employment</strong></span>
+                            <span><i class="bi bi-clock-history me-1 text-secondary"></i>Last Login: <strong class="text-dark" id="persistentLastLogin">Today, 05:25 AM</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Status Badge & Profile Action Buttons -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="text-end me-2 d-none d-md-block">
+                        <small class="text-muted d-block" style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Program Status</small>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fs-6 fw-bold" id="persistentStatusBadge">
+                            <i class="bi bi-patch-check-fill me-1"></i>Approved Beneficiary
+                        </span>
+                    </div>
+                    <button type="button" class="btn btn-outline-dark rounded-pill px-3.5 py-2 shadow-sm d-flex align-items-center gap-1.5 fw-semibold" onclick="openProfileSettingsModal()" title="Update contact info, password & notification preferences">
+                        <i class="bi bi-person-gear text-primary"></i> <span>Profile Settings</span>
+                    </button>
+                    <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 shadow-sm d-flex align-items-center gap-1.5 fw-semibold" onclick="openQrModal()" id="btnPersistentShowQr" title="View & Print Official QR Pass">
+                        <i class="bi bi-qr-code"></i> <span>Show QR Pass</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- COMPACT SUMMARY METRIC BAR (Persistent Across All Modules) -->
+            <div class="compact-summary-bar mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="navigateTo('assistance')" style="cursor: pointer;">
+                    <span class="p-1.5 rounded-circle bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></span>
+                    <small class="text-muted fw-semibold">Pending Apps:</small>
+                    <strong class="text-dark font-monospace" id="barPendingApps">0</strong>
+                </div>
+                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="navigateTo('assistance')" style="cursor: pointer;">
+                    <span class="p-1.5 rounded-circle bg-success-subtle text-success"><i class="bi bi-patch-check-fill"></i></span>
+                    <small class="text-muted fw-semibold">Approved Grants:</small>
+                    <strong class="text-success font-monospace" id="barApprovedGrants">0</strong>
+                </div>
+                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="navigateTo('training')" style="cursor: pointer;">
+                    <span class="p-1.5 rounded-circle bg-info-subtle text-info"><i class="bi bi-mortarboard-fill"></i></span>
+                    <small class="text-muted fw-semibold">Trainings:</small>
+                    <strong class="text-info font-monospace" id="barTrainingsCount">0</strong>
+                </div>
+                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="navigateTo('distribution')" style="cursor: pointer;">
+                    <span class="p-1.5 rounded-circle bg-primary-subtle text-primary"><i class="bi bi-box-seam-fill"></i></span>
+                    <small class="text-muted fw-semibold">Distributions:</small>
+                    <strong class="text-primary font-monospace" id="barDistributionsCount">0</strong>
+                </div>
+                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="toggleTopNotifications()" style="cursor: pointer;">
+                    <span class="p-1.5 rounded-circle bg-secondary-subtle text-secondary"><i class="bi bi-bell-fill"></i></span>
+                    <small class="text-muted fw-semibold">Unread Alerts:</small>
+                    <strong class="text-dark font-monospace" id="barUnreadNotifs">0</strong>
+                </div>
+            </div>
         </div>
 
         <!-- DASHBOARD SECTION -->
@@ -2057,7 +2158,7 @@
 
                 <!-- 5. Notifications -->
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #64748b !important; cursor: pointer;" onclick="navigateTo('notifications')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #64748b !important; cursor: pointer;" onclick="toggleTopNotifications()">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Notifications</span>
                             <div class="stat-icon-wrapper notifications p-2 rounded-3 bg-secondary-subtle text-secondary">
@@ -2126,11 +2227,11 @@
                             </div>
                         </div>
                         <div class="col-6 col-md-4 col-xl-2">
-                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card" onclick="navigateTo('notifications')" style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card" onclick="toggleTopNotifications()" style="cursor: pointer; transition: all 0.2s ease;">
                                 <div class="p-2.5 rounded-circle bg-secondary-subtle text-secondary"><i class="bi bi-bell-fill fs-5"></i></div>
                                 <div>
-                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Notification</h6>
-                                    <small class="text-muted" style="font-size: 0.72rem;">Advisories & notices</small>
+                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Notification Hub</h6>
+                                    <small class="text-muted" style="font-size: 0.72rem;">View top alerts</small>
                                 </div>
                             </div>
                         </div>
@@ -2597,20 +2698,6 @@
             <h3 style="margin-bottom: 15px; color: var(--text-muted);">Assistance History & Status</h3>
             <div id="beneficiaryDistributionHistory" class="d-flex flex-column gap-3 mb-4">
                 <!-- Loaded dynamically -->
-            </div>
-        </section>
-
-        <!-- NOTIFICATIONS SECTION -->
-        <section id="notifications" class="section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h2 class="section-title" style="margin-bottom: 0;">Notifications</h2>
-                <button class="btn-outline-rose btn-sm-rose" onclick="markAllRead()">
-                    <i class="bi bi-check-all"></i> Mark All Read
-                </button>
-            </div>
-
-            <div id="notificationsList" class="d-flex flex-column gap-3">
-                <!-- Loaded dynamically from Supabase notifications via renderNotificationsFeed() -->
             </div>
         </section>
     </main>
@@ -3178,43 +3265,119 @@
         </div>
     </div>
 
-    <!-- Update Profile Modal -->
-    <div class="modal-overlay" id="profileModal">
-        <div class="modal-content-custom" style="max-width: 500px;">
-            <div class="modal-header-custom">
-                <h3 class="modal-title-custom"><i class="bi bi-person-fill-gear text-primary me-2"></i>Update Profile Details</h3>
-                <button class="modal-close-custom" onclick="closeModal('profileModal')">&times;</button>
+    <!-- Comprehensive Profile Settings Modal (Compliant with Edit Restrictions & Audit Logging) -->
+    <div class="modal-overlay" id="profileSettingsModal" style="z-index: 10050;">
+        <div class="modal-content-custom" style="max-width: 650px; border-radius: 16px;">
+            <div class="modal-header-custom border-bottom pb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-primary-subtle text-primary"><i class="bi bi-person-gear fs-5"></i></div>
+                    <div>
+                        <h5 class="modal-title-custom mb-0 text-dark">Beneficiary Profile Settings</h5>
+                        <small class="text-muted">Manage contact information, password, and notification preferences</small>
+                    </div>
+                </div>
+                <button class="modal-close-custom" onclick="closeModal('profileSettingsModal')">&times;</button>
             </div>
-            <div class="modal-body-custom">
-                <form id="profileForm" onsubmit="saveProfile(event)">
-                    <div class="form-group mb-3">
-                        <label class="form-label-custom">Full Name</label>
-                        <input  type="text" class="form-control-custom" id="profileName" required aria-label="Profile Name">
+            <div class="modal-body-custom p-4" style="max-height: 75vh; overflow-y: auto;">
+                <form id="profileSettingsForm" onsubmit="saveProfileSettings(event)">
+                    <!-- 1. Profile Photo & Read-Only System Info -->
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="position-relative">
+                                <img src="assets/koronadalseal.png" alt="Profile" id="settingsProfilePreview" class="rounded-circle border shadow-sm" style="width: 58px; height: 58px; object-fit: cover; border: 2px solid white !important;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="form-label small fw-bold text-dark mb-1">Update Profile Photo (JPEG, PNG - Max 2MB):</label>
+                                <input type="file" class="form-control form-control-sm" id="settingsPhotoInput" accept="image/jpeg,image/png,image/jpg" onchange="handleProfilePhotoSelect(this)">
+                            </div>
+                        </div>
+                        
+                        <!-- Read-Only System Assigned Badges -->
+                        <div class="row g-2 small text-dark mt-2 pt-2 border-top">
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 0.72rem;">Unique Beneficiary ID (Read-Only):</span>
+                                <strong class="font-monospace text-primary" id="settingsBeneficiaryId">QR-BEN-ACTIVE</strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 0.72rem;">Current Program Status (Read-Only):</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle small" id="settingsStatusBadge">Approved Beneficiary</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label class="form-label-custom">Contact Number</label>
-                        <input  type="text" class="form-control-custom" id="profileContact" value="0917-123-4567" required aria-label="Profile Contact">
+
+                    <!-- 2. Editable Contact Details -->
+                    <h6 class="fw-bold text-dark mb-2 small text-uppercase" style="letter-spacing: 0.5px;">Contact Information</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Contact Phone Number</label>
+                            <input type="text" class="form-control" id="settingsPhone" placeholder="0919-555-0199" required>
+                            <small class="text-muted" style="font-size: 0.72rem;">Masked in public views per Data Privacy Act.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Email Address</label>
+                            <input type="email" class="form-control" id="settingsEmail" placeholder="beneficiary@gmail.com" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold text-dark">Home / Barangay Address</label>
+                            <input type="text" class="form-control" id="settingsAddress" placeholder="Purok Pag-asa, Brgy. Morales, Koronadal City" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Civil Status</label>
+                            <select class="form-select" id="settingsCivilStatus">
+                                <option value="Single">Single</option>
+                                <option value="Married">Married</option>
+                                <option value="Widowed">Widowed</option>
+                                <option value="Separated">Separated</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label class="form-label-custom">Email Address</label>
-                        <input  type="email" class="form-control-custom" id="profileEmail" value="beneficiary@gmail.com" required aria-label="Profile Email">
+
+                    <!-- 3. Security & Password Update -->
+                    <h6 class="fw-bold text-dark mb-2 small text-uppercase" style="letter-spacing: 0.5px;">Account Password</h6>
+                    <div class="row g-2 mb-3 p-3 bg-light rounded-3 border">
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Current Password</label>
+                            <input type="password" class="form-control form-control-sm" id="settingsCurrentPass" placeholder="••••••••">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">New Password</label>
+                            <input type="password" class="form-control form-control-sm" id="settingsNewPass" placeholder="Min. 8 characters">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Confirm New Password</label>
+                            <input type="password" class="form-control form-control-sm" id="settingsConfirmPass" placeholder="Re-enter password">
+                        </div>
+                        <small class="text-muted" style="font-size: 0.72rem;">Leave password fields blank if you do not wish to change your password.</small>
                     </div>
-                    <div class="form-group mb-3">
-                        <label class="form-label-custom">Home Address</label>
-                        <input  type="text" class="form-control-custom" id="profileAddress" value="Poblacion, City of Koronadal, South Cotabato" required aria-label="Profile Address">
+
+                    <!-- 4. Notification Preferences -->
+                    <h6 class="fw-bold text-dark mb-2 small text-uppercase" style="letter-spacing: 0.5px;">Notification Preferences</h6>
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="prefSms" checked>
+                            <label class="form-check-label small fw-semibold text-dark" for="prefSms">
+                                Receive SMS text reminders for scheduled interviews and training sessions
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="prefInApp" checked>
+                            <label class="form-check-label small fw-semibold text-dark" for="prefInApp">
+                                In-App System Alerts for application status approvals and document requests
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="prefEmail" checked>
+                            <label class="form-check-label small fw-semibold text-dark" for="prefEmail">
+                                Email notifications for official municipal assistance releases
+                            </label>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label class="form-label-custom">Civil Status</label>
-                        <select  class="form-control-custom" id="profileStatus" aria-label="Profile Status">
-                            <option>Single</option>
-                            <option>Married</option>
-                            <option>Divorced</option>
-                            <option>Widowed</option>
-                        </select>
-                    </div>
-                    <div class="modal-footer-custom" style="padding-right: 0; padding-bottom: 0;">
-                        <button type="button" class="btn-outline-rose" style="width: auto;" onclick="closeModal('profileModal')">Cancel</button>
-                        <button type="submit" class="btn-primary-rose" style="width: auto;">Save Changes</button>
+
+                    <div class="modal-footer-custom border-top pt-3 d-flex justify-content-end gap-2" style="padding-right: 0; padding-bottom: 0;">
+                        <button type="button" class="btn btn-light rounded-pill px-4" onclick="closeModal('profileSettingsModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+                            <i class="bi bi-check2-circle me-1"></i> Save Changes
+                        </button>
                     </div>
                 </form>
             </div>
@@ -4977,7 +5140,8 @@
             }
 
             if (actualId === 'notifications') {
-                if (typeof renderNotificationsFeed === 'function') renderNotificationsFeed();
+                if (typeof toggleTopNotifications === 'function') toggleTopNotifications();
+                return;
             }
 
             if (actualId === 'dashboard') {

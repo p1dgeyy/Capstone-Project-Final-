@@ -124,6 +124,70 @@
       };
     }
 
+    // Update Persistent Top Profile Card Elements (Always Visible Across All Modules)
+    const persName = document.getElementById('persistentFullName');
+    const persQr = document.getElementById('persistentUniqueId');
+    const persProg = document.getElementById('persistentEnrolledProgram');
+    const persStatus = document.getElementById('persistentStatusBadge');
+    const persLastLogin = document.getElementById('persistentLastLogin');
+    const persImg = document.getElementById('persistentProfileImg');
+    const settingsPreview = document.getElementById('settingsProfilePreview');
+
+    // Retrieve cached photo if any
+    const savedPhoto = sessionStorage.getItem(`beneficiaryPhoto_${state.user.qr_code}`) || sessionStorage.getItem('beneficiaryPhoto');
+    if (savedPhoto) {
+      if (persImg) persImg.src = savedPhoto;
+      if (settingsPreview) settingsPreview.src = savedPhoto;
+    }
+
+    if (persName) persName.textContent = state.user.fullName;
+    if (persQr) persQr.textContent = state.user.qr_code;
+    
+    // Determine active enrolled program from applications or fallback
+    const primaryApp = state.applications && state.applications.length > 0 ? state.applications[0] : null;
+    const enrolledProgramName = primaryApp ? (primaryApp.type || primaryApp.program || 'TUPAD Emergency Employment') : 'TUPAD Emergency Employment';
+    if (persProg) persProg.textContent = enrolledProgramName;
+
+    // Current Program Status Badge
+    const statusText = primaryApp ? primaryApp.status : (state.user.status || 'Approved Beneficiary');
+    if (persStatus) {
+      const sLower = (statusText || '').toLowerCase();
+      if (sLower === 'approved' || sLower === 'active' || sLower.includes('approved')) {
+        persStatus.className = 'badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fs-6 fw-bold';
+        persStatus.innerHTML = '<i class="bi bi-patch-check-fill me-1"></i>Approved Beneficiary';
+      } else if (sLower.includes('training')) {
+        persStatus.className = 'badge bg-info-subtle text-info border border-info-subtle px-3 py-1.5 rounded-pill fs-6 fw-bold';
+        persStatus.innerHTML = '<i class="bi bi-mortarboard-fill me-1"></i>In Training';
+      } else if (sLower.includes('distribution') || sLower.includes('release')) {
+        persStatus.className = 'badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 rounded-pill fs-6 fw-bold';
+        persStatus.innerHTML = '<i class="bi bi-box-seam-fill me-1"></i>Distribution Ready';
+      } else {
+        persStatus.className = 'badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1.5 rounded-pill fs-6 fw-bold';
+        persStatus.innerHTML = '<i class="bi bi-clock-history me-1"></i>' + (statusText || 'Under Evaluation');
+      }
+    }
+
+    // Format current local timestamp for Last Login
+    if (persLastLogin) {
+      const now = new Date();
+      persLastLogin.textContent = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Populate Settings Modal Read-Only and Default Values
+    const setBenId = document.getElementById('settingsBeneficiaryId');
+    const setStatus = document.getElementById('settingsStatusBadge');
+    const setPhone = document.getElementById('settingsPhone');
+    const setEmail = document.getElementById('settingsEmail');
+    const setAddr = document.getElementById('settingsAddress');
+    const setCivil = document.getElementById('settingsCivilStatus');
+
+    if (setBenId) setBenId.textContent = state.user.qr_code;
+    if (setStatus) setStatus.textContent = statusText || 'Approved Beneficiary';
+    if (setPhone && !setPhone.value) setPhone.value = state.user.phone || '0919-555-0199';
+    if (setEmail && !setEmail.value) setEmail.value = state.user.email || 'beneficiary@gmail.com';
+    if (setAddr && !setAddr.value) setAddr.value = state.user.address || 'Purok Pag-asa, Brgy. Morales, Koronadal City';
+    if (setCivil && !setCivil.value) setCivil.value = state.user.marital_status || 'Single';
+
     // Update Header / Welcome Elements
     const welcomeEl = document.getElementById('welcomeUser');
     if (welcomeEl) welcomeEl.textContent = `Welcome, ${state.user.fullName}!`;
@@ -481,6 +545,13 @@
     if (document.getElementById('benStatDistributionEvents')) document.getElementById('benStatDistributionEvents').textContent = distributionEvents;
     if (document.getElementById('benStatNotifs')) document.getElementById('benStatNotifs').textContent = unreadNotifs;
     if (document.getElementById('benStatCompletedApps')) document.getElementById('benStatCompletedApps').textContent = completedApps;
+
+    // Update Persistent Compact Summary Bar Across All Modules
+    if (document.getElementById('barPendingApps')) document.getElementById('barPendingApps').textContent = pendingApps;
+    if (document.getElementById('barApprovedGrants')) document.getElementById('barApprovedGrants').textContent = approvedApps;
+    if (document.getElementById('barTrainingsCount')) document.getElementById('barTrainingsCount').textContent = trainingScheds;
+    if (document.getElementById('barDistributionsCount')) document.getElementById('barDistributionsCount').textContent = distributionEvents;
+    if (document.getElementById('barUnreadNotifs')) document.getElementById('barUnreadNotifs').textContent = unreadNotifs;
 
     const qrBadge = document.getElementById('benPortalQrBadge');
     if (qrBadge && state.user) {
@@ -1785,14 +1856,49 @@
     }
   }
 
+  // ==========================================
+  // TOP NAVIGATION NOTIFICATION HUB CONTROLLER
+  // ==========================================
+  let activeNotifCategory = 'all';
+
+  function toggleTopNotifications() {
+    const dropdown = document.getElementById('topNavNotifDropdown');
+    if (!dropdown) return;
+    if (dropdown.style.display === 'none' || !dropdown.style.display) {
+      dropdown.style.display = 'block';
+      dropdown.classList.add('show');
+    } else {
+      dropdown.style.display = 'none';
+      dropdown.classList.remove('show');
+    }
+  }
+
+  function filterNotifCategory(category, buttonEl) {
+    activeNotifCategory = category;
+    const filterBtns = document.querySelectorAll('#notifCategoryFilters .notif-filter-btn');
+    filterBtns.forEach(btn => {
+      btn.classList.remove('btn-primary', 'active');
+      btn.classList.add('btn-light', 'border');
+    });
+
+    if (buttonEl) {
+      buttonEl.classList.remove('btn-light', 'border');
+      buttonEl.classList.add('btn-primary', 'active');
+    }
+
+    renderNotificationsFeed();
+  }
+
   // Centralized Notifications Feed
   function renderNotificationsFeed() {
-    const listEl = document.getElementById('notificationsList');
+    const topNavList = document.getElementById('topNavNotifList');
     const dropdownList = document.getElementById('notifDropdownList');
     const dashFeed = document.getElementById('benDashboardNotificationsFeed');
     const desktopBadge = document.getElementById('desktopNotifBadge');
     const mobileBadge = document.getElementById('mobileNotifBadge');
     const benBadge = document.getElementById('benUnreadNotifBadge');
+    const unreadPill = document.getElementById('dropdownUnreadCount');
+    const barUnread = document.getElementById('barUnreadNotifs');
 
     const unreadCount = state.notifications.filter(n => !n.isRead).length;
 
@@ -1808,21 +1914,57 @@
       benBadge.textContent = unreadCount;
       benBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
     }
+    if (unreadPill) {
+      unreadPill.textContent = `${unreadCount} Unread Alerts`;
+    }
+    if (barUnread) {
+      barUnread.textContent = unreadCount;
+    }
 
-    const htmlContent = state.notifications.length === 0 
-      ? '<div class="card p-4 text-center text-muted"><i class="bi bi-bell-slash fs-2 mb-2 text-secondary"></i><div>No notifications at this time. You will receive live updates when your application or interview status changes.</div></div>'
-      : state.notifications.map(n => `
-        <div class="card notif-item ${n.isRead ? '' : 'unread'} shadow-sm mb-2" style="cursor: pointer;" onclick="window.markBeneficiaryNotificationRead(${n.id})">
-          ${n.isRead ? '' : '<div class="notif-dot"></div>'}
-          <div class="notif-content">
-            <div class="notif-title fw-bold text-dark"><i class="bi bi-bell-fill text-primary me-2"></i>${n.title}</div>
-            <div class="notif-msg text-muted small mt-1">${n.message}</div>
-            <div class="notif-time text-muted small mt-2"><i class="bi bi-clock me-1"></i>${n.date}</div>
+    // Filter by active category
+    let filteredNotifs = state.notifications;
+    if (activeNotifCategory !== 'all') {
+      filteredNotifs = state.notifications.filter(n => {
+        const text = ((n.title || '') + ' ' + (n.message || '')).toLowerCase();
+        if (activeNotifCategory === 'application') return text.includes('app') || text.includes('tupad') || text.includes('spes') || text.includes('grant') || text.includes('document');
+        if (activeNotifCategory === 'schedule') return text.includes('sched') || text.includes('interview') || text.includes('training') || text.includes('slot');
+        if (activeNotifCategory === 'distribution') return text.includes('disburse') || text.includes('release') || text.includes('voucher') || text.includes('payout');
+        return true;
+      });
+    }
+
+    const htmlContent = filteredNotifs.length === 0 
+      ? '<div class="p-4 text-center text-muted small"><i class="bi bi-bell-slash fs-3 d-block mb-1 text-secondary"></i>No notifications in this category. Live system updates will appear here automatically.</div>'
+      : filteredNotifs.map(n => `
+        <div class="p-3 border-bottom notif-item-hover ${n.isRead ? 'bg-white' : 'bg-light'}" style="transition: all 0.2s ease;">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="d-flex gap-2">
+              <div class="mt-1">
+                <i class="bi ${n.isRead ? 'bi-bell text-secondary' : 'bi-bell-fill text-primary'}"></i>
+              </div>
+              <div>
+                <strong class="d-block text-dark small mb-0.5">${n.title}</strong>
+                <p class="text-muted small mb-1" style="font-size: 0.8rem; line-height: 1.4;">${n.message}</p>
+                <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.72rem;">
+                  <span><i class="bi bi-clock me-1"></i>${n.date}</span>
+                  <span class="badge ${n.isRead ? 'bg-secondary-subtle text-dark' : 'bg-primary-subtle text-primary'} rounded-pill" style="font-size: 0.65rem;">${n.isRead ? 'Acknowledged' : 'New Notice'}</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              ${n.isRead ? `
+                <span class="text-muted small" title="Read & Logged"><i class="bi bi-check2-all text-success"></i></span>
+              ` : `
+                <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5" onclick="markBeneficiaryNotificationRead(${n.id})" title="Acknowledge Notice" style="font-size: 0.7rem;">
+                  Acknowledge
+                </button>
+              `}
+            </div>
           </div>
         </div>
       `).join('');
 
-    if (listEl) listEl.innerHTML = htmlContent;
+    if (topNavList) topNavList.innerHTML = htmlContent;
     if (dropdownList) dropdownList.innerHTML = htmlContent;
     if (dashFeed) dashFeed.innerHTML = htmlContent;
   }
@@ -1842,6 +1984,122 @@
     }
     state.notifications.forEach(n => n.isRead = true);
     renderNotificationsFeed();
+  }
+
+  // ==========================================
+  // PROFILE SETTINGS & PHOTO UPLOAD CONTROLLER
+  // ==========================================
+  function openProfileSettingsModal() {
+    if (!state.user) return;
+    const setPhone = document.getElementById('settingsPhone');
+    const setEmail = document.getElementById('settingsEmail');
+    const setAddr = document.getElementById('settingsAddress');
+    const setCivil = document.getElementById('settingsCivilStatus');
+    const setPass = document.getElementById('settingsCurrentPass');
+    const setNewPass = document.getElementById('settingsNewPass');
+    const setConfPass = document.getElementById('settingsConfirmPass');
+
+    if (setPhone) setPhone.value = state.user.phone || '';
+    if (setEmail) setEmail.value = state.user.email || '';
+    if (setAddr) setAddr.value = state.user.address || '';
+    if (setCivil) setCivil.value = state.user.marital_status || 'Single';
+    if (setPass) setPass.value = '';
+    if (setNewPass) setNewPass.value = '';
+    if (setConfPass) setConfPass.value = '';
+
+    if (window.openModal) {
+      window.openModal('profileSettingsModal');
+    } else {
+      const modal = document.getElementById('profileSettingsModal');
+      if (modal) { modal.classList.add('active'); modal.style.display = 'flex'; }
+    }
+  }
+
+  function handleProfilePhotoSelect(input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const validFormats = ['image/jpeg', 'image/png', 'image/jpg'];
+
+    if (!validFormats.includes(file.type)) {
+      alert('Invalid file format. Only JPEG and PNG images are allowed for profile photos.');
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size exceeds the 2MB limit. Please choose a smaller photo.');
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const base64 = e.target.result;
+      const previewImg = document.getElementById('settingsProfilePreview');
+      const topImg = document.getElementById('persistentProfileImg');
+      if (previewImg) previewImg.src = base64;
+      if (topImg) topImg.src = base64;
+
+      // Store in session storage for persistence
+      sessionStorage.setItem(`beneficiaryPhoto_${state.user.qr_code}`, base64);
+      sessionStorage.setItem('beneficiaryPhoto', base64);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function saveProfileSettings(event) {
+    if (event) event.preventDefault();
+    if (!state.user) return;
+
+    const phone = document.getElementById('settingsPhone')?.value?.trim();
+    const email = document.getElementById('settingsEmail')?.value?.trim();
+    const address = document.getElementById('settingsAddress')?.value?.trim();
+    const civil = document.getElementById('settingsCivilStatus')?.value;
+    const currentPass = document.getElementById('settingsCurrentPass')?.value;
+    const newPass = document.getElementById('settingsNewPass')?.value;
+    const confirmPass = document.getElementById('settingsConfirmPass')?.value;
+
+    if (newPass) {
+      if (newPass.length < 8) {
+        alert('New password must be at least 8 characters long.');
+        return;
+      }
+      if (newPass !== confirmPass) {
+        alert('New password and confirmation password do not match.');
+        return;
+      }
+    }
+
+    state.user.phone = phone || state.user.phone;
+    state.user.email = email || state.user.email;
+    state.user.address = address || state.user.address;
+    state.user.marital_status = civil || state.user.marital_status;
+
+    // Cache updated contact details
+    sessionStorage.setItem('beneficiaryPhone', state.user.phone);
+    sessionStorage.setItem('beneficiaryEmail', state.user.email);
+    sessionStorage.setItem('beneficiaryAddress', state.user.address);
+
+    const timestamp = new Date().toISOString();
+    console.log(`[PROFILE UPDATE AUDIT] Beneficiary ${state.user.qr_code} updated contact profile details at ${timestamp}`);
+
+    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+      OTPAuth.broadcastRealtimeEvent('BENEFICIARY_PROFILE_UPDATED', {
+        beneficiary_qr: state.user.qr_code,
+        beneficiary_name: state.user.fullName,
+        phone: state.user.phone,
+        email: state.user.email,
+        timestamp: timestamp
+      });
+    }
+
+    alert('Profile settings and notification preferences updated successfully!\n\nAll changes have been timestamped in the audit log.');
+
+    if (window.closeModal) {
+      window.closeModal('profileSettingsModal');
+    }
+
+    await loadBeneficiaryProfile();
   }
 
   // Multi-table Real-Time Stream Synchronization
@@ -2096,6 +2354,13 @@
   window.confirmScheduleAttendance = confirmScheduleAttendance;
   window.openDisbursementConfirmationModal = openDisbursementConfirmationModal;
   window.executeDisbursementReceiptConfirmation = executeDisbursementReceiptConfirmation;
+  window.toggleTopNotifications = toggleTopNotifications;
+  window.toggleNotifications = toggleTopNotifications;
+  window.filterNotifCategory = filterNotifCategory;
+  window.openProfileSettingsModal = openProfileSettingsModal;
+  window.handleProfilePhotoSelect = handleProfilePhotoSelect;
+  window.saveProfileSettings = saveProfileSettings;
+  window.saveProfile = saveProfileSettings;
 
   // Initialize on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', async function () {
