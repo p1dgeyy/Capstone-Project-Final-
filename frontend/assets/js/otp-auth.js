@@ -13,22 +13,47 @@
 var OTPAuth = (function() {
     'use strict';
 
-    // In-memory / sessionStorage cryptographically hashed store for active OTP sessions
+    // In-memory + storage fallback for active OTP sessions (Resilient against browser Tracking Prevention)
     const OTP_STORAGE_KEY = 'koronadal_active_otps';
     const EXPIRY_MS = 5 * 60 * 1000; // 5 Minutes
+    const _inMemoryOtpStore = {};
 
     function _getOtpStore() {
+        let store = {};
         try {
-            const raw = sessionStorage.getItem(OTP_STORAGE_KEY);
-            return raw ? JSON.parse(raw) : {};
-        } catch (e) {
-            return {};
+            if (typeof sessionStorage !== 'undefined') {
+                const raw = sessionStorage.getItem(OTP_STORAGE_KEY);
+                if (raw) Object.assign(store, JSON.parse(raw));
+            }
+        } catch (e) {}
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const raw = localStorage.getItem(OTP_STORAGE_KEY);
+                if (raw) Object.assign(store, JSON.parse(raw));
+            }
+        } catch (e) {}
+        // Merge with in-memory store so browser Tracking Prevention never breaks OTP verification
+        Object.assign(store, _inMemoryOtpStore);
+        if (typeof window !== 'undefined' && window._koronadalOtpStore) {
+            Object.assign(store, window._koronadalOtpStore);
         }
+        return store;
     }
 
     function _saveOtpStore(store) {
+        Object.assign(_inMemoryOtpStore, store);
+        if (typeof window !== 'undefined') {
+            window._koronadalOtpStore = Object.assign({}, window._koronadalOtpStore || {}, store);
+        }
         try {
-            sessionStorage.setItem(OTP_STORAGE_KEY, JSON.stringify(store));
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem(OTP_STORAGE_KEY, JSON.stringify(store));
+            }
+        } catch (e) {}
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(OTP_STORAGE_KEY, JSON.stringify(store));
+            }
         } catch (e) {}
     }
 
@@ -499,27 +524,80 @@ var OTPAuth = (function() {
         const cleanEmail = String(email || '').trim().toLowerCase();
         const code = String(enteredCode || '').trim();
 
+        if (!code || code.length < 6) {
+            throw new Error('Please enter the full 6-digit verification code.');
+        }
+
         const store = _getOtpStore();
-        const record = store[`pwreset_${cleanEmail}`];
+        let record = store[`pwreset_${cleanEmail}`];
 
         if (!record) {
-            throw new Error('No active reset request found. Please request a new code.');
+            // Check across all keys in store
+            for (const key of Object.keys(store)) {
+                if (key.startsWith('pwreset_')) {
+                    const rec = store[key];
+                    if (rec && (rec.targetEmail === cleanEmail || rec.email === cleanEmail || key.toLowerCase().includes(cleanEmail))) {
+                        record = rec;
+                        break;
+                    }
+                }
+            }
         }
 
-        if (Date.now() > record.expiresAt) {
+        let verified = false;
+
+        // 1. Verify against local cryptographic hash / numeric code
+        if (record) {
+            if (Date.now() <= record.expiresAt) {
+                const inputHash = await hashCode(code);
+                if (inputHash === record.hash || code === record.code) {
+                    verified = true;
+                }
+            }
+        }
+
+        // 2. Also verify against Supabase Auth OTP if available
+        if (!verified && typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
+            try {
+                const { data, error } = await supabaseClient.auth.verifyOtp({
+                    email: cleanEmail,
+                    token: code,
+                    type: 'email'
+                });
+                if (!error && data) {
+                    verified = true;
+                } else {
+                    const recRes = await supabaseClient.auth.verifyOtp({
+                        email: cleanEmail,
+                        token: code,
+                        type: 'recovery'
+                    });
+                    if (!recRes.error && recRes.data) {
+                        verified = true;
+                    }
+                }
+            } catch (sbErr) {
+                console.warn('[OTPAuth] Supabase verifyOtp check note:', sbErr);
+            }
+        }
+
+        if (verified) {
+            if (!record) {
+                record = { targetEmail: cleanEmail, expiresAt: Date.now() + EXPIRY_MS };
+            }
+            record.verified = true;
+            store[`pwreset_${cleanEmail}`] = record;
+            _saveOtpStore(store);
+            return { success: true, verified: true, record: record };
+        }
+
+        if (record && Date.now() > record.expiresAt) {
             delete store[`pwreset_${cleanEmail}`];
             _saveOtpStore(store);
-            throw new Error('Reset code has expired.');
+            throw new Error('Verification code has expired. Please request a new code.');
         }
 
-        const inputHash = await hashCode(code);
-        if (inputHash !== record.hash && code !== record.code) {
-            throw new Error('Invalid verification code.');
-        }
-
-        record.verified = true;
-        _saveOtpStore(store);
-        return { success: true, verified: true, record: record };
+        throw new Error('Invalid verification code. Please check your Gmail and enter the 6-digit code correctly.');
     }
 
     /**

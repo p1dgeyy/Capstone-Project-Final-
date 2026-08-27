@@ -418,10 +418,18 @@
                 if (input.value.length === 1 && idx < inputs.length - 1) {
                     inputs[idx + 1].focus();
                 }
+                // Auto-verify if all 6 digits are filled
+                let fullCode = inputs.map(i => i ? i.value.trim() : '').join('');
+                if (fullCode.length === 6) {
+                    setTimeout(() => window.handleVerifyResetOtp(), 150);
+                }
             };
             input.onkeydown = (e) => {
                 if (e.key === 'Backspace' && !input.value && idx > 0) {
                     inputs[idx - 1].focus();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    window.handleVerifyResetOtp();
                 }
             };
             input.onpaste = (e) => {
@@ -432,14 +440,18 @@
                 });
                 const next = Math.min(text.length, inputs.length - 1);
                 inputs[next].focus();
+                if (text.length === 6) {
+                    setTimeout(() => window.handleVerifyResetOtp(), 150);
+                }
             };
         });
         setTimeout(() => inputs[0] && inputs[0].focus(), 300);
     }
 
     window.handleResendResetOtp = async function () {
+        const targetEmail = activeResetEmail || document.getElementById('forgotIdentifier')?.value?.trim();
         try {
-            await OTPAuth.sendPasswordResetOtp(activeResetEmail);
+            await OTPAuth.sendPasswordResetOtp(targetEmail);
             startResetTimers();
             setupResetInputs();
         } catch (err) {
@@ -460,17 +472,25 @@
 
         const alertEl = document.getElementById('resetOtpAlert');
         const alertMsg = document.getElementById('resetOtpAlertMsg');
+        const btn = document.getElementById('btnVerifyResetOtp');
 
         if (code.length < 6) {
-            alertMsg.textContent = 'Please enter your complete 6-digit verification code.';
-            alertEl.classList.remove('d-none');
+            if (alertMsg) alertMsg.textContent = 'Please enter your complete 6-digit verification code.';
+            if (alertEl) alertEl.classList.remove('d-none');
             return;
         }
 
-        alertEl.classList.add('d-none');
+        if (alertEl) alertEl.classList.add('d-none');
+
+        const targetEmail = activeResetEmail || document.getElementById('forgotIdentifier')?.value?.trim() || '';
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verifying Code...';
+        }
 
         try {
-            await OTPAuth.verifyPasswordResetOtp(activeResetEmail, code);
+            await OTPAuth.verifyPasswordResetOtp(targetEmail, code);
 
             document.getElementById('forgotStep1').classList.add('d-none');
             document.getElementById('forgotStep2').classList.add('d-none');
@@ -478,8 +498,13 @@
             setTimeout(() => document.getElementById('newResetPassword')?.focus(), 300);
 
         } catch (err) {
-            alertMsg.textContent = err.message || 'Invalid or expired verification code.';
-            alertEl.classList.remove('d-none');
+            if (alertMsg) alertMsg.textContent = err.message || 'Invalid or expired verification code.';
+            if (alertEl) alertEl.classList.remove('d-none');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Verify Code & Continue';
+            }
         }
     };
 
