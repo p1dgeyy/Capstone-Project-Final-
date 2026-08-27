@@ -18,7 +18,8 @@ const SessionManager = (() => {
   'use strict';
 
   // Constants
-  const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
+  const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes: Inactivity watchdog auto-logout
+  const ACTIVE_DEVICE_THRESHOLD_MS = 45 * 1000; // 45 seconds: Live heartbeat threshold for concurrent device detection
   const WARNING_BEFORE_MS = 60 * 1000;          // 60 seconds countdown
   const HEARTBEAT_INTERVAL_MS = 15 * 1000;      // 15 seconds heartbeat
   const ACTIVITY_THROTTLE_MS = 3000;            // 3 seconds throttle for activity events
@@ -67,8 +68,8 @@ const SessionManager = (() => {
 
   /**
    * Check if this account is currently active on another device.
-   * If active within 20 minutes (and not the same local session ID), returns { isAlreadyActive: true, message: ... }
-   * If stale (>20 minutes) or logged out, deletes stale record and returns { isAlreadyActive: false }
+   * If live heartbeat within the last 45s (and not the same local session ID), returns { isAlreadyActive: true, message: ... }
+   * If stale (>45s) or logged out, deletes stale record and returns { isAlreadyActive: false } so user can log in immediately
    */
   async function checkAccountAlreadyActive(userId, identifier, extra = {}) {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
@@ -125,18 +126,19 @@ const SessionManager = (() => {
         const lastActivity = sess.last_activity_at ? new Date(sess.last_activity_at).getTime() : 0;
         const diffMs = now - lastActivity;
 
-        // If active within 20 minutes (INACTIVITY_TIMEOUT_MS): BLOCK LOGIN
-        if (diffMs < INACTIVITY_TIMEOUT_MS) {
-          const minutesAgo = Math.max(0, Math.round(diffMs / 60000));
-          const timeText = minutesAgo === 0 ? 'just now' : `${minutesAgo}m ago`;
+        // If active on another device with live heartbeat within the last 45 seconds: BLOCK LOGIN
+        if (diffMs < ACTIVE_DEVICE_THRESHOLD_MS) {
+          const secondsAgo = Math.max(1, Math.round(diffMs / 1000));
           return {
             isAlreadyActive: true,
             session: sess,
-            message: `Current account is being used on another device (active ${timeText}). Simultaneous logins are not permitted. Please log out from that device first or wait for the session to expire.`
+            message: `This account is currently active on another device or browser tab (active ${secondsAgo}s ago). Simultaneous logins are not permitted. Please log out from that device first.`
           };
         } else {
-          // Stale session (> 20 mins): delete it
-          await supabaseClient.from('active_user_sessions').delete().eq('user_id', sess.user_id);
+          // Inactive / closed / stale session (> 45s with no heartbeat): delete it immediately so user can log in
+          if (sess.user_id) {
+            supabaseClient.from('active_user_sessions').delete().eq('user_id', sess.user_id).then(() => {}).catch(() => {});
+          }
         }
       }
 
@@ -341,36 +343,29 @@ const SessionManager = (() => {
     try {
       const uId = getUserId();
       const uName = sessionStorage.getItem('username');
+      const uEmail = sessionStorage.getItem('userEmail');
       const sessionId = getSessionId();
 
       // Release active device lock in Supabase so the account can log in on any device immediately
       if (supabaseClient) {
-        if (uId) {
-          await supabaseClient
-            .from('active_user_sessions')
-            .delete()
-            .eq('user_id', String(uId));
-        }
-        if (uName) {
-          await supabaseClient
-            .from('active_user_sessions')
-            .delete()
-            .eq('user_identifier', String(uName));
-        }
-        if (sessionId) {
-          await supabaseClient
-            .from('active_user_sessions')
-            .delete()
-            .eq('session_id', sessionId);
-        }
-        await supabaseClient.auth.signOut();
+        const deleteOps = [];
+        if (uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(uId)));
+        if (uName) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_identifier', String(uName)));
+        if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', String(uEmail)));
+        if (sessionId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('session_id', sessionId));
+        await Promise.allSettled(deleteOps);
+        await supabaseClient.auth.signOut().catch(() => {});
       }
     } catch (e) {
       console.warn('[SessionManager] Sign-out error:', e.message);
     }
 
     clear();
-    try { sessionStorage.clear(); } catch (e) {}
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
+      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
+    } catch (e) {}
     window.location.href = targetUrl;
   }
 
@@ -381,30 +376,19 @@ const SessionManager = (() => {
     const redirect = targetUrl || getLoginUrl(getRole());
     const uId = getUserId();
     const uName = sessionStorage.getItem('username');
+    const uEmail = sessionStorage.getItem('userEmail');
     const sessionId = getSessionId();
 
     // Release database session lock before redirecting so user can log in immediately
     if (supabaseClient) {
       try {
-        if (uId) {
-          await supabaseClient
-            .from('active_user_sessions')
-            .delete()
-            .eq('user_id', String(uId));
-        }
-        if (uName) {
-          await supabaseClient
-            .from('active_user_sessions')
-            .delete()
-            .eq('user_identifier', String(uName));
-        }
-        if (sessionId) {
-          await supabaseClient
-            .from('active_user_sessions')
-            .delete()
-            .eq('session_id', sessionId);
-        }
-        await supabaseClient.auth.signOut();
+        const deleteOps = [];
+        if (uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(uId)));
+        if (uName) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_identifier', String(uName)));
+        if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', String(uEmail)));
+        if (sessionId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('session_id', sessionId));
+        await Promise.allSettled(deleteOps);
+        await supabaseClient.auth.signOut().catch(() => {});
       } catch (e) {
         console.warn('[SessionManager] forceLogout cleanup error:', e.message);
       }
@@ -413,6 +397,8 @@ const SessionManager = (() => {
     clear();
     try {
       sessionStorage.clear();
+      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
+      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
       sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
     } catch (e) {}
     window.location.href = redirect;

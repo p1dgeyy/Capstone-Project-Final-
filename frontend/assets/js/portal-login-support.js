@@ -346,6 +346,23 @@
 
     // Expose Global Helper API
     window.translations = translations;
+    window.togglePasswordVisibility = function(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId) || (window.event && window.event.currentTarget ? window.event.currentTarget.querySelector('i') : null);
+        if (!input) return;
+        const isPw = input.getAttribute('type') === 'password';
+        input.setAttribute('type', isPw ? 'text' : 'password');
+        if (icon) {
+            if (isPw) {
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+    };
+
     window.LoginSupport = {
         translations,
         applyTheme,
@@ -354,7 +371,8 @@
         toggleLanguage,
         showModal,
         hideModal,
-        initPrivacyScrollCheck
+        initPrivacyScrollCheck,
+        togglePasswordVisibility: window.togglePasswordVisibility
     };
 
     window.toggleDarkMode = toggleDarkMode;
