@@ -82,6 +82,7 @@ var OTPAuth = (function() {
 
     /**
      * 1. Send 6-Digit Email Verification Code (Restricted to Gmail)
+     *    Uses Supabase Auth's built-in signInWithOtp for actual email delivery.
      */
     async function sendEmailCode(email) {
         const cleanEmail = String(email || '').trim().toLowerCase();
@@ -90,6 +91,7 @@ var OTPAuth = (function() {
             throw new Error('Email registration is restricted to Gmail (@gmail.com) only.');
         }
 
+        // Generate a local code as fallback for session-based verification
         const code = generateNumericCode(6);
         const codeHash = await hashCode(code);
         const expiresAt = Date.now() + EXPIRY_MS;
@@ -104,8 +106,29 @@ var OTPAuth = (function() {
         };
         _saveOtpStore(store);
 
-        // Dispatch via External Email Gateway if available
-        if (typeof window.sendExternalEmail === 'function') {
+        // PRIMARY: Use Supabase Auth's built-in OTP email delivery
+        let supabaseOtpSent = false;
+        if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithOtp({
+                    email: cleanEmail,
+                    options: {
+                        shouldCreateUser: true
+                    }
+                });
+                if (error) {
+                    console.warn('[OTPAuth] Supabase Auth OTP send notice:', error.message);
+                } else {
+                    supabaseOtpSent = true;
+                    console.log('[OTPAuth] Supabase Auth OTP email dispatched successfully for', cleanEmail);
+                }
+            } catch (authErr) {
+                console.warn('[OTPAuth] Supabase Auth OTP exception:', authErr);
+            }
+        }
+
+        // FALLBACK: Try external email gateway if Supabase Auth OTP failed
+        if (!supabaseOtpSent && typeof window.sendExternalEmail === 'function') {
             try {
                 await window.sendExternalEmail({
                     recipientEmail: cleanEmail,
@@ -144,7 +167,7 @@ var OTPAuth = (function() {
             });
         }
 
-        console.log(`[OTPAuth] 6-digit Email code dispatched for ${cleanEmail}`);
+        console.log(`[OTPAuth] 6-digit Email code dispatched for ${cleanEmail} (Supabase Auth: ${supabaseOtpSent ? 'YES' : 'FALLBACK'})`);
         return {
             success: true,
             maskedRecipient: maskEmail(cleanEmail),
