@@ -125,10 +125,37 @@
                             department: department,
                             reason: reason
                         });
-                    }
+                    } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                        const { data: staffMatches } = await supabaseClient
+                            .from('staff_profiles')
+                            .select('*')
+                            .or(`email.ilike.${identifier},username.ilike.${identifier}`)
+                            .limit(1);
 
-                    if (!reqRes || reqRes.error) {
-                        throw new Error(reqRes?.error?.message || 'Could not submit password reset request. Please ensure you are entering an official staff account.');
+                        if (!staffMatches || staffMatches.length === 0) {
+                            throw new Error('No registered staff or officer account found matching "' + identifier + '".');
+                        }
+
+                        const sp = staffMatches[0];
+                        const ticketId = 'TKT-PW-' + Math.floor(100000 + Math.random() * 900000);
+                        const { data: insData, error: insErr } = await supabaseClient
+                            .from('password_reset_requests')
+                            .insert({
+                                ticket_id: ticketId,
+                                staff_id: sp.id,
+                                username: sp.username,
+                                email: sp.email,
+                                role: sp.role || 'Officer',
+                                department: department || 'PESO',
+                                reason: reason || 'Officer requested password reset via official login portal.',
+                                status: 'Pending',
+                                created_at: new Date().toISOString()
+                            })
+                            .select()
+                            .single();
+
+                        if (insErr) throw insErr;
+                        reqRes = { data: insData, isExisting: false };
                     }
 
                     const reqData = reqRes.data;
