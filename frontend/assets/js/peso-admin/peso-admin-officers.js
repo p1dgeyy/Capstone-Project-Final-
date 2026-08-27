@@ -946,6 +946,202 @@ async function permanentlyDeleteOfficer(officerId) {
     });
 }
 
+// =========================================================================
+// OFFICER PASSWORD RESET REQUESTS & ADMIN APPROVAL MANAGEMENT
+// =========================================================================
+let cachedPasswordResets = [];
+
+async function loadPasswordResetRequests() {
+    const tbody = document.getElementById('passwordResetRequestsTableBody');
+    const badge = document.getElementById('pwdResetPendingCountBadge');
+
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Fetching password requests...</td></tr>`;
+    }
+
+    try {
+        if (typeof DataService !== 'undefined' && DataService.passwordResets) {
+            const res = await DataService.passwordResets.getAll({ department: 'PESO' });
+            if (res && res.data) {
+                cachedPasswordResets = res.data;
+                renderPasswordResetRequests(cachedPasswordResets);
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('[PASSWORD_RESETS] Fetch error:', e);
+    }
+
+    renderPasswordResetRequests([]);
+}
+
+function renderPasswordResetRequests(requests) {
+    const tbody = document.getElementById('passwordResetRequestsTableBody');
+    const badge = document.getElementById('pwdResetPendingCountBadge');
+    if (!tbody) return;
+
+    const list = Array.isArray(requests) ? requests : [];
+    const pendingList = list.filter(r => r.status === 'Pending');
+
+    if (badge) {
+        badge.textContent = `${pendingList.length} Pending`;
+        if (pendingList.length > 0) {
+            badge.className = 'badge bg-warning text-dark font-monospace ms-2';
+        } else {
+            badge.className = 'badge bg-secondary font-monospace ms-2';
+        }
+    }
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-shield-check text-success fs-5 me-2"></i>No officer password reset requests found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    list.forEach(req => {
+        const tr = document.createElement('tr');
+        const reqDate = req.created_at ? new Date(req.created_at).toLocaleString() : 'N/A';
+
+        let statusBadge = `<span class="badge bg-warning text-dark px-2.5 py-1.5"><i class="bi bi-hourglass-split me-1"></i>Pending</span>`;
+        if (req.status === 'Approved') {
+            statusBadge = `<span class="badge bg-success text-white px-2.5 py-1.5"><i class="bi bi-check-circle me-1"></i>Approved</span>`;
+        } else if (req.status === 'Completed') {
+            statusBadge = `<span class="badge bg-primary text-white px-2.5 py-1.5"><i class="bi bi-check2-all me-1"></i>Completed</span>`;
+        } else if (req.status === 'Rejected') {
+            statusBadge = `<span class="badge bg-danger text-white px-2.5 py-1.5"><i class="bi bi-x-circle me-1"></i>Rejected</span>`;
+        }
+
+        let actionBtns = '';
+        if (req.status === 'Pending') {
+            actionBtns = `
+                <div class="d-flex justify-content-end gap-1.5">
+                    <button class="btn btn-sm btn-success px-2.5 py-1 fw-semibold" onclick="approveOfficerResetRequest(${req.id}, '${req.ticket_id}', '${escapeHtml(req.username)}')">
+                        <i class="bi bi-check-lg me-1"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger px-2.5 py-1 fw-semibold" onclick="rejectOfficerResetRequest(${req.id}, '${req.ticket_id}', '${escapeHtml(req.username)}')">
+                        <i class="bi bi-x-lg me-1"></i> Reject
+                    </button>
+                </div>
+            `;
+        } else if (req.status === 'Approved') {
+            actionBtns = `<span class="text-success small fw-bold"><i class="bi bi-shield-check me-1"></i>Authorized</span>`;
+        } else if (req.status === 'Completed') {
+            actionBtns = `<span class="text-primary small fw-semibold"><i class="bi bi-check2 me-1"></i>Updated</span>`;
+        } else {
+            actionBtns = `<span class="text-muted small">Closed</span>`;
+        }
+
+        tr.innerHTML = `
+            <td><strong class="font-monospace text-primary">${escapeHtml(req.ticket_id || 'N/A')}</strong></td>
+            <td>
+                <div class="fw-bold text-dark">${escapeHtml(req.username || 'Officer')}</div>
+                <small class="text-muted">Staff ID: #${req.staff_id || 'N/A'}</small>
+            </td>
+            <td>
+                <a href="mailto:${escapeHtml(req.email)}" class="text-decoration-none text-dark">${escapeHtml(req.email || 'N/A')}</a>
+            </td>
+            <td>
+                <span class="badge bg-light text-dark border">${escapeHtml(req.role || 'Officer')}</span>
+            </td>
+            <td>
+                <div class="text-truncate small" style="max-width: 220px;" title="${escapeHtml(req.reason || '')}">
+                    ${escapeHtml(req.reason || 'Password reset requested.')}
+                </div>
+            </td>
+            <td><small class="text-muted">${reqDate}</small></td>
+            <td class="text-center">${statusBadge}</td>
+            <td class="text-end">${actionBtns}</td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+async function approveOfficerResetRequest(requestId, ticketId, username) {
+    if (!confirm(`Authorize Password Reset: Approve password reset request for officer "${username}" (Ticket: ${ticketId})?`)) {
+        return;
+    }
+
+    try {
+        const adminProfile = (typeof AdminStore !== 'undefined' && AdminStore.currentAdmin) ? AdminStore.currentAdmin : null;
+        const adminId = adminProfile ? adminProfile.id : null;
+
+        let res = null;
+        if (typeof DataService !== 'undefined' && DataService.passwordResets) {
+            res = await DataService.passwordResets.approve(requestId, adminId, 'Approved by PESO Administrator.');
+        }
+
+        if (res && res.error) {
+            throw new Error(res.error.message);
+        }
+
+        window.showSystemNotification({
+            title: 'Password Request Approved',
+            message: `Ticket ${ticketId} approved for officer ${username}. The officer can now set a new password.`,
+            type: 'success'
+        });
+
+        loadPasswordResetRequests();
+
+    } catch (err) {
+        window.showSystemNotification({
+            title: 'Approval Failed',
+            message: err.message || 'Could not approve password reset request.',
+            type: 'error'
+        });
+    }
+}
+
+async function rejectOfficerResetRequest(requestId, ticketId, username) {
+    const reason = prompt(`Disapprove Password Reset:\nEnter reason for rejecting ticket ${ticketId} (${username}):`, 'Request denied by Administrator.');
+    if (reason === null) return;
+
+    try {
+        const adminProfile = (typeof AdminStore !== 'undefined' && AdminStore.currentAdmin) ? AdminStore.currentAdmin : null;
+        const adminId = adminProfile ? adminProfile.id : null;
+
+        let res = null;
+        if (typeof DataService !== 'undefined' && DataService.passwordResets) {
+            res = await DataService.passwordResets.reject(requestId, adminId, reason.trim() || 'Request denied by Administrator.');
+        }
+
+        if (res && res.error) {
+            throw new Error(res.error.message);
+        }
+
+        window.showSystemNotification({
+            title: 'Password Request Rejected',
+            message: `Ticket ${ticketId} has been rejected.`,
+            type: 'warning'
+        });
+
+        loadPasswordResetRequests();
+
+    } catch (err) {
+        window.showSystemNotification({
+            title: 'Rejection Error',
+            message: err.message || 'Could not reject request.',
+            type: 'error'
+        });
+    }
+}
+
+// Subscribe to Realtime Password Reset Events in Admin portal
+if (typeof window.onRealtimeEvent === 'function') {
+    window.onRealtimeEvent((ev) => {
+        if (ev.type === 'OFFICER_PASSWORD_RESET_REQUESTED' || ev.type === 'OFFICER_PASSWORD_RESET_COMPLETED') {
+            loadPasswordResetRequests();
+        }
+    });
+}
+
+// Auto-load requests when officer tab is initialized
+if (document.addEventListener) {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(loadPasswordResetRequests, 1000);
+    });
+}
+
 // Global window exposure
 window.validateOfficerForm = validateOfficerForm;
 window.openCreateOfficerModal = openCreateOfficerModal;
@@ -957,3 +1153,7 @@ window.handleCreateOfficerSubmit = handleCreateOfficerSubmit;
 window.openEditOfficerModal = openEditOfficerModal;
 window.handleSaveOfficerUpdates = handleSaveOfficerUpdates;
 window.handleOfficerStatusToggle = handleOfficerStatusToggle;
+window.loadPasswordResetRequests = loadPasswordResetRequests;
+window.approveOfficerResetRequest = approveOfficerResetRequest;
+window.rejectOfficerResetRequest = rejectOfficerResetRequest;
+

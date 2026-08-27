@@ -1130,7 +1130,12 @@
                     const checkRes = await DataService.auth.checkIdentifierAvailability({ username, email, phone });
                     if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
                         if (checkRes.data.isEmailTaken) {
-                            showInlineError('regEmail', 'emailConflictNotice', 'This email address is already registered to an existing account.');
+                            showInlineError('regEmail', 'emailConflictNotice', 'This email address is already attached to an existing beneficiary or staff account. Each account must have a unique email address.');
+                            window.showSystemNotification({
+                                title: 'Email Already In Use',
+                                message: 'The provided email is already registered. Emails cannot be reused across accounts.',
+                                type: 'error'
+                            });
                             return;
                         }
                         if (checkRes.data.isPhoneTaken) {

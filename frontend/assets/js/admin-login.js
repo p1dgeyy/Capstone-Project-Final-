@@ -59,7 +59,13 @@
         const loginForm = document.getElementById('loginForm');
         if (loginForm) loginForm.reset();
 
-        // Forgot Password UI Helpers
+        // =========================================================================
+        // OFFICER PASSWORD RESET ENGINE (ADMIN APPROVAL WORKFLOW)
+        // =========================================================================
+        let activeResetTicketId = '';
+        let activeResetIdentifier = '';
+        let resetRealtimeSub = null;
+
         const forgotPasswordLink = document.getElementById('forgotPasswordLink');
         if (forgotPasswordLink) {
             forgotPasswordLink.addEventListener('click', (e) => {
@@ -67,10 +73,15 @@
                 const step1 = document.getElementById('forgotStep1');
                 const step2 = document.getElementById('forgotStep2');
                 const step3 = document.getElementById('forgotStep3');
+                const errAlert = document.getElementById('resetErrorAlert');
+                const succAlert = document.getElementById('resetSuccessAlert');
+                if (errAlert) errAlert.classList.add('d-none');
+                if (succAlert) succAlert.classList.add('d-none');
                 if (step1) step1.classList.remove('d-none');
                 if (step2) step2.classList.add('d-none');
                 if (step3) step3.classList.add('d-none');
                 if (window.showModal) window.showModal('resetModal');
+                setTimeout(() => document.getElementById('forgotIdentifier')?.focus(), 200);
             });
         }
 
@@ -80,81 +91,317 @@
         const resetBackdrop = document.getElementById('resetBackdrop');
         if (resetBackdrop) resetBackdrop.addEventListener('click', () => window.hideModal && window.hideModal('resetModal'));
 
+        // Step 1: Submit Request to Admin
         const forgotForm = document.getElementById('forgotPasswordForm');
         if (forgotForm) {
             forgotForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
                 const identifier = (document.getElementById('forgotIdentifier')?.value || '').trim();
+                const department = (document.getElementById('forgotDepartment')?.value || 'PESO').trim();
+                const reason = (document.getElementById('forgotReason')?.value || '').trim();
                 const btn = document.getElementById('btnSendVerification');
+                const errAlert = document.getElementById('resetErrorAlert');
+                const errText = document.getElementById('resetErrorMsg');
 
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying...';
-                }
+                if (errAlert) errAlert.classList.add('d-none');
 
-                const resetToken = 'RST-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now();
-                const targetEmail = identifier.includes('@') ? identifier : `${identifier}@gmail.com`;
-
-                const badge = document.getElementById('forgotUserEmailBadge');
-                const display = document.getElementById('verificationLinkDisplay');
-                const tokenInput = document.getElementById('verifiedResetToken');
-
-                if (badge) badge.textContent = targetEmail;
-                if (display) display.textContent = `${window.location.origin}${window.location.pathname}?action=reset&token=${resetToken}`;
-                if (tokenInput) tokenInput.value = resetToken;
-
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Send Verification Link';
-                }
-
-                const step1 = document.getElementById('forgotStep1');
-                const step2 = document.getElementById('forgotStep2');
-                if (step1) step1.classList.add('d-none');
-                if (step2) step2.classList.remove('d-none');
-            });
-        }
-
-        const resetCompleteForm = document.getElementById('resetCompleteForm');
-        if (resetCompleteForm) {
-            resetCompleteForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                const newPass = document.getElementById('newResetPassword')?.value;
-                const confirmPass = document.getElementById('confirmResetPassword')?.value;
-
-                if (newPass !== confirmPass) {
-                    alert('Passwords do not match.');
+                if (!identifier) {
+                    if (errText) errText.textContent = 'Please enter your registered username or email.';
+                    if (errAlert) errAlert.classList.remove('d-none');
                     return;
                 }
 
-                failedLoginAttempts = 0;
-                lockoutUntilTimestamp = 0;
-                localStorage.removeItem('peso_failed_attempts');
-                localStorage.removeItem('peso_lockout_until');
-                checkLockoutStatus();
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Submitting to Admin...';
+                }
 
-                alert('Password reset successful! You may now sign in with your updated credentials.');
-                if (window.hideModal) window.hideModal('resetModal');
+                try {
+                    let reqRes = null;
+                    if (typeof DataService !== 'undefined' && DataService.passwordResets) {
+                        reqRes = await DataService.passwordResets.createRequest({
+                            username: identifier,
+                            email: identifier,
+                            department: department,
+                            reason: reason
+                        });
+                    }
+
+                    if (!reqRes || reqRes.error) {
+                        throw new Error(reqRes?.error?.message || 'Could not submit password reset request. Please ensure you are entering an official staff account.');
+                    }
+
+                    const reqData = reqRes.data;
+                    activeResetTicketId = reqData.ticket_id || ('TKT-PW-' + Math.floor(100000 + Math.random() * 900000));
+                    activeResetIdentifier = reqData.email || identifier;
+
+                    // Update Step 2 Badges
+                    const ticketBadge = document.getElementById('resetTicketIdBadge');
+                    const emailBadge = document.getElementById('forgotUserEmailBadge');
+                    const deptBadge = document.getElementById('resetDeptBadge');
+                    const ticketInput = document.getElementById('verifiedResetTicket');
+
+                    if (ticketBadge) ticketBadge.textContent = activeResetTicketId;
+                    if (emailBadge) emailBadge.textContent = reqData.email || identifier;
+                    if (deptBadge) deptBadge.textContent = reqData.department || department;
+                    if (ticketInput) ticketInput.value = activeResetTicketId;
+
+                    // Check if already approved
+                    if (reqData.status === 'Approved') {
+                        updateResetStep2ToApproved();
+                    } else {
+                        updateResetStep2ToPending();
+                    }
+
+                    // Transition to Step 2
+                    const step1 = document.getElementById('forgotStep1');
+                    const step2 = document.getElementById('forgotStep2');
+                    const step3 = document.getElementById('forgotStep3');
+                    if (step1) step1.classList.add('d-none');
+                    if (step2) step2.classList.remove('d-none');
+                    if (step3) step3.classList.add('d-none');
+
+                    // Setup Realtime Watcher for Approval
+                    startResetRealtimeWatcher(activeResetTicketId, activeResetIdentifier);
+
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: reqRes.isExisting ? 'Existing Request Found' : 'Request Submitted',
+                            message: reqRes.message || `Password reset request ${activeResetTicketId} submitted to Admin.`,
+                            type: 'info'
+                        });
+                    }
+
+                } catch (err) {
+                    if (errText) errText.textContent = err.message || 'Error processing request.';
+                    if (errAlert) errAlert.classList.remove('d-none');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Send Request to Administrator';
+                    }
+                }
             });
         }
-    });
 
-    window.copyVerificationLink = function () {
-        const text = document.getElementById('verificationLinkDisplay')?.textContent || '';
-        navigator.clipboard.writeText(text).then(() => alert('Link copied to clipboard!')).catch(() => prompt('Copy URL:', text));
-    };
+        function updateResetStep2ToPending() {
+            const icon = document.getElementById('resetStatusIcon');
+            const title = document.getElementById('resetStep2Title');
+            const desc = document.getElementById('resetStep2Desc');
+            const badge = document.getElementById('resetStatusBadge');
+            const btnProceed = document.getElementById('btnProceedToNewPassword');
 
-    window.proceedToPasswordResetForm = function () {
-        const step2 = document.getElementById('forgotStep2');
-        const step3 = document.getElementById('forgotStep3');
-        if (step2) step2.classList.add('d-none');
-        if (step3) step3.classList.remove('d-none');
-    };
+            if (icon) icon.innerHTML = '<i class="bi bi-hourglass-split" style="font-size: 2.8rem;"></i>';
+            if (icon) icon.className = 'text-warning mb-2';
+            if (title) title.textContent = 'Request Awaiting Admin Approval';
+            if (desc) desc.textContent = 'Your password reset request has been transmitted to the Administrator in real-time. Once approved, you can set your new password.';
+            if (badge) {
+                badge.className = 'badge bg-warning text-dark px-2.5 py-1.5';
+                badge.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" style="width: 8px; height: 8px;"></span> Pending Admin Approval';
+            }
+            if (btnProceed) btnProceed.classList.add('d-none');
+        }
 
-    // Staff Login Form Submission Handler
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async function (e) {
+        function updateResetStep2ToApproved() {
+            const icon = document.getElementById('resetStatusIcon');
+            const title = document.getElementById('resetStep2Title');
+            const desc = document.getElementById('resetStep2Desc');
+            const badge = document.getElementById('resetStatusBadge');
+            const btnProceed = document.getElementById('btnProceedToNewPassword');
+
+            if (icon) icon.innerHTML = '<i class="bi bi-check-circle-fill text-success" style="font-size: 2.8rem;"></i>';
+            if (icon) icon.className = 'text-success mb-2';
+            if (title) title.textContent = 'Request Approved by Admin!';
+            if (desc) desc.textContent = 'The Administrator has approved your password reset request. Click the button below to set your new password.';
+            if (badge) {
+                badge.className = 'badge bg-success text-white px-2.5 py-1.5';
+                badge.innerHTML = '<i class="bi bi-check2 me-1"></i> Approved by Admin';
+            }
+            if (btnProceed) btnProceed.classList.remove('d-none');
+        }
+
+        // Live Realtime Watcher
+        function startResetRealtimeWatcher(ticketId, identifier) {
+            if (typeof window.onRealtimeEvent === 'function') {
+                window.onRealtimeEvent((ev) => {
+                    if (ev.type === 'OFFICER_PASSWORD_RESET_APPROVED') {
+                        const req = ev.payload?.request;
+                        if (req && (req.ticket_id === ticketId || req.email?.toLowerCase() === identifier?.toLowerCase() || req.username?.toLowerCase() === identifier?.toLowerCase())) {
+                            updateResetStep2ToApproved();
+                            if (window.showSystemNotification) {
+                                window.showSystemNotification({
+                                    title: 'Request Approved!',
+                                    message: 'Your administrator has approved your password reset request.',
+                                    type: 'success'
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Also check via Supabase client realtime channel if available
+            if (typeof supabaseClient !== 'undefined' && supabaseClient && !resetRealtimeSub) {
+                try {
+                    resetRealtimeSub = supabaseClient
+                        .channel('officer-pwd-reset-status')
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'password_reset_requests'
+                        }, (payload) => {
+                            if (payload.new && (payload.new.ticket_id === ticketId || payload.new.email?.toLowerCase() === identifier?.toLowerCase())) {
+                                if (payload.new.status === 'Approved') {
+                                    updateResetStep2ToApproved();
+                                }
+                            }
+                        })
+                        .subscribe();
+                } catch (e) {}
+            }
+        }
+
+        // Step 2 Action: Manual Status Check
+        window.checkOfficerResetStatus = async function () {
+            const ticketId = activeResetTicketId || document.getElementById('verifiedResetTicket')?.value || document.getElementById('forgotIdentifier')?.value;
+            if (!ticketId) return;
+
+            try {
+                if (typeof DataService !== 'undefined' && DataService.passwordResets) {
+                    const res = await DataService.passwordResets.getRequestStatus(ticketId);
+                    if (res && res.data) {
+                        const status = res.data.status;
+                        if (status === 'Approved') {
+                            updateResetStep2ToApproved();
+                            if (window.showSystemNotification) {
+                                window.showSystemNotification({
+                                    title: 'Request Approved!',
+                                    message: 'Your administrator has approved your password reset request.',
+                                    type: 'success'
+                                });
+                            }
+                            // Auto-proceed after brief moment
+                            setTimeout(() => proceedToPasswordResetForm(), 500);
+                        } else if (status === 'Pending') {
+                            updateResetStep2ToPending();
+                            alert(`Status: Pending Admin Approval.\n\nTicket: ${res.data.ticket_id}\nDepartment: ${res.data.department}\n\nPlease ask your ${res.data.department} Administrator to approve this request.`);
+                        } else if (status === 'Rejected') {
+                            alert(`Status: Rejected.\n\nReason: ${res.data.admin_notes || 'Denied by Administrator.'}`);
+                        } else if (status === 'Completed') {
+                            alert('This password reset request has already been completed.');
+                        }
+                        return;
+                    }
+                }
+                alert('No active reset request status found. Please submit a request.');
+            } catch (err) {
+                alert('Could not check status: ' + (err.message || err));
+            }
+        };
+
+        window.proceedToPasswordResetForm = function () {
+            const step2 = document.getElementById('forgotStep2');
+            const step3 = document.getElementById('forgotStep3');
+            if (step2) step2.classList.add('d-none');
+            if (step3) step3.classList.remove('d-none');
+            setTimeout(() => document.getElementById('newResetPassword')?.focus(), 200);
+        };
+
+        // Step 3: Commit New Password
+        const resetCompleteForm = document.getElementById('resetCompleteForm');
+        if (resetCompleteForm) {
+            resetCompleteForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const newPass = document.getElementById('newResetPassword')?.value || '';
+                const confirmPass = document.getElementById('confirmResetPassword')?.value || '';
+                const btn = document.getElementById('btnUpdatePassword');
+                const errAlert = document.getElementById('resetErrorAlert');
+                const errText = document.getElementById('resetErrorMsg');
+
+                if (errAlert) errAlert.classList.add('d-none');
+
+                if (newPass !== confirmPass) {
+                    if (errText) errText.textContent = 'New Password and Confirmation do not match.';
+                    if (errAlert) errAlert.classList.remove('d-none');
+                    return;
+                }
+
+                if (newPass.length < 8) {
+                    if (errText) errText.textContent = 'Password must be at least 8 characters in length.';
+                    if (errAlert) errAlert.classList.remove('d-none');
+                    return;
+                }
+
+                const hasLetter = /[a-zA-Z]/.test(newPass);
+                const hasNumber = /[0-9]/.test(newPass);
+                if (!hasLetter || !hasNumber) {
+                    if (errText) errText.textContent = 'Password must contain both letters and numbers.';
+                    if (errAlert) errAlert.classList.remove('d-none');
+                    return;
+                }
+
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Updating in Supabase...';
+                }
+
+                try {
+                    const identifier = activeResetTicketId || activeResetIdentifier || document.getElementById('forgotIdentifier')?.value;
+                    let completeRes = null;
+
+                    if (typeof DataService !== 'undefined' && DataService.passwordResets) {
+                        completeRes = await DataService.passwordResets.completePasswordReset({
+                            identifier: identifier,
+                            newPassword: newPass
+                        });
+                    }
+
+                    if (completeRes && completeRes.error) {
+                        throw new Error(completeRes.error.message);
+                    }
+
+                    // Reset failed attempt lockouts
+                    failedLoginAttempts = 0;
+                    lockoutUntilTimestamp = 0;
+                    localStorage.removeItem('peso_failed_attempts');
+                    localStorage.removeItem('peso_lockout_until');
+                    checkLockoutStatus();
+
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Password Updated Successfully',
+                            message: 'Your official password has been saved and updated in Supabase! You can now log in.',
+                            type: 'success',
+                            duration: 7000
+                        });
+                    }
+
+                    alert('Password reset successful! You may now sign in with your updated credentials.');
+
+                    if (window.hideModal) window.hideModal('resetModal');
+
+                    // Pre-fill username on login form
+                    const usernameInp = document.getElementById('username');
+                    if (usernameInp && activeResetIdentifier) {
+                        usernameInp.value = activeResetIdentifier;
+                    }
+                    document.getElementById('password')?.focus();
+
+                } catch (err) {
+                    if (errText) errText.textContent = err.message || 'Failed to update password.';
+                    if (errAlert) errAlert.classList.remove('d-none');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Save & Update Password in Supabase';
+                    }
+                }
+            });
+        }
+
+        // Staff Login Form Submission Handler
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
             if (checkLockoutStatus()) return;
@@ -428,5 +675,6 @@
             }
         });
     }
+    });
 
 })();

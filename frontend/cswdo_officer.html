@@ -4394,8 +4394,7 @@
             document.getElementById('cswdoEmailConflictNotice')?.classList.add('d-none');
             document.getElementById('cswdoPhoneConflictNotice')?.classList.add('d-none');
             document.getElementById('cswdoBenEmail')?.classList.remove('is-invalid');
-            document.getElementById('cswdoBenPhone')?.classList.remove('is-invalid');
-
+            
             // Security Safeguard: Pre-flight check if email or phone is already in use
             if (typeof DataService !== 'undefined' && DataService.auth && DataService.auth.checkIdentifierAvailability) {
                 try {
@@ -4403,9 +4402,19 @@
                     if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
                         if (checkRes.data.isEmailTaken) {
                             const errDiv = document.getElementById('cswdoEmailConflictNotice');
-                            if (errDiv) { errDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i> This email address is already registered to an existing account.'; errDiv.classList.remove('d-none'); }
+                            if (errDiv) {
+                                errDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i> This email address is already attached to an existing account. Each account must have a unique email address.';
+                                errDiv.classList.remove('d-none');
+                            }
                             const emailInp = document.getElementById('cswdoBenEmail');
                             if (emailInp) { emailInp.classList.add('is-invalid'); emailInp.focus(); }
+                            if (window.showSystemNotification) {
+                                window.showSystemNotification({
+                                    title: 'Email Already In Use',
+                                    message: 'This email is already attached to an existing beneficiary or staff account.',
+                                    type: 'error'
+                                });
+                            }
                             return;
                         }
                         if (checkRes.data.isPhoneTaken) {

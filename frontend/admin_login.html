@@ -287,68 +287,115 @@
         </div>
     </div>
 
-    <!-- 3-Step Password Reset Modal -->
+    <!-- 3-Step Officer Password Reset Modal (Admin Approval Workflow) -->
     <div class="custom-modal" id="resetModal">
         <div class="custom-modal-backdrop" id="resetBackdrop"></div>
         <div class="custom-modal-dialog">
             <div class="custom-modal-header">
                 <div class="modal-title-container">
-                    <div class="modal-title-icon"><i class="bi bi-key-fill"></i></div>
-                    <h3 class="modal-title">Staff Password Reset</h3>
+                    <div class="modal-title-icon"><i class="bi bi-shield-lock-fill"></i></div>
+                    <h3 class="modal-title">Officer Password Reset Request</h3>
                 </div>
                 <button type="button" class="btn-modal-close" id="closeResetBtn" aria-label="Close"><i class="bi bi-x-lg"></i></button>
             </div>
             <div class="custom-modal-body">
-                <!-- Step 1 -->
+                <!-- Alert Box -->
+                <div class="alert alert-danger d-none mb-3" id="resetErrorAlert">
+                    <i class="bi bi-exclamation-circle me-1"></i> <span id="resetErrorMsg"></span>
+                </div>
+                <div class="alert alert-success d-none mb-3" id="resetSuccessAlert">
+                    <i class="bi bi-check-circle me-1"></i> <span id="resetSuccessMsg"></span>
+                </div>
+
+                <!-- Step 1: Submit Request to Admin -->
                 <div id="forgotStep1">
-                    <p class="text-muted small mb-3">Enter your registered username or Gmail address to receive a password reset verification link.</p>
+                    <p class="text-muted small mb-3">
+                        To change your official account password, submit a request to your Administrator. Once approved by the Admin, you will be authorized to set your new desired password.
+                    </p>
                     <form id="forgotPasswordForm">
                         <div class="form-group mb-3">
-                            <label class="form-label" for="forgotIdentifier">Username or Gmail Address</label>
-                            <input type="text" class="form-control" id="forgotIdentifier" placeholder="e.g. peso.admin@gmail.com" required aria-label="Username or Gmail Address">
+                            <label class="form-label" for="forgotIdentifier">Registered Username or Email <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="forgotIdentifier" placeholder="e.g. peso.officer1 or juan@gmail.com" required aria-label="Username or Email">
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label" for="forgotDepartment">Department</label>
+                            <label class="form-label" for="forgotDepartment">Department <span class="text-danger">*</span></label>
                             <select class="form-control" id="forgotDepartment" aria-label="Department">
                                 <option value="PESO">Public Employment Service Office (PESO)</option>
                                 <option value="CSWDO">City Social Welfare and Development Office (CSWDO)</option>
                             </select>
                         </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="forgotReason">Reason for Password Change <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="forgotReason" rows="2" placeholder="e.g. Forgot password, official security rotation, new device setup..." required></textarea>
+                        </div>
                         <button type="submit" class="btn-login" id="btnSendVerification">
-                            <i class="bi bi-send-fill me-1"></i> Send Verification Link
+                            <i class="bi bi-send-fill me-1"></i> Send Request to Administrator
                         </button>
                     </form>
                 </div>
 
-                <!-- Step 2 -->
+                <!-- Step 2: Waiting for Admin Approval (Live Status) -->
                 <div id="forgotStep2" class="d-none text-center py-2">
-                    <div class="text-success mb-2"><i class="bi bi-check-circle-fill" style="font-size: 2.5rem;"></i></div>
-                    <h5 class="fw-bold text-dark">Verification Dispatched</h5>
-                    <p class="text-muted small">A reset link has been dispatched for: <strong id="forgotUserEmailBadge">user@gmail.com</strong></p>
-                    <div class="p-2 bg-light border rounded mb-3 small font-monospace text-break" id="verificationLinkDisplay"></div>
-                    <input type="hidden" id="verifiedResetToken">
-                    <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="copyVerificationLink()">
-                        <i class="bi bi-clipboard me-1"></i> Copy Link
-                    </button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="proceedToPasswordResetForm()">
-                        Proceed to Reset <i class="bi bi-arrow-right ms-1"></i>
-                    </button>
+                    <div class="text-warning mb-2" id="resetStatusIcon">
+                        <i class="bi bi-hourglass-split" style="font-size: 2.8rem;"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1" id="resetStep2Title">Request Awaiting Admin Approval</h5>
+                    <p class="text-muted small mb-3" id="resetStep2Desc">
+                        Your password reset request has been transmitted to the Administrator in real-time.
+                    </p>
+                    
+                    <div class="p-3 bg-light border rounded mb-3 text-start small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Ticket ID:</span>
+                            <strong class="font-monospace text-primary" id="resetTicketIdBadge">TKT-PW-XXXXXX</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Officer Account:</span>
+                            <strong id="forgotUserEmailBadge">officer@gmail.com</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Department:</span>
+                            <span class="badge bg-secondary" id="resetDeptBadge">PESO</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                            <span class="text-muted">Status:</span>
+                            <span class="badge bg-warning text-dark px-2.5 py-1.5" id="resetStatusBadge">
+                                <span class="spinner-grow spinner-grow-sm me-1" style="width: 8px; height: 8px;"></span> Pending Admin Approval
+                            </span>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="verifiedResetTicket">
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="checkOfficerResetStatus()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Check Approval Status
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm rounded-pill px-3 d-none" id="btnProceedToNewPassword" onclick="proceedToPasswordResetForm()">
+                            <i class="bi bi-key-fill me-1"></i> Set New Password Now
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Step 3 -->
+                <!-- Step 3: Approved - Set New Desired Password -->
                 <div id="forgotStep3" class="d-none">
-                    <p class="text-muted small mb-3">Enter your new secure password (minimum 8 characters, letters & numbers).</p>
+                    <div class="alert alert-success d-flex align-items-center py-2 mb-3">
+                        <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                        <div class="small">
+                            <strong>Request Approved by Admin!</strong><br>
+                            You may now enter and confirm your new desired password below.
+                        </div>
+                    </div>
                     <form id="resetCompleteForm">
                         <div class="form-group mb-3">
-                            <label class="form-label" for="newResetPassword">New Password</label>
-                            <input type="password" class="form-control" id="newResetPassword" placeholder="Enter new password" required minlength="8" aria-label="New Password">
+                            <label class="form-label" for="newResetPassword">New Password (Min. 8 chars, letters & numbers) <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="newResetPassword" placeholder="Enter new secure password" required minlength="8" aria-label="New Password">
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label" for="confirmResetPassword">Confirm New Password</label>
+                            <label class="form-label" for="confirmResetPassword">Confirm New Password <span class="text-danger">*</span></label>
                             <input type="password" class="form-control" id="confirmResetPassword" placeholder="Confirm new password" required minlength="8" aria-label="Confirm New Password">
                         </div>
                         <button type="submit" class="btn-login" id="btnUpdatePassword">
-                            <i class="bi bi-check2-circle me-1"></i> Update Password & Re-enable Account
+                            <i class="bi bi-check2-circle me-1"></i> Save & Update Password in Supabase
                         </button>
                     </form>
                 </div>

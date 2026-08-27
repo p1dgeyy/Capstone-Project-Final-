@@ -9287,9 +9287,19 @@
                     if (checkRes && checkRes.data && !checkRes.data.isAvailable) {
                         if (checkRes.data.isEmailTaken) {
                             const errDiv = document.getElementById('officerEmailConflictNotice');
-                            if (errDiv) errDiv.classList.remove('d-none');
+                            if (errDiv) {
+                                errDiv.textContent = 'This email address is already attached to an existing account. Each account must have a unique email address.';
+                                errDiv.classList.remove('d-none');
+                            }
                             const emailInp = document.getElementById('officerBenEmail');
                             if (emailInp) { emailInp.classList.add('is-invalid'); emailInp.focus(); }
+                            if (window.showSystemNotification) {
+                                window.showSystemNotification({
+                                    title: 'Email Already In Use',
+                                    message: 'This email is already attached to an existing beneficiary or staff account.',
+                                    type: 'error'
+                                });
+                            }
                             return;
                         }
                         if (checkRes.data.isPhoneTaken) {

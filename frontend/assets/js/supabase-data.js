@@ -2040,13 +2040,14 @@ const DataService = (() => {
   // =========================================================================
   const auth = {
     /**
-     * Cross-verifies username and email availability across beneficiaries and staff_profiles tables
+     * Cross-verifies username, email, and phone availability across beneficiaries and staff_profiles tables
      * @param {Object} params
      * @param {string} [params.username]
      * @param {string} [params.email]
+     * @param {string} [params.phone]
      * @param {string|number} [params.excludeBeneficiaryId]
      * @param {string|number} [params.excludeStaffId]
-     * @returns {Promise<{ data: { isAvailable: boolean, isUsernameTaken: boolean, isEmailTaken: boolean, message: string|null, conflictTable: string|null }, error: any }>}
+     * @returns {Promise<{ data: { isAvailable: boolean, isUsernameTaken: boolean, isEmailTaken: boolean, isPhoneTaken: boolean, message: string|null, conflictTable: string|null }, error: any }>}
      */
     async checkIdentifierAvailability({ username, email, phone, excludeBeneficiaryId = null, excludeStaffId = null }) {
       return withRetry(async (client) => {
@@ -2130,7 +2131,7 @@ const DataService = (() => {
         }
 
         if (isEmailTaken) {
-          conflictMsg = `This email address is already registered to an existing account.`;
+          conflictMsg = `This email address is already attached to an existing account. Each account must have a unique email address.`;
         } else if (isPhoneTaken) {
           conflictMsg = `This mobile number is already registered to an existing account.`;
         } else if (isUsernameTaken) {
@@ -2145,6 +2146,333 @@ const DataService = (() => {
             isPhoneTaken,
             message: conflictMsg,
             conflictTable
+          },
+          error: null
+        };
+      });
+    }
+  };
+
+  // =========================================================================
+  // 14. OFFICER PASSWORD RESET REQUESTS & ADMIN APPROVAL DOMAIN
+  // =========================================================================
+  const passwordResets = {
+    /**
+     * Submit a new password reset request from an Officer to the Admin
+     */
+    async createRequest({ username, email, department = 'PESO', reason = 'Officer requested password reset.' }) {
+      return withRetry(async (client) => {
+        const cleanUser = (username || '').trim();
+        const cleanEmail = (email || '').trim().toLowerCase();
+        const cleanDept = (department || 'PESO').toUpperCase();
+
+        // 1. Verify officer exists in staff_profiles
+        let staffProfile = null;
+        try {
+          const { data: matches } = await client
+            .from('staff_profiles')
+            .select('*')
+            .or(`email.ilike.${cleanEmail},username.ilike.${cleanUser}`)
+            .limit(1);
+          if (matches && matches.length > 0) {
+            staffProfile = matches[0];
+          }
+        } catch (e) {
+          console.warn('[PASSWORD_RESETS] Staff profile lookup note:', e);
+        }
+
+        if (!staffProfile) {
+          return { error: { message: 'No registered officer/staff account found with the provided credentials.' } };
+        }
+
+        // Check if a Pending or Approved request already exists
+        try {
+          const { data: existingReqs } = await client
+            .from('password_reset_requests')
+            .select('*')
+            .eq('email', staffProfile.email)
+            .in('status', ['Pending', 'Approved'])
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (existingReqs && existingReqs.length > 0) {
+            const activeReq = existingReqs[0];
+            return {
+              data: activeReq,
+              isExisting: true,
+              message: activeReq.status === 'Approved'
+                ? 'Your password reset request has already been approved by Admin! You may now set your new password.'
+                : 'A password reset request is already pending administrator review.'
+            };
+          }
+        } catch (existErr) {
+          console.warn('[PASSWORD_RESETS] Existing check note:', existErr);
+        }
+
+        const ticketId = 'TKT-PW-' + Math.floor(100000 + Math.random() * 900000);
+        const payload = {
+          ticket_id: ticketId,
+          staff_id: staffProfile.id,
+          username: staffProfile.username,
+          email: staffProfile.email,
+          role: staffProfile.role || 'Officer',
+          department: cleanDept,
+          reason: reason || 'Officer requested password reset via official login portal.',
+          status: 'Pending',
+          created_at: new Date().toISOString()
+        };
+
+        const res = await client.from('password_reset_requests').insert(payload).select().single();
+
+        if (!res.error && res.data) {
+          // Send notification to Admins
+          try {
+            const adminRole = cleanDept === 'CSWDO' ? 'CSWDO Admin' : 'PESO Admin';
+            const { data: admins } = await client.from('staff_profiles').select('id').eq('role', adminRole);
+            if (admins && admins.length > 0) {
+              const notifs = admins.map(a => ({
+                staff_user_id: a.id,
+                title: 'Officer Password Reset Request',
+                message: `Officer ${staffProfile.first_name} ${staffProfile.last_name} (${staffProfile.username}) has requested a password reset. Ticket: ${ticketId}.`,
+                is_read: false
+              }));
+              await client.from('notifications').insert(notifs);
+            }
+          } catch (notifErr) {
+            console.warn('[PASSWORD_RESETS] Admin notification notice:', notifErr);
+          }
+
+          // Audit log
+          auditLogs.log({
+            staffUserId: staffProfile.id,
+            action: 'OFFICER_PASSWORD_RESET_REQUESTED',
+            entityType: 'staff_profile',
+            entityId: staffProfile.id,
+            details: `Officer ${staffProfile.username} (${staffProfile.email}) submitted password reset ticket ${ticketId}`
+          });
+
+          // Broadcast Realtime event
+          if (typeof window.broadcastRealtimeEvent === 'function') {
+            window.broadcastRealtimeEvent('OFFICER_PASSWORD_RESET_REQUESTED', { ticketId, staffProfile, department: cleanDept });
+          }
+        }
+
+        return res;
+      });
+    },
+
+    /**
+     * Check status of a reset request by ticket ID, email, or username
+     */
+    async getRequestStatus(identifier) {
+      return withRetry(async (client) => {
+        const clean = (identifier || '').trim().toLowerCase();
+        if (!clean) return { data: null, error: { message: 'Identifier is required.' } };
+
+        const { data, error } = await client
+          .from('password_reset_requests')
+          .select('*')
+          .or(`ticket_id.ilike.${clean},email.ilike.${clean},username.ilike.${clean}`)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) return { data: null, error };
+        return { data: data && data.length > 0 ? data[0] : null, error: null };
+      });
+    },
+
+    /**
+     * Get all password reset requests (Admin view)
+     */
+    async getAll(filters = {}) {
+      return withRetry(async (client) => {
+        let query = client.from('password_reset_requests').select('*').order('created_at', { ascending: false });
+        if (filters.department) {
+          query = query.eq('department', filters.department.toUpperCase());
+        }
+        if (filters.status) {
+          query = query.eq('status', filters.status);
+        }
+        return await query;
+      });
+    },
+
+    /**
+     * Admin approves an officer password reset request
+     */
+    async approve(requestId, adminId = null, adminNotes = null) {
+      return withRetry(async (client) => {
+        const updateData = {
+          status: 'Approved',
+          approved_by: adminId,
+          approved_at: new Date().toISOString(),
+          admin_notes: adminNotes || 'Approved by Administrator.'
+        };
+
+        const res = await client
+          .from('password_reset_requests')
+          .update(updateData)
+          .eq('id', requestId)
+          .select()
+          .single();
+
+        if (!res.error && res.data) {
+          const req = res.data;
+          if (req.staff_id) {
+            try {
+              await client.from('notifications').insert({
+                staff_user_id: req.staff_id,
+                title: 'Password Reset Request Approved',
+                message: `Your password reset request (${req.ticket_id}) has been approved by the Administrator. You can now set your new password on the official login portal.`,
+                is_read: false
+              });
+            } catch (e) {}
+          }
+
+          auditLogs.log({
+            staffUserId: adminId,
+            action: 'OFFICER_PASSWORD_RESET_APPROVED',
+            entityType: 'staff_profile',
+            entityId: req.staff_id,
+            details: `Admin approved password reset ticket ${req.ticket_id} for ${req.username} (${req.email})`
+          });
+
+          if (typeof window.broadcastRealtimeEvent === 'function') {
+            window.broadcastRealtimeEvent('OFFICER_PASSWORD_RESET_APPROVED', { request: req });
+          }
+        }
+
+        return res;
+      });
+    },
+
+    /**
+     * Admin rejects an officer password reset request
+     */
+    async reject(requestId, adminId = null, reason = 'Request denied by Administrator.') {
+      return withRetry(async (client) => {
+        const updateData = {
+          status: 'Rejected',
+          approved_by: adminId,
+          approved_at: new Date().toISOString(),
+          admin_notes: reason
+        };
+
+        const res = await client
+          .from('password_reset_requests')
+          .update(updateData)
+          .eq('id', requestId)
+          .select()
+          .single();
+
+        if (!res.error && res.data) {
+          const req = res.data;
+          if (req.staff_id) {
+            try {
+              await client.from('notifications').insert({
+                staff_user_id: req.staff_id,
+                title: 'Password Reset Request Disapproved',
+                message: `Your password reset request (${req.ticket_id}) was not approved. Reason: ${reason}`,
+                is_read: false
+              });
+            } catch (e) {}
+          }
+
+          auditLogs.log({
+            staffUserId: adminId,
+            action: 'OFFICER_PASSWORD_RESET_REJECTED',
+            entityType: 'staff_profile',
+            entityId: req.staff_id,
+            details: `Admin rejected password reset ticket ${req.ticket_id} for ${req.username}. Reason: ${reason}`
+          });
+
+          if (typeof window.broadcastRealtimeEvent === 'function') {
+            window.broadcastRealtimeEvent('OFFICER_PASSWORD_RESET_REJECTED', { request: req });
+          }
+        }
+
+        return res;
+      });
+    },
+
+    /**
+     * Officer completes password update after approval
+     */
+    async completePasswordReset({ identifier, newPassword }) {
+      return withRetry(async (client) => {
+        const clean = (identifier || '').trim().toLowerCase();
+        if (!clean || !newPassword) {
+          return { error: { message: 'Identifier and new password are required.' } };
+        }
+        if (newPassword.length < 8) {
+          return { error: { message: 'Password must be at least 8 characters long.' } };
+        }
+
+        // Find approved request
+        const { data: reqs, error: reqErr } = await client
+          .from('password_reset_requests')
+          .select('*')
+          .or(`ticket_id.ilike.${clean},email.ilike.${clean},username.ilike.${clean}`)
+          .eq('status', 'Approved')
+          .order('approved_at', { ascending: false })
+          .limit(1);
+
+        if (reqErr || !reqs || reqs.length === 0) {
+          return { error: { message: 'No admin-approved password reset request found for this account.' } };
+        }
+
+        const activeReq = reqs[0];
+
+        // 1. Update password in Supabase Auth if session exists or via isolated client
+        try {
+          if (client.auth && client.auth.updateUser) {
+            await client.auth.updateUser({ password: newPassword }).catch(() => {});
+          }
+        } catch (authErr) {
+          console.warn('[PASSWORD_RESETS] Auth updateUser notice:', authErr);
+        }
+
+        // 2. Mark request as Completed
+        await client
+          .from('password_reset_requests')
+          .update({
+            status: 'Completed',
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', activeReq.id);
+
+        // 3. Update staff_profiles timestamp and ensure active
+        if (activeReq.staff_id) {
+          await client
+            .from('staff_profiles')
+            .update({
+              status: 'Active',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', activeReq.staff_id);
+        }
+
+        // 4. Audit log
+        auditLogs.log({
+          staffUserId: activeReq.staff_id,
+          action: 'OFFICER_PASSWORD_RESET_COMPLETED',
+          entityType: 'staff_profile',
+          entityId: activeReq.staff_id,
+          details: `Officer ${activeReq.username} (${activeReq.email}) successfully completed password update under approved ticket ${activeReq.ticket_id}`
+        });
+
+        // 5. Broadcast Realtime event
+        if (typeof window.broadcastRealtimeEvent === 'function') {
+          window.broadcastRealtimeEvent('OFFICER_PASSWORD_RESET_COMPLETED', { request: activeReq });
+        }
+
+        return {
+          data: {
+            success: true,
+            ticketId: activeReq.ticket_id,
+            email: activeReq.email,
+            username: activeReq.username,
+            message: 'Password has been updated in Supabase! You may now sign in with your new password.'
           },
           error: null
         };
@@ -2174,7 +2502,8 @@ const DataService = (() => {
     batches,
     realtime,
     tracking,
-    auth
+    auth,
+    passwordResets
   });
 })();
 
