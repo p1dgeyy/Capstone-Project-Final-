@@ -437,7 +437,7 @@ const PesoOfficerApp = (() => {
 
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
-                await supabaseClient.from('beneficiaries').update({ status: newStatus }).eq('id', ben.id);
+                await supabaseClient.from('beneficiaries').update({ status: newStatus }).eq('qr_code', ben.qr_code || ben.id);
             } catch (e) {
                 console.warn('[PesoOfficerApp] Supabase update warning:', e.message);
             }

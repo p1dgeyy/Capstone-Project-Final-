@@ -806,7 +806,6 @@
 
     <!-- JS LOGIC -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/otp-auth.js"></script>
     <script>
         // Registration State Store
         let currentStep = 1;
@@ -1022,71 +1021,6 @@
             }
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // Switch between Email and SMS Channel
-        async function selectVerificationChannel(channel) {
-            if (activeVerificationChannel === channel) return;
-            activeVerificationChannel = channel;
-            renderVerificationChannelUI();
-            
-            // Clear inputs and alerts
-            for (let i = 1; i <= 6; i++) {
-                const el = document.getElementById(`otpDigit${i}`);
-                if (el) el.value = '';
-            }
-            document.getElementById('verifyAlert')?.classList.add('d-none');
-
-            // Dispatch code for newly selected channel
-            try {
-                if (channel === 'EMAIL') {
-                    await OTPAuth.sendEmailCode(registrationData.email);
-                } else {
-                    await OTPAuth.sendSmsOtp(registrationData.phone_number);
-                }
-                startOtpTimers();
-                setupSegmentedInputs('otpCodeBoxes', 6);
-            } catch (err) {
-                const alertEl = document.getElementById('verifyAlert');
-                const alertMsg = document.getElementById('verifyAlertMsg');
-                if (alertEl && alertMsg) {
-                    alertMsg.textContent = err.message || 'Could not send verification code.';
-                    alertEl.classList.remove('d-none');
-                }
-            }
-        }
-
-        function renderVerificationChannelUI() {
-            const cardEmail = document.getElementById('cardMethodEmail');
-            const cardSms = document.getElementById('cardMethodSms');
-            const badgeEmail = document.getElementById('badgeEmailSelected');
-            const badgeSms = document.getElementById('badgeSmsSelected');
-            const instr = document.getElementById('verifyInstructionMsg');
-            const icon = document.getElementById('verifyHeaderIcon');
-
-            if (activeVerificationChannel === 'EMAIL') {
-                cardEmail.style.borderColor = 'var(--step-purple)';
-                cardEmail.style.background = '#FAF5FF';
-                badgeEmail.classList.remove('d-none');
-
-                cardSms.style.borderColor = '#E2E8F0';
-                cardSms.style.background = '#FFFFFF';
-                badgeSms.classList.add('d-none');
-
-                icon.className = 'bi bi-envelope-check-fill';
-                instr.innerHTML = `We sent a 6-digit verification code to your Gmail (<strong>${registrationData.email || 'user@gmail.com'}</strong>). Enter it below.`;
-            } else {
-                cardSms.style.borderColor = '#10B981';
-                cardSms.style.background = '#F0FDF4';
-                badgeSms.classList.remove('d-none');
-
-                cardEmail.style.borderColor = '#E2E8F0';
-                cardEmail.style.background = '#FFFFFF';
-                badgeEmail.classList.add('d-none');
-
-                icon.className = 'bi bi-phone-vibrate-fill';
-                instr.innerHTML = `We sent a 6-digit SMS OTP to your mobile number (<strong>${OTPAuth.maskPhone(registrationData.phone_number)}</strong>). Enter it below.`;
-            }
         }
 
         // Setup segmented auto-advance boxes with auto-submit

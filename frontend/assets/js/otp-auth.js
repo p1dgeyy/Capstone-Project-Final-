@@ -10,7 +10,7 @@
  * 5. Data Privacy Act Compliant Masked Badges
  */
 
-const OTPAuth = (() => {
+var OTPAuth = (function() {
     'use strict';
 
     // In-memory / sessionStorage cryptographically hashed store for active OTP sessions
@@ -104,10 +104,6 @@ const OTPAuth = (() => {
         };
         _saveOtpStore(store);
 
-        let supabaseSuccess = false;
-        // Dispatch verification code via Supabase RPC / External Email
-        // (Do NOT use signInWithOtp here as it pre-creates auth.users without the user's chosen password)
-
         // Dispatch via External Email Gateway if available
         if (typeof window.sendExternalEmail === 'function') {
             try {
@@ -121,7 +117,7 @@ const OTPAuth = (() => {
             }
         }
 
-        // Persist OTP Request record to database if available
+        // Persist OTP Request record to database for real-time validation across tabs/sessions
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
                 await supabaseClient.from('otp_requests').insert({
@@ -138,7 +134,7 @@ const OTPAuth = (() => {
             }
         }
 
-        // Show confirmation message (NO OTP code displayed)
+        // Show confirmation message (NO raw OTP code revealed in UI)
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
                 title: 'Verification Code Sent',
@@ -148,7 +144,7 @@ const OTPAuth = (() => {
             });
         }
 
-        console.log(`[OTPAuth] 6-digit Email code dispatched for ${cleanEmail} (Supabase delivery: ${supabaseSuccess})`);
+        console.log(`[OTPAuth] 6-digit Email code dispatched for ${cleanEmail}`);
         return {
             success: true,
             maskedRecipient: maskEmail(cleanEmail),
@@ -185,9 +181,33 @@ const OTPAuth = (() => {
             console.warn('[OTPAuth] Supabase verifyOtp check:', err);
         }
 
-        // Check local store fallback if Supabase OTP was offline/fallback
+        // Check local store fallback
         const store = _getOtpStore();
         const record = store[`email_${cleanEmail}`];
+
+        // If not verified via Supabase Auth and not found in sessionStorage, check Supabase otp_requests table
+        if (!verifiedViaSupabase && !record && typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                const inputHash = await hashCode(code);
+                const { data: dbOtps } = await supabaseClient
+                    .from('otp_requests')
+                    .select('*')
+                    .eq('identifier', cleanEmail)
+                    .eq('status', 'PENDING')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (dbOtps && dbOtps.length > 0) {
+                    const dbRecord = dbOtps[0];
+                    const expiryTime = new Date(dbRecord.expiry).getTime();
+                    if (Date.now() <= expiryTime && (dbRecord.otp_hash === inputHash || dbRecord.otp_hash === code)) {
+                        verifiedViaSupabase = true;
+                    }
+                }
+            } catch (dbErr) {
+                console.warn('[OTPAuth] Database OTP lookup note:', dbErr);
+            }
+        }
 
         if (!verifiedViaSupabase) {
             if (!record) {
@@ -306,22 +326,49 @@ const OTPAuth = (() => {
             throw new Error('Please enter the SMS OTP code.');
         }
 
+        let verifiedViaDb = false;
         const store = _getOtpStore();
         const record = store[`phone_${cleanPhone}`];
 
-        if (!record) {
-            throw new Error('No SMS OTP was requested for this phone number or it has expired.');
+        // Check database fallback if record not found in sessionStorage
+        if (!record && typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                const inputHash = await hashCode(otp);
+                const { data: dbOtps } = await supabaseClient
+                    .from('otp_requests')
+                    .select('*')
+                    .eq('identifier', cleanPhone)
+                    .eq('status', 'PENDING')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (dbOtps && dbOtps.length > 0) {
+                    const dbRecord = dbOtps[0];
+                    const expiryTime = new Date(dbRecord.expiry).getTime();
+                    if (Date.now() <= expiryTime && (dbRecord.otp_hash === inputHash || dbRecord.otp_hash === otp)) {
+                        verifiedViaDb = true;
+                    }
+                }
+            } catch (dbErr) {
+                console.warn('[OTPAuth] Database SMS OTP lookup note:', dbErr);
+            }
         }
 
-        if (Date.now() > record.expiresAt) {
-            delete store[`phone_${cleanPhone}`];
-            _saveOtpStore(store);
-            throw new Error('SMS OTP has expired. Please request a new code.');
-        }
+        if (!verifiedViaDb) {
+            if (!record) {
+                throw new Error('No SMS OTP was requested for this phone number or it has expired.');
+            }
 
-        const inputHash = await hashCode(otp);
-        if (inputHash !== record.hash && otp !== record.code) {
-            throw new Error('Invalid SMS OTP code. Please enter the correct 6-digit code.');
+            if (Date.now() > record.expiresAt) {
+                delete store[`phone_${cleanPhone}`];
+                _saveOtpStore(store);
+                throw new Error('SMS OTP has expired. Please request a new code.');
+            }
+
+            const inputHash = await hashCode(otp);
+            if (inputHash !== record.hash && otp !== record.code) {
+                throw new Error('Invalid SMS OTP code. Please enter the correct 6-digit code.');
+            }
         }
 
         // Update database record status if available
@@ -336,8 +383,10 @@ const OTPAuth = (() => {
             }
         }
 
-        delete store[`phone_${cleanPhone}`];
-        _saveOtpStore(store);
+        if (record) {
+            delete store[`phone_${cleanPhone}`];
+            _saveOtpStore(store);
+        }
 
         return { success: true, verified: true, phone: cleanPhone };
     }
@@ -497,7 +546,44 @@ const OTPAuth = (() => {
         return { success: true, message: 'Password updated successfully! You can now log in.' };
     }
 
-    return {
+    // Real-time Event Broadcaster for Multi-Tab Sync & Live Transactions
+    function broadcastRealtimeEvent(eventType, payload = {}) {
+        const eventData = {
+            type: eventType,
+            payload: payload,
+            timestamp: Date.now()
+        };
+        try {
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('koronadal_portal_sync');
+                bc.postMessage(eventData);
+            }
+        } catch (e) {}
+        try {
+            localStorage.setItem('koronadal_last_event', JSON.stringify(eventData));
+        } catch (e) {}
+    }
+
+    function onRealtimeEvent(callback) {
+        if (typeof BroadcastChannel !== 'undefined') {
+            try {
+                const bc = new BroadcastChannel('koronadal_portal_sync');
+                bc.onmessage = (ev) => {
+                    if (ev.data && typeof callback === 'function') callback(ev.data);
+                };
+            } catch (e) {}
+        }
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'koronadal_last_event' && e.newValue) {
+                try {
+                    const parsed = JSON.parse(e.newValue);
+                    if (typeof callback === 'function') callback(parsed);
+                } catch (err) {}
+            }
+        });
+    }
+
+    const api = {
         generateNumericCode,
         maskEmail,
         maskPhone,
@@ -508,44 +594,11 @@ const OTPAuth = (() => {
         sendPasswordResetOtp,
         verifyPasswordResetOtp,
         resetBeneficiaryPassword,
-
-        // Real-time Event Broadcaster for Multi-Tab Sync & Live Transactions
-        broadcastRealtimeEvent: function(eventType, payload = {}) {
-            const eventData = {
-                type: eventType,
-                payload: payload,
-                timestamp: Date.now()
-            };
-            try {
-                if (typeof BroadcastChannel !== 'undefined') {
-                    const bc = new BroadcastChannel('koronadal_portal_sync');
-                    bc.postMessage(eventData);
-                }
-            } catch (e) {}
-            try {
-                localStorage.setItem('koronadal_last_event', JSON.stringify(eventData));
-            } catch (e) {}
-        },
-
-        onRealtimeEvent: function(callback) {
-            if (typeof BroadcastChannel !== 'undefined') {
-                try {
-                    const bc = new BroadcastChannel('koronadal_portal_sync');
-                    bc.onmessage = (ev) => {
-                        if (ev.data && typeof callback === 'function') callback(ev.data);
-                    };
-                } catch (e) {}
-            }
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'koronadal_last_event' && e.newValue) {
-                    try {
-                        const parsed = JSON.parse(e.newValue);
-                        if (typeof callback === 'function') callback(parsed);
-                    } catch (err) {}
-                }
-            });
-        }
+        broadcastRealtimeEvent,
+        onRealtimeEvent
     };
+
+    return api;
 })();
 
 // Export globally
@@ -554,4 +607,3 @@ if (typeof window !== 'undefined') {
     window.broadcastRealtimeEvent = OTPAuth.broadcastRealtimeEvent;
     window.onRealtimeEvent = OTPAuth.onRealtimeEvent;
 }
-

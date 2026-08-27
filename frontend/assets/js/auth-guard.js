@@ -197,7 +197,7 @@ const AuthGuard = (() => {
 
           if (benByEmail) {
             profile = { ...benByEmail, role: 'Beneficiary', id: benByEmail.qr_code };
-            supabaseClient.from('beneficiaries').update({ auth_id: user.id }).eq('id', benByEmail.id).then(() => {});
+            supabaseClient.from('beneficiaries').update({ auth_id: user.id }).eq('qr_code', benByEmail.qr_code).then(() => {});
           }
         } catch (e) {}
       }

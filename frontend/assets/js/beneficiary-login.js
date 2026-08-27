@@ -187,7 +187,7 @@
                                 .maybeSingle();
                             if (profByEmail) {
                                 profile = profByEmail;
-                                supabaseClient.from('beneficiaries').update({ auth_id: authData.user.id }).eq('id', profByEmail.id).then(() => {});
+                                supabaseClient.from('beneficiaries').update({ auth_id: authData.user.id }).eq('qr_code', profByEmail.qr_code).then(() => {});
                             }
                         }
 

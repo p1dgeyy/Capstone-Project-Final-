@@ -282,7 +282,7 @@ const DataService = (() => {
         try {
           const { data: matches } = await client
             .from('beneficiaries')
-            .select('qr_code, email, username, id')
+            .select('qr_code, email, username, auth_id')
             .or(`email.ilike.${payload.email},username.ilike.${payload.username}`)
             .limit(1);
           if (matches && matches.length > 0) {
@@ -2063,32 +2063,31 @@ const DataService = (() => {
         // 1. Check in beneficiaries table
         if (cleanUsername || cleanEmail || cleanPhone) {
           try {
-            let benQuery = client.from('beneficiaries').select('id, qr_code, username, email, phone');
             if (cleanEmail) {
-              const { data: emailMatches } = await client.from('beneficiaries').select('id, qr_code, email').ilike('email', cleanEmail);
+              const { data: emailMatches } = await client.from('beneficiaries').select('qr_code, email').ilike('email', cleanEmail);
               if (emailMatches && emailMatches.length > 0) {
                 for (const match of emailMatches) {
-                  if (excludeBeneficiaryId && (String(match.id) === String(excludeBeneficiaryId) || String(match.qr_code) === String(excludeBeneficiaryId))) continue;
+                  if (excludeBeneficiaryId && String(match.qr_code) === String(excludeBeneficiaryId)) continue;
                   isEmailTaken = true;
                   conflictTable = 'beneficiaries';
                 }
               }
             }
             if (cleanUsername) {
-              const { data: userMatches } = await client.from('beneficiaries').select('id, qr_code, username').ilike('username', cleanUsername);
+              const { data: userMatches } = await client.from('beneficiaries').select('qr_code, username').ilike('username', cleanUsername);
               if (userMatches && userMatches.length > 0) {
                 for (const match of userMatches) {
-                  if (excludeBeneficiaryId && (String(match.id) === String(excludeBeneficiaryId) || String(match.qr_code) === String(excludeBeneficiaryId))) continue;
+                  if (excludeBeneficiaryId && String(match.qr_code) === String(excludeBeneficiaryId)) continue;
                   isUsernameTaken = true;
                   conflictTable = 'beneficiaries';
                 }
               }
             }
             if (cleanPhone && cleanPhone.length >= 10) {
-              const { data: phoneMatches } = await client.from('beneficiaries').select('id, qr_code, phone');
+              const { data: phoneMatches } = await client.from('beneficiaries').select('qr_code, phone').ilike('phone', `%${cleanPhone.slice(-10)}%`).limit(10);
               if (phoneMatches && phoneMatches.length > 0) {
                 for (const match of phoneMatches) {
-                  if (excludeBeneficiaryId && (String(match.id) === String(excludeBeneficiaryId) || String(match.qr_code) === String(excludeBeneficiaryId))) continue;
+                  if (excludeBeneficiaryId && String(match.qr_code) === String(excludeBeneficiaryId)) continue;
                   const dbPhone = (match.phone || '').replace(/[^0-9]/g, '');
                   if (dbPhone && (dbPhone === cleanPhone || dbPhone.endsWith(cleanPhone.slice(-10)))) {
                     isPhoneTaken = true;
