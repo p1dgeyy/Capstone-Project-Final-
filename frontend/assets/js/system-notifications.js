@@ -5,7 +5,7 @@
  */
 
 (function () {
-  'use me';
+  'use strict';
 
   // Inject CSS styles for system notification modals if not already present
   if (!document.getElementById('system-notification-styles')) {
@@ -491,7 +491,7 @@
       const timestamp = new Date().toISOString();
 
       try {
-        console.log(`[EXTERNAL EMAIL GATEWAY] Dispatching Email to ${recipientEmail} with subject "${subject}"`);
+        console.log(`[EXTERNAL EMAIL GATEWAY] Dispatching Email to ${recipientEmail} with subject "${subject}":`, body);
 
         // Audit log dispatch in database
         if (typeof DataService !== 'undefined' && DataService.auditLogs) {

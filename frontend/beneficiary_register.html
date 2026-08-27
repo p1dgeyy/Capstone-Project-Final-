@@ -1227,8 +1227,17 @@
             const badgeSms = document.getElementById('badgeSmsSelected');
             const otpInputArea = document.getElementById('activeOtpInputArea');
             const verifyInstruction = document.getElementById('verifyInstructionMsg');
+            const icon = document.getElementById('verifyHeaderIcon');
+
+            // Clear inputs and alert
+            for (let i = 1; i <= 6; i++) {
+                const el = document.getElementById(`otpDigit${i}`);
+                if (el) el.value = '';
+            }
+            document.getElementById('verifyAlert')?.classList.add('d-none');
 
             if (channel === 'EMAIL') {
+                if (icon) icon.className = 'bi bi-envelope-check-fill';
                 if (cardEmail) {
                     cardEmail.style.borderColor = 'var(--step-purple)';
                     cardEmail.style.background = '#FAF5FF';
@@ -1240,20 +1249,22 @@
                 if (badgeEmail) badgeEmail.classList.remove('d-none');
                 if (badgeSms) badgeSms.classList.add('d-none');
                 if (verifyInstruction) {
-                    verifyInstruction.innerHTML = `We dispatched a 6-digit verification code to your Gmail (<strong>${registrationData.email}</strong>). Enter it below to activate your account:`;
+                    verifyInstruction.innerHTML = `We dispatched a 6-digit verification code to your Gmail (<strong>${registrationData.email || 'user@gmail.com'}</strong>). Enter it below to activate your account:`;
                 }
 
                 try {
                     await OTPAuth.sendEmailCode(registrationData.email);
-                    window.showSystemNotification({
-                        title: 'Code Dispatched',
-                        message: `Verification code sent to ${registrationData.email}`,
-                        type: 'info'
-                    });
                 } catch (e) {
                     console.warn('[EMAIL DISPATCH]:', e);
+                    const alertEl = document.getElementById('verifyAlert');
+                    const alertMsg = document.getElementById('verifyAlertMsg');
+                    if (alertEl && alertMsg) {
+                        alertMsg.textContent = e.message || 'Could not send verification code.';
+                        alertEl.classList.remove('d-none');
+                    }
                 }
             } else {
+                if (icon) icon.className = 'bi bi-phone-vibrate-fill';
                 if (cardSms) {
                     cardSms.style.borderColor = '#10B981';
                     cardSms.style.background = '#ECFDF5';
@@ -1265,18 +1276,19 @@
                 if (badgeSms) badgeSms.classList.remove('d-none');
                 if (badgeEmail) badgeEmail.classList.add('d-none');
                 if (verifyInstruction) {
-                    verifyInstruction.innerHTML = `We dispatched a 6-digit SMS verification code to your mobile phone (<strong>${OTPAuth.maskPhone(registrationData.phone_number)}</strong>). Enter it below to activate your account:`;
+                    verifyInstruction.innerHTML = `We dispatched a 6-digit SMS verification code to your mobile phone (<strong>${typeof OTPAuth !== 'undefined' ? OTPAuth.maskPhone(registrationData.phone_number) : registrationData.phone_number}</strong>). Enter it below to activate your account:`;
                 }
 
                 try {
                     await OTPAuth.sendSmsOtp(registrationData.phone_number);
-                    window.showSystemNotification({
-                        title: 'SMS Code Dispatched',
-                        message: `Verification code sent to ${OTPAuth.maskPhone(registrationData.phone_number)}`,
-                        type: 'info'
-                    });
                 } catch (e) {
                     console.warn('[SMS DISPATCH]:', e);
+                    const alertEl = document.getElementById('verifyAlert');
+                    const alertMsg = document.getElementById('verifyAlertMsg');
+                    if (alertEl && alertMsg) {
+                        alertMsg.textContent = e.message || 'Could not send SMS verification code.';
+                        alertEl.classList.remove('d-none');
+                    }
                 }
             }
 

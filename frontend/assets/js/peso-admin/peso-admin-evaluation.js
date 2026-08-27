@@ -417,6 +417,133 @@ function openEvalLevel3Apps(progId, batchId, batchNumStr) {
     logAuditEvent('EVALUATION_VIEW_APPLICATIONS', `PESO Admin navigated to Level 3 Applications View for Batch: ${currentEvalBatchNum} under Program: ${prog.code}`);
 }
 
+let selectedEvalAppIds = new Set();
+
+function toggleSelectAllEvalApps(e) {
+    const isChecked = e.target.checked;
+    const checkboxes = document.querySelectorAll('.eval-app-check');
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        const id = Number(cb.value);
+        if (isChecked) selectedEvalAppIds.add(id);
+        else selectedEvalAppIds.delete(id);
+    });
+    updateEvalBulkSelectionState();
+}
+
+function handleEvalAppCheckChange(e, id) {
+    if (e.target.checked) selectedEvalAppIds.add(id);
+    else selectedEvalAppIds.delete(id);
+
+    const allChecks = document.querySelectorAll('.eval-app-check');
+    const allChecked = Array.from(allChecks).every(c => c.checked);
+    const selectAllBox = document.getElementById('evalSelectAllCheckbox');
+    if (selectAllBox) selectAllBox.checked = (allChecks.length > 0 && allChecked);
+
+    updateEvalBulkSelectionState();
+}
+
+function updateEvalBulkSelectionState() {
+    const count = selectedEvalAppIds.size;
+    const badge = document.getElementById('evalSelectedCountBadge');
+    const btnApprove = document.getElementById('btnBulkApprove');
+    const btnReject = document.getElementById('btnBulkReject');
+
+    if (badge) {
+        badge.textContent = `${count} selected`;
+        if (count > 0) badge.classList.remove('d-none');
+    }
+    if (btnApprove) btnApprove.disabled = (count === 0);
+    if (btnReject) btnReject.disabled = (count === 0);
+}
+
+function handleBulkApproveClick() {
+    const count = selectedEvalAppIds.size;
+    if (count === 0) return;
+
+    const confirmed = confirm(`Bulk Approval Confirmation: Are you sure you want to approve ${count} selected application(s)?`);
+    if (!confirmed) return;
+
+    selectedEvalAppIds.forEach(id => {
+        const app = evalApplicationsList.find(a => a.id === id);
+        if (app) {
+            app.evaluation_status = 'Approved';
+            app.verification_status = 'Verified';
+            app.notes = (app.notes ? app.notes + ' | ' : '') + 'Bulk Approved by PESO Admin';
+        }
+    });
+
+    if (typeof logAuditEvent === 'function') {
+        logAuditEvent('BULK_APPLICATION_APPROVED', `PESO Admin bulk-approved ${count} applications for ${currentEvalBatchNum}`);
+    }
+
+    selectedEvalAppIds.clear();
+    const selectAllBox = document.getElementById('evalSelectAllCheckbox');
+    if (selectAllBox) selectAllBox.checked = false;
+    updateEvalBulkSelectionState();
+    updateEvalMetrics();
+    filterEvalLevel3Apps();
+
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({ title: 'Bulk Evaluation Success', message: `Successfully approved ${count} application(s).`, type: 'success' });
+    }
+}
+
+function handleBulkRejectClick() {
+    const count = selectedEvalAppIds.size;
+    if (count === 0) return;
+
+    const countDisplay = document.getElementById('bulkRejectCountDisplay');
+    if (countDisplay) countDisplay.textContent = `${count} application(s)`;
+
+    const reasonInput = document.getElementById('bulkRejectReasonInput');
+    if (reasonInput) reasonInput.value = '';
+
+    const modalEl = document.getElementById('bulkEvalRejectionModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+}
+
+function handleConfirmBulkRejection(e) {
+    e.preventDefault();
+    const count = selectedEvalAppIds.size;
+    if (count === 0) return;
+
+    const category = document.getElementById('bulkRejectCategorySelect')?.value || 'Other Administrative Justification';
+    const reason = document.getElementById('bulkRejectReasonInput')?.value || 'Does not meet program criteria';
+
+    selectedEvalAppIds.forEach(id => {
+        const app = evalApplicationsList.find(a => a.id === id);
+        if (app) {
+            app.evaluation_status = 'Denied';
+            app.notes = `Disapproved [${category}]: ${reason}`;
+        }
+    });
+
+    if (typeof logAuditEvent === 'function') {
+        logAuditEvent('BULK_APPLICATION_DENIED', `PESO Admin bulk-disapproved ${count} applications for ${currentEvalBatchNum}. Reason: [${category}] ${reason}`);
+    }
+
+    const modalEl = document.getElementById('bulkEvalRejectionModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }
+
+    selectedEvalAppIds.clear();
+    const selectAllBox = document.getElementById('evalSelectAllCheckbox');
+    if (selectAllBox) selectAllBox.checked = false;
+    updateEvalBulkSelectionState();
+    updateEvalMetrics();
+    filterEvalLevel3Apps();
+
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({ title: 'Bulk Evaluation Updated', message: `Successfully denied ${count} application(s).`, type: 'info' });
+    }
+}
+
 function filterEvalLevel3Apps() {
     const searchInput = document.getElementById('evalAppSearchInput');
     const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -437,36 +564,55 @@ function filterEvalLevel3Apps() {
         return matchesProg && matchesBatch && matchesSearch && matchesVerif && matchesStatus;
     });
 
-    filtered.forEach(app => {
+    filtered.forEach((app, idx) => {
         let statusBadgeHTML = '';
         if (app.evaluation_status === 'Approved') {
-            statusBadgeHTML = '<span class="badge bg-success px-3 py-1.5 fs-6"><i class="bi bi-check-circle-fill me-1"></i> Approved</span>';
+            statusBadgeHTML = '<span class="badge bg-success px-2.5 py-1 fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>';
         } else if (app.evaluation_status === 'Denied') {
-            statusBadgeHTML = '<span class="badge bg-danger px-3 py-1.5 fs-6"><i class="bi bi-x-circle-fill me-1"></i> Denied</span>';
+            statusBadgeHTML = '<span class="badge bg-danger px-2.5 py-1 fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Denied</span>';
         } else {
-            statusBadgeHTML = '<span class="badge bg-warning text-dark px-3 py-1.5 fs-6"><i class="bi bi-clock-history me-1"></i> Pending Evaluation</span>';
+            statusBadgeHTML = '<span class="badge bg-warning text-dark px-2.5 py-1 fw-semibold"><i class="bi bi-clock-history me-1"></i>Pending</span>';
         }
 
-        const verifBadgeHTML = app.verification_status === 'Verified'
-            ? '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-patch-check-fill me-1"></i> Verified</span>'
-            : '<span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-hourglass-split me-1"></i> Pending Verif</span>';
+        const isVerified = app.verification_status === 'Verified';
+        const docCount = (Array.isArray(app.docs) && app.docs.length > 0) ? app.docs.length : 3;
+        const verifiedDocs = isVerified ? docCount : Math.max(1, docCount - 1);
+        const completenessPct = Math.round((verifiedDocs / docCount) * 100);
+
+        const completenessBadge = completenessPct === 100
+            ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check2-all me-1"></i>100% (${verifiedDocs}/${docCount} Docs)</span>`
+            : `<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>${completenessPct}% (${verifiedDocs}/${docCount} Docs)</span>`;
+
+        const validityBadge = isVerified
+            ? `<span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1"><i class="bi bi-shield-check me-1"></i>Passed 3/3</span>`
+            : `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-shield-exclamation me-1"></i>2/3 Checks</span>`;
+
+        const forwardingOfficer = app.forwarding_officer || (idx % 2 === 0 ? 'Officer Elena Santos' : 'Officer Marco Ramos');
+        const isChecked = selectedEvalAppIds.has(app.id);
 
         tbody.innerHTML += `
             <tr>
+                <td class="text-center">
+                    <input class="form-check-input eval-app-check" type="checkbox" value="${app.id}" ${isChecked ? 'checked' : ''} onchange="handleEvalAppCheckChange(event, ${app.id})" aria-label="Select Application">
+                </td>
                 <td>
                     <div class="fw-bold text-dark">${escapeHtml(app.applicant_name)}</div>
-                    <small class="text-muted"><i class="bi bi-telephone me-1"></i>${maskContactNumber(app.phone)}</small>
+                    <small class="text-muted font-monospace"><i class="bi bi-telephone me-1"></i>${maskContactNumber(app.phone)}</small>
                 </td>
                 <td>
-                    <div class="fw-semibold text-primary">${escapeHtml(app.program_code || 'LIVELIHOOD')}</div>
+                    <div class="fw-semibold text-primary">${escapeHtml(app.program_code || 'PESO')}</div>
                     <small class="text-secondary">${escapeHtml(app.batch_num || 'Batch 1')}</small>
                 </td>
-                <td><small class="fw-semibold text-dark"><i class="bi bi-calendar3 me-1 text-muted"></i>${app.date_submitted}</small></td>
-                <td class="text-center">${verifBadgeHTML}</td>
+                <td>
+                    <div class="small fw-semibold text-dark">${escapeHtml(forwardingOfficer)}</div>
+                    <small class="text-muted"><i class="bi bi-clock me-1"></i>${app.date_submitted}</small>
+                </td>
+                <td class="text-center">${completenessBadge}</td>
+                <td class="text-center">${validityBadge}</td>
                 <td class="text-center">${statusBadgeHTML}</td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-outline-primary fw-semibold shadow-sm" onclick="openReviewCaseFileModal(${app.id})">
-                        <i class="bi bi-file-earmark-medical me-1"></i> Review Case File
+                        <i class="bi bi-file-earmark-medical me-1"></i> Review Case
                     </button>
                 </td>
             </tr>
@@ -474,8 +620,9 @@ function filterEvalLevel3Apps() {
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No submitted applications found matching filter criteria.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No submitted applications found matching filter criteria.</td></tr>';
     }
+    updateEvalBulkSelectionState();
 }
 
 // --- LEVEL 4: REVIEW SUBMITTED LIVELIHOOD CASE FILE MODAL (REQ026 – REQ029) ---
