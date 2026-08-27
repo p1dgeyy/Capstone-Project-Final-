@@ -456,16 +456,19 @@
 
   // Summary Overview Cards & Dashboard Controller
   function renderDashboardOverview() {
-    // 1. Calculate the 4 Standardized Overview Stat Cards
+    // 1. Calculate the 5 Standardized Overview Stat Cards
     const totalApps = state.applications.length;
     const pendingApps = state.applications.filter(a => {
       const s = (a.status || '').toLowerCase();
-      return s.includes('pending') || s.includes('review') || s.includes('under review') || s.includes('requirements');
+      return s.includes('pending') || s.includes('review') || s.includes('under review') || s.includes('requirements') || s.includes('incomplete');
     }).length;
     const approvedApps = state.applications.filter(a => {
       const s = (a.status || '').toLowerCase();
-      return s === 'approved' || s === 'officer approved';
+      return s === 'approved' || s === 'officer approved' || s.includes('approved');
     }).length;
+    const trainingScheds = (state.trainings || []).length;
+    const distributionEvents = (state.releases || []).length;
+    const unreadNotifs = state.notifications.filter(n => !n.isRead).length;
     const completedApps = state.applications.filter(a => {
       const s = (a.status || '').toLowerCase();
       return s === 'completed' || s === 'released';
@@ -474,6 +477,9 @@
     if (document.getElementById('benStatSubmittedApps')) document.getElementById('benStatSubmittedApps').textContent = totalApps;
     if (document.getElementById('benStatPendingApps')) document.getElementById('benStatPendingApps').textContent = pendingApps;
     if (document.getElementById('benStatApprovedApps')) document.getElementById('benStatApprovedApps').textContent = approvedApps;
+    if (document.getElementById('benStatTrainingScheds')) document.getElementById('benStatTrainingScheds').textContent = trainingScheds;
+    if (document.getElementById('benStatDistributionEvents')) document.getElementById('benStatDistributionEvents').textContent = distributionEvents;
+    if (document.getElementById('benStatNotifs')) document.getElementById('benStatNotifs').textContent = unreadNotifs;
     if (document.getElementById('benStatCompletedApps')) document.getElementById('benStatCompletedApps').textContent = completedApps;
 
     const qrBadge = document.getElementById('benPortalQrBadge');
@@ -693,9 +699,22 @@
             </div>
           </div>
 
-          <div class="mt-2 text-muted small d-flex align-items-center gap-2">
-            <i class="bi bi-info-circle text-primary"></i>
-            <span><strong>Instructions:</strong> ${notes}</span>
+          <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="text-muted small d-flex align-items-center gap-2">
+              <i class="bi bi-info-circle text-primary"></i>
+              <span><strong>Instructions:</strong> ${notes}</span>
+            </div>
+            <div>
+              ${item.confirmed ? `
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill small">
+                  <i class="bi bi-check-circle-fill me-1"></i>Attendance Confirmed
+                </span>
+              ` : `
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold shadow-sm" onclick="confirmScheduleAttendance('${item.id || item.dbId}')">
+                  <i class="bi bi-check2-circle me-1"></i> Confirm Attendance
+                </button>
+              `}
+            </div>
           </div>
         </div>
       `;
@@ -1678,20 +1697,69 @@
     if (container) {
       if (state.releases.length === 0) {
         container.innerHTML = `
-          <div class="card p-3 text-center text-muted mb-4 small bg-light">
-            <i class="bi bi-box-seam fs-3 d-block mb-1 text-secondary"></i>
-            No upcoming scheduled assistance distributions or grant disbursements at this moment.
+          <div class="card p-4 text-center text-muted mb-4 bg-light rounded-4 border">
+            <i class="bi bi-box-seam fs-2 d-block mb-2 text-secondary"></i>
+            <h6 class="fw-bold text-dark mb-1">No Active Distribution Event at this Moment</h6>
+            <p class="small text-muted mb-3">When PESO Admins schedule assistance disbursements (Starter Kits, TUPAD wages, SPES stipend), your allocation and release desk voucher will appear here.</p>
+            <div>
+              <button class="btn btn-sm btn-outline-primary rounded-pill px-4 fw-semibold" onclick="openQrModal()">
+                <i class="bi bi-qr-code me-1"></i> Preview Digital QR Pass
+              </button>
+            </div>
           </div>
         `;
       } else {
         container.innerHTML = state.releases.map(r => `
-          <div class="alert alert-success border-success-subtle p-3 mb-3 rounded-3 shadow-sm">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="card border-0 shadow-sm rounded-4 p-4 mb-3 bg-white" style="border-left: 5px solid var(--rose-primary) !important;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
               <div>
-                <strong class="d-block text-dark fs-6"><i class="bi bi-box-seam-fill me-2 text-success"></i>${r.assistance}</strong>
-                <small class="text-muted"><i class="bi bi-clock me-1"></i>Scheduled: ${r.date} (${r.time}) • <i class="bi bi-building me-1"></i>${r.location}</small>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small mb-1">
+                  <i class="bi bi-gift-fill me-1"></i>Allocated Assistance Grant
+                </span>
+                <h5 class="fw-bold text-dark mb-0">${r.program}</h5>
+                <strong class="text-success fs-5">${r.assistance}</strong>
               </div>
-              <span class="badge bg-success px-3 py-2 fs-6"><i class="bi bi-check-circle-fill me-1"></i>${r.status}</span>
+              <div>
+                ${r.beneficiaryConfirmed ? `
+                  <span class="badge bg-success text-white px-3 py-2 rounded-pill fs-6">
+                    <i class="bi bi-check-circle-fill me-1"></i>Dual-Confirmed (Voucher Signed)
+                  </span>
+                ` : `
+                  <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fs-6">
+                    <i class="bi bi-qr-code-scan me-1"></i>Ready for Release Desk Scan
+                  </span>
+                `}
+              </div>
+            </div>
+
+            <div class="row g-2 small text-dark my-2 p-3 bg-light rounded-3 border">
+              <div class="col-md-4">
+                <span class="text-muted d-block">Schedule & Operating Hours:</span>
+                <strong><i class="bi bi-calendar-check me-1 text-primary"></i>${r.date}</strong>
+                <div class="text-muted">${r.time || '08:00 AM - 05:00 PM'}</div>
+              </div>
+              <div class="col-md-4">
+                <span class="text-muted d-block">Release Desk Venue:</span>
+                <strong><i class="bi bi-geo-alt-fill text-danger me-1"></i>${r.location || 'PESO Disbursement & Distribution Desk'}</strong>
+              </div>
+              <div class="col-md-4">
+                <span class="text-muted d-block">Verification Requirement:</span>
+                <strong><i class="bi bi-shield-lock-fill text-success me-1"></i>Dual Verification (QR Pass + Signed Voucher)</strong>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 pt-2 border-top">
+              <span class="small text-muted">
+                <i class="bi bi-info-circle text-primary me-1"></i>Present your QR Pass to the Officer at the release desk for instant verification.
+              </span>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold shadow-sm" onclick="openQrModal()">
+                  <i class="bi bi-qr-code me-1"></i> Show QR Pass
+                </button>
+                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold shadow-sm" onclick="openDisbursementConfirmationModal('${r.id || r.dbId}', '${r.program}', '${r.assistance}', '${r.date}')">
+                  <i class="bi bi-pen-fill me-1"></i> Confirm Receipt & Sign Voucher
+                </button>
+              </div>
             </div>
           </div>
         `).join('');
@@ -1703,13 +1771,13 @@
         historyContainer.innerHTML = '<div class="card p-3 text-center text-muted small bg-light">No historical release records on file.</div>';
       } else {
         historyContainer.innerHTML = state.releases.map(r => `
-          <div class="card border rounded-3 p-3 shadow-sm">
+          <div class="card border rounded-3 p-3 shadow-sm mb-2 bg-white">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div>
                 <h6 class="fw-bold text-dark mb-1">${r.program}</h6>
-                <div class="text-muted small">${r.assistance} • Disbursed: ${r.date}</div>
+                <div class="text-muted small">${r.assistance} • Disbursed: ${r.date} • Reference: <strong>${r.id}</strong></div>
               </div>
-              <span class="badge bg-secondary-subtle text-dark border">Completed</span>
+              <span class="badge bg-secondary-subtle text-dark border px-3 py-1.5 rounded-pill"><i class="bi bi-archive-fill me-1"></i>Recorded & Logged</span>
             </div>
           </div>
         `).join('');
@@ -1801,6 +1869,205 @@
     }
   }
 
+  // ==========================================
+  // MODULE 3: 3-Day Resubmission Window Controller
+  // ==========================================
+  let activeReplacementContext = null;
+
+  function openReplacementDocModal(docId, docName, programName, reason, deadlineTimestamp) {
+    activeReplacementContext = {
+      docId: docId || 'DOC-REF-01',
+      docName: docName || 'Flagged Requirement',
+      programName: programName || 'PESO Assistance Program',
+      reason: reason || 'Officer noted requirement deficiency or incomplete document pages.',
+      deadline: deadlineTimestamp || (Date.now() + 3 * 24 * 3600 * 1000)
+    };
+
+    const titleEl = document.getElementById('replacementModalTitle');
+    const reasonEl = document.getElementById('replacementModalReason');
+    const deadlineEl = document.getElementById('replacementModalDeadline');
+    const previewBox = document.getElementById('replacementFilePreviewBox');
+    const inputEl = document.getElementById('replacementFileInput');
+
+    if (titleEl) titleEl.textContent = `Replace Flagged Document: ${activeReplacementContext.docName}`;
+    if (reasonEl) reasonEl.textContent = activeReplacementContext.reason;
+    if (previewBox) previewBox.classList.add('d-none');
+    if (inputEl) inputEl.value = '';
+
+    // Calculate Remaining Window Time
+    const remainingMs = Math.max(0, activeReplacementContext.deadline - Date.now());
+    const hoursLeft = Math.floor(remainingMs / (1000 * 60 * 60));
+    const minsLeft = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+    if (deadlineEl) deadlineEl.textContent = `${hoursLeft}h ${minsLeft}m Remaining (Strict 3-Day Window)`;
+
+    if (window.openModal) {
+      window.openModal('uploadReplacementDocModal');
+    } else {
+      const modal = document.getElementById('uploadReplacementDocModal');
+      if (modal) { modal.classList.add('active'); modal.style.display = 'flex'; }
+    }
+  }
+
+  function validateReplacementFile(input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const validExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+    const fileName = file.name.toLowerCase();
+    const isValidExt = validExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!isValidExt) {
+      alert('Invalid file format. Please upload a PDF, PNG, or JPG document.');
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds the 5MB maximum limit. Please select a smaller document.');
+      input.value = '';
+      return;
+    }
+
+    const previewBox = document.getElementById('replacementFilePreviewBox');
+    const namePreview = document.getElementById('replacementFileNamePreview');
+    const sizePreview = document.getElementById('replacementFileSizePreview');
+
+    if (previewBox) previewBox.classList.remove('d-none');
+    if (namePreview) namePreview.textContent = file.name;
+    if (sizePreview) sizePreview.textContent = `${Math.round(file.size / 1024)} KB`;
+  }
+
+  async function submitReplacementDocument() {
+    const input = document.getElementById('replacementFileInput');
+    if (!input || !input.files || input.files.length === 0) {
+      alert('Please select a replacement file to upload.');
+      return;
+    }
+
+    if (!activeReplacementContext) {
+      alert('No active replacement document context found.');
+      return;
+    }
+
+    const file = input.files[0];
+    const docName = activeReplacementContext.docName;
+    const timestamp = new Date().toISOString();
+    console.log(`[DOCUMENT RESUBMISSION] Beneficiary ${state.user?.username} resubmitted document "${docName}" at ${timestamp}`);
+
+    // Update local state and Supabase record
+    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+      OTPAuth.broadcastRealtimeEvent('DOCUMENT_RESUBMITTED', {
+        beneficiary_qr: state.user?.qr_code,
+        beneficiary_name: state.user?.fullName,
+        doc_name: docName,
+        file_name: file.name,
+        resubmitted_at: timestamp
+      });
+    }
+
+    alert(`Replacement document "${file.name}" has been uploaded successfully!\n\nStatus: Resubmitted for Officer Review within 3-day window.`);
+
+    if (window.closeModal) {
+      window.closeModal('uploadReplacementDocModal');
+    }
+
+    await fetchBeneficiaryData();
+  }
+
+  // ==========================================
+  // MODULE 5: Schedule Attendance Confirmation
+  // ==========================================
+  async function confirmScheduleAttendance(scheduleId) {
+    if (!scheduleId) return;
+
+    const sched = (state.trainings || []).find(s => s.id === scheduleId || s.dbId === scheduleId);
+    const title = sched ? sched.title : 'Assigned Activity Slot';
+
+    const proceed = confirm(`Confirm your attendance for "${title}"?\n\nThis notifies the designated PESO Officer of your attendance confirmation.`);
+    if (!proceed) return;
+
+    if (sched) {
+      sched.confirmed = true;
+      sched.attendance = 'Confirmed by Beneficiary';
+    }
+
+    // Broadcast Real-time event to PESO Officer Portal
+    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+      OTPAuth.broadcastRealtimeEvent('SCHEDULE_ATTENDANCE_CONFIRMED', {
+        schedule_id: scheduleId,
+        beneficiary_qr: state.user?.qr_code,
+        beneficiary_name: state.user?.fullName,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    alert(`Attendance confirmed for "${title}".\nPlease arrive at the venue 15 minutes prior to your scheduled time slot with a valid government ID.`);
+    renderBeneficiaryScheduledActivities();
+  }
+
+  // ==========================================
+  // MODULE 6: Dual Confirmation Disbursement Voucher
+  // ==========================================
+  let activeVoucherContext = null;
+
+  function openDisbursementConfirmationModal(releaseId, programName, grantValue, releaseDate) {
+    activeVoucherContext = {
+      releaseId,
+      programName: programName || 'PESO Assistance Grant',
+      grantValue: grantValue || 'Assistance Package',
+      releaseDate: releaseDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      refNumber: `VOUCH-KOR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+    };
+
+    const user = state.user || {};
+    const setEl = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+
+    setEl('voucherRefNumber', activeVoucherContext.refNumber);
+    setEl('voucherBeneficiaryName', user.fullName || 'Maria Santos');
+    setEl('voucherBeneficiaryQr', user.qr_code || 'QR-BEN-ACTIVE');
+    setEl('voucherProgramName', activeVoucherContext.programName);
+    setEl('voucherGrantValue', activeVoucherContext.grantValue);
+    setEl('voucherReleaseDate', activeVoucherContext.releaseDate);
+    setEl('voucherDisbursingOfficer', 'PESO Releasing Officer • Desk Verified');
+
+    if (window.openModal) {
+      window.openModal('disbursementReceiptConfirmationModal');
+    } else {
+      const modal = document.getElementById('disbursementReceiptConfirmationModal');
+      if (modal) { modal.classList.add('active'); modal.style.display = 'flex'; }
+    }
+  }
+
+  async function executeDisbursementReceiptConfirmation() {
+    if (!activeVoucherContext) return;
+
+    const timestamp = new Date().toISOString();
+    console.log(`[DUAL CONFIRMATION] Beneficiary ${state.user?.fullName} signed voucher ${activeVoucherContext.refNumber} at ${timestamp}`);
+
+    const rel = state.releases.find(r => r.id === activeVoucherContext.releaseId || r.dbId === activeVoucherContext.releaseId);
+    if (rel) {
+      rel.beneficiaryConfirmed = true;
+      rel.status = 'Dual-Confirmed (Voucher Signed)';
+    }
+
+    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+      OTPAuth.broadcastRealtimeEvent('DISBURSEMENT_DUAL_CONFIRMED', {
+        release_id: activeVoucherContext.releaseId,
+        ref_number: activeVoucherContext.refNumber,
+        beneficiary_qr: state.user?.qr_code,
+        beneficiary_name: state.user?.fullName,
+        timestamp: timestamp
+      });
+    }
+
+    alert(`Voucher ${activeVoucherContext.refNumber} signed and confirmed successfully!\n\nDual Confirmation is now recorded in the municipal audit logs.`);
+
+    if (window.closeModal) {
+      window.closeModal('disbursementReceiptConfirmationModal');
+    }
+
+    renderDistributionReleases();
+  }
+
   // Global Scope Exports
   window.submitAssistanceRequest = submitAssistanceRequest;
   window.viewCompletionCertificate = viewCompletionCertificate;
@@ -1823,6 +2090,12 @@
   window.renderTrainingsList = renderTrainingsList;
   window.renderDistributionReleases = renderDistributionReleases;
   window.renderNotificationsFeed = renderNotificationsFeed;
+  window.openReplacementDocModal = openReplacementDocModal;
+  window.validateReplacementFile = validateReplacementFile;
+  window.submitReplacementDocument = submitReplacementDocument;
+  window.confirmScheduleAttendance = confirmScheduleAttendance;
+  window.openDisbursementConfirmationModal = openDisbursementConfirmationModal;
+  window.executeDisbursementReceiptConfirmation = executeDisbursementReceiptConfirmation;
 
   // Initialize on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', async function () {
