@@ -2,6 +2,7 @@
  * PESO Admin Portal - Application Evaluation Module (Tab 4)
  * Module: Evaluation (peso-admin-evaluation.js)
  * Fully compliant with F. Application Evaluation Module (REQ024 – REQ029)
+ * Direct Beneficiaries Drill-Down & Admin Final Validity Check Workflow
  */
 
 let evalApplicationsList = [];
@@ -31,62 +32,55 @@ function generateFallbackEvalApplications() {
     let appIdCounter = 1001;
 
     progs.forEach((prog, pIdx) => {
-        // Generate 2 batches per program
-        const batches = [
-            { id: 1, name: 'Batch 1 - Regular Cohort', date: '2026-07-15' },
-            { id: 2, name: 'Batch 2 - Priority Beneficiaries', date: '2026-08-01' }
-        ];
+        const numApps = (pIdx % 2 === 0) ? 4 : 3;
+        for (let i = 0; i < numApps; i++) {
+            const person = names[(pIdx * 2 + i) % names.length];
+            const isVerified = (i === 0 || (pIdx + i) % 3 === 0);
+            const evalStatus = isVerified ? (i === 0 ? 'Approved' : 'Pending Evaluation') : (i === 1 ? 'Denied' : 'Pending Evaluation');
+            
+            const docs = [
+                {
+                    type: 'Valid Government Photo ID',
+                    file_name: `${person.last}_GovID.pdf`,
+                    status: isVerified ? 'Verified' : 'Pending Verification'
+                },
+                {
+                    type: 'Barangay Certificate of Indigency / Residency',
+                    file_name: `${person.last}_BrgyCert.pdf`,
+                    status: isVerified ? 'Verified' : 'Pending Verification'
+                },
+                {
+                    type: prog.category === 'Special Programs' ? 'Social Case Intake Assessment' : 'Program Qualification Form',
+                    file_name: `${person.last}_IntakeForm.pdf`,
+                    status: isVerified ? 'Verified' : (evalStatus === 'Denied' ? 'Missing / Non-Compliant' : 'Pending Verification')
+                }
+            ];
 
-        batches.forEach((b, bIdx) => {
-            const numApps = (pIdx % 2 === 0) ? 3 : 2;
-            for (let i = 0; i < numApps; i++) {
-                const person = names[(pIdx * 2 + bIdx + i) % names.length];
-                const isVerified = (i === 0 || (pIdx + bIdx) % 3 === 0);
-                const evalStatus = isVerified ? (i === 0 ? 'Approved' : 'Pending Evaluation') : (i === 1 ? 'Denied' : 'Pending Evaluation');
-                
-                const docs = [
-                    {
-                        type: 'Valid Government Photo ID',
-                        file_name: `${person.last}_GovID.pdf`,
-                        status: isVerified ? 'Verified' : 'Pending Verification'
-                    },
-                    {
-                        type: 'Barangay Certificate of Indigency / Residency',
-                        file_name: `${person.last}_BrgyCert.pdf`,
-                        status: isVerified ? 'Verified' : 'Pending Verification'
-                    },
-                    {
-                        type: prog.category === 'Special Programs' ? 'Social Case Intake Assessment' : 'Program Qualification Form',
-                        file_name: `${person.last}_IntakeForm.pdf`,
-                        status: isVerified ? 'Verified' : (evalStatus === 'Denied' ? 'Missing / Non-Compliant' : 'Pending Verification')
-                    }
-                ];
-
-                list.push({
-                    id: appIdCounter++,
-                    application_number: `APP-2026-${prog.code}-${String(appIdCounter).slice(-3)}`,
-                    beneficiary_qr: `QR-PESO-${appIdCounter}`,
-                    applicant_name: `${person.first} ${person.last}`,
-                    phone: person.phone,
-                    address: `${person.brgy}, Koronadal City`,
-                    civil_status: person.marital,
-                    spouse_name: person.spouse,
-                    children_info: `${person.deps} Dependents`,
-                    program_id: prog.id,
-                    program_name: prog.name,
-                    program_code: prog.code,
-                    batch_id: b.id,
-                    batch_num: b.name,
-                    date_submitted: b.date,
-                    verification_status: isVerified ? 'Verified' : 'Pending Verification',
-                    evaluation_status: evalStatus,
-                    notes: evalStatus === 'Approved'
-                        ? 'Passed all eligibility criteria. Verified authentic barangay residency and income qualifications.'
-                        : (evalStatus === 'Denied' ? 'Missing proof of livelihood disruption and unsigned intake assessment.' : ''),
-                    docs: docs
-                });
-            }
-        });
+            list.push({
+                id: appIdCounter++,
+                application_number: `APP-2026-${prog.code}-${String(appIdCounter).slice(-3)}`,
+                beneficiary_qr: `QR-PESO-${appIdCounter}`,
+                applicant_name: `${person.first} ${person.last}`,
+                phone: person.phone,
+                address: `${person.brgy}, Koronadal City`,
+                civil_status: person.marital,
+                spouse_name: person.spouse,
+                children_info: `${person.deps} Dependents`,
+                program_id: prog.id,
+                program_name: prog.name,
+                program_code: prog.code,
+                batch_id: 1,
+                batch_num: 'Batch 1 - Regular Cohort',
+                date_submitted: '2026-07-15',
+                verification_status: isVerified ? 'Verified' : 'Pending Verification',
+                evaluation_status: evalStatus,
+                batch_status: evalStatus === 'Approved' ? 'Unbatched' : 'Pending',
+                notes: evalStatus === 'Approved'
+                    ? 'Passed all eligibility criteria. Verified authentic barangay residency and income qualifications.'
+                    : (evalStatus === 'Denied' ? 'Missing proof of livelihood disruption and unsigned intake assessment.' : ''),
+                docs: docs
+            });
+        }
     });
 
     return list;
@@ -120,10 +114,11 @@ async function initEvalModuleData() {
                         program_name: a.program ? a.program.name : 'Livelihood Assistance',
                         program_code: a.program ? a.program.code : 'PESO',
                         batch_id: a.batch_id || 1,
-                        batch_num: a.batch ? a.batch.name : (a.batch_id ? `Batch ${a.batch_id}` : 'Batch 1 - Regular Cohort'),
+                        batch_num: a.batch ? a.batch.name : 'Batch 1 - Regular Cohort',
                         date_submitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
                         verification_status: isVerif ? 'Verified' : 'Pending Verification',
                         evaluation_status: a.status === 'Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' ? 'Denied' : 'Pending Evaluation'),
+                        batch_status: a.status === 'Approved' ? 'Unbatched' : 'Pending',
                         notes: a.remarks || a.officer_notes || '',
                         docs: docsList.length > 0 ? docsList : [
                             { type: 'Valid ID', file_name: 'ID_Document.pdf', status: isVerif ? 'Verified' : 'Pending Verification' },
@@ -244,8 +239,8 @@ function filterEvalLevel1Programs() {
                     </td>
                     <td class="text-center"><span class="badge ${badgeClass} px-3 py-1.5 fs-6">${overallStatus}</span></td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-primary fw-semibold shadow-sm" onclick="openEvalLevel2Batches(${prog.id})">
-                            View Batches <i class="bi bi-chevron-right ms-1"></i>
+                        <button class="btn btn-sm btn-primary fw-semibold shadow-sm" onclick="openEvalLevel3Apps(${prog.id}, 1, '${escapeHtml(prog.name)} — Batch 1 - Regular Cohort')">
+                            <i class="bi bi-people-fill me-1"></i> View Beneficiary <i class="bi bi-chevron-right ms-1"></i>
                         </button>
                     </td>
                 </tr>
@@ -258,10 +253,26 @@ function filterEvalLevel1Programs() {
     }
 }
 
-// --- LEVEL 2: BATCHES VIEW (REQ024 & REQ025) ---
+// --- LEVEL 2: RESERVED / COMPATIBILITY (BYPASSED) ---
 function openEvalLevel2Batches(progId) {
+    // Directly routes to Beneficiaries View (Level 3) per specifications
+    openEvalLevel3Apps(progId, 1, 'Batch 1 - Regular Cohort');
+}
+
+function showEvalLevel2() {
+    showEvalLevel1();
+}
+
+function filterEvalLevel2Batches() {
+    if (currentEvalProgId) openEvalLevel3Apps(currentEvalProgId, 1, 'Batch 1 - Regular Cohort');
+    else showEvalLevel1();
+}
+
+// --- LEVEL 3: BENEFICIARIES VIEW (DIRECT DRILL-DOWN) ---
+function openEvalLevel3Apps(progId, batchId, batchNumStr) {
     currentEvalProgId = progId;
-    currentEvalBatchId = null;
+    currentEvalBatchId = batchId || 1;
+    currentEvalBatchNum = batchNumStr || 'Batch 1 - Regular Cohort';
 
     const progs = (typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG))
         ? CANONICAL_PESO_PROGRAM_CATALOG
@@ -269,142 +280,17 @@ function openEvalLevel2Batches(progId) {
 
     const prog = progs.find(p => p.id === progId) || { id: progId, name: 'Livelihood Program', code: 'PESO' };
 
-    const bcBatch = document.getElementById('evalBreadcrumbBatchItem');
     const bcApp = document.getElementById('evalBreadcrumbAppItem');
-    const bcBatchName = document.getElementById('evalLevel2Breadcrumb');
-    if (bcBatch) bcBatch.classList.remove('d-none');
-    if (bcApp) bcApp.classList.add('d-none');
-    if (bcBatchName) bcBatchName.textContent = prog.name;
-
-    const progBadge = document.getElementById('evalLevel2ProgBadge');
-    const progTitle = document.getElementById('evalLevel2ProgTitle');
-    if (progBadge) progBadge.textContent = prog.code;
-    if (progTitle) progTitle.textContent = `${prog.name} — Batches`;
-
-    const l1 = document.getElementById('evalViewLevel1');
-    const l2 = document.getElementById('evalViewLevel2');
-    const l3 = document.getElementById('evalViewLevel3');
-    if (l1) l1.classList.add('d-none');
-    if (l2) l2.classList.remove('d-none');
-    if (l3) l3.classList.add('d-none');
-
-    filterEvalLevel2Batches();
-    logAuditEvent('EVALUATION_VIEW_BATCHES', `PESO Admin navigated to Level 2 Batches View for Program: ${prog.code} (${prog.name})`);
-}
-
-function showEvalLevel2() {
-    if (currentEvalProgId) openEvalLevel2Batches(currentEvalProgId);
-    else showEvalLevel1();
-}
-
-function filterEvalLevel2Batches() {
-    if (!currentEvalProgId) return;
-    const searchInput = document.getElementById('evalBatchSearchInput');
-    const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const statusSelect = document.getElementById('evalBatchStatusFilter');
-    const statusFilter = statusSelect ? statusSelect.value : 'ALL';
-    const tbody = document.getElementById('evalLevel2BatchesTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    const progApps = evalApplicationsList.filter(a => a.program_id === currentEvalProgId);
-
-    // Group batches dynamically or generate standard cohorts
-    const batchMap = {};
-    progApps.forEach(a => {
-        const bKey = a.batch_num || `Batch ${a.batch_id || 1}`;
-        const bId = a.batch_id || 1;
-        if (!batchMap[bKey]) {
-            batchMap[bKey] = {
-                batch_id: bId,
-                batch_num: bKey,
-                date: a.date_submitted || new Date().toISOString().substring(0, 10),
-                trainer: 'PESO Operations Unit',
-                apps: []
-            };
-        }
-        batchMap[bKey].apps.push(a);
-    });
-
-    let batches = Object.values(batchMap);
-    if (batches.length === 0) {
-        batches = [
-            { batch_id: 1, batch_num: 'Batch 1 - Regular Cohort', date: '2026-07-15', trainer: 'PESO Operations Unit', apps: [] },
-            { batch_id: 2, batch_num: 'Batch 2 - Priority Beneficiaries', date: '2026-08-01', trainer: 'PESO Operations Unit', apps: [] }
-        ];
-    }
-
-    let renderedCount = 0;
-
-    batches.forEach(b => {
-        const bApps = b.apps || [];
-        const hasPending = bApps.some(a => a.evaluation_status === 'Pending Evaluation');
-        let batchStatus = (hasPending || bApps.length === 0) ? 'Pending Evaluation' : 'Approved';
-        let badgeClass = batchStatus === 'Approved' ? 'bg-success' : 'bg-warning text-dark';
-
-        const matchesSearch = b.batch_num.toLowerCase().includes(search) || (b.trainer || '').toLowerCase().includes(search);
-        const matchesStatus = (statusFilter === 'ALL') || (batchStatus === statusFilter);
-
-        if (matchesSearch && matchesStatus) {
-            renderedCount++;
-            tbody.innerHTML += `
-                <tr>
-                    <td>
-                        <div class="fw-bold text-dark">${escapeHtml(b.batch_num)}</div>
-                        <span class="badge bg-light text-secondary border font-monospace">Batch #${b.batch_id}</span>
-                    </td>
-                    <td>
-                        <div>${escapeHtml(b.trainer)}</div>
-                        <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${b.date}</small>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge bg-primary-subtle text-primary px-3 py-1 fs-6">
-                            <i class="bi bi-people-fill me-1"></i>${bApps.length} applications
-                        </span>
-                    </td>
-                    <td class="text-center"><span class="badge ${badgeClass} px-3 py-1.5 fs-6">${batchStatus}</span></td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openEvalLevel3Apps(${currentEvalProgId}, ${b.batch_id}, '${escapeHtml(b.batch_num)}')">
-                            View Applications <i class="bi bi-chevron-right ms-1"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-    });
-
-    if (renderedCount === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No batches recorded under this program.</td></tr>';
-    }
-}
-
-// --- LEVEL 3: APPLICATIONS VIEW (REQ025) ---
-function openEvalLevel3Apps(progId, batchId, batchNumStr) {
-    currentEvalProgId = progId;
-    currentEvalBatchId = batchId;
-    currentEvalBatchNum = batchNumStr || `Batch ${batchId}`;
-
-    const progs = (typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG))
-        ? CANONICAL_PESO_PROGRAM_CATALOG
-        : (typeof programsList !== 'undefined' && Array.isArray(programsList) ? programsList : []);
-
-    const prog = progs.find(p => p.id === progId) || { id: progId, name: 'Program', code: 'PESO' };
-
-    const bcBatch = document.getElementById('evalBreadcrumbBatchItem');
-    const bcApp = document.getElementById('evalBreadcrumbAppItem');
-    const bcBatchName = document.getElementById('evalLevel2Breadcrumb');
     const bcAppName = document.getElementById('evalLevel3Breadcrumb');
-    if (bcBatch) bcBatch.classList.remove('d-none');
     if (bcApp) bcApp.classList.remove('d-none');
-    if (bcBatchName) bcBatchName.textContent = prog.name;
-    if (bcAppName) bcAppName.textContent = currentEvalBatchNum;
+    if (bcAppName) bcAppName.textContent = `${prog.name} — Batch 1 - Regular Cohort`;
 
     const progBreadcrumb = document.getElementById('evalLevel3ProgBreadcrumb');
     const batchBreadcrumb = document.getElementById('evalLevel3BatchBreadcrumb');
     const viewTitle = document.getElementById('evalLevel3ViewTitle');
     if (progBreadcrumb) progBreadcrumb.textContent = prog.code;
-    if (batchBreadcrumb) batchBreadcrumb.textContent = currentEvalBatchNum;
-    if (viewTitle) viewTitle.textContent = `${prog.name} — ${currentEvalBatchNum}`;
+    if (batchBreadcrumb) batchBreadcrumb.textContent = 'Batch 1 - Regular Cohort';
+    if (viewTitle) viewTitle.textContent = `${prog.name} — Batch 1 - Regular Cohort`;
 
     const l1 = document.getElementById('evalViewLevel1');
     const l2 = document.getElementById('evalViewLevel2');
@@ -414,7 +300,7 @@ function openEvalLevel3Apps(progId, batchId, batchNumStr) {
     if (l3) l3.classList.remove('d-none');
 
     filterEvalLevel3Apps();
-    logAuditEvent('EVALUATION_VIEW_APPLICATIONS', `PESO Admin navigated to Level 3 Applications View for Batch: ${currentEvalBatchNum} under Program: ${prog.code}`);
+    logAuditEvent('EVALUATION_VIEW_BENEFICIARIES', `PESO Admin navigated directly to Beneficiaries View for Program: ${prog.code} (${prog.name} — Batch 1 - Regular Cohort)`);
 }
 
 let selectedEvalAppIds = new Set();
@@ -457,24 +343,52 @@ function updateEvalBulkSelectionState() {
     if (btnReject) btnReject.disabled = (count === 0);
 }
 
-function handleBulkApproveClick() {
+// 1. BULK APPROVE (Default / Bulk Allowed per municipal workflow)
+async function handleBulkApproveClick() {
     const count = selectedEvalAppIds.size;
     if (count === 0) return;
 
-    const confirmed = confirm(`Bulk Approval Confirmation: Are you sure you want to approve ${count} selected application(s)?`);
+    const confirmed = confirm(`Bulk Final Approval Confirmation: Are you sure you want to approve ${count} selected application(s)?\n\nBeneficiaries will move to Officer Beneficiary Batches with status 'Unbatched'.`);
     if (!confirmed) return;
+
+    const adminId = parseInt(sessionStorage.getItem('userId')) || 1;
+    const adminUsername = sessionStorage.getItem('username') || 'PESO Admin';
+    const timestamp = new Date().toISOString();
 
     selectedEvalAppIds.forEach(id => {
         const app = evalApplicationsList.find(a => a.id === id);
         if (app) {
             app.evaluation_status = 'Approved';
             app.verification_status = 'Verified';
-            app.notes = (app.notes ? app.notes + ' | ' : '') + 'Bulk Approved by PESO Admin';
+            app.batch_status = 'Unbatched';
+            app.evaluated_at = timestamp;
+            app.evaluated_by_admin = adminUsername;
+            app.notes = (app.notes ? app.notes + ' | ' : '') + 'Bulk Approved by PESO Admin — Validity and authenticity verified';
+
+            if (typeof DataService !== 'undefined' && DataService.applications) {
+                try {
+                    DataService.applications.adminApprove(app.id, {
+                        notes: app.notes,
+                        admin_id: adminId,
+                        admin_username: adminUsername
+                    });
+                } catch (e) {}
+            }
         }
     });
 
     if (typeof logAuditEvent === 'function') {
-        logAuditEvent('BULK_APPLICATION_APPROVED', `PESO Admin bulk-approved ${count} applications for ${currentEvalBatchNum}`);
+        logAuditEvent('BULK_APPLICATION_APPROVED', `[ADMIN BULK APPROVAL] Admin ID: ${adminId} (${adminUsername}) approved ${count} applications for batch "${currentEvalBatchNum}". Moved to Officer Batches (Unbatched). Timestamp: ${timestamp}`);
+    }
+
+    // Auto-notify Officer & Beneficiary
+    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+        OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_BULK_APPROVED', {
+            count: count,
+            batchRef: currentEvalBatchNum,
+            adminId: adminId,
+            timestamp: timestamp
+        });
     }
 
     selectedEvalAppIds.clear();
@@ -485,62 +399,27 @@ function handleBulkApproveClick() {
     filterEvalLevel3Apps();
 
     if (typeof window.showSystemNotification === 'function') {
-        window.showSystemNotification({ title: 'Bulk Evaluation Success', message: `Successfully approved ${count} application(s).`, type: 'success' });
+        window.showSystemNotification({
+            title: 'Bulk Approval Finalized',
+            message: `Successfully approved ${count} application(s). Beneficiaries moved to Officer Batches (Unbatched).`,
+            type: 'success'
+        });
     }
 }
 
+// 2. BULK DENIAL RESTRICTION (Prohibited per rule: each denial must be individually reasoned)
 function handleBulkRejectClick() {
     const count = selectedEvalAppIds.size;
     if (count === 0) return;
 
-    const countDisplay = document.getElementById('bulkRejectCountDisplay');
-    if (countDisplay) countDisplay.textContent = `${count} application(s)`;
-
-    const reasonInput = document.getElementById('bulkRejectReasonInput');
-    if (reasonInput) reasonInput.value = '';
-
-    const modalEl = document.getElementById('bulkEvalRejectionModal');
-    if (modalEl && typeof bootstrap !== 'undefined') {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
-    }
-}
-
-function handleConfirmBulkRejection(e) {
-    e.preventDefault();
-    const count = selectedEvalAppIds.size;
-    if (count === 0) return;
-
-    const category = document.getElementById('bulkRejectCategorySelect')?.value || 'Other Administrative Justification';
-    const reason = document.getElementById('bulkRejectReasonInput')?.value || 'Does not meet program criteria';
-
-    selectedEvalAppIds.forEach(id => {
-        const app = evalApplicationsList.find(a => a.id === id);
-        if (app) {
-            app.evaluation_status = 'Denied';
-            app.notes = `Disapproved [${category}]: ${reason}`;
-        }
-    });
-
-    if (typeof logAuditEvent === 'function') {
-        logAuditEvent('BULK_APPLICATION_DENIED', `PESO Admin bulk-disapproved ${count} applications for ${currentEvalBatchNum}. Reason: [${category}] ${reason}`);
-    }
-
-    const modalEl = document.getElementById('bulkEvalRejectionModal');
-    if (modalEl && typeof bootstrap !== 'undefined') {
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
-    }
-
-    selectedEvalAppIds.clear();
-    const selectAllBox = document.getElementById('evalSelectAllCheckbox');
-    if (selectAllBox) selectAllBox.checked = false;
-    updateEvalBulkSelectionState();
-    updateEvalMetrics();
-    filterEvalLevel3Apps();
-
     if (typeof window.showSystemNotification === 'function') {
-        window.showSystemNotification({ title: 'Bulk Evaluation Updated', message: `Successfully denied ${count} application(s).`, type: 'info' });
+        window.showSystemNotification({
+            title: 'Bulk Denial Prohibited',
+            message: 'Per municipal compliance rules, bulk denials are strictly prohibited. Each denial must be reviewed and reasoned individually with standardized justification.',
+            type: 'warning'
+        });
+    } else {
+        alert('Bulk Denial Prohibited: Per municipal compliance rules, bulk denials are strictly prohibited. Each denial must be reviewed and reasoned individually with standardized justification.');
     }
 }
 
@@ -557,21 +436,20 @@ function filterEvalLevel3Apps() {
 
     const filtered = evalApplicationsList.filter(app => {
         const matchesProg = !currentEvalProgId || (app.program_id === currentEvalProgId);
-        const matchesBatch = !currentEvalBatchId || (app.batch_id === currentEvalBatchId || app.batch_num === currentEvalBatchNum);
         const matchesSearch = app.applicant_name.toLowerCase().includes(search) || (app.address || '').toLowerCase().includes(search) || (app.application_number || '').toLowerCase().includes(search);
         const matchesVerif = (verifFilter === 'ALL') || (app.verification_status === verifFilter);
         const matchesStatus = (statusFilter === 'ALL') || (app.evaluation_status === statusFilter);
-        return matchesProg && matchesBatch && matchesSearch && matchesVerif && matchesStatus;
+        return matchesProg && matchesSearch && matchesVerif && matchesStatus;
     });
 
     filtered.forEach((app, idx) => {
         let statusBadgeHTML = '';
         if (app.evaluation_status === 'Approved') {
-            statusBadgeHTML = '<span class="badge bg-success px-2.5 py-1 fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>';
+            statusBadgeHTML = '<span class="badge bg-success px-2.5 py-1 fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Approved (Unbatched)</span>';
         } else if (app.evaluation_status === 'Denied') {
-            statusBadgeHTML = '<span class="badge bg-danger px-2.5 py-1 fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Denied</span>';
+            statusBadgeHTML = '<span class="badge bg-danger px-2.5 py-1 fw-semibold" title="Returned to Officer (3-Day Window)"><i class="bi bi-x-circle-fill me-1"></i>Admin Denied</span>';
         } else {
-            statusBadgeHTML = '<span class="badge bg-warning text-dark px-2.5 py-1 fw-semibold"><i class="bi bi-clock-history me-1"></i>Pending</span>';
+            statusBadgeHTML = '<span class="badge bg-warning text-dark px-2.5 py-1 fw-semibold"><i class="bi bi-clock-history me-1"></i>Pending Review</span>';
         }
 
         const isVerified = app.verification_status === 'Verified';
@@ -580,12 +458,12 @@ function filterEvalLevel3Apps() {
         const completenessPct = Math.round((verifiedDocs / docCount) * 100);
 
         const completenessBadge = completenessPct === 100
-            ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check2-all me-1"></i>100% (${verifiedDocs}/${docCount} Docs)</span>`
-            : `<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>${completenessPct}% (${verifiedDocs}/${docCount} Docs)</span>`;
+            ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check2-all me-1"></i>100% (Officer Complied)</span>`
+            : `<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>${completenessPct}% Verified</span>`;
 
         const validityBadge = isVerified
-            ? `<span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1"><i class="bi bi-shield-check me-1"></i>Passed 3/3</span>`
-            : `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-shield-exclamation me-1"></i>2/3 Checks</span>`;
+            ? `<span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1"><i class="bi bi-shield-check me-1"></i>Validity Checked</span>`
+            : `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-shield-exclamation me-1"></i>Under Validity Check</span>`;
 
         const forwardingOfficer = app.forwarding_officer || (idx % 2 === 0 ? 'Officer Elena Santos' : 'Officer Marco Ramos');
         const isChecked = selectedEvalAppIds.has(app.id);
@@ -620,7 +498,7 @@ function filterEvalLevel3Apps() {
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No submitted applications found matching filter criteria.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No beneficiary applications found matching criteria.</td></tr>';
     }
     updateEvalBulkSelectionState();
 }
@@ -658,8 +536,8 @@ function openReviewCaseFileModal(appId) {
     const verifBadge = document.getElementById('reviewVerificationStatusBadge');
     if (verifBadge) {
         verifBadge.innerHTML = app.verification_status === 'Verified'
-            ? '<i class="bi bi-patch-check-fill me-1"></i> Verified Documents (Complied)'
-            : '<i class="bi bi-hourglass-split me-1"></i> Pending Verification (Unverified)';
+            ? '<i class="bi bi-patch-check-fill me-1"></i> Officer Confirmed Completeness'
+            : '<i class="bi bi-hourglass-split me-1"></i> Under Validity Review';
         verifBadge.className = app.verification_status === 'Verified' ? 'badge bg-success px-3 py-1 fs-6' : 'badge bg-warning text-dark px-3 py-1 fs-6';
     }
 
@@ -677,7 +555,7 @@ function openReviewCaseFileModal(appId) {
             const isDocVerified = doc.status === 'Verified' || doc.status === 'Complied';
             const statusBadge = isDocVerified
                 ? '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Verified</span>'
-                : '<span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>Pending Verification</span>';
+                : '<span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>Pending Validity</span>';
 
             docsTable.innerHTML += `
                 <tr>
@@ -725,79 +603,198 @@ function previewDocument(docType, fileName) {
     }
 }
 
-// --- FINAL EVALUATION DECISION EXECUTION (REQ026 – REQ029) ---
+// --- DENIAL MODAL & 3-DAY WINDOW CONTROLLER ---
+function openRejectionModal(appId) {
+    const targetId = appId || activeReviewAppId;
+    const app = evalApplicationsList.find(a => a.id === targetId);
+    if (!app) return;
+
+    activeReviewAppId = targetId;
+    const rejectAppInput = document.getElementById('rejectAppId');
+    const rejectNameDisplay = document.getElementById('rejectApplicantNameDisplay');
+    const rejectReasonInput = document.getElementById('rejectReasonInput');
+    const deadlinePreview = document.getElementById('rejectResubmissionDeadlinePreview');
+
+    if (rejectAppInput) rejectAppInput.value = app.id;
+    if (rejectNameDisplay) rejectNameDisplay.textContent = `${app.applicant_name} (${app.application_number || `APP-${app.id}`})`;
+    if (rejectReasonInput) rejectReasonInput.value = '';
+
+    const deadline = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    if (deadlinePreview) {
+        deadlinePreview.textContent = deadline.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    if (typeof safeOpenModal === 'function') {
+        safeOpenModal('evalRejectionModal');
+    } else {
+        const m = document.getElementById('evalRejectionModal');
+        if (m && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            bootstrap.Modal.getOrCreateInstance(m).show();
+        }
+    }
+}
+
+function handleRejectCategoryChange(val) {
+    const reasonInput = document.getElementById('rejectReasonInput');
+    if (!reasonInput) return;
+    if (val === 'Expired Document(s)') {
+        reasonInput.placeholder = 'State which document has expired (e.g. Barangay Clearance expired on 2026-06-30)...';
+    } else if (val === 'Invalid Document Authenticity / Seal') {
+        reasonInput.placeholder = 'Detail issue with official seal, unverified signature, or blurred credentials...';
+    } else if (val === 'Mismatched Applicant Information') {
+        reasonInput.placeholder = 'Specify name/address/civil status discrepancy between submitted ID and form...';
+    } else if (val === 'Mistaken Compliance / Wrong Attachment') {
+        reasonInput.placeholder = 'State incorrect document attached (e.g. attached electric bill instead of Certificate of Indigency)...';
+    } else {
+        reasonInput.placeholder = 'State specific reason visible to officer and beneficiary, recorded in immutable audit log...';
+    }
+}
+
+async function handleConfirmApplicationRejection(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const appId = parseInt(document.getElementById('rejectAppId')?.value) || activeReviewAppId;
+    const category = document.getElementById('rejectCategorySelect')?.value || 'Expired Document(s)';
+    const reason = (document.getElementById('rejectReasonInput')?.value || '').trim();
+
+    if (!reason) {
+        alert('Validation Error: You must enter mandatory specific observations/notes explaining the basis of denial.');
+        return;
+    }
+
+    const app = evalApplicationsList.find(a => a.id === appId);
+    if (!app) return;
+
+    const adminId = parseInt(sessionStorage.getItem('userId')) || 1;
+    const adminUsername = sessionStorage.getItem('username') || 'PESO Admin';
+    const deadlineIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const timestamp = new Date().toISOString();
+
+    app.evaluation_status = 'Denied';
+    app.verification_status = 'Pending Verification';
+    app.denial_source = 'Admin';
+    app.denial_category = category;
+    app.denial_reason = reason;
+    app.resubmission_deadline = deadlineIso;
+    app.evaluated_at = timestamp;
+    app.evaluated_by_admin = adminUsername;
+    app.notes = `Admin Denied [${category}]: ${reason} | 3-Day Resubmission Window until ${new Date(deadlineIso).toLocaleString('en-US')}`;
+
+    if (typeof DataService !== 'undefined' && DataService.applications) {
+        try {
+            await DataService.applications.adminDeny(app.id, {
+                reason: reason,
+                rejection_reason: reason,
+                rejection_category: category,
+                resubmission_deadline: deadlineIso,
+                admin_id: adminId,
+                admin_username: adminUsername
+            });
+        } catch (err) {
+            console.warn('[EVALUATION] Supabase application denial update notice:', err);
+        }
+    }
+
+    // Immutable Audit Trail Logging distinguishing Admin denial from Officer denial
+    logAuditEvent('ADMIN_APPLICATION_DENIAL', `[ADMIN DENIAL] Admin ID: ${adminId} (${adminUsername}) denied application ID ${app.id} (${app.applicant_name}). Standard Category: [${category}], Specific Reason: ${reason}. 3-Day Resubmission Window Enforced until ${deadlineIso}. Timestamp: ${timestamp}`);
+
+    // Real-time broadcast to Officer Evaluation Queue & Beneficiary Document Monitoring
+    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+        OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_DENIED', {
+            applicationId: app.id,
+            applicantName: app.applicant_name,
+            category: category,
+            reason: reason,
+            deadline: deadlineIso,
+            adminId: adminId,
+            timestamp: timestamp
+        });
+    }
+
+    if (typeof safeHideModal === 'function') {
+        safeHideModal('evalRejectionModal');
+        safeHideModal('reviewCaseFileModal');
+    } else {
+        const m1 = document.getElementById('evalRejectionModal');
+        const m2 = document.getElementById('reviewCaseFileModal');
+        if (m1 && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const ins1 = bootstrap.Modal.getInstance(m1);
+            if (ins1) ins1.hide();
+        }
+        if (m2 && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const ins2 = bootstrap.Modal.getInstance(m2);
+            if (ins2) ins2.hide();
+        }
+    }
+
+    updateEvalMetrics();
+    filterEvalLevel3Apps();
+
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({
+            title: 'Application Denied & Returned to Officer',
+            message: `Application for "${app.applicant_name}" returned to Officer with 3-day resubmission window (${new Date(deadlineIso).toLocaleDateString()}). Notifications dispatched.`,
+            type: 'warning'
+        });
+    }
+}
+
+// --- FINAL EVALUATION DECISION EXECUTION (APPROVE / DENY) ---
 async function executeEvalDecision(decision) {
     const app = evalApplicationsList.find(a => a.id === activeReviewAppId);
     if (!app) return;
 
-    const notesInput = document.getElementById('reviewActionAssessmentNotes');
-    const notes = notesInput ? notesInput.value.trim() : '';
-
-    // STRICT SAFEGUARD FOR REQ026: Block Approval if Requirements are Unverified / Incomplete
-    if (decision === 'Approved') {
-        const isComplied = app.verification_status === 'Verified' &&
-            (!Array.isArray(app.docs) || app.docs.every(d => !d.status || d.status === 'Verified' || d.status === 'Complied'));
-
-        if (!isComplied) {
-            window.showSystemNotification({
-                title: 'Approval Blocked: Unverified Requirements',
-                message: 'Strict Safeguard (REQ026): All submitted requirements must already be verified and complied with before an application can be approved. Please verify documents or deny the application if requirements are deficient.',
-                type: 'danger'
-            });
-            return;
-        }
-    }
-
-    // STRICT REQUIREMENT FOR REQ027 & REQ029: Mandatory Action Assessment Notes for Denial or Hold
-    if ((decision === 'Denied' || decision === 'Pending Evaluation') && !notes) {
-        window.showSystemNotification({
-            title: 'Action Assessment Notes Required',
-            message: `Mandatory Requirement (REQ027/REQ029): Please enter detailed observations and reasons into the Action Assessment Notes field before finalizing "${decision}".`,
-            type: 'warning'
-        });
+    if (decision === 'Denied') {
+        openRejectionModal(activeReviewAppId);
         return;
     }
 
+    const notesInput = document.getElementById('reviewActionAssessmentNotes');
+    const notes = notesInput ? notesInput.value.trim() : 'Approved by PESO Admin — Validity and authenticity verified';
+
+    const adminId = parseInt(sessionStorage.getItem('userId')) || 1;
+    const adminUsername = sessionStorage.getItem('username') || 'PESO Admin';
+    const timestamp = new Date().toISOString();
+
     window.showSystemNotification({
-        title: `Confirm Final Evaluation: ${decision}`,
-        message: `Are you sure you want to finalize the evaluation decision for "${app.applicant_name}" as "${decision}"? Once confirmed, the decision and timestamp will be logged into the audit trail.`,
-        type: decision === 'Approved' ? 'info' : (decision === 'Denied' ? 'warning' : 'info'),
+        title: `Confirm Final Approval`,
+        message: `Are you sure you want to approve "${app.applicant_name}"? Beneficiary will move to Officer Beneficiary Batches with status 'Unbatched'. Decision will be immutably recorded in audit logs.`,
+        type: 'info',
         showCancel: true,
-        confirmText: `Confirm ${decision}`,
+        confirmText: `Approve Beneficiary`,
         onConfirm: async () => {
-            app.evaluation_status = decision;
+            app.evaluation_status = 'Approved';
+            app.verification_status = 'Verified';
+            app.batch_status = 'Unbatched';
+            app.evaluated_at = timestamp;
+            app.evaluated_by_admin = adminUsername;
             app.notes = notes;
-            app.evaluated_at = new Date().toISOString();
 
             if (typeof DataService !== 'undefined' && DataService.applications) {
                 try {
-                    if (decision === 'Approved') {
-                        await DataService.applications.adminApprove(app.id, {
-                            notes: notes || 'Approved by PESO Admin',
-                            admin_id: parseInt(sessionStorage.getItem('userId')) || 1,
-                            admin_username: sessionStorage.getItem('username') || 'PESO Admin'
-                        });
-                    } else if (decision === 'Denied') {
-                        await DataService.applications.adminDeny(app.id, {
-                            reason: notes,
-                            rejection_reason: notes,
-                            rejection_category: 'Incomplete Eligibility Requirements',
-                            admin_id: parseInt(sessionStorage.getItem('userId')) || 1,
-                            admin_username: sessionStorage.getItem('username') || 'PESO Admin'
-                        });
-                    } else {
-                        await DataService.applications.update(app.id, {
-                            status: 'Pending Requirements',
-                            remarks: notes,
-                            updated_at: new Date().toISOString()
-                        });
-                    }
+                    await DataService.applications.adminApprove(app.id, {
+                        notes: notes,
+                        admin_id: adminId,
+                        admin_username: adminUsername
+                    });
                 } catch (err) {
-                    console.warn('[EVALUATION] Supabase application update notice:', err);
+                    console.warn('[EVALUATION] Supabase application approval notice:', err);
                 }
             }
 
-            logAuditEvent(`EVALUATE_APPLICATION_${decision.toUpperCase().replace(/\s+/g, '_')}`, `PESO Admin evaluated application ID ${app.id} (${app.applicant_name}) -> ${decision}. Action Assessment Notes: ${notes || 'Complied'}`);
+            logAuditEvent('ADMIN_APPLICATION_APPROVAL', `[ADMIN APPROVAL] Admin ID: ${adminId} (${adminUsername}) approved application ID ${app.id} (${app.applicant_name}) for batch "${currentEvalBatchNum}". Status: Unbatched. Assessment Notes: ${notes}. Timestamp: ${timestamp}`);
+
+            // Real-time broadcast to Officer Batches & Beneficiary Portal
+            if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+                OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_APPROVED', {
+                    applicationId: app.id,
+                    applicantName: app.applicant_name,
+                    batchRef: currentEvalBatchNum,
+                    status: 'Unbatched',
+                    adminId: adminId,
+                    timestamp: timestamp
+                });
+            }
 
             if (typeof safeHideModal === 'function') {
                 safeHideModal('reviewCaseFileModal');
@@ -813,9 +810,9 @@ async function executeEvalDecision(decision) {
             filterEvalLevel3Apps();
 
             window.showSystemNotification({
-                title: 'Evaluation Decision Finalized',
-                message: `Application case file for "${app.applicant_name}" has been officially finalized as "${decision}". Audit timestamp logged.`,
-                type: decision === 'Approved' ? 'success' : (decision === 'Denied' ? 'error' : 'warning')
+                title: 'Application Approved Successfully',
+                message: `Application case file for "${app.applicant_name}" is approved and moved to Beneficiary Batches (Unbatched).`,
+                type: 'success'
             });
         }
     });
@@ -833,11 +830,16 @@ window.filterEvalLevel2Batches = filterEvalLevel2Batches;
 window.filterEvalLevel3Apps = filterEvalLevel3Apps;
 window.openReviewCaseFileModal = openReviewCaseFileModal;
 window.previewDocument = previewDocument;
+window.openRejectionModal = openRejectionModal;
+window.handleRejectCategoryChange = handleRejectCategoryChange;
+window.handleConfirmApplicationRejection = handleConfirmApplicationRejection;
 window.executeEvalDecision = executeEvalDecision;
+window.handleBulkApproveClick = handleBulkApproveClick;
+window.handleBulkRejectClick = handleBulkRejectClick;
+window.toggleSelectAllEvalApps = toggleSelectAllEvalApps;
+window.handleEvalAppCheckChange = handleEvalAppCheckChange;
 window.filterEvaluationQueue = () => {
     const l3 = document.getElementById('evalViewLevel3');
-    const l2 = document.getElementById('evalViewLevel2');
     if (l3 && !l3.classList.contains('d-none')) filterEvalLevel3Apps();
-    else if (l2 && !l2.classList.contains('d-none')) filterEvalLevel2Batches();
     else filterEvalLevel1Programs();
 };

@@ -972,11 +972,11 @@
             </div>
 
             <!-- Breadcrumb Navigation for Hierarchical Drill-Down (REQ024 & REQ025) -->
+            <!-- Breadcrumb Navigation for Direct Drill-Down -->
             <nav aria-label="breadcrumb" id="evalDrilldownNav" class="mb-3">
                 <ol class="breadcrumb breadcrumb-custom align-middle mb-0">
                     <li class="breadcrumb-item"><a href="javascript:void(0)" onclick="showEvalLevel1()" class="text-primary fw-semibold text-decoration-none"><i class="bi bi-folder2-open me-1"></i>Programs Catalog</a></li>
-                    <li class="breadcrumb-item active text-muted d-none" id="evalBreadcrumbBatchItem"><span id="evalLevel2Breadcrumb">Program Batches</span></li>
-                    <li class="breadcrumb-item active text-dark fw-bold d-none" id="evalBreadcrumbAppItem"><span id="evalLevel3Breadcrumb">Applications Queue</span></li>
+                    <li class="breadcrumb-item active text-dark fw-bold d-none" id="evalBreadcrumbAppItem"><span id="evalLevel3Breadcrumb">Beneficiaries Queue</span></li>
                 </ol>
             </nav>
 
@@ -1009,7 +1009,7 @@
                                     <th style="width: 180px;">Category</th>
                                     <th class="text-center" style="width: 180px;">Applications Intake</th>
                                     <th class="text-center" style="width: 180px;">Evaluation Status</th>
-                                    <th class="text-end" style="width: 160px;">Action</th>
+                                    <th class="text-end" style="width: 180px;">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="evalLevel1ProgramsTableBody">
@@ -1020,7 +1020,7 @@
                 </div>
             </div>
 
-            <!-- LEVEL 2: BATCHES VIEW (REQ024 & REQ025) -->
+            <!-- LEVEL 2: BATCHES VIEW (RESERVED / BYPASSED) -->
             <div id="evalViewLevel2" class="d-none">
                 <div class="content-card">
                     <div class="card-header-custom bg-light d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -1063,7 +1063,7 @@
                 </div>
             </div>
 
-            <!-- LEVEL 3: APPLICATIONS VIEW (REQ025) -->
+            <!-- LEVEL 3: APPLICATIONS / BENEFICIARIES VIEW (REQ025) -->
             <div id="evalViewLevel3" class="d-none">
                 <div class="content-card">
                     <div class="card-header-custom bg-light d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -1071,10 +1071,10 @@
                             <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                                 <span class="badge bg-primary font-monospace" id="evalLevel3ProgBreadcrumb">PROGRAM</span>
                                 <span class="badge bg-dark font-monospace" id="evalLevel3BatchBreadcrumb">BATCH</span>
-                                <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-shield-check me-1"></i>Evaluation Queue</span>
+                                <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-shield-check me-1"></i>Validity Check Queue</span>
                             </div>
-                            <h5 class="fw-bold mb-0 text-dark" id="evalLevel3ViewTitle">Batch Applications Roster</h5>
-                            <small class="text-muted">Displaying applicant name, requested program, submission date, verification status, and evaluation status.</small>
+                            <h5 class="fw-bold mb-0 text-dark" id="evalLevel3ViewTitle">Beneficiary Applications Roster</h5>
+                            <small class="text-muted">Officer-verified completeness. Conduct validity checks and finalize approval or denial.</small>
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <div class="input-group" style="max-width: 240px;">
@@ -1093,7 +1093,7 @@
                                 <option value="Approved">Approved</option>
                                 <option value="Denied">Denied</option>
                             </select>
-                            <button class="btn btn-outline-secondary" onclick="showEvalLevel2()"><i class="bi bi-arrow-left me-1"></i> Back to Batches</button>
+                            <button class="btn btn-outline-secondary" onclick="showEvalLevel1()"><i class="bi bi-arrow-left me-1"></i> Back to Programs</button>
                         </div>
                     </div>
 
@@ -1110,8 +1110,8 @@
                             <button class="btn btn-sm btn-success fw-bold px-3 shadow-sm" id="btnBulkApprove" onclick="handleBulkApproveClick()" disabled>
                                 <i class="bi bi-check2-all me-1"></i> Bulk Approve Selected
                             </button>
-                            <button class="btn btn-sm btn-danger fw-bold px-3 shadow-sm" id="btnBulkReject" onclick="handleBulkRejectClick()" disabled>
-                                <i class="bi bi-x-octagon-fill me-1"></i> Bulk Deny Selected
+                            <button class="btn btn-sm btn-outline-danger fw-semibold px-3" id="btnBulkReject" onclick="handleBulkRejectClick()" disabled title="Bulk denials prohibited — each denial must be individually reasoned">
+                                <i class="bi bi-shield-x me-1"></i> Bulk Deny (Restricted)
                             </button>
                         </div>
                     </div>
@@ -3604,41 +3604,48 @@
         </div>
     </div>
 
-    <!-- Modal 16: Application Rejection Reason Modal -->
+    <!-- Modal 16: Application Rejection Reason Modal (Admin Validity Check / 3-Day Window) -->
     <div class="modal fade" id="evalRejectionModal" tabindex="-1" aria-labelledby="evalRejectionModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-danger text-white rounded-top-4 py-3">
                     <h5 class="modal-title fw-bold mb-0" id="evalRejectionModalTitle">
-                        <i class="bi bi-x-circle-fill me-2"></i>Disapprove / Reject Application
+                        <i class="bi bi-x-circle-fill me-2"></i>Deny Application (Admin Decision)
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="evalRejectionForm" onsubmit="handleConfirmApplicationRejection(event)">
                     <input type="hidden" id="rejectAppId">
                     <div class="modal-body p-4">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Applicant</label>
-                            <div class="form-control-plaintext fw-bold text-dark" id="rejectApplicantNameDisplay">-</div>
+                        <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-3 rounded-3">
+                            <i class="bi bi-clock-history fs-5 text-danger flex-shrink-0"></i>
+                            <div>
+                                <strong>3-Day Resubmission Window:</strong> Application will return to Officer Evaluation. Beneficiary must resubmit only the flagged document within 72 hours (<span class="fw-bold text-dark" id="rejectResubmissionDeadlinePreview">3 days</span>).
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label for="rejectCategorySelect" class="form-label fw-bold">Rejection Category <span class="text-danger">*</span></label>
-                            <select class="form-select" id="rejectCategorySelect" required>
-                                <option value="Incomplete Eligibility Requirements">Incomplete / Unverified Supporting Documents</option>
-                                <option value="Income / Qualification Ceiling Exceeded">Income / Qualification Ceiling Exceeded</option>
-                                <option value="Duplicate Program Enrollment">Duplicate Program Enrollment</option>
-                                <option value="Non-Resident / Outside Jurisdiction">Non-Resident / Outside Jurisdiction</option>
-                                <option value="Other Administrative Justification">Other Administrative Justification</option>
+                            <label class="form-label fw-bold small text-muted text-uppercase">Applicant</label>
+                            <div class="form-control-plaintext fw-bold text-dark fs-6" id="rejectApplicantNameDisplay">-</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rejectCategorySelect" class="form-label fw-bold">Standardized Denial Reason <span class="text-danger">*</span></label>
+                            <select class="form-select" id="rejectCategorySelect" required onchange="handleRejectCategoryChange(this.value)">
+                                <option value="Expired Document(s)">Expired Document(s) (Barangay Clearance, ID, or Certificate)</option>
+                                <option value="Invalid Document Authenticity / Seal">Invalid Document Authenticity / Seal (Unverified LGU/Official Seal)</option>
+                                <option value="Mismatched Applicant Information">Mismatched Applicant Information (Discrepancy in Name/Address/Civil Status)</option>
+                                <option value="Mistaken Compliance / Wrong Attachment">Mistaken Compliance / Wrong Attachment (Incorrect form attached)</option>
+                                <option value="Incomplete / Unverified Supporting Documents">Incomplete / Unverified Supporting Documents</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="rejectReasonInput" class="form-label fw-bold">Specific Rejection Reason / Note <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="rejectReasonInput" rows="3" placeholder="State specific reason visible to beneficiary and recorded in audit trail..." required></textarea>
+                            <label for="rejectReasonInput" class="form-label fw-bold">Mandatory Specific Observations & Notes <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="rejectReasonInput" rows="3" placeholder="State specific reason visible to officer and beneficiary, recorded in immutable audit log..." required></textarea>
+                            <small class="text-muted">Must detail the exact deficiency for the beneficiary to rectify.</small>
                         </div>
                     </div>
                     <div class="modal-footer bg-light rounded-bottom-4 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-danger fw-bold px-4"><i class="bi bi-x-octagon-fill me-1"></i> Disapprove & Notify</button>
+                        <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm"><i class="bi bi-x-octagon-fill me-1"></i> Deny & Start 3-Day Window</button>
                     </div>
                 </form>
             </div>
