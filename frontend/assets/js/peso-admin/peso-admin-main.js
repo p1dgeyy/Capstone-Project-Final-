@@ -15,10 +15,15 @@ function renderDashboardTables() {
     if (document.getElementById('archiveSectionCountBadge')) document.getElementById('archiveSectionCountBadge').textContent = `${archList.length} Deactivated Programs`;
     if (document.getElementById('statTotalBudget')) document.getElementById('statTotalBudget').textContent = '₱' + totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 });
     if (document.getElementById('ordinanceTotalAppropriation')) document.getElementById('ordinanceTotalAppropriation').textContent = '₱' + totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    if (document.getElementById('overviewTotalAppropriation')) document.getElementById('overviewTotalAppropriation').textContent = '₱' + totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 });
 
     filterPrograms();
     renderAssignProgramsTable();
     renderArchiveTable(archList);
+
+    if (typeof renderDashboardOverview === 'function') {
+        renderDashboardOverview();
+    }
 }
 
 // Master Tab Navigation Controller
