@@ -205,7 +205,10 @@ const GoogleAuth = (() => {
 
         // Strict Single Active Device Check: Prevent login if already active on another device
         if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
-          const activeCheck = await SessionManager.checkAccountAlreadyActive(staffProfile.id, staffProfile.username);
+          const activeCheck = await SessionManager.checkAccountAlreadyActive(staffProfile.id, staffProfile.username, {
+            email: staffProfile.email || user.email,
+            authId: user.id
+          });
           if (activeCheck.isAlreadyActive) {
             try { await supabaseClient.auth.signOut(); } catch (e) {}
             const kickMsg = `Current account is being used on another device. Please log out from that device first to log in here.`;
@@ -356,7 +359,10 @@ const GoogleAuth = (() => {
 
         // Strict Single Active Device Check: Prevent login if already active on another device
         if (typeof SessionManager !== 'undefined' && SessionManager.checkAccountAlreadyActive) {
-          const activeCheck = await SessionManager.checkAccountAlreadyActive(profile.qr_code || profile.id, profile.username);
+          const activeCheck = await SessionManager.checkAccountAlreadyActive(profile.qr_code || profile.id, profile.username, {
+            email: profile.email || user.email,
+            authId: user.id
+          });
           if (activeCheck.isAlreadyActive) {
             try { await supabaseClient.auth.signOut(); } catch (e) {}
             const kickMsg = `Current account is being used on another device. Please log out from that device first to log in here.`;

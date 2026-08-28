@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         if (typeof DataService !== 'undefined' && DataService.realtime && !window.__pesoAdminRealtimeActive) {
             window.__pesoAdminRealtimeActive = true;
-            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches', 'approved_assistance', 'notifications'], (payload) => {
+            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches', 'approved_assistance', 'notifications', 'beneficiaries', 'active_user_sessions'], (payload) => {
                 console.log('[PESO Admin Realtime Event]:', payload.table, payload.eventType);
                 if (payload.table === 'programs') {
                     if (typeof initProgramsData === 'function') initProgramsData();
@@ -130,10 +130,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (typeof initProgramsData === 'function') initProgramsData();
                 } else if (payload.table === 'interview_schedules') {
                     if (typeof initSchedulingData === 'function') initSchedulingData();
-                } else if (payload.table === 'staff_profiles') {
+                } else if (payload.table === 'staff_profiles' || payload.table === 'active_user_sessions') {
                     if (typeof initUserManagementData === 'function') initUserManagementData();
                     if (typeof initOfficersData === 'function') initOfficersData();
-                } else if (payload.table === 'batches') {
+                } else if (payload.table === 'batches' || payload.table === 'beneficiaries') {
                     if (typeof initEvalModuleData === 'function') initEvalModuleData();
                 }
                 if (typeof renderDashboardTables === 'function') renderDashboardTables();

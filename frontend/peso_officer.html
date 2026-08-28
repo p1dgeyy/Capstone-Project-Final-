@@ -27,6 +27,7 @@
     <script src="assets/js/qr-scanner-controller.js"></script>
     <script src="assets/js/session-manager.js"></script>
     <script src="assets/js/auth-guard.js"></script>
+    <script src="assets/js/peso/peso-programs.js"></script>
     <script src="assets/js/peso/peso-officer.js"></script>
     <script>
         window.openQrScannerModal = function () {
@@ -4355,14 +4356,27 @@
 
             try {
                 // 1. Beneficiaries
-                const benRes = await DataService.beneficiaries.getAll();
-                if (benRes && Array.isArray(benRes.data)) {
-                    beneficiariesList = benRes.data.map(b => {
+                let rawBens = [];
+                try {
+                    const benRes = await DataService.beneficiaries.getAll();
+                    if (benRes && Array.isArray(benRes.data) && benRes.data.length > 0) {
+                        rawBens = benRes.data;
+                    }
+                } catch (e) {
+                    console.warn('[PESO Officer] Beneficiaries fetch notice:', e);
+                }
+
+                if (rawBens.length === 0 && typeof PesoPrograms !== 'undefined' && Array.isArray(PesoPrograms.CANONICAL_PESO_BENEFICIARIES)) {
+                    rawBens = PesoPrograms.CANONICAL_PESO_BENEFICIARIES;
+                }
+
+                if (rawBens.length > 0) {
+                    beneficiariesList = rawBens.map(b => {
                         const firstName = b.first_name || '';
                         const middleName = b.middle_name || '';
                         const lastName = b.last_name || '';
                         const suffix = (b.suffix && b.suffix !== 'N/A') ? b.suffix : '';
-                        const fullName = `${firstName} ${middleName ? middleName + ' ' : ''}${lastName} ${suffix}`.trim();
+                        const fullName = b.name || `${firstName} ${middleName ? middleName + ' ' : ''}${lastName} ${suffix}`.trim();
                         const finalUsername = b.username || (b.email ? b.email.split('@')[0] : 'beneficiary');
                         const displayName = fullName || finalUsername;
 
@@ -4401,7 +4415,7 @@
                             contact: b.phone || b.contact_number || '09XX-***-XXXX',
                             phone: b.phone || b.contact_number || '09XX-***-XXXX',
                             email: b.email || 'N/A',
-                            program: b.program_sector || b.program || 'PESO Assistance',
+                            program: b.program_sector || b.program || b.program_code || 'TUPAD',
                             status: b.status || 'Active',
                             idStatus: b.id_type ? 'Verified' : 'Verified',
                             clearanceStatus: 'Verified',

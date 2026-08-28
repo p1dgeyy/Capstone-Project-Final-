@@ -77,46 +77,42 @@ const SessionManager = (() => {
     }
 
     const uId = String(userId || '').trim();
-    const uName = String(identifier || '').trim();
-    const uEmail = String(extra.email || '').trim();
+    const uName = String(identifier || '').trim().toLowerCase();
+    const uEmail = String(extra.email || '').trim().toLowerCase();
     const uAuthId = String(extra.authId || '').trim();
 
     if (!uId && !uName && !uEmail && !uAuthId) return { isAlreadyActive: false };
 
     try {
       const localSessionId = sessionStorage.getItem('currentSessionId') || null;
-      
-      const conditions = [];
-      if (uId) {
-        conditions.push(`user_id.eq.${uId}`);
-        conditions.push(`user_identifier.ilike.${uId}`);
-      }
-      if (uAuthId && uAuthId !== uId) {
-        conditions.push(`user_id.eq.${uAuthId}`);
-      }
-      if (uName) {
-        conditions.push(`user_identifier.ilike.${uName}`);
-        conditions.push(`user_id.eq.${uName}`);
-      }
-      if (uEmail) {
-        conditions.push(`user_identifier.ilike.${uEmail}`);
-      }
 
-      const orClause = [...new Set(conditions)].join(',');
-      const { data: existingSessions, error } = await supabaseClient
+      // Fetch all active sessions
+      const { data: allSessions, error } = await supabaseClient
         .from('active_user_sessions')
-        .select('*')
-        .or(orClause);
+        .select('*');
 
       if (error) {
-        console.warn('[SessionManager] checkAccountAlreadyActive query warning:', error.message);
+        console.warn('[SessionManager] checkAccountAlreadyActive query notice:', error.message);
       }
 
-      if (!existingSessions || existingSessions.length === 0) {
+      if (!allSessions || allSessions.length === 0) {
         return { isAlreadyActive: false };
       }
 
       const now = Date.now();
+      
+      // Filter sessions matching this user by ID, username, or email
+      const existingSessions = allSessions.filter(sess => {
+        const sessUserId = String(sess.user_id || '').trim();
+        const sessIdent = String(sess.user_identifier || '').trim().toLowerCase();
+        
+        const matchesId = (uId && sessUserId === uId) || (uAuthId && sessUserId === uAuthId);
+        const matchesName = (uName && (sessIdent === uName || sessUserId.toLowerCase() === uName));
+        const matchesEmail = (uEmail && (sessIdent === uEmail || sessIdent.includes(uEmail)));
+        
+        return matchesId || matchesName || matchesEmail;
+      });
+
       for (const sess of existingSessions) {
         // If this exact tab already holds this session ID, allow it
         if (localSessionId && sess.session_id === localSessionId) {
@@ -126,7 +122,7 @@ const SessionManager = (() => {
         const lastActivity = sess.last_activity_at ? new Date(sess.last_activity_at).getTime() : 0;
         const diffMs = now - lastActivity;
 
-        // If active on another device with live heartbeat within the last 45 seconds: BLOCK LOGIN
+        // If active on another device with live heartbeat within threshold: BLOCK LOGIN
         if (diffMs < ACTIVE_DEVICE_THRESHOLD_MS) {
           const secondsAgo = Math.max(1, Math.round(diffMs / 1000));
           return {
@@ -197,6 +193,15 @@ const SessionManager = (() => {
 
         // 1. Upsert active_user_sessions table
         if (uId) {
+          // Remove duplicate old sessions with matching identifier
+          if (uName) {
+            await supabaseClient
+              .from('active_user_sessions')
+              .delete()
+              .eq('user_identifier', uName)
+              .neq('user_id', uId);
+          }
+
           const { error: upsertErr } = await supabaseClient
             .from('active_user_sessions')
             .upsert({
@@ -208,7 +213,7 @@ const SessionManager = (() => {
               last_activity_at: nowIso
             }, { onConflict: 'user_id' });
           if (upsertErr) {
-            console.warn('[SessionManager] Upsert active_user_sessions warning:', upsertErr.message);
+            console.warn('[SessionManager] Upsert active_user_sessions notice:', upsertErr.message);
           }
         }
 
@@ -238,7 +243,7 @@ const SessionManager = (() => {
         }).catch(() => {});
 
       } catch (err) {
-        console.warn('[SessionManager] registerSession error (non-fatal):', err.message);
+        console.warn('[SessionManager] registerSession notice:', err.message);
       }
     }
 

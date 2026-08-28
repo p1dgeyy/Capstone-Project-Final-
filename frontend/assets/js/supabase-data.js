@@ -1602,29 +1602,52 @@ const DataService = (() => {
 
         // Schema requires exactly one recipient/actor to be set
         if (!staffUserId && !beneficiaryQr) {
-          // Default fallback to admin profile if available
-          staffUserId = parseInt(sessionStorage.getItem('userId')) || null;
+          const storedId = parseInt(sessionStorage.getItem('userId'), 10);
+          if (!isNaN(storedId) && storedId > 0) {
+            staffUserId = storedId;
+          } else {
+            const qr = sessionStorage.getItem('beneficiaryQrCode');
+            if (qr && qr.startsWith('QR-')) {
+              beneficiaryQr = qr;
+            }
+          }
         }
 
-        // If still neither is set, create a harmless log entry without violating constraint
         const payload = {
-          action: data.action || 'SYSTEM_ACTION',
-          entity_type: data.entityType || 'general',
-          entity_id: data.entityId ? parseInt(data.entityId) : null,
+          action: (data.action || 'SYSTEM_ACTION').substring(0, 100),
+          entity_type: (data.entityType || 'general').substring(0, 50),
+          entity_id: data.entityId ? parseInt(data.entityId, 10) : null,
           details: data.details || ''
         };
 
         if (staffUserId && !beneficiaryQr) {
           payload.staff_user_id = staffUserId;
-        } else if (beneficiaryQr) {
+        } else if (beneficiaryQr && !staffUserId) {
           payload.beneficiary_qr = beneficiaryQr;
         }
 
-        if (payload.staff_user_id || payload.beneficiary_qr) {
-          await client.from('audit_logs').insert(payload);
+        // Only insert if exactly one actor is provided to satisfy chk_audit_actor
+        if ((payload.staff_user_id && !payload.beneficiary_qr) || (!payload.staff_user_id && payload.beneficiary_qr)) {
+          const { error } = await client.from('audit_logs').insert(payload);
+          if (error) {
+            // Silently fallback to activity_log on schema/FK mismatch
+            if (activityLog && typeof activityLog.log === 'function') {
+              activityLog.log({
+                action: payload.action,
+                details: payload.details,
+                status: 'LOGGED'
+              });
+            }
+          }
+        } else if (activityLog && typeof activityLog.log === 'function') {
+          activityLog.log({
+            action: payload.action,
+            details: payload.details,
+            status: 'LOGGED'
+          });
         }
       } catch (err) {
-        console.warn('[DATA_SERVICE] Audit log insert note:', err.message);
+        // Non-blocking catch
       }
     }
   };

@@ -380,7 +380,7 @@ if (typeof window.PESOSafeguards === 'undefined') {
     }
 
     // 2. Transmit to Supabase audit_logs table asynchronously
-    if (typeof DataService !== 'undefined' && DataService.auditLogs) {
+    if (typeof DataService !== 'undefined' && DataService.auditLogs && typeof DataService.auditLogs.log === 'function') {
       DataService.auditLogs.log({
         staffUserId: typeof userId === 'number' ? userId : parseInt(sessionStorage.getItem('userId')) || null,
         beneficiaryQr: typeof userId === 'string' && userId.startsWith('QR-') ? userId : (sessionStorage.getItem('beneficiaryQrCode') || null),
@@ -388,24 +388,6 @@ if (typeof window.PESOSafeguards === 'undefined') {
         entityType: auditRecord.targetEntity,
         details: `[Role: ${userRole}] ${auditRecord.intent} - ${auditRecord.details}`
       });
-    } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-      const payload = {
-        action: `${auditRecord.status}:${auditRecord.actionType}`,
-        entity_type: auditRecord.targetEntity || 'general',
-        details: `[Role: ${userRole}] ${auditRecord.intent} - ${auditRecord.details}`
-      };
-      const staffId = typeof userId === 'number' ? userId : parseInt(sessionStorage.getItem('userId')) || null;
-      const benQr = typeof userId === 'string' && userId.startsWith('QR-') ? userId : (sessionStorage.getItem('beneficiaryQrCode') || null);
-      if (staffId && !benQr) {
-        payload.staff_user_id = staffId;
-      } else if (benQr) {
-        payload.beneficiary_qr = benQr;
-      }
-      if (payload.staff_user_id || payload.beneficiary_qr) {
-        supabaseClient.from('audit_logs').insert(payload).then(({ error }) => {
-          if (error) console.warn('[PESOSafeguards] Supabase audit insert fallback:', error.message);
-        });
-      }
     }
 
     return auditRecord;
