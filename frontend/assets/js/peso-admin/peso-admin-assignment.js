@@ -30,21 +30,30 @@ async function loadBatchesForProgram(progId) {
             // Check batches table
             const bRes = await DataService.batches.getAll({ program_id: progId });
             if (bRes.data && Array.isArray(bRes.data) && bRes.data.length > 0) {
-                liveAssignmentBatches = bRes.data.map(b => ({
-                    batch_id: b.id,
-                    batch_num: b.name || `Batch #${b.id}`,
-                    date: b.created_at ? b.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10),
-                    trainer: 'PESO Operations Unit',
-                    enrolled: Array.isArray(b.applications) ? b.applications.length : 0,
-                    total: b.capacity || 50
-                }));
+                liveAssignmentBatches = bRes.data.map(b => {
+                    const enrolledCount = evalApplicationsList.filter(a => 
+                        String(a.batch_id) === String(b.id) || 
+                        a.batch_num === b.name || 
+                        String(a.operational_batch_id) === String(b.id) ||
+                        a.operational_batch_name === b.name
+                    ).length;
+
+                    return {
+                        batch_id: b.id,
+                        batch_num: b.name || `Batch #${b.id}`,
+                        date: b.created_at ? b.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10),
+                        trainer: 'PESO Operations Unit',
+                        enrolled: enrolledCount || (Array.isArray(b.applications) ? b.applications.length : 0),
+                        total: b.capacity || 50
+                    };
+                });
             } else {
                 // Fallback: derive from applications list
                 const progApps = evalApplicationsList.filter(a => a.program_id === progId);
                 const batchMap = {};
                 progApps.forEach(a => {
-                    const bKey = a.batch_num || (a.batch_id ? `Batch #${a.batch_id}` : 'General Intake');
-                    const bId = a.batch_id || 1;
+                    const bKey = a.operational_batch_name || a.batch_num || (a.batch_id ? `Batch #${a.batch_id}` : 'General Intake');
+                    const bId = a.operational_batch_id || a.batch_id || 1;
                     if (!batchMap[bKey]) {
                         batchMap[bKey] = {
                             batch_id: bId,
@@ -181,7 +190,13 @@ async function showLevel3Beneficiaries(batchId, batchNum) {
 
     // Load actual applicants / beneficiaries for this batch
     const matchingApps = evalApplicationsList.filter(a =>
-        a.program_id === selectedProgramId && (a.batch_id === batchId || a.batch_num === batchNum || !batchId)
+        a.program_id === selectedProgramId && (
+            String(a.batch_id) === String(batchId) || 
+            a.batch_num === batchNum || 
+            String(a.operational_batch_id) === String(batchId) ||
+            a.operational_batch_name === batchNum ||
+            !batchId
+        )
     );
 
     liveAssignmentBeneficiaries = matchingApps.map(a => ({

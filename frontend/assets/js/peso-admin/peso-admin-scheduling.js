@@ -1005,6 +1005,16 @@ async function handleCreateScheduleSlotSubmit(event) {
             throw res.error;
         }
 
+        if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+            OTPAuth.broadcastRealtimeEvent('SCHEDULE_SLOT_CREATED', {
+                slotId: (res && res.data && res.data.id) || null,
+                title: title,
+                category: category,
+                date: startDate,
+                time: startTime
+            });
+        }
+
         safeHideModal('createActivityModal');
         alert(`Success: Scheduled activity slot "${title}" created and published in real-time.`);
         await initSchedulingModuleData();
@@ -1332,6 +1342,16 @@ async function handleSaveActivityUpdates(event) {
         }
 
         if (res && res.error) throw res.error;
+
+        if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+            OTPAuth.broadcastRealtimeEvent('SCHEDULE_SLOT_UPDATED', {
+                slotId: id,
+                title: title,
+                category: category,
+                date: startDate,
+                time: startTime
+            });
+        }
 
         safeHideModal('editActivityModal');
         alert('Success: Activity schedule updated and re-published.');

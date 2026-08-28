@@ -9401,6 +9401,7 @@
                 if (btn) btn.disabled = true;
 
                 const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
+                const officerId = currentUserProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
                 const timestamp = new Date().toISOString();
 
                 // 1. Update Batch Object (Status -> Scheduled & Locked)
@@ -9428,30 +9429,102 @@
                 }
 
                 // 3. Create schedule entry in Daily Schedules / Interviews
+                let createdSchedDbId = Date.now();
                 if (typeof DataService !== 'undefined' && DataService.interviews) {
                     try {
-                        await DataService.interviews.create({
+                        const schedRes = await DataService.interviews.create({
                             title: `${batch.name} (${eventType})`,
                             category: eventType,
                             interview_date: dateVal,
+                            start_date: dateVal,
+                            end_date: dateVal,
                             start_time: timeVal.split('-')[0]?.trim() || '09:00 AM',
                             end_time: timeVal.split('-')[1]?.trim() || '12:00 PM',
+                            venue_location: venueVal,
                             venue: venueVal,
+                            location: venueVal,
                             status: 'Scheduled',
                             agency: 'PESO',
-                            officer_id: currentUserProfile?.id || null
+                            officer_id: officerId,
+                            batch_id: typeof batch.id === 'number' ? batch.id : (batch.dbId || null),
+                            recipient_count: batch.memberCount || (batch.members ? batch.members.length : 0),
+                            remarks: `Operational Batch Scheduled: ${batch.name} (${eventType})`
                         });
+                        if (schedRes && schedRes.data && schedRes.data.id) {
+                            createdSchedDbId = schedRes.data.id;
+                        }
                     } catch (sErr) {
                         console.warn('[PESO Officer] Schedule DB entry note:', sErr);
                     }
                 }
 
-                // 4. Send Second Real-Time Notification to EVERY beneficiary in the batch
+                // 4. Update in-memory Daily Schedules List immediately for instant UI update
                 const members = evaluationList.filter(a => 
                     String(a.operational_batch_id) === String(currentInspectedOpBatchId) || 
                     a.operational_batch_name === batch.name
                 );
 
+                const newSchedObj = {
+                    id: `SLOT-${createdSchedDbId}`,
+                    slot_id: `SLOT-${createdSchedDbId}`,
+                    dbId: createdSchedDbId,
+                    numId: createdSchedDbId,
+                    title: `${batch.name} (${eventType})`,
+                    category: eventType,
+                    category_other: null,
+                    officerId: officerId,
+                    officer_id: officerId,
+                    officerName: officerName,
+                    officer_name: officerName,
+                    programId: batch.program_id || 1,
+                    program_id: batch.program_id || 1,
+                    programCode: batch.program || 'PESO',
+                    program_code: batch.program || 'PESO',
+                    programName: batch.program || 'Assistance Program',
+                    program_name: batch.program || 'Assistance Program',
+                    startDate: dateVal,
+                    start_date: dateVal,
+                    endDate: dateVal,
+                    end_date: dateVal,
+                    startTime: timeVal.split('-')[0]?.trim() || '09:00 AM',
+                    start_time: timeVal.split('-')[0]?.trim() || '09:00 AM',
+                    endTime: timeVal.split('-')[1]?.trim() || '12:00 PM',
+                    end_time: timeVal.split('-')[1]?.trim() || '12:00 PM',
+                    duration: '3 Hours',
+                    interviewDate: dateVal,
+                    slot_date: dateVal,
+                    scheduleTime: timeVal,
+                    schedule_time: timeVal,
+                    timeSlot: timeVal,
+                    venue: venueVal,
+                    venue_location: venueVal,
+                    batchId: batch.id || batch.dbId,
+                    batch_id: batch.id || batch.dbId,
+                    batchName: batch.name,
+                    batch_name: batch.name,
+                    recipientCount: members.length,
+                    recipient_count: members.length,
+                    scheduling_mode: 'Batch',
+                    beneficiaryId: null,
+                    beneficiaryName: `${batch.name} (${members.length} pax)`,
+                    beneficiary_name: `${batch.name} (${members.length} pax)`,
+                    status: 'Scheduled',
+                    slot_status: 'Scheduled',
+                    is_locked: true,
+                    lock_status: 'Locked',
+                    attendance: 'Unmarked',
+                    remarks: `Operational batch ${batch.name} scheduled for ${eventType} on ${dateVal}.`
+                };
+
+                // Add to head of schedules list if not already present
+                const existingIdx = dailySchedulesList.findIndex(s => s.dbId === createdSchedDbId || s.title === newSchedObj.title);
+                if (existingIdx >= 0) {
+                    dailySchedulesList[existingIdx] = newSchedObj;
+                } else {
+                    dailySchedulesList.unshift(newSchedObj);
+                }
+
+                // 5. Send Real-Time Notification to EVERY beneficiary in the batch
                 const notifMessage = `Batch "${batch.name}" has been scheduled — ${eventType} on ${dateVal} at ${timeVal}, ${venueVal}.`;
                 for (const member of members) {
                     if (member.qrCodeId) {
@@ -9468,13 +9541,27 @@
                     }
                 }
 
-                // 5. Audit Log
+                // 6. Broadcast Realtime Sync Event
+                if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+                    OTPAuth.broadcastRealtimeEvent('BATCH_SCHEDULED_LIVE', {
+                        batchId: batch.id,
+                        batchName: batch.name,
+                        scheduleId: createdSchedDbId,
+                        eventType: eventType,
+                        date: dateVal,
+                        time: timeVal,
+                        venue: venueVal,
+                        membersCount: members.length
+                    });
+                }
+
+                // 7. Audit Log
                 logOfficerAction('SCHEDULE_OPERATIONAL_BATCH', `Scheduled operational batch "${batch.name}" for ${eventType} on ${dateVal} at ${timeVal}, Venue: ${venueVal}. Batch is now locked.`);
 
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
                         title: 'Batch Scheduled Successfully',
-                        message: `Batch "${batch.name}" has been scheduled and locked. Beneficiaries have been notified.`,
+                        message: `Batch "${batch.name}" has been scheduled, published to your schedule roster, and locked. Beneficiaries have been notified.`,
                         type: 'success'
                     });
                 }
@@ -9484,6 +9571,7 @@
 
                 openOperationalBatchDetailModal(currentInspectedOpBatchId);
                 renderPostApprovalBatchesModule();
+                renderDailySchedules();
             } catch (err) {
                 console.error('[PESO Officer] Error scheduling batch:', err);
                 alert(`Error: ${err.message || err}`);
@@ -10387,27 +10475,52 @@
         }
         window.openAuditModal = openAuditModal;
 
+        let _officerSyncDebounceTimer = null;
+        function debouncedOfficerDataReload() {
+            clearTimeout(_officerSyncDebounceTimer);
+            _officerSyncDebounceTimer = setTimeout(() => {
+                if (typeof loadAllOfficerData === 'function') {
+                    loadAllOfficerData();
+                }
+            }, 300);
+        }
+
         function setupOfficerRealtimeSync() {
-            if (typeof supabaseClient === 'undefined' || !supabaseClient || typeof supabaseClient.channel !== 'function') return;
+            // 1. WebSocket Multi-Table Subscription via Supabase DataService
             try {
-                supabaseClient
-                    .channel('peso_officer_realtime_sync')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'interview_schedules' }, () => {
-                        console.log('[PESO Officer Realtime] interview_schedules update received');
-                        loadAllOfficerData();
-                    })
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => {
-                        loadAllOfficerData();
-                    })
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, () => {
-                        loadAllOfficerData();
-                    })
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-                        loadAllOfficerData();
-                    })
-                    .subscribe();
+                if (typeof DataService !== 'undefined' && DataService.realtime && typeof DataService.realtime.subscribeMulti === 'function') {
+                    DataService.realtime.subscribeMulti(['interview_schedules', 'applications', 'batches', 'beneficiaries', 'programs', 'notifications', 'approved_assistance'], (payload) => {
+                        console.log('[PESO Officer Realtime Table Event]:', payload.table, payload.eventType);
+                        debouncedOfficerDataReload();
+                    });
+                } else if (typeof supabaseClient !== 'undefined' && supabaseClient && typeof supabaseClient.channel === 'function') {
+                    supabaseClient
+                        .channel('peso_officer_realtime_sync')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'interview_schedules' }, () => debouncedOfficerDataReload())
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => debouncedOfficerDataReload())
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, () => debouncedOfficerDataReload())
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'beneficiaries' }, () => debouncedOfficerDataReload())
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => debouncedOfficerDataReload())
+                        .subscribe();
+                }
             } catch (err) {
                 console.warn('[PESO Officer Realtime] Subscription warning:', err);
+            }
+
+            // 2. Cross-Tab Live Broadcast Events (Instant sync across tabs)
+            if (typeof OTPAuth !== 'undefined' && OTPAuth.onRealtimeEvent) {
+                OTPAuth.onRealtimeEvent((event) => {
+                    console.log('[PESO Officer Broadcast Event]:', event);
+                    if (event.type === 'APPLICATION_ADMIN_APPROVED' || 
+                        event.type === 'APPLICATION_ADMIN_BULK_APPROVED' || 
+                        event.type === 'APPLICATION_ADMIN_DENIED' ||
+                        event.type === 'BATCH_SCHEDULED_LIVE' || 
+                        event.type === 'SCHEDULE_SLOT_CREATED' || 
+                        event.type === 'SCHEDULE_SLOT_UPDATED' ||
+                        event.type === 'BENEFICIARY_REGISTERED') {
+                        debouncedOfficerDataReload();
+                    }
+                });
             }
         }
         window.setupOfficerRealtimeSync = setupOfficerRealtimeSync;
