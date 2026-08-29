@@ -4,428 +4,365 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>City Government of Koronadal - Unified Portals Gateway</title>
+    <title>City of Koronadal - PESO & CSWDO Portal</title>
 
     <!-- Dependencies: Bootstrap CSS & Icons, Google Fonts -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 
-    <!-- Unified Stylesheet -->
-    <link rel="stylesheet" href="assets/css/styles.css">
+    <!-- Unified Stylesheets -->
+    <link rel="stylesheet" href="assets/css/portal-login.css">
     <link rel="stylesheet" href="assets/css/unified-overlays.css">
 
-    <style>
-        .gateway-wrapper {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            background: radial-gradient(circle at 10% 20%, rgba(240, 196, 203, 0.25) 0%, transparent 40%),
-                        radial-gradient(circle at 90% 80%, rgba(229, 188, 169, 0.25) 0%, transparent 40%),
-                        var(--bg-app);
-        }
-
-        .gateway-header {
-            padding: 2.5rem 1.5rem 1.5rem;
-            text-align: center;
-        }
-
-        .seal-img {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
-            filter: drop-shadow(0 4px 12px rgba(43, 37, 38, 0.1));
-            margin-bottom: 1rem;
-            transition: transform 0.3s ease;
-        }
-
-        .seal-img:hover {
-            transform: scale(1.05);
-        }
-
-        .gateway-title {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: var(--text-main);
-            letter-spacing: -0.02em;
-            margin-bottom: 0.35rem;
-        }
-
-        .gateway-subtitle {
-            font-size: 1rem;
-            color: var(--text-muted);
-            max-width: 680px;
-            margin: 0 auto 1.5rem;
-        }
-
-        .portal-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 1.5rem;
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 1.5rem 2.5rem;
-            width: 100%;
-        }
-
-        .portal-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-lg);
-            padding: 1.75rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: var(--shadow-card);
-            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .portal-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: transparent;
-            transition: background 0.2s ease;
-        }
-
-        .portal-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-card-hover);
-            border-color: rgba(200, 125, 135, 0.45);
-        }
-
-        .portal-card.peso-admin:hover::before { background: var(--palette-antique-rose); }
-        .portal-card.peso-officer:hover::before { background: var(--palette-dried-thyme); }
-        .portal-card.cswdo-admin:hover::before { background: var(--palette-blush); }
-        .portal-card.cswdo-officer:hover::before { background: var(--palette-bisque); }
-        .portal-card.auth-portal:hover::before { background: var(--palette-champagne); }
-
-        .portal-card-top {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 1.25rem;
-        }
-
-        .portal-icon-box {
-            width: 52px;
-            height: 52px;
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            transition: transform 0.2s ease;
-        }
-
-        .portal-card:hover .portal-icon-box {
-            transform: scale(1.08);
-        }
-
-        .portal-card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 0.45rem;
-        }
-
-        .portal-card-desc {
-            font-size: 0.88rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-            margin-bottom: 1.25rem;
-        }
-
-        .portal-feature-list {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 1.5rem;
-        }
-
-        .portal-feature-list li {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 0.35rem;
-        }
-
-        .portal-feature-list li i {
-            color: var(--palette-antique-rose);
-            font-size: 0.9rem;
-        }
-
-        .gateway-search-bar {
-            max-width: 460px;
-            margin: 0 auto 2rem;
-            position: relative;
-        }
-
-        .gateway-search-bar input {
-            padding-left: 2.75rem;
-            height: 48px;
-            border-radius: var(--radius-pill);
-            border: 1px solid var(--border-light);
-            background: var(--bg-surface);
-            box-shadow: 0 2px 10px rgba(43, 37, 38, 0.03);
-            font-size: 0.92rem;
-        }
-
-        .gateway-search-bar i {
-            position: absolute;
-            left: 1.15rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            font-size: 1.1rem;
-        }
-
-        .gateway-footer {
-            padding: 1.75rem 1.5rem;
-            border-top: 1px solid var(--border-light);
-            background: var(--bg-surface);
-            text-align: center;
-            font-size: 0.82rem;
-            color: var(--text-muted);
-        }
-
-        .gateway-nav-top {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 10px;
-            padding: 1rem 2rem 0;
-        }
-    </style>
+    <!-- System & Supabase Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/supabase-data.js"></script>
+    <script src="assets/js/google-auth.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
+    <script src="assets/js/system-notifications.js"></script>
+    <script src="assets/js/session-manager.js"></script>
+    <script src="assets/js/otp-auth.js"></script>
+    <script src="assets/js/portal-login-support.js"></script>
 </head>
 
 <body>
-    <div class="gateway-wrapper">
 
-        <!-- Top Right System Controls -->
-        <div class="gateway-nav-top">
-            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 d-inline-flex align-items-center gap-1.5">
-                <span class="spinner-grow spinner-grow-sm text-success" style="width: 7px; height: 7px;"></span>
-                <span>Koronadal LGU Cloud Active</span>
-            </span>
-            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleDarkMode()" id="darkModeBtn" aria-label="Toggle Dark Mode">
-                <i class="bi bi-moon-stars-fill me-1"></i> <span id="themeLabel">Dark Mode</span>
-            </button>
+    <!-- Global Controls (Dark Mode & Language Toggles) -->
+    <div class="global-controls" style="position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px;">
+        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 bg-white shadow-sm control-btn-custom" id="darkModeToggle" aria-label="Toggle Dark Mode" onclick="toggleDarkMode()">
+            <i class="bi bi-moon-fill" id="darkModeIcon"></i> <span id="darkModeText">Dark Mode</span>
+        </button>
+        <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm font-weight-bold control-btn-custom" id="languageToggle" aria-label="Toggle Language" onclick="toggleLanguage()">
+            English
+        </button>
+    </div>
+
+    <!-- Main Container -->
+    <div class="page-container">
+
+        <!-- Left Hero Panel -->
+        <div class="left-panel">
+            <div class="left-panel-header">
+                <div class="lgu-tag">
+                    <i class="bi bi-geo-alt-fill me-1"></i> Koronadal City
+                </div>
+            </div>
+
+            <div class="left-panel-content">
+                <h1 data-translate="left_title">Livelihood & Social Welfare Assistance Management</h1>
+                <p data-translate="left_desc">Welcome to the official administration portal. Connect, coordinate, and deliver social welfare services and livelihood programs to the citizens of Koronadal.</p>
+
+                <div class="feature-badge-container">
+                    <div class="feature-badge">
+                        <i class="bi bi-shield-check"></i> <span data-translate="badge_secure">Secure Access</span>
+                    </div>
+                    <div class="feature-badge">
+                        <i class="bi bi-people"></i> <span data-translate="badge_case">Case Management</span>
+                    </div>
+                    <div class="feature-badge">
+                        <i class="bi bi-graph-up"></i> <span data-translate="badge_tracking">Program Tracking</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Hero Header -->
-        <header class="gateway-header">
-            <img src="assets/koronadalseal.png" alt="City Government of Koronadal Official Seal" class="seal-img">
-            <h1 class="gateway-title">City Government of Koronadal</h1>
-            <p class="gateway-subtitle">
-                Unified Portal Gateway for Public Employment Service Office (PESO) & City Social Welfare and Development Office (CSWDO) Management Systems
-            </p>
+        <!-- Right Beneficiary Login Panel -->
+        <div class="right-panel">
 
-            <!-- Quick Filter Bar -->
-            <div class="gateway-search-bar">
-                <i class="bi bi-search"></i>
-                <input type="text" id="portalSearchInput" class="form-control" placeholder="Search portals, modules, or services..." onkeyup="filterPortals()">
-            </div>
-        </header>
-
-        <!-- Main Portal Selection Grid -->
-        <main class="portal-grid" id="portalGrid">
-
-            <!-- Card 1: PESO Administrator Portal -->
-            <div class="portal-card peso-admin" data-keywords="peso administrator admin programs appropriation ordinance fund allocation scheduling evaluation audit logs">
-                <div>
-                    <div class="portal-card-top">
-                        <div class="portal-icon-box" style="background: rgba(200, 125, 135, 0.15); color: var(--palette-antique-rose);">
-                            <i class="bi bi-shield-lock-fill"></i>
-                        </div>
-                        <span class="badge badge-rose">Super Admin</span>
-                    </div>
-                    <h2 class="portal-card-title">PESO Administrator Portal</h2>
-                    <p class="portal-card-desc">
-                        Comprehensive administrative oversight for PESO operations, Appropriation Ordinance No. 6 allocations, officer monitoring, and evaluation workflows.
-                    </p>
-                    <ul class="portal-feature-list">
-                        <li><i class="bi bi-check2-circle"></i> Ordinance No. 6 Budget Tracking</li>
-                        <li><i class="bi bi-check2-circle"></i> Employment & Livelihood CRUD</li>
-                        <li><i class="bi bi-check2-circle"></i> Audit Trails & System Logs</li>
-                    </ul>
+            <div class="brand-header">
+                <div class="seal-container">
+                    <img src="assets/koronadalseal.png" alt="Koronadal City Seal">
                 </div>
-                <a href="peso_admin.html" class="btn btn-primary w-100 rounded-pill">
-                    <span>Enter PESO Admin</span>
-                    <i class="bi bi-arrow-right ms-1"></i>
+                <h2 class="portal-title" data-translate="peso_cswdo_portal">City of Koronadal - PESO & CSWDO Portal</h2>
+                <span class="portal-subtitle" data-translate="sub_title">City Livelihood & Social Welfare Assistance System</span>
+            </div>
+
+            <nav class="support-nav">
+                <a href="privacy.html" class="nav-link-custom">Privacy Policy</a>
+                <span class="nav-separator">•</span>
+                <a href="terms.html" class="nav-link-custom">Terms of Service</a>
+                <span class="nav-separator">•</span>
+                <a href="#" id="faqLink" class="nav-link-custom" data-translate="faq">FAQ</a>
+                <span class="nav-separator">•</span>
+                <a href="#" id="kbLink" class="nav-link-custom" data-translate="kb">Knowledgebase</a>
+            </nav>
+
+            <div class="login-card">
+                <h3 class="card-title" data-translate="beneficiary_login_title">Beneficiary Log In</h3>
+                <p class="card-subtitle" data-translate="beneficiary_login_subtitle">Enter your registered username/email and password to log in</p>
+
+                <div class="alert alert-danger" id="errorAlert">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    <span id="errorMessage">Invalid credentials</span>
+                </div>
+                <div class="alert alert-success" id="successAlert">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <span id="successMessage">Success!</span>
+                </div>
+
+
+
+                <form id="loginForm" autocomplete="off">
+                    <div class="form-group">
+                        <label class="form-label" for="username" data-translate="username_label">Username or Email</label>
+                        <input type="text" class="form-control" id="username" placeholder="Enter username or email" data-translate-placeholder="username_placeholder_beneficiary" required autocomplete="off" aria-label="Username or Email">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password" data-translate="password_label">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" class="form-control" id="password" placeholder="Enter password" data-translate-placeholder="password_placeholder" required autocomplete="new-password" aria-label="Password">
+                            <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle Password Visibility">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="text-align: right; margin-top: -15px; margin-bottom: 15px;">
+                        <a href="#" id="forgotPasswordLink" style="font-size: 0.85rem; color: var(--primary-pink); text-decoration: none;" data-translate="forgot_password">
+                            <i class="bi bi-key-fill me-1"></i>Forgot Password?
+                        </a>
+                    </div>
+
+                    <button type="submit" class="btn-login" id="loginBtn">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span data-translate="login_button">Log In</span>
+                        <div class="spinner"></div>
+                    </button>
+                </form>
+
+                <a href="beneficiary_register.html" class="btn-register-link">
+                    <i class="bi bi-person-plus-fill me-1"></i>
+                    <span data-translate="register_new_account">Register New Beneficiary Account</span>
                 </a>
-            </div>
 
-            <!-- Card 2: PESO Officer Portal -->
-            <div class="portal-card peso-officer" data-keywords="peso officer field beneficiary assignment verification qr attendance scheduling">
-                <div>
-                    <div class="portal-card-top">
-                        <div class="portal-icon-box" style="background: rgba(107, 117, 86, 0.16); color: var(--palette-dried-thyme-contrast);">
-                            <i class="bi bi-person-workspace"></i>
-                        </div>
-                        <span class="badge badge-thyme">Officer Portal</span>
-                    </div>
-                    <h2 class="portal-card-title">PESO Officer Portal</h2>
-                    <p class="portal-card-desc">
-                        Officer-managed beneficiary profiling, program assignments, application verification, and real-time QR attendance scanning for training programs.
-                    </p>
-                    <ul class="portal-feature-list">
-                        <li><i class="bi bi-check2-circle"></i> Officer-Managed Beneficiaries</li>
-                        <li><i class="bi bi-check2-circle"></i> QR Scanner Attendance Engine</li>
-                        <li><i class="bi bi-check2-circle"></i> Intake & Verification Queue</li>
-                    </ul>
-                </div>
-                <a href="peso_officer.html" class="btn btn-success w-100 rounded-pill">
-                    <span>Enter PESO Officer</span>
-                    <i class="bi bi-arrow-right ms-1"></i>
-                </a>
-            </div>
-
-            <!-- Card 3: CSWDO Administrator Portal -->
-            <div class="portal-card cswdo-admin" data-keywords="cswdo administrator admin aics senior pwd solo parent disaster social welfare budget">
-                <div>
-                    <div class="portal-card-top">
-                        <div class="portal-icon-box" style="background: rgba(240, 196, 203, 0.4); color: #8c4a55;">
-                            <i class="bi bi-building-fill-gear"></i>
-                        </div>
-                        <span class="badge badge-blush">CSWDO Admin</span>
-                    </div>
-                    <h2 class="portal-card-title">CSWDO Administrator Portal</h2>
-                    <p class="portal-card-desc">
-                        Executive social welfare governance: AICS, Senior Citizen, PWD, Solo Parent, and Disaster Relief distribution with budget compliance monitoring.
-                    </p>
-                    <ul class="portal-feature-list">
-                        <li><i class="bi bi-check2-circle"></i> Multi-Program Social Welfare</li>
-                        <li><i class="bi bi-check2-circle"></i> Social Worker Oversight & Caseloads</li>
-                        <li><i class="bi bi-check2-circle"></i> Payout Scheduling & Disbursement</li>
-                    </ul>
-                </div>
-                <a href="cswdo_admin.html" class="btn btn-primary w-100 rounded-pill">
-                    <span>Enter CSWDO Admin</span>
-                    <i class="bi bi-arrow-right ms-1"></i>
-                </a>
-            </div>
-
-            <!-- Card 4: CSWDO Officer Portal -->
-            <div class="portal-card cswdo-officer" data-keywords="cswdo officer social worker client intake case assessment assistance payout qr">
-                <div>
-                    <div class="portal-card-top">
-                        <div class="portal-icon-box" style="background: rgba(229, 188, 169, 0.35); color: #7a3e46;">
-                            <i class="bi bi-heart-pulse-fill"></i>
-                        </div>
-                        <span class="badge badge-bisque">Social Worker</span>
-                    </div>
-                    <h2 class="portal-card-title">CSWDO Officer Portal</h2>
-                    <p class="portal-card-desc">
-                        Field social worker portal for client profiling, intake assessments, case study documentation, and real-time payout attendance recording.
-                    </p>
-                    <ul class="portal-feature-list">
-                        <li><i class="bi bi-check2-circle"></i> Client Intake & Profiling</li>
-                        <li><i class="bi bi-check2-circle"></i> Case Assessment & Screening</li>
-                        <li><i class="bi bi-check2-circle"></i> Assistance Payout Verification</li>
-                    </ul>
-                </div>
-                <a href="cswdo_officer.html" class="btn btn-outline-primary w-100 rounded-pill">
-                    <span>Enter CSWDO Officer</span>
-                    <i class="bi bi-arrow-right ms-1"></i>
-                </a>
-            </div>
-
-            <!-- Card 5: Official & Beneficiary Login Hub -->
-            <div class="portal-card auth-portal" data-keywords="login official staff beneficiary sign in authentication otp password">
-                <div>
-                    <div class="portal-card-top">
-                        <div class="portal-icon-box" style="background: rgba(251, 234, 214, 0.7); color: #8a5a2b;">
-                            <i class="bi bi-key-fill"></i>
-                        </div>
-                        <span class="badge badge-champagne">Authentication</span>
-                    </div>
-                    <h2 class="portal-card-title">Official & Beneficiary Login</h2>
-                    <p class="portal-card-desc">
-                        Central authentication gateway for registered citizen beneficiaries, evaluators, and official LGU personnel with multi-factor security.
-                    </p>
-                    <ul class="portal-feature-list">
-                        <li><i class="bi bi-check2-circle"></i> Beneficiary Self-Service Access</li>
-                        <li><i class="bi bi-check2-circle"></i> Staff & Official Authentication</li>
-                        <li><i class="bi bi-check2-circle"></i> Data Privacy RA 10173 Compliant</li>
-                    </ul>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="official_login.html" class="btn btn-outline-primary flex-fill rounded-pill" style="font-size: 0.82rem;">
-                        <i class="bi bi-person-fill me-1"></i> Beneficiary
-                    </a>
-                    <a href="admin_login.html" class="btn btn-primary flex-fill rounded-pill" style="font-size: 0.82rem;">
-                        <i class="bi bi-lock-fill me-1"></i> Staff Login
-                    </a>
+                <div class="back-portal-link">
+                    <a href="admin_login.html"><i class="bi bi-shield-lock me-1"></i><span data-translate="login_as_admin">Login as Admin / Staff</span></a>
                 </div>
             </div>
 
-        </main>
-
-        <!-- Footer -->
-        <footer class="gateway-footer">
-            <div class="container">
-                <div class="d-flex flex-wrap justify-content-center gap-3 mb-2">
-                    <a href="privacy.html" class="text-muted">Data Privacy Notice (RA 10173)</a>
-                    <span class="text-muted">•</span>
-                    <a href="terms.html" class="text-muted">Terms of Service</a>
-                    <span class="text-muted">•</span>
-                    <span class="text-muted">City Government of Koronadal &copy; 2026</span>
-                </div>
-                <div class="small text-muted">
-                    Official Digital Governance & Public Assistance Management Platform
-                </div>
+            <div class="footer-version">
+                City of Koronadal • Beneficiary Portal Version 1.0.0
             </div>
-        </footer>
+        </div>
 
     </div>
 
-    <!-- Scripts -->
-    <script>
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('koronadal_theme', isDark ? 'dark' : 'light');
-            document.getElementById('themeLabel').innerText = isDark ? 'Light Mode' : 'Dark Mode';
-            const icon = document.querySelector('#darkModeBtn i');
-            if (icon) {
-                icon.className = isDark ? 'bi bi-sun-fill me-1' : 'bi bi-moon-stars-fill me-1';
-            }
-        }
+    <!-- =========================================================================
+         SUPPORT MODALS
+         ========================================================================= -->
 
-        // Initialize Theme from localStorage
-        (function() {
-            const savedTheme = localStorage.getItem('koronadal_theme');
-            if (savedTheme === 'dark' || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !savedTheme)) {
-                document.body.classList.add('dark-mode');
-                const label = document.getElementById('themeLabel');
-                if (label) label.innerText = 'Light Mode';
-                const icon = document.querySelector('#darkModeBtn i');
-                if (icon) icon.className = 'bi bi-sun-fill me-1';
-            }
-        })();
+    <!-- Data Privacy Modal -->
+    <div class="custom-modal" id="privacyModal" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
+        <div class="custom-modal-backdrop" id="privacyBackdrop"></div>
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header">
+                <div class="modal-title-container">
+                    <div class="modal-title-icon">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h3 class="modal-title" id="privacyModalTitle" data-translate="privacy_modal_title">Data Privacy & Compliance</h3>
+                </div>
+                <button type="button" class="btn-modal-close d-none" id="closePrivacyBtn" aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="custom-modal-body" tabindex="0" aria-label="Privacy Statement and Terms and Conditions">
+                <p class="mb-3 text-muted" style="font-size: 0.9rem;">
+                    Pursuant to <strong>Republic Act No. 10173</strong> (Data Privacy Act of 2012), the City Government of Koronadal is committed to protecting your personal information.
+                </p>
 
-        // Live Portal Search Filter
-        function filterPortals() {
-            const query = document.getElementById('portalSearchInput').value.toLowerCase().trim();
-            const cards = document.querySelectorAll('.portal-card');
-            cards.forEach(card => {
-                const text = (card.innerText + ' ' + (card.getAttribute('data-keywords') || '')).toLowerCase();
-                if (!query || text.includes(query)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-    </script>
+                <div class="compliance-section">
+                    <span class="compliance-badge">Beneficiary Data Protection</span>
+                    <h4>Privacy Statement</h4>
+                    <p>Your demographic, contact, and household information is gathered solely to verify your eligibility for city livelihood projects, emergency financial aid, skills development trainings, and educational programs.</p>
+                    <h5>Terms and Conditions</h5>
+                    <ul>
+                        <li>Submit authentic personal documentation and identification.</li>
+                        <li>Keep your password and unique QR Code confidential.</li>
+                        <li>Contact information is protected and masked across all public screens.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="custom-modal-footer d-flex flex-column align-items-stretch gap-3">
+                <div id="scrollNotice" class="scroll-notice text-muted">
+                    <i class="bi bi-arrow-down-circle-fill me-1"></i> Please scroll through the Privacy Statement and Terms to the bottom to enable the checkbox.
+                </div>
+                <div class="d-flex justify-content-between align-items-center w-100 flex-wrap gap-3">
+                    <div class="checkbox-wrap mb-0">
+                        <input type="checkbox" id="privacyAgreeCheck" disabled>
+                        <label for="privacyAgreeCheck" class="form-check-label text-start" style="font-size: 0.88rem; color: var(--text-dark); font-weight: 600;" data-translate="agree_label">
+                            I have read and agreed to the Privacy Statement and Terms and Conditions.
+                        </label>
+                    </div>
+                    <button type="button" id="privacyProceedBtn" class="btn-login py-2 px-4 mt-0 w-auto" disabled data-translate="proceed_btn">
+                        Proceed
+                    </button>
+                </div>
+                <div id="srAnnouncement" class="visually-hidden" aria-live="polite"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Modal -->
+    <div class="custom-modal" id="faqModal">
+        <div class="custom-modal-backdrop" id="faqBackdrop"></div>
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header">
+                <div class="modal-title-container">
+                    <div class="modal-title-icon"><i class="bi bi-question-circle-fill"></i></div>
+                    <h3 class="modal-title">Frequently Asked Questions</h3>
+                </div>
+                <button type="button" class="btn-modal-close" id="closeFaqBtn" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="custom-modal-body">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I register for an assistance program?</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        If you do not have an account, click the "Register New Beneficiary Account" button below the login form. Once registered, log in to apply for active PESO and CSWDO programs.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How can I track my application status?</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Sign in to the Beneficiary Portal to view real-time updates on your application checklist, interview schedules, and release vouchers.
+                    </div>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideModal('faqModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Knowledgebase Modal -->
+    <div class="custom-modal" id="kbModal">
+        <div class="custom-modal-backdrop" id="kbBackdrop"></div>
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header">
+                <div class="modal-title-container">
+                    <div class="modal-title-icon"><i class="bi bi-journal-text"></i></div>
+                    <h3 class="modal-title">Beneficiary Guide & Help</h3>
+                </div>
+                <button type="button" class="btn-modal-close" id="closeKbBtn" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="custom-modal-body">
+                <div class="compliance-section">
+                    <h4><i class="bi bi-qr-code text-primary me-2"></i>Beneficiary QR Code</h4>
+                    <p>Your digital QR code serves as your official identification for intake verification, interview attendance, and assistance distribution.</p>
+                </div>
+                <div class="compliance-section">
+                    <h4><i class="bi bi-info-circle text-info me-2"></i>Assistance Support Desk</h4>
+                    <p>For inquiries, visit the PESO Office or CSWDO Department at the City Hall of Koronadal, or contact our support channels.</p>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideModal('kbModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3-Step Password Reset Modal -->
+    <div class="custom-modal" id="resetModal">
+        <div class="custom-modal-backdrop" id="resetBackdrop"></div>
+        <div class="custom-modal-dialog">
+            <div class="custom-modal-header">
+                <div class="modal-title-container">
+                    <div class="modal-title-icon"><i class="bi bi-key-fill"></i></div>
+                    <h3 class="modal-title">Beneficiary Password Reset</h3>
+                </div>
+                <button type="button" class="btn-modal-close" id="closeResetBtn" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="custom-modal-body">
+                <div id="forgotStep1">
+                    <p class="text-muted small mb-3">Enter your registered Gmail address or username to receive a 4-digit verification code.</p>
+                    <form id="forgotPasswordForm" onsubmit="handleSendResetOtp(event)">
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="forgotIdentifier">Username or Gmail</label>
+                            <input type="text" class="form-control" id="forgotIdentifier" placeholder="e.g. juan@gmail.com or juan.delacruz" required aria-label="Username or Email">
+                        </div>
+                        <button type="submit" class="btn-login" id="btnSendResetOtp">
+                            <i class="bi bi-send-fill me-1"></i> Send Verification Code
+                        </button>
+                    </form>
+                </div>
+
+                <div id="forgotStep2" class="d-none text-center py-2">
+                    <div class="avatar-circle mx-auto mb-2" style="width: 50px; height: 50px; background: #EDE9FE; color: #6D28D9; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Enter Verification Code</h5>
+                    <p class="text-muted small mb-2">We sent a verification code to: <strong id="forgotUserEmailBadge">user@gmail.com</strong></p>
+                    
+                    <div class="alert alert-danger py-2 px-3 small d-none mb-3" id="resetOtpAlert">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="resetOtpAlertMsg">Invalid code.</span>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-2 mb-3" id="resetOtpBoxes">
+                        <input type="text" class="form-control text-center fw-bold fs-5 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit1" style="width: 46px; height: 50px; border-radius: 8px; padding: 0;">
+                        <input type="text" class="form-control text-center fw-bold fs-5 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit2" style="width: 46px; height: 50px; border-radius: 8px; padding: 0;">
+                        <input type="text" class="form-control text-center fw-bold fs-5 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit3" style="width: 46px; height: 50px; border-radius: 8px; padding: 0;">
+                        <input type="text" class="form-control text-center fw-bold fs-5 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit4" style="width: 46px; height: 50px; border-radius: 8px; padding: 0;">
+                        <input type="text" class="form-control text-center fw-bold fs-5 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit5" style="width: 46px; height: 50px; border-radius: 8px; padding: 0;">
+                        <input type="text" class="form-control text-center fw-bold fs-5 code-digit-box" maxlength="1" inputmode="numeric" id="resetDigit6" style="width: 46px; height: 50px; border-radius: 8px; padding: 0;">
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center small text-muted mb-3 px-2">
+                        <span>Expires in: <strong class="text-danger" id="resetExpiryTimer">05:00</strong></span>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="btnResendResetOtp" onclick="handleResendResetOtp()" disabled>
+                            Resend Code <span id="resetResendCooldown">(60s)</span>
+                        </button>
+                    </div>
+
+                    <button type="button" class="btn btn-primary w-100 fw-bold py-2.5 shadow-sm" id="btnVerifyResetOtp" onclick="handleVerifyResetOtp()" style="background: linear-gradient(135deg, #7C3AED, #6D28D9); border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; position: relative; z-index: 10; pointer-events: auto;">
+                        <i class="bi bi-check-circle-fill me-1"></i> Verify Code & Continue
+                    </button>
+                </div>
+
+                <div id="forgotStep3" class="d-none">
+                    <p class="text-muted small mb-3">Create a new secure password (minimum 8 characters, with uppercase, lowercase, number, and special character).</p>
+                    <form id="resetCompleteForm" onsubmit="handleCommitNewPassword(event)">
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="newResetPassword">New Password</label>
+                            <div class="password-wrapper position-relative">
+                                <input type="password" class="form-control pe-5" id="newResetPassword" placeholder="Enter new password" required minlength="8" aria-label="New Password">
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('newResetPassword', 'toggleIconNewBenPw')" aria-label="Toggle Password Visibility" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px;">
+                                    <i class="bi bi-eye" id="toggleIconNewBenPw"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="confirmResetPassword">Confirm New Password</label>
+                            <div class="password-wrapper position-relative">
+                                <input type="password" class="form-control pe-5" id="confirmResetPassword" placeholder="Confirm new password" required minlength="8" aria-label="Confirm New Password">
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmResetPassword', 'toggleIconConfirmBenPw')" aria-label="Toggle Password Visibility" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px;">
+                                    <i class="bi bi-eye" id="toggleIconConfirmBenPw"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-login" id="btnUpdatePassword">
+                            <i class="bi bi-check2-circle me-1"></i> Save New Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideModal('resetModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authentication Controller Script -->
+    <script src="assets/js/beneficiary-login.js"></script>
 </body>
 
 </html>

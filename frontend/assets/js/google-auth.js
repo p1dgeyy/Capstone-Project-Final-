@@ -411,7 +411,7 @@ const GoogleAuth = (() => {
       }
 
       // If user landed on login page after Google OAuth, route them to beneficiary dashboard
-      if (curPath.includes('login') || curPath.includes('official_login.html')) {
+      if (curPath.includes('login') || curPath.includes('official_login.html') || curPath.includes('index.html') || curPath.endsWith('/') || curPath === '') {
         window.location.replace('beneficiary.html');
       }
 

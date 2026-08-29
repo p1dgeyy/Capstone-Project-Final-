@@ -25,7 +25,7 @@ Capstone-Project-Final-/
 │   │   │   └── system-notifications.js
 │   │   ├── city_of_koronadal.jpeg
 │   │   └── koronadalseal.png
-│   ├── index.html                # Main entry point (redirects to official_login)
+│   ├── index.html                # Main entry point (Official Login Landing Page)
 │   ├── official_login.html       # Portal Login for Beneficiaries
 │   ├── admin_login.html          # Portal Login for Admins & Staff
 │   ├── beneficiary.html          # Beneficiary Dashboard
