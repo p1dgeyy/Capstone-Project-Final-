@@ -135,13 +135,25 @@
 
     // Retrieve cached photo if any
     const savedPhoto = sessionStorage.getItem(`beneficiaryPhoto_${state.user.qr_code}`) || sessionStorage.getItem('beneficiaryPhoto');
+    const headerAvatar = document.getElementById('headerProfileAvatar');
+    const dropdownAvatar = document.getElementById('dropdownProfileAvatar');
     if (savedPhoto) {
       if (persImg) persImg.src = savedPhoto;
       if (settingsPreview) settingsPreview.src = savedPhoto;
+      if (headerAvatar) headerAvatar.src = savedPhoto;
+      if (dropdownAvatar) dropdownAvatar.src = savedPhoto;
     }
 
     if (persName) persName.textContent = state.user.fullName;
     if (persQr) persQr.textContent = state.user.qr_code;
+
+    // Top Header Navbar Profile Elements
+    const headName = document.getElementById('headerProfileName');
+    const dropName = document.getElementById('dropdownProfileFullName');
+    const dropId = document.getElementById('dropdownProfileId');
+    if (headName) headName.textContent = state.user.fullName;
+    if (dropName) dropName.textContent = state.user.fullName;
+    if (dropId) dropId.textContent = state.user.qr_code;
     
     // Determine active enrolled program from applications or fallback
     const primaryApp = state.applications && state.applications.length > 0 ? state.applications[0] : null;
@@ -1913,6 +1925,7 @@
     const dropdownList = document.getElementById('notifDropdownList');
     const dashFeed = document.getElementById('benDashboardNotificationsFeed');
     const desktopBadge = document.getElementById('desktopNotifBadge');
+    const headerBadge = document.getElementById('headerNotifBadge');
     const mobileBadge = document.getElementById('mobileNotifBadge');
     const benBadge = document.getElementById('benUnreadNotifBadge');
     const unreadPill = document.getElementById('dropdownUnreadCount');
@@ -1923,6 +1936,10 @@
     if (desktopBadge) {
       desktopBadge.textContent = unreadCount;
       desktopBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+    }
+    if (headerBadge) {
+      headerBadge.textContent = unreadCount;
+      headerBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
     }
     if (mobileBadge) {
       mobileBadge.textContent = unreadCount;
