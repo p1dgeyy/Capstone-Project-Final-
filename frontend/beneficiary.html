@@ -5386,9 +5386,15 @@
                 document.body.style.overflow = 'hidden';
                 return;
             }
-            if (id === 'certificateModal' && typeof bootstrap !== 'undefined') {
-                const bModal = bootstrap.Modal.getOrCreateInstance(el);
-                bModal.show();
+            if (id === 'certificateModal') {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const bModal = bootstrap.Modal.getOrCreateInstance(el);
+                    bModal.show();
+                    return;
+                }
+                el.classList.add('show', 'active');
+                el.style.display = 'block';
+                document.body.style.overflow = 'hidden';
                 return;
             }
             el.classList.add('active');
@@ -5409,9 +5415,17 @@
                 document.body.style.overflow = '';
                 return;
             }
-            if (id === 'certificateModal' && typeof bootstrap !== 'undefined') {
-                const bModal = bootstrap.Modal.getInstance(el);
-                if (bModal) bModal.hide();
+            if (id === 'certificateModal') {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const bModal = bootstrap.Modal.getInstance(el) || bootstrap.Modal.getOrCreateInstance(el);
+                    if (bModal) bModal.hide();
+                }
+                el.classList.remove('show', 'active');
+                el.style.display = 'none';
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) backdrop.remove();
+                document.body.style.overflow = '';
+                document.body.classList.remove('modal-open');
                 return;
             }
             el.classList.remove('active');
@@ -10419,6 +10433,12 @@
         window.showQrModal = openQrModal;
         window.viewQrCode = openQrModal;
         window.printQrPassSlip = function() { window.print(); };
+        window.openProfileSettingsModal = openBeneficiaryProfileSettings;
+        window.openApplyModalWithProgram = function(progName) {
+            if (typeof applyForProgram === 'function') {
+                applyForProgram(progName);
+            }
+        };
     </script>
 
     <!-- Ordinance PDF Viewer Modal -->
@@ -10603,7 +10623,7 @@
             <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
                 <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
                     <h5 class="modal-title fw-bold text-white m-0"><i class="bi bi-award-fill me-2 text-warning"></i> Training Completion Certificate</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeModal('certificateModal')" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 bg-light text-center">
                     <div id="certificatePrintFrame" class="p-5 bg-white border rounded shadow-sm mx-auto" style="max-width: 700px; border: 8px double #1e293b !important; background: radial-gradient(circle, #ffffff 0%, #fffbf0 100%);">
@@ -10638,7 +10658,7 @@
                 <div class="modal-footer bg-white border-0 d-flex justify-content-between">
                     <span class="small text-muted"><i class="bi bi-shield-check text-success me-1"></i> Official authenticated certificate record.</span>
                     <div>
-                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-light px-4" onclick="closeModal('certificateModal')" data-bs-dismiss="modal">Close</button>
                         <button type="button" class="btn btn-primary px-4 font-weight-bold" onclick="window.print()">
                             <i class="bi bi-printer me-1"></i> Print / Save PDF Certificate
                         </button>
