@@ -334,6 +334,70 @@
             transition: var(--transition-smooth);
         }
 
+        /* Sidebar Nested Submenu & Hover Card */
+        .nav-item-dropdown {
+            position: relative;
+            margin: 2px 0;
+        }
+
+        .nav-submenu {
+            display: none;
+            flex-direction: column;
+            padding-left: 28px;
+            padding-right: 16px;
+            gap: 3px;
+            margin-top: 2px;
+            margin-bottom: 6px;
+        }
+
+        .nav-item-dropdown.open .nav-submenu,
+        .nav-item-dropdown:hover .nav-submenu {
+            display: flex;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .nav-item-dropdown.open .nav-dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .nav-sublink {
+            display: flex;
+            align-items: center;
+            padding: 8px 14px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: var(--radius-sm, 6px);
+            transition: var(--transition-smooth);
+        }
+
+        .nav-sublink:hover {
+            background: var(--rose-lighter, #FFF0F4);
+            color: var(--rose-primary);
+            transform: translateX(3px);
+        }
+
+        .nav-sublink.active {
+            background: #FFF0F4;
+            color: var(--rose-primary);
+            font-weight: 700;
+            border-left: 3px solid var(--rose-primary);
+        }
+
+        .my-apps-card {
+            border: 1px solid var(--border-color, #E2E8F0);
+            border-radius: 16px;
+            background: #FFFFFF;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .my-apps-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+            border-color: #CBD5E1;
+        }
+
         /* Main Content */
         .main-content {
             margin-left: 280px;
@@ -1945,10 +2009,27 @@
                 <i class="bi bi-grid-1x2-fill"></i>
                 <span data-translate="nav_dashboard">Dashboard</span>
             </a>
-            <a href="#" class="nav-link-custom" data-section="assistance" onclick="navigateTo('assistance')">
-                <i class="bi bi-briefcase-fill"></i>
-                <span data-translate="nav_assistance">Assistance & Application</span>
-            </a>
+            <!-- Nested Assistance & Application Menu -->
+            <div class="nav-item-dropdown" id="navAssistanceDropdown">
+                <a href="#" class="nav-link-custom d-flex justify-content-between align-items-center" data-section="assistance" onclick="toggleNavDropdown('navAssistanceDropdown', event, 'assistance')">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-briefcase-fill"></i>
+                        <span data-translate="nav_assistance">Assistance & Application</span>
+                    </div>
+                    <i class="bi bi-chevron-down nav-dropdown-arrow" style="font-size: 0.75rem; transition: transform 0.2s;"></i>
+                </a>
+                <div class="nav-submenu" id="submenuAssistance">
+                    <a href="#" class="nav-sublink active" id="sublinkBrowsePrograms" onclick="navigateToSubtab('assistance', 'browse')">
+                        <i class="bi bi-grid me-2 text-primary"></i> Browse Programs
+                    </a>
+                    <a href="#" class="nav-sublink d-flex justify-content-between align-items-center" id="sublinkMyApplications" onclick="navigateToSubtab('assistance', 'my-apps')">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark-person me-2 text-primary"></i> My Applications
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-0.5 small font-monospace" id="sidebarMyAppsBadge">0</span>
+                    </a>
+                </div>
+            </div>
             <a href="#" class="nav-link-custom" data-section="documents" onclick="navigateTo('documents')">
                 <i class="bi bi-file-earmark-check-fill"></i>
                 <span data-translate="nav_documents">Document Monitoring</span>
@@ -2465,61 +2546,162 @@
             </div>
         </section>
 
-        <!-- LIVELIHOOD APPLICATION SECTION -->
+        <!-- LIVELIHOOD APPLICATION & ASSISTANCE SECTION -->
         <section id="programs" class="section">
-            <!-- Separate Sub-Navigation Tabs within Livelihood Application -->
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-2 border-bottom" style="border-color: #ebdce2 !important;">
-                <div class="nav-segment-group" role="tablist">
-                    <button type="button" class="btn-segment-tab active" id="tabAllOpportunities" onclick="setProgramAgencyFilter('all')">
-                        <i class="bi bi-grid-fill me-1"></i> All Livelihood & Assistance
-                        <span class="badge bg-white text-dark ms-1 rounded-pill shadow-sm" id="badgeCountAll">20</span>
+            <!-- Top Section Header & Nested Subtabs -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom" style="border-color: #ebdce2 !important;">
+                <div>
+                    <h2 class="section-title fw-bold text-dark mb-1" id="assistanceHeaderTitle">Assistance & Application</h2>
+                    <p class="text-muted small mb-0">Browse available city assistance programs or track your submitted applications in real time.</p>
+                </div>
+
+                <!-- Nested Subtabs: Browse Programs vs My Applications -->
+                <div class="btn-group p-1 bg-light rounded-pill border shadow-sm" role="tablist" id="assistanceSubtabsNavGroup">
+                    <button type="button" class="btn btn-sm rounded-pill px-3.5 py-1.5 fw-bold btn-primary" id="subtabBtnBrowse" onclick="switchAssistanceSubtab('browse')" role="tab" aria-selected="true">
+                        <i class="bi bi-grid-fill me-1.5"></i> Browse Programs
                     </button>
-                    <button type="button" class="btn-segment-tab" id="tabPesoPrograms" onclick="setProgramAgencyFilter('PESO')">
-                        <span class="office-badge peso me-1" style="font-size: 0.72rem; padding: 2px 8px;">PESO</span> PESO Programs
-                        <span class="badge bg-white text-dark ms-1 rounded-pill shadow-sm" id="badgeCountPeso">17</span>
-                    </button>
-                    <button type="button" class="btn-segment-tab" id="tabCswdoAssistance" onclick="setProgramAgencyFilter('CSWDO')">
-                        <span class="office-badge cswdo me-1" style="font-size: 0.72rem; padding: 2px 8px;">CSWDO</span> CSWDO Assistance Applications
-                        <span class="badge bg-white text-dark ms-1 rounded-pill shadow-sm" id="badgeCountCswdo">3</span>
+                    <button type="button" class="btn btn-sm rounded-pill px-3.5 py-1.5 fw-bold btn-light text-muted" id="subtabBtnMyApps" onclick="switchAssistanceSubtab('my-apps')" role="tab" aria-selected="false">
+                        <i class="bi bi-file-earmark-person-fill me-1.5 text-primary"></i> My Applications
+                        <span class="badge bg-danger rounded-pill ms-1 text-white font-monospace" id="badgeMyAppsCount">0</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Search and Filter Bar -->
-            <div class="row g-2 mb-4" style="margin-top: 10px; margin-bottom: 25px;">
-                <div class="col-md-5">
-                    <div class="input-group" style="box-shadow: 0 2px 8px rgba(184, 92, 122, 0.08); border-radius: 8px; overflow: hidden;">
-                        <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #ebdce2;"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control border-start-0 ps-0" id="beneficiaryProgramSearch" placeholder="Search program, assistance, or keyword..." onkeyup="renderBeneficiaryPrograms()" style="border-color: #ebdce2;" aria-label="Search program or assistance by name or code">
+            <!-- SUBVIEW 1: BROWSE PROGRAMS -->
+            <div id="subviewBrowsePrograms">
+                <!-- Separate Agency Filter Tabs -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-2 border-bottom" style="border-color: #ebdce2 !important;">
+                    <div class="nav-segment-group" role="tablist">
+                        <button type="button" class="btn-segment-tab active" id="tabAllOpportunities" onclick="setProgramAgencyFilter('all')">
+                            <i class="bi bi-grid-fill me-1"></i> All Livelihood & Assistance
+                            <span class="badge bg-white text-dark ms-1 rounded-pill shadow-sm" id="badgeCountAll">20</span>
+                        </button>
+                        <button type="button" class="btn-segment-tab" id="tabPesoPrograms" onclick="setProgramAgencyFilter('PESO')">
+                            <span class="office-badge peso me-1" style="font-size: 0.72rem; padding: 2px 8px;">PESO</span> PESO Programs
+                            <span class="badge bg-white text-dark ms-1 rounded-pill shadow-sm" id="badgeCountPeso">17</span>
+                        </button>
+                        <button type="button" class="btn-segment-tab" id="tabCswdoAssistance" onclick="setProgramAgencyFilter('CSWDO')">
+                            <span class="office-badge cswdo me-1" style="font-size: 0.72rem; padding: 2px 8px;">CSWDO</span> CSWDO Assistance Applications
+                            <span class="badge bg-white text-dark ms-1 rounded-pill shadow-sm" id="badgeCountCswdo">3</span>
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="beneficiaryFilterLocation" onchange="renderBeneficiaryPrograms()" style="box-shadow: 0 2px 8px rgba(184, 92, 122, 0.08); border-radius: 8px; border-color: #ebdce2; height: 100%;" aria-label="Beneficiary Location">
-                        <option value="">All Venues (Koronadal)</option>
-                        <option value="PESO Office">PESO Office / City Hall</option>
-                        <option value="CSWDO Office">CSWDO Office / City Hall</option>
-                        <option value="CSWDO Training Center">CSWDO Training Center</option>
-                        <option value="City Gym">City Gym / Public Venues</option>
-                        <option value="Various Barangays">Various Barangays</option>
-                    </select>
+
+                <!-- Search and Filter Bar -->
+                <div class="row g-2 mb-4" style="margin-top: 10px; margin-bottom: 25px;">
+                    <div class="col-md-5">
+                        <div class="input-group" style="box-shadow: 0 2px 8px rgba(184, 92, 122, 0.08); border-radius: 8px; overflow: hidden;">
+                            <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #ebdce2;"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" id="beneficiaryProgramSearch" placeholder="Search program, assistance, or keyword..." onkeyup="renderBeneficiaryPrograms()" style="border-color: #ebdce2;" aria-label="Search program or assistance by name or code">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="beneficiaryFilterLocation" onchange="renderBeneficiaryPrograms()" style="box-shadow: 0 2px 8px rgba(184, 92, 122, 0.08); border-radius: 8px; border-color: #ebdce2; height: 100%;" aria-label="Beneficiary Location">
+                            <option value="">All Venues (Koronadal)</option>
+                            <option value="PESO Office">PESO Office / City Hall</option>
+                            <option value="CSWDO Office">CSWDO Office / City Hall</option>
+                            <option value="CSWDO Training Center">CSWDO Training Center</option>
+                            <option value="City Gym">City Gym / Public Venues</option>
+                            <option value="Various Barangays">Various Barangays</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="beneficiaryFilterEligibility" onchange="renderBeneficiaryPrograms()" style="box-shadow: 0 2px 8px rgba(184, 92, 122, 0.08); border-radius: 8px; border-color: #ebdce2; height: 100%;" aria-label="Beneficiary Eligibility">
+                            <option value="">All Eligibility Groups</option>
+                            <option value="student">Students / Youth / Scholars (15-30 years)</option>
+                            <option value="displaced">Displaced / Unemployed / Informal Workers</option>
+                            <option value="low-income">Low-Income / Indigent Families</option>
+                            <option value="medical">Patients / Medical & Hospitalization Support</option>
+                            <option value="burial">Bereaved Indigent Families (Burial Support)</option>
+                            <option value="crisis">Crisis / Calamity / Financial Assistance</option>
+                            <option value="ofw">OFWs & Returning Migrant Workers</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <select class="form-select" id="beneficiaryFilterEligibility" onchange="renderBeneficiaryPrograms()" style="box-shadow: 0 2px 8px rgba(184, 92, 122, 0.08); border-radius: 8px; border-color: #ebdce2; height: 100%;" aria-label="Beneficiary Eligibility">
-                        <option value="">All Eligibility Groups</option>
-                        <option value="student">Students / Youth / Scholars (15-30 years)</option>
-                        <option value="displaced">Displaced / Unemployed / Informal Workers</option>
-                        <option value="low-income">Low-Income / Indigent Families</option>
-                        <option value="medical">Patients / Medical & Hospitalization Support</option>
-                        <option value="burial">Bereaved Indigent Families (Burial Support)</option>
-                        <option value="crisis">Crisis / Calamity / Financial Assistance</option>
-                        <option value="ofw">OFWs & Returning Migrant Workers</option>
-                    </select>
+
+                <!-- Dynamic Programs Container -->
+                <div class="programs-grid" id="beneficiary-programs-container">
+                    <!-- Cards will render dynamically -->
                 </div>
             </div>
 
-            <!-- Dynamic Programs Container -->
-            <div class="programs-grid" id="beneficiary-programs-container">
-                <!-- Cards will render dynamically -->
+            <!-- SUBVIEW 2: MY APPLICATIONS -->
+            <div id="subviewMyApplications" style="display: none;">
+                <!-- Header Banner & View Controls -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4 position-relative overflow-hidden" style="border-left: 5px solid var(--rose-primary) !important;">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-3 rounded-circle" style="background: #FFF0F4; color: var(--rose-primary);">
+                                <i class="bi bi-file-earmark-person-fill fs-3"></i>
+                            </div>
+                            <div>
+                                <h4 class="fw-extrabold text-dark mb-1">My Submitted Applications</h4>
+                                <p class="text-muted small mb-0">Track real-time evaluation status, officer verification remarks, and document requirement compliance.</p>
+                            </div>
+                        </div>
+
+                        <!-- Right: View Mode Toggle & Refresh -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="btn-group btn-group-sm rounded-pill border overflow-hidden shadow-sm bg-light" role="group" aria-label="Layout Switcher">
+                                <button type="button" class="btn btn-light active fw-semibold" id="btnMyAppsGrid" onclick="setMyAppsViewMode('grid')" title="Card Grid View">
+                                    <i class="bi bi-grid-fill me-1 text-primary"></i> Grid
+                                </button>
+                                <button type="button" class="btn btn-light fw-semibold" id="btnMyAppsList" onclick="setMyAppsViewMode('list')" title="Detailed List Table View">
+                                    <i class="bi bi-list-ul me-1 text-secondary"></i> List
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold shadow-sm" onclick="renderMyApplications()">
+                                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Filter & Search Bar -->
+                    <div class="row g-2 mt-3 pt-3 border-top" style="border-color: #f1f5f9 !important;">
+                        <!-- Search Box -->
+                        <div class="col-12 col-md-4">
+                            <div class="input-group input-group-sm shadow-sm rounded-3 overflow-hidden border">
+                                <span class="input-group-text bg-white border-0 text-muted"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-0 ps-0 bg-white" id="myAppsSearchInput" 
+                                    placeholder="Search program, code, or App ID..." onkeyup="filterMyApplications()" aria-label="Search my applications">
+                            </div>
+                        </div>
+                        <!-- Filter: Program Type -->
+                        <div class="col-6 col-md-3">
+                            <select class="form-select form-select-sm shadow-sm rounded-3 border" id="myAppsFilterType" onchange="filterMyApplications()" aria-label="Filter by program type">
+                                <option value="all">All Program Types</option>
+                                <option value="PESO">PESO Livelihood & Employment</option>
+                                <option value="CSWDO">CSWDO Social Assistance</option>
+                                <option value="Emergency">Emergency / Calamity Assistance</option>
+                                <option value="Educational">Educational / Youth / SPES</option>
+                            </select>
+                        </div>
+                        <!-- Filter: Date Filed -->
+                        <div class="col-6 col-md-2">
+                            <select class="form-select form-select-sm shadow-sm rounded-3 border" id="myAppsFilterDate" onchange="filterMyApplications()" aria-label="Filter by date filed">
+                                <option value="all">All Dates</option>
+                                <option value="7days">Last 7 Days</option>
+                                <option value="30days">Last 30 Days</option>
+                                <option value="thisyear">This Year (2026)</option>
+                            </select>
+                        </div>
+                        <!-- Filter: Status -->
+                        <div class="col-12 col-md-3">
+                            <select class="form-select form-select-sm shadow-sm rounded-3 border" id="myAppsFilterStatus" onchange="filterMyApplications()" aria-label="Filter by status">
+                                <option value="all">All Statuses</option>
+                                <option value="pending">Pending Review (Yellow)</option>
+                                <option value="approved">Approved (Green)</option>
+                                <option value="denied">Denied / Rejected (Red)</option>
+                                <option value="resubmission">Resubmission Window (Blue)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Applications Output Container -->
+                <div id="myApplicationsContainer">
+                    <!-- Populated dynamically via renderMyApplications() -->
+                </div>
             </div>
         </section>
 
@@ -5100,15 +5282,382 @@
         window.removeRequirementDoc = removeRequirementDoc;
 
 
+        let currentAssistanceSubtab = 'browse'; // 'browse' | 'my-apps'
+        let currentMyAppsViewMode = 'grid'; // 'grid' | 'list'
+
+        function toggleNavDropdown(dropdownId, event, fallbackSection) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+            
+            // Toggle open class for mobile/touch
+            dropdown.classList.toggle('open');
+
+            // Also trigger section switch if clicked on parent
+            if (fallbackSection) {
+                switchSection(fallbackSection);
+            }
+        }
+        window.toggleNavDropdown = toggleNavDropdown;
+
+        function navigateToSubtab(section, subtab) {
+            switchSection(section);
+            if (section === 'assistance') {
+                switchAssistanceSubtab(subtab);
+            }
+            if (window.innerWidth <= 768) {
+                const sb = document.getElementById('sidebar');
+                if (sb) sb.classList.remove('open');
+                const sbo = document.getElementById('sidebarOverlay');
+                if (sbo) sbo.classList.remove('active');
+            }
+        }
+        window.navigateToSubtab = navigateToSubtab;
+
+        function switchAssistanceSubtab(subtabName) {
+            currentAssistanceSubtab = subtabName;
+            const browseView = document.getElementById('subviewBrowsePrograms');
+            const myAppsView = document.getElementById('subviewMyApplications');
+            const btnBrowse = document.getElementById('subtabBtnBrowse');
+            const btnMyApps = document.getElementById('subtabBtnMyApps');
+            const sublinkBrowse = document.getElementById('sublinkBrowsePrograms');
+            const sublinkMyApps = document.getElementById('sublinkMyApplications');
+
+            if (subtabName === 'my-apps') {
+                if (browseView) browseView.style.display = 'none';
+                if (myAppsView) myAppsView.style.display = 'block';
+                if (btnBrowse) {
+                    btnBrowse.className = 'btn btn-sm rounded-pill px-3.5 py-1.5 fw-bold btn-light text-muted';
+                    btnBrowse.setAttribute('aria-selected', 'false');
+                }
+                if (btnMyApps) {
+                    btnMyApps.className = 'btn btn-sm rounded-pill px-3.5 py-1.5 fw-bold btn-primary';
+                    btnMyApps.setAttribute('aria-selected', 'true');
+                }
+                if (sublinkBrowse) sublinkBrowse.classList.remove('active');
+                if (sublinkMyApps) sublinkMyApps.classList.add('active');
+
+                renderMyApplications();
+            } else {
+                if (browseView) browseView.style.display = 'block';
+                if (myAppsView) myAppsView.style.display = 'none';
+                if (btnBrowse) {
+                    btnBrowse.className = 'btn btn-sm rounded-pill px-3.5 py-1.5 fw-bold btn-primary';
+                    btnBrowse.setAttribute('aria-selected', 'true');
+                }
+                if (btnMyApps) {
+                    btnMyApps.className = 'btn btn-sm rounded-pill px-3.5 py-1.5 fw-bold btn-light text-muted';
+                    btnMyApps.setAttribute('aria-selected', 'false');
+                }
+                if (sublinkBrowse) sublinkBrowse.classList.add('active');
+                if (sublinkMyApps) sublinkMyApps.classList.remove('active');
+
+                renderBeneficiaryPrograms();
+            }
+        }
+        window.switchAssistanceSubtab = switchAssistanceSubtab;
+
+        function setMyAppsViewMode(mode) {
+            currentMyAppsViewMode = mode;
+            const btnGrid = document.getElementById('btnMyAppsGrid');
+            const btnList = document.getElementById('btnMyAppsList');
+            if (mode === 'grid') {
+                if (btnGrid) { btnGrid.className = 'btn btn-light active fw-semibold'; }
+                if (btnList) { btnList.className = 'btn btn-light fw-semibold'; }
+            } else {
+                if (btnGrid) { btnGrid.className = 'btn btn-light fw-semibold'; }
+                if (btnList) { btnList.className = 'btn btn-light active fw-semibold'; }
+            }
+            renderMyApplications();
+        }
+        window.setMyAppsViewMode = setMyAppsViewMode;
+
+        // Dynamic My Applications Renderer
+        function renderMyApplications() {
+            const container = document.getElementById('myApplicationsContainer');
+            if (!container) return;
+
+            // Gather all applications from state or window.applications or fallback
+            let appsList = [];
+            if (typeof state !== 'undefined' && state.applications && state.applications.length > 0) {
+                appsList = state.applications;
+            } else if (typeof applications !== 'undefined' && Object.keys(applications).length > 0) {
+                appsList = Object.entries(applications).map(([k, v]) => ({
+                    id: k,
+                    dbId: v.dbId,
+                    type: v.type,
+                    program: v.program || (v.type ? v.type.split(' ')[0] : 'PESO'),
+                    date: v.date,
+                    status: v.status || 'Pending',
+                    remarks: v.remarks || 'Application under official evaluation.',
+                    location: v.location || 'PESO Office, Koronadal City Hall Complex',
+                    documents: v.documents || [],
+                    amount: v.amount
+                }));
+            }
+
+            // Update badge counters
+            const badgeHeader = document.getElementById('badgeMyAppsCount');
+            if (badgeHeader) badgeHeader.textContent = appsList.length;
+            const badgeSidebar = document.getElementById('sidebarMyAppsBadge');
+            if (badgeSidebar) badgeSidebar.textContent = appsList.length;
+
+            const searchQuery = (document.getElementById('myAppsSearchInput')?.value || '').toLowerCase().trim();
+            const typeFilter = document.getElementById('myAppsFilterType')?.value || 'all';
+            const dateFilter = document.getElementById('myAppsFilterDate')?.value || 'all';
+            const statusFilter = document.getElementById('myAppsFilterStatus')?.value || 'all';
+
+            // Filter logic
+            const filtered = appsList.filter(app => {
+                const nameStr = (app.type || '').toLowerCase();
+                const codeStr = (app.program || '').toLowerCase();
+                const idStr = (app.id || '').toLowerCase();
+                const statusStr = (app.status || '').toLowerCase();
+
+                // Search query
+                if (searchQuery) {
+                    const match = nameStr.includes(searchQuery) || codeStr.includes(searchQuery) || idStr.includes(searchQuery);
+                    if (!match) return false;
+                }
+
+                // Type filter
+                if (typeFilter !== 'all') {
+                    if (typeFilter === 'PESO' && (nameStr.includes('cswdo') || nameStr.includes('burial') || nameStr.includes('medical'))) return false;
+                    if (typeFilter === 'CSWDO' && !nameStr.includes('cswdo') && !nameStr.includes('burial') && !nameStr.includes('medical')) return false;
+                    if (typeFilter === 'Educational' && !nameStr.includes('spes') && !nameStr.includes('student') && !nameStr.includes('scholar')) return false;
+                    if (typeFilter === 'Emergency' && !nameStr.includes('tupad') && !nameStr.includes('emergency') && !nameStr.includes('crisis')) return false;
+                }
+
+                // Status filter
+                if (statusFilter !== 'all') {
+                    if (statusFilter === 'pending' && !statusStr.includes('pending') && !statusStr.includes('review') && !statusStr.includes('evaluation')) return false;
+                    if (statusFilter === 'approved' && !statusStr.includes('approved') && !statusStr.includes('completed') && !statusStr.includes('cleared')) return false;
+                    if (statusFilter === 'denied' && !statusStr.includes('denied') && !statusStr.includes('rejected')) return false;
+                    if (statusFilter === 'resubmission' && !statusStr.includes('resubmission') && !statusStr.includes('requirements') && !statusStr.includes('incomplete')) return false;
+                }
+
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                        <div class="p-3.5 rounded-circle bg-light d-inline-flex mx-auto mb-3 text-muted">
+                            <i class="bi bi-folder2-open fs-1"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-1">No Applications Found</h5>
+                        <p class="text-muted small mb-4">You currently have no submitted applications matching your search or filters.</p>
+                        <div>
+                            <button class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm" onclick="switchAssistanceSubtab('browse')">
+                                <i class="bi bi-grid me-1.5"></i> Browse & Apply for Programs
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Helper to render accessible status badges matching Requirement #4
+            function renderAppStatusBadge(status) {
+                const s = (status || '').toLowerCase();
+                if (s.includes('approved') || s.includes('completed') || s.includes('cleared')) {
+                    return `<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-bold" role="status" aria-label="Status: Approved"><i class="bi bi-patch-check-fill me-1"></i>Approved</span>`;
+                } else if (s.includes('denied') || s.includes('rejected')) {
+                    return `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 rounded-pill fw-bold" role="status" aria-label="Status: Denied"><i class="bi bi-x-circle-fill me-1"></i>Denied</span>`;
+                } else if (s.includes('resubmission') || s.includes('requirements') || s.includes('incomplete')) {
+                    return `<span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1.5 rounded-pill fw-bold" role="status" aria-label="Status: Resubmission Window"><i class="bi bi-arrow-repeat me-1"></i>Resubmission Window</span>`;
+                } else {
+                    return `<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1.5 rounded-pill fw-bold" role="status" aria-label="Status: Pending Review"><i class="bi bi-hourglass-split me-1"></i>Pending Review</span>`;
+                }
+            }
+
+            if (currentMyAppsViewMode === 'grid') {
+                // Card Grid View
+                const cardsHtml = filtered.map(app => {
+                    const isCswdo = (app.type || '').toLowerCase().includes('cswdo') || (app.type || '').toLowerCase().includes('medical') || (app.type || '').toLowerCase().includes('burial');
+                    const agency = isCswdo ? 'CSWDO' : 'PESO';
+                    const location = app.location || (isCswdo ? 'CSWDO Office / City Hall Complex' : 'PESO Office / City Hall Complex');
+                    const docCount = (app.documents && Array.isArray(app.documents)) ? app.documents.length : 3;
+
+                    return `
+                        <div class="col-12 col-lg-6">
+                            <div class="my-apps-card p-4 h-100 d-flex flex-column justify-content-between position-relative">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                            <span class="office-badge ${isCswdo ? 'cswdo' : 'peso'}">${agency}</span>
+                                            <span class="badge bg-light text-dark border font-monospace small">${app.program || 'PROG'}</span>
+                                        </div>
+                                        ${renderAppStatusBadge(app.status)}
+                                    </div>
+
+                                    <h5 class="fw-bold text-dark mb-1">${app.type || 'Assistance Program'}</h5>
+                                    <div class="d-flex align-items-center gap-2 font-monospace small text-muted mb-3">
+                                        <i class="bi bi-ticket-detailed text-secondary"></i> Tracking ID: <strong class="text-dark">${app.id}</strong>
+                                    </div>
+
+                                    <div class="bg-light p-3 rounded-3 mb-3 border">
+                                        <div class="row g-2 small">
+                                            <div class="col-6">
+                                                <span class="text-muted d-block" style="font-size: 0.75rem;">Date Applied:</span>
+                                                <strong class="text-dark"><i class="bi bi-calendar3 me-1 text-primary"></i>${app.date || 'Today'}</strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <span class="text-muted d-block" style="font-size: 0.75rem;">Documents Logged:</span>
+                                                <strong class="text-success"><i class="bi bi-file-earmark-check-fill me-1"></i>${docCount} File(s)</strong>
+                                            </div>
+                                            <div class="col-12 mt-2 pt-2 border-top">
+                                                <span class="text-muted d-block" style="font-size: 0.75rem;">Processing Venue:</span>
+                                                <span class="text-dark fw-semibold"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${location}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons Row -->
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
+                                    <div class="d-flex gap-1.5 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold shadow-sm" onclick="viewApplicationTrackingDetails('${app.id}')" aria-label="View application details for ${app.id}">
+                                            <i class="bi bi-eye me-1"></i> View Details
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold shadow-sm" onclick="openUploadModalForApp('${app.id}')" aria-label="Upload documents for ${app.id}">
+                                            <i class="bi bi-cloud-arrow-up me-1"></i> Upload Documents
+                                        </button>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 fw-semibold" onclick="withdrawApplication('${app.id}')" title="Withdraw Application" aria-label="Withdraw application ${app.id}">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = `<div class="row g-3">${cardsHtml}</div>`;
+            } else {
+                // List Table View
+                const rowsHtml = filtered.map(app => {
+                    const isCswdo = (app.type || '').toLowerCase().includes('cswdo') || (app.type || '').toLowerCase().includes('medical') || (app.type || '').toLowerCase().includes('burial');
+                    const agency = isCswdo ? 'CSWDO' : 'PESO';
+                    const location = app.location || (isCswdo ? 'CSWDO Office' : 'PESO Office');
+
+                    return `
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="office-badge ${isCswdo ? 'cswdo' : 'peso'}">${agency}</span>
+                                    <div>
+                                        <strong class="text-dark d-block">${app.type}</strong>
+                                        <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.72rem;">${app.program || 'PROG'}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="font-monospace small fw-bold text-dark">${app.id}</td>
+                            <td class="small text-muted"><i class="bi bi-calendar3 me-1 text-primary"></i>${app.date || 'Today'}</td>
+                            <td class="small text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${location}</td>
+                            <td>${renderAppStatusBadge(app.status)}</td>
+                            <td class="text-end pe-4">
+                                <div class="d-inline-flex gap-1.5">
+                                    <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-2.5 fw-semibold" onclick="viewApplicationTrackingDetails('${app.id}')" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 fw-semibold" onclick="openUploadModalForApp('${app.id}')" title="Upload Documents">
+                                        <i class="bi bi-cloud-arrow-up"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 fw-semibold" onclick="withdrawApplication('${app.id}')" title="Withdraw Application">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                container.innerHTML = `
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-muted small text-uppercase">
+                                    <tr>
+                                        <th class="ps-4">Program & Agency</th>
+                                        <th>Application ID</th>
+                                        <th>Date Applied</th>
+                                        <th>Venue / Office</th>
+                                        <th>Status</th>
+                                        <th class="text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        window.renderMyApplications = renderMyApplications;
+
+        function filterMyApplications() {
+            renderMyApplications();
+        }
+        window.filterMyApplications = filterMyApplications;
+
+        function viewApplicationTrackingDetails(appId) {
+            if (typeof trackApplication === 'function') {
+                trackApplication(appId);
+            } else if (typeof viewApplicationModal === 'function') {
+                viewApplicationModal(appId);
+            } else {
+                alert(`Viewing details for Application #${appId}`);
+            }
+        }
+        window.viewApplicationTrackingDetails = viewApplicationTrackingDetails;
+
+        function openUploadModalForApp(appId) {
+            switchSection('documents');
+            const selectEl = document.getElementById('uploadAppSelect');
+            if (selectEl) {
+                selectEl.value = appId;
+            }
+            openModal('uploadModal');
+        }
+        window.openUploadModalForApp = openUploadModalForApp;
+
+        function withdrawApplication(appId) {
+            if (!confirm(`Are you sure you want to withdraw application #${appId}?\n\nThis will cancel your evaluation slot.`)) {
+                return;
+            }
+
+            if (typeof state !== 'undefined' && state.applications) {
+                const idx = state.applications.findIndex(a => a.id === appId);
+                if (idx > -1) {
+                    state.applications.splice(idx, 1);
+                }
+            }
+
+            if (typeof applications !== 'undefined' && applications[appId]) {
+                delete applications[appId];
+            }
+
+            alert(`Application #${appId} has been successfully withdrawn.`);
+            renderMyApplications();
+            if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
+        }
+        window.withdrawApplication = withdrawApplication;
+
         function switchSection(sectionId) {
             // Map aliases to section element IDs
             let actualId = sectionId;
-            if (sectionId === 'assistance') actualId = 'programs';
+            if (sectionId === 'assistance' || sectionId === 'my-applications') actualId = 'programs';
             if (sectionId === 'schedule') actualId = 'interviews';
 
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             const targetSection = document.getElementById(actualId) || document.getElementById(sectionId);
             if (targetSection) targetSection.classList.add('active');
+
+            if (sectionId === 'my-applications') {
+                switchAssistanceSubtab('my-apps');
+            }
 
             if (actualId === 'documents') {
                 if (typeof renderDocumentStatusBoard === 'function') {
@@ -5119,6 +5668,9 @@
             if (actualId === 'programs') {
                 if (typeof renderBeneficiaryPrograms === 'function') {
                     renderBeneficiaryPrograms();
+                }
+                if (typeof renderMyApplications === 'function') {
+                    renderMyApplications();
                 }
             }
 
@@ -5786,6 +6338,22 @@
                 ]
             };
 
+            // Also push to state.applications if defined
+            if (typeof state !== 'undefined' && state.applications) {
+                state.applications.unshift({
+                    id: newAppId,
+                    dbId: dbId,
+                    type: type,
+                    program: (program && program.code) ? program.code : 'PESO',
+                    date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                    status: 'Pending',
+                    remarks: reason || 'Application submitted with verified required documents.',
+                    location: (program && program.location) ? program.location : 'PESO Office, City Hall Complex',
+                    documents: Object.values(modalUploadedDocs).map(d => ({ name: d.name, size: d.size, status: 'Submitted', type: d.type })),
+                    amount: 'Under Assessment'
+                });
+            }
+
             // Reset modal state
             modalUploadedDocs = {};
             modalDocErrors = {};
@@ -5794,9 +6362,15 @@
             // Success feedback
             alert(`Application Submitted Successfully!\n\nYour application for "${type}" (Tracking ID: #${newAppId}) has been received with all required documents and is now under official review.`);
 
-            // Refresh UI tables
+            // Automatically route view to My Applications tab
+            switchSection('programs');
+            switchAssistanceSubtab('my-apps');
+
+            // Refresh UI tables and views
+            if (typeof renderMyApplications === 'function') renderMyApplications();
             if (typeof renderRecentApplications === 'function') renderRecentApplications();
             if (typeof updateDashboardStats === 'function') updateDashboardStats();
+            if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
             filterRecentApplications();
         }
 

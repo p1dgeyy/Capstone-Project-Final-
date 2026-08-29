@@ -578,6 +578,7 @@
     renderBeneficiaryScheduledActivities();
     renderApplicationsTable();
     renderRecentApplicationsTable();
+    if (typeof window.renderMyApplications === 'function') window.renderMyApplications();
     renderDocumentStatusBoard();
     renderTrainingsList();
     renderDistributionReleases();
