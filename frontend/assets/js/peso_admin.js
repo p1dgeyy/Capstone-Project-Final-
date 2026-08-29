@@ -3195,8 +3195,12 @@
             if (activeApps.length > 0) {
                 event.preventDefault();
                 checkbox.checked = true; // revert switch
-                document.getElementById('restrictionWarningText').textContent = `Cannot deactivate program "${prog?.name || progId}". This program currently has ${activeApps.length} active applicant(s) undergoing verification. All assignments must be resolved first.`;
-                openModal('restrictionWarningModal');
+                const restrictionMsg = `Cannot deactivate program "${prog?.name || progId}". This program currently has ${activeApps.length} active applicant(s) undergoing verification. All assignments must be resolved first.`;
+                if (typeof Toast !== 'undefined') {
+                    Toast.warning(restrictionMsg, 'Deactivation Restriction');
+                } else if (typeof showSystemNotification === 'function') {
+                    showSystemNotification({ title: 'Deactivation Restriction', message: restrictionMsg, type: 'warning' });
+                }
                 return;
             }
 

@@ -4061,81 +4061,15 @@
         })();
 
         // ==============================================
-        // WEB NOTIFICATIONS SYSTEM & ALERT OVERRIDE
+        // WEB NOTIFICATIONS SYSTEM (Delegated to Unified Toast Engine)
         // ==============================================
         function showWebNotification(title, message, type = 'success') {
-            // 1. Native HTML5 Browser Notification
-            if ('Notification' in window) {
-                if (Notification.permission === 'granted') {
-                    try {
-                        new Notification(title, { body: message, icon: 'assets/koronadalseal.png' });
-                    } catch (err) {
-                        console.error("Error displaying native notification:", err);
-                    }
-                } else if (Notification.permission !== 'denied') {
-                    Notification.requestPermission();
-                }
+            if (typeof window.showToast === 'function') {
+                window.showToast({ title, message, type });
+            } else if (typeof window.showSystemNotification === 'function') {
+                window.showSystemNotification({ title, message, type });
             }
-
-            // 2. Custom In-App Notification Toast
-            let container = document.getElementById('web-notification-container');
-            if (!container) {
-                container = document.createElement('div');
-                container.id = 'web-notification-container';
-                container.className = 'web-notification-container';
-                document.body.appendChild(container);
-            }
-
-            const notification = document.createElement('div');
-            notification.className = `web-notification ${type}`;
-            
-            let iconClass = 'bi-check-circle-fill';
-            if (type === 'error') iconClass = 'bi-exclamation-circle-fill';
-            else if (type === 'warning') iconClass = 'bi-exclamation-triangle-fill';
-            else if (type === 'info') iconClass = 'bi-info-circle-fill';
-
-            notification.innerHTML = `
-                <i class="bi ${iconClass} web-notification-icon"></i>
-                <div class="web-notification-content">
-                    <div class="web-notification-title">${title}</div>
-                    <p class="web-notification-message">${message}</p>
-                </div>
-                <button class="web-notification-close" onclick="this.parentElement.remove()">&times;</button>
-            `;
-
-            container.appendChild(notification);
-
-            // Reflow trigger
-            void notification.offsetWidth;
-            notification.classList.add('show');
-
-            // Auto dismiss after 4 seconds
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    notification.remove();
-                }, 400);
-            }, 4000);
         }
-
-        // Global Alert Override
-        const originalAlert = window.alert;
-        window.alert = function(message) {
-            let type = 'info';
-            let title = 'System Notification';
-            const lowerMsg = message.toLowerCase();
-            if (lowerMsg.includes('error') || lowerMsg.includes('fail') || lowerMsg.includes('unauthorized') || lowerMsg.includes('invalid') || lowerMsg.includes('no report data')) {
-                type = 'error';
-                title = 'Error';
-            } else if (lowerMsg.includes('success') || lowerMsg.includes('created') || lowerMsg.includes('updated') || lowerMsg.includes('deleted') || lowerMsg.includes('saved') || lowerMsg.includes('complete') || lowerMsg.includes('registered')) {
-                type = 'success';
-                title = 'Success';
-            } else if (lowerMsg.includes('warning') || lowerMsg.includes('sure') || lowerMsg.includes('confirm')) {
-                type = 'warning';
-                title = 'Warning';
-            }
-            showWebNotification(title, message, type);
-        };
 
         // ==============================================
         // NOTIFICATIONS SYSTEM CONTROLLER
