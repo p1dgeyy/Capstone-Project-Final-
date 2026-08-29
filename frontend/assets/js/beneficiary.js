@@ -579,6 +579,7 @@
     renderApplicationsTable();
     renderRecentApplicationsTable();
     if (typeof window.renderMyApplications === 'function') window.renderMyApplications();
+    if (typeof window.loadBeneficiaryInterviews === 'function') window.loadBeneficiaryInterviews();
     renderDocumentStatusBoard();
     renderTrainingsList();
     renderDistributionReleases();
