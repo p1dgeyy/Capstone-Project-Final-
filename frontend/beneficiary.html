@@ -334,7 +334,7 @@
             transition: var(--transition-smooth);
         }
 
-        /* Sidebar Nested Submenu & Hover Card */
+        /* Sidebar Nested Submenu */
         .nav-item-dropdown {
             position: relative;
             margin: 2px 0;
@@ -350,10 +350,9 @@
             margin-bottom: 6px;
         }
 
-        .nav-item-dropdown.open .nav-submenu,
-        .nav-item-dropdown:hover .nav-submenu {
+        .nav-item-dropdown.open .nav-submenu {
             display: flex;
-            animation: fadeIn 0.25s ease;
+            animation: fadeIn 0.2s ease;
         }
 
         .nav-item-dropdown.open .nav-dropdown-arrow {
@@ -2659,7 +2658,7 @@
                     <!-- Multi-Filter & Search Bar -->
                     <div class="row g-2 mt-3 pt-3 border-top" style="border-color: #f1f5f9 !important;">
                         <!-- Search Box -->
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-6">
                             <div class="input-group input-group-sm shadow-sm rounded-3 overflow-hidden border">
                                 <span class="input-group-text bg-white border-0 text-muted"><i class="bi bi-search"></i></span>
                                 <input type="text" class="form-control border-0 ps-0 bg-white" id="myAppsSearchInput" 
@@ -2677,22 +2676,12 @@
                             </select>
                         </div>
                         <!-- Filter: Date Filed -->
-                        <div class="col-6 col-md-2">
+                        <div class="col-6 col-md-3">
                             <select class="form-select form-select-sm shadow-sm rounded-3 border" id="myAppsFilterDate" onchange="filterMyApplications()" aria-label="Filter by date filed">
                                 <option value="all">All Dates</option>
                                 <option value="7days">Last 7 Days</option>
                                 <option value="30days">Last 30 Days</option>
                                 <option value="thisyear">This Year (2026)</option>
-                            </select>
-                        </div>
-                        <!-- Filter: Status -->
-                        <div class="col-12 col-md-3">
-                            <select class="form-select form-select-sm shadow-sm rounded-3 border" id="myAppsFilterStatus" onchange="filterMyApplications()" aria-label="Filter by status">
-                                <option value="all">All Statuses</option>
-                                <option value="pending">Pending Review (Yellow)</option>
-                                <option value="approved">Approved (Green)</option>
-                                <option value="denied">Denied / Rejected (Red)</option>
-                                <option value="resubmission">Resubmission Window (Blue)</option>
                             </select>
                         </div>
                     </div>
@@ -5289,12 +5278,14 @@
             const dropdown = document.getElementById(dropdownId);
             if (!dropdown) return;
             
-            // Toggle open class for mobile/touch
-            dropdown.classList.toggle('open');
-
-            // Also trigger section switch if clicked on parent
-            if (fallbackSection) {
-                switchSection(fallbackSection);
+            const currentActiveSec = document.querySelector('.section.active')?.id;
+            if (currentActiveSec === 'programs') {
+                dropdown.classList.toggle('open');
+            } else {
+                dropdown.classList.add('open');
+                if (fallbackSection) {
+                    switchSection(fallbackSection);
+                }
             }
         }
         window.toggleNavDropdown = toggleNavDropdown;
@@ -5371,7 +5362,7 @@
         }
         window.setMyAppsViewMode = setMyAppsViewMode;
 
-        // Dynamic My Applications Renderer
+        // Dynamic My Applications Renderer (Without Status and with only View Details button)
         function renderMyApplications() {
             const container = document.getElementById('myApplicationsContainer');
             if (!container) return;
@@ -5404,14 +5395,12 @@
             const searchQuery = (document.getElementById('myAppsSearchInput')?.value || '').toLowerCase().trim();
             const typeFilter = document.getElementById('myAppsFilterType')?.value || 'all';
             const dateFilter = document.getElementById('myAppsFilterDate')?.value || 'all';
-            const statusFilter = document.getElementById('myAppsFilterStatus')?.value || 'all';
 
             // Filter logic
             const filtered = appsList.filter(app => {
                 const nameStr = (app.type || '').toLowerCase();
                 const codeStr = (app.program || '').toLowerCase();
                 const idStr = (app.id || '').toLowerCase();
-                const statusStr = (app.status || '').toLowerCase();
 
                 // Search query
                 if (searchQuery) {
@@ -5425,14 +5414,6 @@
                     if (typeFilter === 'CSWDO' && !nameStr.includes('cswdo') && !nameStr.includes('burial') && !nameStr.includes('medical')) return false;
                     if (typeFilter === 'Educational' && !nameStr.includes('spes') && !nameStr.includes('student') && !nameStr.includes('scholar')) return false;
                     if (typeFilter === 'Emergency' && !nameStr.includes('tupad') && !nameStr.includes('emergency') && !nameStr.includes('crisis')) return false;
-                }
-
-                // Status filter
-                if (statusFilter !== 'all') {
-                    if (statusFilter === 'pending' && !statusStr.includes('pending') && !statusStr.includes('review') && !statusStr.includes('evaluation')) return false;
-                    if (statusFilter === 'approved' && !statusStr.includes('approved') && !statusStr.includes('completed') && !statusStr.includes('cleared')) return false;
-                    if (statusFilter === 'denied' && !statusStr.includes('denied') && !statusStr.includes('rejected')) return false;
-                    if (statusFilter === 'resubmission' && !statusStr.includes('resubmission') && !statusStr.includes('requirements') && !statusStr.includes('incomplete')) return false;
                 }
 
                 return true;
@@ -5456,22 +5437,8 @@
                 return;
             }
 
-            // Helper to render accessible status badges matching Requirement #4
-            function renderAppStatusBadge(status) {
-                const s = (status || '').toLowerCase();
-                if (s.includes('approved') || s.includes('completed') || s.includes('cleared')) {
-                    return `<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-bold" role="status" aria-label="Status: Approved"><i class="bi bi-patch-check-fill me-1"></i>Approved</span>`;
-                } else if (s.includes('denied') || s.includes('rejected')) {
-                    return `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 rounded-pill fw-bold" role="status" aria-label="Status: Denied"><i class="bi bi-x-circle-fill me-1"></i>Denied</span>`;
-                } else if (s.includes('resubmission') || s.includes('requirements') || s.includes('incomplete')) {
-                    return `<span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1.5 rounded-pill fw-bold" role="status" aria-label="Status: Resubmission Window"><i class="bi bi-arrow-repeat me-1"></i>Resubmission Window</span>`;
-                } else {
-                    return `<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1.5 rounded-pill fw-bold" role="status" aria-label="Status: Pending Review"><i class="bi bi-hourglass-split me-1"></i>Pending Review</span>`;
-                }
-            }
-
             if (currentMyAppsViewMode === 'grid') {
-                // Card Grid View
+                // Card Grid View (Without status badge & with only View Details button)
                 const cardsHtml = filtered.map(app => {
                     const isCswdo = (app.type || '').toLowerCase().includes('cswdo') || (app.type || '').toLowerCase().includes('medical') || (app.type || '').toLowerCase().includes('burial');
                     const agency = isCswdo ? 'CSWDO' : 'PESO';
@@ -5482,12 +5449,9 @@
                         <div class="col-12 col-lg-6">
                             <div class="my-apps-card p-4 h-100 d-flex flex-column justify-content-between position-relative">
                                 <div>
-                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                            <span class="office-badge ${isCswdo ? 'cswdo' : 'peso'}">${agency}</span>
-                                            <span class="badge bg-light text-dark border font-monospace small">${app.program || 'PROG'}</span>
-                                        </div>
-                                        ${renderAppStatusBadge(app.status)}
+                                    <div class="d-flex align-items-center gap-1.5 flex-wrap mb-2">
+                                        <span class="office-badge ${isCswdo ? 'cswdo' : 'peso'}">${agency}</span>
+                                        <span class="badge bg-light text-dark border font-monospace small">${app.program || 'PROG'}</span>
                                     </div>
 
                                     <h5 class="fw-bold text-dark mb-1">${app.type || 'Assistance Program'}</h5>
@@ -5513,18 +5477,10 @@
                                     </div>
                                 </div>
 
-                                <!-- Action Buttons Row -->
-                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
-                                    <div class="d-flex gap-1.5 flex-wrap">
-                                        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold shadow-sm" onclick="viewApplicationTrackingDetails('${app.id}')" aria-label="View application details for ${app.id}">
-                                            <i class="bi bi-eye me-1"></i> View Details
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold shadow-sm" onclick="openUploadModalForApp('${app.id}')" aria-label="Upload documents for ${app.id}">
-                                            <i class="bi bi-cloud-arrow-up me-1"></i> Upload Documents
-                                        </button>
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 fw-semibold" onclick="withdrawApplication('${app.id}')" title="Withdraw Application" aria-label="Withdraw application ${app.id}">
-                                        <i class="bi bi-trash3"></i>
+                                <!-- View Details Action Only -->
+                                <div class="pt-2 border-top">
+                                    <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-4 py-2 fw-semibold shadow-sm w-100 d-flex align-items-center justify-content-center gap-2" onclick="viewApplicationTrackingDetails('${app.id}')" aria-label="View application details for ${app.id}">
+                                        <i class="bi bi-eye text-primary"></i> View Details
                                     </button>
                                 </div>
                             </div>
@@ -5534,7 +5490,7 @@
 
                 container.innerHTML = `<div class="row g-3">${cardsHtml}</div>`;
             } else {
-                // List Table View
+                // List Table View (Without Status column and with only View Details button)
                 const rowsHtml = filtered.map(app => {
                     const isCswdo = (app.type || '').toLowerCase().includes('cswdo') || (app.type || '').toLowerCase().includes('medical') || (app.type || '').toLowerCase().includes('burial');
                     const agency = isCswdo ? 'CSWDO' : 'PESO';
@@ -5554,19 +5510,10 @@
                             <td class="font-monospace small fw-bold text-dark">${app.id}</td>
                             <td class="small text-muted"><i class="bi bi-calendar3 me-1 text-primary"></i>${app.date || 'Today'}</td>
                             <td class="small text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${location}</td>
-                            <td>${renderAppStatusBadge(app.status)}</td>
                             <td class="text-end pe-4">
-                                <div class="d-inline-flex gap-1.5">
-                                    <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-2.5 fw-semibold" onclick="viewApplicationTrackingDetails('${app.id}')" title="View Details">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 fw-semibold" onclick="openUploadModalForApp('${app.id}')" title="Upload Documents">
-                                        <i class="bi bi-cloud-arrow-up"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 fw-semibold" onclick="withdrawApplication('${app.id}')" title="Withdraw Application">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1 fw-semibold shadow-sm" onclick="viewApplicationTrackingDetails('${app.id}')" title="View Details" aria-label="View details for ${app.id}">
+                                    <i class="bi bi-eye text-primary me-1"></i> View Details
+                                </button>
                             </td>
                         </tr>
                     `;
@@ -5582,8 +5529,7 @@
                                         <th>Application ID</th>
                                         <th>Date Applied</th>
                                         <th>Venue / Office</th>
-                                        <th>Status</th>
-                                        <th class="text-end pe-4">Actions</th>
+                                        <th class="text-end pe-4">Details</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -5701,8 +5647,17 @@
                 if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
             }
 
-            // Sync active sidebar state
+            // Sync active sidebar state & close assistance submenu if another section is selected
             const activeSidebarKey = (sectionId === 'program-overview' || sectionId === 'programs') ? 'assistance' : (sectionId === 'interviews' ? 'schedule' : sectionId);
+            const dropdown = document.getElementById('navAssistanceDropdown');
+            if (dropdown) {
+                if (activeSidebarKey === 'assistance' || sectionId === 'assistance' || actualId === 'programs') {
+                    dropdown.classList.add('open');
+                } else {
+                    dropdown.classList.remove('open');
+                }
+            }
+
             document.querySelectorAll('.nav-link-custom').forEach(link => {
                 link.classList.remove('active');
                 const linkSec = link.getAttribute('data-section');
