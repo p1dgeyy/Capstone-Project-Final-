@@ -546,6 +546,22 @@
     if (document.getElementById('benStatNotifs')) document.getElementById('benStatNotifs').textContent = unreadNotifs;
     if (document.getElementById('benStatCompletedApps')) document.getElementById('benStatCompletedApps').textContent = completedApps;
 
+    // Dynamic Contextual Status Notes
+    const pendingNoteEl = document.getElementById('benStatPendingNote');
+    if (pendingNoteEl) pendingNoteEl.textContent = pendingApps > 0 ? `${pendingApps} under officer review` : 'No pending reviews';
+
+    const approvedNoteEl = document.getElementById('benStatApprovedNote');
+    if (approvedNoteEl) approvedNoteEl.textContent = approvedApps > 0 ? `${approvedApps} cleared for assistance` : 'No active grants';
+
+    const trainingNoteEl = document.getElementById('benStatTrainingNote');
+    if (trainingNoteEl) trainingNoteEl.textContent = trainingScheds > 0 ? `${trainingScheds} enrolled sessions` : 'No scheduled sessions';
+
+    const distNoteEl = document.getElementById('benStatDistributionNote');
+    if (distNoteEl) distNoteEl.textContent = distributionEvents > 0 ? `${distributionEvents} ready for claim` : 'No pending releases';
+
+    const notifNoteEl = document.getElementById('benStatNotifsNote');
+    if (notifNoteEl) notifNoteEl.textContent = unreadNotifs > 0 ? `${unreadNotifs} unread alerts` : 'All alerts caught up';
+
     // Update Persistent Compact Summary Bar Across All Modules
     if (document.getElementById('barPendingApps')) document.getElementById('barPendingApps').textContent = pendingApps;
     if (document.getElementById('barApprovedGrants')) document.getElementById('barApprovedGrants').textContent = approvedApps;

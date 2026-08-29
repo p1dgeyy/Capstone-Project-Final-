@@ -1417,6 +1417,19 @@
             .table-custom {
                 min-width: 600px;
             }
+
+            .quick-access-scrollable-row {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                gap: 12px;
+                padding-bottom: 8px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .quick-access-scrollable-row > div {
+                flex: 0 0 160px;
+                min-width: 160px;
+            }
         }
 
         @media (min-width: 769px) {
@@ -2014,70 +2027,47 @@
             </button>
         </div>
 
-        <!-- PERSISTENT TOP PROFILE VIEW (Always Visible Across All Modules) -->
-        <div class="persistent-profile-card card border-0 shadow-sm rounded-4 p-3.5 bg-white mb-4 position-relative overflow-hidden" style="border-left: 6px solid var(--rose-primary) !important; background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F7 100%);">
+        <!-- =================================================================== -->
+        <!-- 1. PROFILE HEADER SECTION (Koronadal City Assistance Portal Style) -->
+        <!-- =================================================================== -->
+        <div class="persistent-profile-card card border-0 shadow-sm rounded-4 p-4 bg-white mb-4 position-relative overflow-hidden" 
+            style="border-left: 6px solid var(--rose-primary, #b85c7a) !important; background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F7 100%);">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <!-- Left: Profile Photo & Quick Info -->
+                <!-- Left: Profile Photo / Avatar & Dynamic Identity Info -->
                 <div class="d-flex align-items-center gap-3">
                     <div class="position-relative">
-                        <img src="assets/koronadalseal.png" alt="Profile" id="persistentProfileImg" class="rounded-circle border shadow-sm" style="width: 64px; height: 64px; object-fit: cover; border: 3px solid white !important;">
-                        <span class="position-absolute bottom-0 end-0 bg-success p-1 border border-white rounded-circle" style="width: 12px; height: 12px;" title="Online & Active Account"></span>
+                        <img src="assets/koronadalseal.png" alt="Beneficiary Profile Avatar" id="persistentProfileImg" 
+                            class="rounded-circle border shadow-sm" style="width: 68px; height: 68px; object-fit: cover; border: 3px solid white !important;">
+                        <span class="position-absolute bottom-0 end-0 bg-success p-1 border border-white rounded-circle" style="width: 14px; height: 14px;" title="Online & Active Account"></span>
                     </div>
                     <div>
                         <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                            <h4 class="fw-extrabold text-dark mb-0" id="persistentFullName" style="font-size: 1.25rem;">Maria Santos</h4>
-                            <span class="badge bg-primary px-3 py-1 rounded-pill font-monospace" id="persistentUniqueId" style="background: var(--rose-primary) !important;">QR-BEN-ACTIVE</span>
+                            <h3 class="fw-extrabold text-dark mb-0 fs-5" id="persistentFullName">Beneficiary Name</h3>
+                            <span class="badge bg-primary px-3 py-1 rounded-pill font-monospace" id="persistentUniqueId" style="background: var(--rose-primary, #b85c7a) !important;">QR-BEN-XXXXXX</span>
                         </div>
                         <div class="d-flex align-items-center gap-3 flex-wrap text-muted small">
-                            <span><i class="bi bi-briefcase-fill me-1 text-primary"></i>Program: <strong class="text-dark" id="persistentEnrolledProgram">TUPAD Emergency Employment</strong></span>
-                            <span><i class="bi bi-clock-history me-1 text-secondary"></i>Last Login: <strong class="text-dark" id="persistentLastLogin">Today, 05:25 AM</strong></span>
+                            <span><i class="bi bi-briefcase-fill me-1 text-primary"></i>Enrolled Program: <strong class="text-dark" id="persistentEnrolledProgram">Loading Program...</strong></span>
+                            <span><i class="bi bi-clock-history me-1 text-secondary"></i>Last Login: <strong class="text-dark" id="persistentLastLogin">Just now</strong></span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right: Status Badge & Profile Action Buttons -->
+                <!-- Right: Program Status Badge & Quick Action Buttons -->
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="text-end me-2 d-none d-md-block">
-                        <small class="text-muted d-block" style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Program Status</small>
+                        <small class="text-muted d-block" style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Account Status</small>
                         <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fs-6 fw-bold" id="persistentStatusBadge">
-                            <i class="bi bi-patch-check-fill me-1"></i>Approved Beneficiary
+                            <i class="bi bi-patch-check-fill me-1"></i>Active Account
                         </span>
                     </div>
-                    <button type="button" class="btn btn-outline-dark rounded-pill px-3.5 py-2 shadow-sm d-flex align-items-center gap-1.5 fw-semibold" onclick="openProfileSettingsModal()" title="Update contact info, password & notification preferences">
+                    <button type="button" class="btn btn-outline-dark rounded-pill px-3.5 py-2 shadow-sm d-flex align-items-center gap-1.5 fw-semibold" 
+                        onclick="openProfileSettingsModal()" title="Update contact info, password & notification preferences" aria-label="Profile Settings">
                         <i class="bi bi-person-gear text-primary"></i> <span>Profile Settings</span>
                     </button>
-                    <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 shadow-sm d-flex align-items-center gap-1.5 fw-semibold" onclick="openQrModal()" id="btnPersistentShowQr" title="View & Print Official QR Pass">
+                    <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 shadow-sm d-flex align-items-center gap-1.5 fw-semibold" 
+                        onclick="openQrModal()" id="btnPersistentShowQr" title="View & Print Official QR Pass" aria-label="Show Digital QR Pass">
                         <i class="bi bi-qr-code"></i> <span>Show QR Pass</span>
                     </button>
-                </div>
-            </div>
-
-            <!-- COMPACT SUMMARY METRIC BAR (Persistent Across All Modules) -->
-            <div class="compact-summary-bar mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="navigateTo('assistance')" style="cursor: pointer;">
-                    <span class="p-1.5 rounded-circle bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></span>
-                    <small class="text-muted fw-semibold">Pending Apps:</small>
-                    <strong class="text-dark font-monospace" id="barPendingApps">0</strong>
-                </div>
-                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="navigateTo('assistance')" style="cursor: pointer;">
-                    <span class="p-1.5 rounded-circle bg-success-subtle text-success"><i class="bi bi-patch-check-fill"></i></span>
-                    <small class="text-muted fw-semibold">Approved Grants:</small>
-                    <strong class="text-success font-monospace" id="barApprovedGrants">0</strong>
-                </div>
-                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="navigateTo('training')" style="cursor: pointer;">
-                    <span class="p-1.5 rounded-circle bg-info-subtle text-info"><i class="bi bi-mortarboard-fill"></i></span>
-                    <small class="text-muted fw-semibold">Trainings:</small>
-                    <strong class="text-info font-monospace" id="barTrainingsCount">0</strong>
-                </div>
-                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="navigateTo('distribution')" style="cursor: pointer;">
-                    <span class="p-1.5 rounded-circle bg-primary-subtle text-primary"><i class="bi bi-box-seam-fill"></i></span>
-                    <small class="text-muted fw-semibold">Distributions:</small>
-                    <strong class="text-primary font-monospace" id="barDistributionsCount">0</strong>
-                </div>
-                <div class="d-flex align-items-center gap-1.5 cursor-pointer summary-pill-item" onclick="toggleTopNotifications()" style="cursor: pointer;">
-                    <span class="p-1.5 rounded-circle bg-secondary-subtle text-secondary"><i class="bi bi-bell-fill"></i></span>
-                    <small class="text-muted fw-semibold">Unread Alerts:</small>
-                    <strong class="text-dark font-monospace" id="barUnreadNotifs">0</strong>
                 </div>
             </div>
         </div>
@@ -2088,91 +2078,95 @@
             <div class="hero-banner mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <h1 id="welcomeUser" class="mb-1">Welcome, Beneficiary!</h1>
-                        <p class="mb-0" data-translate="hero_description">Track your applications, document requirements, and scheduled activities in real time.</p>
+                        <h1 id="welcomeUser" class="mb-1 fs-3 fw-extrabold">Welcome, Beneficiary!</h1>
+                        <p class="mb-0 text-white-50 small" data-translate="hero_description">Track your applications, document requirements, and scheduled activities in real time.</p>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-2 fw-semibold" onclick="openQrModal()" id="btnHeroShowQr" title="View & Print Official QR Pass">
-                            <i class="bi bi-qr-code"></i> <span>Show QR Pass</span>
+                        <button class="btn btn-light rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-2 fw-semibold text-dark" onclick="openQrModal()" id="btnHeroShowQr" title="View & Print Official QR Pass">
+                            <i class="bi bi-qr-code text-primary"></i> <span>View Digital Pass</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Overview Stat & Summary Cards (5 Standard Beneficiary Metrics) -->
-            <div class="row g-3 mb-4">
+            <!-- =================================================================== -->
+            <!-- 2. SUMMARY METRICS ROW (5 Standard City Assistance KPI Cards)     -->
+            <!-- =================================================================== -->
+            <div class="row g-3 mb-4" id="beneficiarySummaryMetricsRow">
                 <!-- 1. Pending Applications -->
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #f59e0b !important; cursor: pointer;" onclick="navigateTo('assistance')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #f59e0b !important; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;" onclick="navigateTo('assistance')" role="button" tabindex="0" aria-label="Pending Applications Metric">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Pending Apps</span>
-                            <div class="stat-icon-wrapper pending p-2 rounded-3 bg-warning-subtle text-warning">
+                            <div class="stat-icon-wrapper pending p-2 rounded-3 bg-warning-subtle text-warning" style="width: 40px; height: 40px; margin-bottom: 0;">
                                 <i class="bi bi-hourglass-split fs-5"></i>
                             </div>
                         </div>
-                        <h2 class="fw-extrabold text-dark mb-0" id="benStatPendingApps">0</h2>
-                        <small class="text-muted">Under officer review</small>
+                        <h2 class="fw-extrabold text-dark mb-0 font-monospace" id="benStatPendingApps">0</h2>
+                        <small class="text-muted" id="benStatPendingNote">Under officer review</small>
                     </div>
                 </div>
 
-                <!-- 2. Approved Assistance -->
+                <!-- 2. Approved Grants / Assistance -->
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #10b981 !important; cursor: pointer;" onclick="navigateTo('assistance')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #10b981 !important; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;" onclick="navigateTo('assistance')" role="button" tabindex="0" aria-label="Approved Grants Metric">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Approved Grants</span>
-                            <div class="stat-icon-wrapper approved p-2 rounded-3 bg-success-subtle text-success">
+                            <div class="stat-icon-wrapper approved p-2 rounded-3 bg-success-subtle text-success" style="width: 40px; height: 40px; margin-bottom: 0;">
                                 <i class="bi bi-patch-check-fill fs-5"></i>
                             </div>
                         </div>
-                        <h2 class="fw-extrabold text-dark mb-0" id="benStatApprovedApps">0</h2>
-                        <small class="text-muted">Cleared for assistance</small>
+                        <h2 class="fw-extrabold text-dark mb-0 font-monospace" id="benStatApprovedApps">0</h2>
+                        <small class="text-muted" id="benStatApprovedNote">Cleared for assistance</small>
                     </div>
                 </div>
 
-                <!-- 3. Training Schedules -->
+                <!-- 3. Trainings (Enrolled / Completed) -->
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #06b6d4 !important; cursor: pointer;" onclick="navigateTo('training')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #0284c7 !important; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;" onclick="navigateTo('training')" role="button" tabindex="0" aria-label="Trainings Metric">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Trainings</span>
-                            <div class="stat-icon-wrapper p-2 rounded-3 bg-info-subtle text-info">
+                            <div class="stat-icon-wrapper p-2 rounded-3 bg-info-subtle text-info" style="width: 40px; height: 40px; margin-bottom: 0;">
                                 <i class="bi bi-mortarboard-fill fs-5"></i>
                             </div>
                         </div>
-                        <h2 class="fw-extrabold text-dark mb-0" id="benStatTrainingScheds">0</h2>
-                        <small class="text-muted">Enrolled & completed</small>
+                        <h2 class="fw-extrabold text-dark mb-0 font-monospace" id="benStatTrainingScheds">0</h2>
+                        <small class="text-muted" id="benStatTrainingNote">Enrolled & completed</small>
                     </div>
                 </div>
 
-                <!-- 4. Distribution Events -->
+                <!-- 4. Distributions (Disbursements / Releases) -->
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid var(--rose-primary) !important; cursor: pointer;" onclick="navigateTo('distribution')">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid var(--rose-primary, #b85c7a) !important; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;" onclick="navigateTo('distribution')" role="button" tabindex="0" aria-label="Distributions Metric">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Distributions</span>
-                            <div class="stat-icon-wrapper p-2 rounded-3 bg-primary-subtle text-primary">
+                            <div class="stat-icon-wrapper p-2 rounded-3 bg-primary-subtle text-primary" style="width: 40px; height: 40px; margin-bottom: 0;">
                                 <i class="bi bi-box-seam-fill fs-5"></i>
                             </div>
                         </div>
-                        <h2 class="fw-extrabold text-dark mb-0" id="benStatDistributionEvents">0</h2>
-                        <small class="text-muted">Disbursements & releases</small>
+                        <h2 class="fw-extrabold text-dark mb-0 font-monospace" id="benStatDistributionEvents">0</h2>
+                        <small class="text-muted" id="benStatDistributionNote">Disbursements & releases</small>
                     </div>
                 </div>
 
-                <!-- 5. Notifications -->
+                <!-- 5. Notifications / Unread Alerts -->
                 <div class="col-12 col-sm-6 col-xl">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #64748b !important; cursor: pointer;" onclick="toggleTopNotifications()">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white" style="border-left: 4px solid #64748b !important; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;" onclick="toggleTopNotifications()" role="button" tabindex="0" aria-label="Notifications Metric">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted fw-bold small text-uppercase">Notifications</span>
-                            <div class="stat-icon-wrapper notifications p-2 rounded-3 bg-secondary-subtle text-secondary">
+                            <div class="stat-icon-wrapper notifications p-2 rounded-3 bg-secondary-subtle text-secondary" style="width: 40px; height: 40px; margin-bottom: 0;">
                                 <i class="bi bi-bell-fill fs-5"></i>
                             </div>
                         </div>
-                        <h2 class="fw-extrabold text-dark mb-0" id="benStatNotifs">0</h2>
-                        <small class="text-muted">Unread system alerts</small>
+                        <h2 class="fw-extrabold text-dark mb-0 font-monospace" id="benStatNotifs">0</h2>
+                        <small class="text-muted" id="benStatNotifsNote">Unread system alerts</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Quick-Access Cards for Most-Used Modules -->
+            <!-- =================================================================== -->
+            <!-- 3. QUICK-ACCESS MODULES ROW (Direct Shortcut Icons)                 -->
+            <!-- =================================================================== -->
             <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
                 <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
@@ -2181,57 +2175,63 @@
                     <span class="badge bg-light text-muted border">Direct Portal Navigation</span>
                 </div>
                 <div class="card-body px-4 pb-4 pt-1">
-                    <div class="row g-3">
+                    <div class="row g-3 quick-access-scrollable-row">
+                        <!-- 1. Assistance -->
                         <div class="col-6 col-md-4 col-xl-2">
-                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card" onclick="navigateTo('assistance')" style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card h-100" onclick="navigateTo('assistance')" role="button" tabindex="0" style="cursor: pointer; transition: all 0.2s ease;">
                                 <div class="p-2.5 rounded-circle bg-primary-subtle text-primary"><i class="bi bi-briefcase-fill fs-5"></i></div>
                                 <div>
-                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Assistance</h6>
+                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Assistance</h6>
                                     <small class="text-muted" style="font-size: 0.72rem;">Apply for programs</small>
                                 </div>
                             </div>
                         </div>
+                        <!-- 2. Documents -->
                         <div class="col-6 col-md-4 col-xl-2">
-                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card" onclick="navigateTo('documents')" style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card h-100" onclick="navigateTo('documents')" role="button" tabindex="0" style="cursor: pointer; transition: all 0.2s ease;">
                                 <div class="p-2.5 rounded-circle bg-warning-subtle text-warning"><i class="bi bi-file-earmark-check-fill fs-5"></i></div>
                                 <div>
-                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Documents</h6>
+                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Documents</h6>
                                     <small class="text-muted" style="font-size: 0.72rem;">Monitor compliance</small>
                                 </div>
                             </div>
                         </div>
+                        <!-- 3. Training -->
                         <div class="col-6 col-md-4 col-xl-2">
-                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card" onclick="navigateTo('training')" style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card h-100" onclick="navigateTo('training')" role="button" tabindex="0" style="cursor: pointer; transition: all 0.2s ease;">
                                 <div class="p-2.5 rounded-circle bg-info-subtle text-info"><i class="bi bi-mortarboard-fill fs-5"></i></div>
                                 <div>
-                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Training</h6>
+                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Training</h6>
                                     <small class="text-muted" style="font-size: 0.72rem;">Skills & attendance</small>
                                 </div>
                             </div>
                         </div>
+                        <!-- 4. Schedule -->
                         <div class="col-6 col-md-4 col-xl-2">
-                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card" onclick="navigateTo('schedule')" style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card h-100" onclick="navigateTo('schedule')" role="button" tabindex="0" style="cursor: pointer; transition: all 0.2s ease;">
                                 <div class="p-2.5 rounded-circle bg-primary-subtle text-primary"><i class="bi bi-calendar-event-fill fs-5"></i></div>
                                 <div>
-                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Schedule</h6>
+                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Schedule</h6>
                                     <small class="text-muted" style="font-size: 0.72rem;">Assigned slots</small>
                                 </div>
                             </div>
                         </div>
+                        <!-- 5. Distribution -->
                         <div class="col-6 col-md-4 col-xl-2">
-                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card" onclick="navigateTo('distribution')" style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card h-100" onclick="navigateTo('distribution')" role="button" tabindex="0" style="cursor: pointer; transition: all 0.2s ease;">
                                 <div class="p-2.5 rounded-circle bg-success-subtle text-success"><i class="bi bi-cash-stack fs-5"></i></div>
                                 <div>
-                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Distribution</h6>
+                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Distribution</h6>
                                     <small class="text-muted" style="font-size: 0.72rem;">QR pass & releases</small>
                                 </div>
                             </div>
                         </div>
+                        <!-- 6. Notification Hub -->
                         <div class="col-6 col-md-4 col-xl-2">
-                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card" onclick="toggleTopNotifications()" style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="p-3 border rounded-3 bg-light d-flex flex-column align-items-center text-center gap-2 program-select-card h-100" onclick="toggleTopNotifications()" role="button" tabindex="0" style="cursor: pointer; transition: all 0.2s ease;">
                                 <div class="p-2.5 rounded-circle bg-secondary-subtle text-secondary"><i class="bi bi-bell-fill fs-5"></i></div>
                                 <div>
-                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Notification Hub</h6>
+                                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.88rem;">Notification Hub</h6>
                                     <small class="text-muted" style="font-size: 0.72rem;">View top alerts</small>
                                 </div>
                             </div>
