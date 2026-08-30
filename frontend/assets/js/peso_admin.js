@@ -987,12 +987,11 @@
         }, 0);
 
         if (totalDisbursed === 0) {
-            const approvedApps = apps.filter(a => ['Approved', 'Officer Approved', 'Completed', 'Disbursed'].includes(a.status));
+            const approvedApps = apps.filter(a => ['Disbursed', 'Completed'].includes(a.status));
             if (approvedApps.length > 0) {
-                totalDisbursed = approvedApps.reduce((sum, a) => sum + (Number(a.amount_approved || a.amount_requested || 3500) || 3500), 0);
+                totalDisbursed = approvedApps.reduce((sum, a) => sum + (Number(a.amount_approved || 0) || 0), 0);
             }
         }
-        if (totalDisbursed === 0 && apps.length > 0) totalDisbursed = 4250000.00; // Live disbursed baseline
 
         const remainingBalance = Math.max(0, totalAppropriation - totalDisbursed);
         const utilizationPercent = totalAppropriation > 0 ? Math.min(100, Math.round((totalDisbursed / totalAppropriation) * 100)) : 0;
@@ -1022,7 +1021,7 @@
         setTxt('quickCardProgramCount', `${progs.filter(p => p.status === 'Active').length || progs.length} Active`);
         setTxt('quickCardPendingCount', `${pendingCount} Pending`);
         setTxt('quickCardSchedCount', `${scheduledEventsCount} Slots`);
-        setTxt('quickCardResourceCount', `${assistance.length || 45} Items`);
+        setTxt('quickCardResourceCount', `${assistance.length} Items`);
         setTxt('quickCardNotifCount', `${notifs.length} Alerts`);
 
         // Update Fund Progress Bar
@@ -1042,18 +1041,14 @@
             if (displayProgs.length === 0) {
                 progBarsContainer.innerHTML = '<div class="text-muted small">No active programs.</div>';
             } else {
-                progBarsContainer.innerHTML = displayProgs.map((p, idx) => {
+                progBarsContainer.innerHTML = displayProgs.map((p) => {
                     const pBudget = Number(p.budget) || 1000000;
                     const pAssistance = assistance.filter(a => String(a.program_id) === String(p.id) || a.program_code === p.code);
-                    const pApps = apps.filter(a => (String(a.program_id) === String(p.id) || a.program_code === p.code) && ['Approved', 'Officer Approved', 'Completed', 'Disbursed'].includes(a.status));
+                    const pApps = apps.filter(a => (String(a.program_id) === String(p.id) || a.program_code === p.code) && ['Disbursed', 'Completed'].includes(a.status));
                     
                     let pDisbursed = pAssistance.reduce((s, i) => s + (Number(String(i.quantity_amount || i.amount_approved || i.amount || 0).replace(/[^0-9.]/g, '')) || 0), 0);
                     if (pDisbursed === 0 && pApps.length > 0) {
-                        pDisbursed = pApps.reduce((s, a) => s + (Number(a.amount_approved || a.amount_requested || 3500) || 3500), 0);
-                    }
-                    if (pDisbursed === 0) {
-                        const dynamicPercentages = [42, 28, 65, 18, 52];
-                        pDisbursed = pBudget * (dynamicPercentages[idx % dynamicPercentages.length] / 100);
+                        pDisbursed = pApps.reduce((s, a) => s + (Number(a.amount_approved || 0) || 0), 0);
                     }
                     const pPct = pBudget > 0 ? Math.min(100, Math.round((pDisbursed / pBudget) * 100)) : 0;
                     return `
@@ -1180,36 +1175,19 @@
         apps.forEach(a => {
             const dateStr = a.created_at || a.date_applied || a.date_submitted || a.application_date || a.submitted_at;
             let d = dateStr ? new Date(dateStr) : null;
-            if (!d || isNaN(d.getTime())) {
-                d = new Date();
-            }
-            const month = d.getMonth();
-            if (month >= 0 && month < 12) {
-                monthlyApps[month]++;
-                if (['Approved', 'Officer Approved', 'Completed', 'Disbursed'].includes(a.status)) {
-                    monthlyApproved[month]++;
+            if (d && !isNaN(d.getTime())) {
+                const month = d.getMonth();
+                if (month >= 0 && month < 12) {
+                    monthlyApps[month]++;
+                    if (['Approved', 'Officer Approved', 'Completed', 'Disbursed'].includes(a.status)) {
+                        monthlyApproved[month]++;
+                    }
                 }
             }
         });
 
-        // If dataset has live records, update datasets. Otherwise supply historical baseline + live count in current month
-        const hasLiveCounts = monthlyApps.some(v => v > 0);
-        if (hasLiveCounts) {
-            AdminStore.chartInstance.data.datasets[0].data = monthlyApps;
-            AdminStore.chartInstance.data.datasets[1].data = monthlyApproved;
-        } else {
-            // Live baseline for Year 2026
-            const currentMonth = new Date().getMonth();
-            const baselineApps = [12, 19, 24, 18, 29, 35, 42, 38, 0, 0, 0, 0];
-            const baselineApproved = [8, 14, 18, 15, 22, 28, 36, 31, 0, 0, 0, 0];
-            if (apps.length > 0) {
-                baselineApps[currentMonth] = apps.length;
-                baselineApproved[currentMonth] = apps.filter(a => ['Approved', 'Officer Approved', 'Completed'].includes(a.status)).length;
-            }
-            AdminStore.chartInstance.data.datasets[0].data = baselineApps;
-            AdminStore.chartInstance.data.datasets[1].data = baselineApproved;
-        }
-
+        AdminStore.chartInstance.data.datasets[0].data = monthlyApps;
+        AdminStore.chartInstance.data.datasets[1].data = monthlyApproved;
         AdminStore.chartInstance.update();
     }
 
@@ -4150,18 +4128,33 @@
             if (ctx) {
                 if (resourceTrendChartInstance) resourceTrendChartInstance.destroy();
 
+                const monthlyPackages = new Array(12).fill(0);
+                const monthlyGrants = new Array(12).fill(0);
+
+                (resources || []).forEach(r => {
+                    const dStr = r.date || r.created_at;
+                    if (!dStr) return;
+                    const d = new Date(dStr);
+                    if (isNaN(d.getTime())) return;
+                    const m = d.getMonth();
+                    if (m >= 0 && m < 12) {
+                        if (r.category === 'Equipment Starter Kit') monthlyPackages[m]++;
+                        else if (r.category === 'Cash Grant') monthlyGrants[m]++;
+                    }
+                });
+
                 resourceTrendChartInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                         datasets: [{
                             label: 'Starter Packages Released',
-                            data: [3, 5, 8, 6, 12, 14, 18, 22, 10, 8, 15, 12],
+                            data: monthlyPackages,
                             backgroundColor: 'rgba(2, 132, 199, 0.85)',
                             borderRadius: 4
                         }, {
                             label: 'Direct Cash Grants (₱)',
-                            data: [2, 4, 6, 5, 10, 11, 15, 19, 8, 7, 12, 9],
+                            data: monthlyGrants,
                             backgroundColor: 'rgba(16, 185, 129, 0.85)',
                             borderRadius: 4
                         }]

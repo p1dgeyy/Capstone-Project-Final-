@@ -75,6 +75,10 @@ async function initEvalModuleData() {
         }
     }
     updateEvalMetrics();
+    filterEvalLevel1Programs();
+    if (currentEvalProgId && typeof renderEvalLevel3AppsTable === 'function') {
+        renderEvalLevel3AppsTable();
+    }
 }
 
 function updateEvalMetrics() {
@@ -98,10 +102,11 @@ function updateEvalMetrics() {
 }
 
 // --- LEVEL 1: PROGRAMS VIEW (REQ024) ---
-function renderEvalLevel1Programs() {
-    initEvalModuleData();
-    updateEvalMetrics();
+async function renderEvalLevel1Programs() {
     showEvalLevel1();
+    filterEvalLevel1Programs();
+    await initEvalModuleData();
+    updateEvalMetrics();
     filterEvalLevel1Programs();
 }
 

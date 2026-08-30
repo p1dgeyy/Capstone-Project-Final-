@@ -665,11 +665,11 @@ const DataService = (() => {
         }
         
         try {
-          const res = await query.order('id', { ascending: false });
+          const res = await query.order('id', { ascending: false }).limit(filters.limit || 150);
           if (!res.error) return res;
         } catch (e) {}
 
-        const fallbackRes = await query;
+        const fallbackRes = await query.limit(100);
         return fallbackRes;
       });
     },
