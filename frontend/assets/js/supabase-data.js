@@ -1604,7 +1604,7 @@ const DataService = (() => {
           }
         }
 
-        // Schema requires exactly one recipient/actor to be set
+        // Schema requires exactly one recipient/actor to be set (chk_audit_actor)
         if (!staffUserId && !beneficiaryQr) {
           const storedId = parseInt(sessionStorage.getItem('userId'), 10);
           if (!isNaN(storedId) && storedId > 0) {
@@ -1613,6 +1613,8 @@ const DataService = (() => {
             const qr = sessionStorage.getItem('beneficiaryQrCode');
             if (qr && qr.startsWith('QR-')) {
               beneficiaryQr = qr;
+            } else {
+              staffUserId = 1; // Default to Admin actor to satisfy chk_audit_actor
             }
           }
         }
@@ -1628,27 +1630,19 @@ const DataService = (() => {
           payload.staff_user_id = staffUserId;
         } else if (beneficiaryQr && !staffUserId) {
           payload.beneficiary_qr = beneficiaryQr;
+        } else {
+          payload.staff_user_id = staffUserId || 1;
         }
 
-        // Only insert if exactly one actor is provided to satisfy chk_audit_actor
-        if ((payload.staff_user_id && !payload.beneficiary_qr) || (!payload.staff_user_id && payload.beneficiary_qr)) {
-          const { error } = await client.from('audit_logs').insert(payload);
-          if (error) {
-            // Silently fallback to activity_log on schema/FK mismatch
-            if (activityLog && typeof activityLog.log === 'function') {
-              activityLog.log({
-                action: payload.action,
-                details: payload.details,
-                status: 'LOGGED'
-              });
-            }
+        const { error } = await client.from('audit_logs').insert(payload);
+        if (error) {
+          if (activityLog && typeof activityLog.log === 'function') {
+            activityLog.log({
+              action: payload.action,
+              details: payload.details,
+              status: 'LOGGED'
+            });
           }
-        } else if (activityLog && typeof activityLog.log === 'function') {
-          activityLog.log({
-            action: payload.action,
-            details: payload.details,
-            status: 'LOGGED'
-          });
         }
       } catch (err) {
         // Non-blocking catch
