@@ -6389,14 +6389,17 @@
                 }
                 if (dbApps.length === 0 && typeof supabaseClient !== 'undefined' && supabaseClient) {
                     try {
-                        const { data } = await supabaseClient.from('applications').select('id, program, assistance_type, status');
+                        const { data } = await supabaseClient.from('applications').select('id, program_id, status, application_number');
                         if (data && Array.isArray(data)) dbApps = data;
                     } catch (e) {}
                 }
 
                 const appCountMap = new Map();
                 dbApps.forEach(app => {
-                    const pName = (app.program || app.assistance_type || '').toUpperCase();
+                    if (app.program_id) {
+                        appCountMap.set(`ID_${app.program_id}`, (appCountMap.get(`ID_${app.program_id}`) || 0) + 1);
+                    }
+                    const pName = (app.program?.name || app.program?.code || app.program || app.assistance_type || '').toUpperCase();
                     if (pName) {
                         appCountMap.set(pName, (appCountMap.get(pName) || 0) + 1);
                     }
@@ -6407,7 +6410,8 @@
                     const pCodeKey = (prog.code || '').toUpperCase();
                     const countByName = appCountMap.get(pNameKey) || 0;
                     const countByCode = pCodeKey !== pNameKey ? (appCountMap.get(pCodeKey) || 0) : 0;
-                    prog.appliedCount = Math.max(countByName, countByCode);
+                    const countById = prog.id ? (appCountMap.get(`ID_${prog.id}`) || 0) : 0;
+                    prog.appliedCount = Math.max(countByName, countByCode, countById);
                 });
 
                 liveLivelihoodCatalog = Array.from(mergedMap.values());

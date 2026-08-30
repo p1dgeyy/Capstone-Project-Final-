@@ -625,17 +625,8 @@ const DataService = (() => {
   const applications = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
-        let query = client.from('applications').select(`
-          *,
-          beneficiary:beneficiaries!beneficiary_qr(*),
-          program:programs!program_id(*),
-          officer:staff_profiles!officer_id(id, username, first_name, last_name),
-          admin:staff_profiles!admin_id(id, username, first_name, last_name)
-        `).order('created_at', { ascending: false });
+        let query = client.from('applications').select('*').order('created_at', { ascending: false });
 
-        if (filters.agency) {
-          query = query.eq('program.agency', filters.agency);
-        }
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
         }
@@ -652,19 +643,14 @@ const DataService = (() => {
         if (filters.batch_id) {
           query = query.eq('batch_id', filters.batch_id);
         }
-        return await query;
+        const res = await query;
+        return res;
       });
     },
 
     async getById(id) {
       return withRetry(async (client) => {
-        let query = client.from('applications').select(`
-          *,
-          beneficiary:beneficiaries!beneficiary_qr(*),
-          program:programs!program_id(*),
-          officer:staff_profiles!officer_id(id, username, first_name, last_name),
-          admin:staff_profiles!admin_id(id, username, first_name, last_name)
-        `);
+        let query = client.from('applications').select('*');
 
         if (typeof id === 'number' || /^\d+$/.test(id)) {
           query = query.eq('id', id);
@@ -677,10 +663,7 @@ const DataService = (() => {
 
     async getByBeneficiary(beneficiaryQr) {
       return withRetry(async (client) => {
-        return await client.from('applications').select(`
-          *,
-          program:programs!program_id(*)
-        `).eq('beneficiary_qr', beneficiaryQr).order('created_at', { ascending: false });
+        return await client.from('applications').select('*').eq('beneficiary_qr', beneficiaryQr).order('created_at', { ascending: false });
       });
     },
 
@@ -746,7 +729,7 @@ const DataService = (() => {
           status: evaluationData.status || newStatus
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).maybeSingle();
+        const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: evaluationData.officer_id || null,
@@ -759,7 +742,7 @@ const DataService = (() => {
           // Also notify beneficiary
           notifications.create({
             beneficiary_qr: res.data.beneficiary_qr,
-            title: `Application Update: ${res.data.program?.name || 'Assistance'}`,
+            title: `Application Update: Evaluation Complete`,
             message: `Your application (${res.data.application_number}) has been evaluated as ${decision}. ${evaluationData.notes ? 'Remarks: ' + evaluationData.notes : ''}`
           });
         }
@@ -778,7 +761,7 @@ const DataService = (() => {
           updated_at: new Date().toISOString()
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).maybeSingle();
+        const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: approveData.admin_id || null,
@@ -792,8 +775,8 @@ const DataService = (() => {
             action: 'APPLICATION_APPROVED',
             action_title: 'Application Approved',
             application_id: res.data.application_number,
-            beneficiary_name: `${res.data.beneficiary?.first_name || ''} ${res.data.beneficiary?.last_name || ''}`.trim(),
-            program: res.data.program?.name || 'Assistance',
+            beneficiary_name: res.data.beneficiary_qr,
+            program: 'Assistance Program',
             admin_id: approveData.admin_username || 'Admin',
             details: `Approved grant for ₱${Number(approveData.amount_approved || 0).toLocaleString()}.`
           });
@@ -801,7 +784,7 @@ const DataService = (() => {
           notifications.create({
             beneficiary_qr: res.data.beneficiary_qr,
             title: 'Application Approved!',
-            message: `Your application (${res.data.application_number}) for ${res.data.program?.name || 'Assistance'} has been approved.`
+            message: `Your application (${res.data.application_number}) has been approved.`
           });
         }
         return res;
@@ -822,7 +805,7 @@ const DataService = (() => {
           updated_at: new Date().toISOString()
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).maybeSingle();
+        const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
           auditLogs.log({
             staffUserId: denyData.admin_id || null,
@@ -836,8 +819,8 @@ const DataService = (() => {
             action: 'APPLICATION_DENIED',
             action_title: 'Application Denied',
             application_id: res.data.application_number,
-            beneficiary_name: `${res.data.beneficiary?.first_name || ''} ${res.data.beneficiary?.last_name || ''}`.trim(),
-            program: res.data.program?.name || 'Assistance',
+            beneficiary_name: res.data.beneficiary_qr,
+            program: 'Assistance Program',
             admin_id: denyData.admin_username || 'Admin',
             details: `Disapproved application. Reason: ${reason}`
           });
@@ -860,14 +843,9 @@ const DataService = (() => {
           updated_at: new Date().toISOString()
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select(`*, beneficiary:beneficiaries!beneficiary_qr(*), program:programs!program_id(*)`).maybeSingle();
+        const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
           const amount = Number(res.data.amount_approved || res.data.amount_requested || 0);
-          const progCode = res.data.program?.code;
-
-          if (progCode) {
-            funds.releaseAmount(progCode, amount);
-          }
 
           auditLogs.log({
             staffUserId: releaseData.admin_id || null,
@@ -1972,7 +1950,7 @@ const DataService = (() => {
         // 2. Find active or latest application for this beneficiary
         const appRes = await client
           .from('applications')
-          .select(`*, program:programs!program_id(*)`)
+          .select('*')
           .eq('beneficiary_qr', qrCode)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -1994,7 +1972,7 @@ const DataService = (() => {
           };
           if (officerId) updatePayload.officer_id = officerId;
 
-          const patchRes = await client.from('applications').update(updatePayload).eq('id', appRes.data.id).select(`*, program:programs!program_id(*)`).single();
+          const patchRes = await client.from('applications').update(updatePayload).eq('id', appRes.data.id).select('*').single();
           if (patchRes.data) updatedApp = patchRes.data;
         }
 
@@ -2037,11 +2015,11 @@ const DataService = (() => {
     async getTimelineHistory(qrCode) {
       return withRetry(async (client) => {
         const [appRes, notifRes, auditRes, interviewRes, assistRes] = await Promise.all([
-          client.from('applications').select(`*, program:programs!program_id(*)`).eq('beneficiary_qr', qrCode).order('created_at', { ascending: false }),
+          client.from('applications').select('*').eq('beneficiary_qr', qrCode).order('created_at', { ascending: false }),
           client.from('notifications').select('*').eq('beneficiary_qr', qrCode).order('created_at', { ascending: false }),
           client.from('audit_logs').select('*').eq('beneficiary_qr', qrCode).order('created_at', { ascending: false }),
-          client.from('interview_schedules').select(`*, program:programs!program_id(*)`).eq('beneficiary_qr', qrCode).order('interview_date', { ascending: false }),
-          client.from('approved_assistance').select(`*, program:programs!program_id(*)`).eq('beneficiary_qr', qrCode).order('approval_date', { ascending: false })
+          client.from('interview_schedules').select('*').eq('beneficiary_qr', qrCode).order('interview_date', { ascending: false }),
+          client.from('approved_assistance').select('*').eq('beneficiary_qr', qrCode).order('approval_date', { ascending: false })
         ]);
 
         return {
