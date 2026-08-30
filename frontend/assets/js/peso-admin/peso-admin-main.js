@@ -122,27 +122,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 5. Initialize Realtime Subscriptions for PESO Admin Portal (Singleton guarded)
+    // 5. Initialize Realtime Subscriptions for PESO Admin Portal (Singleton & Debounce guarded)
     try {
+        let _adminRtDebounceTimer = null;
         if (typeof DataService !== 'undefined' && DataService.realtime && !window.__pesoAdminRealtimeActive) {
             window.__pesoAdminRealtimeActive = true;
-            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches', 'approved_assistance', 'notifications', 'beneficiaries', 'active_user_sessions'], (payload) => {
+            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches', 'approved_assistance', 'notifications'], (payload) => {
                 console.log('[PESO Admin Realtime Event]:', payload.table, payload.eventType);
-                if (payload.table === 'programs') {
-                    if (typeof initProgramsData === 'function') initProgramsData();
-                } else if (payload.table === 'applications') {
-                    if (typeof initEvalModuleData === 'function') initEvalModuleData();
-                    if (typeof initProgramsData === 'function') initProgramsData();
-                } else if (payload.table === 'interview_schedules') {
-                    if (typeof initSchedulingData === 'function') initSchedulingData();
-                } else if (payload.table === 'staff_profiles' || payload.table === 'active_user_sessions') {
-                    if (typeof initUserManagementData === 'function') initUserManagementData();
-                    if (typeof initOfficersData === 'function') initOfficersData();
-                } else if (payload.table === 'batches' || payload.table === 'beneficiaries') {
-                    if (typeof initEvalModuleData === 'function') initEvalModuleData();
-                }
-                if (typeof renderDashboardTables === 'function') renderDashboardTables();
-                if (typeof renderActiveTab === 'function') renderActiveTab();
+                
+                // Debounce rapid multi-table broadcasts to a single smooth UI refresh
+                if (_adminRtDebounceTimer) clearTimeout(_adminRtDebounceTimer);
+                _adminRtDebounceTimer = setTimeout(() => {
+                    if (payload.table === 'programs') {
+                        if (typeof initProgramsData === 'function') initProgramsData();
+                    } else if (payload.table === 'applications') {
+                        if (typeof initEvalModuleData === 'function') initEvalModuleData();
+                        if (typeof initProgramsData === 'function') initProgramsData();
+                    } else if (payload.table === 'interview_schedules') {
+                        if (typeof initSchedulingData === 'function') initSchedulingData();
+                    } else if (payload.table === 'staff_profiles') {
+                        if (typeof initOfficersData === 'function') initOfficersData();
+                    } else if (payload.table === 'batches' || payload.table === 'beneficiaries' || payload.table === 'approved_assistance') {
+                        if (typeof initEvalModuleData === 'function') initEvalModuleData();
+                    }
+                    if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
+                }, 2000);
             });
         }
     } catch (rtErr) {

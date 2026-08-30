@@ -5010,14 +5010,18 @@
         closeModal('uploadOrdinanceModal');
     }
 
-    // Realtime Synchronization Listener (Singleton guarded)
+    // Realtime Synchronization Listener (Singleton & Debounce guarded)
+    let _pesoAdminRtDebounce = null;
     function initRealtimeSync() {
         try {
             if (typeof DataService !== 'undefined' && DataService.realtime && !window.__pesoAdminRealtimeActive) {
                 window.__pesoAdminRealtimeActive = true;
                 DataService.realtime.subscribeMulti(['programs', 'applications', 'staff_profiles', 'interview_schedules', 'approved_assistance', 'notifications'], (payload) => {
                     console.log('[PESO Admin Realtime Event Received]:', payload.table, payload.eventType);
-                    refreshAllData().then(() => renderActiveTab());
+                    if (_pesoAdminRtDebounce) clearTimeout(_pesoAdminRtDebounce);
+                    _pesoAdminRtDebounce = setTimeout(() => {
+                        refreshAllData().then(() => renderActiveTab());
+                    }, 2000);
                 });
             }
         } catch (e) {

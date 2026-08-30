@@ -69,7 +69,7 @@ const DataService = (() => {
       } catch (err) {
         lastError = err;
         const msg = String(err.message || '');
-        if (msg.includes('500') || msg.includes('502') || msg.includes('520') || msg.includes('521') || msg.includes('Failed to fetch')) {
+        if (msg.includes('500') || msg.includes('502') || msg.includes('520') || msg.includes('521') || msg.includes('525') || msg.includes('Failed to fetch') || msg.includes('ERR_FAILED') || msg.includes('NetworkError')) {
           _consecutiveServerErrorCount++;
           _lastServerErrorTimestamp = Date.now();
           return { data: [], error: err };
