@@ -1173,7 +1173,9 @@
                 <i class="bi bi-journal-text text-light fs-6"></i>
                 <span>Audit Logs</span>
             </button>
-        </        <!-- 2. BENEFICIARIES MANAGEMENT TAB (100% DESIGN SPECIFICATION COMPLIANT) -->
+        </nav>
+
+        <!-- 2. BENEFICIARIES MANAGEMENT TAB (100% DESIGN SPECIFICATION COMPLIANT) -->
         <section id="tab-beneficiaries" class="tab-section d-none">
             <div class="page-header pb-2 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
@@ -1195,17 +1197,17 @@
             <!-- Beneficiary Search & Filter Bar -->
             <div class="card border-0 shadow-sm mb-4 rounded-4 bg-white">
                 <div class="card-body p-3">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-12 col-md-4">
+                    <div class="row g-2.5 align-items-center">
+                        <div class="col-12 col-lg-4 col-md-6">
                             <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0" id="benSearchInput"
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-1" id="benSearchInput"
                                     placeholder="Search by name, ID, or barangay..." onkeyup="PesoOfficerApp.renderBeneficiariesTable()"
                                     aria-label="Search by name, ID, or barangay">
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <select class="form-select" id="benBarangayFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Barangay">
+                        <div class="col-6 col-lg-3 col-md-6">
+                            <select class="form-select text-truncate" id="benBarangayFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Barangay">
                                 <option value="">All 27 Barangays</option>
                                 <option value="Assumption">Assumption</option>
                                 <option value="Avanceña">Avanceña</option>
@@ -1236,24 +1238,24 @@
                                 <option value="Zone 4">Zone 4</option>
                             </select>
                         </div>
-                        <div class="col-6 col-md-2">
-                            <select class="form-select" id="benStatusFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Account Status">
+                        <div class="col-6 col-lg-2 col-md-4">
+                            <select class="form-select text-truncate" id="benStatusFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Account Status">
                                 <option value="">All Account Statuses</option>
                                 <option value="Active">Active</option>
                                 <option value="Deactivated">Deactivated</option>
                             </select>
                         </div>
-                        <div class="col-6 col-md-2">
-                            <select class="form-select" id="benEligibilityFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Eligibility Status">
-                                <option value="">All Eligibility Statuses</option>
+                        <div class="col-6 col-lg-2 col-md-4">
+                            <select class="form-select text-truncate" id="benEligibilityFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Eligibility Status">
+                                <option value="">All Eligibility</option>
                                 <option value="Eligible">Eligible</option>
                                 <option value="Ongoing">Ongoing Program</option>
                                 <option value="Cooldown">Cooldown / Ineligible</option>
                             </select>
                         </div>
-                        <div class="col-6 col-md-1">
-                            <button class="btn btn-outline-secondary w-100 fw-semibold rounded-3" onclick="resetBeneficiaryFilters()" title="Reset Filters">
-                                <i class="bi bi-arrow-clockwise"></i>
+                        <div class="col-6 col-lg-1 col-md-4">
+                            <button class="btn btn-outline-secondary w-100 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-1" onclick="resetBeneficiaryFilters()" title="Reset Filters">
+                                <i class="bi bi-arrow-clockwise"></i> <span class="d-lg-none small">Reset</span>
                             </button>
                         </div>
                     </div>
@@ -4848,7 +4850,25 @@
                     }
                 }
 
-                // Render views
+                // Sync state with PesoOfficerApp
+                if (typeof PesoOfficerApp !== 'undefined' && PesoOfficerApp.state) {
+                    PesoOfficerApp.state.beneficiaries = beneficiariesList;
+                    PesoOfficerApp.state.applications = evaluationList;
+                    PesoOfficerApp.state.batches = operationalBatchesList;
+                    PesoOfficerApp.state.schedules = dailySchedulesList;
+                    PesoOfficerApp.state.assistanceRecords = assistanceList;
+                    PesoOfficerApp.state.approvedAssistance = assistanceList;
+                    PesoOfficerApp.state.isLoaded = true;
+
+                    if (typeof PesoOfficerApp.renderBeneficiariesTable === 'function') {
+                        PesoOfficerApp.renderBeneficiariesTable();
+                    }
+                    if (typeof PesoOfficerApp.renderOfficerDashboard === 'function') {
+                        PesoOfficerApp.renderOfficerDashboard();
+                    }
+                }
+
+                // Render legacy and master views
                 renderBeneficiaryTable();
                 renderEvaluationQueueTable();
                 renderLivelihoodManagementModule();
@@ -4860,9 +4880,6 @@
                 renderOfficerNotificationsFeed();
                 loadOfficerTeam();
                 updateDashboardOverviewMetrics(programsData, (appRes && appRes.data) || []);
-                if (typeof PesoOfficerApp !== 'undefined' && typeof PesoOfficerApp.renderOfficerDashboard === 'function') {
-                    PesoOfficerApp.renderOfficerDashboard();
-                }
             } catch (err) {
                 console.warn('[PESO Officer] loadAllOfficerData notice:', err);
             }
