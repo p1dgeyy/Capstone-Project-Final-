@@ -1371,36 +1371,124 @@ const PesoOfficerApp = (() => {
     }
 
     /**
-     * MODULE 2.4: [Edit] Beneficiary Information Modal
+     * MODULE 2.4: Update Beneficiary Information Modal (Enhanced Design)
      */
+    function calcEditBenAge() {
+        const dobInput = document.getElementById('editBenDob');
+        const agePreview = document.getElementById('editBenAgePreview');
+        if (!dobInput || !dobInput.value) return;
+
+        const dob = new Date(dobInput.value);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+        if (agePreview) {
+            agePreview.value = Math.max(0, isNaN(age) ? 0 : age);
+        }
+    }
+
+    function resetEditBeneficiaryForm() {
+        if (state.currentEditingBen) {
+            openEditBeneficiaryModal(state.currentEditingBen.id || state.currentEditingBen.qr_code);
+        }
+    }
+
     function openEditBeneficiaryModal(id) {
         const ben = state.beneficiaries.find(b => String(b.id) === String(id) || b.qr_code === id);
         if (!ben) return;
 
+        state.currentEditingBen = { ...ben };
+
         const fullName = `${ben.first_name || ''} ${ben.middle_name ? ben.middle_name + ' ' : ''}${ben.last_name || ''} ${ben.suffix || ''}`.trim() || ben.name || 'Beneficiary';
+        const isAcctActive = (ben.status || 'Active') === 'Active';
+
+        // Header Status Badge
+        const elHeaderStatus = document.getElementById('editBenHeaderStatusBadge');
+        if (elHeaderStatus) {
+            if (isAcctActive) {
+                elHeaderStatus.className = 'badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill font-monospace';
+                elHeaderStatus.innerHTML = '<i class="bi bi-circle-fill text-success me-1" style="font-size: 6px;"></i> Active';
+            } else {
+                elHeaderStatus.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1.5 rounded-pill font-monospace';
+                elHeaderStatus.innerHTML = '<i class="bi bi-circle-fill text-secondary me-1" style="font-size: 6px;"></i> Deactivated';
+            }
+        }
+
+        // Top Quick Reference Strip
         const elIdInput = document.getElementById('editBenIdInput');
-        const elNamePrev = document.getElementById('editBenNamePreview');
         const elIdPrev = document.getElementById('editBenIdPreview');
-        const elDobPrev = document.getElementById('editBenDobPreview');
+        const elUserPrev = document.getElementById('editBenUsernamePreview');
+        const elRegPrev = document.getElementById('editBenRegisteredByPreview');
+
+        if (elIdInput) elIdInput.value = ben.qr_code || ben.id;
+        if (elIdPrev) elIdPrev.textContent = ben.qr_code || `BEN-${ben.id}`;
+        if (elUserPrev) elUserPrev.textContent = ben.username || `user_${ben.id}`;
+        if (elRegPrev) elRegPrev.textContent = ben.registered_by || 'PESO Officer';
+
+        // 1. Personal Profile Panel
+        const elFirstName = document.getElementById('editBenFirstName');
+        const elMiddleName = document.getElementById('editBenMiddleName');
+        const elLastName = document.getElementById('editBenLastName');
+        const elSuffix = document.getElementById('editBenSuffix');
+        const elCivil = document.getElementById('editBenCivilStatus');
+        const elDob = document.getElementById('editBenDob');
+        const elAge = document.getElementById('editBenAgePreview');
+
+        if (elFirstName) elFirstName.value = ben.first_name || (ben.name ? ben.name.split(' ')[0] : '');
+        if (elMiddleName) elMiddleName.value = ben.middle_name || '';
+        if (elLastName) elLastName.value = ben.last_name || (ben.name ? ben.name.split(' ').slice(1).join(' ') : '');
+        if (elSuffix) elSuffix.value = ben.suffix || '';
+        if (elCivil) elCivil.value = ben.civil_status || ben.marital_status || 'Single';
+
+        // Sex Radio Buttons
+        const sexVal = (ben.sex || 'Male').toLowerCase();
+        const radMale = document.getElementById('editSexMale');
+        const radFemale = document.getElementById('editSexFemale');
+        if (sexVal === 'female') {
+            if (radFemale) radFemale.checked = true;
+        } else {
+            if (radMale) radMale.checked = true;
+        }
+
+        // Date of Birth & Age
+        if (elDob) {
+            let parsedDob = ben.date_of_birth;
+            if (!parsedDob || parsedDob === 'N/A') parsedDob = '1998-05-15';
+            elDob.value = parsedDob;
+        }
+        calcEditBenAge();
+
+        // 2. Contact & Address Panel
         const elPhone = document.getElementById('editBenPhone');
         const elEmail = document.getElementById('editBenEmail');
-        const elCivil = document.getElementById('editBenCivilStatus');
         const elPurok = document.getElementById('editBenPurok');
         const elBrgy = document.getElementById('editBenBarangay');
         const elIdType = document.getElementById('editBenIdType');
         const elIdNum = document.getElementById('editBenIdNumber');
 
-        if (elIdInput) elIdInput.value = ben.qr_code || ben.id;
-        if (elNamePrev) elNamePrev.textContent = fullName;
-        if (elIdPrev) elIdPrev.textContent = ben.qr_code || `BEN-${ben.id}`;
-        if (elDobPrev) elDobPrev.textContent = `${ben.date_of_birth || 'N/A'} (${ben.age || 25} yrs old)`;
         if (elPhone) elPhone.value = ben.phone || ben.contact || ben.contact_number || '';
         if (elEmail) elEmail.value = ben.email && ben.email !== 'N/A' ? ben.email : '';
-        if (elCivil) elCivil.value = ben.civil_status || ben.marital_status || 'Single';
-        if (elPurok) elPurok.value = ben.purok || (ben.address ? ben.address.split(',')[0] : 'Purok 1');
+        if (elPurok) elPurok.value = ben.purok || (ben.address ? ben.address.split(',')[0].trim() : 'Purok 1');
         if (elBrgy) elBrgy.value = ben.barangay || 'Morales';
         if (elIdType) elIdType.value = ben.id_type || 'PhilSys ID (National ID)';
         if (elIdNum) elIdNum.value = ben.id_number || '1234-5678-9012';
+
+        // Optional Documents in Accordion
+        const elDocId = document.getElementById('editDocNameId');
+        const elDocBrgy = document.getElementById('editDocNameBrgy');
+        if (elDocId) elDocId.textContent = `${ben.id_type || 'Valid National ID'} (Attached)`;
+        if (elDocBrgy) elDocBrgy.textContent = `Barangay Certificate (${ben.barangay || 'Koronadal'})`;
+
+        // Initialize tooltips for required fields
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('#editBeneficiaryModal [data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(tooltipTriggerEl => {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
 
         safeOpenModal('editBeneficiaryModal');
     }
@@ -1412,11 +1500,19 @@ const PesoOfficerApp = (() => {
         const ben = state.beneficiaries.find(b => String(b.id) === String(targetId) || b.qr_code === targetId);
         if (!ben) return;
 
+        const firstName = (document.getElementById('editBenFirstName')?.value || '').trim();
+        const middleName = (document.getElementById('editBenMiddleName')?.value || '').trim();
+        const lastName = (document.getElementById('editBenLastName')?.value || '').trim();
+        const suffix = (document.getElementById('editBenSuffix')?.value || '').trim();
+        const sex = document.getElementById('editSexFemale')?.checked ? 'Female' : 'Male';
+        const dob = document.getElementById('editBenDob')?.value || '1998-05-15';
+        const age = parseInt(document.getElementById('editBenAgePreview')?.value || '25', 10);
+        const civil = document.getElementById('editBenCivilStatus')?.value || 'Single';
+
         const phone = (document.getElementById('editBenPhone')?.value || '').trim();
         const email = (document.getElementById('editBenEmail')?.value || '').trim();
-        const civil = document.getElementById('editBenCivilStatus')?.value || 'Single';
         const purok = (document.getElementById('editBenPurok')?.value || '').trim();
-        const brgy = document.getElementById('editBenBarangay')?.value || '';
+        const brgy = document.getElementById('editBenBarangay')?.value || 'Morales';
         const idType = document.getElementById('editBenIdType')?.value || 'PhilSys ID (National ID)';
         const idNum = (document.getElementById('editBenIdNumber')?.value || '').trim();
 
@@ -1426,12 +1522,22 @@ const PesoOfficerApp = (() => {
             return;
         }
 
+        ben.first_name = firstName || ben.first_name;
+        ben.middle_name = middleName;
+        ben.last_name = lastName || ben.last_name;
+        ben.suffix = suffix;
+        ben.name = `${ben.first_name} ${ben.middle_name ? ben.middle_name + ' ' : ''}${ben.last_name} ${ben.suffix}`.trim();
+        ben.sex = sex;
+        ben.gender = sex;
+        ben.date_of_birth = dob;
+        ben.dob = dob;
+        ben.age = age;
+        ben.civil_status = civil;
+        ben.marital_status = civil;
         ben.phone = phone;
         ben.contact = phone;
         ben.contact_number = phone;
         ben.email = email || 'N/A';
-        ben.civil_status = civil;
-        ben.marital_status = civil;
         ben.purok = purok;
         ben.barangay = brgy;
         ben.address = `${purok}, ${brgy}, Koronadal City`;
@@ -1442,6 +1548,13 @@ const PesoOfficerApp = (() => {
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
                 await supabaseClient.from('beneficiaries').update({
+                    first_name: ben.first_name,
+                    middle_name: ben.middle_name,
+                    last_name: ben.last_name,
+                    suffix: ben.suffix,
+                    sex: ben.sex,
+                    date_of_birth: ben.date_of_birth,
+                    age: ben.age,
                     phone: ben.phone,
                     email: ben.email,
                     civil_status: ben.civil_status,
@@ -1456,13 +1569,13 @@ const PesoOfficerApp = (() => {
         }
 
         renderBeneficiariesTable();
-        logAudit('OFFICER_EDIT_BENEFICIARY', `Updated demographic and contact details for ${ben.name || ben.first_name} (${ben.qr_code || ben.id})`);
+        logAudit('OFFICER_EDIT_BENEFICIARY', `Updated demographic profile and contact details for ${ben.name} (${ben.qr_code || ben.id})`);
         safeCloseModal('editBeneficiaryModal');
 
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
                 title: 'Record Updated',
-                message: `Beneficiary details for ${ben.name || ben.first_name} saved successfully.`,
+                message: `Beneficiary details for ${ben.name} saved successfully.`,
                 type: 'success'
             });
         }
@@ -2105,6 +2218,8 @@ const PesoOfficerApp = (() => {
         submitWalkInRegistration,
         openBeneficiaryRecordModal,
         openEditBeneficiaryModal,
+        calcEditBenAge,
+        resetEditBeneficiaryForm,
         submitEditBeneficiary,
         toggleBeneficiaryStatus,
         showBeneficiaryQR,
@@ -2142,6 +2257,8 @@ if (typeof window !== 'undefined') {
     window.openAddBeneficiaryModal = PesoOfficerApp.openWalkInRegistrationModal;
     window.openBeneficiaryRecordModal = PesoOfficerApp.openBeneficiaryRecordModal;
     window.openEditBeneficiaryModal = PesoOfficerApp.openEditBeneficiaryModal;
+    window.calcEditBenAge = PesoOfficerApp.calcEditBenAge;
+    window.resetEditBeneficiaryForm = PesoOfficerApp.resetEditBeneficiaryForm;
     window.handleApproveCompleteness = PesoOfficerApp.handleApproveCompleteness;
     window.openOfficerDenyIncompleteModal = PesoOfficerApp.openOfficerDenyIncompleteModal;
     window.submitOfficerDenyIncomplete = PesoOfficerApp.submitOfficerDenyIncomplete;
