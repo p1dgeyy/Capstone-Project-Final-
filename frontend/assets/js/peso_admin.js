@@ -2311,10 +2311,20 @@
                 outcomeTag = '<span class="badge bg-primary-subtle text-primary border border-primary-subtle">Certificate & Disbursement</span>';
             }
 
-            // Assigned Officers
-            const assignedOfficerNames = (p.assigned_officers && p.assigned_officers.length > 0)
-                ? p.assigned_officers.join(', ')
-                : (p.id % 2 === 0 ? 'Officer Elena Santos' : 'Officer Marco Ramos');
+            // Assigned Officers from live active staff
+            let assignedOfficerNames = 'Assigned PESO Desk';
+            if (p.assigned_officers && p.assigned_officers.length > 0) {
+                assignedOfficerNames = p.assigned_officers.join(', ');
+            } else if (AdminStore.officers && AdminStore.officers.length > 0) {
+                const activeOfficers = AdminStore.officers.filter(o => o.status === 'Active' && !o.role?.includes('Admin'));
+                if (activeOfficers.length > 0) {
+                    const assigned = activeOfficers[p.id % activeOfficers.length];
+                    assignedOfficerNames = assigned ? `${assigned.first_name || ''} ${assigned.last_name || ''}`.trim() || assigned.username : 'Active Officer';
+                } else {
+                    const firstStaff = AdminStore.officers[0];
+                    assignedOfficerNames = firstStaff ? `${firstStaff.first_name || ''} ${firstStaff.last_name || ''}`.trim() || firstStaff.username : 'PESO Staff Desk';
+                }
+            }
 
             return `
                 <tr class="${isDeactivated ? 'table-light opacity-75' : ''}">
@@ -5078,6 +5088,7 @@
     window.handleSaveOfficerUpdates = handleSaveOfficerUpdates;
     window.toggleOfficerStatus = toggleOfficerStatus;
     window.handleOfficerSwitchToggle = handleOfficerSwitchToggle;
+    window.openOfficerPermissionsModal = openOfficerPermissionsModal;
     window.filterOfficersList = filterOfficersList;
     window.exportOfficersCsv = () => {
         const rows = [['Username', 'Name', 'Email', 'Role', 'Phone', 'Status', 'Created']];

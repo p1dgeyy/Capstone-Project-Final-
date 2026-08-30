@@ -19,10 +19,10 @@ const SessionManager = (() => {
 
   // Constants
   const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes: Inactivity watchdog auto-logout
-  const ACTIVE_DEVICE_THRESHOLD_MS = 45 * 1000; // 45 seconds: Live heartbeat threshold for concurrent device detection
+  const ACTIVE_DEVICE_THRESHOLD_MS = 90 * 1000; // 90 seconds: Live heartbeat threshold for concurrent device detection
   const WARNING_BEFORE_MS = 60 * 1000;          // 60 seconds countdown
-  const HEARTBEAT_INTERVAL_MS = 15 * 1000;      // 15 seconds heartbeat
-  const ACTIVITY_THROTTLE_MS = 3000;            // 3 seconds throttle for activity events
+  const HEARTBEAT_INTERVAL_MS = 45 * 1000;      // 45 seconds heartbeat (efficient rate-limiting)
+  const ACTIVITY_THROTTLE_MS = 10000;           // 10 seconds throttle for activity events
   const STORAGE_ACTIVITY_KEY = 'peso_last_user_activity';
   const STORAGE_ACTIVE_SESSION_KEY = 'peso_active_session_id';
 

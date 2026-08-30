@@ -35,8 +35,16 @@ const DataService = (() => {
     return null;
   }
 
-  // Generic retry wrapper for database calls
-  async function withRetry(operationFn, maxRetries = 2, delayMs = 300) {
+  // Generic retry wrapper for database calls with exponential backoff & rate-limiting circuit-breaker
+  let _consecutiveServerErrorCount = 0;
+  let _lastServerErrorTimestamp = 0;
+
+  async function withRetry(operationFn, maxRetries = 1, delayMs = 500) {
+    // If backend recently threw repeated 5xx errors, cool down for 4 seconds to allow database recovery
+    if (_consecutiveServerErrorCount >= 3 && (Date.now() - _lastServerErrorTimestamp) < 4000) {
+      return { data: [], error: null };
+    }
+
     let lastError = null;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -45,20 +53,32 @@ const DataService = (() => {
         const result = await operationFn(client);
         if (result && result.error) {
           // If RLS or constraint error, don't retry uselessly
-          if (result.error.code === '42501' || result.error.code === '23505') {
+          if (result.error.code === '42501' || result.error.code === '23505' || result.error.code === 'PGRST116') {
             return result;
+          }
+          const is5xx = String(result.error.message || '').includes('500') || String(result.error.code || '').startsWith('5');
+          if (is5xx) {
+            _consecutiveServerErrorCount++;
+            _lastServerErrorTimestamp = Date.now();
+            return { data: [], error: result.error };
           }
           throw result.error;
         }
+        _consecutiveServerErrorCount = 0;
         return result;
       } catch (err) {
         lastError = err;
+        const msg = String(err.message || '');
+        if (msg.includes('500') || msg.includes('502') || msg.includes('520') || msg.includes('521') || msg.includes('Failed to fetch')) {
+          _consecutiveServerErrorCount++;
+          _lastServerErrorTimestamp = Date.now();
+          return { data: [], error: err };
+        }
         if (attempt < maxRetries) {
-          await new Promise(res => setTimeout(res, delayMs * (attempt + 1)));
+          await new Promise(res => setTimeout(res, delayMs * Math.pow(2, attempt)));
         }
       }
     }
-    console.warn('[DATA_SERVICE] Operation failed after retries:', lastError?.message || lastError);
     return { data: null, error: lastError };
   }
 
@@ -625,7 +645,7 @@ const DataService = (() => {
   const applications = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
-        let query = client.from('applications').select('*').order('created_at', { ascending: false });
+        let query = client.from('applications').select('*');
 
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
@@ -643,8 +663,14 @@ const DataService = (() => {
         if (filters.batch_id) {
           query = query.eq('batch_id', filters.batch_id);
         }
-        const res = await query;
-        return res;
+        
+        try {
+          const res = await query.order('id', { ascending: false });
+          if (!res.error) return res;
+        } catch (e) {}
+
+        const fallbackRes = await query;
+        return fallbackRes;
       });
     },
 

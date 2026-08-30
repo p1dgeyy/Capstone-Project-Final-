@@ -194,15 +194,17 @@ const PesoOfficerApp = (() => {
     }
 
     /**
-     * Helper: Get Assigned Programs for Current Officer
+     * Helper: Get Assigned Programs for Current Officer (Real-Time Live Programs)
      */
     function getOfficerAssignedPrograms() {
-        const user = JSON.parse(localStorage.getItem('currentUser') || '{"fullName":"PESO Officer","username":"peso-officer","id":2}');
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
         if (user && Array.isArray(user.assigned_programs) && user.assigned_programs.length > 0) {
             return user.assigned_programs;
         }
-        // Canonical operational programs assigned to PESO Officer
-        return ['TUPAD', 'SPES', 'GIP', 'CKGIP', 'PFAS'];
+        if (Array.isArray(state.programs) && state.programs.length > 0) {
+            return state.programs.map(p => p.code || p.name);
+        }
+        return ['TUPAD', 'SPES', 'GIP', 'CKGIP', 'PFAS', 'AICS', 'KEEP', 'OFW-RLAP', 'WELD-NCII', 'DILP-IGP', 'DILP-DK', 'SP-SEK', 'PEAP', 'AGRI-SK'];
     }
 
     /**
