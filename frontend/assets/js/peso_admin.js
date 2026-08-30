@@ -3951,38 +3951,63 @@
         const list = [];
         let idCounter = 1;
 
-        const defaultResources = [
-            { id: idCounter++, qr: 'QR-BEN-100234', name: 'Maria Santos', phone: '09171234567', prog: 'SP-SEK', batch: 'Batch 1 - Regular Cohort', type: 'Complete Carpentry Power Tool Starter Package (8 Tools)', category: 'Equipment Starter Kit', qty: '1 Package (₱15,000.00)', date: '2026-07-28', officer: 'Officer Elena Santos', voucher: 'VCH-2026-0811' },
-            { id: idCounter++, qr: 'QR-BEN-100235', name: 'Juan Dela Cruz', phone: '09287654321', prog: 'DILP-IGP', batch: 'Batch 1 - Regular Cohort', type: 'Food Processing Machinery & Stainless Table Set', category: 'Equipment Starter Kit', qty: '1 Set (₱25,000.00)', date: '2026-07-30', officer: 'Officer Marco Ramos', voucher: 'VCH-2026-0814' },
-            { id: idCounter++, qr: 'QR-BEN-100236', name: 'Elena Reyes', phone: '09189876543', prog: 'PEAP', batch: 'Batch 2 - Priority', type: 'Emergency Livelihood Direct Cash Grant', category: 'Cash Grant', qty: '₱10,000.00', date: '2026-08-05', officer: 'Officer Elena Santos', voucher: 'VCH-2026-0819' },
-            { id: idCounter++, qr: 'QR-BEN-100237', name: 'Carlos Mendoza', phone: '09395551234', prog: 'DILP-DK', batch: 'Batch 1 - Regular Cohort', type: 'Welding Machine, Helmet & PPE Gear Package', category: 'Equipment Starter Kit', qty: '1 Kit (₱18,500.00)', date: '2026-08-10', officer: 'Officer Marco Ramos', voucher: 'VCH-2026-0822' },
-            { id: idCounter++, qr: 'QR-BEN-100238', name: 'Lourdes Navarro', phone: '09478889900', prog: 'GIP', batch: 'Batch 1 - Regular Cohort', type: 'Monthly Government Internship Stipend Allowance', category: 'Cash Grant', qty: '₱8,500.00', date: '2026-08-15', officer: 'Officer Elena Santos', voucher: 'VCH-2026-0830' },
-            { id: idCounter++, qr: 'QR-BEN-100239', name: 'Ricardo Alvarez', phone: '09223334455', prog: 'OFW-RLAP', batch: 'Batch 1 - Regular Cohort', type: 'Livestock Feeds & Starter Veterinary Supplies', category: 'Livelihood Materials', qty: '20 Sacks (₱12,000.00)', date: '2026-08-18', officer: 'Officer Marco Ramos', voucher: 'VCH-2026-0835' },
-            { id: idCounter++, qr: 'QR-BEN-100240', name: 'Ana Marie Gomez', phone: '09191112233', prog: 'WELD-NCII', batch: 'Batch 2 - Priority', type: 'Commercial Baking Oven & Pastry Ingredients', category: 'Livelihood Materials', qty: '1 Kit + Supplies (₱22,000.00)', date: '2026-08-20', officer: 'Officer Elena Santos', voucher: 'VCH-2026-0841' },
-            { id: idCounter++, qr: 'QR-BEN-100241', name: 'Danilo Flores', phone: '09567778899', prog: 'AGRI-SK', batch: 'Batch 1 - Regular Cohort', type: 'High-Yield Vegetable Seeds & Organic Fertilizers', category: 'Consumables', qty: '15 Bags (₱6,500.00)', date: '2026-08-22', officer: 'Officer Marco Ramos', voucher: 'VCH-2026-0847' }
-        ];
-
-        // Merge with AdminStore.approvedAssistance
+        // Map directly from AdminStore.approvedAssistance
         (AdminStore.approvedAssistance || []).forEach(a => {
             const ben = a.beneficiary || {};
-            const fullName = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || 'Beneficiary';
+            const firstName = ben.first_name || '';
+            const lastName = ben.last_name || '';
+            const fullName = (firstName || lastName) ? `${firstName} ${lastName}`.trim() : (ben.name || a.beneficiaryName || a.beneficiary_name || 'Beneficiary');
+            const qtyStr = typeof a.quantity_amount === 'number' ? formatCurrency(a.quantity_amount) : (a.quantity_amount || '₱5,000.00');
+            const assistType = a.assistance_type || a.item || 'Livelihood Assistance Grant';
+            let cat = 'Cash Grant';
+            if (assistType.toLowerCase().includes('kit') || assistType.toLowerCase().includes('equipment') || assistType.toLowerCase().includes('tool')) {
+                cat = 'Equipment Starter Kit';
+            } else if (assistType.toLowerCase().includes('material') || assistType.toLowerCase().includes('supply') || assistType.toLowerCase().includes('feed')) {
+                cat = 'Livelihood Materials';
+            } else if (assistType.toLowerCase().includes('seed') || assistType.toLowerCase().includes('fertilizer') || assistType.toLowerCase().includes('consumable')) {
+                cat = 'Consumables';
+            }
+
             list.push({
-                id: idCounter++,
-                qr: a.beneficiary_qr || `QR-BEN-${idCounter}`,
+                id: a.id || idCounter++,
+                qr: a.beneficiary_qr || ben.qr_code || `QR-BEN-${idCounter}`,
                 name: fullName,
-                phone: ben.phone || '09170000000',
-                prog: a.program?.code || a.program_code || 'PESO',
-                batch: a.batch_num || 'Batch 1',
-                type: a.assistance_type || 'Livelihood Assistance',
-                category: (a.assistance_type && a.assistance_type.includes('Kit')) ? 'Equipment Starter Kit' : 'Cash Grant',
-                qty: a.quantity_amount || '₱5,000.00',
-                date: (a.approval_date || a.release_date || a.created_at || '2026-08-01').substring(0, 10),
-                officer: a.officer ? `${a.officer.first_name || ''} ${a.officer.last_name || ''}`.trim() : 'Officer Elena Santos',
-                voucher: `VCH-2026-${1000 + idCounter}`
+                phone: ben.phone || a.phone || '09XX-***-XXXX',
+                prog: a.program?.code || a.program_code || a.programCode || 'PESO',
+                batch: a.batch_num || a.batch?.name || 'Batch 1',
+                type: assistType,
+                category: cat,
+                qty: qtyStr,
+                date: (a.approval_date || a.release_date || a.created_at || new Date().toISOString()).substring(0, 10),
+                officer: a.officer ? `${a.officer.first_name || ''} ${a.officer.last_name || ''}`.trim() : (a.officerName || 'PESO Officer'),
+                voucher: a.voucher_number || a.reference_number || `VCH-2026-${1000 + idCounter}`
             });
         });
 
-        return list.concat(defaultResources);
+        // Also check if any approved applications with grant releases are not yet in approvedAssistance list
+        (AdminStore.applications || []).filter(app => app.status === 'Released' || app.status === 'Disbursed').forEach(app => {
+            const alreadyInList = list.some(item => item.qr === (app.beneficiary_qr || (app.beneficiary && app.beneficiary.qr_code)));
+            if (!alreadyInList) {
+                const ben = app.beneficiary || {};
+                const fullName = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || ben.name || app.applicant_name || 'Beneficiary';
+                list.push({
+                    id: idCounter++,
+                    qr: app.beneficiary_qr || ben.qr_code || `QR-BEN-${idCounter}`,
+                    name: fullName,
+                    phone: ben.phone || '09XX-***-XXXX',
+                    prog: app.program?.code || app.program_code || 'PESO',
+                    batch: app.batch?.name || 'Batch 1',
+                    type: `${app.program?.name || 'Program'} Grant Package`,
+                    category: 'Equipment Starter Kit',
+                    qty: formatCurrency(app.amount_approved || 5000),
+                    date: (app.updated_at || app.created_at || new Date().toISOString()).substring(0, 10),
+                    officer: app.officer ? `${app.officer.first_name || ''} ${app.officer.last_name || ''}`.trim() : 'PESO Officer',
+                    voucher: `VCH-2026-${1000 + idCounter}`
+                });
+            }
+        });
+
+        return list;
     }
 
     function renderResourcesModule() {
@@ -4276,12 +4301,38 @@
         const listEl = document.getElementById('officerActionAlertsList');
         if (!listEl) return;
 
-        const alerts = [
-            { icon: 'bi-people-fill text-primary', title: 'Batch Created by Officer', details: 'Officer Elena Santos created [Batch 3 - Special Livelihood Cohort] under SP-SEK.', time: '10 mins ago' },
-            { icon: 'bi-check2-circle text-success', title: 'Intake Completed', details: 'Officer Marco Ramos verified 8 applicant requirements under DILP-IGP.', time: '25 mins ago' },
-            { icon: 'bi-box-seam-fill text-warning', title: 'Assistance Released', details: 'Officer Elena Santos confirmed release of 15 starter kits for WELD-NCII.', time: '1 hr ago' },
-            { icon: 'bi-calendar-check-fill text-info', title: 'Attendance Logged', details: 'Officer Marco Ramos marked attendance for 24 completers in Orientation Session.', time: '2 hrs ago' }
-        ];
+        const rawLogs = (AdminStore.auditLogs || []).filter(l => {
+            const act = (l.action_type || l.action || '').toUpperCase();
+            return act.includes('OFFICER') || act.includes('DISBURSE') || act.includes('ATTENDANCE') || act.includes('EVALUAT') || act.includes('BATCH');
+        });
+
+        if (rawLogs.length === 0) {
+            listEl.innerHTML = `
+                <div class="p-3 text-center text-muted small">
+                    <i class="bi bi-bell-slash fs-4 d-block mb-1 text-muted"></i>
+                    <span>No incoming officer action alerts logged yet.</span>
+                </div>
+            `;
+            return;
+        }
+
+        const alerts = rawLogs.slice(0, 8).map(l => {
+            const act = (l.action_type || l.action || '').toUpperCase();
+            let icon = 'bi-journal-text text-primary';
+            if (act.includes('DISBURSE')) icon = 'bi-box-seam-fill text-warning';
+            else if (act.includes('ATTENDANCE')) icon = 'bi-calendar-check-fill text-info';
+            else if (act.includes('EVALUAT') || act.includes('FORWARD')) icon = 'bi-check2-circle text-success';
+            else if (act.includes('BATCH')) icon = 'bi-people-fill text-primary';
+
+            const timeStr = l.created_at ? new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent';
+
+            return {
+                icon,
+                title: l.action_type ? l.action_type.replace(/_/g, ' ') : 'Officer Action',
+                details: l.details || l.description || 'System event recorded in audit logs.',
+                time: timeStr
+            };
+        });
 
         listEl.innerHTML = alerts.map(a => `
             <div class="p-2.5 border-bottom d-flex align-items-start gap-2">
@@ -4518,24 +4569,37 @@
                     <th>Completion Date</th>
                 </tr>
             `;
-            const defaultTraining = [
-                { name: 'Maria Santos', prog: 'SP-SEK (Shielded Metal Arc Welding)', batch: 'Batch 1', att: '100% (10/10 Days)', cert: 'NC-II Certified & Issued', date: '2026-07-25' },
-                { name: 'Juan Dela Cruz', prog: 'DILP-IGP (Commercial Food Processing)', batch: 'Batch 1', att: '90% (9/10 Days)', cert: 'Certificate Issued', date: '2026-07-28' },
-                { name: 'Elena Reyes', prog: 'PEAP (Micro-Enterprise Management)', batch: 'Batch 2', att: '100% (5/5 Days)', cert: 'Certificate Issued', date: '2026-08-02' },
-                { name: 'Carlos Mendoza', prog: 'DILP-DK (Automotive Servicing NC I)', batch: 'Batch 1', att: '95% (19/20 Days)', cert: 'NC-I Certified', date: '2026-08-08' },
-                { name: 'Ana Marie Gomez', prog: 'WELD-NCII (Bread & Pastry Production)', batch: 'Batch 2', att: '100% (10/10 Days)', cert: 'NC-II Certified', date: '2026-08-15' }
-            ];
-            currentReportDataset = defaultTraining;
-            tbody.innerHTML = currentReportDataset.map(r => `
-                <tr>
-                    <td class="fw-bold text-dark">${escapeHtml(r.name)}</td>
-                    <td>${escapeHtml(r.prog)}</td>
-                    <td><span class="badge bg-light text-dark border font-monospace">${escapeHtml(r.batch)}</span></td>
-                    <td class="fw-semibold text-success">${escapeHtml(r.att)}</td>
-                    <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-patch-check-fill me-1"></i>${escapeHtml(r.cert)}</span></td>
-                    <td>${formatDate(r.date)}</td>
-                </tr>
-            `).join('');
+            const trainingData = (AdminStore.beneficiaries || []).map(b => {
+                const total = b.total_sessions || 5;
+                const attended = b.sessions_attended !== undefined ? b.sessions_attended : (b.training_status === 'Completed' ? total : 0);
+                const pct = Math.round((attended / total) * 100);
+                const isDone = b.training_status === 'Completed' || pct >= 100;
+                const fullName = `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.name || 'Beneficiary';
+
+                return {
+                    name: fullName,
+                    prog: b.program || 'Livelihood Training',
+                    batch: b.batch_name || 'Batch 1',
+                    att: `${pct}% (${attended}/${total} Sessions)`,
+                    cert: isDone ? 'NC-II Certified & Issued' : 'In Progress',
+                    date: b.updated_at ? b.updated_at.substring(0, 10) : (b.created_at ? b.created_at.substring(0, 10) : 'Recent')
+                };
+            });
+            currentReportDataset = trainingData;
+            if (currentReportDataset.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No training completion records found.</td></tr>';
+            } else {
+                tbody.innerHTML = currentReportDataset.map(r => `
+                    <tr>
+                        <td class="fw-bold text-dark">${escapeHtml(r.name)}</td>
+                        <td>${escapeHtml(r.prog)}</td>
+                        <td><span class="badge bg-light text-dark border font-monospace">${escapeHtml(r.batch)}</span></td>
+                        <td class="fw-semibold text-success">${escapeHtml(r.att)}</td>
+                        <td><span class="badge ${r.cert.includes('Issued') ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border'}"><i class="bi bi-patch-check-fill me-1"></i>${escapeHtml(r.cert)}</span></td>
+                        <td>${formatDate(r.date)}</td>
+                    </tr>
+                `).join('');
+            }
             if (countBadge) countBadge.textContent = `${currentReportDataset.length} Records`;
 
         } else if (type === 'disbursement') {
@@ -5106,11 +5170,14 @@
                 console.log('[PESO ADMIN LIVE SYNC]:', event);
                 try {
                     await refreshAllData();
+                    if (typeof initEvalModuleData === 'function') await initEvalModuleData();
+                    
                     if (AdminStore.currentTab === 'overview') renderDashboardOverview();
                     else if (AdminStore.currentTab === 'applications') renderApplicationsTable();
                     else if (AdminStore.currentTab === 'schedules') renderCalendarEvents();
                     else if (AdminStore.currentTab === 'funds') renderFundSummaryTable();
-                    else if (AdminStore.currentTab === 'distribution') renderAssistanceRecords();
+                    else if (AdminStore.currentTab === 'distribution' || AdminStore.currentTab === 'resources') renderResourcesModule();
+                    else if (AdminStore.currentTab === 'evaluation' && typeof renderEvalLevel3AppsTable === 'function') renderEvalLevel3AppsTable();
                 } catch (reErr) {
                     console.warn('[PESO ADMIN LIVE SYNC REFRESH NOTE]:', reErr);
                 }

@@ -11,114 +11,57 @@ let currentEvalBatchId = null;
 let currentEvalBatchNum = '';
 let activeReviewAppId = null;
 
-// Realistic Mock Dataset for Application Evaluation across 14 PESO Programs
-function generateFallbackEvalApplications() {
-    const progs = (typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG))
-        ? CANONICAL_PESO_PROGRAM_CATALOG
-        : (typeof programsList !== 'undefined' && Array.isArray(programsList) ? programsList : []);
-
-    const names = [
-        { first: 'Maria', last: 'Santos', phone: '09171234567', brgy: 'Barangay GPS', marital: 'Married', spouse: 'Roberto Santos', deps: 3 },
-        { first: 'Juan', last: 'Dela Cruz', phone: '09287654321', brgy: 'Barangay Zone III', marital: 'Single', spouse: 'N/A', deps: 0 },
-        { first: 'Elena', last: 'Reyes', phone: '09189876543', brgy: 'Barangay Morales', marital: 'Widowed', spouse: 'Late Antonio Reyes', deps: 2 },
-        { first: 'Carlos', last: 'Mendoza', phone: '09395551234', brgy: 'Barangay San Isidro', marital: 'Married', spouse: 'Lucia Mendoza', deps: 4 },
-        { first: 'Lourdes', last: 'Navarro', phone: '09478889900', brgy: 'Barangay Carpenter Hill', marital: 'Single', spouse: 'N/A', deps: 1 },
-        { first: 'Ricardo', last: 'Alvarez', phone: '09223334455', brgy: 'Barangay Sta. Cruz', marital: 'Married', spouse: 'Teresa Alvarez', deps: 2 },
-        { first: 'Ana Marie', last: 'Gomez', phone: '09191112233', brgy: 'Barangay General Paulino Santos', marital: 'Single', spouse: 'N/A', deps: 0 },
-        { first: 'Danilo', last: 'Flores', phone: '09567778899', brgy: 'Barangay Zone II', marital: 'Married', spouse: 'Corazon Flores', deps: 3 }
-    ];
-
-    const list = [];
-    let appIdCounter = 1001;
-
-    progs.forEach((prog, pIdx) => {
-        const numApps = (pIdx % 2 === 0) ? 4 : 3;
-        for (let i = 0; i < numApps; i++) {
-            const person = names[(pIdx * 2 + i) % names.length];
-            const isVerified = (i === 0 || (pIdx + i) % 3 === 0);
-            const evalStatus = isVerified ? (i === 0 ? 'Approved' : 'Pending Evaluation') : (i === 1 ? 'Denied' : 'Pending Evaluation');
-            
-            const docs = [
-                {
-                    type: 'Valid Government Photo ID',
-                    file_name: `${person.last}_GovID.pdf`,
-                    status: isVerified ? 'Verified' : 'Pending Verification'
-                },
-                {
-                    type: 'Barangay Certificate of Indigency / Residency',
-                    file_name: `${person.last}_BrgyCert.pdf`,
-                    status: isVerified ? 'Verified' : 'Pending Verification'
-                },
-                {
-                    type: prog.category === 'Special Programs' ? 'Social Case Intake Assessment' : 'Program Qualification Form',
-                    file_name: `${person.last}_IntakeForm.pdf`,
-                    status: isVerified ? 'Verified' : (evalStatus === 'Denied' ? 'Missing / Non-Compliant' : 'Pending Verification')
-                }
-            ];
-
-            list.push({
-                id: appIdCounter++,
-                application_number: `APP-2026-${prog.code}-${String(appIdCounter).slice(-3)}`,
-                beneficiary_qr: `QR-PESO-${appIdCounter}`,
-                applicant_name: `${person.first} ${person.last}`,
-                phone: person.phone,
-                address: `${person.brgy}, Koronadal City`,
-                civil_status: person.marital,
-                spouse_name: person.spouse,
-                children_info: `${person.deps} Dependents`,
-                program_id: prog.id,
-                program_name: prog.name,
-                program_code: prog.code,
-                batch_id: 1,
-                batch_num: 'Batch 1 - Regular Cohort',
-                date_submitted: '2026-07-15',
-                verification_status: isVerified ? 'Verified' : 'Pending Verification',
-                evaluation_status: evalStatus,
-                batch_status: evalStatus === 'Approved' ? 'Unbatched' : 'Pending',
-                notes: evalStatus === 'Approved'
-                    ? 'Passed all eligibility criteria. Verified authentic barangay residency and income qualifications.'
-                    : (evalStatus === 'Denied' ? 'Missing proof of livelihood disruption and unsigned intake assessment.' : ''),
-                docs: docs
-            });
-        }
-    });
-
-    return list;
-}
-
 async function initEvalModuleData() {
+    evalApplicationsList = [];
     if (typeof DataService !== 'undefined' && DataService.applications) {
         try {
             const res = await DataService.applications.getAll({ agency: 'PESO' });
-            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-                evalApplicationsList = res.data.map(a => {
+            let appsData = res.data && Array.isArray(res.data) ? res.data : [];
+            
+            // If agency-specific filter returned empty, attempt broader fetch for PESO programs
+            if (appsData.length === 0) {
+                const fallbackRes = await DataService.applications.getAll();
+                if (fallbackRes.data && Array.isArray(fallbackRes.data)) {
+                    appsData = fallbackRes.data.filter(a => {
+                        const progCode = (a.program?.code || a.program_code || '').toUpperCase();
+                        return ['SPES', 'TUPAD', 'GIP', 'CKGIP', 'AICS', 'KEEP', 'PFAS', 'OFW-RLAP', 'WELD-NCII', 'DILP-IGP', 'DILP-DK', 'SP-SEK', 'PEAP', 'AGRI-SK'].some(p => progCode.includes(p));
+                    });
+                }
+            }
+
+            if (appsData.length > 0) {
+                evalApplicationsList = appsData.map(a => {
                     const ben = a.beneficiary || {};
-                    const fullName = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || ben.username || 'Applicant';
+                    const firstName = ben.first_name || '';
+                    const lastName = ben.last_name || '';
+                    const fullName = (firstName || lastName) ? `${firstName} ${lastName}`.trim() : (ben.name || a.applicant_name || ben.username || 'Applicant');
+                    const phone = ben.phone || ben.contact_number || a.phone || '09XX-***-XXXX';
                     const docsList = Array.isArray(a.documents_json) && a.documents_json.length > 0
                         ? a.documents_json
                         : (ben.id_type ? [{ type: ben.id_type, file_name: ben.id_file_path || 'Submitted_ID.pdf', status: 'Verified' }] : []);
 
-                    const isVerif = a.status === 'Approved' || a.status === 'Verified' || (a.status !== 'Pending Requirements');
+                    const isVerif = a.status === 'Approved' || a.status === 'Verified' || (a.status !== 'Pending Requirements' && a.status !== 'Incomplete');
 
                     return {
                         id: a.id,
                         application_number: a.application_number || `APP-${a.id}`,
-                        beneficiary_qr: a.beneficiary_qr || '',
+                        beneficiary_qr: a.beneficiary_qr || ben.qr_code || '',
                         applicant_name: fullName,
-                        phone: ben.phone || ben.contact_number || '09170000000',
-                        address: ben.address || 'Koronadal City',
-                        civil_status: ben.marital_status || 'Single',
+                        phone: phone,
+                        address: ben.address || (ben.barangay ? `${ben.barangay}, Koronadal City` : 'Koronadal City'),
+                        civil_status: ben.marital_status || ben.civil_status || 'Single',
                         spouse_name: ben.spouse_name || 'N/A',
-                        children_info: ben.dependents_count ? `${ben.dependents_count} Dependents` : 'None',
-                        program_id: a.program_id || 1,
+                        children_info: ben.dependents_count ? `${ben.dependents_count} Dependents` : (ben.number_of_children ? `${ben.number_of_children} Children` : 'None'),
+                        program_id: a.program_id || (a.program ? a.program.id : 1),
                         program_name: a.program ? a.program.name : 'Livelihood Assistance',
-                        program_code: a.program ? a.program.code : 'PESO',
+                        program_code: a.program ? a.program.code : (a.program_code || 'PESO'),
                         batch_id: a.batch_id || 1,
-                        batch_num: a.batch ? a.batch.name : 'Batch 1 - Regular Cohort',
+                        batch_num: a.batch ? a.batch.name : (a.batch_id ? `Batch #${a.batch_id}` : 'General Intake'),
                         date_submitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
                         verification_status: isVerif ? 'Verified' : 'Pending Verification',
-                        evaluation_status: a.status === 'Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' ? 'Denied' : 'Pending Evaluation'),
-                        batch_status: a.status === 'Approved' ? 'Unbatched' : 'Pending',
+                        evaluation_status: a.status === 'Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' || a.status === 'Officer Denied' ? 'Denied' : 'Pending Evaluation'),
+                        batch_status: a.status === 'Approved' ? (a.batch_id ? 'Batched' : 'Unbatched') : 'Pending',
+                        forwarding_officer: a.forwarded_by || a.officer_name || (a.officer ? `${a.officer.first_name || ''} ${a.officer.last_name || ''}`.trim() : 'PESO Officer Desk'),
                         notes: a.remarks || a.officer_notes || '',
                         docs: docsList.length > 0 ? docsList : [
                             { type: 'Valid ID', file_name: 'ID_Document.pdf', status: isVerif ? 'Verified' : 'Pending Verification' },
@@ -126,17 +69,10 @@ async function initEvalModuleData() {
                         ]
                     };
                 });
-                updateEvalMetrics();
-                return;
             }
         } catch (e) {
             console.warn('[EVALUATION] Supabase applications fetch notice:', e);
         }
-    }
-
-    // Load rich fallback mock dataset if Supabase is offline or empty
-    if (!evalApplicationsList || evalApplicationsList.length === 0) {
-        evalApplicationsList = generateFallbackEvalApplications();
     }
     updateEvalMetrics();
 }
@@ -465,7 +401,7 @@ function filterEvalLevel3Apps() {
             ? `<span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1"><i class="bi bi-shield-check me-1"></i>Validity Checked</span>`
             : `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-shield-exclamation me-1"></i>Under Validity Check</span>`;
 
-        const forwardingOfficer = app.forwarding_officer || (idx % 2 === 0 ? 'Officer Elena Santos' : 'Officer Marco Ramos');
+        const forwardingOfficer = app.forwarding_officer || 'PESO Officer Desk';
         const isChecked = selectedEvalAppIds.has(app.id);
 
         tbody.innerHTML += `
