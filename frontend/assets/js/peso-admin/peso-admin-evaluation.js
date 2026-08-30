@@ -12,7 +12,6 @@ let currentEvalBatchNum = '';
 let activeReviewAppId = null;
 
 async function initEvalModuleData() {
-    evalApplicationsList = [];
     if (typeof DataService !== 'undefined' && DataService.applications) {
         try {
             // Pre-fetch beneficiaries, programs, and staff maps for complete relational enrichment
@@ -130,9 +129,10 @@ async function initEvalModuleData() {
         }
     }
     updateEvalMetrics();
-    filterEvalLevel1Programs();
-    if (currentEvalProgId && typeof renderEvalLevel3AppsTable === 'function') {
-        renderEvalLevel3AppsTable();
+    if (!currentEvalProgId) {
+        filterEvalLevel1Programs();
+    } else {
+        filterEvalLevel3Apps();
     }
 }
 
@@ -158,11 +158,14 @@ function updateEvalMetrics() {
 
 // --- LEVEL 1: PROGRAMS VIEW (REQ024) ---
 async function renderEvalLevel1Programs() {
-    showEvalLevel1();
-    filterEvalLevel1Programs();
     await initEvalModuleData();
+    if (!currentEvalProgId) {
+        showEvalLevel1();
+        filterEvalLevel1Programs();
+    } else {
+        filterEvalLevel3Apps();
+    }
     updateEvalMetrics();
-    filterEvalLevel1Programs();
 }
 
 function showEvalLevel1() {
