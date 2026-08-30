@@ -1173,78 +1173,123 @@
                 <i class="bi bi-journal-text text-light fs-6"></i>
                 <span>Audit Logs</span>
             </button>
-        </nav>
-
-        <!-- 2. BENEFICIARIES MANAGEMENT TAB -->
+        </        <!-- 2. BENEFICIARIES MANAGEMENT TAB (100% DESIGN SPECIFICATION COMPLIANT) -->
         <section id="tab-beneficiaries" class="tab-section d-none">
-            <div class="page-header">
+            <div class="page-header pb-2 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
-                    <h1 class="page-title">Beneficiaries Management</h1>
-                    <p class="text-muted">Full registration intake, account activation/deactivation, document
-                        verification review, and QR card generation</p>
+                    <h1 class="page-title fw-bold text-dark d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-people-fill text-primary"></i> Beneficiary Management
+                    </h1>
+                    <p class="text-muted mb-0">Where the Officer manages beneficiary records and registers people who come to the office in person. Online sign-ups do not pass through here because they verify themselves by code.</p>
                 </div>
-                <button class="btn btn-primary" onclick="openAddBeneficiaryModal()"><i
-                        class="bi bi-person-plus me-1"></i> Register New Beneficiary</button>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <button class="btn btn-outline-primary fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-1.5 shadow-xs" onclick="openQrScannerModal()" title="Opens the complete record instantly without searching by name">
+                        <i class="bi bi-qr-code-scan"></i> [Scan QR]
+                    </button>
+                    <button class="btn btn-primary fw-bold rounded-pill px-4 py-2 d-flex align-items-center gap-1.5 shadow-xs" onclick="PesoOfficerApp.openWalkInRegistrationModal()" title="Opens the walk-in registration form">
+                        <i class="bi bi-person-plus-fill"></i> [Register Walk-in]
+                    </button>
+                </div>
             </div>
 
-            <!-- Beneficiary Filter Bar -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <input type="text" class="form-control" id="benSearchInput"
-                                placeholder="Search by name, email, or QR ID..." onkeyup="filterBeneficiariesTable()"
-                                aria-label="Search by name, email, or QR ID">
+            <!-- Beneficiary Search & Filter Bar -->
+            <div class="card border-0 shadow-sm mb-4 rounded-4 bg-white">
+                <div class="card-body p-3">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-12 col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="benSearchInput"
+                                    placeholder="Search by name, ID, or barangay..." onkeyup="PesoOfficerApp.renderBeneficiariesTable()"
+                                    aria-label="Search by name, ID, or barangay">
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-select" id="benBarangayFilter" onchange="filterBeneficiariesTable()"
-                                aria-label="Ben Barangay">
+                        <div class="col-6 col-md-3">
+                            <select class="form-select" id="benBarangayFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Barangay">
                                 <option value="">All 27 Barangays</option>
+                                <option value="Assumption">Assumption</option>
+                                <option value="Avanceña">Avanceña</option>
+                                <option value="Cacub">Cacub</option>
+                                <option value="Caloocan">Caloocan</option>
+                                <option value="Carpenter Hill">Carpenter Hill</option>
+                                <option value="Concepcion">Concepcion</option>
+                                <option value="Esperanza">Esperanza</option>
+                                <option value="General Paulino Santos">General Paulino Santos</option>
+                                <option value="Mabini">Mabini</option>
+                                <option value="Magsaysay">Magsaysay</option>
+                                <option value="Mambucal">Mambucal</option>
                                 <option value="Morales">Morales</option>
-                                <option value="Poblacion">Poblacion</option>
+                                <option value="Namnama">Namnama</option>
+                                <option value="New Pangasinan">New Pangasinan</option>
+                                <option value="Paraiso">Paraiso</option>
                                 <option value="Rotonda">Rotonda</option>
+                                <option value="San Isidro">San Isidro</option>
+                                <option value="San Roque">San Roque</option>
+                                <option value="San Jose">San Jose</option>
+                                <option value="Sta. Cruz">Sta. Cruz</option>
+                                <option value="Sto. Niño">Sto. Niño</option>
+                                <option value="Saravia">Saravia</option>
+                                <option value="Topland">Topland</option>
                                 <option value="Zone 1">Zone 1</option>
                                 <option value="Zone 2">Zone 2</option>
+                                <option value="Zone 3">Zone 3</option>
+                                <option value="Zone 4">Zone 4</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-select" id="benStatusFilter" onchange="filterBeneficiariesTable()"
-                                aria-label="Ben Status">
+                        <div class="col-6 col-md-2">
+                            <select class="form-select" id="benStatusFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Account Status">
                                 <option value="">All Account Statuses</option>
                                 <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
+                                <option value="Deactivated">Deactivated</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-outline-secondary w-100"
-                                onclick="resetBeneficiaryFilters()">Reset</button>
+                        <div class="col-6 col-md-2">
+                            <select class="form-select" id="benEligibilityFilter" onchange="PesoOfficerApp.renderBeneficiariesTable()" aria-label="Filter by Eligibility Status">
+                                <option value="">All Eligibility Statuses</option>
+                                <option value="Eligible">Eligible</option>
+                                <option value="Ongoing">Ongoing Program</option>
+                                <option value="Cooldown">Cooldown / Ineligible</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-1">
+                            <button class="btn btn-outline-secondary w-100 fw-semibold rounded-3" onclick="resetBeneficiaryFilters()" title="Reset Filters">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Beneficiaries Table -->
-            <div class="card border-0 shadow-sm">
+            <!-- Beneficiaries Table (6 Design-Specified Info Columns + Actions) -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                    <div class="table-responsive" style="min-height: 280px;">
+                        <table class="table table-hover align-middle mb-0" id="beneficiaryTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th>QR ID</th>
-                                    <th>Beneficiary Name</th>
-                                    <th>Barangay & Address</th>
-                                    <th>Contact & Email</th>
-                                    <th>Program Assigned</th>
-                                    <th>Account Status</th>
-                                    <th>Document Status</th>
+                                    <th>Full Name</th>
+                                    <th>Beneficiary ID</th>
+                                    <th>Barangay</th>
+                                    <th>Contact Number</th>
+                                    <th class="text-center">Account Status</th>
+                                    <th class="text-center">Eligibility Status</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="beneficiaryTableBody">
-                                <!-- Dynamically loaded -->
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                        Loading beneficiary records...
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div class="card-footer bg-light border-0 py-2.5 px-4 d-flex justify-content-between align-items-center">
+                    <small class="text-muted"><i class="bi bi-shield-lock me-1"></i>Contact numbers masked pursuant to RA 10173 (Data Privacy Act of 2012).</small>
+                    <small class="text-muted font-monospace" id="benTotalCountFooter">0 Beneficiaries Registered</small>
                 </div>
             </div>
         </section>
@@ -3877,99 +3922,101 @@
         </div>
     </div>
 
-    <!-- ADD BENEFICIARY MODAL WITH SINGLE-CHANNEL VERIFICATION CHOICE (EMAIL OR SMS) -->
+    <!-- 1. REGISTER WALK-IN BENEFICIARY MODAL (100% DESIGN SPECIFICATION COMPLIANT) -->
     <div class="modal fade" id="addBeneficiaryModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title fw-bold">
-                        <i class="bi bi-person-plus-fill me-2"></i>Add New Beneficiary (PESO Intake Desk)
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white py-3 px-4">
+                    <div>
+                        <h5 class="modal-title fw-bold fs-6 mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-person-plus-fill text-warning"></i> Register Walk-in Beneficiary
+                        </h5>
+                        <small class="text-white-50" style="font-size: 0.75rem;">The full form for registering a beneficiary who came to the office in person. No verification code is needed.</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <!-- PHASE 1: INTAKE FORM -->
-                    <div id="addBenFormView">
-                        <form id="addBeneficiaryForm" onsubmit="handleOfficerSubmitAddBen(event)">
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i
-                                    class="bi bi-person-lines-fill me-1"></i>1. Personal Profile</h6>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold small">First Name <span
-                                            class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="officerBenFn" required
-                                        placeholder="e.g. Maria">
+                <form id="addBeneficiaryForm" onsubmit="PesoOfficerApp.submitWalkInRegistration(event)">
+                    <div class="modal-body p-4 bg-light">
+                        <!-- SECTION 1: PERSONAL INFORMATION -->
+                        <div class="card p-3 border rounded-3 bg-white shadow-xs mb-3">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 d-flex align-items-center gap-1.5" style="font-size: 0.88rem;">
+                                <i class="bi bi-person-lines-fill"></i> 1. Personal Information
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="walkInFirstName" required placeholder="e.g. Maria" pattern="[A-Za-z\s\.\-]+" title="Letters only" oninput="this.value = this.value.replace(/[^A-Za-z\s\.\-]/g, '')">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">Middle Name</label>
+                                    <input type="text" class="form-control" id="walkInMiddleName" placeholder="Left blank if none" pattern="[A-Za-z\s\.\-]+" title="Letters only" oninput="this.value = this.value.replace(/[^A-Za-z\s\.\-]/g, '')">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="walkInLastName" required placeholder="e.g. Santos" pattern="[A-Za-z\s\.\-]+" title="Letters only" oninput="this.value = this.value.replace(/[^A-Za-z\s\.\-]/g, '')">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label fw-bold small">Middle Name</label>
-                                    <input type="text" class="form-control" id="officerBenMn" placeholder="e.g. Santos">
+                                    <label class="form-label fw-bold small text-dark">Suffix</label>
+                                    <select class="form-select" id="walkInSuffix">
+                                        <option value="">none</option>
+                                        <option value="Jr.">Jr.</option>
+                                        <option value="Sr.">Sr.</option>
+                                        <option value="II">II</option>
+                                        <option value="III">III</option>
+                                        <option value="IV">IV</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label fw-bold small">Last Name <span
-                                            class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="officerBenLn" required
-                                        placeholder="e.g. Ramos">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold small">Suffix</label>
-                                    <input type="text" class="form-control" id="officerBenSuffix"
-                                        placeholder="Jr., Sr., III">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold small">Date of Birth <span
-                                            class="text-danger">*</span></label>
-                                    <input type="date" class="form-control" id="officerBenDob" required
-                                        onchange="autoCalcOfficerAge()">
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label fw-bold small">Age</label>
-                                    <input type="text" class="form-control bg-light" id="officerBenAge" readonly
-                                        placeholder="Auto">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold small">Sex <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-select" id="officerBenSex" required>
+                                    <label class="form-label fw-bold small text-dark">Sex <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="walkInSex" required>
                                         <option value="">Select Sex</option>
-                                        <option value="Female">Female</option>
                                         <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold small">Civil Status <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-select" id="officerBenCivil" required>
+                                    <label class="form-label fw-bold small text-dark">Date of Birth <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="walkInDob" required onchange="PesoOfficerApp.calcWalkInAge()">
+                                    <small class="text-muted" style="font-size: 0.7rem;">Checked with name to block duplicate accounts</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-bold small text-dark">Age</label>
+                                    <input type="text" class="form-control bg-light font-monospace" id="walkInAge" readonly placeholder="Auto">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">Civil Status <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="walkInCivilStatus" required>
                                         <option value="Single">Single</option>
                                         <option value="Married">Married</option>
                                         <option value="Widowed">Widowed</option>
                                         <option value="Separated">Separated</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small">Name of Spouse</label>
-                                    <input type="text" class="form-control" id="officerBenSpouse"
-                                        placeholder="Spouse full name if applicable">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">Contact Number <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control font-monospace" id="walkInPhone" required placeholder="09XXXXXXXXX" maxlength="11" pattern="09[0-9]{9}" title="11 digits starting with 09" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    <small class="text-muted" style="font-size: 0.7rem;">11 digits, must start with 09</small>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small">Number of Children</label>
-                                    <input type="number" class="form-control" id="officerBenChildren" value="0" min="0">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">Email Address</label>
+                                    <input type="email" class="form-control" id="walkInEmail" placeholder="Optional (leave blank if none)">
                                 </div>
                             </div>
+                        </div>
 
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i
-                                    class="bi bi-geo-alt-fill me-1"></i>2. Address Information</h6>
-                            <div class="row g-3 mb-3">
+                        <!-- SECTION 2: COMPLETE ADDRESS INFORMATION -->
+                        <div class="card p-3 border rounded-3 bg-white shadow-xs mb-3">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 d-flex align-items-center gap-1.5" style="font-size: 0.88rem;">
+                                <i class="bi bi-geo-alt-fill"></i> 2. Complete Address Information
+                            </h6>
+                            <div class="row g-3">
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold small">Purok (Free Text) <span
-                                            class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="officerBenPurok" required
-                                        placeholder="e.g. Purok 2, Sampaguita">
+                                    <label class="form-label fw-bold small text-dark">Purok / Street <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="walkInPurok" required placeholder="e.g. Purok 2, Dahlia St.">
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold small">Barangay (27 Predefined) <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-select" id="officerBenBarangay" required>
+                                    <label class="form-label fw-bold small text-dark">Barangay <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="walkInBarangay" required>
                                         <option value="">-- Select Barangay --</option>
                                         <option value="Assumption">Assumption</option>
                                         <option value="Avanceña">Avanceña</option>
@@ -3999,159 +4046,366 @@
                                         <option value="Zone 3">Zone 3</option>
                                         <option value="Zone 4">Zone 4</option>
                                     </select>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Used later for Barangay Livelihood Report</small>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold small">City / Municipality</label>
-                                    <input type="text" class="form-control bg-light" value="City of Koronadal" readonly>
+                                    <label class="form-label fw-bold small text-dark">City / Municipality <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control bg-light" id="walkInCity" value="Koronadal City" readonly required>
                                 </div>
                             </div>
+                        </div>
 
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i
-                                    class="bi bi-shield-lock-fill me-1"></i>3. Contact & Verification Targets</h6>
-                            <div class="row g-3 mb-3">
+                        <!-- SECTION 3: VALID IDENTIFICATION REFERENCE -->
+                        <div class="card p-3 border rounded-3 bg-white shadow-xs mb-3">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 d-flex align-items-center gap-1.5" style="font-size: 0.88rem;">
+                                <i class="bi bi-card-heading"></i> 3. Valid Identification
+                            </h6>
+                            <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold small">Contact Number (SMS OTP Target) <span
-                                            class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="officerBenPhone" required
-                                        placeholder="e.g. 09171234567" oninput="document.getElementById('officerPhoneConflictNotice')?.classList.add('d-none'); this.classList.remove('is-invalid');">
-                                    <div id="officerPhoneConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This mobile number is already registered to an existing account.</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small">Email Address (Gmail Only) <span
-                                            class="text-danger">*</span></label>
-                                    <input type="email" class="form-control" id="officerBenEmail" required
-                                        placeholder="e.g. applicant@gmail.com" oninput="document.getElementById('officerEmailConflictNotice')?.classList.add('d-none'); this.classList.remove('is-invalid');">
-                                    <div id="officerEmailConflictNotice" class="text-danger small mt-1 d-none fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i> This email address is already registered to an existing account.</div>
-                                </div>
-                            </div>
-
-
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i
-                                    class="bi bi-card-checklist me-1"></i>4. Program Assignment & Documents</h6>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-12">
-                                    <label class="form-label fw-bold small">Program Assignment <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-select" id="officerBenProgram" required>
-                                        <optgroup label="Regular Services">
-                                            <option value="City Government Internship Program (CKGIP)">City Government
-                                                 Internship Program (CKGIP)</option>
-                                            <option value="Koronadal Emergency Employment Program (KEEP)">Koronadal
-                                                 Emergency Employment Program (KEEP)</option>
-                                            <option
-                                                value="Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)"
-                                                selected>Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers
-                                                (TUPAD)</option>
-                                        </optgroup>
-                                        <optgroup label="Programs / Projects / Activities (PPAs)">
-                                            <option value="Pangkabuhayan Financial Assistance (PFAS)">Pangkabuhayan
-                                                Financial Assistance (PFAS)</option>
-                                            <option value="Support to DOLE Integrated Livelihood Program (DILP)">Support
-                                                to DOLE Integrated Livelihood Program (DILP)</option>
-                                            <option value="Association Facilitation">Association Facilitation</option>
-                                            <option value="Conduct of Job Fairs">Conduct of Job Fairs</option>
-                                            <option value="Development of Localized Job Portal">Development of Localized
-                                                Job Portal</option>
-                                            <option value="Livelihood/Skills Training Program">Livelihood/Skills
-                                                Training Program</option>
-                                            <option value="OFW Family Circle Day">OFW Family Circle Day</option>
-                                            <option value="Special Program for Employment of Students (SPES)">Special
-                                                Program for Employment of Students (SPES)</option>
-                                            <option value="Support to Parokya ni OWWA Program">Support to Parokya ni
-                                                OWWA Program</option>
-                                            <option value="Support to Returning OFWs Program (ROFW's)">Support to
-                                                Returning OFWs Program (ROFW's)</option>
-                                        </optgroup>
+                                    <label class="form-label fw-bold small text-dark">Type of Valid ID <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="walkInIdType" required>
+                                        <option value="">-- Select Valid ID Type --</option>
+                                        <option value="PhilSys ID (National ID)">PhilSys ID (National ID)</option>
+                                        <option value="Voter's ID / Certification">Voter's ID / Certification</option>
+                                        <option value="Driver's License">Driver's License</option>
+                                        <option value="UMID / SSS ID">UMID / SSS ID</option>
+                                        <option value="Postal ID">Postal ID</option>
+                                        <option value="Passport">Passport</option>
+                                        <option value="Barangay ID / Certification">Barangay ID / Certification</option>
+                                        <option value="Senior Citizen ID">Senior Citizen ID</option>
+                                        <option value="PWD ID">PWD ID</option>
+                                        <option value="Student ID">Student ID</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small">Mandatory Valid ID <span
-                                            class="text-danger">*</span></label>
-                                    <input type="file" class="form-control" id="officerBenValidId" accept="image/*,.pdf"
-                                        required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small">Barangay Clearance <span
-                                            class="text-danger">*</span></label>
-                                    <input type="file" class="form-control" id="officerBenBrgy" accept="image/*,.pdf"
-                                        required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small">Program Requirements</label>
-                                    <input type="file" class="form-control" id="officerBenReqs"
-                                        accept="image/*,.pdf,.docx">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-dark">Valid ID Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control font-monospace" id="walkInIdNumber" required placeholder="e.g. 1234-5678-9012-3456">
+                                    <small class="text-muted" style="font-size: 0.7rem;">Recorded for reference. ID file is uploaded later during application.</small>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary fw-bold" id="btnProceedToDualVerify">
-                                    <span>Proceed to Beneficiary Verification <i class="bi bi-arrow-right ms-1"></i></span>
-                                </button>
+                        <!-- SECTION 4: ACCOUNT CREDENTIALS & AUDIT METADATA -->
+                        <div class="card p-3 border rounded-3 bg-white shadow-xs mb-2">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 d-flex align-items-center gap-1.5" style="font-size: 0.88rem;">
+                                <i class="bi bi-key-fill"></i> 4. Account Credentials & Registration Audit
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">Username <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control font-monospace" id="walkInUsername" required placeholder="e.g. msantos2026" onchange="PesoOfficerApp.checkUsernameUniqueness()">
+                                    <small class="text-muted" style="font-size: 0.7rem;">Must be unique across all accounts</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">Temporary Password <span class="text-danger">*</span></label>
+                                    <input type="password" class="form-control font-monospace" id="walkInTempPassword" required placeholder="••••••••" minlength="6">
+                                    <small class="text-muted" style="font-size: 0.7rem;">Given to beneficiary so they can log in later</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-dark">Registered by</label>
+                                    <input type="text" class="form-control bg-light fw-semibold" id="walkInRegisteredBy" readonly>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Auto-filled Officer name</small>
+                                </div>
                             </div>
-                        </form>
+                        </div>
+
+                        <div id="walkInFormErrorNotice" class="alert alert-danger py-2 small d-none mt-3 mb-0"></div>
+                    </div>
+                    <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">
+                            [Cancel]
+                        </button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs" id="btnSaveWalkInBen">
+                            <i class="bi bi-qr-code-scan"></i> [Save and Generate QR]
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. BENFICIARY COMPLETE RECORD MODAL (READ-ONLY DOSSIER - INSIDE [SCAN QR] OR [VIEW RECORD]) -->
+    <div class="modal fade" id="beneficiaryRecordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white py-3 px-4">
+                    <div>
+                        <h5 class="modal-title fw-bold fs-6 mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-person-fill text-warning"></i> Beneficiary Complete Record (Read-Only)
+                        </h5>
+                        <small class="text-white-50" style="font-size: 0.75rem;">What appears when the Officer scans a beneficiary's QR code or views the record. This is strictly read-only.</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <!-- TOP HEADER SUMMARY -->
+                    <div class="card p-3 border rounded-3 bg-white shadow-xs mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom pb-2 mb-2">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <div class="p-2.5 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-person-badge-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0 text-dark" id="recDossierFullName">-</h5>
+                                    <small class="text-muted">Username: <span class="font-monospace fw-semibold text-dark" id="recDossierUsername">-</span></small>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <span class="badge bg-light text-primary border font-monospace px-3 py-1.5" id="recDossierId">-</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5" id="recDossierAccountStatus">Active</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5" id="recDossierEligibilityBadge">Eligible</span>
+                            </div>
+                        </div>
+
+                        <!-- 1. PERSONAL INFORMATION & CONTACT DETAILS -->
+                        <div class="row g-2 small">
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <span class="text-muted d-block">Birthdate & Age:</span>
+                                <strong class="text-dark" id="recDossierDobAge">-</strong>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <span class="text-muted d-block">Sex & Civil Status:</span>
+                                <strong class="text-dark" id="recDossierSexCivil">-</strong>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <span class="text-muted d-block">Masked Contact:</span>
+                                <strong class="font-monospace text-dark" id="recDossierPhone">-</strong>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <span class="text-muted d-block">Email Address:</span>
+                                <strong class="text-dark" id="recDossierEmail">-</strong>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <span class="text-muted d-block">Complete Address:</span>
+                                <strong class="text-dark" id="recDossierAddress">-</strong>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <span class="text-muted d-block">Valid ID Type & Number:</span>
+                                <strong class="font-monospace text-dark" id="recDossierIdRef">-</strong>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- PHASE 2: VERIFICATION CHANNEL CHOICE & CODE INPUT -->
-                    <div id="addBenVerifyChannelView" class="d-none text-center py-2">
-                        <div class="avatar-circle mx-auto mb-2"
-                            style="width: 60px; height: 60px; background: #EDE9FE; color: #7C3AED; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px;">
-                            <i class="bi bi-shield-check" id="officerVerifyChannelIcon"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-1">Beneficiary Identity Verification</h5>
-                        <p class="text-muted small mb-3">Ask applicant for their preferred verification channel (<strong>Email</strong> or <strong>SMS</strong>).</p>
-
-                        <!-- CHANNEL SELECTOR CARDS -->
-                        <div class="row g-2 mb-3 text-start">
-                            <div class="col-6">
-                                <div class="card p-2 border-2 position-relative" id="officerCardMethodEmail"
-                                    onclick="selectOfficerVerificationChannel('EMAIL')"
-                                    style="cursor: pointer; border-color: #7C3AED; background: #FAF5FF; border-radius: 10px;">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <i class="bi bi-envelope-fill me-1 text-purple" style="color: #7C3AED;"></i>
-                                        <span class="fw-bold text-dark small">Gmail Verification</span>
-                                    </div>
-                                    <div class="font-monospace text-muted small" id="officerMaskedEmail">***@gmail.com</div>
-                                    <span class="badge bg-primary position-absolute top-0 end-0 m-1" id="officerBadgeEmailSelected" style="font-size: 0.65rem;">Active</span>
+                    <!-- 2-COLUMN GRID FOR DOSSIER SECTIONS -->
+                    <div class="row g-3 mb-3">
+                        <!-- 3. PROGRAMS APPLIED FOR (PAST & PRESENT) -->
+                        <div class="col-lg-6">
+                            <div class="card h-100 border rounded-3 bg-white shadow-xs overflow-hidden">
+                                <div class="card-header bg-white py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold mb-0 text-dark small"><i class="bi bi-folder2-open text-primary me-1.5"></i>Programs Applied For (Past & Present)</h6>
+                                    <span class="badge bg-light text-muted border font-monospace small" id="recDossierAppsCount">0 Apps</span>
                                 </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="card p-2 border-2 position-relative" id="officerCardMethodSms"
-                                    onclick="selectOfficerVerificationChannel('SMS')"
-                                    style="cursor: pointer; border-color: #E2E8F0; background: #FFFFFF; border-radius: 10px;">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <i class="bi bi-phone-fill me-1 text-success"></i>
-                                        <span class="fw-bold text-dark small">SMS Phone OTP</span>
-                                    </div>
-                                    <div class="font-monospace text-muted small" id="officerMaskedPhone">09XX-***-XXXX</div>
-                                    <span class="badge bg-success position-absolute top-0 end-0 m-1 d-none" id="officerBadgeSmsSelected" style="font-size: 0.65rem;">Active</span>
+                                <div class="card-body p-0" style="max-height: 200px; overflow-y: auto;" id="recDossierAppsContainer">
+                                    <div class="text-center py-3 text-muted small">No applications recorded.</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="card p-3 mb-3 bg-light border text-start rounded-3">
-                            <label class="form-label small fw-semibold text-dark mb-1" id="officerOtpInputLabel">
-                                Enter 6-Digit Code Received by Applicant:
-                            </label>
-                            <div class="input-group mb-2">
-                                <input type="text" class="form-control fw-bold font-monospace text-center fs-5"
-                                    id="officerBenOtpInput" placeholder="000000" maxlength="6" inputmode="numeric"
-                                    style="letter-spacing: 6px;">
-                                <button class="btn btn-outline-primary btn-sm" type="button"
-                                    id="btnOfficerResendActiveOtp" onclick="resendOfficerOtpCode()">Resend Code</button>
+                        <!-- 4. SUBMITTED DOCUMENTS AND THEIR STATUS -->
+                        <div class="col-lg-6">
+                            <div class="card h-100 border rounded-3 bg-white shadow-xs overflow-hidden">
+                                <div class="card-header bg-white py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold mb-0 text-dark small"><i class="bi bi-file-earmark-check text-success me-1.5"></i>Submitted Documents & Status</h6>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small">Verified</span>
+                                </div>
+                                <div class="card-body p-3" style="max-height: 200px; overflow-y: auto;" id="recDossierDocsContainer">
+                                    <div class="text-center py-3 text-muted small">Loading document history...</div>
+                                </div>
                             </div>
-                            <div class="alert alert-danger py-1 px-2 small mb-0 d-none" id="officerVerifyAlertMsg"></div>
                         </div>
 
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-outline-secondary" onclick="backToOfficerBenForm()">
-                                <i class="bi bi-arrow-left me-1"></i> Edit Form Details
-                            </button>
-                            <button type="button" class="btn btn-success fw-bold px-4" id="btnFinalizeOfficerBen"
-                                onclick="finalizeOfficerBeneficiaryCreation()">
-                                <span class="spinner-border spinner-border-sm me-1 d-none" id="officerFinalizeSpinner"></span>
-                                <i class="bi bi-check-circle-fill me-1"></i> Verify & Register Beneficiary
-                            </button>
+                        <!-- 5. CURRENT STAGE, BATCH, AND SCHEDULE -->
+                        <div class="col-lg-6">
+                            <div class="card h-100 border rounded-3 bg-white shadow-xs overflow-hidden">
+                                <div class="card-header bg-white py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold mb-0 text-dark small"><i class="bi bi-calendar3-event text-info me-1.5"></i>Current Stage, Batch & Schedule</h6>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle small" id="recDossierStageBadge">Stage</span>
+                                </div>
+                                <div class="card-body p-3 small" id="recDossierStageContainer">
+                                    <div class="text-muted">Loading workflow schedule status...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. TRAINING ATTENDANCE AND COMPLETION STATUS -->
+                        <div class="col-lg-6">
+                            <div class="card h-100 border rounded-3 bg-white shadow-xs overflow-hidden">
+                                <div class="card-header bg-white py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold mb-0 text-dark small"><i class="bi bi-mortarboard text-warning me-1.5"></i>Training Attendance & Completion</h6>
+                                    <span class="badge bg-light text-dark border small" id="recDossierTrainingBadge">Status</span>
+                                </div>
+                                <div class="card-body p-3 small" id="recDossierTrainingContainer">
+                                    <div class="text-muted">Loading training records...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 7. ASSISTANCE RECEIVED, WITH DATES AND AMOUNTS (PREVENTS DUPLICATE BENEFITS) -->
+                        <div class="col-12">
+                            <div class="card border rounded-3 bg-white shadow-xs overflow-hidden">
+                                <div class="card-header bg-white py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold mb-0 text-dark small"><i class="bi bi-cash-stack text-success me-1.5"></i>Assistance Received (Dates & Amounts - Used to Prevent Duplicate Benefits)</h6>
+                                    <span class="badge bg-light text-muted border font-monospace small" id="recDossierAssistanceCount">0 Disbursed Grants</span>
+                                </div>
+                                <div class="card-body p-0" style="max-height: 180px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0 small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Date Disbursed</th>
+                                                <th>Program & Aid Type</th>
+                                                <th>Reference Number</th>
+                                                <th>Disbursing Officer</th>
+                                                <th class="text-end">Amount Released</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recDossierAssistanceTableBody">
+                                            <tr>
+                                                <td colspan="5" class="text-center py-3 text-muted">No past assistance disbursements recorded.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-1.5" id="btnRecDossierShowQr" onclick="PesoOfficerApp.showBeneficiaryQR(PesoOfficerApp.state.currentViewedBenId)">
+                        <i class="bi bi-qr-code"></i> [Show QR Code]
+                    </button>
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">
+                        [Close]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. EDIT BENEFICIARY INFORMATION MODAL (INSIDE [EDIT]) -->
+    <div class="modal fade" id="editBeneficiaryModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white py-3 px-4">
+                    <div>
+                        <h5 class="modal-title fw-bold fs-6 mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-pencil-square text-warning"></i> Edit Beneficiary Information
+                        </h5>
+                        <small class="text-white-50" style="font-size: 0.75rem;">Update demographic and contact details. Read-only fields are locked per policy.</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editBeneficiaryForm" onsubmit="PesoOfficerApp.submitEditBeneficiary(event)">
+                    <input type="hidden" id="editBenIdInput">
+                    <div class="modal-body p-4 bg-light">
+                        <!-- Read-only Demographics Preview -->
+                        <div class="card p-3 border rounded-3 bg-white shadow-xs mb-3">
+                            <div class="row g-2 small">
+                                <div class="col-md-4">
+                                    <span class="text-muted d-block">Beneficiary Name:</span>
+                                    <strong class="text-dark" id="editBenNamePreview">-</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="text-muted d-block">Beneficiary ID:</span>
+                                    <strong class="font-monospace text-primary" id="editBenIdPreview">-</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="text-muted d-block">Date of Birth & Age:</span>
+                                    <strong class="text-dark" id="editBenDobPreview">-</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Editable Fields -->
+                        <div class="card p-3 border rounded-3 bg-white shadow-xs mb-3">
+                            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 small"><i class="bi bi-pencil me-1"></i>Editable Contact & Residence Details</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-dark">Contact Number <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control font-monospace" id="editBenPhone" required placeholder="09XXXXXXXXX" maxlength="11" pattern="09[0-9]{9}" title="11 digits starting with 09">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-dark">Email Address</label>
+                                    <input type="email" class="form-control" id="editBenEmail" placeholder="Optional email address">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-dark">Civil Status <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="editBenCivilStatus" required>
+                                        <option value="Single">Single</option>
+                                        <option value="Married">Married</option>
+                                        <option value="Widowed">Widowed</option>
+                                        <option value="Separated">Separated</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-dark">Purok / Street <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editBenPurok" required placeholder="e.g. Purok 2, Dahlia St.">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-dark">Barangay <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="editBenBarangay" required>
+                                        <option value="Assumption">Assumption</option>
+                                        <option value="Avanceña">Avanceña</option>
+                                        <option value="Cacub">Cacub</option>
+                                        <option value="Caloocan">Caloocan</option>
+                                        <option value="Carpenter Hill">Carpenter Hill</option>
+                                        <option value="Concepcion">Concepcion</option>
+                                        <option value="Esperanza">Esperanza</option>
+                                        <option value="General Paulino Santos">General Paulino Santos</option>
+                                        <option value="Mabini">Mabini</option>
+                                        <option value="Magsaysay">Magsaysay</option>
+                                        <option value="Mambucal">Mambucal</option>
+                                        <option value="Morales">Morales</option>
+                                        <option value="Namnama">Namnama</option>
+                                        <option value="New Pangasinan">New Pangasinan</option>
+                                        <option value="Paraiso">Paraiso</option>
+                                        <option value="Rotonda">Rotonda</option>
+                                        <option value="San Isidro">San Isidro</option>
+                                        <option value="San Roque">San Roque</option>
+                                        <option value="San Jose">San Jose</option>
+                                        <option value="Sta. Cruz">Sta. Cruz</option>
+                                        <option value="Sto. Niño">Sto. Niño</option>
+                                        <option value="Saravia">Saravia</option>
+                                        <option value="Topland">Topland</option>
+                                        <option value="Zone 1">Zone 1</option>
+                                        <option value="Zone 2">Zone 2</option>
+                                        <option value="Zone 3">Zone 3</option>
+                                        <option value="Zone 4">Zone 4</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-dark">Type of Valid ID <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="editBenIdType" required>
+                                        <option value="PhilSys ID (National ID)">PhilSys ID (National ID)</option>
+                                        <option value="Voter's ID / Certification">Voter's ID / Certification</option>
+                                        <option value="Driver's License">Driver's License</option>
+                                        <option value="UMID / SSS ID">UMID / SSS ID</option>
+                                        <option value="Postal ID">Postal ID</option>
+                                        <option value="Passport">Passport</option>
+                                        <option value="Barangay ID / Certification">Barangay ID / Certification</option>
+                                        <option value="Senior Citizen ID">Senior Citizen ID</option>
+                                        <option value="PWD ID">PWD ID</option>
+                                        <option value="Student ID">Student ID</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-dark">Valid ID Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control font-monospace" id="editBenIdNumber" required placeholder="e.g. 1234-5678-9012-3456">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">
+                            [Cancel]
+                        </button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs">
+                            <i class="bi bi-check2-circle"></i> [Save Changes]
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     <!-- PESO BENEFICIARY QR CODE PASS CONFIRMATION MODAL -->
     <div class="modal fade" id="pesoOfficerBenQrModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">

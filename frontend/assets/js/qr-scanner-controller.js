@@ -223,9 +223,14 @@ const QrScannerController = (() => {
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                      <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="QrScannerController.resetScanResult()">
-                        <i class="bi bi-arrow-repeat me-1"></i> Scan Another Beneficiary
-                      </button>
+                      <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="QrScannerController.resetScanResult()">
+                          <i class="bi bi-arrow-repeat me-1"></i> Scan Another
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" onclick="QrScannerController.viewFullDossier()">
+                          <i class="bi bi-file-earmark-person-fill me-1"></i> [View Full Dossier]
+                        </button>
+                      </div>
                       <button type="button" id="btnCommitMilestone" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold shadow-sm" onclick="QrScannerController.commitMilestone()">
                         <i class="bi bi-check2-circle me-1"></i> Save Checkpoint & Notify
                       </button>
@@ -675,6 +680,17 @@ const QrScannerController = (() => {
     }
   }
 
+  function viewFullDossier() {
+    if (!activeScannedData || !activeScannedData.qrCode) return;
+    const qrCode = activeScannedData.qrCode;
+    closeScanner();
+    if (typeof PesoOfficerApp !== 'undefined' && PesoOfficerApp.openBeneficiaryRecordModal) {
+      PesoOfficerApp.openBeneficiaryRecordModal(qrCode);
+    } else if (typeof window.openBeneficiaryRecordModal === 'function') {
+      window.openBeneficiaryRecordModal(qrCode);
+    }
+  }
+
   // Audio feedback on successful scan
   function playScanBeep() {
     try {
@@ -702,7 +718,8 @@ const QrScannerController = (() => {
     handleManualSubmit,
     handleScanSuccess,
     resetScanResult,
-    commitMilestone
+    commitMilestone,
+    viewFullDossier
   };
 })();
 
