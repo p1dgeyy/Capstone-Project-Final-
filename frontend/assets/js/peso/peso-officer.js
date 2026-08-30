@@ -18,211 +18,13 @@
 const PesoOfficerApp = (() => {
     'use strict';
 
-    const CANONICAL_BENEFICIARIES = [
-        {
-            id: 101,
-            qr_code: 'QR-BEN-849201',
-            first_name: 'Maria',
-            middle_name: 'Santos',
-            last_name: 'Ramos',
-            suffix: '',
-            name: 'Maria Santos Ramos',
-            sex: 'Female',
-            date_of_birth: '1998-05-14',
-            age: 28,
-            civil_status: 'Single',
-            phone: '09178234901',
-            contact: '09178234901',
-            email: 'maria.ramos@gmail.com',
-            purok: 'Purok Sampaguita',
-            barangay: 'Morales',
-            address: 'Purok Sampaguita, Morales, Koronadal City',
-            id_type: 'PhilSys ID (National ID)',
-            id_number: '1234-5678-9012-3456',
-            username: 'msantos_ramos',
-            status: 'Active',
-            program: 'TUPAD',
-            created_at: '2026-08-10T08:30:00Z'
-        },
-        {
-            id: 102,
-            qr_code: 'QR-BEN-392184',
-            first_name: 'Juan',
-            middle_name: 'Dela Cruz',
-            last_name: 'Bautista',
-            suffix: 'Jr.',
-            name: 'Juan Dela Cruz Bautista Jr.',
-            sex: 'Male',
-            date_of_birth: '2001-11-20',
-            age: 24,
-            civil_status: 'Single',
-            phone: '09281938472',
-            contact: '09281938472',
-            email: 'juan.bautista@gmail.com',
-            purok: 'Purok 3',
-            barangay: 'Poblacion',
-            address: 'Purok 3, Poblacion, Koronadal City',
-            id_type: "Voter's ID / Certification",
-            id_number: 'VIN-9876-5432-1098',
-            username: 'jbautista_jr',
-            status: 'Active',
-            program: 'SPES',
-            created_at: '2026-08-12T09:15:00Z'
-        },
-        {
-            id: 103,
-            qr_code: 'QR-BEN-749102',
-            first_name: 'Elena',
-            middle_name: 'Ramos',
-            last_name: 'Gonzaga',
-            suffix: '',
-            name: 'Elena Ramos Gonzaga',
-            sex: 'Female',
-            date_of_birth: '1985-03-22',
-            age: 41,
-            civil_status: 'Married',
-            phone: '09089912834',
-            contact: '09089912834',
-            email: 'elena.gonzaga@gmail.com',
-            purok: 'Purok Dahlia',
-            barangay: 'Zone 1',
-            address: 'Purok Dahlia, Zone 1, Koronadal City',
-            id_type: 'UMID / SSS ID',
-            id_number: 'CRN-0111-2345678-9',
-            username: 'egonzaga_peso',
-            status: 'Active',
-            program: 'PFAS',
-            created_at: '2026-08-15T10:45:00Z'
-        },
-        {
-            id: 104,
-            qr_code: 'QR-BEN-619284',
-            first_name: 'Carlos',
-            middle_name: 'Tan',
-            last_name: 'Mendoza',
-            suffix: 'III',
-            name: 'Carlos Tan Mendoza III',
-            sex: 'Male',
-            date_of_birth: '1995-09-08',
-            age: 30,
-            civil_status: 'Married',
-            phone: '09391283746',
-            contact: '09391283746',
-            email: 'carlos.mendoza@gmail.com',
-            purok: 'Purok Pag-asa',
-            barangay: 'Rotonda',
-            address: 'Purok Pag-asa, Rotonda, Koronadal City',
-            id_type: "Driver's License",
-            id_number: 'N02-18-987654',
-            username: 'cmendoza_iii',
-            status: 'Active',
-            program: 'CKGIP',
-            created_at: '2026-08-18T14:20:00Z'
-        },
-        {
-            id: 105,
-            qr_code: 'QR-BEN-502918',
-            first_name: 'Rosario',
-            middle_name: 'Lim',
-            last_name: 'Villanueva',
-            suffix: '',
-            name: 'Rosario Lim Villanueva',
-            sex: 'Female',
-            date_of_birth: '1978-12-05',
-            age: 47,
-            civil_status: 'Widowed',
-            phone: '09193847291',
-            contact: '09193847291',
-            email: 'rosario.villanueva@gmail.com',
-            purok: 'Purok Centro',
-            barangay: 'General Paulino Santos',
-            address: 'Purok Centro, GPS, Koronadal City',
-            id_type: 'Senior Citizen ID',
-            id_number: 'OSCA-2026-0918',
-            username: 'rvillanueva',
-            status: 'Deactivated',
-            program: 'Association Facilitation',
-            created_at: '2026-08-20T11:00:00Z'
-        }
-    ];
-
-    const CANONICAL_APPLICATIONS = [
-        {
-            id: 'APP-2026-001',
-            application_number: 'APP-2026-001',
-            beneficiary_id: 101,
-            beneficiary_qr: 'QR-BEN-849201',
-            beneficiaryName: 'Maria Santos Ramos',
-            program: 'Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers (TUPAD)',
-            programCode: 'TUPAD',
-            date_applied: '2026-08-10',
-            dateSubmitted: '2026-08-10',
-            status: 'Approved',
-            is_complete: true
-        },
-        {
-            id: 'APP-2026-002',
-            application_number: 'APP-2026-002',
-            beneficiary_id: 102,
-            beneficiary_qr: 'QR-BEN-392184',
-            beneficiaryName: 'Juan Dela Cruz Bautista Jr.',
-            program: 'Special Program for Employment of Students (SPES)',
-            programCode: 'SPES',
-            date_applied: '2026-08-12',
-            dateSubmitted: '2026-08-12',
-            status: 'Approved',
-            is_complete: true
-        },
-        {
-            id: 'APP-2026-003',
-            application_number: 'APP-2026-003',
-            beneficiary_id: 103,
-            beneficiary_qr: 'QR-BEN-749102',
-            beneficiaryName: 'Elena Ramos Gonzaga',
-            program: 'Pangkabuhayan Financial Assistance (PFAS)',
-            programCode: 'PFAS',
-            date_applied: '2026-08-15',
-            dateSubmitted: '2026-08-15',
-            status: 'Approved',
-            is_complete: true
-        }
-    ];
-
-    const CANONICAL_ASSISTANCE = [
-        {
-            id: 'DISB-2026-089',
-            beneficiary_id: 101,
-            beneficiary_qr: 'QR-BEN-849201',
-            programName: 'TUPAD Emergency Employment',
-            programCode: 'TUPAD',
-            assistanceType: 'Wages Payout (15 Days)',
-            quantityAmount: '₱6,525.00',
-            approvalDate: '2026-08-14',
-            officerName: 'PESO Officer'
-        },
-        {
-            id: 'DISB-2026-092',
-            beneficiary_id: 103,
-            beneficiary_qr: 'QR-BEN-749102',
-            programName: 'PFAS Livelihood Aid',
-            programCode: 'PFAS',
-            assistanceType: 'Tool Voucher Grant',
-            quantityAmount: '₱10,000.00',
-            approvalDate: '2026-08-20',
-            officerName: 'PESO Officer'
-        }
-    ];
-
     const state = {
-        beneficiaries: [...CANONICAL_BENEFICIARIES],
-        applications: [...CANONICAL_APPLICATIONS],
+        beneficiaries: [],
+        applications: [],
         schedules: [],
-        batches: [
-            { id: 1, batch_code: 'BAT-TUPAD-01', batch_name: 'TUPAD Morales Batch 1', program: 'TUPAD', capacity: 50, eventDate: '2026-08-31', venue: 'Morales Gym' },
-            { id: 2, batch_code: 'BAT-SPES-01', batch_name: 'SPES Summer Batch A', program: 'SPES', capacity: 40, eventDate: '2026-09-02', venue: 'City Hall Hall B' }
-        ],
-        assistanceRecords: [...CANONICAL_ASSISTANCE],
-        approvedAssistance: [...CANONICAL_ASSISTANCE],
+        batches: [],
+        assistanceRecords: [],
+        approvedAssistance: [],
         trainingRecords: [],
         officers: [],
         notifications: [],
@@ -481,29 +283,29 @@ const PesoOfficerApp = (() => {
         });
 
         // 3. Compute 8 Lifecycle Status Metric Counts
-        const totalApps = assignedApps.length || 14;
-        const pendingOfficer = assignedApps.filter(a => ['Pending', 'Pending Officer Review', 'Under Review', 'Incomplete', 'Pending Requirements'].includes(a.status || a.rawStatus)).length || 4;
-        const pendingAdmin = assignedApps.filter(a => ['Officer Approved', 'Forwarded to Admin', 'Pending Admin Review', 'Level 3 Review', 'Forwarded'].includes(a.status || a.rawStatus)).length || 3;
-        const unbatched = assignedApps.filter(a => (a.status === 'Approved' || a.status === 'Officer Approved' || a.rawStatus === 'Approved') && !a.batch_id && !a.batchId).length || 3;
+        const totalApps = assignedApps.length;
+        const pendingOfficer = assignedApps.filter(a => ['Pending', 'Pending Officer Review', 'Under Review', 'Incomplete', 'Pending Requirements'].includes(a.status || a.rawStatus)).length;
+        const pendingAdmin = assignedApps.filter(a => ['Officer Approved', 'Forwarded to Admin', 'Pending Admin Review', 'Level 3 Review', 'Forwarded'].includes(a.status || a.rawStatus)).length;
+        const unbatched = assignedApps.filter(a => (a.status === 'Approved' || a.status === 'Officer Approved' || a.rawStatus === 'Approved') && !a.batch_id && !a.batchId).length;
         
         // Batches awaiting schedule (formed batches without locked event date)
-        const assignedBatches = state.batches.filter(b => {
+        const assignedBatches = (state.batches || []).filter(b => {
             const pCode = (b.program || b.program_code || '').toUpperCase();
             return assignedProgs.some(ap => pCode.includes(ap.toUpperCase()));
         });
-        const batchedAwaitingSched = assignedBatches.filter(b => b.status === 'Active' || !b.eventDate || b.status === 'Awaiting Schedule').length || 2;
+        const batchedAwaitingSched = assignedBatches.filter(b => b.status === 'Active' || !b.eventDate || b.status === 'Awaiting Schedule').length;
 
         // In Progress (beneficiaries active in training/work)
-        const inProgress = state.beneficiaries.filter(b => {
+        const inProgress = (state.beneficiaries || []).filter(b => {
             const p = (b.program || b.program_sector || '').toUpperCase();
             return assignedProgs.some(ap => p.includes(ap.toUpperCase())) && (b.status === 'Active' || b.training_status === 'In Progress');
-        }).length || 6;
+        }).length;
 
         // Closed — Not Completed (expired 3-day window, absent, missed, cancelled)
-        const closedNotCompleted = assignedApps.filter(a => ['Denied', 'Officer Denied', 'Expired', 'Cancelled', 'Closed', 'Missed'].includes(a.status || a.rawStatus)).length || 2;
+        const closedNotCompleted = assignedApps.filter(a => ['Denied', 'Officer Denied', 'Expired', 'Cancelled', 'Closed', 'Missed'].includes(a.status || a.rawStatus)).length;
 
         // Program Completed (successfully completed training / disbursed)
-        const programCompleted = assignedApps.filter(a => ['Completed', 'Disbursed', 'Certified'].includes(a.status || a.rawStatus)).length || 5;
+        const programCompleted = assignedApps.filter(a => ['Completed', 'Disbursed', 'Released', 'Certified'].includes(a.status || a.rawStatus)).length;
 
         // Populate 8 Stat Card Counters
         const elTotal = document.getElementById('statDashTotalApps');
@@ -527,8 +329,8 @@ const PesoOfficerApp = (() => {
         // Backward-compatibility references
         if (document.getElementById('statOfficerPendingApps')) document.getElementById('statOfficerPendingApps').textContent = pendingOfficer;
         if (document.getElementById('statOfficerUnbatchedBatches')) document.getElementById('statOfficerUnbatchedBatches').textContent = unbatched;
-        if (document.getElementById('statOfficerScheduledEvents')) document.getElementById('statOfficerScheduledEvents').textContent = state.schedules.length || 3;
-        if (document.getElementById('statOfficerNotifs')) document.getElementById('statOfficerNotifs').textContent = state.notifications.length || 3;
+        if (document.getElementById('statOfficerScheduledEvents')) document.getElementById('statOfficerScheduledEvents').textContent = (state.schedules || []).length;
+        if (document.getElementById('statOfficerNotifs')) document.getElementById('statOfficerNotifs').textContent = (state.notifications || []).length;
 
         // 4. Render Today's Activities Table
         renderDashboardTodayActivities(assignedProgs);
@@ -543,29 +345,28 @@ const PesoOfficerApp = (() => {
     /**
      * Render Today's Activities Table (Time, Slot Type, Program, Batch, Venue, [View Schedule])
      */
+    /**
+     * Render Today's Activities Table (Time, Slot Type, Program, Batch, Venue, [View Schedule])
+     */
     function renderDashboardTodayActivities(assignedProgs = []) {
         const tbody = document.getElementById('dashTodayActivitiesTableBody');
         const badge = document.getElementById('dashTodayActivitiesCountBadge');
         if (!tbody) return;
 
         const todayStr = new Date().toISOString().substring(0, 10);
-        let todaySchedules = state.schedules.filter(s => {
+        let todaySchedules = (state.schedules || []).filter(s => {
             const sDate = s.interviewDate || s.slot_date || s.startDate || s.start_date || (s.created_at ? s.created_at.substring(0, 10) : todayStr);
             const pCode = (s.programCode || s.program_code || s.program || 'TUPAD').toUpperCase();
             const isAssigned = assignedProgs.length === 0 || assignedProgs.some(ap => pCode.includes(ap.toUpperCase()));
             return sDate === todayStr && isAssigned;
         });
 
-        // Sample canonical activities if list is empty for rich demonstration
-        if (todaySchedules.length === 0) {
-            todaySchedules = [
-                { id: 'SLOT-101', scheduleTime: '08:30 AM - 10:00 AM', slot_type: 'Interview & Verification', programCode: 'TUPAD', batchName: 'Batch 1 - Morales Clean-up', venue: 'PESO Main Hall (Window 2)' },
-                { id: 'SLOT-102', scheduleTime: '10:30 AM - 12:00 PM', slot_type: 'Training Orientation', programCode: 'SPES', batchName: 'Batch 2 - City Youth Cadres', venue: 'City Hall Audiovisual Center' },
-                { id: 'SLOT-103', scheduleTime: '01:30 PM - 03:00 PM', slot_type: 'Grant / Kit Distribution', programCode: 'PFAS', batchName: 'Batch 1 - Micro-Enterprise Cohort', venue: 'PESO Logistics Desk' }
-            ];
-        }
-
         if (badge) badge.textContent = `${todaySchedules.length} Scheduled Today`;
+
+        if (todaySchedules.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-calendar-check fs-4 d-block mb-1 text-muted"></i>No activities or slots scheduled for today.</td></tr>`;
+            return;
+        }
 
         tbody.innerHTML = todaySchedules.map(s => {
             const time = s.scheduleTime || s.timeSlot || '09:00 AM - 10:00 AM';
@@ -608,26 +409,31 @@ const PesoOfficerApp = (() => {
     }
 
     /**
-     * Render Fund and Resource Balance per Assigned Program
+     * Render Fund and Resource Balance per Assigned Program (Derived dynamically)
      */
     function renderDashboardAssignedFunds(assignedProgs = []) {
         const container = document.getElementById('dashAssignedFundCardsContainer');
         if (!container) return;
 
-        const canonicalPrograms = [
-            { code: 'TUPAD', name: 'Emergency Employment Assistance', allocated: 3500000, spent: 1845000, slots_target: 700, slots_filled: 369 },
-            { code: 'SPES', name: 'Special Program for Employment of Students', allocated: 2000000, spent: 900000, slots_target: 400, slots_filled: 180 },
-            { code: 'GIP', name: 'Government Internship Program', allocated: 1500000, spent: 680000, slots_target: 150, slots_filled: 68 },
-            { code: 'CKGIP', name: 'Koronadal City Youth Internship', allocated: 1800000, spent: 920000, slots_target: 180, slots_filled: 92 },
-            { code: 'PFAS', name: 'Pangkabuhayan Financial Assistance', allocated: 1500000, spent: 740000, slots_target: 150, slots_filled: 74 }
+        const programConfigs = [
+            { code: 'TUPAD', name: 'Emergency Employment Assistance', allocated: 3500000, slots_target: 700 },
+            { code: 'SPES', name: 'Special Program for Employment of Students', allocated: 2000000, slots_target: 400 },
+            { code: 'GIP', name: 'Government Internship Program', allocated: 1500000, slots_target: 150 },
+            { code: 'CKGIP', name: 'Koronadal City Youth Internship', allocated: 1800000, slots_target: 180 },
+            { code: 'PFAS', name: 'Pangkabuhayan Financial Assistance', allocated: 1500000, slots_target: 150 }
         ];
 
-        const targetPrograms = canonicalPrograms.filter(p => assignedProgs.some(ap => ap.toUpperCase() === p.code));
+        const targetPrograms = programConfigs.filter(p => assignedProgs.some(ap => ap.toUpperCase() === p.code));
 
         container.innerHTML = targetPrograms.map(p => {
-            const remaining = Math.max(0, p.allocated - p.spent);
-            const utilPct = p.allocated > 0 ? Math.min(100, Math.round((p.spent / p.allocated) * 100)) : 0;
-            const remainingSlots = Math.max(0, p.slots_target - p.slots_filled);
+            const progApps = (state.applications || []).filter(a => (a.programCode || a.program || '').toUpperCase().includes(p.code));
+            const progAssistance = (state.approvedAssistance || []).filter(a => (a.programCode || a.programName || '').toUpperCase().includes(p.code));
+            
+            const spent = progAssistance.reduce((sum, item) => sum + (Number(item.amount) || Number(item.quantityAmount) || 5000), 0);
+            const slots_filled = progApps.filter(a => a.status === 'Approved' || a.status === 'Released' || a.status === 'Completed').length;
+            const remaining = Math.max(0, p.allocated - spent);
+            const utilPct = p.allocated > 0 ? Math.min(100, Math.round((spent / p.allocated) * 100)) : 0;
+            const remainingSlots = Math.max(0, p.slots_target - slots_filled);
 
             return `
                 <div class="col-12 col-md-6 col-xl-4">
@@ -650,7 +456,7 @@ const PesoOfficerApp = (() => {
                                 </div>
                                 <div class="d-flex justify-content-between small mb-1.5">
                                     <span class="text-muted">Spent / Disbursed:</span>
-                                    <strong class="font-monospace text-danger">${formatCurrency(p.spent)}</strong>
+                                    <strong class="font-monospace text-danger">${formatCurrency(spent)}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between small border-top pt-1.5">
                                     <span class="text-muted fw-bold">Available Balance:</span>
@@ -668,7 +474,7 @@ const PesoOfficerApp = (() => {
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center pt-2 border-top text-muted small">
-                            <span><i class="bi bi-people me-1"></i>Slots: <strong>${p.slots_filled}/${p.slots_target}</strong></span>
+                            <span><i class="bi bi-people me-1"></i>Slots: <strong>${slots_filled}/${p.slots_target}</strong></span>
                             <span class="text-success"><i class="bi bi-check2-circle me-1"></i>${remainingSlots} open slots</span>
                         </div>
                     </div>
@@ -678,59 +484,63 @@ const PesoOfficerApp = (() => {
     }
 
     /**
-     * Render Action Items Queue (3 Specific Risk Streams with [Resolve] Buttons)
+     * Render Action Items Queue (Real data computed from deadlines and pending tasks)
      */
     function renderDashboardActionItems(assignedApps = []) {
         const container = document.getElementById('dashActionItemsList');
         const countBadge = document.getElementById('dashActionItemsCountBadge');
         if (!container) return;
 
-        const actionItems = [
-            {
-                id: 'ACT-NOTIF-01',
-                type: 'failed_notification',
-                category: 'Failed Notification',
-                categoryBadge: 'bg-danger-subtle text-danger border-danger-subtle',
-                title: 'SMS Delivery Failed (Interview Schedule)',
-                beneficiaryName: 'Maria Santos Dela Cruz',
-                beneficiaryPhone: '0917-***-4821',
-                program: 'TUPAD Program',
-                detail: 'SMS notification for interview scheduled on Sept 02, 2026 failed due to telecommunication timeout. Officer manual follow-up required.',
-                urgency: 'Immediate Call Required',
-                btnText: 'Resolve',
-                icon: 'bi-telephone-x-fill text-danger'
-            },
-            {
-                id: 'ACT-DEADLINE-02',
+        const actionItems = [];
+
+        // 1. Applications with expiring resubmission deadlines
+        assignedApps.filter(a => a.status === 'Incomplete' || a.resubmission_deadline).forEach((app, idx) => {
+            actionItems.push({
+                id: `ACT-DEADLINE-${app.id || idx}`,
                 type: 'three_day_window',
                 category: '3-Day Window Expiring',
                 categoryBadge: 'bg-warning-subtle text-warning border-warning-subtle',
-                title: 'Incomplete Document Window Expiring (14h left)',
-                beneficiaryName: 'Juan Carlos Bautista',
-                beneficiaryPhone: '0928-***-1934',
-                program: 'SPES Assistance',
-                detail: 'Application returned for missing Barangay Residency Certificate. 3-day resubmission window closes in 14 hours.',
-                urgency: '14 Hours Remaining',
+                title: `Incomplete Requirements (App #${app.id || app.application_number})`,
+                beneficiaryName: app.beneficiaryName || 'Applicant',
+                beneficiaryPhone: app.beneficiaryPhone || '09XX-***-XXXX',
+                program: app.programCode || app.program || 'Assistance Program',
+                detail: `Application flagged for deficient documents. Resubmission window is active.`,
+                urgency: 'Action Required',
                 btnText: 'Resolve',
                 icon: 'bi-hourglass-bottom text-warning'
-            },
-            {
-                id: 'ACT-FORFEIT-03',
+            });
+        });
+
+        // 2. Unclaimed approved grants
+        (state.approvedAssistance || []).filter(a => a.status !== 'Released' && a.status !== 'Disbursed').forEach((ast, idx) => {
+            actionItems.push({
+                id: `ACT-FORFEIT-${ast.id || idx}`,
                 type: 'assistance_forfeiture',
-                category: 'Assistance Near Forfeiture',
-                categoryBadge: 'bg-danger-subtle text-danger border-danger-subtle',
-                title: 'Approved Livelihood Grant Unclaimed (5 Days)',
-                beneficiaryName: 'Elena Ramos Gonzaga',
-                beneficiaryPhone: '0908-***-9912',
-                program: 'PFAS Livelihood Aid',
-                detail: '₱10,000 Micro-enterprise tool voucher approved on Aug 25, 2026 remains unclaimed. Subject to automatic forfeiture in 48 hours.',
-                urgency: 'Forfeits in 48h',
+                category: 'Assistance Ready for Claim',
+                categoryBadge: 'bg-info-subtle text-info border-info-subtle',
+                title: `Approved Assistance Unclaimed: ${ast.programName || ast.programCode || 'Grant'}`,
+                beneficiaryName: ast.beneficiaryName || 'Beneficiary',
+                beneficiaryPhone: '09XX-***-XXXX',
+                program: ast.programName || 'PESO Aid',
+                detail: `Approved grant of ${formatCurrency(ast.amount || ast.quantityAmount || 5000)} awaiting QR disbursement.`,
+                urgency: 'Ready for Release',
                 btnText: 'Resolve',
-                icon: 'bi-exclamation-octagon-fill text-danger'
-            }
-        ];
+                icon: 'bi-box-seam text-info'
+            });
+        });
 
         if (countBadge) countBadge.textContent = `${actionItems.length} Urgent Items`;
+
+        if (actionItems.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4 bg-white border rounded-3 p-4">
+                    <i class="bi bi-check-circle-fill fs-2 text-success d-block mb-2"></i>
+                    <h6 class="fw-bold text-dark mb-1">No Urgent Action Items</h6>
+                    <small class="text-muted">All beneficiary requirements, schedule notifications, and assistance allocations are up to date.</small>
+                </div>
+            `;
+            return;
+        }
 
         container.innerHTML = actionItems.map(item => {
             const rawJson = JSON.stringify(item).replace(/"/g, '&quot;');
@@ -1283,20 +1093,24 @@ const PesoOfficerApp = (() => {
         // 4. Submitted Documents & Their Status
         const docsContainer = document.getElementById('recDossierDocsContainer');
         if (docsContainer) {
+            const benDocs = Array.isArray(ben.documents_json) && ben.documents_json.length > 0 
+                ? ben.documents_json 
+                : [
+                    { name: ben.id_type || 'Valid Government ID', type: 'valid_id', status: ben.id_type ? 'Verified' : 'Pending' },
+                    { name: `Barangay Clearance (${ben.barangay || 'Koronadal'})`, type: 'clearance', status: ben.barangay ? 'Verified' : 'Pending' },
+                    { name: 'PESO Intake & Demographic Record', type: 'intake', status: 'Complete' }
+                ];
+
             docsContainer.innerHTML = `
                 <div class="d-flex flex-column gap-2">
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded-2 border">
-                        <span class="small"><i class="bi bi-card-text text-primary me-1.5"></i>${escapeHtml(ben.id_type || 'Valid Government ID')}</span>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace"><i class="bi bi-check-circle-fill me-1"></i>Verified</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded-2 border">
-                        <span class="small"><i class="bi bi-file-earmark-check text-success me-1.5"></i>Barangay Clearance (Residency)</span>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace"><i class="bi bi-check-circle-fill me-1"></i>Verified</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded-2 border">
-                        <span class="small"><i class="bi bi-file-earmark-text text-info me-1.5"></i>PESO Intake & Skills Questionnaire</span>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace"><i class="bi bi-check-circle-fill me-1"></i>Complete</span>
-                    </div>
+                    ${benDocs.map(d => `
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded-2 border">
+                            <span class="small"><i class="bi bi-file-earmark-check text-primary me-1.5"></i>${escapeHtml(d.name || d.document_name || 'Document')}</span>
+                            <span class="badge ${d.status === 'Verified' || d.status === 'Complete' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle'} font-monospace">
+                                <i class="bi ${d.status === 'Verified' || d.status === 'Complete' ? 'bi-check-circle-fill' : 'bi-hourglass-split'} me-1"></i>${escapeHtml(d.status || 'Verified')}
+                            </span>
+                        </div>
+                    `).join('')}
                 </div>
             `;
         }
@@ -1304,7 +1118,7 @@ const PesoOfficerApp = (() => {
         // 5. Current Stage, Batch & Schedule
         const stageContainer = document.getElementById('recDossierStageContainer');
         const stageBadge = document.getElementById('recDossierStageBadge');
-        const assignedBatch = state.batches.find(b => {
+        const assignedBatch = (state.batches || []).find(b => {
             const pCode = (b.program || b.program_code || '').toUpperCase();
             return (ben.program || '').toUpperCase().includes(pCode);
         });
@@ -1323,21 +1137,29 @@ const PesoOfficerApp = (() => {
         // 6. Training Attendance & Completion Status
         const trainingContainer = document.getElementById('recDossierTrainingContainer');
         const trainingBadge = document.getElementById('recDossierTrainingBadge');
+        const totalSess = ben.total_sessions || 5;
+        const attendedSess = ben.sessions_attended !== undefined ? ben.sessions_attended : (ben.training_status === 'Completed' ? totalSess : 0);
+        const trainPct = totalSess > 0 ? Math.min(100, Math.round((attendedSess / totalSess) * 100)) : 0;
+        const isTrainDone = ben.training_status === 'Completed' || trainPct >= 100;
+
         if (trainingContainer) {
             trainingContainer.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="text-muted">Attendance Progress:</span>
-                    <strong class="text-success font-monospace">3 of 3 Sessions (100%)</strong>
+                    <strong class="${isTrainDone ? 'text-success' : 'text-primary'} font-monospace">${attendedSess} of ${totalSess} Sessions (${trainPct}%)</strong>
                 </div>
                 <div class="progress mb-2" style="height: 6px;">
-                    <div class="progress-bar bg-success" style="width: 100%;"></div>
+                    <div class="progress-bar ${isTrainDone ? 'bg-success' : 'bg-warning'}" style="width: ${trainPct}%;"></div>
                 </div>
-                <div class="small text-muted"><i class="bi bi-award text-warning me-1"></i>Official Certificate: <strong>Issued & Recorded</strong></div>
+                <div class="small text-muted">
+                    <i class="bi ${isTrainDone ? 'bi-award text-warning' : 'bi-hourglass-split text-secondary'} me-1"></i>
+                    Official Certificate: <strong>${isTrainDone ? 'Issued & Recorded (Auto-Pull Eligible)' : (attendedSess > 0 ? 'In Progress' : 'Not Started')}</strong>
+                </div>
             `;
         }
         if (trainingBadge) {
-            trainingBadge.className = 'badge bg-success-subtle text-success border border-success-subtle small';
-            trainingBadge.textContent = 'Completed (3/3)';
+            trainingBadge.className = `badge ${isTrainDone ? 'bg-success-subtle text-success border border-success-subtle' : (attendedSess > 0 ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle')} small`;
+            trainingBadge.textContent = isTrainDone ? `Completed (${attendedSess}/${totalSess})` : (attendedSess > 0 ? `In Progress (${attendedSess}/${totalSess})` : 'Not Started');
         }
 
         // 7. Assistance Received, with Dates and Amounts (Prevents duplicate benefits)
@@ -1839,18 +1661,26 @@ const PesoOfficerApp = (() => {
         const progFilter = document.getElementById('trainingProgramFilter')?.value || '';
         const statusFilter = document.getElementById('trainingStatusFilter')?.value || '';
 
-        // Derive training records from beneficiaries with assigned programs
-        let records = state.beneficiaries.map((b, idx) => ({
-            id: b.id || idx + 1,
-            qr_code: b.qr_code,
-            name: `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Beneficiary',
-            program: b.program || 'SPES',
-            batch: `Batch 2026-${(idx % 3) + 1}`,
-            trainingTitle: `${b.program || 'Livelihood'} Skills Development & Safety Training`,
-            sessionsAttended: (idx % 2 === 0) ? 5 : 3,
-            totalSessions: 5,
-            status: (idx % 2 === 0) ? 'Completed' : 'In Progress'
-        }));
+        // Derive training records from actual beneficiaries & active training slots
+        let records = (state.beneficiaries || []).map((b, idx) => {
+            const benApps = (state.applications || []).filter(a => String(a.beneficiary_id || a.beneficiary_qr) === String(b.id || b.qr_code));
+            const activeApp = benApps[0] || {};
+            const totalSess = b.total_sessions || 5;
+            const attended = b.sessions_attended !== undefined ? b.sessions_attended : (b.training_status === 'Completed' ? totalSess : 0);
+            const isDone = b.training_status === 'Completed' || attended >= totalSess;
+
+            return {
+                id: b.id || b.qr_code || idx + 1,
+                qr_code: b.qr_code || `QR-BEN-${b.id}`,
+                name: `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.name || 'Beneficiary',
+                program: b.program || activeApp.programCode || activeApp.program || 'General Livelihood',
+                batch: b.batch_name || activeApp.batchName || 'General Cohort',
+                trainingTitle: `${b.program || activeApp.programCode || 'Skills'} Livelihood & Safety Training`,
+                sessionsAttended: attended,
+                totalSessions: totalSess,
+                status: isDone ? 'Completed' : (attended > 0 ? 'In Progress' : 'Not Started')
+            };
+        });
 
         if (query) records = records.filter(r => r.name.toLowerCase().includes(query) || r.qr_code.toLowerCase().includes(query));
         if (progFilter) records = records.filter(r => r.program === progFilter);
@@ -1866,12 +1696,12 @@ const PesoOfficerApp = (() => {
         if (document.getElementById('statTrainingCertEligible')) document.getElementById('statTrainingCertEligible').textContent = completed;
 
         if (records.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No training attendance records found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-person-x fs-3 d-block mb-1 text-muted"></i>No training attendance records found.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = records.map(r => {
-            const pct = Math.round((r.sessionsAttended / r.totalSessions) * 100);
+            const pct = r.totalSessions > 0 ? Math.min(100, Math.round((r.sessionsAttended / r.totalSessions) * 100)) : 0;
             const isCompleted = r.status === 'Completed';
 
             return `
@@ -1895,7 +1725,7 @@ const PesoOfficerApp = (() => {
                         </div>
                     </td>
                     <td>
-                        <span class="badge ${isCompleted ? 'bg-success' : 'bg-warning text-dark'}">${escapeHtml(r.status)}</span>
+                        <span class="badge ${isCompleted ? 'bg-success' : (r.status === 'In Progress' ? 'bg-warning text-dark' : 'bg-secondary')}">${escapeHtml(r.status)}</span>
                     </td>
                     <td>
                         <span class="badge ${isCompleted ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-secondary-subtle text-secondary'}">
@@ -1918,15 +1748,52 @@ const PesoOfficerApp = (() => {
         const displayName = document.getElementById('trainingModalBenName');
         if (inputId) inputId.value = benId;
         if (displayName) displayName.textContent = name;
+
+        const ben = state.beneficiaries.find(b => String(b.id) === String(benId) || b.qr_code === benId);
+        if (ben) {
+            const attendedInput = document.getElementById('trainingSessionsAttendedInput');
+            const statusSelect = document.getElementById('trainingStatusSelect');
+            if (attendedInput) attendedInput.value = ben.sessions_attended !== undefined ? ben.sessions_attended : (ben.training_status === 'Completed' ? 5 : 0);
+            if (statusSelect) statusSelect.value = ben.training_status || 'In Progress';
+        }
+
         safeOpenModal('officerTrainingAttendanceModal');
     }
 
-    function saveIndividualTrainingAttendance() {
+    async function saveIndividualTrainingAttendance() {
         const benId = document.getElementById('trainingBenIdInput')?.value;
-        const attended = document.getElementById('trainingSessionsAttendedInput')?.value || 5;
+        const attended = parseInt(document.getElementById('trainingSessionsAttendedInput')?.value || '5', 10);
         const status = document.getElementById('trainingStatusSelect')?.value || 'Completed';
 
+        const ben = state.beneficiaries.find(b => String(b.id) === String(benId) || b.qr_code === benId);
+        if (ben) {
+            ben.sessions_attended = attended;
+            ben.training_status = status;
+        }
+
+        // Live Supabase update
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient.from('beneficiaries').update({
+                    sessions_attended: attended,
+                    training_status: status,
+                    updated_at: new Date().toISOString()
+                }).eq('qr_code', ben ? (ben.qr_code || ben.id) : benId);
+            } catch (e) {
+                console.warn('[Training Attendance] Supabase update note:', e.message);
+            }
+        }
+
         logAudit('OFFICER_UPDATE_TRAINING_ATTENDANCE', `Updated training attendance for beneficiary #${benId} (${attended} sessions, Status: ${status})`);
+        
+        if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+            OTPAuth.broadcastRealtimeEvent('TRAINING_ATTENDANCE_UPDATED', {
+                beneficiary_id: benId,
+                sessions_attended: attended,
+                status: status
+            });
+        }
+
         safeCloseModal('officerTrainingAttendanceModal');
         renderTrainingAttendanceTable();
 
@@ -1950,35 +1817,45 @@ const PesoOfficerApp = (() => {
         const progFilter = document.getElementById('astProgramFilter')?.value || '';
         const typeFilter = document.getElementById('astTypeFilter')?.value || '';
 
-        let records = state.applications.filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed');
+        let records = state.approvedAssistance || state.assistanceRecords || [];
         if (records.length === 0) {
-            records = [
-                { id: 101, beneficiaryName: 'Maria Santos', programCode: 'TUPAD', item: 'Emergency Employment Wage Voucher', amount: 5000, date_applied: '2026-08-20', dualVerified: true },
-                { id: 102, beneficiaryName: 'Carlos Mendoza', programCode: 'SPES', item: 'Student Educational Stipend', amount: 8000, date_applied: '2026-08-22', dualVerified: true },
-                { id: 103, beneficiaryName: 'Roberto Gomez', programCode: 'Starter Kit', item: 'Carpentry Tools & PPE Kit', amount: 15000, date_applied: '2026-08-24', dualVerified: false }
-            ];
+            // Check approved applications
+            records = (state.applications || []).filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed' || a.status === 'Released').map(a => ({
+                id: a.id || a.application_number,
+                beneficiaryName: a.beneficiaryName || 'Beneficiary',
+                programCode: a.programCode || a.program || 'PESO',
+                item: a.remarks || 'Approved Grant Assistance',
+                amount: a.amount_approved || a.amount_requested || 5000,
+                approvalDate: a.date_applied || a.dateSubmitted || (a.created_at ? a.created_at.substring(0, 10) : 'Recent'),
+                dualVerified: a.status === 'Released' || a.status === 'Disbursed'
+            }));
         }
 
-        if (query) records = records.filter(r => (r.beneficiaryName || '').toLowerCase().includes(query));
-        if (progFilter) records = records.filter(r => r.programCode === progFilter);
+        if (query) records = records.filter(r => (r.beneficiaryName || '').toLowerCase().includes(query) || (r.programName || r.programCode || '').toLowerCase().includes(query));
+        if (progFilter) records = records.filter(r => (r.programCode === progFilter || r.programName === progFilter));
+
+        if (records.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-1 text-muted"></i>No approved assistance records found.</td></tr>`;
+            return;
+        }
 
         tbody.innerHTML = records.map(r => `
             <tr>
-                <td class="font-monospace fw-bold text-primary">#AST-${r.id}</td>
-                <td class="fw-semibold text-dark">${escapeHtml(r.beneficiaryName)}</td>
-                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(r.programCode || 'PESO')}</span></td>
+                <td class="font-monospace fw-bold text-primary">#AST-${escapeHtml(String(r.id || '01'))}</td>
+                <td class="fw-semibold text-dark">${escapeHtml(r.beneficiaryName || 'Beneficiary')}</td>
+                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(r.programCode || r.programName || 'PESO')}</span></td>
                 <td>
-                    <span class="fw-bold text-dark d-block">${escapeHtml(r.item || 'Livelihood Assistance Grant')}</span>
-                    <small class="text-success font-monospace fw-bold">${formatCurrency(r.amount || 5000)}</small>
+                    <span class="fw-bold text-dark d-block">${escapeHtml(r.assistanceType || r.item || 'Livelihood Assistance Grant')}</span>
+                    <small class="text-success font-monospace fw-bold">${formatCurrency(r.amount || r.quantityAmount || 5000)}</small>
                 </td>
-                <td><small class="text-muted font-monospace">${escapeHtml(r.date_applied || '2026-08-26')}</small></td>
+                <td><small class="text-muted font-monospace">${escapeHtml(r.approvalDate || 'Recent')}</small></td>
                 <td>
                     <span class="badge ${r.dualVerified ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle'}">
                         <i class="bi ${r.dualVerified ? 'bi-shield-fill-check' : 'bi-hourglass-split'} me-1"></i>
                         ${r.dualVerified ? 'Dual-Confirmed (Voucher Signed)' : 'Pending Beneficiary Sign-off'}
                     </span>
                 </td>
-                <td><span class="badge bg-light text-dark border">PESO Officer</span></td>
+                <td><span class="badge bg-light text-dark border">${escapeHtml(r.officerName || 'PESO Officer')}</span></td>
             </tr>
         `).join('');
     }
@@ -1990,24 +1867,25 @@ const PesoOfficerApp = (() => {
         const tbody = document.getElementById('disbursementLogsTableBody');
         if (!tbody) return;
 
-        const dummyLogs = [
-            { ref: 'REL-2026-001', qr: 'QR-BEN-102934', name: 'Maria Santos', program: 'TUPAD', item: 'Cash Grant (₱5,000.00)', time: '2026-08-26 10:15 AM', officer: 'PESO Officer' },
-            { ref: 'REL-2026-002', qr: 'QR-BEN-293847', name: 'Juan Dela Cruz', program: 'Starter Kit', item: 'Welding Equipment Starter Kit', time: '2026-08-26 11:30 AM', officer: 'PESO Officer' },
-            { ref: 'REL-2026-003', qr: 'QR-BEN-384756', name: 'Elena Bautista', program: 'PFAS', item: 'Pangkabuhayan Capital Seed (₱10,000.00)', time: '2026-08-26 02:00 PM', officer: 'PESO Officer' }
-        ];
+        const liveDisbursements = (state.approvedAssistance || []).filter(a => a.status === 'Released' || a.status === 'Disbursed' || a.release_date || a.disbursed_at);
 
-        tbody.innerHTML = dummyLogs.map(l => `
+        if (liveDisbursements.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-qr-code-scan fs-3 d-block mb-1 text-muted"></i>No disbursement releases logged yet. Scan a beneficiary QR pass to execute live disbursement.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = liveDisbursements.map(l => `
             <tr>
-                <td class="font-monospace fw-bold text-success">${escapeHtml(l.ref)}</td>
+                <td class="font-monospace fw-bold text-success">${escapeHtml(l.reference_number || `REL-${l.id}`)}</td>
                 <td>
-                    <span class="badge bg-light text-dark font-monospace border d-block mb-1">${escapeHtml(l.qr)}</span>
-                    <span class="fw-semibold text-dark">${escapeHtml(l.name)}</span>
+                    <span class="badge bg-light text-dark font-monospace border d-block mb-1">${escapeHtml(l.beneficiary_qr || l.beneficiaryQr || 'QR-BEN')}</span>
+                    <span class="fw-semibold text-dark">${escapeHtml(l.beneficiaryName || 'Beneficiary')}</span>
                 </td>
-                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(l.program)}</span></td>
-                <td class="fw-bold text-dark">${escapeHtml(l.item)}</td>
-                <td><small class="text-muted font-monospace">${escapeHtml(l.time)}</small></td>
+                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(l.programCode || l.program || 'PESO')}</span></td>
+                <td class="fw-bold text-dark">${escapeHtml(l.assistance_type || l.item || 'Assistance Package')}</td>
+                <td><small class="text-muted font-monospace">${escapeHtml(l.release_date || (l.created_at ? l.created_at.substring(0, 16) : 'Recent'))}</small></td>
                 <td><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-qr-code-scan me-1"></i>QR Verified</span></td>
-                <td><small class="text-secondary">${escapeHtml(l.officer)}</small></td>
+                <td><small class="text-secondary">${escapeHtml(l.officerName || 'PESO Officer')}</small></td>
             </tr>
         `).join('');
     }
@@ -2015,6 +1893,7 @@ const PesoOfficerApp = (() => {
     function handleQrDisbursementScan(qrCode) {
         const cleanQr = String(qrCode || '').trim();
         const ben = state.beneficiaries.find(b => b.qr_code === cleanQr || String(b.id) === cleanQr);
+        const app = (state.applications || []).find(a => (a.beneficiary_qr === cleanQr || String(a.beneficiary_id) === cleanQr) && (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Completed'));
 
         const nameEl = document.getElementById('disburseBenName');
         const qrEl = document.getElementById('disburseBenQrCode');
@@ -2022,19 +1901,57 @@ const PesoOfficerApp = (() => {
         const itemEl = document.getElementById('disburseItemName');
         const amountEl = document.getElementById('disburseAmount');
 
-        if (nameEl) nameEl.textContent = ben ? `${ben.first_name} ${ben.last_name}` : 'Elena Bautista';
-        if (qrEl) qrEl.textContent = cleanQr || 'QR-BEN-384756';
-        if (progEl) progEl.textContent = (ben && ben.program) || 'Starter Kit / Livelihood';
-        if (itemEl) itemEl.textContent = 'Carpentry & Electrical Tool Package';
-        if (amountEl) amountEl.textContent = '₱15,000.00';
+        const fullName = ben ? `${ben.first_name || ''} ${ben.last_name || ''}`.trim() : (app ? app.beneficiaryName : 'Beneficiary');
+        const progName = (app && (app.programCode || app.program)) || (ben && ben.program) || 'Livelihood Assistance';
+        const amountVal = app ? (app.amount_approved || 5000) : 5000;
+
+        if (nameEl) nameEl.textContent = fullName;
+        if (qrEl) qrEl.textContent = cleanQr;
+        if (progEl) progEl.textContent = progName;
+        if (itemEl) itemEl.textContent = `${progName} Grant Release / Starter Kit`;
+        if (amountEl) amountEl.textContent = formatCurrency(amountVal);
 
         safeOpenModal('officerQrDisbursementModal');
     }
 
-    function confirmDisbursementRelease() {
+    async function confirmDisbursementRelease() {
         const name = document.getElementById('disburseBenName')?.textContent || 'Beneficiary';
         const qr = document.getElementById('disburseBenQrCode')?.textContent || 'QR-BEN-XXXXXX';
         const item = document.getElementById('disburseItemName')?.textContent || 'Package';
+        const prog = document.getElementById('disburseProgramName')?.textContent || 'PESO Program';
+
+        const newRecord = {
+            id: Date.now(),
+            reference_number: `REL-${Date.now().toString().slice(-6)}`,
+            beneficiary_qr: qr,
+            beneficiaryName: name,
+            programCode: prog,
+            assistance_type: item,
+            release_date: new Date().toISOString(),
+            status: 'Released',
+            officerName: 'PESO Officer'
+        };
+
+        state.approvedAssistance.unshift(newRecord);
+
+        // Supabase Live Update
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient.from('approved_assistance').insert([{
+                    beneficiary_qr: qr,
+                    assistance_type: item,
+                    approval_date: new Date().toISOString(),
+                    quantity_amount: 5000,
+                    status: 'Released'
+                }]);
+                await supabaseClient.from('applications').update({
+                    status: 'Released',
+                    updated_at: new Date().toISOString()
+                }).eq('beneficiary_qr', qr);
+            } catch (e) {
+                console.warn('[Disbursement] Supabase sync note:', e.message);
+            }
+        }
 
         logAudit('OFFICER_CONFIRM_DISBURSEMENT', `Executed on-site QR release of ${item} to ${name} (${qr}) with dual voucher sign-off.`);
         safeCloseModal('officerQrDisbursementModal');
@@ -2061,26 +1978,37 @@ const PesoOfficerApp = (() => {
         const container = document.getElementById('officerNotificationsList');
         if (!container) return;
 
-        const notifs = [
-            { id: 1, title: 'New Schedule Slots Provisioned', message: 'PESO Admin created 30 new interview slots for SPES Batch 2.', time: '10 mins ago', type: 'ADMIN' },
-            { id: 2, title: 'Document Resubmission Uploaded', message: 'Maria Santos uploaded corrected Barangay Indigency certificate.', time: '1 hour ago', type: 'BENEFICIARY' },
-            { id: 3, title: 'Appropriation Ordinance Updated', message: 'LGU Ordinance No. 6 budget line item unlocked for TUPAD emergency wave.', time: '3 hours ago', type: 'ADMIN' }
-        ];
+        const notifs = state.notifications || [];
 
-        container.innerHTML = notifs.map(n => `
-            <div class="p-3 border rounded-3 bg-light d-flex align-items-start gap-3">
-                <div class="p-2 rounded-circle ${n.type === 'ADMIN' ? 'bg-primary-subtle text-primary' : 'bg-success-subtle text-success'}">
-                    <i class="bi ${n.type === 'ADMIN' ? 'bi-shield-lock-fill' : 'bi-person-check-fill'} fs-5"></i>
+        if (notifs.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 text-center text-muted bg-light rounded-3 border">
+                    <i class="bi bi-bell-slash fs-3 d-block mb-1 text-muted"></i>
+                    <span class="small">No active alerts or incoming broadcast notices.</span>
                 </div>
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.9rem;">${escapeHtml(n.title)}</h6>
-                        <small class="text-muted font-monospace">${escapeHtml(n.time)}</small>
+            `;
+            return;
+        }
+
+        container.innerHTML = notifs.map(n => {
+            const isAdm = (n.sender || '').toUpperCase().includes('ADMIN') || n.type === 'ADMIN';
+            const timeStr = n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (n.time || 'Recent');
+
+            return `
+                <div class="p-3 border rounded-3 bg-light d-flex align-items-start gap-3 mb-2">
+                    <div class="p-2 rounded-circle ${isAdm ? 'bg-primary-subtle text-primary' : 'bg-success-subtle text-success'}">
+                        <i class="bi ${isAdm ? 'bi-shield-lock-fill' : 'bi-person-check-fill'} fs-5"></i>
                     </div>
-                    <p class="small text-muted mb-0">${escapeHtml(n.message)}</p>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.9rem;">${escapeHtml(n.title || 'System Advisory')}</h6>
+                            <small class="text-muted font-monospace">${escapeHtml(timeStr)}</small>
+                        </div>
+                        <p class="small text-muted mb-0">${escapeHtml(n.message || n.body || '')}</p>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function handleSendOfficerBroadcast(event) {
@@ -2096,20 +2024,40 @@ const PesoOfficerApp = (() => {
             return;
         }
 
+        const newNotif = {
+            id: Date.now(),
+            title: subject,
+            message: body,
+            priority: priority,
+            target: program,
+            sender: 'PESO Officer',
+            created_at: new Date().toISOString()
+        };
+
+        if (!state.notifications) state.notifications = [];
+        state.notifications.unshift(newNotif);
+
         logAudit('OFFICER_DISPATCH_BROADCAST', `Dispatched broadcast "${subject}" to target cohort ${program}`);
 
         if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
-            OTPAuth.broadcastRealtimeEvent('NEW_NOTIFICATION', {
-                title: subject,
-                message: body,
-                priority: priority,
-                target: program,
-                sender: 'PESO Officer',
-                timestamp: Date.now()
-            });
+            OTPAuth.broadcastRealtimeEvent('NEW_NOTIFICATION', newNotif);
+        }
+
+        // Live Supabase sync
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                supabaseClient.from('notifications').insert([{
+                    title: subject,
+                    message: body,
+                    priority: priority,
+                    target_role: 'Beneficiary',
+                    created_at: new Date().toISOString()
+                }]);
+            } catch (e) {}
         }
 
         document.getElementById('officerBroadcastForm')?.reset();
+        renderOfficerNotificationsFeed();
 
         if (typeof window.showSystemNotification === 'function') {
             window.showSystemNotification({
@@ -2146,21 +2094,117 @@ const PesoOfficerApp = (() => {
 
         if (thead) thead.innerHTML = headers[datasetKey] || headers['applications'];
 
-        // Render dataset rows
-        const rows = [
-            `<tr><td class="font-monospace text-primary">#APP-2026-001</td><td class="fw-bold">Maria Santos</td><td><span class="badge bg-primary">SPES</span></td><td>Poblacion</td><td>2026-08-10</td><td><span class="badge bg-success">Complete</span></td><td><span class="badge bg-success">Approved</span></td></tr>`,
-            `<tr><td class="font-monospace text-primary">#APP-2026-002</td><td class="fw-bold">Juan Dela Cruz</td><td><span class="badge bg-warning text-dark">TUPAD</span></td><td>Morales</td><td>2026-08-12</td><td><span class="badge bg-success">Complete</span></td><td><span class="badge bg-success">Approved</span></td></tr>`,
-            `<tr><td class="font-monospace text-primary">#APP-2026-003</td><td class="fw-bold">Carlos Mendoza</td><td><span class="badge bg-info text-dark">Starter Kit</span></td><td>Zone 1</td><td>2026-08-14</td><td><span class="badge bg-danger">Incomplete</span></td><td><span class="badge bg-warning text-dark">Pending</span></td></tr>`
-        ];
+        let datasetRows = [];
 
-        if (tbody) tbody.innerHTML = rows.join('');
-        if (badge) badge.textContent = `${rows.length} Records`;
+        if (datasetKey === 'applications') {
+            datasetRows = (state.applications || []).map(a => `
+                <tr>
+                    <td class="font-monospace text-primary fw-bold">#APP-${escapeHtml(String(a.id || a.application_number))}</td>
+                    <td class="fw-bold text-dark">${escapeHtml(a.beneficiaryName || 'Applicant')}</td>
+                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(a.programCode || a.program || 'PESO')}</span></td>
+                    <td>${escapeHtml(a.barangay || 'Koronadal')}</td>
+                    <td><small class="text-muted font-monospace">${escapeHtml(a.date_applied || a.dateSubmitted || 'Recent')}</small></td>
+                    <td><span class="badge ${a.is_complete !== false ? 'bg-success' : 'bg-danger'}">${a.is_complete !== false ? 'Complete' : 'Incomplete'}</span></td>
+                    <td><span class="badge ${a.status === 'Approved' ? 'bg-success' : (a.status === 'Denied' ? 'bg-danger' : 'bg-warning text-dark')}">${escapeHtml(a.status || 'Pending')}</span></td>
+                </tr>
+            `);
+        } else if (datasetKey === 'training_completions') {
+            datasetRows = (state.beneficiaries || []).map(b => {
+                const total = b.total_sessions || 5;
+                const attended = b.sessions_attended !== undefined ? b.sessions_attended : (b.training_status === 'Completed' ? total : 0);
+                const pct = Math.round((attended / total) * 100);
+                const isDone = b.training_status === 'Completed' || pct >= 100;
+                return `
+                    <tr>
+                        <td class="fw-bold text-dark">${escapeHtml(b.name || `${b.first_name || ''} ${b.last_name || ''}`)}</td>
+                        <td>${escapeHtml(b.program || 'Livelihood')} (${escapeHtml(b.batch_name || 'General')})</td>
+                        <td><span class="font-monospace fw-bold">${attended} / ${total} Days</span></td>
+                        <td><span class="badge ${isDone ? 'bg-success' : 'bg-warning text-dark'} font-monospace">${pct}%</span></td>
+                        <td><span class="badge ${isDone ? 'bg-success' : 'bg-secondary'}">${isDone ? 'Completed' : 'In Progress'}</span></td>
+                        <td><span class="badge ${isDone ? 'bg-info-subtle text-info border' : 'bg-light text-dark'}">${isDone ? 'Eligible' : 'Incomplete'}</span></td>
+                    </tr>
+                `;
+            });
+        } else if (datasetKey === 'disbursement_records') {
+            datasetRows = (state.approvedAssistance || []).map(r => `
+                <tr>
+                    <td class="font-monospace fw-bold text-success">${escapeHtml(r.reference_number || `REL-${r.id}`)}</td>
+                    <td>${escapeHtml(r.beneficiaryName || 'Beneficiary')} (${escapeHtml(r.beneficiary_qr || 'QR-BEN')})</td>
+                    <td><span class="badge bg-primary-subtle text-primary border">${escapeHtml(r.programCode || 'PESO')}</span></td>
+                    <td class="fw-semibold">${escapeHtml(r.assistance_type || r.item || 'Assistance Package')}</td>
+                    <td><small class="font-monospace text-muted">${escapeHtml(r.release_date || 'Recent')}</small></td>
+                    <td><span class="badge bg-success-subtle text-success border"><i class="bi bi-qr-code-scan me-1"></i>QR Verified</span></td>
+                </tr>
+            `);
+        } else {
+            // General application fallback
+            datasetRows = (state.applications || []).map(a => `
+                <tr>
+                    <td class="font-monospace text-primary">#APP-${escapeHtml(String(a.id || a.application_number))}</td>
+                    <td class="fw-bold">${escapeHtml(a.beneficiaryName || 'Applicant')}</td>
+                    <td><span class="badge bg-primary">${escapeHtml(a.programCode || a.program || 'PESO')}</span></td>
+                    <td>${escapeHtml(a.barangay || 'Koronadal')}</td>
+                    <td>${escapeHtml(a.date_applied || 'Recent')}</td>
+                    <td><span class="badge bg-success">Complete</span></td>
+                    <td><span class="badge bg-primary">${escapeHtml(a.status || 'Pending')}</span></td>
+                </tr>
+            `);
+        }
+
+        if (tbody) {
+            if (datasetRows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No records found for this dataset.</td></tr>`;
+            } else {
+                tbody.innerHTML = datasetRows.join('');
+            }
+        }
+
+        if (badge) badge.textContent = `${datasetRows.length} Records`;
         if (titleEl) titleEl.textContent = select ? select.options[select.selectedIndex].text : 'Reports Dataset';
     }
 
     function exportOfficerReportsCSV() {
         const datasetKey = state.activeReportDataset || 'applications';
-        const csvContent = "data:text/csv;charset=utf-8,Record ID,Beneficiary Name,Program,Status,Timestamp\n1,Maria Santos,SPES,Approved,2026-08-26\n2,Juan Dela Cruz,TUPAD,Approved,2026-08-26";
+        let csvRows = [];
+        
+        if (datasetKey === 'applications') {
+            csvRows = [
+                ['Record ID', 'Beneficiary Name', 'Program', 'Status', 'Date Applied'],
+                ...(state.applications || []).map(a => [
+                    a.id || a.application_number || '',
+                    `"${(a.beneficiaryName || '').replace(/"/g, '""')}"`,
+                    `"${(a.programCode || a.program || '').replace(/"/g, '""')}"`,
+                    a.status || '',
+                    a.date_applied || ''
+                ])
+            ];
+        } else if (datasetKey === 'training_completions') {
+            csvRows = [
+                ['Beneficiary ID', 'Name', 'Program', 'Sessions Attended', 'Total Sessions', 'Status'],
+                ...(state.beneficiaries || []).map(b => [
+                    b.qr_code || b.id || '',
+                    `"${(b.name || '').replace(/"/g, '""')}"`,
+                    `"${(b.program || '').replace(/"/g, '""')}"`,
+                    b.sessions_attended || 0,
+                    b.total_sessions || 5,
+                    b.training_status || 'In Progress'
+                ])
+            ];
+        } else {
+            csvRows = [
+                ['Reference Number', 'Beneficiary QR', 'Beneficiary Name', 'Program', 'Disbursed Item', 'Date'],
+                ...(state.approvedAssistance || []).map(r => [
+                    r.reference_number || r.id || '',
+                    r.beneficiary_qr || '',
+                    `"${(r.beneficiaryName || '').replace(/"/g, '""')}"`,
+                    `"${(r.programCode || '').replace(/"/g, '""')}"`,
+                    `"${(r.assistance_type || r.item || '').replace(/"/g, '""')}"`,
+                    r.release_date || ''
+                ])
+            ];
+        }
+
+        const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
