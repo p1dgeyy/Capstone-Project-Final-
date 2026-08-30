@@ -383,12 +383,16 @@ function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
 }
 
-function logoutAdmin() {
+async function logoutAdmin() {
     clearCachedAdminData();
     if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
-        SessionManager.logout('admin_login.html');
+        await SessionManager.logout('admin_login.html');
+    } else if (typeof AuthGuard !== 'undefined' && AuthGuard.logout) {
+        await AuthGuard.logout('admin_login.html');
     } else {
         sessionStorage.clear();
+        localStorage.removeItem('peso_active_session_id');
+        localStorage.removeItem('peso_last_user_activity');
         window.location.href = 'admin_login.html';
     }
 }

@@ -735,7 +735,7 @@
     <!-- Top Header Bar -->
     <header class="header-top">
         <div class="search-box d-flex align-items-center gap-2">
-            <i class="bi bi-search"></i>
+            <i class="bi bi-search" style="cursor: pointer;" onclick="handleGlobalSearchClick()" title="Click to search / lookup QR"></i>
             <input type="text" class="form-control" id="globalSearchInput"
                 placeholder="Search beneficiary, QR ID, application..." onkeyup="handleGlobalSearch(event)"
                 aria-label="Search beneficiary, QR ID, application">
@@ -10399,13 +10399,19 @@
             }
         });
 
-        function logoutOfficer() {
-            if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
-                SessionManager.logout('admin_login.html');
-            } else {
-                sessionStorage.clear();
-                localStorage.removeItem('currentUser');
-                window.location.href = 'admin_login.html';
+        async function logoutOfficer() {
+            if (confirm("Are you sure you want to log out of the PESO Officer Portal?")) {
+                if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
+                    await SessionManager.logout('admin_login.html');
+                } else if (typeof AuthGuard !== 'undefined' && AuthGuard.logout) {
+                    await AuthGuard.logout('admin_login.html');
+                } else {
+                    sessionStorage.clear();
+                    localStorage.removeItem('peso_active_session_id');
+                    localStorage.removeItem('peso_last_user_activity');
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'admin_login.html';
+                }
             }
         }
 
@@ -10414,6 +10420,60 @@
             const isDark = document.body.classList.contains('dark-mode');
             localStorage.setItem('koronadal_theme', isDark ? 'dark' : 'light');
         }
+
+        function handleGlobalSearch(event) {
+            const query = (document.getElementById('globalSearchInput')?.value || '').trim();
+            if (event && event.key === 'Enter') {
+                if (query) {
+                    if (typeof QrScannerController !== 'undefined' && QrScannerController.openScanner) {
+                        QrScannerController.openScanner(query);
+                    } else if (typeof openQrScannerModal === 'function') {
+                        openQrScannerModal();
+                    }
+                }
+                return;
+            }
+
+            // Real-time table filter synchronization if on relevant tabs
+            const benInput = document.getElementById('benSearchInput');
+            if (benInput) {
+                benInput.value = query;
+                if (typeof filterBeneficiariesTable === 'function') {
+                    filterBeneficiariesTable();
+                }
+            }
+            const astInput = document.getElementById('astSearchInput');
+            if (astInput) {
+                astInput.value = query;
+                if (typeof filterAssistanceTable === 'function') {
+                    filterAssistanceTable();
+                }
+            }
+            const liveInput = document.getElementById('livelihoodSearchInput');
+            if (liveInput) {
+                liveInput.value = query;
+                if (typeof filterLivelihoodTable === 'function') {
+                    filterLivelihoodTable();
+                }
+            }
+        }
+
+        function handleGlobalSearchClick() {
+            const query = (document.getElementById('globalSearchInput')?.value || '').trim();
+            if (query) {
+                if (typeof QrScannerController !== 'undefined' && QrScannerController.openScanner) {
+                    QrScannerController.openScanner(query);
+                } else if (typeof openQrScannerModal === 'function') {
+                    openQrScannerModal();
+                }
+            } else {
+                if (typeof openQrScannerModal === 'function') {
+                    openQrScannerModal();
+                }
+            }
+        }
+        window.handleGlobalSearch = handleGlobalSearch;
+        window.handleGlobalSearchClick = handleGlobalSearchClick;
 
         (function () {
             const savedTheme = localStorage.getItem('koronadal_theme');

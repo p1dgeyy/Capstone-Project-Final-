@@ -157,6 +157,8 @@ const SessionManager = (() => {
       if (extra.fullName) sessionStorage.setItem('userFullName', extra.fullName);
       if (extra.department) sessionStorage.setItem('department', extra.department);
       if (extra.email) sessionStorage.setItem('userEmail', extra.email);
+      if (extra.qrCode) sessionStorage.setItem('qrCode', extra.qrCode);
+      if (extra.authId) sessionStorage.setItem('authId', extra.authId);
     } catch (e) {
       console.warn('[SessionManager] Could not write sessionStorage:', e);
     }
@@ -324,6 +326,9 @@ const SessionManager = (() => {
       sessionStorage.removeItem('userFullName');
       sessionStorage.removeItem('department');
       sessionStorage.removeItem('currentSessionId');
+      sessionStorage.removeItem('userEmail');
+      sessionStorage.removeItem('qrCode');
+      sessionStorage.removeItem('authId');
       localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
     } catch (e) {}
 
@@ -346,18 +351,30 @@ const SessionManager = (() => {
     const targetUrl = redirectUrl || getLoginUrl(getRole());
 
     try {
-      const uId = getUserId();
+      const uId = getUserId() || sessionStorage.getItem('userId');
       const uName = sessionStorage.getItem('username');
       const uEmail = sessionStorage.getItem('userEmail');
-      const sessionId = getSessionId();
+      const qrCode = sessionStorage.getItem('qrCode');
+      const authId = sessionStorage.getItem('authId');
+      const sessionId = getSessionId() || localStorage.getItem(STORAGE_ACTIVE_SESSION_KEY);
 
       // Release active device lock in Supabase so the account can log in on any device immediately
-      if (supabaseClient) {
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
         const deleteOps = [];
         if (uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(uId)));
+        if (qrCode && qrCode !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(qrCode)));
+        if (authId && authId !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(authId)));
         if (uName) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_identifier', String(uName)));
         if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', String(uEmail)));
         if (sessionId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('session_id', sessionId));
+
+        try {
+          const { data: userData } = await supabaseClient.auth.getUser();
+          if (userData?.user?.id) {
+            deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(userData.user.id)));
+          }
+        } catch (e) {}
+
         await Promise.allSettled(deleteOps);
         await supabaseClient.auth.signOut().catch(() => {});
       }
@@ -379,19 +396,31 @@ const SessionManager = (() => {
    */
   async function forceLogout(message, targetUrl) {
     const redirect = targetUrl || getLoginUrl(getRole());
-    const uId = getUserId();
+    const uId = getUserId() || sessionStorage.getItem('userId');
     const uName = sessionStorage.getItem('username');
     const uEmail = sessionStorage.getItem('userEmail');
-    const sessionId = getSessionId();
+    const qrCode = sessionStorage.getItem('qrCode');
+    const authId = sessionStorage.getItem('authId');
+    const sessionId = getSessionId() || localStorage.getItem(STORAGE_ACTIVE_SESSION_KEY);
 
     // Release database session lock before redirecting so user can log in immediately
-    if (supabaseClient) {
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
         const deleteOps = [];
         if (uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(uId)));
+        if (qrCode && qrCode !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(qrCode)));
+        if (authId && authId !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(authId)));
         if (uName) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_identifier', String(uName)));
         if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', String(uEmail)));
         if (sessionId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('session_id', sessionId));
+
+        try {
+          const { data: userData } = await supabaseClient.auth.getUser();
+          if (userData?.user?.id) {
+            deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(userData.user.id)));
+          }
+        } catch (e) {}
+
         await Promise.allSettled(deleteOps);
         await supabaseClient.auth.signOut().catch(() => {});
       } catch (e) {

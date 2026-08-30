@@ -10399,10 +10399,18 @@
             if (modal) modal.style.display = 'none';
         }
 
-        function logoutBeneficiary() {
+        async function logoutBeneficiary() {
             if (confirm("Are you sure you want to log out of the Beneficiary Portal?")) {
-                sessionStorage.clear();
-                window.location.href = "official_login.html";
+                if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
+                    await SessionManager.logout('official_login.html');
+                } else if (typeof AuthGuard !== 'undefined' && AuthGuard.logout) {
+                    await AuthGuard.logout('official_login.html');
+                } else {
+                    sessionStorage.clear();
+                    localStorage.removeItem('peso_active_session_id');
+                    localStorage.removeItem('peso_last_user_activity');
+                    window.location.href = "official_login.html";
+                }
             }
         }
 

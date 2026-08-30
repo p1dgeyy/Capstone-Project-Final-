@@ -343,13 +343,31 @@ const AuthGuard = (() => {
    * Universal Logout helper
    */
   async function logout(redirectUrl) {
+    const targetUrl = redirectUrl || getLoginPage();
+    if (typeof SessionManager !== 'undefined' && SessionManager.logout) {
+      await SessionManager.logout(targetUrl);
+      return;
+    }
     try {
-      if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
-        await supabaseClient.auth.signOut();
+      const uId = sessionStorage.getItem('userId');
+      const uName = sessionStorage.getItem('username');
+      const uEmail = sessionStorage.getItem('userEmail');
+      const qrCode = sessionStorage.getItem('qrCode');
+      const sessionId = sessionStorage.getItem('currentSessionId') || localStorage.getItem('peso_active_session_id');
+
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        const deleteOps = [];
+        if (uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(uId)));
+        if (qrCode && qrCode !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(qrCode)));
+        if (uName) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_identifier', String(uName)));
+        if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', String(uEmail)));
+        if (sessionId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('session_id', sessionId));
+        await Promise.allSettled(deleteOps);
+        await supabaseClient.auth.signOut().catch(() => {});
       }
     } catch (e) {}
-    try { sessionStorage.clear(); } catch (e) {}
-    window.location.href = redirectUrl || getLoginPage();
+    try { sessionStorage.clear(); localStorage.removeItem('peso_active_session_id'); localStorage.removeItem('peso_last_user_activity'); } catch (e) {}
+    window.location.href = targetUrl;
   }
 
   /**

@@ -5032,14 +5032,220 @@ window.nextPage = nextPage;
 window.previousPage = previousPage;
 window.viewAllRecentActivity = viewAllRecentActivity;
 window.quickActionAddApplicant = quickActionAddApplicant;
+window.searchBeneficiaries = function() {
+    const q = (document.getElementById('searchBeneficiary')?.value || '').trim().toLowerCase();
+    const rows = document.querySelectorAll('#beneficiariesTableBody tr, .beneficiary-row, table tbody tr');
+    rows.forEach(r => {
+        const text = r.textContent.toLowerCase();
+        if (!q || text.includes(q)) {
+            r.style.display = '';
+        } else {
+            r.style.display = 'none';
+    document.getElementById('viewApprovalBeneficiary').textContent = record.beneficiary;
+    document.getElementById('viewApprovalType').textContent = record.type;
+    document.getElementById('viewApprovalQuantity').textContent = record.quantity;
+    document.getElementById('viewApprovalDate').textContent = record.date;
+    document.getElementById('viewApprovalConditions').textContent = record.conditions || 'None';
+    document.getElementById('viewApprovalNotes').textContent = record.notes || 'None';
+    document.getElementById('viewApprovalStatus').innerHTML = '<span class="status-badge ' + (record.status === 'Recorded' ? 'approved' : 'pending') + '">' + record.status + '</span>';
+    
+    openModal('viewApprovalDetailsModal');
+};
+
+window.editApprovalRecord = function(approvalId) {
+    var record = approvalRecords[approvalId];
+    if (!record) {
+        alert('Approval record not found');
+        return;
+    }
+    
+    alert('Edit functionality for ' + approvalId + '\n\nIn a full implementation, this would open an edit form.');
+};
+
+/* ===== NEW UI FUNCTIONS ===== */
+
+/* Global Search Bar */
+window.performGlobalSearch = function(query) {
+    if (!query) {
+        alert('Please enter a search term');
+        return;
+    }
+    alert('Searching for: ' + query + '\n\nSearching across applicants, programs, and beneficiaries...');
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    var globalSearch = document.getElementById('globalSearch');
+    if (globalSearch) {
+        globalSearch.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performGlobalSearch(this.value);
+            }
+        });
+    }
+});
+
+/* Chart Filters and Updates */
+window.updateChartFilter = function(chartId, filterValue) {
+    var filterText = '';
+    switch(filterValue) {
+        case 'this-week': filterText = 'This Week'; break;
+        case 'this-month': filterText = 'This Month'; break;
+        case 'this-quarter': filterText = 'This Quarter'; break;
+        case 'this-year': filterText = 'This Year'; break;
+        case 'custom-range': filterText = 'Custom Range'; break;
+    }
+    console.log('Chart ' + chartId + ' filtered by: ' + filterText);
+    // In a real application, this would update chart data via API call
+    alert('Chart filtered by: ' + filterText);
+};
+
+/* Export Dropdown Toggle */
+window.toggleExportDropdown = function(button) {
+    var dropdown = button.nextElementSibling;
+    if (dropdown && dropdown.classList.contains('export-dropdown')) {
+        dropdown.classList.toggle('active');
+        // Close other dropdowns
+        document.querySelectorAll('.export-dropdown.active').forEach(function(d) {
+            if (d !== dropdown) d.classList.remove('active');
+        });
+    }
+};
+
+/* Export Functions */
+window.exportChartToPDF = function(chartName) {
+    alert('Exporting \"' + chartName + '\" chart to PDF...');
+    // In a real application, this would generate and download a PDF
+    closeExportDropdowns();
+};
+
+window.exportChartToExcel = function(chartName) {
+    alert('Exporting \"' + chartName + '\" chart to Excel...');
+    // In a real application, this would generate and download an Excel file
+    closeExportDropdowns();
+};
+
+window.exportActivityToPDF = function() {
+    alert('Exporting Recent Activity table to PDF...');
+    // In a real application, this would generate and download a PDF
+    closeExportDropdowns();
+};
+
+window.exportActivityToExcel = function() {
+    alert('Exporting Recent Activity table to Excel...');
+    // In a real application, this would generate and download an Excel file
+    closeExportDropdowns();
+};
+
+function closeExportDropdowns() {
+    document.querySelectorAll('.export-dropdown.active').forEach(function(d) {
+        d.classList.remove('active');
+    });
+}
+
+// Close export dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    try {
+        if (event && event.target && typeof event.target.closest === 'function' && !event.target.closest('.export-btn-group')) {
+            closeExportDropdowns();
+        }
+    } catch (e) {
+        console.warn('[Evaluator] Click listener warning:', e);
+    }
+});
+
+/* Pagination Controls */
+var currentPage = 1;
+var totalPages = 12;
+
+window.nextPage = function() {
+    if (currentPage < totalPages) {
+        currentPage++;
+        updatePaginationDisplay();
+    }
+};
+
+window.previousPage = function() {
+    if (currentPage > 1) {
+        currentPage--;
+        updatePaginationDisplay();
+    }
+};
+
+function updatePaginationDisplay() {
+    var currentPageEl = document.getElementById('currentPage');
+    if (currentPageEl) {
+        currentPageEl.textContent = currentPage;
+    }
+    console.log('Navigated to page: ' + currentPage);
+    // In a real application, this would fetch and display data for the current page
+}
+
+window.viewAllRecentActivity = function() {
+    alert('Viewing all recent activity records...\n\nThis would navigate to a full activity log view.');
+};
+
+/* Quick Action Buttons */
+window.quickActionAddApplicant = function() {
+    openModal('createApplicantModal');
+};
+
+window.quickActionNewApplication = function() {
+    alert('Creating new application...');
+    // This would open a form to start a new application
+};
+
+window.quickActionViewReports = function() {
+    alert('Opening Reports module...');
+    var reportLink = document.querySelector('[data-module="reports"]');
+    if (reportLink) {
+        reportLink.click();
+    }
+};
+
+/* Initialize on document load */
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        if (document.getElementById('currentPage')) {
+            document.getElementById('currentPage').textContent = currentPage;
+        }
+        if (document.getElementById('totalPages')) {
+            document.getElementById('totalPages').textContent = totalPages;
+        }
+    } catch (e) {
+        console.warn('[Evaluator] DOMContentLoaded pagination init error:', e);
+    }
+});
+
+// Make new functions globally accessible
+window.updateChartFilter = updateChartFilter;
+window.toggleExportDropdown = toggleExportDropdown;
+window.exportChartToPDF = exportChartToPDF;
+window.exportChartToExcel = exportChartToExcel;
+window.exportActivityToPDF = exportActivityToPDF;
+window.exportActivityToExcel = exportActivityToExcel;
+window.nextPage = nextPage;
+window.previousPage = previousPage;
+window.viewAllRecentActivity = viewAllRecentActivity;
+window.quickActionAddApplicant = quickActionAddApplicant;
+window.searchBeneficiaries = function() {
+    const q = (document.getElementById('searchBeneficiary')?.value || '').trim().toLowerCase();
+    const rows = document.querySelectorAll('#beneficiariesTableBody tr, .beneficiary-row, table tbody tr');
+    rows.forEach(r => {
+        const text = r.textContent.toLowerCase();
+        if (!q || text.includes(q)) {
+            r.style.display = '';
+        } else {
+            r.style.display = 'none';
+        }
+    });
+};
+
+window.filterBeneficiaries = function() {
+    window.searchBeneficiaries();
+};
+
 window.quickActionNewApplication = quickActionNewApplication;
 window.quickActionViewReports = quickActionViewReports;
 </script>
 </body>
 </html>
-
-
-
-
-
-

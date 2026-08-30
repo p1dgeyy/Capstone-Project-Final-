@@ -291,7 +291,7 @@ const QrScannerController = (() => {
   }
 
   // Open the modal
-  function openScanner() {
+  function openScanner(prefillCode) {
     initScannerUI();
     currentOfficer = getActiveOfficer();
     resetScanResult();
@@ -301,10 +301,27 @@ const QrScannerController = (() => {
       const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.show();
       
-      // Auto start camera if camera tab is active
-      const cameraTabBtn = document.getElementById('cameraTabBtn');
-      if (cameraTabBtn && cameraTabBtn.classList.contains('active')) {
-        startCamera();
+      if (prefillCode && typeof prefillCode === 'string' && prefillCode.trim()) {
+        const cleanPrefill = prefillCode.trim();
+        const manualTabBtn = document.getElementById('manualTabBtn');
+        const manualInput = document.getElementById('manualQrInput');
+        if (manualTabBtn && typeof bootstrap !== 'undefined') {
+          const tabTrigger = new bootstrap.Tab(manualTabBtn);
+          tabTrigger.show();
+        }
+        if (manualInput) {
+          manualInput.value = cleanPrefill;
+        }
+        stopCamera();
+        setTimeout(() => {
+          handleScanSuccess(cleanPrefill);
+        }, 200);
+      } else {
+        // Auto start camera if camera tab is active
+        const cameraTabBtn = document.getElementById('cameraTabBtn');
+        if (cameraTabBtn && cameraTabBtn.classList.contains('active')) {
+          startCamera();
+        }
       }
     }
   }
@@ -414,9 +431,9 @@ const QrScannerController = (() => {
   async function handleManualSubmit() {
     const input = document.getElementById('manualQrInput');
     if (!input) return;
-    const code = input.value.trim().toUpperCase();
+    const code = input.value.trim();
     if (!code) {
-      alert('Please enter a valid QR code identifier (e.g. QR-BEN-XXXXXXXX or BEN-2026-001)');
+      alert('Please enter a valid QR code identifier (e.g. QR-BEN-XXXXXXXX or application number)');
       return;
     }
     await handleScanSuccess(code);
@@ -424,19 +441,28 @@ const QrScannerController = (() => {
 
   // On QR Code Recognized
   async function handleScanSuccess(decodedText) {
-    let cleanCode = decodedText.trim();
+    if (!decodedText) return;
+    let cleanCode = String(decodedText).trim();
 
-    // Support JSON payloads if encoded as JSON
+    // 1. Support URL format (e.g. https://.../?qr=QR-BEN-XXXX)
+    try {
+      if (cleanCode.startsWith('http://') || cleanCode.startsWith('https://')) {
+        const urlObj = new URL(cleanCode);
+        const urlQr = urlObj.searchParams.get('qr') || urlObj.searchParams.get('code') || urlObj.searchParams.get('ref') || urlObj.searchParams.get('id');
+        if (urlQr) cleanCode = urlQr;
+      }
+    } catch (e) {}
+
+    // 2. Support JSON payloads if encoded as JSON
     try {
       const parsed = JSON.parse(cleanCode);
-      if (parsed.qr || parsed.ref || parsed.uid || parsed.id) {
-        cleanCode = parsed.qr || parsed.ref || parsed.uid || parsed.id;
+      if (parsed && typeof parsed === 'object') {
+        cleanCode = parsed.qr || parsed.ref || parsed.uid || parsed.id || parsed.qr_code || cleanCode;
       }
-    } catch (e) {
-      // Plain text string
-    }
+    } catch (e) {}
 
-    cleanCode = cleanCode.toUpperCase();
+    cleanCode = cleanCode.trim();
+    const cleanUpper = cleanCode.toUpperCase();
 
     // Audio feedback
     playScanBeep();
@@ -455,11 +481,45 @@ const QrScannerController = (() => {
 
     try {
       let ben = null;
-      const benRes = await DataService.beneficiaries.getByQr(cleanCode);
+
+      // Tier 1: Look up in beneficiaries by exact qr_code
+      const benRes = await DataService.beneficiaries.getByQr(cleanUpper);
       if (benRes && benRes.data) {
         ben = benRes.data;
-      } else {
-        // Try looking up by username or ID
+      }
+
+      // Tier 1.5: If not found, try original casing
+      if (!ben && cleanCode !== cleanUpper) {
+        const rawRes = await DataService.beneficiaries.getByQr(cleanCode);
+        if (rawRes && rawRes.data) {
+          ben = rawRes.data;
+        }
+      }
+
+      // Tier 2: If input is an Application Number (e.g. PESO-2026-XXXX, CSWDO-..., APP-...), look up applications table
+      if (!ben && typeof supabaseClient !== 'undefined' && supabaseClient) {
+        try {
+          const { data: appMatch } = await supabaseClient
+            .from('applications')
+            .select('*, beneficiary:beneficiaries(*)')
+            .or(`application_number.ilike.${cleanCode},id.eq.${!isNaN(cleanCode) ? cleanCode : 0}`)
+            .maybeSingle();
+
+          if (appMatch) {
+            if (appMatch.beneficiary) {
+              ben = appMatch.beneficiary;
+            } else if (appMatch.beneficiary_qr) {
+              const benByQr = await DataService.beneficiaries.getByQr(appMatch.beneficiary_qr);
+              if (benByQr && benByQr.data) ben = benByQr.data;
+            }
+          }
+        } catch (appErr) {
+          console.warn('[QR_SCANNER] Application lookup notice:', appErr);
+        }
+      }
+
+      // Tier 3: Search by username, auth_id, email, phone, or name
+      if (!ben) {
         const allBens = await DataService.beneficiaries.getAll({ search: cleanCode });
         if (allBens && allBens.data && allBens.data.length > 0) {
           ben = allBens.data[0];
@@ -467,19 +527,19 @@ const QrScannerController = (() => {
       }
 
       if (!ben) {
-        alert(`No beneficiary record found in database for identifier: ${cleanCode}`);
+        alert(`No beneficiary record found in database for identifier: "${cleanCode}"`);
         return;
       }
 
       // Fetch active applications for this beneficiary
-      const appsRes = await DataService.applications.getByBeneficiary(ben.qr_code || cleanCode);
+      const appsRes = await DataService.applications.getByBeneficiary(ben.qr_code || cleanUpper);
       const apps = appsRes && appsRes.data ? appsRes.data : [];
       const latestApp = apps.length > 0 ? apps[0] : null;
 
       activeScannedData = {
         beneficiary: ben,
         application: latestApp,
-        qrCode: ben.qr_code || cleanCode
+        qrCode: ben.qr_code || cleanUpper
       };
 
       // Populate Result UI
