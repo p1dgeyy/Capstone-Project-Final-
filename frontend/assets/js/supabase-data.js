@@ -645,9 +645,7 @@ const DataService = (() => {
   const applications = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
-        // Egress optimization: Exclude massive documents_json base64 payloads from bulk list queries
-        const cols = filters.includeDocuments ? '*' : 'id, application_number, beneficiary_qr, program_id, status, progress_percent, remarks, amount_requested, amount_approved, created_at, updated_at, date_applied, evaluator_id, forwarded_by, officer_name, batch_id, agency';
-        let query = client.from('applications').select(cols);
+        let query = client.from('applications').select('*');
 
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
@@ -666,13 +664,8 @@ const DataService = (() => {
           query = query.eq('batch_id', filters.batch_id);
         }
 
-        try {
-          const res = await query.order('id', { ascending: false }).limit(filters.limit || 150);
-          if (!res.error && res.data) return res;
-        } catch (e) {}
-
-        const fallbackRes = await client.from('applications').select('*').order('id', { ascending: false }).limit(filters.limit || 100);
-        return fallbackRes;
+        const res = await query.order('created_at', { ascending: false }).limit(filters.limit || 150);
+        return res;
       });
     },
 
@@ -1827,10 +1820,9 @@ const DataService = (() => {
 
     async getUnbatchedApproved(filters = {}) {
       return withRetry(async (client) => {
-        const appCols = 'id, application_number, beneficiary_qr, program_id, status, progress_percent, remarks, amount_requested, amount_approved, created_at, updated_at, date_applied, evaluator_id, forwarded_by, officer_name, batch_id, agency';
         try {
           let query = client.from('applications').select(`
-            ${appCols},
+            *,
             beneficiary:beneficiaries!beneficiary_qr(
               id, qr_code, first_name, middle_name, last_name, suffix, username, barangay, address, phone, contact_number, email, category, date_of_birth, age, sex
             ),
@@ -1853,7 +1845,7 @@ const DataService = (() => {
           if (!res.error && res.data) return res;
         } catch (e) {}
 
-        let fallbackQuery = client.from('applications').select(appCols)
+        let fallbackQuery = client.from('applications').select('*')
           .is('batch_id', null)
           .in('status', ['Approved', 'Officer Approved']);
         if (filters.program_id) fallbackQuery = fallbackQuery.eq('program_id', filters.program_id);
