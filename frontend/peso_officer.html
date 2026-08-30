@@ -414,63 +414,43 @@
             transform: rotate(-90deg);
         }
 
-        .peso-quick-action-bar {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1040;
-            background: rgba(15, 23, 42, 0.92);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 50px;
-            padding: 8px 16px;
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            animation: slideUpQuickBar 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        /* Horizontal Scroll Elimination & Responsive Containment (Rule 1) */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
+            position: relative;
         }
 
-        @keyframes slideUpQuickBar {
-            from {
-                opacity: 0;
-                transform: translate(-50%, 20px);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--header-height);
+            padding: 28px;
+            min-height: calc(100vh - var(--header-height));
+            max-width: calc(100vw - var(--sidebar-width));
+            overflow-x: hidden;
+            box-sizing: border-box;
         }
 
-        .peso-quick-btn {
-            color: #F8FAFC;
-            background: transparent;
-            border: none;
-            padding: 7px 14px;
-            border-radius: 30px;
-            font-size: 0.84rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-            text-decoration: none;
-            cursor: pointer;
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
-        .peso-quick-btn:hover {
-            background: rgba(255, 255, 255, 0.18);
-            color: #FFFFFF;
-            transform: translateY(-1px);
+        .card, .stat-card, .container-fluid, .row {
+            max-width: 100%;
         }
 
-        .peso-quick-btn.active,
-        .peso-quick-btn:active {
-            background: var(--primary);
-            color: #FFFFFF;
+        /* Accessibility: WCAG 2.1 AA Focus-Visible Styles (Rule 2) */
+        a:focus-visible,
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible {
+            outline: 2.5px solid var(--primary) !important;
+            outline-offset: 2px !important;
+            box-shadow: 0 0 0 4px var(--primary-light) !important;
         }
 
         @media (max-width: 992px) {
@@ -478,18 +458,20 @@
                 border-right: none;
                 border-bottom: 1px solid #E2E8F0;
             }
-            .peso-quick-action-bar {
-                bottom: 12px;
-                padding: 6px 10px;
-                gap: 4px;
-                max-width: 96vw;
-                overflow-x: auto;
+            .sidebar {
+                transform: translateX(-100%);
             }
-            .peso-quick-btn span {
-                display: none;
+            .sidebar.show {
+                transform: translateX(0);
             }
-            .peso-quick-btn {
-                padding: 8px 10px;
+            .header-top {
+                left: 0;
+                width: 100%;
+            }
+            .main-content {
+                margin-left: 0;
+                max-width: 100vw;
+                padding: 16px 12px;
             }
         }
 
@@ -806,8 +788,8 @@
                             </div>
                         </div>
                         <div class="border-top pt-2 mt-1 text-end">
-                            <button class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('evaluation', 'all')">
-                                <i class="bi bi-eye"></i> [View]
+                            <button class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('evaluation', 'all')" aria-label="View all applications">
+                                <i class="bi bi-eye"></i> View
                             </button>
                         </div>
                     </div>
@@ -827,8 +809,8 @@
                             </div>
                         </div>
                         <div class="border-top pt-2 mt-1 text-end">
-                            <button class="btn btn-xs btn-outline-warning rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1 text-dark" onclick="PesoOfficerApp.navigateToStatusList('evaluation', 'pending_officer')">
-                                <i class="bi bi-eye"></i> [View]
+                            <button class="btn btn-xs btn-outline-warning rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1 text-dark" onclick="PesoOfficerApp.navigateToStatusList('evaluation', 'pending_officer')" aria-label="View pending officer review list">
+                                <i class="bi bi-eye"></i> View
                             </button>
                         </div>
                     </div>
@@ -848,8 +830,8 @@
                             </div>
                         </div>
                         <div class="border-top pt-2 mt-1 text-end">
-                            <button class="btn btn-xs btn-outline-info rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('evaluation', 'pending_admin')">
-                                <i class="bi bi-eye"></i> [View]
+                            <button class="btn btn-xs btn-outline-info rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('evaluation', 'pending_admin')" aria-label="View pending admin review list">
+                                <i class="bi bi-eye"></i> View
                             </button>
                         </div>
                     </div>
@@ -869,8 +851,8 @@
                             </div>
                         </div>
                         <div class="border-top pt-2 mt-1 text-end">
-                            <button class="btn btn-xs btn-outline-secondary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('batches', 'unbatched')">
-                                <i class="bi bi-eye"></i> [View]
+                            <button class="btn btn-xs btn-outline-secondary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('batches', 'unbatched')" aria-label="View unbatched candidates">
+                                <i class="bi bi-eye"></i> View
                             </button>
                         </div>
                     </div>
@@ -890,8 +872,8 @@
                             </div>
                         </div>
                         <div class="border-top pt-2 mt-1 text-end">
-                            <button class="btn btn-xs btn-outline-dark rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('batches', 'awaiting_schedule')">
-                                <i class="bi bi-eye"></i> [View]
+                            <button class="btn btn-xs btn-outline-dark rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('batches', 'awaiting_schedule')" aria-label="View batches awaiting schedule">
+                                <i class="bi bi-eye"></i> View
                             </button>
                         </div>
                     </div>
@@ -911,8 +893,8 @@
                             </div>
                         </div>
                         <div class="border-top pt-2 mt-1 text-end">
-                            <button class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('training', 'in_progress')">
-                                <i class="bi bi-eye"></i> [View]
+                            <button class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('training', 'in_progress')" aria-label="View in-progress cohorts">
+                                <i class="bi bi-eye"></i> View
                             </button>
                         </div>
                     </div>
@@ -932,8 +914,8 @@
                             </div>
                         </div>
                         <div class="border-top pt-2 mt-1 text-end">
-                            <button class="btn btn-xs btn-outline-danger rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('reports', 'incomplete')">
-                                <i class="bi bi-eye"></i> [View]
+                            <button class="btn btn-xs btn-outline-danger rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('reports', 'incomplete')" aria-label="View incomplete records">
+                                <i class="bi bi-eye"></i> View
                             </button>
                         </div>
                     </div>
@@ -953,8 +935,8 @@
                             </div>
                         </div>
                         <div class="border-top pt-2 mt-1 text-end">
-                            <button class="btn btn-xs btn-outline-success rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('training', 'completed')">
-                                <i class="bi bi-eye"></i> [View]
+                            <button class="btn btn-xs btn-outline-success rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="PesoOfficerApp.navigateToStatusList('training', 'completed')" aria-label="View completed cohorts">
+                                <i class="bi bi-eye"></i> View
                             </button>
                         </div>
                     </div>
@@ -1151,30 +1133,6 @@
             </div>
         </section>
 
-        <!-- PERSISTENT FLOATING QUICK ACTION BAR (SHORTCUTS FOR OFFICER NAVIGATION) -->
-        <nav class="peso-quick-action-bar" id="pesoOfficerQuickActionBar" aria-label="Quick Action Shortcuts">
-            <button class="peso-quick-btn" onclick="openQrScannerModal()" title="Scan Beneficiary QR Code">
-                <i class="bi bi-qr-code-scan text-info fs-6"></i>
-                <span>Scan QR</span>
-            </button>
-            <button class="peso-quick-btn" onclick="openAddBeneficiaryModal()" title="Register New Beneficiary">
-                <i class="bi bi-person-plus text-success fs-6"></i>
-                <span>Add Beneficiary</span>
-            </button>
-            <button class="peso-quick-btn" onclick="switchTab('evaluation')" title="Evaluate Applications">
-                <i class="bi bi-clipboard-check text-warning fs-6"></i>
-                <span>Evaluate Apps</span>
-            </button>
-            <button class="peso-quick-btn" onclick="switchTab('daily-schedules')" title="View Daily Schedules">
-                <i class="bi bi-calendar-event text-primary fs-6"></i>
-                <span>Daily Roster</span>
-            </button>
-            <button class="peso-quick-btn" onclick="openAuditModal()" title="View Audit Logs & Traceability">
-                <i class="bi bi-journal-text text-light fs-6"></i>
-                <span>Audit Logs</span>
-            </button>
-        </nav>
-
         <!-- 2. BENEFICIARIES MANAGEMENT TAB (100% DESIGN SPECIFICATION COMPLIANT) -->
         <section id="tab-beneficiaries" class="tab-section d-none">
             <div class="page-header pb-2 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
@@ -1185,11 +1143,11 @@
                     <p class="text-muted mb-0">Where the Officer manages beneficiary records and registers people who come to the office in person. Online sign-ups do not pass through here because they verify themselves by code.</p>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <button class="btn btn-outline-primary fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-1.5 shadow-xs" onclick="openQrScannerModal()" title="Opens the complete record instantly without searching by name">
-                        <i class="bi bi-qr-code-scan"></i> [Scan QR]
+                    <button class="btn btn-outline-primary fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-1.5 shadow-xs" onclick="openQrScannerModal()" title="Opens the complete record instantly without searching by name" aria-label="Scan beneficiary QR code">
+                        <i class="bi bi-qr-code-scan"></i> Scan QR
                     </button>
-                    <button class="btn btn-primary fw-bold rounded-pill px-4 py-2 d-flex align-items-center gap-1.5 shadow-xs" onclick="PesoOfficerApp.openWalkInRegistrationModal()" title="Opens the walk-in registration form">
-                        <i class="bi bi-person-plus-fill"></i> [Register Walk-in]
+                    <button class="btn btn-primary fw-bold rounded-pill px-4 py-2 d-flex align-items-center gap-1.5 shadow-xs" onclick="PesoOfficerApp.openWalkInRegistrationModal()" title="Opens the walk-in registration form" aria-label="Register new walk-in beneficiary">
+                        <i class="bi bi-person-plus-fill"></i> Register Walk-in
                     </button>
                 </div>
             </div>
@@ -4115,10 +4073,10 @@
                     </div>
                     <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between">
                         <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">
-                            [Cancel]
+                            Cancel
                         </button>
                         <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs" id="btnSaveWalkInBen">
-                            <i class="bi bi-qr-code-scan"></i> [Save and Generate QR]
+                            <i class="bi bi-qr-code-scan"></i> Save and Generate QR
                         </button>
                     </div>
                 </form>
@@ -4126,7 +4084,7 @@
         </div>
     </div>
 
-    <!-- 2. BENFICIARY COMPLETE RECORD MODAL (READ-ONLY DOSSIER - INSIDE [SCAN QR] OR [VIEW RECORD]) -->
+    <!-- 2. BENFICIARY COMPLETE RECORD MODAL (READ-ONLY DOSSIER - INSIDE SCAN QR OR VIEW RECORD) -->
     <div class="modal fade" id="beneficiaryRecordModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
@@ -4273,17 +4231,17 @@
                 </div>
                 <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between">
                     <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-1.5" id="btnRecDossierShowQr" onclick="PesoOfficerApp.showBeneficiaryQR(PesoOfficerApp.state.currentViewedBenId)">
-                        <i class="bi bi-qr-code"></i> [Show QR Code]
+                        <i class="bi bi-qr-code"></i> Show QR Code
                     </button>
                     <button type="button" class="btn btn-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">
-                        [Close]
+                        Close
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 3. EDIT BENEFICIARY INFORMATION MODAL (INSIDE [EDIT]) -->
+    <!-- 3. EDIT BENEFICIARY INFORMATION MODAL -->
     <div class="modal fade" id="editBeneficiaryModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
@@ -4398,10 +4356,10 @@
                     </div>
                     <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between">
                         <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">
-                            [Cancel]
+                            Cancel
                         </button>
                         <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs">
-                            <i class="bi bi-check2-circle"></i> [Save Changes]
+                            <i class="bi bi-check2-circle"></i> Save Changes
                         </button>
                     </div>
                 </form>

@@ -227,8 +227,8 @@ const QrScannerController = (() => {
                         <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="QrScannerController.resetScanResult()">
                           <i class="bi bi-arrow-repeat me-1"></i> Scan Another
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" onclick="QrScannerController.viewFullDossier()">
-                          <i class="bi bi-file-earmark-person-fill me-1"></i> [View Full Dossier]
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" onclick="QrScannerController.viewFullDossier()" aria-label="View complete beneficiary dossier">
+                          <i class="bi bi-file-earmark-person-fill me-1"></i> View Full Dossier
                         </button>
                       </div>
                       <button type="button" id="btnCommitMilestone" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold shadow-sm" onclick="QrScannerController.commitMilestone()">

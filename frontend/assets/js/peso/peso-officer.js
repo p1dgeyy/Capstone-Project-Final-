@@ -954,17 +954,17 @@ const PesoOfficerApp = (() => {
                         <span class="badge ${elig.badge} font-monospace">${escapeHtml(elig.label)}</span>
                     </td>
                     <td class="text-end text-nowrap">
-                        <button class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.openBeneficiaryRecordModal('${b.qr_code || b.id}')" title="Opens the beneficiary's complete record">
-                            <i class="bi bi-eye me-1"></i>[View Record]
+                        <button class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.openBeneficiaryRecordModal('${b.qr_code || b.id}')" title="Opens the beneficiary's complete record" aria-label="View record for ${escapeHtml(b.name || 'Beneficiary')}">
+                            <i class="bi bi-eye me-1"></i>View Record
                         </button>
-                        <button class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.openEditBeneficiaryModal('${b.qr_code || b.id}')" title="Updates the beneficiary's information">
-                            <i class="bi bi-pencil me-1"></i>[Edit]
+                        <button class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.openEditBeneficiaryModal('${b.qr_code || b.id}')" title="Updates the beneficiary's information" aria-label="Edit details for ${escapeHtml(b.name || 'Beneficiary')}">
+                            <i class="bi bi-pencil me-1"></i>Edit
                         </button>
-                        <button class="btn btn-xs btn-outline-dark rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.showBeneficiaryQR('${b.qr_code || b.id}')" title="Displays the permanent QR code again">
-                            <i class="bi bi-qr-code me-1"></i>[Show QR]
+                        <button class="btn btn-xs btn-outline-dark rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.showBeneficiaryQR('${b.qr_code || b.id}')" title="Displays the permanent QR code again" aria-label="Show QR code for ${escapeHtml(b.name || 'Beneficiary')}">
+                            <i class="bi bi-qr-code me-1"></i>Show QR
                         </button>
-                        <button class="btn btn-xs ${isAcctActive ? 'btn-outline-danger' : 'btn-outline-success'} rounded-pill px-2.5 py-1 fw-semibold shadow-xs" onclick="PesoOfficerApp.toggleBeneficiaryStatus('${b.qr_code || b.id}')" title="Turns the beneficiary's account on or off">
-                            <i class="bi ${isAcctActive ? 'bi-person-dash' : 'bi-person-check'} me-1"></i>[${isAcctActive ? 'Deactivate' : 'Activate'}]
+                        <button class="btn btn-xs ${isAcctActive ? 'btn-outline-danger' : 'btn-outline-success'} rounded-pill px-2.5 py-1 fw-semibold shadow-xs" onclick="PesoOfficerApp.toggleBeneficiaryStatus('${b.qr_code || b.id}')" title="Turns the beneficiary's account on or off" aria-label="${isAcctActive ? 'Deactivate' : 'Activate'} account for ${escapeHtml(b.name || 'Beneficiary')}">
+                            <i class="bi ${isAcctActive ? 'bi-person-dash' : 'bi-person-check'} me-1"></i>${isAcctActive ? 'Deactivate' : 'Activate'}
                         </button>
                     </td>
                 </tr>
@@ -1181,7 +1181,7 @@ const PesoOfficerApp = (() => {
 
         if (btnSave) {
             btnSave.disabled = false;
-            btnSave.innerHTML = '<i class="bi bi-qr-code-scan"></i> [Save and Generate QR]';
+            btnSave.innerHTML = '<i class="bi bi-qr-code-scan"></i> Save and Generate QR';
         }
 
         safeCloseModal('addBeneficiaryModal');
