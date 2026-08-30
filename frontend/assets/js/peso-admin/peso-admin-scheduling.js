@@ -39,16 +39,50 @@ async function initSchedulingData() {
 async function initSchedulingModuleData() {
     try {
         if (typeof DataService !== 'undefined' && DataService.interviews) {
-            const res = await DataService.interviews.getAll({ agency: 'PESO' });
-            if (res && res.data && Array.isArray(res.data)) {
-                activitiesList = res.data.map(i => {
+            let res = await DataService.interviews.getAll({ agency: 'PESO' });
+            let schedData = res && res.data && Array.isArray(res.data) ? res.data : [];
+            if (schedData.length === 0) {
+                const fallbackRes = await DataService.interviews.getAll();
+                if (fallbackRes && fallbackRes.data && Array.isArray(fallbackRes.data)) {
+                    schedData = fallbackRes.data;
+                }
+            }
+
+            if (schedData.length > 0) {
+                // Fetch programs and staff maps for guaranteed enrichment
+                let programsMap = {};
+                let officersMap = {};
+                try {
+                    if (DataService.programs) {
+                        const pRes = await DataService.programs.getAll();
+                        if (pRes && Array.isArray(pRes.data)) {
+                            pRes.data.forEach(p => { programsMap[p.id] = p; programsMap[p.code] = p; });
+                        }
+                    }
+                } catch (e) {}
+                try {
+                    if (DataService.staff) {
+                        const sRes = await DataService.staff.getAll();
+                        if (sRes && Array.isArray(sRes.data)) {
+                            sRes.data.forEach(s => {
+                                const name = `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.username;
+                                if (s.id) officersMap[s.id] = name;
+                            });
+                        }
+                    }
+                } catch (e) {}
+
+                activitiesList = schedData.map(i => {
                     const schedStartDate = i.interview_date || (i.scheduled_time ? i.scheduled_time.substring(0, 10) : new Date().toISOString().substring(0, 10));
                     const schedEndDate = i.end_date || schedStartDate;
                     const schedStartTime = i.interview_time || '09:00 AM';
                     const schedEndTime = i.end_time || '11:00 AM';
-                    const officerFullName = i.officer ? `${i.officer.first_name || ''} ${i.officer.last_name || ''}`.trim() : (i.officer_name || '');
-                    const progCode = (i.program && i.program.code) || 'PESO';
-                    const progName = (i.program && i.program.name) || 'Assistance Program';
+                    const prog = i.program || programsMap[i.program_id] || {};
+                    const officerFullName = i.officer 
+                        ? `${i.officer.first_name || ''} ${i.officer.last_name || ''}`.trim() 
+                        : (officersMap[i.officer_id] || i.officer_name || 'PESO Officer Desk');
+                    const progCode = (prog && prog.code) || 'PESO';
+                    const progName = (prog && prog.name) || 'Assistance Program';
 
                     return {
                         id: i.id,
@@ -72,7 +106,7 @@ async function initSchedulingModuleData() {
                         location: i.venue_location || i.location || 'PESO Main Office - Multi-Purpose Hall',
                         location_other: i.location_other || '',
                         officer_id: i.officer_id || null,
-                        officer_name: officerFullName || 'Unassigned / General',
+                        officer_name: officerFullName,
                         status: i.status || 'Scheduled',
                         attendance_status: i.attendance_status || 'Unmarked',
                         remarks: i.remarks || '',

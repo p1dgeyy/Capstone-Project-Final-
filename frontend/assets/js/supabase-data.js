@@ -645,39 +645,88 @@ const DataService = (() => {
   const applications = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
-        let query = client.from('applications').select('*');
-
-        if (filters.program_id) {
-          query = query.eq('program_id', filters.program_id);
-        }
-        if (filters.status) {
-          if (Array.isArray(filters.status)) {
-            query = query.in('status', filters.status);
-          } else {
-            query = query.eq('status', filters.status);
-          }
-        }
-        if (filters.beneficiary_qr) {
-          query = query.eq('beneficiary_qr', filters.beneficiary_qr);
-        }
-        if (filters.batch_id) {
-          query = query.eq('batch_id', filters.batch_id);
-        }
-        
         try {
-          const res = await query.order('id', { ascending: false }).limit(filters.limit || 150);
-          if (!res.error) return res;
-        } catch (e) {}
+          let query = client.from('applications').select(`
+            *,
+            beneficiary:beneficiaries!beneficiary_qr(
+              id, qr_code, first_name, middle_name, last_name, suffix, username, 
+              barangay, address, phone, contact_number, email, category, 
+              date_of_birth, age, sex, civil_status, marital_status, spouse_name, 
+              dependents_count, number_of_children
+            ),
+            program:programs!program_id(
+              id, code, name, category, agency, target_beneficiaries, budget_allocated
+            ),
+            batch:batches!batch_id(id, batch_number, name, status)
+          `);
 
-        const fallbackRes = await query.limit(100);
+          if (filters.program_id) {
+            query = query.eq('program_id', filters.program_id);
+          }
+          if (filters.status) {
+            if (Array.isArray(filters.status)) {
+              query = query.in('status', filters.status);
+            } else {
+              query = query.eq('status', filters.status);
+            }
+          }
+          if (filters.beneficiary_qr) {
+            query = query.eq('beneficiary_qr', filters.beneficiary_qr);
+          }
+          if (filters.batch_id) {
+            query = query.eq('batch_id', filters.batch_id);
+          }
+
+          const res = await query.order('id', { ascending: false }).limit(filters.limit || 150);
+          if (!res.error && res.data && Array.isArray(res.data)) {
+            return res;
+          }
+        } catch (e) {
+          console.warn('[DataService] Joined applications query fallback:', e.message);
+        }
+
+        // Resilient fallback query
+        let fallbackQuery = client.from('applications').select('*');
+        if (filters.program_id) fallbackQuery = fallbackQuery.eq('program_id', filters.program_id);
+        if (filters.status) {
+          if (Array.isArray(filters.status)) fallbackQuery = fallbackQuery.in('status', filters.status);
+          else fallbackQuery = fallbackQuery.eq('status', filters.status);
+        }
+        if (filters.beneficiary_qr) fallbackQuery = fallbackQuery.eq('beneficiary_qr', filters.beneficiary_qr);
+        if (filters.batch_id) fallbackQuery = fallbackQuery.eq('batch_id', filters.batch_id);
+
+        const fallbackRes = await fallbackQuery.order('id', { ascending: false }).limit(filters.limit || 100);
         return fallbackRes;
       });
     },
 
     async getById(id) {
       return withRetry(async (client) => {
-        let query = client.from('applications').select('*');
+        try {
+          let query = client.from('applications').select(`
+            *,
+            beneficiary:beneficiaries!beneficiary_qr(
+              id, qr_code, first_name, middle_name, last_name, suffix, username, 
+              barangay, address, phone, contact_number, email, category, 
+              date_of_birth, age, sex, civil_status, marital_status, spouse_name, 
+              dependents_count, number_of_children
+            ),
+            program:programs!program_id(
+              id, code, name, category, agency, target_beneficiaries, budget_allocated
+            ),
+            batch:batches!batch_id(id, batch_number, name, status)
+          `);
 
+          if (typeof id === 'number' || /^\d+$/.test(id)) {
+            query = query.eq('id', id);
+          } else {
+            query = query.eq('application_number', id);
+          }
+          const res = await query.maybeSingle();
+          if (!res.error && res.data) return res;
+        } catch (e) {}
+
+        let query = client.from('applications').select('*');
         if (typeof id === 'number' || /^\d+$/.test(id)) {
           query = query.eq('id', id);
         } else {
