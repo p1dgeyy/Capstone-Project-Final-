@@ -64,60 +64,337 @@
             font-family: var(--font-main, 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif);
         }
 
-        body {
-            background-color: var(--bg-light);
-            color: var(--text-main);
+        /* ===================================================================
+           ZERO HORIZONTAL SCROLL & RESPONSIVE CONSTRAINTS
+           =================================================================== */
+        html, body {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-content {
+            width: calc(100% - var(--sidebar-width, 270px));
+            max-width: calc(100% - var(--sidebar-width, 270px));
             overflow-x: hidden;
+            box-sizing: border-box;
+            min-height: 100vh;
         }
 
-        /* Dark Mode Theme */
-        body.dark-mode {
-            background-color: var(--bg-app, #181516);
-            color: var(--text-main, #f5eff0);
+        @media (max-width: 991.98px) {
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 90px 16px 30px 16px !important;
+            }
         }
 
+        .tab-section, .tab-pane, .container-fluid, .page-header {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .row {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            max-width: 100% !important;
+        }
+
+        .table-responsive {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
+        }
+
+        .modal-content, .modal-dialog {
+            max-width: 95vw !important;
+            box-sizing: border-box;
+        }
+
+        /* ===================================================================
+           ADAPTIVE CLOSE BUTTONS (WCAG 2.1 AA & HIGH CONTRAST)
+           =================================================================== */
+        .btn-close-theme-adaptive,
+        .btn-close,
+        .btn-close-white {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            background: rgba(255, 255, 255, 0.9);
+            color: #475569;
+            opacity: 0.9;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 0;
+            line-height: 1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-close-theme-adaptive:hover,
+        .btn-close:hover,
+        .btn-close-white:hover {
+            background-color: var(--palette-blush-primary, #F19FB9) !important;
+            border-color: #EA7EA3 !important;
+            color: #2D151E !important;
+            opacity: 1 !important;
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(241, 159, 185, 0.35);
+        }
+
+        .btn-close-theme-adaptive:focus-visible,
+        .btn-close:focus-visible,
+        .btn-close-white:focus-visible {
+            outline: 2px solid #F19FB9 !important;
+            outline-offset: 2px;
+        }
+
+        .bg-dark .btn-close,
+        .bg-dark .btn-close-white,
+        .bg-dark .btn-close-theme-adaptive,
+        .bg-primary .btn-close,
+        .bg-primary .btn-close-white,
+        .bg-primary .btn-close-theme-adaptive,
+        .bg-success .btn-close,
+        .bg-success .btn-close-white,
+        .bg-secondary .btn-close,
+        .bg-secondary .btn-close-white,
+        body.dark-mode .btn-close,
+        body.dark-mode .btn-close-white,
+        body.dark-mode .btn-close-theme-adaptive,
+        [data-theme="dark"] .btn-close,
+        [data-theme="dark"] .btn-close-white,
+        [data-theme="dark"] .btn-close-theme-adaptive {
+            background: rgba(255, 255, 255, 0.18) !important;
+            border-color: rgba(255, 255, 255, 0.28) !important;
+            color: #F8FAFC !important;
+        }
+
+        .bg-dark .btn-close:hover,
+        .bg-dark .btn-close-white:hover,
+        .bg-dark .btn-close-theme-adaptive:hover,
+        .bg-primary .btn-close:hover,
+        .bg-primary .btn-close-white:hover,
+        .bg-primary .btn-close-theme-adaptive:hover,
+        .bg-success .btn-close:hover,
+        .bg-success .btn-close-white:hover,
+        .bg-secondary .btn-close:hover,
+        .bg-secondary .btn-close-white:hover,
+        body.dark-mode .btn-close:hover,
+        body.dark-mode .btn-close-white:hover,
+        body.dark-mode .btn-close-theme-adaptive:hover,
+        [data-theme="dark"] .btn-close:hover,
+        [data-theme="dark"] .btn-close-white:hover,
+        [data-theme="dark"] .btn-close-theme-adaptive:hover {
+            background: #F19FB9 !important;
+            border-color: #F19FB9 !important;
+            color: #1E1017 !important;
+        }
+
+        /* ===================================================================
+           DARK MODE COMPREHENSIVE CONTRAST & TYPOGRAPHY ENGINE (WCAG 2.1 AA)
+           =================================================================== */
+        body.dark-mode,
+        [data-theme="dark"] body {
+            background-color: var(--bg-app, #0B0F17) !important;
+            color: #F5EFF0 !important;
+        }
+
+        /* 1. Global Text High-Contrast Overrides */
+        body.dark-mode h1, 
+        body.dark-mode h2, 
+        body.dark-mode h3, 
+        body.dark-mode h4, 
+        body.dark-mode h5, 
+        body.dark-mode h6,
+        body.dark-mode .text-dark,
+        body.dark-mode .text-black,
+        body.dark-mode strong.text-dark,
+        body.dark-mode span.text-dark,
+        body.dark-mode p.text-dark,
+        body.dark-mode label.text-dark,
+        body.dark-mode .page-title,
+        body.dark-mode .modal-title,
+        body.dark-mode .section-title,
+        [data-theme="dark"] .text-dark {
+            color: #F8FAFC !important;
+        }
+
+        body.dark-mode .text-muted,
+        body.dark-mode .text-secondary,
+        body.dark-mode small.text-muted,
+        [data-theme="dark"] .text-muted {
+            color: #94A3B8 !important;
+        }
+
+        /* 2. Surfaces, Cards & Containers */
         body.dark-mode .sidebar {
-            background-color: var(--bg-surface, #221e20) !important;
-            border-right-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
+            background-color: #131B2A !important;
+            border-right-color: #232D3F !important;
         }
 
         body.dark-mode .header-top {
-            background-color: var(--bg-surface, #221e20) !important;
-            border-bottom-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
-            color: var(--text-main, #f5eff0) !important;
+            background-color: #131B2A !important;
+            border-bottom-color: #232D3F !important;
+            color: #F8FAFC !important;
         }
 
         body.dark-mode .card,
-        body.dark-mode .stat-card {
-            background-color: var(--bg-surface, #221e20) !important;
-            border-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
-            color: var(--text-main, #f5eff0) !important;
+        body.dark-mode .stat-card,
+        body.dark-mode .bg-white,
+        body.dark-mode [style*="background: #ffffff"],
+        body.dark-mode [style*="background: white"],
+        body.dark-mode [style*="background-color: #ffffff"],
+        body.dark-mode [style*="background-color: white"] {
+            background-color: #131B2A !important;
+            border-color: #232D3F !important;
+            color: #F8FAFC !important;
         }
 
-        body.dark-mode .table {
-            color: var(--text-main, #f5eff0) !important;
+        body.dark-mode .bg-light,
+        body.dark-mode .bg-secondary-subtle,
+        body.dark-mode [style*="background-color: #faf8f6"],
+        body.dark-mode [style*="background-color: #f8fafc"] {
+            background-color: #171F2E !important;
+            border-color: #232D3F !important;
+            color: #F8FAFC !important;
         }
 
-        body.dark-mode .table th {
-            background-color: var(--bg-subtle, #2d2729) !important;
-            color: var(--text-muted, #c4b8bb) !important;
-        }
-
-        body.dark-mode .table td {
-            border-bottom-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
-        }
-
+        /* 3. Modal Shells in Dark Mode */
         body.dark-mode .modal-content {
-            background-color: var(--bg-surface, #221e20) !important;
-            color: var(--text-main, #f5eff0) !important;
-            border-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
+            background-color: #131B2A !important;
+            color: #F8FAFC !important;
+            border-color: #2D3B50 !important;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.75) !important;
+        }
+        body.dark-mode .modal-header {
+            background-color: #171F2E !important;
+            border-bottom-color: #232D3F !important;
+            color: #FFFFFF !important;
+        }
+        body.dark-mode .modal-body {
+            background-color: #131B2A !important;
+            color: #F8FAFC !important;
+        }
+        body.dark-mode .modal-footer {
+            background-color: #171F2E !important;
+            border-top-color: #232D3F !important;
+            color: #F8FAFC !important;
         }
 
+        /* 4. Tables in Dark Mode */
+        body.dark-mode .table {
+            color: #F8FAFC !important;
+            border-color: #232D3F !important;
+        }
+        body.dark-mode .table > :not(caption) > * > * {
+            background-color: transparent !important;
+            color: #F8FAFC !important;
+            border-bottom-color: #232D3F !important;
+        }
+        body.dark-mode .table-light,
+        body.dark-mode .table thead th {
+            background-color: #171F2E !important;
+            color: #F8FAFC !important;
+            border-bottom: 2px solid #232D3F !important;
+        }
+        body.dark-mode .table-hover > tbody > tr:hover > * {
+            background-color: rgba(241, 159, 185, 0.08) !important;
+            color: #FFFFFF !important;
+        }
+
+        /* 5. Form Controls in Dark Mode */
         body.dark-mode .form-control,
-        body.dark-mode .form-select {
-            background-color: var(--bg-subtle, #2d2729) !important;
-            border-color: var(--border-light, rgba(200, 125, 135, 0.28)) !important;
-            color: var(--text-main, #f5eff0) !important;
+        body.dark-mode .form-select,
+        body.dark-mode .input-group-text,
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="email"],
+        body.dark-mode input[type="tel"],
+        body.dark-mode input[type="date"],
+        body.dark-mode select,
+        body.dark-mode textarea {
+            background-color: #171F2E !important;
+            border-color: #2D3B50 !important;
+            color: #F8FAFC !important;
+        }
+        body.dark-mode .form-control:focus,
+        body.dark-mode .form-select:focus,
+        body.dark-mode select:focus,
+        body.dark-mode textarea:focus {
+            background-color: #1A2334 !important;
+            border-color: var(--palette-blush-primary, #F19FB9) !important;
+            box-shadow: 0 0 0 3.5px rgba(241, 159, 185, 0.25) !important;
+            color: #FFFFFF !important;
+        }
+        body.dark-mode .form-control::placeholder,
+        body.dark-mode textarea::placeholder {
+            color: #94A3B8 !important;
+            opacity: 1 !important;
+        }
+
+        /* 6. Badges & Pills in Dark Mode */
+        body.dark-mode .badge.bg-secondary-subtle,
+        body.dark-mode .badge.bg-light {
+            background-color: #1E293B !important;
+            color: #CBD5E1 !important;
+            border-color: #334155 !important;
+        }
+        body.dark-mode .badge.bg-primary-subtle {
+            background-color: rgba(241, 159, 185, 0.18) !important;
+            color: #FFAEC5 !important;
+            border-color: rgba(241, 159, 185, 0.35) !important;
+        }
+        body.dark-mode .badge.bg-success-subtle {
+            background-color: rgba(34, 197, 94, 0.18) !important;
+            color: #86EFAC !important;
+            border-color: rgba(34, 197, 94, 0.35) !important;
+        }
+        body.dark-mode .badge.bg-warning-subtle {
+            background-color: rgba(245, 158, 11, 0.18) !important;
+            color: #FDE047 !important;
+            border-color: rgba(245, 158, 11, 0.35) !important;
+        }
+        body.dark-mode .badge.bg-danger-subtle {
+            background-color: rgba(239, 68, 68, 0.18) !important;
+            color: #FCA5A5 !important;
+            border-color: rgba(239, 68, 68, 0.35) !important;
+        }
+
+        /* 7. Alerts in Dark Mode */
+        body.dark-mode .alert-info,
+        body.dark-mode .alert-info-subtle {
+            background-color: rgba(13, 110, 253, 0.15) !important;
+            border-color: rgba(13, 110, 253, 0.35) !important;
+            color: #93C5FD !important;
+        }
+        body.dark-mode .alert-warning,
+        body.dark-mode .alert-warning-subtle {
+            background-color: rgba(245, 158, 11, 0.15) !important;
+            border-color: rgba(245, 158, 11, 0.35) !important;
+            color: #FDE047 !important;
+        }
+        body.dark-mode .alert-success,
+        body.dark-mode .alert-success-subtle {
+            background-color: rgba(34, 197, 94, 0.15) !important;
+            border-color: rgba(34, 197, 94, 0.35) !important;
+            color: #86EFAC !important;
+        }
+        body.dark-mode .alert-danger,
+        body.dark-mode .alert-danger-subtle {
+            background-color: rgba(239, 68, 68, 0.15) !important;
+            border-color: rgba(239, 68, 68, 0.35) !important;
+            color: #FCA5A5 !important;
         }
 
         .sidebar {
@@ -2722,7 +2999,7 @@
                     <h5 class="modal-title fw-bold fs-6 mb-0">
                         <i class="bi bi-x-circle-fill me-2"></i>Deny Incomplete Application
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <input type="hidden" id="denyAppIdInput">
@@ -2775,7 +3052,7 @@
                     <h5 class="modal-title fw-bold fs-6 mb-0">
                         <i class="bi bi-qr-code-scan me-2"></i>QR Scan Verified — Disbursement Release Desk
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="text-center pb-3 mb-3 border-bottom">
@@ -2833,7 +3110,7 @@
                     <h5 class="modal-title fw-bold fs-6 mb-0">
                         <i class="bi bi-mortarboard-fill me-2"></i>Update Individual Training Attendance
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <input type="hidden" id="trainingBenIdInput">
@@ -2880,7 +3157,7 @@
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title fw-bold" id="infoCardTitle"><i
                             class="bi bi-person-badge me-2"></i>Beneficiary Pop-Up Information Card</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4" id="infoCardBody">
                     <!-- Dynamically populated -->
@@ -2900,7 +3177,7 @@
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="modal-header bg-success text-white py-3 px-4 d-flex justify-content-between align-items-center">
                     <h5 class="modal-title fw-bold mb-0" id="printableQrModalLabel"><i class="bi bi-qr-code me-2"></i>Beneficiary QR ID Card</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center p-4 bg-light" id="printableQrCardFrame">
                     <div class="border-0 rounded-4 p-4 bg-white shadow-sm mx-auto" style="max-width: 360px;">
@@ -2930,7 +3207,7 @@
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title fw-bold" id="appModalTitle"><i
                             class="bi bi-file-earmark-text me-2"></i>Application Details & Document Viewer</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4" id="appModalContent">
                     <!-- Dynamically populated -->
@@ -2949,7 +3226,7 @@
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="modal-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
                     <h5 class="modal-title fw-bold mb-0" id="docPreviewModalLabel"><i class="bi bi-file-earmark-check me-2"></i>Document Inspection Viewer</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 bg-light text-center" id="docPreviewModalBody">
                     <!-- Dynamic preview content -->
@@ -2968,7 +3245,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Application Rejection Remarks</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <label for="denyRemarksInput" class="form-label fw-bold">Mandatory Reason / Remarks for Denying
@@ -2992,7 +3269,7 @@
                 <div class="modal-header bg-warning text-dark">
                     <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Missing / Incomplete
                         Document Notes</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <label for="pendingNotesInput" class="form-label fw-bold">Mandatory Notes on Missing or Incomplete
@@ -3016,7 +3293,7 @@
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-plus me-2"></i>Record New Livelihood
                         Assistance Application</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="intakeForm" onsubmit="submitIntakeApplication(event)" novalidate>
@@ -3114,7 +3391,7 @@
                         </h5>
                         <small class="text-white-50" id="submittedGroupModalSubtitle">Manage submitted beneficiaries before Admin evaluation</small>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <!-- Dynamic Status Banner -->
@@ -3176,7 +3453,7 @@
                         </h5>
                         <small class="text-white-50">Bundle selected Admin-Approved beneficiaries into a named batch</small>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="alert alert-primary-subtle border-0 rounded-3 mb-3 d-flex align-items-center gap-2">
@@ -3217,7 +3494,7 @@
                         </h5>
                         <small class="text-white-50" id="opBatchModalSubtitle">Operational batch roster & scheduling control</small>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <!-- Status Banner / Lock Notice -->
@@ -3319,7 +3596,7 @@
                         </h5>
                         <small class="text-white-50">Select from remaining Admin-Approved unbatched candidates</small>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="table-responsive border rounded-3" style="max-height: 320px; overflow-y: auto;">
@@ -3360,7 +3637,7 @@
                         </h5>
                         <small class="text-white-50">Assign event details and lock this operational batch</small>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="alert alert-warning-subtle border-0 rounded-3 mb-3 d-flex align-items-center gap-2 small">
@@ -3424,7 +3701,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title fw-bold"><i class="bi bi-box-seam me-2"></i>Record Approved Assistance</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="assistanceRecordForm" onsubmit="submitAssistanceRecord(event)">
@@ -3485,7 +3762,7 @@
                     <h5 class="modal-title fw-bold">
                         <i class="bi bi-gear-wide-connected me-2"></i>Configure Schedule Roster & Batch Linkage
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <input type="hidden" id="cfgScheduleDbId" value="">
@@ -3671,7 +3948,7 @@
                     <h5 class="modal-title fw-bold">
                         <i class="bi bi-play-circle-fill text-success me-2"></i>On-Site Schedule Execution & Attendance Roster
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <input type="hidden" id="execScheduleDbId" value="">
@@ -3740,7 +4017,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title"><i class="bi bi-qr-code-scan me-2"></i>Scan Beneficiary QR Code</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center p-4">
@@ -3772,7 +4049,7 @@
                 <div class="modal-header bg-secondary text-white">
                     <h5 class="modal-title"><i class="bi bi-journal-text me-2"></i>PESO Officer Audit Logs &
                         Traceability</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="table-responsive">
@@ -3806,7 +4083,7 @@
                         </h5>
                         <small class="text-white-50" style="font-size: 0.75rem;">The full form for registering a beneficiary who came to the office in person. No verification code is needed.</small>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="addBeneficiaryForm" onsubmit="PesoOfficerApp.submitWalkInRegistration(event)">
                     <div class="modal-body p-4 bg-light">
@@ -4008,7 +4285,7 @@
                         </h5>
                         <small class="text-white-50" style="font-size: 0.75rem;">What appears when the Officer scans a beneficiary's QR code or views the record. This is strictly read-only.</small>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 bg-light">
                     <!-- TOP HEADER SUMMARY -->
@@ -4513,7 +4790,7 @@
                     <h5 class="modal-title fw-bold fs-6 mb-0">
                         <i class="bi bi-qr-code-scan me-2"></i>Official PESO Beneficiary Pass
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 text-center bg-light">
                     <div class="card p-3 border rounded-3 bg-white shadow-sm mb-3 text-start" id="printablePesoOfficerPass">
@@ -4553,6 +4830,7 @@
                 </div>
             </div>
         </div>
+    </div>
     <!-- PESO OFFICER ACTION ITEM RESOLUTION MODAL -->
     <div class="modal fade" id="officerActionResolveModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 560px;">
@@ -4561,7 +4839,7 @@
                     <h5 class="modal-title fw-bold fs-6 mb-0 d-flex align-items-center gap-2" id="actionResolveModalTitle">
                         <i class="bi bi-lightning-charge-fill text-warning"></i> Resolve Action Item
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white btn-close-theme-adaptive" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form onsubmit="PesoOfficerApp.submitActionResolution(event)">
                     <div class="modal-body p-4 bg-light">
