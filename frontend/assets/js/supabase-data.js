@@ -645,7 +645,9 @@ const DataService = (() => {
   const applications = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
-        let query = client.from('applications').select('*');
+        // Egress optimization: Exclude massive documents_json base64 payloads from bulk list queries
+        const cols = filters.includeDocuments ? '*' : 'id, application_number, beneficiary_qr, program_id, status, progress_percent, remarks, amount_requested, amount_approved, created_at, updated_at, date_applied, evaluator_id, forwarded_by, officer_name, batch_id, agency';
+        let query = client.from('applications').select(cols);
 
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
@@ -664,8 +666,13 @@ const DataService = (() => {
           query = query.eq('batch_id', filters.batch_id);
         }
 
-        const res = await query.order('id', { ascending: false }).limit(filters.limit || 150);
-        return res;
+        try {
+          const res = await query.order('id', { ascending: false }).limit(filters.limit || 150);
+          if (!res.error && res.data) return res;
+        } catch (e) {}
+
+        const fallbackRes = await client.from('applications').select('*').order('id', { ascending: false }).limit(filters.limit || 100);
+        return fallbackRes;
       });
     },
 
@@ -1820,27 +1827,38 @@ const DataService = (() => {
 
     async getUnbatchedApproved(filters = {}) {
       return withRetry(async (client) => {
-        let query = client.from('applications').select(`
-          *,
-          beneficiary:beneficiaries!beneficiary_qr(
-            id, qr_code, first_name, middle_name, last_name, suffix, username, barangay, address, phone, contact_number, email, category, date_of_birth, age, sex
-          ),
-          program:programs!program_id(*)
-        `)
-        .is('batch_id', null)
-        .in('status', ['Approved', 'Officer Approved']);
+        const appCols = 'id, application_number, beneficiary_qr, program_id, status, progress_percent, remarks, amount_requested, amount_approved, created_at, updated_at, date_applied, evaluator_id, forwarded_by, officer_name, batch_id, agency';
+        try {
+          let query = client.from('applications').select(`
+            ${appCols},
+            beneficiary:beneficiaries!beneficiary_qr(
+              id, qr_code, first_name, middle_name, last_name, suffix, username, barangay, address, phone, contact_number, email, category, date_of_birth, age, sex
+            ),
+            program:programs!program_id(*)
+          `)
+          .is('batch_id', null)
+          .in('status', ['Approved', 'Officer Approved']);
 
-        if (filters.program_code) {
-          query = query.or(`program_code.eq.${filters.program_code},program.code.eq.${filters.program_code}`);
-        }
-        if (filters.program_id) {
-          query = query.eq('program_id', filters.program_id);
-        }
-        if (filters.agency) {
-          query = query.eq('program.agency', filters.agency);
-        }
+          if (filters.program_code) {
+            query = query.or(`program_code.eq.${filters.program_code},program.code.eq.${filters.program_code}`);
+          }
+          if (filters.program_id) {
+            query = query.eq('program_id', filters.program_id);
+          }
+          if (filters.agency) {
+            query = query.eq('program.agency', filters.agency);
+          }
 
-        return await query.order('created_at', { ascending: false });
+          const res = await query.order('created_at', { ascending: false });
+          if (!res.error && res.data) return res;
+        } catch (e) {}
+
+        let fallbackQuery = client.from('applications').select(appCols)
+          .is('batch_id', null)
+          .in('status', ['Approved', 'Officer Approved']);
+        if (filters.program_id) fallbackQuery = fallbackQuery.eq('program_id', filters.program_id);
+
+        return await fallbackQuery.order('created_at', { ascending: false });
       });
     },
 
