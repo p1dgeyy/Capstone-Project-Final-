@@ -2285,13 +2285,18 @@ const PesoOfficerApp = (() => {
         handleSendOfficerBroadcast,
         loadOfficerReportDataset,
         exportOfficerReportsCSV,
-        printOfficerReportsPDF
+        printOfficerReportsPDF,
+        VERSION: '1.0.0-FROZEN',
+        STATUS: 'LOCKED',
+        CONTRACT: typeof PESO_OFFICER_API_CONTRACT_V1 !== 'undefined' ? PESO_OFFICER_API_CONTRACT_V1 : null,
+        isFrozen: () => true
     });
 })();
 
 // Global assignments
 if (typeof window !== 'undefined') {
     window.PesoOfficerApp = PesoOfficerApp;
+    window.PESO_OFFICER_VERSION = '1.0.0-FROZEN';
     window.switchTab = PesoOfficerApp.switchTab;
     window.refreshAllOfficerData = () => PesoOfficerApp.loadAllOfficerData();
     window.navigateToStatusList = PesoOfficerApp.navigateToStatusList;
