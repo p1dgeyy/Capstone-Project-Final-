@@ -9037,17 +9037,19 @@
             const isCswdo = (app.type || '').toLowerCase().includes('cswdo') || (app.type || '').toLowerCase().includes('medical') || (app.type || '').toLowerCase().includes('burial');
             const agency = isCswdo ? 'CSWDO' : 'PESO';
             const location = app.location || (isCswdo ? 'CSWDO Office, Koronadal City Hall Complex' : 'PESO Office, Koronadal City Hall Complex');
-            const isAppr = (app.status || '').toLowerCase().includes('approved');
-            const isCompl = (app.status || '').toLowerCase().includes('complete');
-            const isRev = (app.status || '').toLowerCase().includes('review') || (app.status || '').toLowerCase().includes('evaluat');
-            const grantAmount = app.amount || app.grantAmount || (isAppr ? '₱ 5,000.00' : 'Awaiting Assessment');
+            
+            const st = (app.status || '').toLowerCase();
+            const isOfficerPassed = st.includes('forward') || st.includes('evaluat') || st.includes('approved') || st.includes('batch') || st.includes('sched') || st.includes('release') || st.includes('complete');
+            const isAdminApproved = st.includes('approved') || st.includes('batch') || st.includes('sched') || st.includes('release') || st.includes('complete');
+            const isBatchedOrScheduled = st.includes('batch') || st.includes('sched') || st.includes('release') || st.includes('complete');
+            const isReleased = st.includes('release') || st.includes('complete');
 
-            // Stages list
-            const steps = app.steps || [
-                { title: 'Application Submitted', desc: app.date || 'Received', completed: true },
-                { title: 'Document Verification', desc: (isAppr || isCompl) ? 'Verified by Officer' : (isRev ? 'Under Active Review' : 'Queued for Review'), completed: isAppr || isCompl, active: isRev || (!isAppr && !isCompl) },
-                { title: 'Intake & Interview', desc: (isAppr || isCompl) ? 'Assessed' : 'In Progress', completed: isAppr || isCompl },
-                { title: 'Decision & Release', desc: app.status || 'Pending', completed: isCompl, active: isAppr }
+            const steps = [
+                { title: 'Application Submitted', desc: app.date || 'Received & Logged', completed: true },
+                { title: 'Document Review (Officer)', desc: isOfficerPassed ? 'Verified by Officer' : (st.includes('incomplete') || st.includes('denied') ? 'Action Required' : 'Under Officer Review'), completed: isOfficerPassed, active: !isOfficerPassed },
+                { title: 'Validity Check (Admin)', desc: isAdminApproved ? 'Approved by Admin' : (isOfficerPassed ? 'Under Admin Review' : 'Queued for Admin'), completed: isAdminApproved, active: isOfficerPassed && !isAdminApproved },
+                { title: 'Batching & Scheduling', desc: isBatchedOrScheduled ? (app.batchName || 'Batched / Scheduled') : (isAdminApproved ? 'Awaiting Batch Assignment' : 'Pending Approval'), completed: isBatchedOrScheduled, active: isAdminApproved && !isBatchedOrScheduled },
+                { title: 'Assistance Release', desc: isReleased ? 'Assistance Released' : (isBatchedOrScheduled ? 'Awaiting Distribution' : 'Pending Schedule'), completed: isReleased, active: isBatchedOrScheduled && !isReleased }
             ];
 
             let stepsHtml = steps.map((step, index) => {
