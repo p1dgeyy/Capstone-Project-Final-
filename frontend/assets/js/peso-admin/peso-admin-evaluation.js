@@ -205,16 +205,17 @@ function filterEvalLevel1Programs() {
 
     activeProgs.forEach(prog => {
         const apps = Array.isArray(evalApplicationsList) ? evalApplicationsList : [];
-        const progApps = apps.filter(a => a.program_id === prog.id || a.program_code === prog.code);
-        const hasPending = progApps.some(a => a.evaluation_status === 'Pending Evaluation');
-        const hasApproved = progApps.some(a => a.evaluation_status === 'Approved');
+        const progApps = apps.filter(a => a.program_id === prog.id || a.program_code === prog.code || (a.program_name && prog.name && a.program_name.toLowerCase().includes(prog.name.toLowerCase())));
+        const pendingCount = progApps.filter(a => a.evaluation_status === 'Pending Evaluation').length;
+        const approvedCount = progApps.filter(a => a.evaluation_status === 'Approved').length;
+        const deniedCount = progApps.filter(a => a.evaluation_status === 'Denied').length;
 
         let overallStatus = 'Completed';
         let badgeClass = 'bg-success';
-        if (progApps.length === 0 || hasPending) {
+        if (progApps.length === 0 || pendingCount > 0) {
             overallStatus = 'Pending Evaluation';
             badgeClass = 'bg-warning text-dark';
-        } else if (hasApproved) {
+        } else if (approvedCount > 0) {
             overallStatus = 'In Progress';
             badgeClass = 'bg-info text-white';
         }
@@ -232,9 +233,18 @@ function filterEvalLevel1Programs() {
                     </td>
                     <td><span class="badge badge-category badge-emp">${escapeHtml(prog.category || 'Livelihood')}</span></td>
                     <td class="text-center">
-                        <span class="badge bg-light text-dark border px-3 py-1.5 fs-6">
-                            <i class="bi bi-file-earmark-text text-primary me-1"></i>${progApps.length} applications
-                        </span>
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <span class="badge bg-light text-dark border px-3 py-1 fs-6">
+                                <i class="bi bi-file-earmark-text text-primary me-1"></i>${progApps.length} applications
+                            </span>
+                            ${progApps.length > 0 ? `
+                            <div class="d-flex justify-content-center gap-1 flex-wrap mt-0.5">
+                                ${pendingCount > 0 ? `<span class="badge bg-warning-subtle text-dark border border-warning-subtle px-1.5 py-0.5" style="font-size: 0.75rem;"><i class="bi bi-clock-history me-1"></i>${pendingCount} Pending</span>` : ''}
+                                ${approvedCount > 0 ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5" style="font-size: 0.75rem;"><i class="bi bi-check-circle me-1"></i>${approvedCount} Approved</span>` : ''}
+                                ${deniedCount > 0 ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5" style="font-size: 0.75rem;"><i class="bi bi-x-circle me-1"></i>${deniedCount} Denied</span>` : ''}
+                            </div>
+                            ` : ''}
+                        </div>
                     </td>
                     <td class="text-center"><span class="badge ${badgeClass} px-3 py-1.5 fs-6">${overallStatus}</span></td>
                     <td class="text-end">
