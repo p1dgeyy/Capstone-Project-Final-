@@ -267,12 +267,18 @@
             box-shadow: 0 0 0 3px rgba(241, 159, 185, 0.35) !important;
         }
 
-        .beneficiary-edit-card {
+        .beneficiary-edit-card,
+        .beneficiary-card-item {
             background-color: #FFFFFF;
             border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            padding: 16px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 14px;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+        }
+
+        .beneficiary-card-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+            border-color: var(--primary-accent, #F19FB9) !important;
         }
 
         .modal-header-blend {
@@ -1279,36 +1285,19 @@
                 </div>
             </div>
 
-            <!-- Beneficiaries Table (6 Design-Specified Info Columns + Actions) -->
-            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
-                <div class="card-body p-0">
-                    <div class="table-responsive" style="min-height: 280px;">
-                        <table class="table table-hover align-middle mb-0" id="beneficiaryTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Full Name</th>
-                                    <th>Beneficiary ID</th>
-                                    <th>Barangay</th>
-                                    <th>Contact Number</th>
-                                    <th class="text-center">Account Status</th>
-                                    <th class="text-center">Eligibility Status</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="beneficiaryTableBody">
-                                <tr>
-                                    <td colspan="7" class="text-center py-5 text-muted">
-                                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                                        Loading beneficiary records...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <!-- Beneficiaries Responsive Grid Container (Zero Horizontal Scroll) -->
+            <div id="beneficiaryGridContainer" class="row g-3" style="min-height: 280px;">
+                <div class="col-12 text-center py-5 text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    Loading beneficiary records...
                 </div>
-                <div class="card-footer bg-light border-0 py-2.5 px-4 d-flex justify-content-between align-items-center">
+            </div>
+
+            <!-- Footer Meta Bar -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white mt-4">
+                <div class="card-body py-2.5 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <small class="text-muted"><i class="bi bi-shield-lock me-1"></i>Contact numbers masked pursuant to RA 10173 (Data Privacy Act of 2012).</small>
-                    <small class="text-muted font-monospace" id="benTotalCountFooter">0 Beneficiaries Registered</small>
+                    <small class="text-muted font-monospace fw-semibold" id="benTotalCountFooter">0 Beneficiaries Registered</small>
                 </div>
             </div>
         </section>
@@ -6653,66 +6642,127 @@
         window.submitMarkActivityCompleted = submitMarkActivityCompleted;
 
         function renderBeneficiaryTable() {
+            if (typeof PesoOfficerApp !== 'undefined' && typeof PesoOfficerApp.renderBeneficiariesTable === 'function') {
+                return PesoOfficerApp.renderBeneficiariesTable();
+            }
+
+            const gridContainer = document.getElementById('beneficiaryGridContainer');
             const tbody = document.getElementById('beneficiaryTableBody');
-            if (!tbody) return;
+            if (!gridContainer && !tbody) return;
 
             if (beneficiariesList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-info-circle me-1"></i>No registered beneficiaries found.</td></tr>';
+                if (gridContainer) {
+                    gridContainer.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm rounded-4 bg-white p-5 text-center">
+                                <i class="bi bi-info-circle fs-1 d-block mb-2 text-muted"></i>
+                                <h6 class="fw-bold text-dark mb-1">No Registered Beneficiaries</h6>
+                                <p class="text-muted small mb-0">There are no beneficiaries registered in the system yet.</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-info-circle me-1"></i>No registered beneficiaries found.</td></tr>';
+                }
                 return;
             }
 
-            tbody.innerHTML = beneficiariesList.map(b => {
-                const benId = b.qr_code || b.id;
-                const benName = b.name || `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Beneficiary';
-                const benAddress = b.address || (b.barangay ? `${b.barangay}, City of Koronadal` : 'City of Koronadal');
-                const benPhone = maskContact(b.contact || b.phone);
-                const benEmail = b.email || 'N/A';
-                const benProgram = b.program || 'TUPAD';
-                const benStatus = b.status || 'Active';
-                const isStatusActive = benStatus === 'Active';
-                const benClearance = b.clearanceStatus || 'Verified';
+            if (gridContainer) {
+                gridContainer.innerHTML = beneficiariesList.map(b => {
+                    const benId = b.qr_code || b.id;
+                    const benName = b.name || `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Beneficiary';
+                    const benAddress = b.address || (b.barangay ? `${b.barangay}, City of Koronadal` : 'City of Koronadal');
+                    const benPhone = maskContact(b.contact || b.phone);
+                    const benEmail = b.email || 'N/A';
+                    const benProgram = b.program || 'TUPAD';
+                    const benStatus = b.status || 'Active';
+                    const isStatusActive = benStatus === 'Active';
+                    const benClearance = b.clearanceStatus || 'Verified';
 
-                return `
-                    <tr style="cursor:pointer" onclick="openBeneficiaryInfoCardModal('${benId}')">
-                        <td><span class="fw-bold font-monospace text-primary">${escapeHtml(benId)}</span></td>
-                        <td class="fw-semibold text-dark">${escapeHtml(benName)}</td>
-                        <td><small class="text-muted">${escapeHtml(benAddress)}</small></td>
-                        <td>
-                            <div class="font-monospace small text-dark">${escapeHtml(benPhone)}</div>
-                            <small class="text-muted">${escapeHtml(benEmail)}</small>
-                        </td>
-                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">${escapeHtml(benProgram)}</span></td>
-                        <td>
-                            <span class="badge ${isStatusActive ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}">
-                                <i class="bi ${isStatusActive ? 'bi-check-circle' : 'bi-slash-circle'} me-1"></i>${escapeHtml(benStatus)}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge ${benClearance === 'Verified' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle'}">
-                                ${escapeHtml(benClearance)}
-                            </span>
-                        </td>
-                        <td class="text-end text-nowrap" onclick="event.stopPropagation()">
-                            <button class="btn btn-sm btn-outline-secondary py-1 px-2 me-1" onclick="openBeneficiaryInfoCardModal('${benId}')" title="View Profile (View-only Details)">
-                                <i class="bi bi-eye"></i> Details
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="openEditBeneficiaryModal('${benId}')" title="Edit Beneficiary Details">
-                                <i class="bi bi-pencil-square"></i> Edit
-                            </button>
-                            <button class="btn btn-sm btn-outline-dark py-1 px-2 me-1" onclick="showPrintableQrCard('${benId}')" title="Generate QR ID Card">
-                                <i class="bi bi-qr-code"></i> QR
-                            </button>
-                            <button class="btn btn-sm ${isStatusActive ? 'btn-outline-danger' : 'btn-outline-success'} py-1 px-2" onclick="toggleOfficerBeneficiaryStatus('${benId}')" title="${isStatusActive ? 'Deactivate Account' : 'Activate Account'}">
-                                <i class="bi ${isStatusActive ? 'bi-power' : 'bi-check-circle'}"></i> ${isStatusActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                    return `
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <div class="card border-0 shadow-sm rounded-4 bg-white h-100 d-flex flex-column justify-content-between p-3.5 beneficiary-card-item transition-all">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2.5">
+                                        <div class="d-flex align-items-center gap-2.5">
+                                            <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                                <i class="bi bi-person-fill"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 170px;" title="${escapeHtml(benName)}">${escapeHtml(benName)}</h6>
+                                                <span class="text-muted font-monospace" style="font-size: 0.75rem;">@${escapeHtml(b.username || 'beneficiary')}</span>
+                                            </div>
+                                        </div>
+                                        <span class="badge ${isStatusActive ? 'bg-success' : 'bg-secondary'} rounded-pill px-2.5 py-1">
+                                            <i class="bi ${isStatusActive ? 'bi-check-circle-fill' : 'bi-slash-circle'} me-1"></i>${escapeHtml(benStatus)}
+                                        </span>
+                                    </div>
+
+                                    <div class="d-flex flex-wrap align-items-center gap-1.5 mb-3">
+                                        <span class="badge bg-light text-primary border font-monospace fw-bold px-2 py-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-qr-code me-1"></i>${escapeHtml(benId)}
+                                        </span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-1" style="font-size: 0.72rem;">
+                                            ${escapeHtml(benProgram)}
+                                        </span>
+                                        <span class="badge ${benClearance === 'Verified' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle'} font-monospace px-2 py-1" style="font-size: 0.72rem;">
+                                            ${escapeHtml(benClearance)}
+                                        </span>
+                                    </div>
+
+                                    <div class="p-2.5 rounded-3 bg-light mb-3 text-secondary small border">
+                                        <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                            <span class="text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>Address:</span>
+                                            <span class="fw-semibold text-dark text-truncate ms-2" style="max-width: 150px;">${escapeHtml(benAddress)}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                            <span class="text-muted"><i class="bi bi-telephone-fill text-primary me-1"></i>Contact:</span>
+                                            <span class="font-monospace fw-semibold text-dark">${escapeHtml(benPhone)}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span class="text-muted"><i class="bi bi-envelope-fill text-secondary me-1"></i>Email:</span>
+                                            <span class="text-truncate text-dark ms-2" style="max-width: 150px;" title="${escapeHtml(benEmail)}">${escapeHtml(benEmail)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-top pt-2.5 mt-auto">
+                                    <div class="row g-1.5">
+                                        <div class="col-6">
+                                            <button class="btn btn-sm btn-outline-primary rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="openBeneficiaryInfoCardModal('${benId}')" title="View Profile">
+                                                <i class="bi bi-eye"></i> Details
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-sm btn-outline-secondary rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="openEditBeneficiaryModal('${benId}')" title="Edit Beneficiary Details">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-sm btn-outline-dark rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="showPrintableQrCard('${benId}')" title="Generate QR ID Card">
+                                                <i class="bi bi-qr-code"></i> QR Pass
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-sm ${isStatusActive ? 'btn-outline-danger' : 'btn-outline-success'} rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="toggleOfficerBeneficiaryStatus('${benId}')" title="${isStatusActive ? 'Deactivate Account' : 'Activate Account'}">
+                                                <i class="bi ${isStatusActive ? 'bi-power' : 'bi-check-circle'}"></i> ${isStatusActive ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         // REQ069: SEARCH & FILTER BENEFICIARIES
         function filterBeneficiariesTable() {
+            if (typeof PesoOfficerApp !== 'undefined' && typeof PesoOfficerApp.renderBeneficiariesTable === 'function') {
+                return PesoOfficerApp.renderBeneficiariesTable();
+            }
+
             const search = (document.getElementById('benSearchInput')?.value || '').toLowerCase().trim();
             const brgy = document.getElementById('benBarangayFilter')?.value || '';
             const status = document.getElementById('benStatusFilter')?.value || '';
@@ -6739,62 +6789,115 @@
                 return matchSearch && matchBrgy && matchStatus;
             });
 
+            const gridContainer = document.getElementById('beneficiaryGridContainer');
             const tbody = document.getElementById('beneficiaryTableBody');
-            if (!tbody) return;
+            if (!gridContainer && !tbody) return;
 
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-search me-1"></i>No matching beneficiary records found.</td></tr>';
+                if (gridContainer) {
+                    gridContainer.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm rounded-4 bg-white p-5 text-center">
+                                <i class="bi bi-search fs-1 d-block mb-2 text-muted"></i>
+                                <h6 class="fw-bold text-dark mb-1">No Matching Beneficiaries Found</h6>
+                                <p class="text-muted small mb-0">Try adjusting your search terms or filter selection.</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-search me-1"></i>No matching beneficiary records found.</td></tr>';
+                }
                 return;
             }
 
-            tbody.innerHTML = filtered.map(b => {
-                const benId = b.qr_code || b.id;
-                const benName = b.name || `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Beneficiary';
-                const benAddress = b.address || (b.barangay ? `${b.barangay}, City of Koronadal` : 'City of Koronadal');
-                const benPhone = maskContact(b.contact || b.phone);
-                const benEmail = b.email || 'N/A';
-                const benProgram = b.program || 'TUPAD';
-                const benStatus = b.status || 'Active';
-                const isStatusActive = benStatus === 'Active';
-                const benClearance = b.clearanceStatus || 'Verified';
+            if (gridContainer) {
+                gridContainer.innerHTML = filtered.map(b => {
+                    const benId = b.qr_code || b.id;
+                    const benName = b.name || `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Beneficiary';
+                    const benAddress = b.address || (b.barangay ? `${b.barangay}, City of Koronadal` : 'City of Koronadal');
+                    const benPhone = maskContact(b.contact || b.phone);
+                    const benEmail = b.email || 'N/A';
+                    const benProgram = b.program || 'TUPAD';
+                    const benStatus = b.status || 'Active';
+                    const isStatusActive = benStatus === 'Active';
+                    const benClearance = b.clearanceStatus || 'Verified';
 
-                return `
-                    <tr style="cursor:pointer" onclick="openBeneficiaryInfoCardModal('${benId}')">
-                        <td><span class="fw-bold font-monospace text-primary">${escapeHtml(benId)}</span></td>
-                        <td class="fw-semibold text-dark">${escapeHtml(benName)}</td>
-                        <td><small class="text-muted">${escapeHtml(benAddress)}</small></td>
-                        <td>
-                            <div class="font-monospace small text-dark">${escapeHtml(benPhone)}</div>
-                            <small class="text-muted">${escapeHtml(benEmail)}</small>
-                        </td>
-                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">${escapeHtml(benProgram)}</span></td>
-                        <td>
-                            <span class="badge ${isStatusActive ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}">
-                                <i class="bi ${isStatusActive ? 'bi-check-circle' : 'bi-slash-circle'} me-1"></i>${escapeHtml(benStatus)}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge ${benClearance === 'Verified' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle'}">
-                                ${escapeHtml(benClearance)}
-                            </span>
-                        </td>
-                        <td class="text-end text-nowrap" onclick="event.stopPropagation()">
-                            <button class="btn btn-sm btn-outline-secondary py-1 px-2 me-1" onclick="openBeneficiaryInfoCardModal('${benId}')" title="View Profile (View-only Details)">
-                                <i class="bi bi-eye"></i> Details
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="openEditBeneficiaryModal('${benId}')" title="Edit Beneficiary Details">
-                                <i class="bi bi-pencil-square"></i> Edit
-                            </button>
-                            <button class="btn btn-sm btn-outline-dark py-1 px-2 me-1" onclick="showPrintableQrCard('${benId}')" title="Generate QR ID Card">
-                                <i class="bi bi-qr-code"></i> QR
-                            </button>
-                            <button class="btn btn-sm ${isStatusActive ? 'btn-outline-danger' : 'btn-outline-success'} py-1 px-2" onclick="toggleOfficerBeneficiaryStatus('${benId}')" title="${isStatusActive ? 'Deactivate Account' : 'Activate Account'}">
-                                <i class="bi ${isStatusActive ? 'bi-power' : 'bi-check-circle'}"></i> ${isStatusActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                    return `
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <div class="card border-0 shadow-sm rounded-4 bg-white h-100 d-flex flex-column justify-content-between p-3.5 beneficiary-card-item transition-all">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2.5">
+                                        <div class="d-flex align-items-center gap-2.5">
+                                            <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                                <i class="bi bi-person-fill"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 170px;" title="${escapeHtml(benName)}">${escapeHtml(benName)}</h6>
+                                                <span class="text-muted font-monospace" style="font-size: 0.75rem;">@${escapeHtml(b.username || 'beneficiary')}</span>
+                                            </div>
+                                        </div>
+                                        <span class="badge ${isStatusActive ? 'bg-success' : 'bg-secondary'} rounded-pill px-2.5 py-1">
+                                            <i class="bi ${isStatusActive ? 'bi-check-circle-fill' : 'bi-slash-circle'} me-1"></i>${escapeHtml(benStatus)}
+                                        </span>
+                                    </div>
+
+                                    <div class="d-flex flex-wrap align-items-center gap-1.5 mb-3">
+                                        <span class="badge bg-light text-primary border font-monospace fw-bold px-2 py-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-qr-code me-1"></i>${escapeHtml(benId)}
+                                        </span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-1" style="font-size: 0.72rem;">
+                                            ${escapeHtml(benProgram)}
+                                        </span>
+                                        <span class="badge ${benClearance === 'Verified' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle'} font-monospace px-2 py-1" style="font-size: 0.72rem;">
+                                            ${escapeHtml(benClearance)}
+                                        </span>
+                                    </div>
+
+                                    <div class="p-2.5 rounded-3 bg-light mb-3 text-secondary small border">
+                                        <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                            <span class="text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>Address:</span>
+                                            <span class="fw-semibold text-dark text-truncate ms-2" style="max-width: 150px;">${escapeHtml(benAddress)}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                            <span class="text-muted"><i class="bi bi-telephone-fill text-primary me-1"></i>Contact:</span>
+                                            <span class="font-monospace fw-semibold text-dark">${escapeHtml(benPhone)}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span class="text-muted"><i class="bi bi-envelope-fill text-secondary me-1"></i>Email:</span>
+                                            <span class="text-truncate text-dark ms-2" style="max-width: 150px;" title="${escapeHtml(benEmail)}">${escapeHtml(benEmail)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-top pt-2.5 mt-auto">
+                                    <div class="row g-1.5">
+                                        <div class="col-6">
+                                            <button class="btn btn-sm btn-outline-primary rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="openBeneficiaryInfoCardModal('${benId}')" title="View Profile">
+                                                <i class="bi bi-eye"></i> Details
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-sm btn-outline-secondary rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="openEditBeneficiaryModal('${benId}')" title="Edit Beneficiary Details">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-sm btn-outline-dark rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="showPrintableQrCard('${benId}')" title="Generate QR ID Card">
+                                                <i class="bi bi-qr-code"></i> QR Pass
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-sm ${isStatusActive ? 'btn-outline-danger' : 'btn-outline-success'} rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="toggleOfficerBeneficiaryStatus('${benId}')" title="${isStatusActive ? 'Deactivate Account' : 'Activate Account'}">
+                                                <i class="bi ${isStatusActive ? 'bi-power' : 'bi-check-circle'}"></i> ${isStatusActive ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         function resetBeneficiaryFilters() {

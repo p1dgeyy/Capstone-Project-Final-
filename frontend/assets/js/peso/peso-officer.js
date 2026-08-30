@@ -703,8 +703,9 @@ const PesoOfficerApp = (() => {
     }
 
     function renderBeneficiariesTable() {
+        const gridContainer = document.getElementById('beneficiaryGridContainer');
         const tbody = document.getElementById('beneficiaryTableBody') || document.getElementById('officerBeneficiaryTableBody');
-        if (!tbody) return;
+        if (!gridContainer && !tbody) return;
 
         const query = (document.getElementById('benSearchInput')?.value || document.getElementById('searchBeneficiaryQuery')?.value || '').toLowerCase();
         const brgyFilter = (document.getElementById('benBarangayFilter')?.value || '').toLowerCase();
@@ -730,58 +731,151 @@ const PesoOfficerApp = (() => {
             countFooter.textContent = `${filtered.length} Beneficiaries Found`;
         }
 
-        if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block mb-2 text-muted"></i>No beneficiary records match the search or filter criteria.</td></tr>`;
+        if (gridContainer) {
+            if (filtered.length === 0) {
+                gridContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm rounded-4 bg-white p-5 text-center">
+                            <i class="bi bi-person-x fs-1 d-block mb-2 text-muted"></i>
+                            <h6 class="fw-bold text-dark mb-1">No Beneficiary Records Found</h6>
+                            <p class="text-muted small mb-3">No beneficiary records match the current search query or filter criteria.</p>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="resetBeneficiaryFilters()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Reset Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            gridContainer.innerHTML = filtered.map(b => {
+                const fullName = `${b.first_name || ''} ${b.middle_name ? b.middle_name + ' ' : ''}${b.last_name || ''} ${b.suffix || ''}`.trim() || b.name || 'Beneficiary';
+                const benId = b.qr_code || `BEN-${b.id}`;
+                const brgy = b.barangay || 'Koronadal';
+                const maskedPhone = maskPhone(b.phone || b.contact || b.contact_number);
+                const isAcctActive = (b.status || 'Active') === 'Active';
+                const elig = computeBeneficiaryEligibility(b);
+
+                return `
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 d-flex flex-column justify-content-between p-3.5 beneficiary-card-item transition-all">
+                            <!-- Card Header: Identity & Status -->
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start mb-2.5">
+                                    <div class="d-flex align-items-center gap-2.5">
+                                        <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                            <i class="bi bi-person-fill"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 170px;" title="${escapeHtml(fullName)}">${escapeHtml(fullName)}</h6>
+                                            <span class="text-muted font-monospace" style="font-size: 0.75rem;">@${escapeHtml(b.username || 'walkin_user')}</span>
+                                        </div>
+                                    </div>
+                                    <span class="badge ${isAcctActive ? 'bg-success' : 'bg-secondary'} rounded-pill px-2.5 py-1">
+                                        <i class="bi ${isAcctActive ? 'bi-check-circle-fill' : 'bi-slash-circle'} me-1"></i>${isAcctActive ? 'Active' : 'Deactivated'}
+                                    </span>
+                                </div>
+
+                                <!-- Meta Chips -->
+                                <div class="d-flex flex-wrap align-items-center gap-1.5 mb-3">
+                                    <span class="badge bg-light text-primary border font-monospace fw-bold px-2 py-1" style="font-size: 0.75rem;">
+                                        <i class="bi bi-qr-code me-1"></i>${escapeHtml(benId)}
+                                    </span>
+                                    <span class="badge ${elig.badge} font-monospace px-2 py-1" style="font-size: 0.72rem;">
+                                        ${escapeHtml(elig.label)}
+                                    </span>
+                                </div>
+
+                                <!-- Key Attributes Container -->
+                                <div class="p-2.5 rounded-3 bg-light mb-3 text-secondary small border">
+                                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                        <span class="text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>Barangay:</span>
+                                        <span class="fw-semibold text-dark text-truncate ms-2" style="max-width: 150px;">${escapeHtml(brgy)}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                        <span class="text-muted"><i class="bi bi-telephone-fill text-primary me-1"></i>Contact:</span>
+                                        <span class="font-monospace fw-semibold text-dark">${maskedPhone}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span class="text-muted"><i class="bi bi-envelope-fill text-secondary me-1"></i>Email:</span>
+                                        <span class="text-truncate text-dark ms-2" style="max-width: 150px;" title="${escapeHtml(b.email || 'N/A')}">${escapeHtml(b.email || 'N/A')}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card Action Buttons -->
+                            <div class="border-top pt-2.5 mt-auto">
+                                <div class="row g-1.5">
+                                    <div class="col-6">
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="PesoOfficerApp.openBeneficiaryRecordModal('${b.qr_code || b.id}')" title="View beneficiary record" aria-label="View record for ${escapeHtml(fullName)}">
+                                            <i class="bi bi-eye"></i> View
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-sm btn-outline-secondary rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="PesoOfficerApp.openEditBeneficiaryModal('${b.qr_code || b.id}')" title="Edit beneficiary details" aria-label="Edit details for ${escapeHtml(fullName)}">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-sm btn-outline-dark rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="PesoOfficerApp.showBeneficiaryQR('${b.qr_code || b.id}')" title="Display beneficiary QR" aria-label="Show QR code for ${escapeHtml(fullName)}">
+                                            <i class="bi bi-qr-code"></i> QR Pass
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-sm ${isAcctActive ? 'btn-outline-danger' : 'btn-outline-success'} rounded-pill w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" onclick="PesoOfficerApp.toggleBeneficiaryStatus('${b.qr_code || b.id}')" title="${isAcctActive ? 'Deactivate Account' : 'Activate Account'}" aria-label="${isAcctActive ? 'Deactivate' : 'Activate'} account for ${escapeHtml(fullName)}">
+                                            <i class="bi ${isAcctActive ? 'bi-person-dash' : 'bi-person-check'}"></i> ${isAcctActive ? 'Deactivate' : 'Activate'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
             return;
         }
 
-        tbody.innerHTML = filtered.map(b => {
-            const fullName = `${b.first_name || ''} ${b.middle_name ? b.middle_name + ' ' : ''}${b.last_name || ''} ${b.suffix || ''}`.trim() || b.name || 'Beneficiary';
-            const benId = b.qr_code || `BEN-${b.id}`;
-            const brgy = b.barangay || 'Koronadal';
-            const maskedPhone = maskPhone(b.phone || b.contact || b.contact_number);
-            const isAcctActive = (b.status || 'Active') === 'Active';
-            const elig = computeBeneficiaryEligibility(b);
+        if (tbody) {
+            tbody.innerHTML = filtered.map(b => {
+                const fullName = `${b.first_name || ''} ${b.middle_name ? b.middle_name + ' ' : ''}${b.last_name || ''} ${b.suffix || ''}`.trim() || b.name || 'Beneficiary';
+                const benId = b.qr_code || `BEN-${b.id}`;
+                const brgy = b.barangay || 'Koronadal';
+                const maskedPhone = maskPhone(b.phone || b.contact || b.contact_number);
+                const isAcctActive = (b.status || 'Active') === 'Active';
+                const elig = computeBeneficiaryEligibility(b);
 
-            return `
-                <tr>
-                    <td>
-                        <strong class="text-dark d-block">${escapeHtml(fullName)}</strong>
-                        <small class="text-muted font-monospace">${escapeHtml(b.username || 'walkin_user')}</small>
-                    </td>
-                    <td>
-                        <span class="badge bg-light text-primary border font-monospace fw-bold">${escapeHtml(benId)}</span>
-                    </td>
-                    <td>
-                        <small class="text-secondary"><i class="bi bi-geo-alt me-1 text-danger"></i>${escapeHtml(brgy)}</small>
-                    </td>
-                    <td>
-                        <span class="font-monospace text-dark d-block small">${maskedPhone}</span>
-                        ${b.email && b.email !== 'N/A' ? `<small class="text-muted">${escapeHtml(b.email)}</small>` : '<small class="text-muted fst-italic">No email provided</small>'}
-                    </td>
-                    <td class="text-center">
-                        <span class="badge ${isAcctActive ? 'bg-success' : 'bg-secondary'}">${isAcctActive ? 'Active' : 'Deactivated'}</span>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge ${elig.badge} font-monospace">${escapeHtml(elig.label)}</span>
-                    </td>
-                    <td class="text-end text-nowrap">
-                        <button class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.openBeneficiaryRecordModal('${b.qr_code || b.id}')" title="Opens the beneficiary's complete record" aria-label="View record for ${escapeHtml(b.name || 'Beneficiary')}">
-                            <i class="bi bi-eye me-1"></i>View Record
-                        </button>
-                        <button class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.openEditBeneficiaryModal('${b.qr_code || b.id}')" title="Updates the beneficiary's information" aria-label="Edit details for ${escapeHtml(b.name || 'Beneficiary')}">
-                            <i class="bi bi-pencil me-1"></i>Edit
-                        </button>
-                        <button class="btn btn-xs btn-outline-dark rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.showBeneficiaryQR('${b.qr_code || b.id}')" title="Displays the permanent QR code again" aria-label="Show QR code for ${escapeHtml(b.name || 'Beneficiary')}">
-                            <i class="bi bi-qr-code me-1"></i>Show QR
-                        </button>
-                        <button class="btn btn-xs ${isAcctActive ? 'btn-outline-danger' : 'btn-outline-success'} rounded-pill px-2.5 py-1 fw-semibold shadow-xs" onclick="PesoOfficerApp.toggleBeneficiaryStatus('${b.qr_code || b.id}')" title="Turns the beneficiary's account on or off" aria-label="${isAcctActive ? 'Deactivate' : 'Activate'} account for ${escapeHtml(b.name || 'Beneficiary')}">
-                            <i class="bi ${isAcctActive ? 'bi-person-dash' : 'bi-person-check'} me-1"></i>${isAcctActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+                return `
+                    <tr>
+                        <td>
+                            <strong class="text-dark d-block">${escapeHtml(fullName)}</strong>
+                            <small class="text-muted font-monospace">${escapeHtml(b.username || 'walkin_user')}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-primary border font-monospace fw-bold">${escapeHtml(benId)}</span>
+                        </td>
+                        <td>
+                            <small class="text-secondary"><i class="bi bi-geo-alt me-1 text-danger"></i>${escapeHtml(brgy)}</small>
+                        </td>
+                        <td>
+                            <span class="font-monospace text-dark d-block small">${maskedPhone}</span>
+                            ${b.email && b.email !== 'N/A' ? `<small class="text-muted">${escapeHtml(b.email)}</small>` : '<small class="text-muted fst-italic">No email provided</small>'}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge ${isAcctActive ? 'bg-success' : 'bg-secondary'}">${isAcctActive ? 'Active' : 'Deactivated'}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge ${elig.badge} font-monospace">${escapeHtml(elig.label)}</span>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <button class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.openBeneficiaryRecordModal('${b.qr_code || b.id}')">View Record</button>
+                            <button class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 fw-semibold me-1 shadow-xs" onclick="PesoOfficerApp.openEditBeneficiaryModal('${b.qr_code || b.id}')">Edit</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
     }
 
     /**
