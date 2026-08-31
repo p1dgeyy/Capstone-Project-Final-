@@ -58,7 +58,7 @@ function refreshDashboardMetrics() {
 }
 // Master Tab Navigation Controller
 function switchTab(tabName) {
-    const target = (tabName === 'officers') ? 'users' : tabName;
+    const target = tabName;
     const sections = ['Overview', 'Officers', 'Programs', 'Users', 'Scheduling', 'Evaluation', 'Assignment', 'Funds', 'Resources', 'Notifications', 'Reports', 'Archive'];
     sections.forEach(s => {
         const secEl = document.getElementById(`section${s}`);
@@ -81,6 +81,8 @@ function switchTab(tabName) {
 
     if (target === 'overview') {
         renderDashboardTables();
+    } else if (target === 'officers') {
+        if (typeof filterOfficers === 'function') filterOfficers();
     } else if (target === 'users') {
         renderUsersModule();
     } else if (target === 'scheduling') {
