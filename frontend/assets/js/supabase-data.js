@@ -865,6 +865,24 @@ const DataService = (() => {
 
     async adminRelease(id, releaseData) {
       return withRetry(async (client) => {
+        let progCode = releaseData.program_code || null;
+        let requestedOrApprovedAmount = releaseData.amount || null;
+
+        const { data: currentApp } = await client
+          .from('applications')
+          .select('id, application_number, program_id, amount_approved, amount_requested, beneficiary_qr, programs (id, code, name)')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (currentApp) {
+          if (!progCode) {
+            progCode = currentApp.programs?.code || (currentApp.program_id ? String(currentApp.program_id) : 'CSWDO');
+          }
+          if (!requestedOrApprovedAmount) {
+            requestedOrApprovedAmount = Number(currentApp.amount_approved || currentApp.amount_requested || 0);
+          }
+        }
+
         const payload = {
           status: 'Released',
           admin_notes: releaseData.notes || 'Funds released at disbursement desk',
@@ -873,14 +891,24 @@ const DataService = (() => {
 
         const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
-          const amount = Number(res.data.amount_approved || res.data.amount_requested || 0);
+          const amount = Number(requestedOrApprovedAmount || res.data.amount_approved || res.data.amount_requested || 0);
+          const targetProg = progCode || releaseData.program_code || 'CSWDO';
+
+          // Deduct from real program fund balance
+          if (amount > 0 && funds && typeof funds.releaseAmount === 'function') {
+            try {
+              await funds.releaseAmount(targetProg, amount);
+            } catch (fErr) {
+              console.warn('[DataService] Fund deduction notice during adminRelease:', fErr);
+            }
+          }
 
           auditLogs.log({
             staffUserId: releaseData.admin_id || null,
             action: 'RELEASE_FUNDS',
             entityType: 'application',
             entityId: id,
-            details: `Disbursed funds for application ${res.data.application_number}. Amount: ₱${amount.toLocaleString()}`
+            details: `Disbursed funds for application ${res.data.application_number} under program ${targetProg}. Amount: ₱${amount.toLocaleString()}`
           });
 
           activityLog.log({
@@ -888,8 +916,8 @@ const DataService = (() => {
             action_title: 'Funds Disbursed',
             application_id: res.data.application_number,
             beneficiary_name: `${res.data.beneficiary?.first_name || ''} ${res.data.beneficiary?.last_name || ''}`.trim(),
-            program: res.data.program?.name || 'Assistance',
-            details: `Released grant voucher of ₱${amount.toLocaleString()}.`
+            program: res.data.program?.name || targetProg,
+            details: `Released grant voucher of ₱${amount.toLocaleString()} under ${targetProg}.`
           });
 
           notifications.create({
