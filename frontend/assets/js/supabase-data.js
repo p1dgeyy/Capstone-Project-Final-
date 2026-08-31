@@ -1981,17 +1981,26 @@ const DataService = (() => {
           return { data: null, error: { message: 'Invalid program code or refund amount.' } };
         }
 
-        // 1. Primary: Atomic RPC with negative amount if supported
+        // 1. Primary: Dedicated Atomic in-database RPC refund
         try {
-          const { data: rpcRes, error: rpcErr } = await client.rpc('release_fund_amount', {
+          const { data: rpcRes, error: rpcErr } = await client.rpc('refund_fund_amount', {
             p_program_code: code,
-            p_amount: -numericAmount
+            p_amount: numericAmount
           });
 
-          if (!rpcErr && rpcRes && rpcRes.success) {
-            return { data: rpcRes.data, error: null };
+          if (!rpcErr && rpcRes) {
+            if (rpcRes.success) {
+              return { data: rpcRes.data, error: null };
+            } else {
+              return { data: null, error: { message: rpcRes.error || 'Failed to refund fund amount via atomic RPC.' } };
+            }
           }
-        } catch (rpcEx) {}
+          if (rpcErr) {
+            console.warn('[DataService] refund_fund_amount RPC notice:', rpcErr);
+          }
+        } catch (rpcEx) {
+          console.warn('[DataService] refund_fund_amount RPC exception:', rpcEx);
+        }
 
         // 2. Direct fallback: Decrement released_amount
         let fundRes = await client.from('funds').select('*')
