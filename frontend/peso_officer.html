@@ -4921,8 +4921,7 @@
                 }
 
                 // 6. Programs for Dashboard Budget & Spent Metrics
-                let programsData = [];
-                if (DataService.programs) {
+                if (DataService.programs && (!programsData || programsData.length === 0)) {
                     const progRes = await DataService.programs.getAll({ agency: 'PESO' });
                     if (progRes && Array.isArray(progRes.data)) {
                         programsData = progRes.data;
@@ -10348,7 +10347,29 @@
                         } else {
                             astSaveSuccess = true;
                             fundReleaseSuccess = true;
-        }
+                        }
+
+                        // Complete Successful Assistance Record
+                        assistanceRecordsList.unshift(newAstRecord);
+                        renderApprovedAssistanceTable();
+
+                        logOfficerAction('RECORD_ASSISTANCE', `Recorded approved assistance (${astType}: ${quantityVal}) for ${benName} under ${programRaw}.`);
+
+                        const modalEl = document.getElementById('recordAssistanceModal');
+                        if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+
+                        if (window.showSystemNotification) {
+                            window.showSystemNotification({
+                                title: 'Assistance Recorded',
+                                message: `Assistance record for ${benName} (${quantityVal}) has been recorded and approved.`,
+                                type: 'success'
+                            });
+                        } else {
+                            alert(`Assistance record for ${benName} (${quantityVal}) has been recorded and approved.`);
+                        }
+                    });
+                }
+                window.submitAssistanceRecord = submitAssistanceRecord;
 
         function renderApprovedAssistanceTable(customList) {
             const tbody = document.getElementById('assistanceRecordsTableBody') || document.getElementById('officerApprovedAssistanceTableBody');
