@@ -7841,109 +7841,126 @@
         }
 
         // REQ076: MARK APPLICATION AS APPROVED FOR ADMINISTRATOR REVIEW
+        let _isApprovingOfficerApp = false;
         async function approveApplication(id) {
+            if (_isApprovingOfficerApp) return;
             const item = evaluationList.find(e => e.id === id || e.dbId === Number(id));
             if (!item) return;
 
-            const previousStatus = item.status;
-            const previousRemarks = item.remarks;
-            const requestedAmount = Number(item.amountRequested || item.amount_requested || 5000);
-            const progCode = item.programCode || 'PESO';
+            _isApprovingOfficerApp = true;
+            const approveBtn = document.querySelector('#applicationDetailModal button[onclick*="approveApplication"]') || document.querySelector(`button[onclick="approveApplication('${id}')"]`);
+            if (approveBtn) {
+                approveBtn.disabled = true;
+                approveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Approving...';
+            }
 
-            // 1. Budget Cap Guardrail Validation
-            if (typeof DataService !== 'undefined' && DataService.funds) {
-                try {
-                    const balanceRes = await DataService.funds.checkBalance(progCode, requestedAmount);
-                    if (!balanceRes || !balanceRes.data || !balanceRes.data.hasSufficientFunds || balanceRes.error) {
-                        const reason = balanceRes?.data?.reason || balanceRes?.error?.message || `The program "${progCode}" has insufficient balance.`;
-                        const msg = `Budget Cap Restriction: Cannot approve application ${id}. ${reason}`;
+            try {
+                const previousStatus = item.status;
+                const previousRemarks = item.remarks;
+                const requestedAmount = Number(item.amountRequested || item.amount_requested || 5000);
+                const progCode = item.programCode || 'PESO';
+
+                // 1. Budget Cap Guardrail Validation
+                if (typeof DataService !== 'undefined' && DataService.funds) {
+                    try {
+                        const balanceRes = await DataService.funds.checkBalance(progCode, requestedAmount);
+                        if (!balanceRes || !balanceRes.data || !balanceRes.data.hasSufficientFunds || balanceRes.error) {
+                            const reason = balanceRes?.data?.reason || balanceRes?.error?.message || `The program "${progCode}" has insufficient balance.`;
+                            const msg = `Budget Cap Restriction: Cannot approve application ${id}. ${reason}`;
+                            if (window.showSystemNotification) {
+                                window.showSystemNotification({
+                                    title: 'Budget Cap Exceeded',
+                                    message: msg,
+                                    type: 'error'
+                                });
+                            } else {
+                                alert(msg);
+                            }
+                            logOfficerAction('FAILED_APPROVAL_BUDGET_CAP', `Blocked approval for ${id} due to budget cap on ${progCode}. Reason: ${reason}`);
+                            return;
+                        }
+                    } catch (bErr) {
+                        console.warn('[Officer Eval] Budget check warning:', bErr);
+                    }
+                }
+
+                const targetRemarks = 'Application evaluation complete. Approved by PESO Officer for Administrator Review.';
+                let evalSuccessful = false;
+                let failureReason = '';
+
+                // 2. Perform Database Write: Update Application Status
+                if (typeof DataService !== 'undefined' && item.dbId) {
+                    if (DataService.applications) {
+                        try {
+                            const evalRes = await DataService.applications.evaluate(item.dbId, {
+                                decision: 'Approved',
+                                notes: targetRemarks
+                            });
+                            if (evalRes && !evalRes.error) {
+                                evalSuccessful = true;
+                            } else {
+                                failureReason = (evalRes && evalRes.error && evalRes.error.message) || 'Failed to update application status in database.';
+                            }
+                        } catch (appErr) {
+                            failureReason = appErr.message || 'Exception during application status update.';
+                        }
+                    } else {
+                        evalSuccessful = true;
+                    }
+
+                    if (!evalSuccessful) {
+                        // Halt immediately if status update failed
+                        logOfficerAction('FAILED_APPROVAL_DB', `Failed to mark application ${id} as Officer Approved: ${failureReason}`);
                         if (window.showSystemNotification) {
                             window.showSystemNotification({
-                                title: 'Budget Cap Exceeded',
-                                message: msg,
+                                title: 'Approval Failed',
+                                message: `Could not evaluate application ${id}: ${failureReason}`,
                                 type: 'error'
                             });
                         } else {
-                            alert(msg);
+                            alert(`Approval Failed: ${failureReason}`);
                         }
-                        logOfficerAction('FAILED_APPROVAL_BUDGET_CAP', `Blocked approval for ${id} due to budget cap on ${progCode}. Reason: ${reason}`);
                         return;
-                    }
-                } catch (bErr) {
-                    console.warn('[Officer Eval] Budget check warning:', bErr);
-                }
-            }
-
-            const targetRemarks = 'Application evaluation complete. Approved by PESO Officer for Administrator Review.';
-            let evalSuccessful = false;
-            let failureReason = '';
-
-            // 2. Perform Database Write: Update Application Status
-            if (typeof DataService !== 'undefined' && item.dbId) {
-                if (DataService.applications) {
-                    try {
-                        const evalRes = await DataService.applications.evaluate(item.dbId, {
-                            decision: 'Approved',
-                            notes: targetRemarks
-                        });
-                        if (evalRes && !evalRes.error) {
-                            evalSuccessful = true;
-                        } else {
-                            failureReason = (evalRes && evalRes.error && evalRes.error.message) || 'Failed to update application status in database.';
-                        }
-                    } catch (appErr) {
-                        failureReason = appErr.message || 'Exception during application status update.';
                     }
                 } else {
                     evalSuccessful = true;
                 }
 
-                if (!evalSuccessful) {
-                    // Halt immediately if status update failed
-                    logOfficerAction('FAILED_APPROVAL_DB', `Failed to mark application ${id} as Officer Approved: ${failureReason}`);
-                    if (window.showSystemNotification) {
-                        window.showSystemNotification({
-                            title: 'Approval Failed',
-                            message: `Could not evaluate application ${id}: ${failureReason}`,
-                            type: 'error'
-                        });
-                    } else {
-                        alert(`Approval Failed: ${failureReason}`);
-                    }
-                    return;
+                // 3. Complete Successful Officer Approval Flow
+                item.status = 'Officer Approved';
+                item.rawStatus = 'Officer Approved';
+                item.remarks = targetRemarks;
+                item.missingNotes = '';
+                renderEvaluationQueueTable();
+
+                logOfficerAction('OFFICER_EVALUATION_APPROVED', `Marked application ${id} for ${item.beneficiaryName} as Officer Approved for Administrator Review.`);
+
+                // Multi-channel external dispatch (SMS & Email)
+                if (typeof window.sendExternalSms === 'function' && item.beneficiaryPhone) {
+                    window.sendExternalSms({
+                        recipientPhone: item.beneficiaryPhone,
+                        message: `PESO Koronadal: Your application (${item.id}) for ${item.program || 'Livelihood Assistance'} has been EVALUATED and cleared by the PESO Officer for Administrator Review.`
+                    });
                 }
-            } else {
-                evalSuccessful = true;
-            }
 
-            // 3. Complete Successful Officer Approval Flow
-            item.status = 'Officer Approved';
-            item.rawStatus = 'Officer Approved';
-            item.remarks = targetRemarks;
-            item.missingNotes = '';
-            renderEvaluationQueueTable();
-
-            logOfficerAction('OFFICER_EVALUATION_APPROVED', `Marked application ${id} for ${item.beneficiaryName} as Officer Approved for Administrator Review.`);
-
-            // Multi-channel external dispatch (SMS & Email)
-            if (typeof window.sendExternalSms === 'function' && item.beneficiaryPhone) {
-                window.sendExternalSms({
-                    recipientPhone: item.beneficiaryPhone,
-                    message: `PESO Koronadal: Your application (${item.id}) for ${item.program || 'Livelihood Assistance'} has been EVALUATED and cleared by the PESO Officer for Administrator Review.`
-                });
-            }
-
-            if (bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'))) {
-                bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
-            }
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Application Evaluated',
-                    message: `Application ${id} for ${item.beneficiaryName} cleared by Officer and submitted for Administrator Review.`,
-                    type: 'success'
-                });
-            } else {
-                alert(`Application ${id} for ${item.beneficiaryName} cleared by Officer and submitted for Administrator Review.`);
+                if (bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'))) {
+                    bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
+                }
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Application Evaluated',
+                        message: `Application ${id} for ${item.beneficiaryName} cleared by Officer and submitted for Administrator Review.`,
+                        type: 'success'
+                    });
+                } else {
+                    alert(`Application ${id} for ${item.beneficiaryName} cleared by Officer and submitted for Administrator Review.`);
+                }
+            } finally {
+                _isApprovingOfficerApp = false;
+                if (approveBtn) {
+                    approveBtn.disabled = false;
+                    approveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Approve Application';
+                }
             }
         }
 
@@ -7953,7 +7970,9 @@
             new bootstrap.Modal(document.getElementById('denyRemarksModal')).show();
         }
 
+        let _isDenyingOfficerApp = false;
         async function confirmDenyApplication() {
+            if (_isDenyingOfficerApp) return;
             const remarks = document.getElementById('denyRemarksInput').value.trim();
             if (!remarks) {
                 alert('Mandatory Remarks Required: Rejection remarks are mandatory when denying an application.');
@@ -7963,39 +7982,54 @@
             const item = evaluationList.find(e => e.id === selectedEvalAppId || e.dbId === Number(selectedEvalAppId));
             if (!item) return;
 
-            item.status = 'Denied';
-            item.remarks = remarks;
-            item.missingNotes = '';
+            _isDenyingOfficerApp = true;
+            const denyBtn = document.querySelector('#denyRemarksModal button[onclick*="confirmDenyApplication"]') || document.querySelector('#denyRemarksModal .btn-danger');
+            if (denyBtn) {
+                denyBtn.disabled = true;
+                denyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Denying...';
+            }
 
-            renderEvaluationQueueTable();
-            logOfficerAction('DENY_APPLICATION', `Marked application ${selectedEvalAppId} for ${item.beneficiaryName} as Denied for administrator review. Reason: ${remarks}`);
+            try {
+                item.status = 'Denied';
+                item.remarks = remarks;
+                item.missingNotes = '';
 
-            if (typeof DataService !== 'undefined' && DataService.applications && item.dbId) {
-                try {
-                    await DataService.applications.evaluate(item.dbId, {
-                        decision: 'Denied',
-                        notes: remarks
-                    });
-                } catch (err) {
-                    console.warn('[Officer Eval] Supabase sync notice:', err);
+                renderEvaluationQueueTable();
+                logOfficerAction('DENY_APPLICATION', `Marked application ${selectedEvalAppId} for ${item.beneficiaryName} as Denied for administrator review. Reason: ${remarks}`);
+
+                if (typeof DataService !== 'undefined' && DataService.applications && item.dbId) {
+                    try {
+                        await DataService.applications.evaluate(item.dbId, {
+                            decision: 'Denied',
+                            notes: remarks
+                        });
+                    } catch (err) {
+                        console.warn('[Officer Eval] Supabase sync notice:', err);
+                    }
                 }
-            }
 
-            if (bootstrap.Modal.getInstance(document.getElementById('denyRemarksModal'))) {
-                bootstrap.Modal.getInstance(document.getElementById('denyRemarksModal')).hide();
-            }
-            if (bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'))) {
-                bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
-            }
+                if (bootstrap.Modal.getInstance(document.getElementById('denyRemarksModal'))) {
+                    bootstrap.Modal.getInstance(document.getElementById('denyRemarksModal')).hide();
+                }
+                if (bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'))) {
+                    bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
+                }
 
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Application Denied',
-                    message: `Application ${selectedEvalAppId} marked as DENIED for administrator review.`,
-                    type: 'warning'
-                });
-            } else {
-                alert(`Application ${selectedEvalAppId} denied for administrator review.`);
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Application Denied',
+                        message: `Application ${selectedEvalAppId} marked as DENIED for administrator review.`,
+                        type: 'warning'
+                    });
+                } else {
+                    alert(`Application ${selectedEvalAppId} denied for administrator review.`);
+                }
+            } finally {
+                _isDenyingOfficerApp = false;
+                if (denyBtn) {
+                    denyBtn.disabled = false;
+                    denyBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Confirm Denial';
+                }
             }
         }
 

@@ -2680,40 +2680,57 @@
             selectedAppId = null;
         }
 
+        let _isExecutingApprove = false;
         async function executeApproveApplication() {
-            if (!selectedAppId) return;
-            const amount = parseFloat(document.getElementById('approveAmountInput').value) || 0;
-            const remarks = document.getElementById('approveRemarksInput').value;
+            if (!selectedAppId || _isExecutingApprove) return;
+            _isExecutingApprove = true;
 
-            const app = allApplications.find(a => a.id === selectedAppId || a.dbId == selectedAppId);
-            const targetDbId = app?.dbId || parseInt(String(selectedAppId).replace(/[^0-9]/g, '')) || 1;
-
-            if (typeof DataService !== 'undefined' && DataService.applications) {
-                try {
-                    const res = await DataService.applications.adminApprove(targetDbId, {
-                        amount_approved: amount,
-                        notes: remarks,
-                        admin_id: parseInt(sessionStorage.getItem('userId')) || null,
-                        admin_username: sessionStorage.getItem('username') || 'CSWDO Admin'
-                    });
-
-                    if (res && !res.error) {
-                        closeApproveModal();
-                        if (typeof showSystemNotification === 'function') {
-                            showSystemNotification('Application Approved', `Application ${selectedAppId} has been approved successfully for ₱${amount.toLocaleString()}.`, 'success');
-                        } else {
-                            alert(`Application ${selectedAppId} approved successfully for ₱${amount.toLocaleString()}!`);
-                        }
-                        await refreshDashboardData();
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('[CSWDO Admin] Supabase approve notice:', e);
-                }
+            const submitBtn = document.querySelector('#approveAppModal button[onclick*="executeApproveApplication"]') || document.querySelector('#approveAppModal .btn-primary');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Approving...';
             }
 
-            closeApproveModal();
-            refreshDashboardData();
+            try {
+                const amount = parseFloat(document.getElementById('approveAmountInput').value) || 0;
+                const remarks = document.getElementById('approveRemarksInput').value;
+
+                const app = allApplications.find(a => a.id === selectedAppId || a.dbId == selectedAppId);
+                const targetDbId = app?.dbId || parseInt(String(selectedAppId).replace(/[^0-9]/g, '')) || 1;
+
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    try {
+                        const res = await DataService.applications.adminApprove(targetDbId, {
+                            amount_approved: amount,
+                            notes: remarks,
+                            admin_id: parseInt(sessionStorage.getItem('userId')) || null,
+                            admin_username: sessionStorage.getItem('username') || 'CSWDO Admin'
+                        });
+
+                        if (res && !res.error) {
+                            closeApproveModal();
+                            if (typeof showSystemNotification === 'function') {
+                                showSystemNotification('Application Approved', `Application ${selectedAppId} has been approved successfully for ₱${amount.toLocaleString()}.`, 'success');
+                            } else {
+                                alert(`Application ${selectedAppId} approved successfully for ₱${amount.toLocaleString()}!`);
+                            }
+                            await refreshDashboardData();
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('[CSWDO Admin] Supabase approve notice:', e);
+                    }
+                }
+
+                closeApproveModal();
+                refreshDashboardData();
+            } finally {
+                _isExecutingApprove = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Approve Application';
+                }
+            }
         }
 
         // =======================================================
@@ -2736,42 +2753,58 @@
             selectedAppId = null;
         }
 
+        let _isExecutingDeny = false;
         async function executeDenyApplication() {
-            if (!selectedAppId) return;
+            if (!selectedAppId || _isExecutingDeny) return;
             const reason = document.getElementById('denyReasonInput').value.trim();
             if (!reason) {
                 alert('Disapproval justification reason is mandatory for audit compliance.');
                 return;
             }
+            _isExecutingDeny = true;
 
-            const app = allApplications.find(a => a.id === selectedAppId || a.dbId == selectedAppId);
-            const targetDbId = app?.dbId || parseInt(String(selectedAppId).replace(/[^0-9]/g, '')) || 1;
-
-            if (typeof DataService !== 'undefined' && DataService.applications) {
-                try {
-                    const res = await DataService.applications.adminDeny(targetDbId, {
-                        reason: reason,
-                        admin_id: parseInt(sessionStorage.getItem('userId')) || null,
-                        admin_username: sessionStorage.getItem('username') || 'CSWDO Admin'
-                    });
-
-                    if (res && !res.error) {
-                        closeDenyModal();
-                        if (typeof showSystemNotification === 'function') {
-                            showSystemNotification('Application Disapproved', `Application ${selectedAppId} has been disapproved.`, 'warning');
-                        } else {
-                            alert(`Application ${selectedAppId} disapproved.`);
-                        }
-                        await refreshDashboardData();
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('[CSWDO Admin] Supabase deny notice:', e);
-                }
+            const submitBtn = document.querySelector('#denyAppModal button[onclick*="executeDenyApplication"]') || document.querySelector('#denyAppModal .btn-danger');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Disapproving...';
             }
 
-            closeDenyModal();
-            refreshDashboardData();
+            try {
+                const app = allApplications.find(a => a.id === selectedAppId || a.dbId == selectedAppId);
+                const targetDbId = app?.dbId || parseInt(String(selectedAppId).replace(/[^0-9]/g, '')) || 1;
+
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    try {
+                        const res = await DataService.applications.adminDeny(targetDbId, {
+                            reason: reason,
+                            admin_id: parseInt(sessionStorage.getItem('userId')) || null,
+                            admin_username: sessionStorage.getItem('username') || 'CSWDO Admin'
+                        });
+
+                        if (res && !res.error) {
+                            closeDenyModal();
+                            if (typeof showSystemNotification === 'function') {
+                                showSystemNotification('Application Disapproved', `Application ${selectedAppId} has been disapproved.`, 'warning');
+                            } else {
+                                alert(`Application ${selectedAppId} disapproved.`);
+                            }
+                            await refreshDashboardData();
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('[CSWDO Admin] Supabase deny notice:', e);
+                    }
+                }
+
+                closeDenyModal();
+                refreshDashboardData();
+            } finally {
+                _isExecutingDeny = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Disapprove Application';
+                }
+            }
         }
 
         // =======================================================
@@ -2795,52 +2828,69 @@
             selectedAppId = null;
         }
 
+        let _isExecutingRelease = false;
         async function executeReleaseFunds() {
-            if (!selectedAppId) return;
-            const notes = document.getElementById('releaseNotesInput').value;
+            if (!selectedAppId || _isExecutingRelease) return;
+            _isExecutingRelease = true;
 
-            const app = allApplications.find(a => a.id === selectedAppId || a.dbId == selectedAppId);
-            const targetDbId = app?.dbId || parseInt(String(selectedAppId).replace(/[^0-9]/g, '')) || 1;
-
-            if (typeof DataService !== 'undefined' && DataService.applications) {
-                try {
-                    const res = await DataService.applications.adminRelease(targetDbId, {
-                        notes: notes,
-                        admin_id: parseInt(sessionStorage.getItem('userId')) || null
-                    });
-
-                    if (res && !res.error) {
-                        closeReleaseModal();
-                        if (typeof showSystemNotification === 'function') {
-                            showSystemNotification('Funds Released', `Grant voucher for ${selectedAppId} successfully disbursed and ledger updated.`, 'success');
-                        } else {
-                            alert(`Funds released for ${selectedAppId}!`);
-                        }
-                        await refreshDashboardData();
-                        return;
-                    } else if (res && res.error) {
-                        const errMsg = res.error.message || 'Fund disbursement failed in database.';
-                        if (typeof showSystemNotification === 'function') {
-                            showSystemNotification('Disbursement Error', errMsg, 'error');
-                        } else {
-                            alert(`Disbursement Error: ${errMsg}`);
-                        }
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('[CSWDO Admin] Supabase fund release notice:', e);
-                    const errMsg = e.message || 'Exception during fund disbursement.';
-                    if (typeof showSystemNotification === 'function') {
-                        showSystemNotification('Disbursement Exception', errMsg, 'error');
-                    } else {
-                        alert(`Disbursement Exception: ${errMsg}`);
-                    }
-                    return;
-                }
+            const submitBtn = document.querySelector('#releaseAppModal button[onclick*="executeReleaseFunds"]') || document.querySelector('#releaseAppModal .btn-success');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Disbursing...';
             }
 
-            closeReleaseModal();
-            refreshDashboardData();
+            try {
+                const notes = document.getElementById('releaseNotesInput').value;
+
+                const app = allApplications.find(a => a.id === selectedAppId || a.dbId == selectedAppId);
+                const targetDbId = app?.dbId || parseInt(String(selectedAppId).replace(/[^0-9]/g, '')) || 1;
+
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    try {
+                        const res = await DataService.applications.adminRelease(targetDbId, {
+                            notes: notes,
+                            admin_id: parseInt(sessionStorage.getItem('userId')) || null
+                        });
+
+                        if (res && !res.error) {
+                            closeReleaseModal();
+                            if (typeof showSystemNotification === 'function') {
+                                showSystemNotification('Funds Released', `Grant voucher for ${selectedAppId} successfully disbursed and ledger updated.`, 'success');
+                            } else {
+                                alert(`Funds released for ${selectedAppId}!`);
+                            }
+                            await refreshDashboardData();
+                            return;
+                        } else if (res && res.error) {
+                            const errMsg = res.error.message || 'Fund disbursement failed in database.';
+                            if (typeof showSystemNotification === 'function') {
+                                showSystemNotification('Disbursement Error', errMsg, 'error');
+                            } else {
+                                alert(`Disbursement Error: ${errMsg}`);
+                            }
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('[CSWDO Admin] Supabase fund release notice:', e);
+                        const errMsg = e.message || 'Exception during fund disbursement.';
+                        if (typeof showSystemNotification === 'function') {
+                            showSystemNotification('Disbursement Exception', errMsg, 'error');
+                        } else {
+                            alert(`Disbursement Exception: ${errMsg}`);
+                        }
+                        return;
+                    }
+                }
+
+                closeReleaseModal();
+                refreshDashboardData();
+            } finally {
+                _isExecutingRelease = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-cash-stack me-1"></i> Release Assistance Funds';
+                }
+            }
         }
 
         // =======================================================

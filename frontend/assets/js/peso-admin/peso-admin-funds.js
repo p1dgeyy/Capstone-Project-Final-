@@ -337,10 +337,19 @@
         quickEditFund(progId, currentBudget);
     }
     
+    let _isAllocatingBudget = false;
     async function handleFundAllocationSubmit(e) {
-        e.preventDefault();
-        const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (b, fn) => await fn());
-        return await guardFn(e, async () => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (_isAllocatingBudget) return;
+        _isAllocatingBudget = true;
+
+        const submitBtn = document.getElementById('saveFundAllocBtn') || (e?.target?.querySelector ? e.target.querySelector('button[type="submit"]') : null);
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving Allocation...';
+        }
+
+        try {
             const progId = parseInt(document.getElementById('fundAllocProgSelect').value);
             const budgetInput = document.getElementById('fundAllocNewBudget');
             const newBudget = parseCurrencyToNumber(budgetInput?.value);
@@ -359,24 +368,28 @@
                 budgetInput.classList.remove('is-invalid');
             }
 
-            try {
-                if (typeof DataService !== 'undefined' && DataService.programs) {
-                    await DataService.programs.update(progId, { budget: newBudget });
-                }
-
-                // Sync with in-memory store
-                const p = AdminStore.programs.find(x => x.id === progId);
-                if (p) p.budget = newBudget;
-
-                await logAdminAction('EDIT_PROGRAM_BUDGET', 'program', progId, `Updated allocated budget for program #${progId} to ${formatCurrency(newBudget)} (REQ035). Reason/Ordinance Ref: ${justification}`);
-                notify('Budget Allocation Saved', 'Program budget allocation updated and logged to audit trail.', 'success');
-                closeModal('fundAllocationModal');
-                await refreshAllData();
-                renderFundsModule();
-            } catch (err) {
-                notify('Update Failed', err.message || 'Error updating program budget.', 'danger');
+            if (typeof DataService !== 'undefined' && DataService.programs) {
+                await DataService.programs.update(progId, { budget: newBudget });
             }
-        }, 'Saving Allocation...');
+
+            // Sync with in-memory store
+            const p = AdminStore.programs.find(x => x.id === progId);
+            if (p) p.budget = newBudget;
+
+            await logAdminAction('EDIT_PROGRAM_BUDGET', 'program', progId, `Updated allocated budget for program #${progId} to ${formatCurrency(newBudget)} (REQ035). Reason/Ordinance Ref: ${justification}`);
+            notify('Budget Allocation Saved', 'Program budget allocation updated and logged to audit trail.', 'success');
+            closeModal('fundAllocationModal');
+            await refreshAllData();
+            renderFundsModule();
+        } catch (err) {
+            notify('Update Failed', err.message || 'Error updating program budget.', 'danger');
+        } finally {
+            _isAllocatingBudget = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Save Allocation';
+            }
+        }
     }
 
     function filterDistributionLogsTable() {
