@@ -3363,78 +3363,81 @@
 
         async function saveSchedule(e) {
             e.preventDefault();
-            const title = document.getElementById('schedTitle').value.trim();
-            const type = document.getElementById('schedType').value;
-            const dateTime = document.getElementById('schedDateTime').value;
-            const location = document.getElementById('schedLocation').value.trim();
-            const autoNotify = document.getElementById('schedNotifyAuto').checked;
+            const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (b, fn) => await fn());
+            return await guardFn(e, async () => {
+                const title = document.getElementById('schedTitle').value.trim();
+                const type = document.getElementById('schedType').value;
+                const dateTime = document.getElementById('schedDateTime').value;
+                const location = document.getElementById('schedLocation').value.trim();
+                const autoNotify = document.getElementById('schedNotifyAuto').checked;
 
-            const schedules = JSON.parse(localStorage.getItem('cswdo_schedules')) || [];
-            const newId = 'SCH-' + (schedules.length + 101);
+                const schedules = JSON.parse(localStorage.getItem('cswdo_schedules')) || [];
+                const newId = 'SCH-' + (schedules.length + 101);
 
-            schedules.push({
-                id: newId,
-                title,
-                type,
-                dateTime,
-                location,
-                status: 'Scheduled'
-            });
+                schedules.push({
+                    id: newId,
+                    title,
+                    type,
+                    dateTime,
+                    location,
+                    status: 'Scheduled'
+                });
 
-            localStorage.setItem('cswdo_schedules', JSON.stringify(schedules));
-            pushActivity('Schedule Created', `Registered ${title} (${type})`);
-            pushNotification('New Activity Scheduled', `Scheduled a new ${type} event: "${title}" at ${location} for ${new Date(dateTime).toLocaleString()}.`, 'update');
+                localStorage.setItem('cswdo_schedules', JSON.stringify(schedules));
+                pushActivity('Schedule Created', `Registered ${title} (${type})`);
+                pushNotification('New Activity Scheduled', `Scheduled a new ${type} event: "${title}" at ${location} for ${new Date(dateTime).toLocaleString()}.`, 'update');
 
-            if (typeof DataService !== 'undefined' && DataService.interviews) {
-                try {
-                    await DataService.interviews.create({
-                        agency: 'CSWDO',
-                        program_id: 1,
-                        scheduled_date: dateTime.split('T')[0],
-                        interview_date: dateTime.split('T')[0],
-                        interview_time: dateTime.split('T')[1] || '09:00',
-                        venue_location: location,
-                        location: location,
-                        notes: `${title} (${type})`,
-                        status: 'Scheduled'
-                    });
-                } catch (dbErr) {
-                    console.warn('[CSWDO Schedule DB Error]:', dbErr);
+                if (typeof DataService !== 'undefined' && DataService.interviews) {
+                    try {
+                        await DataService.interviews.create({
+                            agency: 'CSWDO',
+                            program_id: 1,
+                            scheduled_date: dateTime.split('T')[0],
+                            interview_date: dateTime.split('T')[0],
+                            interview_time: dateTime.split('T')[1] || '09:00',
+                            venue_location: location,
+                            location: location,
+                            notes: `${title} (${type})`,
+                            status: 'Scheduled'
+                        });
+                    } catch (dbErr) {
+                        console.warn('[CSWDO Schedule DB Error]:', dbErr);
+                    }
                 }
-            }
 
-            if (autoNotify) {
-                const logs = JSON.parse(localStorage.getItem('cswdo_broadcast_logs')) || [];
-                const now = new Date();
-                const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                const eventDateStr = new Date(dateTime).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                const message = `CSWDO Notice: You are scheduled for an ${type} event - "${title}" on ${eventDateStr} at the ${location}. Attendance is mandatory.`;
-                
-                logs.unshift({
-                    id: 'L-' + (logs.length + 101),
-                    recipientGroup: `All Applicants (${type})`,
-                    type: 'SMS & Email',
-                    subject: `Schedule Notice: ${title}`,
-                    message,
-                    status: 'Sent',
-                    timestamp
-                });
-                localStorage.setItem('cswdo_broadcast_logs', JSON.stringify(logs));
-            }
+                if (autoNotify) {
+                    const logs = JSON.parse(localStorage.getItem('cswdo_broadcast_logs')) || [];
+                    const now = new Date();
+                    const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    const eventDateStr = new Date(dateTime).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const message = `CSWDO Notice: You are scheduled for an ${type} event - "${title}" on ${eventDateStr} at the ${location}. Attendance is mandatory.`;
+                    
+                    logs.unshift({
+                        id: 'L-' + (logs.length + 101),
+                        recipientGroup: `All Applicants (${type})`,
+                        type: 'SMS & Email',
+                        subject: `Schedule Notice: ${title}`,
+                        message,
+                        status: 'Sent',
+                        timestamp
+                    });
+                    localStorage.setItem('cswdo_broadcast_logs', JSON.stringify(logs));
+                }
 
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Schedule Registered',
-                    message: `Event "${title}" successfully scheduled and recorded.`,
-                    type: 'success'
-                });
-            } else {
-                alert('Schedule successfully registered!');
-            }
-            document.getElementById('scheduleForm').reset();
-            renderSchedulesTable();
-            await fetchCSWDOOfficerApiData();
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Schedule Registered',
+                        message: `Event "${title}" successfully scheduled and recorded.`,
+                        type: 'success'
+                    });
+                } else {
+                    alert('Schedule successfully registered!');
+                }
+                document.getElementById('scheduleForm').reset();
+                renderSchedulesTable();
+                await fetchCSWDOOfficerApiData();
+            }, 'Saving Schedule...');
         }
 
         async function cancelSchedule(id) {
@@ -3564,94 +3567,97 @@
 
         async function saveBudgetAdjustment(e) {
             e.preventDefault();
-            const programCode = document.getElementById('budgetProgramSelect').value;
-            const action = document.getElementById('budgetActionSelect').value;
-            const valueInputRaw = document.getElementById('budgetValue').value.replace(/,/g, '').trim();
-            const value = parseFloat(valueInputRaw);
+            const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (b, fn) => await fn());
+            return await guardFn(e, async () => {
+                const programCode = document.getElementById('budgetProgramSelect').value;
+                const action = document.getElementById('budgetActionSelect').value;
+                const valueInputRaw = document.getElementById('budgetValue').value.replace(/,/g, '').trim();
+                const value = parseFloat(valueInputRaw);
 
-            if (isNaN(value) || value <= 0) {
-                alert("Error: Please enter a valid budget adjustment value.");
-                return;
-            }
+                if (isNaN(value) || value <= 0) {
+                    alert("Error: Please enter a valid budget adjustment value.");
+                    return;
+                }
 
-            const remarks = document.getElementById('budgetRemarks').value.trim();
-            const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
-            const index = programs.findIndex(p => p.code === programCode);
-            const programName = index !== -1 ? programs[index].name : programCode;
+                const remarks = document.getElementById('budgetRemarks').value.trim();
+                const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+                const index = programs.findIndex(p => p.code === programCode);
+                const programName = index !== -1 ? programs[index].name : programCode;
 
-            let adjustSuccess = false;
-            let adjustError = '';
-            let finalBudget = null;
+                let adjustSuccess = false;
+                let adjustError = '';
+                let finalBudget = null;
 
-            // Write to Supabase via DataService with atomic RPC
-            if (typeof DataService !== 'undefined' && DataService.programs) {
-                try {
-                    let adjustRes = null;
-                    if (typeof DataService.programs.adjustBudget === 'function') {
-                        adjustRes = await DataService.programs.adjustBudget(programCode, value, action, remarks);
-                    } else if (typeof DataService.funds.adjustBudget === 'function') {
-                        adjustRes = await DataService.funds.adjustBudget(programCode, value, action, remarks);
+                // Write to Supabase via DataService with atomic RPC
+                if (typeof DataService !== 'undefined' && DataService.programs) {
+                    try {
+                        let adjustRes = null;
+                        if (typeof DataService.programs.adjustBudget === 'function') {
+                            adjustRes = await DataService.programs.adjustBudget(programCode, value, action, remarks);
+                        } else if (typeof DataService.funds.adjustBudget === 'function') {
+                            adjustRes = await DataService.funds.adjustBudget(programCode, value, action, remarks);
+                        }
+
+                        if (adjustRes && !adjustRes.error && adjustRes.data) {
+                            adjustSuccess = true;
+                            finalBudget = adjustRes.data.new_budget || adjustRes.data.budget;
+                        } else {
+                            adjustError = adjustRes?.error?.message || 'Database rejected budget adjustment.';
+                        }
+
+                        if (adjustSuccess && DataService.auditLogs) {
+                            await DataService.auditLogs.log({
+                                action: 'BUDGET_ALLOCATION_ADJUSTED',
+                                entityType: 'program',
+                                entityId: (programs[index] && programs[index].id) || 1,
+                                details: `Adjusted budget for ${programName} (${action === 'add' ? '+' : '-'}₱${value}). Remarks: ${remarks}`
+                            });
+                        }
+                    } catch (err) {
+                        adjustError = err.message || 'Exception during budget update.';
+                        console.error('[CSWDO Officer Budget Adjust Error]:', err);
                     }
+                } else {
+                    adjustSuccess = true;
+                }
 
-                    if (adjustRes && !adjustRes.error && adjustRes.data) {
-                        adjustSuccess = true;
-                        finalBudget = adjustRes.data.new_budget || adjustRes.data.budget;
-                    } else {
-                        adjustError = adjustRes?.error?.message || 'Database rejected budget adjustment.';
-                    }
-
-                    if (adjustSuccess && DataService.auditLogs) {
-                        await DataService.auditLogs.log({
-                            action: 'BUDGET_ALLOCATION_ADJUSTED',
-                            entityType: 'program',
-                            entityId: (programs[index] && programs[index].id) || 1,
-                            details: `Adjusted budget for ${programName} (${action === 'add' ? '+' : '-'}₱${value}). Remarks: ${remarks}`
+                if (!adjustSuccess) {
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Budget Adjustment Failed',
+                            message: `Could not adjust budget for ${programName}: ${adjustError}`,
+                            type: 'error',
+                            duration: 8000
                         });
+                    } else {
+                        alert(`Budget Adjustment Failed: ${adjustError}`);
                     }
-                } catch (err) {
-                    adjustError = err.message || 'Exception during budget update.';
-                    console.error('[CSWDO Officer Budget Adjust Error]:', err);
+                    return;
                 }
-            } else {
-                adjustSuccess = true;
-            }
 
-            if (!adjustSuccess) {
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({
-                        title: 'Budget Adjustment Failed',
-                        message: `Could not adjust budget for ${programName}: ${adjustError}`,
-                        type: 'error',
-                        duration: 8000
-                    });
-                } else {
-                    alert(`Budget Adjustment Failed: ${adjustError}`);
+                if (index !== -1) {
+                    const prevBudget = programs[index].budget;
+                    const newBudget = finalBudget !== null ? finalBudget : (action === 'add' ? prevBudget + value : Math.max(0, prevBudget - value));
+                    programs[index].budget = newBudget;
+                    localStorage.setItem('cswdo_programs', JSON.stringify(programs));
+                    pushActivity('Budget Allocation Adjusted', `Adjusted budget for ${programName} by ₱${formatCurrency(value)} (${action === 'add' ? 'Increase' : 'Decrease'}). Remarks: ${remarks}`);
+                    pushNotification('CSWDO Budget Adjusted', `Budget for '${programName}' adjusted by ₱${formatCurrency(value)} (${action === 'add' ? 'Increase' : 'Decrease'}).`, 'approval');
+
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Budget Adjusted',
+                            message: `Budget for ${programName} successfully updated to ₱${formatCurrency(newBudget)}.`,
+                            type: 'success'
+                        });
+                    } else {
+                        alert('Budget adjustment successfully saved.');
+                    }
                 }
-                return;
-            }
 
-            if (index !== -1) {
-                const prevBudget = programs[index].budget;
-                const newBudget = finalBudget !== null ? finalBudget : (action === 'add' ? prevBudget + value : Math.max(0, prevBudget - value));
-                programs[index].budget = newBudget;
-                localStorage.setItem('cswdo_programs', JSON.stringify(programs));
-                pushActivity('Budget Allocation Adjusted', `Adjusted budget for ${programName} by ₱${formatCurrency(value)} (${action === 'add' ? 'Increase' : 'Decrease'}). Remarks: ${remarks}`);
-                pushNotification('CSWDO Budget Adjusted', `Budget for '${programName}' adjusted by ₱${formatCurrency(value)} (${action === 'add' ? 'Increase' : 'Decrease'}).`, 'approval');
-
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({
-                        title: 'Budget Adjusted',
-                        message: `Budget for ${programName} successfully updated to ₱${formatCurrency(newBudget)}.`,
-                        type: 'success'
-                    });
-                } else {
-                    alert('Budget adjustment successfully saved.');
-                }
-            }
-
-            closeBudgetModal();
-            renderFundsDashboard();
-            await fetchCSWDOOfficerApiData();
+                closeBudgetModal();
+                renderFundsDashboard();
+                await fetchCSWDOOfficerApiData();
+            }, 'Saving Adjustment...');
         }
 
         // ==============================================
