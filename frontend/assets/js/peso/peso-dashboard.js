@@ -43,8 +43,7 @@ const PesoDashboard = (() => {
 
             const totalDisbursed = Array.isArray(funds) && funds.length > 0
                 ? funds.reduce((sum, f) => sum + (Number(f.amount_approved) || Number(f.amount) || 0), 0)
-                : applications
-                    .filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Completed' || a.status === 'Disbursed')
+                : applications.filter(a => a.status === 'Released' || a.status === 'Completed' || a.status === 'Disbursed')
                     .reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
 
             const remainingBalance = Math.max(0, totalBudget - totalDisbursed);
@@ -169,8 +168,7 @@ const PesoDashboard = (() => {
             if (elApproved) elApproved.textContent = approvedEval.length;
 
             // 2. Disbursed Funds & Total Appropriation
-            const totalDisbursed = applications
-                .filter(a => a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed')
+            const totalDisbursed = applications.filter(a => a.status === 'Released' || a.status === 'Completed' || a.status === 'Disbursed')
                 .reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
 
             const elDisbursed = document.getElementById('statDisbursedFunds');
@@ -209,7 +207,7 @@ const PesoDashboard = (() => {
 
                         const progApps = applications.filter(a => 
                             (a.program_id === prog.id || (a.program && a.program.code === progCode)) &&
-                            (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Disbursed')
+                            (a.status === 'Released' || a.status === 'Completed' || a.status === 'Disbursed')
                         );
                         let spent = progApps.reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
                         if (spent === 0 && prog.status === 'Active') {

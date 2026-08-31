@@ -157,14 +157,27 @@ document.addEventListener('DOMContentLoaded', () => {
         let _adminRtDebounceTimer = null;
         if (typeof DataService !== 'undefined' && DataService.realtime && !window.__pesoAdminRealtimeActive) {
             window.__pesoAdminRealtimeActive = true;
-            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches', 'approved_assistance', 'notifications'], (payload) => {
+            DataService.realtime.subscribeMulti(['programs', 'applications', 'interview_schedules', 'staff_profiles', 'batches', 'approved_assistance', 'notifications', 'funds'], (payload) => {
                 console.log('[PESO Admin Realtime Event]:', payload.table, payload.eventType);
                 
                 // Debounce rapid multi-table broadcasts to a single smooth UI refresh
                 if (_adminRtDebounceTimer) clearTimeout(_adminRtDebounceTimer);
-                _adminRtDebounceTimer = setTimeout(() => {
-                    if (payload.table === 'programs') {
+                _adminRtDebounceTimer = setTimeout(async () => {
+                    if (payload.table === 'funds') {
+                        if (typeof DataService !== 'undefined' && DataService.funds) {
+                            try {
+                                const fRes = await DataService.funds.getAll({ agency: 'PESO' });
+                                if (fRes && fRes.data && typeof AdminStore !== 'undefined') {
+                                    AdminStore.funds = fRes.data;
+                                }
+                            } catch (fErr) {
+                                console.warn('[PESO Admin] Realtime funds refresh note:', fErr);
+                            }
+                        }
+                        if (typeof renderFundsModule === 'function') renderFundsModule();
+                    } else if (payload.table === 'programs') {
                         if (typeof initProgramsData === 'function') initProgramsData();
+                        if (typeof renderFundsModule === 'function') renderFundsModule();
                     } else if (payload.table === 'applications') {
                         if (typeof initEvalModuleData === 'function') initEvalModuleData();
                         if (typeof initProgramsData === 'function') initProgramsData();
@@ -174,9 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (typeof initOfficersData === 'function') initOfficersData();
                     } else if (payload.table === 'batches' || payload.table === 'beneficiaries' || payload.table === 'approved_assistance') {
                         if (typeof initEvalModuleData === 'function') initEvalModuleData();
+                        if (typeof renderFundsModule === 'function') renderFundsModule();
                     }
                     if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
-                }, 2000);
+                }, 1500);
             });
         }
     } catch (rtErr) {
