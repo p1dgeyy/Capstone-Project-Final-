@@ -8465,7 +8465,7 @@
                     }
                 });
 
-                let batchDbId = Date.now();
+                let batchDbId = null;
                 let successfulAppIds = [];
                 let hasError = false;
                 let errorMessage = '';
@@ -8481,7 +8481,11 @@
                         beneficiary_ref_numbers: refNumbers
                     });
                     if (forwardRes && forwardRes.data) {
-                        if (forwardRes.data.batch) batchDbId = forwardRes.data.batch.id;
+                        if (forwardRes.data.batch && forwardRes.data.batch.id) {
+                            batchDbId = forwardRes.data.batch.id;
+                        } else if (forwardRes.data.batchId) {
+                            batchDbId = forwardRes.data.batchId;
+                        }
                         successfulAppIds = forwardRes.data.updatedIds || targetAppIds;
                     }
                     if (forwardRes && forwardRes.error) {
@@ -8498,10 +8502,12 @@
                             created_by: officerId,
                             status: 'Active'
                         })
-                        .select()
-                        .maybeSingle();
-                    if (bData) batchDbId = bData.id;
-                    if (bErr) console.warn('[PESO Officer] Batch create note:', bErr);
+                        .select('id')
+                        .single();
+                    if (bErr || !bData?.id) {
+                        throw new Error(`Failed to create batch record in database: ${bErr?.message || 'Unknown database error'}`);
+                    }
+                    batchDbId = bData.id;
 
                     const numericIds = targetAppIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0);
                     const { data: updatedApps, error: uErr } = await supabaseClient
@@ -8527,12 +8533,12 @@
                         successfulAppIds = numericIds;
                     }
                 } else {
-                    successfulAppIds = targetAppIds;
+                    throw new Error('Database client not available to create operational batch.');
                 }
 
-                // If complete failure:
-                if (hasError && successfulAppIds.length === 0) {
-                    throw new Error(errorMessage || 'Failed to update applications in database.');
+                // If complete failure or missing persistent batch ID:
+                if (!batchDbId || (hasError && successfulAppIds.length === 0)) {
+                    throw new Error(errorMessage || 'Failed to establish persistent operational batch in database.');
                 }
 
                 // 2. Update In-Memory Evaluation List ONLY for confirmed successful writes
