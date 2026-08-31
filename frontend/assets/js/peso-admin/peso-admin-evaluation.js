@@ -149,7 +149,7 @@ async function initEvalModuleData() {
                         batch_num: (a.batch && a.batch.name) ? a.batch.name : (a.batch_id ? `Batch #${a.batch_id}` : 'Batch 1 - Regular Cohort'),
                         date_submitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
                         verification_status: isVerif ? 'Verified' : 'Pending Verification',
-                        evaluation_status: a.status === 'Approved' || a.status === 'Officer Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' || a.status === 'Officer Denied' ? 'Denied' : 'Pending Evaluation'),
+                        evaluation_status: a.status === 'Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' || a.status === 'Officer Denied' ? 'Denied' : 'Pending Evaluation'),
                         batch_status: a.status === 'Approved' ? (a.batch_id ? 'Batched' : 'Unbatched') : 'Pending',
                         forwarding_officer: forwardingOfficer,
                         notes: a.remarks || a.officer_notes || '',
