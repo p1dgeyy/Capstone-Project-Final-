@@ -7819,10 +7819,12 @@
             const item = evaluationList.find(e => e.id === id || e.dbId === Number(id));
             if (!item) return;
 
+            const previousStatus = item.status;
+            const previousRemarks = item.remarks;
             const requestedAmount = Number(item.amountRequested || item.amount_requested || 5000);
             const progCode = item.programCode || 'PESO';
 
-            // Budget Cap Guardrail Validation
+            // 1. Budget Cap Guardrail Validation
             if (typeof DataService !== 'undefined' && DataService.funds) {
                 try {
                     const balanceRes = await DataService.funds.checkBalance(progCode, requestedAmount);
@@ -7846,35 +7848,106 @@
                 }
             }
 
+            const targetRemarks = 'Application evaluation complete. Approved by PESO Officer for Administrator Review.';
+            let evalSuccessful = false;
+            let fundReleaseSuccessful = false;
+            let failureReason = '';
+
+            // 2. Perform Database Writes with Strict Step Confirmation
+            if (typeof DataService !== 'undefined' && item.dbId) {
+                // Step A: Update Application Status
+                if (DataService.applications) {
+                    try {
+                        const evalRes = await DataService.applications.evaluate(item.dbId, {
+                            decision: 'Approved',
+                            notes: targetRemarks
+                        });
+                        if (evalRes && !evalRes.error) {
+                            evalSuccessful = true;
+                        } else {
+                            failureReason = (evalRes && evalRes.error && evalRes.error.message) || 'Failed to update application status in database.';
+                        }
+                    } catch (appErr) {
+                        failureReason = appErr.message || 'Exception during application status update.';
+                    }
+                } else {
+                    evalSuccessful = true;
+                }
+
+                if (!evalSuccessful) {
+                    // Halt immediately if status update failed
+                    logOfficerAction('FAILED_APPROVAL_DB', `Failed to mark application ${id} as Approved: ${failureReason}`);
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Approval Failed',
+                            message: `Could not approve application ${id}: ${failureReason}`,
+                            type: 'error'
+                        });
+                    } else {
+                        alert(`Approval Failed: ${failureReason}`);
+                    }
+                    return;
+                }
+
+                // Step B: Deduct from Fund Allocation
+                if (DataService.funds) {
+                    try {
+                        const fundRes = await DataService.funds.releaseAmount(progCode, requestedAmount);
+                        if (fundRes && !fundRes.error) {
+                            fundReleaseSuccessful = true;
+                        } else {
+                            failureReason = (fundRes && fundRes.error && fundRes.error.message) || 'Fund balance deduction failed.';
+                        }
+                    } catch (fErr) {
+                        failureReason = fErr.message || 'Exception during fund deduction.';
+                    }
+                } else {
+                    fundReleaseSuccessful = true;
+                }
+
+                // If Fund Release Failed after Status Update Succeeded:
+                if (!fundReleaseSuccessful) {
+                    item.status = 'Approved — Pending Fund Release';
+                    item.remarks = `${targetRemarks} [WARNING: Fund balance deduction failed: ${failureReason}]`;
+                    renderEvaluationQueueTable();
+
+                    logOfficerAction('APPROVAL_PARTIAL_FUND_RELEASE_FAILED', `Application ${id} status updated to Approved, but fund release for ${progCode} (₱${requestedAmount}) failed: ${failureReason}`);
+
+                    if (bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'))) {
+                        bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal')).hide();
+                    }
+
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Partial Approval — Fund Release Incomplete',
+                            message: `Application ${id} was marked as Approved, but fund release failed: ${failureReason}. Please retry fund release.`,
+                            type: 'warning',
+                            duration: 10000
+                        });
+                    } else {
+                        alert(`Warning: Application ${id} was marked as Approved, but fund release failed: ${failureReason}. Fund release must be retried.`);
+                    }
+                    return;
+                }
+            } else {
+                evalSuccessful = true;
+                fundReleaseSuccessful = true;
+            }
+
+            // 3. Complete Successful Approval Flow
             item.status = 'Approved';
-            item.remarks = 'Application evaluation complete. Approved by PESO Officer for Administrator Review.';
+            item.remarks = targetRemarks;
             item.missingNotes = '';
             renderEvaluationQueueTable();
+
             logOfficerAction('APPROVE_APPLICATION', `Marked application ${id} for ${item.beneficiaryName} as Approved for administrator review.`);
 
-            if (typeof DataService !== 'undefined' && item.dbId) {
-                try {
-                    if (DataService.applications) {
-                        await DataService.applications.evaluate(item.dbId, {
-                            decision: 'Approved',
-                            notes: item.remarks
-                        });
-                    }
-
-                    if (DataService.funds) {
-                        await DataService.funds.releaseAmount(progCode, requestedAmount);
-                    }
-
-                    // Multi-channel external dispatch (SMS & Email)
-                    if (typeof window.sendExternalSms === 'function' && item.beneficiaryPhone) {
-                        window.sendExternalSms({
-                            recipientPhone: item.beneficiaryPhone,
-                            message: `PESO Koronadal: Your application (${item.id}) for ${item.program || 'Livelihood Assistance'} has been APPROVED by the PESO Officer for Administrator Review.`
-                        });
-                    }
-                } catch (err) {
-                    console.warn('[Officer Eval] Supabase sync notice:', err);
-                }
+            // Multi-channel external dispatch (SMS & Email)
+            if (typeof window.sendExternalSms === 'function' && item.beneficiaryPhone) {
+                window.sendExternalSms({
+                    recipientPhone: item.beneficiaryPhone,
+                    message: `PESO Koronadal: Your application (${item.id}) for ${item.program || 'Livelihood Assistance'} has been APPROVED by the PESO Officer for Administrator Review.`
+                });
             }
 
             if (bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'))) {
@@ -7883,11 +7956,11 @@
             if (window.showSystemNotification) {
                 window.showSystemNotification({
                     title: 'Application Approved',
-                    message: `Application ${id} for ${item.beneficiaryName} marked as APPROVED for administrator review.`,
+                    message: `Application ${id} for ${item.beneficiaryName} marked as APPROVED and funds successfully allocated.`,
                     type: 'success'
                 });
             } else {
-                alert(`Application ${id} for ${item.beneficiaryName} marked as Approved for administrator review.`);
+                alert(`Application ${id} for ${item.beneficiaryName} marked as Approved and funds allocated.`);
             }
         }
 
