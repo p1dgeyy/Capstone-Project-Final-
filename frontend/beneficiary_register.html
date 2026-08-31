@@ -1367,109 +1367,50 @@
                     verified_at: new Date().toISOString()
                 };
 
-                // ===== STEP A: Insert the FULL beneficiary record FIRST (before auth) =====
-                let dbSaveSuccess = false;
-                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    try {
-                        const { data: insertRes, error: insertErr } = await supabaseClient
-                            .from('beneficiaries')
-                            .insert(beneficiaryRecord)
-                            .select()
-                            .single();
-                        if (insertErr) {
-                            console.warn('[REG INSERT ERROR]:', insertErr.message);
-                            // Fallback: try update if duplicate
-                            const { error: upsertErr } = await supabaseClient
-                                .from('beneficiaries')
-                                .update(beneficiaryRecord)
-                                .eq('qr_code', uniqueQr);
-                            if (!upsertErr) dbSaveSuccess = true;
-                            else console.warn('[REG UPDATE ERROR]:', upsertErr.message);
-                        } else {
-                            dbSaveSuccess = true;
-                        }
-                    } catch (benErr) {
-                        console.warn('[REGISTRATION DB INSERT EXCEPTION]:', benErr);
-                    }
-                }
-
-                // If direct supabase insert didn't work, try DataService
-                if (!dbSaveSuccess && typeof DataService !== 'undefined' && DataService.beneficiaries) {
-                    try {
-                        await DataService.beneficiaries.create(beneficiaryRecord);
-                        dbSaveSuccess = true;
-                    } catch (dsErr) {
-                        console.warn('[DATASERVICE CREATE ERROR]:', dsErr);
-                    }
-                }
-
-                console.log('[REGISTRATION] DB save result:', dbSaveSuccess ? 'SUCCESS' : 'FAILED', beneficiaryRecord);
-
-                // ===== STEP B: Create Supabase Auth user AFTER the DB record is saved =====
-                let createdAuthId = null;
+                // ===== ATOMIC REGISTRATION: Call auth.signUp with full profile metadata =====
+                // The database trigger handle_new_user() atomically provisions the beneficiaries row.
                 if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
-                    try {
-                        const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
-                            email: registrationData.email,
-                            password: registrationData.password,
-                            options: {
-                                data: {
-                                    username: registrationData.username,
-                                    first_name: registrationData.first_name,
-                                    last_name: registrationData.last_name,
-                                    role: 'Beneficiary',
-                                    qr_code: uniqueQr
-                                }
+                    const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
+                        email: registrationData.email,
+                        password: registrationData.password,
+                        options: {
+                            data: {
+                                username: registrationData.username,
+                                first_name: registrationData.first_name,
+                                middle_name: registrationData.middle_name || '',
+                                last_name: registrationData.last_name,
+                                suffix: registrationData.suffix || '',
+                                role: 'Beneficiary',
+                                age: parseInt(registrationData.age) || 0,
+                                date_of_birth: registrationData.dob || null,
+                                sex: registrationData.sex || '',
+                                nationality: registrationData.nationality || 'Filipino',
+                                marital_status: registrationData.civil_status || 'Single',
+                                spouse_name: registrationData.spouse_name || '',
+                                number_of_children: parseInt(registrationData.number_of_children) || 0,
+                                phone: registrationData.phone_number,
+                                address: fullAddress,
+                                purok: registrationData.purok || '',
+                                barangay: registrationData.barangay || '',
+                                program_sector: registrationData.program_sector || 'General',
+                                qr_code: uniqueQr,
+                                status: 'Active',
+                                verified_channel: activeVerificationChannel
                             }
-                        });
-                        if (authErr) {
-                            console.warn('[AUTH SIGNUP ERROR]:', authErr.message);
-                        } else if (authData && authData.user) {
-                            createdAuthId = authData.user.id;
                         }
-                    } catch (e) {
-                        console.warn('[AUTH SIGNUP EXCEPTION]:', e);
-                    }
-                }
+                    });
 
-                // ===== STEP C: Link auth_id and guarantee all fields are saved =====
-                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    try {
-                        const updatePayload = {
-                            username: registrationData.username,
-                            first_name: registrationData.first_name,
-                            middle_name: registrationData.middle_name || null,
-                            last_name: registrationData.last_name,
-                            suffix: registrationData.suffix || null,
-                            age: parseInt(registrationData.age) || 0,
-                            date_of_birth: registrationData.dob || null,
-                            sex: registrationData.sex || null,
-                            marital_status: registrationData.civil_status || null,
-                            spouse_name: registrationData.spouse_name || null,
-                            number_of_children: parseInt(registrationData.number_of_children) || 0,
-                            phone: registrationData.phone_number,
-                            address: fullAddress,
-                            purok: registrationData.purok,
-                            barangay: registrationData.barangay,
-                            program: registrationData.program_sector,
-                            status: 'Active',
-                            verified_channel: activeVerificationChannel,
-                            verified_at: new Date().toISOString()
-                        };
-                        if (createdAuthId) updatePayload.auth_id = createdAuthId;
-
-                        const { error: updateErr } = await supabaseClient
-                            .from('beneficiaries')
-                            .update(updatePayload)
-                            .eq('email', registrationData.email);
-                        if (updateErr) {
-                            console.warn('[REG FINAL UPDATE ERROR]:', updateErr.message);
-                        } else {
-                            console.log('[REGISTRATION] Final update with auth_id successful');
-                        }
-                    } catch (syncErr) {
-                        console.warn('[REG FINAL UPDATE EXCEPTION]:', syncErr);
+                    if (authErr) {
+                        throw new Error(authErr.message || 'Registration failed during account creation.');
                     }
+
+                    if (!authData || !authData.user) {
+                        throw new Error('Failed to create citizen account. Please check your credentials and try again.');
+                    }
+
+                    console.log('[REGISTRATION] Atomic auth & profile creation successful for:', registrationData.email, 'Auth ID:', authData.user.id);
+                } else {
+                    throw new Error('Database connection is not available.');
                 }
 
 
