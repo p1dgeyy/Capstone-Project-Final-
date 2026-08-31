@@ -491,16 +491,7 @@ const SessionManager = (() => {
     const sessionId = getSessionId() || localStorage.getItem(STORAGE_ACTIVE_SESSION_KEY);
     const role = getRole();
 
-    // 2. CLEAR LOCAL STORAGE FIRST:
-    // Guarantees this device is immediately de-authenticated locally even on an offline network drop
-    clear();
-    try {
-      sessionStorage.clear();
-      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
-      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
-    } catch (e) {}
-
-    // 3. RELEASE REMOTE DATABASE SESSION LOCK:
+    // 2. RELEASE REMOTE DATABASE SESSION LOCK FIRST:
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
         const deleteOps = [];
@@ -525,14 +516,22 @@ const SessionManager = (() => {
           }
         } catch (e) {}
 
-        // Timeout race: do not let network latency block the user redirect
-        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2500));
+        // Timeout race: await clean server-side deletion up to 2000ms
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
         await Promise.race([Promise.allSettled(deleteOps), timeoutPromise]);
         await Promise.race([supabaseClient.auth.signOut().catch(() => {}), new Promise(resolve => setTimeout(resolve, 1000))]);
       } catch (e) {
         console.warn('[SessionManager] Sign-out remote cleanup note:', e.message);
       }
     }
+
+    // 3. CLEAR LOCAL STORAGE:
+    clear();
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
+      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
+    } catch (e) {}
 
     window.location.href = targetUrl;
   }
@@ -550,16 +549,7 @@ const SessionManager = (() => {
     const sessionId = getSessionId() || localStorage.getItem(STORAGE_ACTIVE_SESSION_KEY);
     const role = getRole();
 
-    // 1. Clear local state first
-    clear();
-    try {
-      sessionStorage.clear();
-      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
-      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
-      sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
-    } catch (e) {}
-
-    // 2. Release remote lock with timeout race
+    // 1. RELEASE REMOTE DATABASE SESSION LOCK:
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
         const deleteOps = [];
@@ -584,13 +574,22 @@ const SessionManager = (() => {
           }
         } catch (e) {}
 
-        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2500));
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
         await Promise.race([Promise.allSettled(deleteOps), timeoutPromise]);
         await Promise.race([supabaseClient.auth.signOut().catch(() => {}), new Promise(resolve => setTimeout(resolve, 1000))]);
       } catch (e) {
         console.warn('[SessionManager] forceLogout cleanup error:', e.message);
       }
     }
+
+    // 2. Clear local state and set notice
+    clear();
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
+      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
+      sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
+    } catch (e) {}
 
     window.location.href = redirect;
   }
