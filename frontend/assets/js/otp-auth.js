@@ -470,7 +470,8 @@ var OTPAuth = (function() {
             expiresAt: expiresAt,
             targetEmail: targetEmail.toLowerCase(),
             beneficiaryId: beneficiaryRecord ? beneficiaryRecord.id : null,
-            qrCode: beneficiaryRecord ? beneficiaryRecord.qr_code : null
+            qrCode: beneficiaryRecord ? beneficiaryRecord.qr_code : null,
+            qr_code: beneficiaryRecord ? beneficiaryRecord.qr_code : null
         };
         _saveOtpStore(store);
 
@@ -671,12 +672,13 @@ var OTPAuth = (function() {
             }
 
             // Audit log
+            const resolvedBeneficiaryQr = record?.qr_code || record?.qrCode || beneficiaryRecord?.qr_code || sessionStorage.getItem('beneficiaryQrCode') || sessionStorage.getItem('qrCode') || null;
             if (typeof DataService !== 'undefined' && DataService.auditLogs && typeof DataService.auditLogs.log === 'function') {
                 try {
                     await DataService.auditLogs.log({
                         action: 'PASSWORD_RESET_SUCCESS',
                         entityType: 'beneficiary',
-                        beneficiaryQr: record?.qr_code || sessionStorage.getItem('beneficiaryQrCode') || null,
+                        beneficiaryQr: resolvedBeneficiaryQr,
                         details: `Password reset successfully completed for account ${cleanEmail}`
                     });
                 } catch (e) {
@@ -687,7 +689,7 @@ var OTPAuth = (function() {
                     await supabaseClient.from('audit_logs').insert({
                         action: 'PASSWORD_RESET_SUCCESS',
                         entity_type: 'beneficiary',
-                        beneficiary_qr: record?.qr_code || sessionStorage.getItem('beneficiaryQrCode') || null,
+                        beneficiary_qr: resolvedBeneficiaryQr,
                         details: `Password reset successfully completed for account ${cleanEmail}`
                     });
                 } catch (e) {
