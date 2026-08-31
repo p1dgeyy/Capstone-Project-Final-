@@ -3575,46 +3575,68 @@
             }
 
             const remarks = document.getElementById('budgetRemarks').value.trim();
-
             const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
             const index = programs.findIndex(p => p.code === programCode);
+            const programName = index !== -1 ? programs[index].name : programCode;
+
+            let adjustSuccess = false;
+            let adjustError = '';
+            let finalBudget = null;
+
+            // Write to Supabase via DataService with atomic RPC
+            if (typeof DataService !== 'undefined' && DataService.programs) {
+                try {
+                    let adjustRes = null;
+                    if (typeof DataService.programs.adjustBudget === 'function') {
+                        adjustRes = await DataService.programs.adjustBudget(programCode, value, action, remarks);
+                    } else if (typeof DataService.funds.adjustBudget === 'function') {
+                        adjustRes = await DataService.funds.adjustBudget(programCode, value, action, remarks);
+                    }
+
+                    if (adjustRes && !adjustRes.error && adjustRes.data) {
+                        adjustSuccess = true;
+                        finalBudget = adjustRes.data.new_budget || adjustRes.data.budget;
+                    } else {
+                        adjustError = adjustRes?.error?.message || 'Database rejected budget adjustment.';
+                    }
+
+                    if (adjustSuccess && DataService.auditLogs) {
+                        await DataService.auditLogs.log({
+                            action: 'BUDGET_ALLOCATION_ADJUSTED',
+                            entityType: 'program',
+                            entityId: (programs[index] && programs[index].id) || 1,
+                            details: `Adjusted budget for ${programName} (${action === 'add' ? '+' : '-'}₱${value}). Remarks: ${remarks}`
+                        });
+                    }
+                } catch (err) {
+                    adjustError = err.message || 'Exception during budget update.';
+                    console.error('[CSWDO Officer Budget Adjust Error]:', err);
+                }
+            } else {
+                adjustSuccess = true;
+            }
+
+            if (!adjustSuccess) {
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Budget Adjustment Failed',
+                        message: `Could not adjust budget for ${programName}: ${adjustError}`,
+                        type: 'error',
+                        duration: 8000
+                    });
+                } else {
+                    alert(`Budget Adjustment Failed: ${adjustError}`);
+                }
+                return;
+            }
 
             if (index !== -1) {
-                const programName = programs[index].name;
                 const prevBudget = programs[index].budget;
-                let newBudget = prevBudget;
-                
-                if (action === 'add') {
-                    newBudget = prevBudget + value;
-                } else {
-                    if (value > prevBudget) {
-                        alert('Error: Decreased value cannot exceed the current allocated budget.');
-                        return;
-                    }
-                    newBudget = prevBudget - value;
-                }
-
+                const newBudget = finalBudget !== null ? finalBudget : (action === 'add' ? prevBudget + value : Math.max(0, prevBudget - value));
                 programs[index].budget = newBudget;
                 localStorage.setItem('cswdo_programs', JSON.stringify(programs));
                 pushActivity('Budget Allocation Adjusted', `Adjusted budget for ${programName} by ₱${formatCurrency(value)} (${action === 'add' ? 'Increase' : 'Decrease'}). Remarks: ${remarks}`);
                 pushNotification('CSWDO Budget Adjusted', `Budget for '${programName}' adjusted by ₱${formatCurrency(value)} (${action === 'add' ? 'Increase' : 'Decrease'}).`, 'approval');
-                
-                // Write to Supabase via DataService
-                if (typeof DataService !== 'undefined') {
-                    if (DataService.programs && programs[index].id) {
-                        try {
-                            await DataService.programs.update(programs[index].id, { budget: newBudget });
-                        } catch (e) {}
-                    }
-                    if (DataService.auditLogs) {
-                        DataService.auditLogs.log({
-                            action: 'BUDGET_ALLOCATION_ADJUSTED',
-                            entityType: 'program',
-                            entityId: programs[index].id || 1,
-                            details: `Adjusted budget for ${programName} to ₱${newBudget}. Action: ${action} ₱${value}. Remarks: ${remarks}`
-                        });
-                    }
-                }
 
                 if (window.showSystemNotification) {
                     window.showSystemNotification({
@@ -3634,7 +3656,6 @@
 
         // ==============================================
         // MODULE: NOTIFICATIONS Broadcasting
-        // ==============================================
         function renderBroadcastLogs() {
             const logs = JSON.parse(localStorage.getItem('cswdo_broadcast_logs')) || [];
             const tbody = document.getElementById('notifLogsTableBody');
