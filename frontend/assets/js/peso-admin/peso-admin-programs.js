@@ -765,186 +765,184 @@ function openCreateProgramModal() {
 
 async function handleCreateProgramSubmit(e) {
     e.preventDefault();
-    const form = document.getElementById('createProgramForm') || e.target;
-    if (form) {
-        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-    }
-
-    const nameEl = document.getElementById('newProgName');
-    const codeEl = document.getElementById('newProgCode');
-    const categoryEl = document.getElementById('newProgCategory');
-    const targetEl = document.getElementById('newProgTarget');
-    const assistanceEl = document.getElementById('newProgAssistance');
-    const descEl = document.getElementById('newProgDesc');
-    const slotsEl = document.getElementById('newProgSlots');
-    const minAgeEl = document.getElementById('newProgMinAge');
-    const maxAgeEl = document.getElementById('newProgMaxAge');
-    const budgetEl = document.getElementById('newProgBudget');
-    const intakeEl = document.getElementById('newProgIntake');
-    const cycleEl = document.getElementById('newProgCycle');
-    const eligEl = document.getElementById('newProgEligibility');
-    const reqDocsEl = document.getElementById('newProgRequiredDocs');
-
-    let isValid = true;
-    function setInvalid(element, msg) {
-        if (!element) return;
-        element.classList.add('is-invalid');
-        const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
-        if (feedback && msg) feedback.textContent = msg;
-        if (isValid) element.focus();
-        isValid = false;
-    }
-
-    // 1. Program Name & Code
-    const name = (nameEl?.value || '').trim();
-    if (!name) {
-        setInvalid(nameEl, 'Program Name is required.');
-    }
-
-    const code = (codeEl?.value || '').trim().toUpperCase();
-    if (!code) {
-        setInvalid(codeEl, 'Program Code is required.');
-    } else if (programsList.some(p => p.code && p.code.toUpperCase() === code)) {
-        setInvalid(codeEl, `Program Code "${code}" is already in use.`);
-    }
-
-    const category = (categoryEl?.value || '').trim();
-    if (!category) {
-        setInvalid(categoryEl, 'Category selection is required.');
-    }
-
-    // 1. Descriptions breakdown (Requirement 1: purpose, target beneficiaries, support offered)
-    const target = (targetEl?.value || '').trim();
-    if (!target) {
-        setInvalid(targetEl, 'Target beneficiaries specification is required.');
-    }
-
-    const assistance = (assistanceEl?.value || '').trim();
-    if (!assistance) {
-        setInvalid(assistanceEl, 'Support offered / assistance scope description is required.');
-    }
-
-    const desc = (descEl?.value || '').trim();
-    if (!desc) {
-        setInvalid(descEl, 'Program Purpose & Objectives description is required.');
-    }
-
-    // 2. Program Slots (Requirement 2: capacity quota)
-    const slots = parseInt(slotsEl?.value || '0', 10);
-    if (isNaN(slots) || slots < 1) {
-        setInvalid(slotsEl, 'Total slot capacity must be at least 1.');
-    }
-
-    // 3. Age Requirements (Requirement 3: min < max enforced)
-    const minAge = parseInt(minAgeEl?.value || '0', 10);
-    const maxAge = parseInt(maxAgeEl?.value || '0', 10);
-    if (isNaN(minAge) || minAge < 15 || minAge > 99) {
-        setInvalid(minAgeEl, 'Minimum age must be between 15 and 99.');
-    }
-    if (isNaN(maxAge) || maxAge < 16 || maxAge > 100) {
-        setInvalid(maxAgeEl, 'Maximum age must be between 16 and 100.');
-    }
-    if (!isNaN(minAge) && !isNaN(maxAge) && minAge >= maxAge) {
-        setInvalid(minAgeEl, 'Minimum age must be strictly less than maximum age.');
-    }
-
-    // 4. Budget Transparency (Requirement 4: en-PH currency >= 0.01)
-    const budgetVal = parseCurrencyToNumber(budgetEl?.value);
-    if (!budgetEl?.value.trim() || isNaN(budgetVal) || budgetVal < 0.01) {
-        setInvalid(budgetEl, 'Budget must be a valid positive amount (minimum ₱0.01).');
-    } else if (budgetEl) {
-        budgetEl.value = formatRawCurrencyString(budgetVal, true);
-    }
-
-    // 5. Timeline, Eligibility & Required Documents (Requirements 5, 6, 7)
-    const intake = (intakeEl?.value || '').trim();
-    if (!intake) {
-        setInvalid(intakeEl, 'Intake and application window schedule is required.');
-    }
-
-    const cycle = (cycleEl?.value || '').trim();
-    if (!cycle) {
-        setInvalid(cycleEl, 'Implementation cycle duration is required.');
-    }
-
-    const eligRaw = (eligEl?.value || '').trim();
-    if (!eligRaw) {
-        setInvalid(eligEl, 'Eligibility criteria qualification rules are required.');
-    }
-
-    const reqDocsRaw = (reqDocsEl?.value || '').trim();
-    if (!reqDocsRaw) {
-        setInvalid(reqDocsEl, 'Required application documents list is required.');
-    }
-
-    if (!isValid) {
-        return;
-    }
-
-    const budget = budgetVal;
-    const now = new Date();
-    const formattedDt = formatSystemDateTime(now);
-    let createdId = Date.now();
-
-    const eligArray = eligRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
-    const reqDocsArray = reqDocsRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
-
-    const newProg = {
-        id: createdId,
-        code: code,
-        name: name,
-        category: category,
-        budget: budget,
-        beneficiaries_count: 0,
-        slots_target: slots,
-        slots_filled: 0,
-        total_slots: slots,
-        min_age: minAge,
-        max_age: maxAge,
-        target_beneficiaries: target,
-        assistance_type: assistance,
-        description: desc,
-        eligibility_criteria: eligArray.length > 0 ? eligArray : [eligRaw],
-        required_documents: reqDocsArray.length > 0 ? reqDocsArray : [reqDocsRaw],
-        timeline: {
-            intake: intake,
-            cycle: cycle
-        },
-        ordinance: 'Appropriation Ordinance No. 6, Series of 2025',
-        status: 'Active',
-        created_at: now.toISOString()
-    };
-
-    if (typeof DataService !== 'undefined' && DataService.programs) {
-        try {
-            const res = await DataService.programs.create({
-                code: code,
-                name: name,
-                category: category,
-                agency: 'PESO',
-                budget: budget,
-                description: desc
-            });
-            if (res && res.data && res.data.id) {
-                newProg.id = res.data.id;
-            }
-        } catch (err) {
-            console.warn('[PROGRAMS] Supabase insert warning:', err);
+    const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (b, fn) => await fn());
+    return await guardFn(e, async () => {
+        const form = document.getElementById('createProgramForm') || e.target;
+        if (form) {
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
         }
-    }
 
-    programsList.unshift(newProg);
-    // Requirement 8: Audit trail with timestamp + admin identity
-    logAuditEvent('CREATE_PROGRAM', `Created new program "${code}" (${name}) with budget ${formatPHP(budget)}, capacity: ${slots} slots, age req: ${minAge}-${maxAge} yrs on ${formattedDt}`);
+        const nameEl = document.getElementById('newProgName');
+        const codeEl = document.getElementById('newProgCode');
+        const categoryEl = document.getElementById('newProgCategory');
+        const targetEl = document.getElementById('newProgTarget');
+        const assistanceEl = document.getElementById('newProgAssistance');
+        const descEl = document.getElementById('newProgDesc');
+        const slotsEl = document.getElementById('newProgSlots');
+        const minAgeEl = document.getElementById('newProgMinAge');
+        const maxAgeEl = document.getElementById('newProgMaxAge');
+        const budgetEl = document.getElementById('newProgBudget');
+        const intakeEl = document.getElementById('newProgIntake');
+        const cycleEl = document.getElementById('newProgCycle');
+        const eligEl = document.getElementById('newProgEligibility');
+        const reqDocsEl = document.getElementById('newProgRequiredDocs');
 
-    safeHideModal('createProgramModal');
-    renderDashboardTables();
+        let isValid = true;
+        function setInvalid(element, msg) {
+            if (!element) return;
+            element.classList.add('is-invalid');
+            const feedback = element.parentElement ? element.parentElement.querySelector('.invalid-feedback') : null;
+            if (feedback && msg) feedback.textContent = msg;
+            if (isValid) element.focus();
+            isValid = false;
+        }
 
-    window.showSystemNotification({
-        title: 'Program Added',
-        message: `Program "${code}" successfully created with ${slots} slots and ${formatPHP(budget)} budget on ${formattedDt}.`,
-        type: 'success'
-    });
+        // 1. Program Name & Code
+        const name = (nameEl?.value || '').trim();
+        if (!name) {
+            setInvalid(nameEl, 'Program Name is required.');
+        }
+
+        const code = (codeEl?.value || '').trim().toUpperCase();
+        if (!code) {
+            setInvalid(codeEl, 'Program Code is required.');
+        } else if (programsList.some(p => p.code && p.code.toUpperCase() === code)) {
+            setInvalid(codeEl, `Program Code "${code}" is already in use.`);
+        }
+
+        // 2. Category
+        const category = categoryEl?.value || 'Employment Facilitation';
+
+        // 3. Target Beneficiaries & Assistance Type
+        const target = (targetEl?.value || '').trim();
+        if (!target) {
+            setInvalid(targetEl, 'Target Beneficiaries description is required.');
+        }
+
+        const assistance = (assistanceEl?.value || '').trim();
+        if (!assistance) {
+            setInvalid(assistanceEl, 'Assistance Type is required.');
+        }
+
+        // 4. Description
+        const desc = (descEl?.value || '').trim();
+        if (!desc) {
+            setInvalid(descEl, 'Program Description is required.');
+        }
+
+        // 5. Total Capacity / Slots
+        const slots = parseInt(slotsEl?.value, 10);
+        if (isNaN(slots) || slots < 1) {
+            setInvalid(slotsEl, 'Total Capacity must be at least 1 slot.');
+        }
+
+        // 6. Age Criteria
+        const minAge = parseInt(minAgeEl?.value, 10);
+        const maxAge = parseInt(maxAgeEl?.value, 10);
+        if (isNaN(minAge) || minAge < 15) {
+            setInvalid(minAgeEl, 'Minimum age must be at least 15 years old.');
+        }
+        if (isNaN(maxAge) || maxAge > 100) {
+            setInvalid(maxAgeEl, 'Maximum age must not exceed 100 years old.');
+        }
+        if (!isNaN(minAge) && !isNaN(maxAge) && minAge > maxAge) {
+            setInvalid(minAgeEl, 'Minimum age cannot be greater than maximum age.');
+        }
+
+        // 7. Allocated Budget
+        const budget = parseFloat(budgetEl?.value);
+        if (isNaN(budget) || budget < 0) {
+            setInvalid(budgetEl, 'Allocated Budget must be 0 or a positive value.');
+        }
+
+        // 8. Timeline (Intake & Delivery Cycle)
+        const intake = (intakeEl?.value || '').trim();
+        if (!intake) {
+            setInvalid(intakeEl, 'Intake Period is required.');
+        }
+        const cycle = (cycleEl?.value || '').trim();
+        if (!cycle) {
+            setInvalid(cycleEl, 'Delivery Cycle is required.');
+        }
+
+        // 9. Eligibility & Required Documents
+        const eligRaw = (eligEl?.value || '').trim();
+        if (!eligRaw) {
+            setInvalid(eligEl, 'At least one eligibility criterion is required.');
+        }
+        const reqDocsRaw = (reqDocsEl?.value || '').trim();
+        if (!reqDocsRaw) {
+            setInvalid(reqDocsEl, 'At least one required document must be specified.');
+        }
+
+        if (!isValid) return;
+
+        // Auto-increment unique ID
+        const maxId = programsList.reduce((acc, p) => Math.max(acc, p.id || 0), 0);
+        const createdId = maxId + 1;
+        const now = new Date();
+        const formattedDt = formatDateTime(now);
+
+        const eligArray = eligRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
+        const reqDocsArray = reqDocsRaw.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean);
+
+        const newProg = {
+            id: createdId,
+            code: code,
+            name: name,
+            category: category,
+            budget: budget,
+            beneficiaries_count: 0,
+            slots_target: slots,
+            slots_filled: 0,
+            total_slots: slots,
+            min_age: minAge,
+            max_age: maxAge,
+            target_beneficiaries: target,
+            assistance_type: assistance,
+            description: desc,
+            eligibility_criteria: eligArray.length > 0 ? eligArray : [eligRaw],
+            required_documents: reqDocsArray.length > 0 ? reqDocsArray : [reqDocsRaw],
+            timeline: {
+                intake: intake,
+                cycle: cycle
+            },
+            ordinance: 'Appropriation Ordinance No. 6, Series of 2025',
+            status: 'Active',
+            created_at: now.toISOString()
+        };
+
+        if (typeof DataService !== 'undefined' && DataService.programs) {
+            try {
+                const res = await DataService.programs.create({
+                    code: code,
+                    name: name,
+                    category: category,
+                    agency: 'PESO',
+                    budget: budget,
+                    description: desc
+                });
+                if (res && res.data && res.data.id) {
+                    newProg.id = res.data.id;
+                }
+            } catch (err) {
+                console.warn('[PROGRAMS] Supabase insert warning:', err);
+            }
+        }
+
+        programsList.unshift(newProg);
+        // Requirement 8: Audit trail with timestamp + admin identity
+        logAuditEvent('CREATE_PROGRAM', `Created new program "${code}" (${name}) with budget ${formatPHP(budget)}, capacity: ${slots} slots, age req: ${minAge}-${maxAge} yrs on ${formattedDt}`);
+
+        safeHideModal('createProgramModal');
+        renderDashboardTables();
+
+        window.showSystemNotification({
+            title: 'Program Added',
+            message: `Program "${code}" successfully created with ${slots} slots and ${formatPHP(budget)} budget on ${formattedDt}.`,
+            type: 'success'
+        });
+    }, 'Creating Program...');
 }
 
 // Safe Application and Batch matchers for Program Catalog

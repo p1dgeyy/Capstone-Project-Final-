@@ -113,6 +113,55 @@ const DataService = (() => {
     return `${agency}-${year}-${timeSuffix}${rand}`;
   }
 
+  // Universal Double-Click Prevention & "Saving..." Button Guard (H7)
+  async function withButtonLoading(buttonOrEvent, asyncFn, loadingText = 'Saving...') {
+    let btn = null;
+    if (buttonOrEvent && buttonOrEvent.nodeType === 1) {
+      btn = buttonOrEvent;
+    } else if (buttonOrEvent && buttonOrEvent.submitter) {
+      btn = buttonOrEvent.submitter;
+    } else if (buttonOrEvent && buttonOrEvent.target && buttonOrEvent.target.querySelector) {
+      btn = buttonOrEvent.target.querySelector('button[type="submit"], input[type="submit"], .btn-primary, .btn-success') || buttonOrEvent.target;
+    }
+
+    if (!btn || typeof asyncFn !== 'function') {
+      if (typeof asyncFn === 'function') return await asyncFn();
+      return;
+    }
+
+    if (btn.disabled || btn.dataset.isSavingAction === 'true') {
+      console.warn('[ButtonGuard] Prevented duplicate click/submission while action is in progress.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.dataset.isSavingAction = 'true';
+    const originalContent = btn.innerHTML;
+    const isInput = btn.tagName === 'INPUT';
+
+    if (isInput) {
+      btn.value = loadingText;
+    } else {
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ${loadingText}`;
+    }
+
+    try {
+      return await asyncFn();
+    } finally {
+      btn.disabled = false;
+      btn.dataset.isSavingAction = 'false';
+      if (isInput) {
+        btn.value = originalContent;
+      } else {
+        btn.innerHTML = originalContent;
+      }
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.withButtonLoading = withButtonLoading;
+  }
+
   // =========================================================================
   // 1. PROGRAMS DOMAIN
   // =========================================================================
@@ -2695,6 +2744,7 @@ const DataService = (() => {
     maskContactNumber,
     generateQrCode,
     generateApplicationNumber,
+    withButtonLoading,
     programs,
     beneficiaries,
     staffProfiles,

@@ -336,44 +336,47 @@
     function quickAdjustFund(progId, currentBudget) {
         quickEditFund(progId, currentBudget);
     }
-
+    
     async function handleFundAllocationSubmit(e) {
         e.preventDefault();
-        const progId = parseInt(document.getElementById('fundAllocProgSelect').value);
-        const budgetInput = document.getElementById('fundAllocNewBudget');
-        const newBudget = parseCurrencyToNumber(budgetInput?.value);
-        const justification = document.getElementById('fundAllocJustification').value.trim();
+        const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (b, fn) => await fn());
+        return await guardFn(e, async () => {
+            const progId = parseInt(document.getElementById('fundAllocProgSelect').value);
+            const budgetInput = document.getElementById('fundAllocNewBudget');
+            const newBudget = parseCurrencyToNumber(budgetInput?.value);
+            const justification = document.getElementById('fundAllocJustification').value.trim();
 
-        if (!budgetInput?.value.trim() || isNaN(newBudget) || newBudget < 0.01) {
+            if (!budgetInput?.value.trim() || isNaN(newBudget) || newBudget < 0.01) {
+                if (budgetInput) {
+                    budgetInput.classList.add('is-invalid');
+                    budgetInput.focus();
+                }
+                return;
+            }
+
             if (budgetInput) {
-                budgetInput.classList.add('is-invalid');
-                budgetInput.focus();
-            }
-            return;
-        }
-
-        if (budgetInput) {
-            budgetInput.value = formatRawCurrencyString(newBudget, true);
-            budgetInput.classList.remove('is-invalid');
-        }
-
-        try {
-            if (typeof DataService !== 'undefined' && DataService.programs) {
-                await DataService.programs.update(progId, { budget: newBudget });
+                budgetInput.value = formatRawCurrencyString(newBudget, true);
+                budgetInput.classList.remove('is-invalid');
             }
 
-            // Sync with in-memory store
-            const p = AdminStore.programs.find(x => x.id === progId);
-            if (p) p.budget = newBudget;
+            try {
+                if (typeof DataService !== 'undefined' && DataService.programs) {
+                    await DataService.programs.update(progId, { budget: newBudget });
+                }
 
-            await logAdminAction('EDIT_PROGRAM_BUDGET', 'program', progId, `Updated allocated budget for program #${progId} to ${formatCurrency(newBudget)} (REQ035). Reason/Ordinance Ref: ${justification}`);
-            notify('Budget Allocation Saved', 'Program budget allocation updated and logged to audit trail.', 'success');
-            closeModal('fundAllocationModal');
-            await refreshAllData();
-            renderFundsModule();
-        } catch (err) {
-            notify('Update Failed', err.message || 'Error updating program budget.', 'danger');
-        }
+                // Sync with in-memory store
+                const p = AdminStore.programs.find(x => x.id === progId);
+                if (p) p.budget = newBudget;
+
+                await logAdminAction('EDIT_PROGRAM_BUDGET', 'program', progId, `Updated allocated budget for program #${progId} to ${formatCurrency(newBudget)} (REQ035). Reason/Ordinance Ref: ${justification}`);
+                notify('Budget Allocation Saved', 'Program budget allocation updated and logged to audit trail.', 'success');
+                closeModal('fundAllocationModal');
+                await refreshAllData();
+                renderFundsModule();
+            } catch (err) {
+                notify('Update Failed', err.message || 'Error updating program budget.', 'danger');
+            }
+        }, 'Saving Allocation...');
     }
 
     function filterDistributionLogsTable() {

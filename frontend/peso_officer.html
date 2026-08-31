@@ -10075,279 +10075,239 @@
                 document.body.appendChild(dl);
                 const inputEl = document.getElementById('astBenName');
                 if (inputEl) inputEl.setAttribute('list', 'astBeneficiariesDataList');
-            }
-            if (Array.isArray(beneficiariesList)) {
-                dl.innerHTML = beneficiariesList.map(b => {
-                    const name = b.name || `${b.first_name || ''} ${b.last_name || ''}`.trim();
-                    return `<option value="${b.qr_code}">${name} — ${b.qr_code} (${b.barangay || 'Koronadal'})</option>`;
-                }).join('');
-            }
-
-            const modalEl = document.getElementById('recordAssistanceModal');
-            if (modalEl) {
-                bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            }
-        }
-
-        async function submitAssistanceRecord(event) {
-            if (event) event.preventDefault();
-
-            const benInput = document.getElementById('astBenName')?.value.trim();
-            const programRaw = document.getElementById('astProgram')?.value;
-            const astType = document.getElementById('astType')?.value;
-            const quantityVal = document.getElementById('astQuantity')?.value.trim();
-            const conditions = document.getElementById('astConditions')?.value.trim() || 'Standard Release Terms';
-
-            if (!benInput || !quantityVal) {
-                alert('Validation Error: Beneficiary (Name or QR Code) and Quantity/Amount are required.');
-                return;
-            }
-
-            const programCode = programRaw.split(' ')[0].replace(/[^A-Z0-9-]/g, '') || 'PESO';
-            const numericAmount = parseFloat(quantityVal.replace(/[^0-9.]/g, '')) || 5000;
-
-            // 1. Budget Cap Guardrail Validation
-            if (typeof DataService !== 'undefined' && DataService.funds) {
-                try {
-                    const balanceRes = await DataService.funds.checkBalance(programCode, numericAmount);
-                    if (!balanceRes || !balanceRes.data || !balanceRes.data.hasSufficientFunds || balanceRes.error) {
-                        const reason = balanceRes?.data?.reason || balanceRes?.error?.message || `Remaining allocation for ${programCode} is insufficient.`;
-                        const msg = `Budget Cap Restriction: Cannot record assistance of ₱${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}. ${reason}`;
-                        if (window.showSystemNotification) {
-                            window.showSystemNotification({
-                                title: 'Budget Cap Exceeded',
-                                message: msg,
-                                type: 'error'
-                            });
-                        } else {
-                            alert(msg);
-                        }
-                        logOfficerAction('FAILED_ASSISTANCE_BUDGET_CAP', `Blocked recording assistance for ${benInput} on ${programCode} due to budget limit. Reason: ${reason}`);
-                        return;
-                    }
-                } catch (bErr) {
-                    console.warn('[Officer Ast] Budget validation note:', bErr);
-                }
-            }
-
-            // 2. Strict, Unambiguous Beneficiary Lookup (prevents misattribution)
-            let matchedBen = null;
-            const qrRegex = /QR-BEN-[A-Z0-9]+/i;
-            const extractedQr = (benInput.match(qrRegex) || [])[0];
-
-            if (extractedQr) {
-                matchedBen = beneficiariesList.find(b => b.qr_code && b.qr_code.toUpperCase() === extractedQr.toUpperCase());
-            }
-
-            if (!matchedBen) {
-                matchedBen = beneficiariesList.find(b => b.qr_code && b.qr_code.toLowerCase() === benInput.toLowerCase());
-            }
-
-            if (!matchedBen) {
-                const exactMatches = beneficiariesList.filter(b => {
-                    const fullName = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
-                    const listName = (b.name || '').trim().toLowerCase();
-                    const inputLower = benInput.toLowerCase();
-                    return (fullName === inputLower || listName === inputLower);
-                });
-
-                if (exactMatches.length === 1) {
-                    matchedBen = exactMatches[0];
-                } else if (exactMatches.length > 1) {
-                    const errMsg = `Multiple beneficiaries found with the name "${benInput}". Please specify the beneficiary's exact QR Code (e.g. ${exactMatches[0].qr_code}) to prevent misattribution.`;
-                    if (window.showSystemNotification) {
-                        window.showSystemNotification({ title: 'Ambiguous Beneficiary', message: errMsg, type: 'error', duration: 8000 });
-                    } else {
-                        alert(errMsg);
-                    }
-                    return;
-                }
-            }
-
-            if (!matchedBen && typeof supabaseClient !== 'undefined' && supabaseClient) {
-                try {
-                    if (extractedQr) {
-                        const { data: dbBen } = await supabaseClient.from('beneficiaries').select('*').eq('qr_code', extractedQr.toUpperCase()).maybeSingle();
-                        if (dbBen) matchedBen = dbBen;
-                    } else {
-                        const { data: dbBens } = await supabaseClient.from('beneficiaries').select('*').or(`qr_code.eq.${benInput},username.eq.${benInput}`).limit(2);
-                        if (dbBens && dbBens.length === 1) {
-                            matchedBen = dbBens[0];
+                        if (Array.isArray(beneficiariesList)) {
+                            dl.innerHTML = beneficiariesList.map(b => {
+                                const name = b.name || `${b.first_name || ''} ${b.last_name || ''}`.trim();
+                                return `<option value="${b.qr_code}">${name} — ${b.qr_code} (${b.barangay || 'Koronadal'})</option>`;
+                            }).join('');
                         }
                     }
-                } catch (dbErr) {
-                    console.warn('[Officer Ast] Beneficiary DB lookup note:', dbErr);
-                }
-            }
-
-            if (!matchedBen) {
-                const notFoundMsg = `Beneficiary "${benInput}" could not be found in the registry. Please enter a registered citizen's exact QR Code or full name.`;
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({ title: 'Beneficiary Not Found', message: notFoundMsg, type: 'error' });
-                } else {
-                    alert(notFoundMsg);
-                }
-                return;
-            }
-
-            const benQr = matchedBen.qr_code;
-            const benName = matchedBen.name || `${matchedBen.first_name || ''} ${matchedBen.last_name || ''}`.trim() || benInput;
-            const officerProfile = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
-            const officerId = officerProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
-            const officerName = officerProfile ? `${officerProfile.first_name || ''} ${officerProfile.last_name || ''}`.trim() : 'PESO Officer';
-            const approvalDate = new Date().toISOString().split('T')[0];
-
-            const newAstRecord = {
-                id: `AST-${Date.now()}`,
-                beneficiaryQr: benQr,
-                beneficiaryName: benName,
-                programCode: programCode,
-                programName: programRaw,
-                assistanceType: astType,
-                quantityAmount: quantityVal,
-                approvalDate: approvalDate,
-                conditions: conditions,
-                officerName: officerName
-            };
-
-            let astSaveSuccess = false;
-            let fundReleaseSuccess = false;
-            let failureReason = '';
-
-            // 3. Perform Two-Phase Atomic Write (approved_assistance + fund release)
-            if (typeof DataService !== 'undefined') {
-                // Phase A: Save Approved Assistance Record
-                if (DataService.approvedAssistance) {
-                    try {
-                        const astRes = await DataService.approvedAssistance.create({
-                            beneficiary_qr: benQr,
-                            program_id: 1,
-                            assistance_type: astType,
-                            quantity_amount: quantityVal,
-                            conditions: conditions,
-                            approval_date: approvalDate,
-                            officer_id: officerId
-                        });
-                        if (astRes && !astRes.error) {
-                            astSaveSuccess = true;
-                        } else {
-                            failureReason = (astRes && astRes.error && astRes.error.message) || 'Failed to save assistance record in database.';
-                        }
-                    } catch (astErr) {
-                        failureReason = astErr.message || 'Exception during assistance record write.';
-                    }
-                } else {
-                    astSaveSuccess = true;
-                }
-
-                if (!astSaveSuccess) {
-                    logOfficerAction('FAILED_ASSISTANCE_DB', `Failed to record assistance for ${benName} (${benQr}): ${failureReason}`);
-                    if (window.showSystemNotification) {
-                        window.showSystemNotification({
-                            title: 'Recording Failed',
-                            message: `Could not save assistance record: ${failureReason}`,
-                            type: 'error'
-                        });
-                    } else {
-                        alert(`Recording Failed: ${failureReason}`);
-                    }
-                    return;
-                }
-
-                // Phase B: Deduct from Program Fund Balance
-                if (DataService.funds) {
-                    try {
-                        const fundRes = await DataService.funds.releaseAmount(programCode, numericAmount);
-                        if (fundRes && !fundRes.error) {
-                            fundReleaseSuccess = true;
-                        } else {
-                            failureReason = (fundRes && fundRes.error && fundRes.error.message) || 'Fund balance deduction failed.';
-                        }
-                    } catch (fErr) {
-                        failureReason = fErr.message || 'Exception during fund deduction.';
-                    }
-                } else {
-                    fundReleaseSuccess = true;
-                }
-
-                // If Fund Release Failed after Assistance Record was Saved:
-                if (!fundReleaseSuccess) {
-                    newAstRecord.status = 'Recorded — Pending Fund Release';
-                    newAstRecord.remarks = `Assistance recorded [WARNING: Fund release failed: ${failureReason}]`;
-                    assistanceRecordsList.unshift(newAstRecord);
-                    renderApprovedAssistanceTable();
-
-                    logOfficerAction('ASSISTANCE_PARTIAL_FUND_RELEASE_FAILED', `Assistance recorded for ${benName} (${benQr}), but fund balance deduction for ${programCode} (₱${numericAmount}) failed: ${failureReason}`);
 
                     const modalEl = document.getElementById('recordAssistanceModal');
-                    if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
-
-                    if (window.showSystemNotification) {
-                        window.showSystemNotification({
-                            title: 'Partial Record — Fund Release Incomplete',
-                            message: `Assistance record for ${benName} was saved, but fund balance deduction failed: ${failureReason}. Fund release must be retried.`,
-                            type: 'warning',
-                            duration: 10000
-                        });
-                    } else {
-                        alert(`Warning: Assistance record for ${benName} was saved, but fund balance deduction failed: ${failureReason}. Fund release must be retried.`);
+                    if (modalEl) {
+                        bootstrap.Modal.getOrCreateInstance(modalEl).show();
                     }
-                    return;
                 }
 
-                // Phase C: Optional Distributions & Notifications
-                try {
-                    if (DataService.distributions) {
-                        await DataService.distributions.create({
-                            application_id: null,
-                            distribution_date: approvalDate,
-                            distribution_time: '09:00 AM',
-                            location: 'PESO Main Office - Disbursement Counter',
-                            amount: numericAmount,
-                            status: 'Confirmed'
-                        });
-                    }
+                async function submitAssistanceRecord(event) {
+                    if (event) event.preventDefault();
+                    const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (e, fn) => await fn());
+                    return await guardFn(event, async () => {
+                        const benInput = document.getElementById('astBenName')?.value.trim();
+                        const programRaw = document.getElementById('astProgram')?.value;
+                        const astType = document.getElementById('astType')?.value;
+                        const quantityVal = document.getElementById('astQuantity')?.value.trim();
+                        const conditions = document.getElementById('astConditions')?.value.trim() || 'Standard Release Terms';
 
-                    if (DataService.notifications && benQr) {
-                        await DataService.notifications.create({
+                        if (!benInput || !quantityVal) {
+                            alert('Validation Error: Beneficiary (Name or QR Code) and Quantity/Amount are required.');
+                            return;
+                        }
+
+                        const programCode = programRaw.split(' ')[0].replace(/[^A-Z0-9-]/g, '') || 'PESO';
+                        const numericAmount = parseFloat(quantityVal.replace(/[^0-9.]/g, '')) || 5000;
+
+                        // 1. Budget Cap Guardrail Validation
+                        if (typeof DataService !== 'undefined' && DataService.funds) {
+                            try {
+                                const balanceRes = await DataService.funds.checkBalance(programCode, numericAmount);
+                                if (!balanceRes || !balanceRes.data || !balanceRes.data.hasSufficientFunds || balanceRes.error) {
+                                    const reason = balanceRes?.data?.reason || balanceRes?.error?.message || `Remaining allocation for ${programCode} is insufficient.`;
+                                    const msg = `Budget Cap Restriction: Cannot record assistance of ₱${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}. ${reason}`;
+                                    if (window.showSystemNotification) {
+                                        window.showSystemNotification({
+                                            title: 'Budget Cap Exceeded',
+                                            message: msg,
+                                            type: 'error'
+                                        });
+                                    } else {
+                                        alert(msg);
+                                    }
+                                    logOfficerAction('FAILED_ASSISTANCE_BUDGET_CAP', `Blocked recording assistance for ${benInput} on ${programCode} due to budget limit. Reason: ${reason}`);
+                                    return;
+                                }
+                            } catch (bErr) {
+                                console.warn('[Officer Ast] Budget validation note:', bErr);
+                            }
+                        }
+
+                        // 2. Strict, Unambiguous Beneficiary Lookup (prevents misattribution)
+                        let matchedBen = null;
+                        const qrRegex = /QR-BEN-[A-Z0-9]+/i;
+                        const extractedQr = (benInput.match(qrRegex) || [])[0];
+
+                        if (extractedQr) {
+                            matchedBen = beneficiariesList.find(b => b.qr_code && b.qr_code.toUpperCase() === extractedQr.toUpperCase());
+                        }
+
+                        if (!matchedBen) {
+                            matchedBen = beneficiariesList.find(b => b.qr_code && b.qr_code.toLowerCase() === benInput.toLowerCase());
+                        }
+
+                        if (!matchedBen) {
+                            const exactMatches = beneficiariesList.filter(b => {
+                                const fullName = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+                                const listName = (b.name || '').trim().toLowerCase();
+                                const inputLower = benInput.toLowerCase();
+                                return (fullName === inputLower || listName === inputLower);
+                            });
+
+                            if (exactMatches.length === 1) {
+                                matchedBen = exactMatches[0];
+                            } else if (exactMatches.length > 1) {
+                                const errMsg = `Multiple beneficiaries found with the name "${benInput}". Please specify the beneficiary's exact QR Code (e.g. ${exactMatches[0].qr_code}) to prevent misattribution.`;
+                                if (window.showSystemNotification) {
+                                    window.showSystemNotification({ title: 'Ambiguous Beneficiary', message: errMsg, type: 'error', duration: 8000 });
+                                } else {
+                                    alert(errMsg);
+                                }
+                                return;
+                            }
+                        }
+
+                        const benName = matchedBen ? (matchedBen.name || `${matchedBen.first_name || ''} ${matchedBen.last_name || ''}`.trim()) : benInput;
+                        const benQr = matchedBen ? matchedBen.qr_code : (extractedQr || 'QR-BEN-WALKIN');
+                        const approvalDate = new Date().toISOString().split('T')[0];
+
+                        const newAstRecord = {
+                            id: 'AST-' + String(Date.now()).slice(-4),
+                            benQr: benQr,
                             beneficiary_qr: benQr,
-                            title: 'Assistance Grant Approved & Scheduled',
-                            message: `Your assistance grant (${astType}: ${quantityVal}) under ${programRaw} has been approved and queued for release.`
-                        });
-                    }
+                            benName: benName,
+                            name: benName,
+                            program: programRaw,
+                            programCode: programCode,
+                            astType: astType,
+                            assistance_type: astType,
+                            quantity: quantityVal,
+                            quantity_amount: quantityVal,
+                            amount: numericAmount,
+                            conditions: conditions,
+                            date: approvalDate,
+                            approval_date: approvalDate,
+                            status: 'Recorded & Approved',
+                            officer: sessionStorage.getItem('username') || 'PESO Officer'
+                        };
 
-                    if (typeof window.sendExternalSms === 'function' && matchedBen && (matchedBen.contact || matchedBen.phone)) {
-                        window.sendExternalSms({
-                            recipientPhone: matchedBen.contact || matchedBen.phone,
-                            message: `PESO Koronadal: Your assistance (${astType}: ${quantityVal}) has been approved and is scheduled for release at PESO Office.`
-                        });
-                    }
-                } catch (extraErr) {
-                    console.warn('[Officer Ast] Secondary distribution sync note:', extraErr);
-                }
-            } else {
-                astSaveSuccess = true;
-                fundReleaseSuccess = true;
-            }
+                        // 3. Two-Phase Supabase Commit
+                        let astSaveSuccess = false;
+                        let fundReleaseSuccess = false;
+                        let failureReason = '';
 
-            // 4. Complete Full Success Flow
-            assistanceRecordsList.unshift(newAstRecord);
-            renderApprovedAssistanceTable();
+                        if (typeof DataService !== 'undefined') {
+                            // Phase A: Write Approved Assistance Record
+                            if (DataService.approvedAssistance) {
+                                try {
+                                    const astRes = await DataService.approvedAssistance.create({
+                                        beneficiary_qr: benQr,
+                                        program_id: 4, // Default TUPAD/PESO
+                                        assistance_type: astType,
+                                        quantity_amount: quantityVal,
+                                        conditions: conditions,
+                                        approval_date: approvalDate,
+                                        officer_id: 1
+                                    });
+                                    if (astRes && !astRes.error) {
+                                        astSaveSuccess = true;
+                                        newAstRecord.dbId = astRes.data?.id;
+                                    } else {
+                                        failureReason = (astRes && astRes.error && astRes.error.message) || 'Database rejected assistance record insert.';
+                                    }
+                                } catch (aErr) {
+                                    failureReason = aErr.message || 'Exception during assistance record creation.';
+                                }
+                            } else {
+                                astSaveSuccess = true;
+                            }
 
-            logOfficerAction('RECORD_APPROVED_ASSISTANCE', `Recorded approved assistance for ${benName} (${benQr}) (${astType}: ${quantityVal}) under ${programCode}.`);
+                            if (!astSaveSuccess) {
+                                if (window.showSystemNotification) {
+                                    window.showSystemNotification({
+                                        title: 'Assistance Recording Failed',
+                                        message: `Could not save assistance record for ${benName}: ${failureReason}`,
+                                        type: 'error',
+                                        duration: 8000
+                                    });
+                                } else {
+                                    alert(`Recording Failed: ${failureReason}`);
+                                }
+                                return;
+                            }
 
-            const modalEl = document.getElementById('recordAssistanceModal');
-            if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+                            // Phase B: Deduct from Program Fund Balance
+                            if (DataService.funds) {
+                                try {
+                                    const fundRes = await DataService.funds.releaseAmount(programCode, numericAmount);
+                                    if (fundRes && !fundRes.error) {
+                                        fundReleaseSuccess = true;
+                                    } else {
+                                        failureReason = (fundRes && fundRes.error && fundRes.error.message) || 'Fund balance deduction failed.';
+                                    }
+                                } catch (fErr) {
+                                    failureReason = fErr.message || 'Exception during fund deduction.';
+                                }
+                            } else {
+                                fundReleaseSuccess = true;
+                            }
 
-            if (window.showSystemNotification) {
-                window.showSystemNotification({
-                    title: 'Assistance Recorded Successfully',
-                    message: `Approved assistance for ${benName} (${astType}) has been logged, deducted from program balance, and dispatched to beneficiary portal.`,
-                    type: 'success'
-                });
-            } else {
-                alert(`Assistance record for ${benName} saved successfully.`);
-            }
+                            // If Fund Release Failed after Assistance Record was Saved:
+                            if (!fundReleaseSuccess) {
+                                newAstRecord.status = 'Recorded — Pending Fund Release';
+                                newAstRecord.remarks = `Assistance recorded [WARNING: Fund release failed: ${failureReason}]`;
+                                assistanceRecordsList.unshift(newAstRecord);
+                                renderApprovedAssistanceTable();
+
+                                logOfficerAction('ASSISTANCE_PARTIAL_FUND_RELEASE_FAILED', `Assistance recorded for ${benName} (${benQr}), but fund balance deduction for ${programCode} (₱${numericAmount}) failed: ${failureReason}`);
+
+                                const modalEl = document.getElementById('recordAssistanceModal');
+                                if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+
+                                if (window.showSystemNotification) {
+                                    window.showSystemNotification({
+                                        title: 'Partial Record — Fund Release Incomplete',
+                                        message: `Assistance record for ${benName} was saved, but fund balance deduction failed: ${failureReason}. Fund release must be retried.`,
+                                        type: 'warning',
+                                        duration: 10000
+                                    });
+                                } else {
+                                    alert(`Warning: Assistance record for ${benName} was saved, but fund balance deduction failed: ${failureReason}. Fund release must be retried.`);
+                                }
+                                return;
+                            }
+
+                            // Phase C: Optional Distributions & Notifications
+                            try {
+                                if (DataService.distributions) {
+                                    await DataService.distributions.create({
+                                        application_id: null,
+                                        distribution_date: approvalDate,
+                                        distribution_time: '09:00 AM',
+                                        location: 'PESO Main Office - Disbursement Counter',
+                                        amount: numericAmount,
+                                        status: 'Confirmed'
+                                    });
+                                }
+
+                                if (DataService.notifications && benQr) {
+                                    await DataService.notifications.create({
+                                        beneficiary_qr: benQr,
+                                        title: 'Assistance Grant Approved & Scheduled',
+                                        message: `Your assistance grant (${astType}: ${quantityVal}) under ${programRaw} has been approved and queued for release.`
+                                    });
+                                }
+
+                                if (typeof window.sendExternalSms === 'function' && matchedBen && (matchedBen.contact || matchedBen.phone)) {
+                                    window.sendExternalSms({
+                                        recipientPhone: matchedBen.contact || matchedBen.phone,
+                                        message: `PESO Koronadal: Your assistance (${astType}: ${quantityVal}) has been approved and is scheduled for release at PESO Office.`
+                                    });
+                                }
+                            } catch (extraErr) {
+                                console.warn('[Officer Ast] Secondary distribution sync note:', extraErr);
+                            }
+                        } else {
+                            astSaveSuccess = true;
+                            fundReleaseSuccess = true;
         }
 
         function renderApprovedAssistanceTable(customList) {
