@@ -7828,9 +7828,9 @@
             if (typeof DataService !== 'undefined' && DataService.funds) {
                 try {
                     const balanceRes = await DataService.funds.checkBalance(progCode, requestedAmount);
-                    if (balanceRes && balanceRes.data && !balanceRes.data.hasSufficientFunds) {
-                        const rem = Number(balanceRes.data.remainingBalance || 0);
-                        const msg = `Budget Cap Restriction: Cannot approve application ${id}. The program "${progCode}" has insufficient remaining balance (Remaining: ₱${rem.toLocaleString('en-PH', { minimumFractionDigits: 2 })}, Requested: ₱${requestedAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}).`;
+                    if (!balanceRes || !balanceRes.data || !balanceRes.data.hasSufficientFunds || balanceRes.error) {
+                        const reason = balanceRes?.data?.reason || balanceRes?.error?.message || `The program "${progCode}" has insufficient balance.`;
+                        const msg = `Budget Cap Restriction: Cannot approve application ${id}. ${reason}`;
                         if (window.showSystemNotification) {
                             window.showSystemNotification({
                                 title: 'Budget Cap Exceeded',
@@ -7840,7 +7840,7 @@
                         } else {
                             alert(msg);
                         }
-                        logOfficerAction('FAILED_APPROVAL_BUDGET_CAP', `Blocked approval for ${id} due to budget cap on ${progCode}.`);
+                        logOfficerAction('FAILED_APPROVAL_BUDGET_CAP', `Blocked approval for ${id} due to budget cap on ${progCode}. Reason: ${reason}`);
                         return;
                     }
                 } catch (bErr) {
@@ -10110,9 +10110,9 @@
             if (typeof DataService !== 'undefined' && DataService.funds) {
                 try {
                     const balanceRes = await DataService.funds.checkBalance(programCode, numericAmount);
-                    if (balanceRes && balanceRes.data && !balanceRes.data.hasSufficientFunds) {
-                        const rem = Number(balanceRes.data.remainingBalance || 0);
-                        const msg = `Budget Cap Restriction: Cannot record assistance of ₱${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}. Remaining allocation for ${programCode} is ₱${rem.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`;
+                    if (!balanceRes || !balanceRes.data || !balanceRes.data.hasSufficientFunds || balanceRes.error) {
+                        const reason = balanceRes?.data?.reason || balanceRes?.error?.message || `Remaining allocation for ${programCode} is insufficient.`;
+                        const msg = `Budget Cap Restriction: Cannot record assistance of ₱${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}. ${reason}`;
                         if (window.showSystemNotification) {
                             window.showSystemNotification({
                                 title: 'Budget Cap Exceeded',
@@ -10122,7 +10122,7 @@
                         } else {
                             alert(msg);
                         }
-                        logOfficerAction('FAILED_ASSISTANCE_BUDGET_CAP', `Blocked recording assistance for ${benInput} on ${programCode} due to budget limit.`);
+                        logOfficerAction('FAILED_ASSISTANCE_BUDGET_CAP', `Blocked recording assistance for ${benInput} on ${programCode} due to budget limit. Reason: ${reason}`);
                         return;
                     }
                 } catch (bErr) {

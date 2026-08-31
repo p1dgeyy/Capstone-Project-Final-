@@ -1583,8 +1583,24 @@ const DataService = (() => {
       return withRetry(async (client) => {
         const amt = Number(requestedAmount) || 0;
         let progCode = String(programIdentifier || '').trim().toUpperCase();
-        
-        // Lookup in funds table
+
+        if (!progCode) {
+          return {
+            data: {
+              hasSufficientFunds: false,
+              remainingBalance: 0,
+              allocatedBudget: 0,
+              releasedAmount: 0,
+              requestedAmount: amt,
+              programCode: 'UNKNOWN',
+              programName: 'Unknown Program',
+              reason: 'No program code provided for budget verification.'
+            },
+            error: { message: 'No program code provided for budget verification.' }
+          };
+        }
+
+        // 1. Lookup in funds table
         let fundRes = await client.from('funds').select('*')
           .or(`program_code.eq.${progCode},program.ilike.%${progCode}%`)
           .maybeSingle();
@@ -1593,7 +1609,7 @@ const DataService = (() => {
           const allocated = Number(fundRes.data.allocated_budget) || 0;
           const released = Number(fundRes.data.released_amount) || 0;
           const remaining = allocated - released;
-          const hasSufficientFunds = (remaining >= amt);
+          const hasSufficientFunds = (remaining >= amt && allocated > 0);
           return {
             data: {
               hasSufficientFunds,
@@ -1602,13 +1618,14 @@ const DataService = (() => {
               releasedAmount: released,
               requestedAmount: amt,
               programCode: fundRes.data.program_code,
-              programName: fundRes.data.program
+              programName: fundRes.data.program,
+              reason: hasSufficientFunds ? 'Sufficient balance available' : (allocated === 0 ? 'Program has no budget allocation.' : `Insufficient remaining balance (₱${remaining.toLocaleString()} available vs ₱${amt.toLocaleString()} requested).`)
             },
             error: null
           };
         }
 
-        // If not in funds table, check programs table
+        // 2. If not in funds table, check programs table
         let progRes = null;
         if (/^\d+$/.test(programIdentifier)) {
           progRes = await client.from('programs').select('*').eq('id', Number(programIdentifier)).maybeSingle();
@@ -1617,37 +1634,41 @@ const DataService = (() => {
         }
 
         if (progRes && progRes.data) {
-          const allocated = Number(progRes.data.budget || progRes.data.budget_allocated || 500000);
+          const allocated = Number(progRes.data.budget || progRes.data.budget_allocated || 0);
           const appsRes = await client.from('applications').select('amount_approved, amount_requested, status')
             .eq('program_id', progRes.data.id)
             .in('status', ['Approved', 'Officer Approved', 'Released', 'Completed']);
           const released = (appsRes.data || []).reduce((sum, a) => sum + Number(a.amount_approved || a.amount_requested || 0), 0);
-          const remaining = Math.max(0, allocated - released);
+          const remaining = allocated - released;
+          const hasSufficientFunds = (remaining >= amt && allocated > 0);
           return {
             data: {
-              hasSufficientFunds: (remaining >= amt),
+              hasSufficientFunds,
               remainingBalance: remaining,
               allocatedBudget: allocated,
               releasedAmount: released,
               requestedAmount: amt,
               programCode: progRes.data.code,
-              programName: progRes.data.name
+              programName: progRes.data.name,
+              reason: hasSufficientFunds ? 'Sufficient balance available' : (allocated === 0 ? 'Program has no budget allocation configured.' : `Insufficient remaining balance (₱${remaining.toLocaleString()} available vs ₱${amt.toLocaleString()} requested).`)
             },
             error: null
           };
         }
 
+        // 3. Fail-Closed: Never fabricate numbers when no budget record exists
         return {
           data: {
-            hasSufficientFunds: true,
-            remainingBalance: 500000,
-            allocatedBudget: 500000,
+            hasSufficientFunds: false,
+            remainingBalance: 0,
+            allocatedBudget: 0,
             releasedAmount: 0,
             requestedAmount: amt,
-            programCode: progCode || 'PESO',
-            programName: 'Assistance Program'
+            programCode: progCode,
+            programName: 'Unknown Program',
+            reason: `No budget allocation record found for program code: ${progCode}`
           },
-          error: null
+          error: { message: `No budget record found for program: ${progCode}` }
         };
       });
     },
