@@ -202,12 +202,16 @@ const DataService = (() => {
         };
         const res = await client.from('programs').insert(payload).select().single();
         if (!res.error && res.data) {
-          auditLogs.log({
-            action: 'CREATE_PROGRAM',
+          try {
+            await auditLogs.log({
+              action: 'CREATE_PROGRAM',
             entityType: 'program',
             entityId: res.data.id,
             details: `Created program ${res.data.code}: "${res.data.name}" (${res.data.agency})`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -220,12 +224,16 @@ const DataService = (() => {
         delete updateData.created_at;
         const res = await client.from('programs').update(updateData).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
-          auditLogs.log({
-            action: 'UPDATE_PROGRAM',
+          try {
+            await auditLogs.log({
+              action: 'UPDATE_PROGRAM',
             entityType: 'program',
             entityId: id,
             details: `Updated program details for ${res.data.code} (${res.data.name})`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -249,12 +257,16 @@ const DataService = (() => {
 
         const res = await client.from('programs').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
-          auditLogs.log({
-            action: newStatus === 'Active' ? 'ACTIVATE_PROGRAM' : 'DEACTIVATE_PROGRAM',
+          try {
+            await auditLogs.log({
+              action: newStatus === 'Active' ? 'ACTIVATE_PROGRAM' : 'DEACTIVATE_PROGRAM',
             entityType: 'program',
             entityId: id,
             details: `Set program ${res.data.code} status to ${newStatus}${payload.deactivation_reason ? ' | Reason: ' + payload.deactivation_reason : ''}`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -318,12 +330,16 @@ const DataService = (() => {
         const prog = await client.from('programs').select('code, name').eq('id', id).maybeSingle();
         const res = await client.from('programs').delete().eq('id', id);
         if (!res.error) {
-          auditLogs.log({
-            action: 'DELETE_PROGRAM',
+          try {
+            await auditLogs.log({
+              action: 'DELETE_PROGRAM',
             entityType: 'program',
             entityId: id,
             details: `Permanently deleted program ${prog.data?.code || id} (${prog.data?.name || ''})`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -430,12 +446,16 @@ const DataService = (() => {
         }
 
         if (!res.error && res.data) {
-          auditLogs.log({
-            beneficiaryQr: res.data.qr_code || qrCode,
+          try {
+            await auditLogs.log({
+              beneficiaryQr: res.data.qr_code || qrCode,
             action: 'CREATE_BENEFICIARY',
             entityType: 'beneficiary',
             details: `Registered beneficiary ${payload.first_name} ${payload.last_name} (${res.data.qr_code || qrCode})`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -450,12 +470,16 @@ const DataService = (() => {
         delete updateData.created_at;
         const res = await client.from('beneficiaries').update(updateData).eq('qr_code', qrCode).select().single();
         if (!res.error && res.data) {
-          auditLogs.log({
-            beneficiaryQr: qrCode,
-            action: 'UPDATE_BENEFICIARY',
+          try {
+            await auditLogs.log({
+              beneficiaryQr: qrCode,
+              action: 'UPDATE_BENEFICIARY',
             entityType: 'beneficiary',
             details: `Updated beneficiary profile for ${res.data.first_name} ${res.data.last_name} (${qrCode})`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -465,12 +489,16 @@ const DataService = (() => {
       return withRetry(async (client) => {
         const res = await client.from('beneficiaries').update({ status: newStatus }).eq('qr_code', qrCode).select().single();
         if (!res.error && res.data) {
-          auditLogs.log({
-            beneficiaryQr: qrCode,
-            action: newStatus === 'Active' ? 'ACTIVATE_BENEFICIARY' : 'DEACTIVATE_BENEFICIARY',
+          try {
+            await auditLogs.log({
+              beneficiaryQr: qrCode,
+              action: newStatus === 'Active' ? 'ACTIVATE_BENEFICIARY' : 'DEACTIVATE_BENEFICIARY',
             entityType: 'beneficiary',
             details: `Changed beneficiary ${qrCode} status to ${newStatus}`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -633,20 +661,22 @@ const DataService = (() => {
         }
 
         if (!res.error && res.data) {
-          auditLogs.log({
+          await Promise.allSettled([
+            auditLogs.log({
             staffUserId: res.data.id,
             action: 'CREATE_STAFF_ACCOUNT',
             entityType: 'staff_profile',
             entityId: res.data.id,
             details: `Created officer account "${res.data.username}" (${res.data.first_name} ${res.data.last_name}), Role: ${res.data.role}, Dept: ${department}`
-          });
-          activityLog.log({
+          }),
+            activityLog.log({
             action: 'CREATE_OFFICER_ACCOUNT',
             action_title: 'Officer Account Created',
             admin_id: sessionStorage.getItem('username') || 'Admin',
             details: `Created new officer profile for "${res.data.username}" (${res.data.role}) in ${department}`,
             status: 'SUCCESS'
-          });
+          })
+          ]);
         }
         return res;
       });
@@ -672,20 +702,22 @@ const DataService = (() => {
 
         const res = await client.from('staff_profiles').update(updateData).eq('id', id).select().single();
         if (!res.error && res.data) {
-          auditLogs.log({
+          await Promise.allSettled([
+            auditLogs.log({
             staffUserId: id,
             action: 'UPDATE_STAFF_ACCOUNT',
             entityType: 'staff_profile',
             entityId: id,
             details: `Updated staff profile for "${res.data.username}" (${res.data.role})`
-          });
-          activityLog.log({
+          }),
+            activityLog.log({
             action: 'UPDATE_OFFICER_ACCOUNT',
             action_title: 'Officer Profile Updated',
             admin_id: sessionStorage.getItem('username') || 'Admin',
             details: `Updated profile details for officer #${id} ("${res.data.username}")`,
             status: 'SUCCESS'
-          });
+          })
+          ]);
         }
         return res;
       });
@@ -699,20 +731,22 @@ const DataService = (() => {
       return withRetry(async (client) => {
         const res = await client.from('staff_profiles').update({ status: newStatus }).eq('id', id).select().single();
         if (!res.error && res.data) {
-          auditLogs.log({
+          await Promise.allSettled([
+            auditLogs.log({
             staffUserId: id,
             action: newStatus === 'Active' ? 'ACTIVATE_STAFF_ACCOUNT' : 'DEACTIVATE_STAFF_ACCOUNT',
             entityType: 'staff_profile',
             entityId: id,
             details: `Set staff account "${res.data.username}" status to ${newStatus}`
-          });
-          activityLog.log({
+          }),
+            activityLog.log({
             action: newStatus === 'Active' ? 'ACTIVATE_OFFICER' : 'DEACTIVATE_OFFICER',
             action_title: `Officer ${newStatus}`,
             admin_id: sessionStorage.getItem('username') || 'Admin',
             details: `Set officer #${id} ("${res.data.username}") status to ${newStatus}`,
             status: 'SUCCESS'
-          });
+          })
+          ]);
         }
         return res;
       });
@@ -723,19 +757,21 @@ const DataService = (() => {
         const staff = await client.from('staff_profiles').select('username, role').eq('id', id).maybeSingle();
         const res = await client.from('staff_profiles').delete().eq('id', id);
         if (!res.error) {
-          auditLogs.log({
+          await Promise.allSettled([
+            auditLogs.log({
             action: 'DELETE_STAFF_ACCOUNT',
             entityType: 'staff_profile',
             entityId: id,
             details: `Permanently deleted staff account "${staff.data?.username || id}" (${staff.data?.role || ''})`
-          });
-          activityLog.log({
+          }),
+            activityLog.log({
             action: 'DELETE_OFFICER_ACCOUNT',
             action_title: 'Officer Deleted',
             admin_id: sessionStorage.getItem('username') || 'Admin',
             details: `Permanently deleted officer profile #${id}`,
             status: 'SUCCESS'
-          });
+          })
+          ]);
         }
         return res;
       });
@@ -810,21 +846,23 @@ const DataService = (() => {
         };
         const res = await client.from('applications').insert(payload).select().single();
         if (!res.error && res.data) {
-          auditLogs.log({
+          await Promise.allSettled([
+            auditLogs.log({
             beneficiaryQr: data.beneficiary_qr,
             action: 'SUBMIT_APPLICATION',
             entityType: 'application',
             entityId: res.data.id,
             details: `Submitted application ${appNumber} for program #${data.program_id}`
-          });
-          activityLog.log({
+          }),
+            activityLog.log({
             action: 'APPLICATION_SUBMITTED',
             action_title: 'New Assistance Application',
             application_id: appNumber,
             beneficiary_name: data.beneficiary_name || data.beneficiary_qr,
             program: data.program_name || 'Assistance Program',
             details: `New application (${appNumber}) submitted.`
-          });
+          })
+          ]);
         }
         return res;
       });
@@ -1251,21 +1289,22 @@ const DataService = (() => {
         // 3. Granular Audit Logging: Officer ID, Timestamp, Auto-generated group label, Full beneficiary reference numbers
         if (!combinedError || updatedIds.length > 0) {
           const refStr = refNumbers.length > 0 ? refNumbers.join(', ') : `${appIds.length} candidate applications`;
-          auditLogs.log({
+          await Promise.allSettled([
+            auditLogs.log({
             staffUserId: officerId,
             action: 'FORWARD_LIVELIHOOD_APPLICATIONS',
             entityType: 'livelihood_submission',
             entityId: batchId || (appIds[0] || null),
             details: `Officer #${officerId} (${officerName}) forwarded group "${groupLabel}" with ${updatedIds.length} of ${appIds.length} beneficiaries to Admin for evaluation. Reference Numbers: [${refStr}]`
-          });
-
-          activityLog.log({
+          }),
+            activityLog.log({
             action: 'APPLICATIONS_FORWARDED',
             action_title: 'Applications Forwarded to Admin',
             program: progCode,
             admin_id: officerName,
             details: `Forwarded submission group "${groupLabel}" with ${updatedIds.length} candidates (${refStr}) for Admin evaluation.`
-          });
+          })
+          ]);
         }
 
         return {
@@ -1382,26 +1421,29 @@ const DataService = (() => {
           res = await client.from('interview_schedules').insert(payload).select().single();
         }
         if (!res.error && res.data) {
-          auditLogs.log({
+          const slotEffects = [
+            auditLogs.log({
             staffUserId: data.officer_id,
             action: 'CREATE_SCHEDULE_SLOT',
             entityType: 'schedule_slot',
             entityId: res.data.id,
             details: `Created activity slot "${payload.title}" (${payload.category}) on ${payload.interview_date} at ${payload.venue_location}`
-          });
-          activityLog.log({
+          }),
+            activityLog.log({
             action: 'SCHEDULE_SLOT_CREATED',
             action_title: 'New Activity Slot Scheduled',
             program: (res.data.program && res.data.program.name) || 'Assistance Program',
             details: `Scheduled "${payload.title}" for ${payload.interview_date} (${payload.interview_time})`
-          });
+          })
+          ];
           if (data.beneficiary_qr) {
-            notifications.create({
+            slotEffects.push(notifications.create({
               beneficiary_qr: data.beneficiary_qr,
               title: 'New Scheduled Activity Slot',
               message: `You have an activity scheduled: "${payload.title}" on ${payload.interview_date} at ${payload.interview_time}. Location: ${payload.venue_location}.`
-            });
+            }));
           }
+          await Promise.allSettled(slotEffects);
         }
         return res;
       });
@@ -1426,12 +1468,16 @@ const DataService = (() => {
           res = await client.from('interview_schedules').update(updateData).eq('id', id).select().maybeSingle();
         }
         if (!res.error && res.data) {
-          auditLogs.log({
-            action: 'UPDATE_SCHEDULE_SLOT',
+          try {
+            await auditLogs.log({
+              action: 'UPDATE_SCHEDULE_SLOT',
             entityType: 'schedule_slot',
             entityId: id,
             details: `Updated schedule slot #${id} (${res.data.title || 'Activity'})`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -1448,12 +1494,16 @@ const DataService = (() => {
         };
         const res = await client.from('interview_schedules').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
-          auditLogs.log({
-            action: 'MARK_ATTENDANCE',
+          try {
+            await auditLogs.log({
+              action: 'MARK_ATTENDANCE',
             entityType: 'schedule_slot',
             entityId: id,
             details: `Marked attendance for schedule slot #${id} as ${attendanceData.attendance_status}`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -1483,12 +1533,16 @@ const DataService = (() => {
           res = await client.from('interview_schedules').update(payload).eq('id', id).select().maybeSingle();
         }
         if (!res.error && res.data) {
-          auditLogs.log({
-            action: 'RESCHEDULE_ACTIVITY',
+          try {
+            await auditLogs.log({
+              action: 'RESCHEDULE_ACTIVITY',
             entityType: 'schedule_slot',
             entityId: id,
             details: `Rescheduled activity #${id} to ${rescheduleData.interview_date} (${rescheduleData.interview_time})`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -1515,18 +1569,20 @@ const DataService = (() => {
           res = await client.from('interview_schedules').update(payload).eq('id', id).select().maybeSingle();
         }
         if (!res.error && res.data) {
-          auditLogs.log({
+          await Promise.allSettled([
+            auditLogs.log({
             action: 'POSTPONE_ACTIVITY',
             entityType: 'schedule_slot',
             entityId: id,
             details: `Postponed activity slot #${id} ("${res.data.title || 'Activity'}"). Reason: ${payload.postponement_reason}`
-          });
-          activityLog.log({
+          }),
+            activityLog.log({
             action: 'ACTIVITY_POSTPONED',
             action_title: 'Scheduled Activity Postponed',
             program: (res.data.program && res.data.program.name) || 'Assistance Program',
             details: `Postponed "${res.data.title || 'Activity'}" by ${payload.postponed_by}. Reason: ${payload.postponement_reason}`
-          });
+          })
+          ]);
         }
         return res;
       });
@@ -1553,18 +1609,20 @@ const DataService = (() => {
           res = await client.from('interview_schedules').update(payload).eq('id', id).select().maybeSingle();
         }
         if (!res.error && res.data) {
-          auditLogs.log({
+          await Promise.allSettled([
+            auditLogs.log({
             action: 'CANCEL_ACTIVITY',
             entityType: 'schedule_slot',
             entityId: id,
             details: `Cancelled activity slot #${id} ("${res.data.title || 'Activity'}"). Reason: ${payload.cancellation_reason}`
-          });
-          activityLog.log({
+          }),
+            activityLog.log({
             action: 'ACTIVITY_CANCELLED',
             action_title: 'Scheduled Activity Cancelled',
             program: (res.data.program && res.data.program.name) || 'Assistance Program',
             details: `Cancelled "${res.data.title || 'Activity'}" by ${payload.cancelled_by}. Moved to Archive.`
-          });
+          })
+          ]);
         }
         return res;
       });
@@ -1732,13 +1790,17 @@ const DataService = (() => {
         };
         const res = await client.from('approved_assistance').insert(payload).select().single();
         if (!res.error && res.data) {
-          auditLogs.log({
-            staffUserId: data.officer_id,
-            action: 'RECORD_APPROVED_ASSISTANCE',
+          try {
+            await auditLogs.log({
+              staffUserId: data.officer_id,
+              action: 'RECORD_APPROVED_ASSISTANCE',
             entityType: 'approved_assistance',
             entityId: res.data.id,
             details: `Recorded approved assistance (${payload.assistance_type}: ${payload.quantity_amount}) for beneficiary ${payload.beneficiary_qr}`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -2158,13 +2220,17 @@ const DataService = (() => {
         };
         const res = await client.from('batches').insert(payload).select().single();
         if (!res.error && res.data) {
-          auditLogs.log({
-            staffUserId: data.created_by,
-            action: 'CREATE_BATCH',
+          try {
+            await auditLogs.log({
+              staffUserId: data.created_by,
+              action: 'CREATE_BATCH',
             entityType: 'batch',
             entityId: res.data.id,
             details: `Created new batch "${payload.name}" for program ${payload.program_code}`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -2200,25 +2266,25 @@ const DataService = (() => {
           }
         }
 
-        // 3. Audit Logging
+        // 3. Audit & Activity Logging
         const refNumbers = Array.isArray(data.beneficiary_ref_numbers) ? data.beneficiary_ref_numbers : [];
         const refStr = refNumbers.length > 0 ? ` Reference Numbers: [${refNumbers.join(', ')}]` : '';
-        auditLogs.log({
-          staffUserId: data.created_by,
-          action: 'CREATE_LIVELIHOOD_BATCH',
-          entityType: 'batch',
-          entityId: newBatchId,
-          details: `Created livelihood batch "${payload.name}" (${payload.program_code}) with ${appIds.length} approved beneficiaries assigned.${refStr}`
-        });
-
-        // 4. Activity Log
-        activityLog.log({
+        await Promise.allSettled([
+          auditLogs.log({
+            staffUserId: data.created_by,
+            action: 'CREATE_LIVELIHOOD_BATCH',
+            entityType: 'batch',
+            entityId: newBatchId,
+            details: `Created livelihood batch "${payload.name}" (${payload.program_code}) with ${appIds.length} approved beneficiaries assigned.${refStr}`
+          }),
+          activityLog.log({
           action: 'BATCH_CREATED',
           action_title: 'Livelihood Batch Created',
           program: payload.program_code,
           admin_id: data.officer_name || 'PESO Officer',
           details: `Batch "${payload.name}" created with ${appIds.length} beneficiaries assigned.${refStr}`
-        });
+        })
+        ]);
 
         return { data: { ...batchRes.data, assignedCount: appIds.length }, error: null };
       });
@@ -2336,12 +2402,16 @@ const DataService = (() => {
           .in('id', ids);
 
         if (!res.error) {
-          auditLogs.log({
-            action: 'ASSIGN_BENEFICIARIES_TO_BATCH',
+          try {
+            await auditLogs.log({
+              action: 'ASSIGN_BENEFICIARIES_TO_BATCH',
             entityType: 'batch',
             entityId: batchId,
             details: `Assigned ${ids.length} application(s) to batch #${batchId}`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
         }
         return res;
       });
@@ -2742,13 +2812,17 @@ const DataService = (() => {
           }
 
           // Audit log
-          auditLogs.log({
-            staffUserId: staffProfile.id,
-            action: 'OFFICER_PASSWORD_RESET_REQUESTED',
+          try {
+            await auditLogs.log({
+              staffUserId: staffProfile.id,
+              action: 'OFFICER_PASSWORD_RESET_REQUESTED',
             entityType: 'staff_profile',
             entityId: staffProfile.id,
             details: `Officer ${staffProfile.username} (${staffProfile.email}) submitted password reset ticket ${ticketId}`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
 
           // Broadcast Realtime event
           if (typeof window.broadcastRealtimeEvent === 'function') {
@@ -2828,13 +2902,17 @@ const DataService = (() => {
             } catch (e) {}
           }
 
-          auditLogs.log({
-            staffUserId: adminId,
-            action: 'OFFICER_PASSWORD_RESET_APPROVED',
+          try {
+            await auditLogs.log({
+              staffUserId: adminId,
+              action: 'OFFICER_PASSWORD_RESET_APPROVED',
             entityType: 'staff_profile',
             entityId: req.staff_id,
             details: `Admin approved password reset ticket ${req.ticket_id} for ${req.username} (${req.email})`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
 
           if (typeof window.broadcastRealtimeEvent === 'function') {
             window.broadcastRealtimeEvent('OFFICER_PASSWORD_RESET_APPROVED', { request: req });
@@ -2877,13 +2955,17 @@ const DataService = (() => {
             } catch (e) {}
           }
 
-          auditLogs.log({
-            staffUserId: adminId,
-            action: 'OFFICER_PASSWORD_RESET_REJECTED',
+          try {
+            await auditLogs.log({
+              staffUserId: adminId,
+              action: 'OFFICER_PASSWORD_RESET_REJECTED',
             entityType: 'staff_profile',
             entityId: req.staff_id,
             details: `Admin rejected password reset ticket ${req.ticket_id} for ${req.username}. Reason: ${reason}`
           });
+          } catch (e) {
+            console.warn('[Audit Log Warning]:', e);
+          }
 
           if (typeof window.broadcastRealtimeEvent === 'function') {
             window.broadcastRealtimeEvent('OFFICER_PASSWORD_RESET_REJECTED', { request: req });
@@ -2952,13 +3034,17 @@ const DataService = (() => {
         }
 
         // 4. Audit log
-        auditLogs.log({
-          staffUserId: activeReq.staff_id,
-          action: 'OFFICER_PASSWORD_RESET_COMPLETED',
+        try {
+          await auditLogs.log({
+            staffUserId: activeReq.staff_id,
+            action: 'OFFICER_PASSWORD_RESET_COMPLETED',
           entityType: 'staff_profile',
           entityId: activeReq.staff_id,
           details: `Officer ${activeReq.username} (${activeReq.email}) successfully completed password update under approved ticket ${activeReq.ticket_id}`
         });
+        } catch (e) {
+          console.warn('[Audit Log Warning]:', e);
+        }
 
         // 5. Broadcast Realtime event
         if (typeof window.broadcastRealtimeEvent === 'function') {
