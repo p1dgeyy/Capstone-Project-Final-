@@ -2199,6 +2199,36 @@ const DataService = (() => {
       return withRetry(async (client) => {
         return await client.from('funds').update({ ...data, updated_at: new Date().toISOString() }).eq('id', id).select().single();
       });
+    },
+
+    // Creates or updates a program's budget ledger row in one call. The Fund
+    // Allocation admin UI used to write `budget` onto the `programs` table,
+    // but that column has never existed there -- every write silently failed
+    // (PGRST204) and no PESO program ever had a real allocated budget, which
+    // in turn made checkBalance()/adminApprove() reject every approval with
+    // "no budget allocation configured". This writes to the table
+    // checkBalance()/releaseAmount() actually read from, and only touches
+    // allocated_budget on conflict so an existing released_amount is preserved.
+    async allocateBudget(programCode, programName, allocatedBudget) {
+      return withRetry(async (client) => {
+        const code = (programCode || '').trim().toUpperCase();
+        const amount = Number(allocatedBudget);
+        if (!code) {
+          return { data: null, error: { message: 'A program code is required to allocate a budget.' } };
+        }
+        if (isNaN(amount) || amount < 0) {
+          return { data: null, error: { message: 'Allocated budget must be a non-negative number.' } };
+        }
+        return await client.from('funds').upsert(
+          {
+            program_code: code,
+            program: programName || code,
+            allocated_budget: amount,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'program_code' }
+        ).select().maybeSingle();
+      });
     }
   };
 

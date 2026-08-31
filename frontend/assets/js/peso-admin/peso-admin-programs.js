@@ -495,6 +495,7 @@ async function initProgramsData() {
                     };
                 });
                 renderDashboardTables();
+                if (typeof filterProgramsCatalog === 'function') filterProgramsCatalog();
                 return;
             }
         } catch (e) {
@@ -503,6 +504,7 @@ async function initProgramsData() {
     }
     programsList = JSON.parse(JSON.stringify(CANONICAL_PESO_PROGRAM_CATALOG));
     renderDashboardTables();
+    if (typeof filterProgramsCatalog === 'function') filterProgramsCatalog();
 }
 
 function filterPrograms() {
@@ -554,6 +556,70 @@ function filterPrograms() {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No programs found matching filters.</td></tr>';
     }
 }
+
+// Populates the real, current Programs Catalog table (#programsCatalogTableBody).
+// This is the function the search box / status filter actually call; it was missing
+// entirely, which is why the Programs Catalog table never showed any rows.
+function filterProgramsCatalog() {
+    const searchInput = document.getElementById('programsSearchInput');
+    const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const statusSelect = document.getElementById('programsStatusFilter');
+    const status = statusSelect ? statusSelect.value : 'ALL';
+    const tbody = document.getElementById('programsCatalogTableBody');
+    if (!tbody) return;
+
+    const list = Array.isArray(programsList) ? programsList : [];
+    const filtered = list.filter(p => {
+        const matchesSearch = !search ||
+            (p.name || '').toLowerCase().includes(search) ||
+            (p.code || '').toLowerCase().includes(search) ||
+            (p.category || '').toLowerCase().includes(search);
+        const matchesStatus = (status === 'ALL') ||
+            (status === 'Active' && p.status === 'Active') ||
+            (status === 'Inactive' && p.status !== 'Active');
+        return matchesSearch && matchesStatus;
+    });
+
+    tbody.innerHTML = filtered.map(prog => {
+        const isDeactivated = prog.status !== 'Active';
+        const statusBadge = isDeactivated
+            ? '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">Deactivated</span>'
+            : '<span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>';
+        return `
+            <tr>
+                <td><div class="fw-bold text-dark">${escapeHtml(prog.name)}</div><span class="badge bg-dark-subtle text-dark font-monospace">${escapeHtml(prog.code)}</span></td>
+                <td><span class="badge badge-category badge-emp">${escapeHtml(prog.category || 'Livelihood Programs')}</span></td>
+                <td><span class="badge bg-light text-muted border" title="Officer-to-program assignment is not tracked yet">Not Assigned</span></td>
+                <td><span class="badge bg-light text-muted border" title="Outcome path is not configured for this program yet">Not Configured</span></td>
+                <td><div class="fw-bold text-success">${formatPHP(prog.budget)}</div></td>
+                <td><span class="badge bg-light text-dark border"><i class="bi bi-people-fill text-primary me-1"></i>${prog.beneficiaries_count || 0} enrolled</span></td>
+                <td class="text-center">${statusBadge}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-info me-1" onclick="openProgramDetailsViewModal(${prog.id})">
+                        <i class="bi bi-eye-fill"></i> Details
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="openProgramEditModal(${prog.id})">
+                        <i class="bi bi-pencil-square"></i> Edit
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No programs found matching filters.</td></tr>';
+    }
+
+    // Keep the status-chip counters and the Program Management tab badge accurate
+    const activeCount = list.filter(p => p.status === 'Active').length;
+    const inactiveCount = list.length - activeCount;
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setTxt('chipCountAll', list.length);
+    setTxt('chipCountActive', activeCount);
+    setTxt('chipCountInactive', inactiveCount);
+    setTxt('programsTabBadge', list.length);
+}
+window.filterProgramsCatalog = filterProgramsCatalog;
 
 // Helper to format system date & time
 function formatSystemDateTime(date = new Date()) {
@@ -1443,7 +1509,7 @@ function renderArchiveTable(customList) {
     tbody.innerHTML = '';
 
     const list = customList || programsList.filter(p => p.status !== 'Active');
-    const badgeEl = document.getElementById('archiveSectionCountBadge');
+    const badgeEl = document.getElementById('archiveSectionBadge');
     if (badgeEl) badgeEl.textContent = `${list.length} Deactivated Programs`;
 
     if (list.length === 0) {

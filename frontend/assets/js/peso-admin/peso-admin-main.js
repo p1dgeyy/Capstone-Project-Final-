@@ -17,7 +17,9 @@ window.AdminStore = window.AdminStore || {
     batches: [],
     beneficiaries: [],
     approvedAssistance: [],
-    funds: []
+    funds: [],
+    notifications: [],
+    auditLogs: []
 };
 const AdminStore = window.AdminStore;
 
@@ -32,7 +34,7 @@ function renderDashboardOverview() {
     setTxt('statActivePrograms', activeList.length);
     setTxt('statArchivedPrograms', archList.length);
     setTxt('archiveTabBadge', archList.length);
-    setTxt('archiveSectionCountBadge', `${archList.length} Deactivated Programs`);
+    setTxt('archiveSectionBadge', `${archList.length} Deactivated Programs`);
     setTxt('statTotalBudget', formatCurrency(totalBudget));
     setTxt('ordinanceTotalAppropriation', formatCurrency(totalBudget));
     setTxt('overviewTotalAppropriation', formatCurrency(totalBudget));
@@ -117,6 +119,14 @@ function switchTab(tabName) {
         renderArchiveTable();
     } else if (target === 'funds') {
         if (typeof renderFundsModule === 'function') renderFundsModule();
+    } else if (target === 'programs') {
+        if (typeof filterProgramsCatalog === 'function') filterProgramsCatalog();
+    } else if (target === 'resources') {
+        if (typeof renderResourcesModule === 'function') renderResourcesModule();
+    } else if (target === 'notifications') {
+        if (typeof renderNotificationsModule === 'function') renderNotificationsModule();
+    } else if (target === 'reports') {
+        if (typeof generateReportData === 'function') generateReportData();
     }
 
     logAuditEvent('SWITCH_NAVIGATION_TAB', `Switched active navigation tab to "${target.toUpperCase()}"`);

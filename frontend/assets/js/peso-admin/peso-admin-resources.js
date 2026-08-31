@@ -101,6 +101,7 @@
         setTxt('resStatStarterKits', starterKitsCount);
         setTxt('resStatMaterials', materialsCount);
         setTxt('resStatBensServed', uniqueBens);
+        setTxt('resourcesTabBadge', resources.length);
 
         // 2. Render Charts
         initResourceMonitoringCharts(resources);
