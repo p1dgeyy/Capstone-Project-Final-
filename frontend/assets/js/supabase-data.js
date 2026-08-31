@@ -105,11 +105,12 @@ const DataService = (() => {
     return `QR-BEN-${hex}`;
   }
 
-  // Unique application number generator
+  // Unique collision-safe application number generator
   function generateApplicationNumber(agency = 'PESO') {
     const year = new Date().getFullYear();
+    const timeSuffix = Date.now().toString().slice(-4);
     const rand = Math.floor(1000 + Math.random() * 9000);
-    return `${agency}-${year}-${rand}`;
+    return `${agency}-${year}-${timeSuffix}${rand}`;
   }
 
   // =========================================================================

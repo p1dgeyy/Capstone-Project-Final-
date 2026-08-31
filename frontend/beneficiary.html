@@ -8690,7 +8690,9 @@
 
                 const isCswdo = program ? (program.agency === 'CSWDO') : (type.includes('Medical') || type.includes('Burial') || type.includes('Financial'));
                 const agency = isCswdo ? 'CSWDO' : 'PESO';
-                const applicationNumber = (agency === 'CSWDO' ? 'CSWDO-' : 'PESO-') + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+                const timeSuffix = Date.now().toString().slice(-4);
+                const randSuffix = Math.floor(1000 + Math.random() * 9000);
+                const applicationNumber = (agency === 'CSWDO' ? 'CSWDO-' : 'PESO-') + new Date().getFullYear() + '-' + timeSuffix + randSuffix;
 
                 const payload = {
                     application_number: applicationNumber,
@@ -8704,22 +8706,33 @@
                 };
 
                 let res = null;
-                if (typeof DataService !== 'undefined' && DataService.applications) {
+                if (typeof DataService !== 'undefined' && DataService.applications && DataService.applications.create) {
                     res = await DataService.applications.create(payload);
                 } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     res = await supabaseClient.from('applications').insert(payload).select('id, application_number').single();
                 }
 
-                if (res && res.data) {
-                    const inserted = res.data;
-                    dbId = inserted.id;
-                    newAppId = inserted.application_number || applicationNumber;
-                } else {
-                    newAppId = applicationNumber;
+                if (!res || res.error || !res.data) {
+                    const errorMsg = (res && res.error && (res.error.message || res.error.details)) || 'Database write failed. Please check your submission and try again.';
+                    throw new Error(errorMsg);
                 }
-            } catch (e) {
-                console.warn('[Beneficiary] Application created in local state:', e.message || e);
-                newAppId = ((program && program.agency === 'CSWDO') ? 'CSWDO-' : 'PESO-') + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+
+                const inserted = res.data;
+                dbId = inserted.id;
+                newAppId = inserted.application_number || applicationNumber;
+            } catch (err) {
+                console.error('[Beneficiary] Application submission failed:', err);
+                if (typeof window.showSystemNotification === 'function') {
+                    window.showSystemNotification({
+                        title: 'Application Submission Failed',
+                        message: err.message || 'Could not save your application to the database. Please try again.',
+                        type: 'error',
+                        duration: 8000
+                    });
+                } else {
+                    alert(`Application Submission Failed:\n\n${err.message || 'Could not save your application to the database. Please try again.'}`);
+                }
+                return; // Strictly stop: never report success or create fake local state on failure!
             }
 
             // Add new application to view-model
