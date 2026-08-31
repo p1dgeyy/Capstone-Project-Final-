@@ -905,9 +905,30 @@ const DataService = (() => {
       return withRetry(async (client) => {
         const adminUser = approveData.admin_username || sessionStorage.getItem('username') || 'PESO Admin';
         const nowIso = new Date().toISOString();
+
+        // 1. Obtain application and program details
+        const { data: currentApp } = await client
+          .from('applications')
+          .select('id, application_number, program_id, amount_approved, amount_requested, beneficiary_qr, programs (id, code, name)')
+          .eq('id', id)
+          .maybeSingle();
+
+        const amountToApprove = approveData.amount_approved !== undefined && approveData.amount_approved !== null
+          ? Number(approveData.amount_approved)
+          : (currentApp ? Number(currentApp.amount_approved || currentApp.amount_requested || 5000) : 5000);
+        const progCode = approveData.program_code || currentApp?.programs?.code || 'PESO';
+
+        // 2. Fail-Closed Budget Release check upon Admin Approval
+        if (amountToApprove > 0 && typeof funds !== 'undefined' && funds.releaseAmount) {
+          const fundRes = await funds.releaseAmount(progCode, amountToApprove);
+          if (fundRes && fundRes.error) {
+            return { data: null, error: { message: `Budget Limit: Cannot approve application. ${fundRes.error.message || 'Insufficient remaining program budget.'}` } };
+          }
+        }
+
         const payload = {
           status: 'Approved',
-          amount_approved: approveData.amount_approved || null,
+          amount_approved: amountToApprove,
           admin_id: approveData.admin_id || null,
           admin_notes: approveData.notes || 'Approved by Administrator',
           evaluated_by: adminUser,
@@ -923,7 +944,7 @@ const DataService = (() => {
             action: 'ADMIN_APPROVE_APPLICATION',
             entityType: 'application',
             entityId: id,
-            details: `Admin approved application ${res.data.application_number}. Amount: ₱${Number(approveData.amount_approved || 0).toLocaleString()}`
+            details: `Admin approved application ${res.data.application_number}. Amount: ₱${Number(amountToApprove || 0).toLocaleString()}`
           });
           if (auditRes && auditRes.error) {
             console.warn('[Audit Log Warning on Admin Approve]:', auditRes.error);
@@ -945,7 +966,7 @@ const DataService = (() => {
               beneficiary_name: res.data.beneficiary_qr,
               program: 'Assistance Program',
               admin_id: approveData.admin_username || 'Admin',
-              details: `Approved grant for ₱${Number(approveData.amount_approved || 0).toLocaleString()}.`
+              details: `Approved grant for ₱${Number(amountToApprove || 0).toLocaleString()}.`
             });
           } catch (actErr) {}
 
@@ -966,6 +987,26 @@ const DataService = (() => {
     async adminDeny(id, denyData) {
       return withRetry(async (client) => {
         const reason = denyData.reason || denyData.rejection_reason || 'Disapproved by Administrator';
+
+        // 1. Check if application was previously Approved or Released and had funds deducted
+        const { data: currentApp } = await client
+          .from('applications')
+          .select('id, application_number, status, amount_approved, amount_requested, beneficiary_qr, programs (id, code, name)')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (currentApp && (currentApp.status === 'Approved' || currentApp.status === 'Released')) {
+          const amountToRefund = Number(currentApp.amount_approved || currentApp.amount_requested || 0);
+          const progCode = currentApp.programs?.code || 'PESO';
+          if (amountToRefund > 0 && typeof funds !== 'undefined' && typeof funds.refundAmount === 'function') {
+            try {
+              await funds.refundAmount(progCode, amountToRefund);
+            } catch (rErr) {
+              console.warn('[Admin Deny Refund Note]:', rErr);
+            }
+          }
+        }
+
         const payload = {
           status: 'Denied',
           admin_id: denyData.admin_id || null,
@@ -1737,6 +1778,45 @@ const DataService = (() => {
 
         if (fundRes.data) {
           const newReleased = Number(fundRes.data.released_amount || 0) + numericAmount;
+          return await client.from('funds').update({
+            released_amount: newReleased,
+            updated_at: new Date().toISOString()
+          }).eq('id', fundRes.data.id).select().maybeSingle();
+        }
+
+        return { data: null, error: { message: `No fund record found for program code: ${code}` } };
+      });
+    },
+
+    async refundAmount(programCode, amount) {
+      return withRetry(async (client) => {
+        const code = (programCode || '').trim().toUpperCase();
+        const numericAmount = Number(amount || 0);
+
+        if (!code || isNaN(numericAmount) || numericAmount <= 0) {
+          return { data: null, error: { message: 'Invalid program code or refund amount.' } };
+        }
+
+        // 1. Primary: Atomic RPC with negative amount if supported
+        try {
+          const { data: rpcRes, error: rpcErr } = await client.rpc('release_fund_amount', {
+            p_program_code: code,
+            p_amount: -numericAmount
+          });
+
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            return { data: rpcRes.data, error: null };
+          }
+        } catch (rpcEx) {}
+
+        // 2. Direct fallback: Decrement released_amount
+        let fundRes = await client.from('funds').select('*')
+          .or(`program_code.eq.${code},program.ilike.%${code}%`)
+          .maybeSingle();
+
+        if (fundRes.data) {
+          const currentReleased = Number(fundRes.data.released_amount || 0);
+          const newReleased = Math.max(0, currentReleased - numericAmount);
           return await client.from('funds').update({
             released_amount: newReleased,
             updated_at: new Date().toISOString()
