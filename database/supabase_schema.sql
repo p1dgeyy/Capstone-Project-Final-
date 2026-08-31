@@ -951,4 +951,84 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.verify_otp_code(TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
 
+-- Server-Side Out-of-Band Password Reset RPC
+CREATE OR REPLACE FUNCTION public.reset_user_password(
+  p_email TEXT,
+  p_new_password TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_otp_verified BOOLEAN := false;
+BEGIN
+  IF p_email IS NULL OR TRIM(p_email) = '' THEN
+    RAISE EXCEPTION 'Email is required for password reset.';
+  END IF;
+
+  IF p_new_password IS NULL OR LENGTH(TRIM(p_new_password)) < 8 THEN
+    RAISE EXCEPTION 'Password must be at least 8 characters long.';
+  END IF;
+
+  SELECT id INTO v_user_id
+  FROM auth.users
+  WHERE LOWER(TRIM(email)) = LOWER(TRIM(p_email))
+  LIMIT 1;
+
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'No user account found matching the provided email.';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.otp_requests
+    WHERE LOWER(TRIM(identifier)) = LOWER(TRIM(p_email))
+      AND purpose IN ('PASSWORD_RESET', 'EMAIL_VERIFICATION', '2FA_LOGIN')
+      AND status = 'USED'
+      AND updated_at >= NOW() - INTERVAL '15 minutes'
+  ) INTO v_otp_verified;
+
+  IF NOT v_otp_verified THEN
+    RAISE EXCEPTION 'OTP verification required or session has expired. Please request a new verification code.';
+  END IF;
+
+  UPDATE auth.users
+  SET encrypted_password = crypt(p_new_password, gen_salt('bf')),
+      updated_at = NOW()
+  WHERE id = v_user_id;
+
+  UPDATE public.beneficiaries
+  SET updated_at = NOW()
+  WHERE auth_id = v_user_id OR LOWER(TRIM(email)) = LOWER(TRIM(p_email));
+
+  UPDATE public.staff_profiles
+  SET updated_at = NOW()
+  WHERE auth_id = v_user_id OR LOWER(TRIM(email)) = LOWER(TRIM(p_email));
+
+  UPDATE public.otp_requests
+  SET status = 'EXPIRED',
+      updated_at = NOW()
+  WHERE LOWER(TRIM(identifier)) = LOWER(TRIM(p_email))
+    AND status IN ('PENDING', 'USED');
+
+  BEGIN
+    INSERT INTO public.audit_logs (action, entity_type, entity_id, details)
+    VALUES (
+      'PASSWORD_RESET_SUCCESS',
+      'auth_user',
+      v_user_id::TEXT,
+      'Password reset successfully completed for account ' || LOWER(TRIM(p_email))
+    );
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  RETURN true;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.reset_user_password(TEXT, TEXT) TO anon, authenticated, service_role;
+
+
 
