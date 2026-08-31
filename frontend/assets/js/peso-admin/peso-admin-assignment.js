@@ -33,9 +33,7 @@ async function loadBatchesForProgram(progId) {
                 liveAssignmentBatches = bRes.data.map(b => {
                     const enrolledCount = evalApplicationsList.filter(a => 
                         String(a.batch_id) === String(b.id) || 
-                        a.batch_num === b.name || 
-                        String(a.operational_batch_id) === String(b.id) ||
-                        a.operational_batch_name === b.name
+                        String(a.operational_batch_id) === String(b.id)
                     ).length;
 
                     return {
@@ -192,9 +190,7 @@ async function showLevel3Beneficiaries(batchId, batchNum) {
     const matchingApps = evalApplicationsList.filter(a =>
         a.program_id === selectedProgramId && (
             String(a.batch_id) === String(batchId) || 
-            a.batch_num === batchNum || 
             String(a.operational_batch_id) === String(batchId) ||
-            a.operational_batch_name === batchNum ||
             !batchId
         )
     );

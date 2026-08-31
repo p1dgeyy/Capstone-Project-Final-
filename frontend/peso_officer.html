@@ -4855,7 +4855,7 @@
                     }));
 
                     operationalBatchesList = bRes.data.filter(b => b.is_operational || b.status === 'Active' || b.status === 'Scheduled').map(b => {
-                        const batchMembers = evaluationList.filter(a => String(a.operational_batch_id) === String(b.id) || a.operational_batch_name === b.name || String(a.batchId) === String(b.id));
+                        const batchMembers = evaluationList.filter(a => String(a.operational_batch_id) === String(b.id) || String(a.batch_id) === String(b.id) || String(a.batchId) === String(b.id));
                         return {
                             id: b.id,
                             name: b.name,
@@ -9131,11 +9131,11 @@
             const unbatchedApps = totalApprovedApps.filter(a => !a.is_operational_batch || !a.operational_batch_id);
             
             // Batched: Assigned to a batch that is NOT yet scheduled (Editable)
-            const scheduledBatchIds = new Set(operationalBatchesList.filter(b => b.status === 'Scheduled').map(b => String(b.id || b.name)));
-            const batchedUnscheduledApps = totalApprovedApps.filter(a => a.is_operational_batch && a.operational_batch_id && !scheduledBatchIds.has(String(a.operational_batch_id)) && !scheduledBatchIds.has(String(a.operational_batch_name)));
+            const scheduledBatchIds = new Set(operationalBatchesList.filter(b => b.status === 'Scheduled').map(b => String(b.id)));
+            const batchedUnscheduledApps = totalApprovedApps.filter(a => a.is_operational_batch && a.operational_batch_id && !scheduledBatchIds.has(String(a.operational_batch_id)));
 
             // Scheduled: In a batch that has been assigned an event date and locked
-            const scheduledApps = totalApprovedApps.filter(a => a.is_operational_batch && a.operational_batch_id && (scheduledBatchIds.has(String(a.operational_batch_id)) || scheduledBatchIds.has(String(a.operational_batch_name))));
+            const scheduledApps = totalApprovedApps.filter(a => a.is_operational_batch && a.operational_batch_id && scheduledBatchIds.has(String(a.operational_batch_id)));
 
             // 2. Update 4 Overview Stat Cards
             const statTotal = document.getElementById('statBatchTotalApproved');
@@ -9498,17 +9498,17 @@
         }
 
         function openOperationalBatchDetailModal(batchIdOrName) {
-            const batch = operationalBatchesList.find(b => b.id === batchIdOrName || b.name === batchIdOrName) || {
+            const batch = operationalBatchesList.find(b => String(b.id) === String(batchIdOrName)) || operationalBatchesList.find(b => b.name === batchIdOrName) || {
                 id: batchIdOrName,
                 name: batchIdOrName,
                 program: 'PESO',
                 status: 'Active',
                 dateCreated: '2026-08-25',
                 officerName: 'PESO Officer',
-                members: evaluationList.filter(a => a.operational_batch_id === batchIdOrName || a.operational_batch_name === batchIdOrName)
+                members: evaluationList.filter(a => String(a.operational_batch_id) === String(batchIdOrName) || String(a.batch_id) === String(batchIdOrName))
             };
 
-            currentInspectedOpBatchId = batch.id || batchIdOrName;
+            currentInspectedOpBatchId = batch.id;
 
             const modalTitle = document.getElementById('opBatchModalTitle');
             const progName = document.getElementById('opBatchProgName');
@@ -9583,10 +9583,10 @@
                 actionTh.classList.toggle('d-none', isScheduled);
             }
 
-            // Populate Members
+            // Populate Members strictly by batch ID
             const members = evaluationList.filter(a => 
                 String(a.operational_batch_id) === String(currentInspectedOpBatchId) || 
-                a.operational_batch_name === batch.name
+                String(a.batch_id) === String(currentInspectedOpBatchId)
             );
 
             if (countBadge) countBadge.textContent = members.length;
@@ -9913,7 +9913,7 @@
                 // 4. Update in-memory Daily Schedules List immediately for instant UI update
                 const members = evaluationList.filter(a => 
                     String(a.operational_batch_id) === String(currentInspectedOpBatchId) || 
-                    a.operational_batch_name === batch.name
+                    String(a.batch_id) === String(currentInspectedOpBatchId)
                 );
 
                 const newSchedObj = {
@@ -10059,7 +10059,7 @@
             if (!currentInspectedOpBatchId) return;
             const members = evaluationList.filter(a => 
                 String(a.operational_batch_id) === String(currentInspectedOpBatchId) || 
-                a.operational_batch_name === currentInspectedOpBatchId
+                String(a.batch_id) === String(currentInspectedOpBatchId)
             );
             if (members.length === 0) {
                 alert('No members to export.');
