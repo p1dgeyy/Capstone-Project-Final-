@@ -406,56 +406,117 @@ async function handleBulkApproveClick() {
     const adminId = parseInt(sessionStorage.getItem('userId')) || 1;
     const adminUsername = sessionStorage.getItem('username') || 'PESO Admin';
     const timestamp = new Date().toISOString();
+    const targetIds = Array.from(selectedEvalAppIds);
 
-    selectedEvalAppIds.forEach(id => {
-        const app = evalApplicationsList.find(a => a.id === id);
-        if (app) {
-            app.evaluation_status = 'Approved';
-            app.verification_status = 'Verified';
-            app.batch_status = 'Unbatched';
-            app.evaluated_at = timestamp;
-            app.evaluated_by_admin = adminUsername;
-            app.notes = (app.notes ? app.notes + ' | ' : '') + 'Bulk Approved by PESO Admin — Validity and authenticity verified';
+    const btnApprove = document.getElementById('btnBulkApprove');
+    if (btnApprove) {
+        btnApprove.disabled = true;
+        btnApprove.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Approving...';
+    }
 
-            if (typeof DataService !== 'undefined' && DataService.applications) {
-                try {
-                    DataService.applications.adminApprove(app.id, {
-                        notes: app.notes,
-                        admin_id: adminId,
-                        admin_username: adminUsername
-                    });
-                } catch (e) {}
+    try {
+        let successfulIds = [];
+        let writePromises = [];
+
+        targetIds.forEach(id => {
+            const app = evalApplicationsList.find(a => a.id === id);
+            if (app) {
+                const targetNotes = (app.notes ? app.notes + ' | ' : '') + 'Bulk Approved by PESO Admin — Validity and authenticity verified';
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    writePromises.push(
+                        DataService.applications.adminApprove(app.id, {
+                            notes: targetNotes,
+                            admin_id: adminId,
+                            admin_username: adminUsername
+                        }).then(res => {
+                            if (res && !res.error) {
+                                return { id: app.id, success: true, notes: targetNotes };
+                            } else {
+                                return { id: app.id, success: false, error: res?.error?.message || 'Update failed' };
+                            }
+                        }).catch(err => ({ id: app.id, success: false, error: err.message }))
+                    );
+                } else {
+                    successfulIds.push(app.id);
+                }
+            }
+        });
+
+        if (writePromises.length > 0) {
+            const results = await Promise.allSettled(writePromises);
+            results.forEach(r => {
+                if (r.status === 'fulfilled' && r.value.success) {
+                    successfulIds.push(r.value.id);
+                    const app = evalApplicationsList.find(a => a.id === r.value.id);
+                    if (app) {
+                        app.evaluation_status = 'Approved';
+                        app.verification_status = 'Verified';
+                        app.batch_status = 'Unbatched';
+                        app.evaluated_at = timestamp;
+                        app.evaluated_by_admin = adminUsername;
+                        app.notes = r.value.notes;
+                    }
+                }
+            });
+        }
+
+        if (typeof logAuditEvent === 'function') {
+            logAuditEvent('BULK_APPLICATION_APPROVED', `[ADMIN BULK APPROVAL] Admin ID: ${adminId} (${adminUsername}) approved ${successfulIds.length} of ${count} applications for batch "${currentEvalBatchNum}". Moved to Officer Batches (Unbatched). Timestamp: ${timestamp}`);
+        }
+
+        // Auto-notify Officer & Beneficiary
+        if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent && successfulIds.length > 0) {
+            OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_BULK_APPROVED', {
+                count: successfulIds.length,
+                batchRef: currentEvalBatchNum,
+                adminId: adminId,
+                timestamp: timestamp
+            });
+        }
+
+        // Only clear successful IDs
+        successfulIds.forEach(id => selectedEvalAppIds.delete(id));
+        const selectAllBox = document.getElementById('evalSelectAllCheckbox');
+        if (selectAllBox) selectAllBox.checked = (selectedEvalAppIds.size > 0);
+        updateEvalBulkSelectionState();
+        updateEvalMetrics();
+        filterEvalLevel3Apps();
+
+        const failedCount = count - successfulIds.length;
+        if (failedCount > 0) {
+            if (typeof window.showSystemNotification === 'function') {
+                window.showSystemNotification({
+                    title: 'Partial Bulk Approval',
+                    message: `${successfulIds.length} of ${count} applications approved; ${failedCount} failed to save in database. Please retry the remaining items.`,
+                    type: 'warning',
+                    duration: 10000
+                });
+            } else {
+                alert(`${successfulIds.length} of ${count} applications approved; ${failedCount} failed. Please retry.`);
+            }
+        } else {
+            if (typeof window.showSystemNotification === 'function') {
+                window.showSystemNotification({
+                    title: 'Bulk Approval Finalized',
+                    message: `Successfully approved all ${count} application(s). Beneficiaries moved to Officer Batches (Unbatched).`,
+                    type: 'success'
+                });
             }
         }
-    });
-
-    if (typeof logAuditEvent === 'function') {
-        logAuditEvent('BULK_APPLICATION_APPROVED', `[ADMIN BULK APPROVAL] Admin ID: ${adminId} (${adminUsername}) approved ${count} applications for batch "${currentEvalBatchNum}". Moved to Officer Batches (Unbatched). Timestamp: ${timestamp}`);
-    }
-
-    // Auto-notify Officer & Beneficiary
-    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
-        OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_BULK_APPROVED', {
-            count: count,
-            batchRef: currentEvalBatchNum,
-            adminId: adminId,
-            timestamp: timestamp
-        });
-    }
-
-    selectedEvalAppIds.clear();
-    const selectAllBox = document.getElementById('evalSelectAllCheckbox');
-    if (selectAllBox) selectAllBox.checked = false;
-    updateEvalBulkSelectionState();
-    updateEvalMetrics();
-    filterEvalLevel3Apps();
-
-    if (typeof window.showSystemNotification === 'function') {
-        window.showSystemNotification({
-            title: 'Bulk Approval Finalized',
-            message: `Successfully approved ${count} application(s). Beneficiaries moved to Officer Batches (Unbatched).`,
-            type: 'success'
-        });
+    } catch (err) {
+        console.error('[Admin Bulk Approve] Error:', err);
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({
+                title: 'Bulk Approval Failed',
+                message: err.message || 'Failed to complete bulk approval.',
+                type: 'error'
+            });
+        }
+    } finally {
+        if (btnApprove) {
+            btnApprove.disabled = (selectedEvalAppIds.size === 0);
+            btnApprove.innerHTML = '<i class="bi bi-check2-all me-1"></i> Bulk Approve';
+        }
     }
 }
 

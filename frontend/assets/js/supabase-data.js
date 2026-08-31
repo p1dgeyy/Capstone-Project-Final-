@@ -945,11 +945,29 @@ const DataService = (() => {
           updatePayload.batch_id = batchId;
         }
 
+        let updatedIds = [];
+        let updateError = null;
         if (appIds.length > 0) {
           try {
-            await client.from('applications').update(updatePayload).in('id', appIds);
+            const numericIds = appIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0);
+            if (numericIds.length > 0) {
+              const { data: updateRes, error: uErr } = await client
+                .from('applications')
+                .update(updatePayload)
+                .in('id', numericIds)
+                .select('id');
+
+              if (uErr) {
+                updateError = uErr;
+              } else if (Array.isArray(updateRes)) {
+                updatedIds = updateRes.map(r => r.id);
+              } else {
+                updatedIds = numericIds;
+              }
+            }
           } catch (appErr) {
             console.warn('[DataService] Applications update notice:', appErr);
+            updateError = appErr;
           }
         }
 
@@ -973,16 +991,18 @@ const DataService = (() => {
 
         return {
           data: {
+            batch: createdBatch,
             batchId: batchId,
             groupLabel: groupLabel,
             programCode: progCode,
             count: appIds.length,
+            updatedIds: updatedIds,
             refNumbers: refNumbers,
             officerId: officerId,
             officerName: officerName,
             timestamp: new Date().toISOString()
           },
-          error: null
+          error: updateError
         };
       });
     }
