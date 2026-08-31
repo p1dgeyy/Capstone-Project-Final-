@@ -775,96 +775,114 @@ function handleRejectCategoryChange(val) {
     }
 }
 
+let _isProcessingRejection = false;
 async function handleConfirmApplicationRejection(e) {
     if (e && e.preventDefault) e.preventDefault();
+    if (_isProcessingRejection) return;
+    _isProcessingRejection = true;
 
-    const appId = parseInt(document.getElementById('rejectAppId')?.value) || activeReviewAppId;
-    const category = document.getElementById('rejectCategorySelect')?.value || 'Expired Document(s)';
-    const reason = (document.getElementById('rejectReasonInput')?.value || '').trim();
-
-    if (!reason) {
-        alert('Validation Error: You must enter mandatory specific observations/notes explaining the basis of denial.');
-        return;
+    const btnConfirm = document.getElementById('btnConfirmRejectApp') || document.querySelector('#evalRejectionModal button[type="submit"]');
+    if (btnConfirm) {
+        btnConfirm.disabled = true;
+        btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
     }
 
-    const app = evalApplicationsList.find(a => a.id === appId);
-    if (!app) return;
+    try {
+        const appId = parseInt(document.getElementById('rejectAppId')?.value) || activeReviewAppId;
+        const category = document.getElementById('rejectCategorySelect')?.value || 'Expired Document(s)';
+        const reason = (document.getElementById('rejectReasonInput')?.value || '').trim();
 
-    const adminId = parseInt(sessionStorage.getItem('userId')) || 1;
-    const adminUsername = sessionStorage.getItem('username') || 'PESO Admin';
-    const deadlineIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
-    const timestamp = new Date().toISOString();
+        if (!reason) {
+            alert('Validation Error: You must enter mandatory specific observations/notes explaining the basis of denial.');
+            return;
+        }
 
-    app.evaluation_status = 'Denied';
-    app.verification_status = 'Pending Verification';
-    app.denial_source = 'Admin';
-    app.denial_category = category;
-    app.denial_reason = reason;
-    app.resubmission_deadline = deadlineIso;
-    app.evaluated_at = timestamp;
-    app.evaluated_by_admin = adminUsername;
-    app.notes = `Admin Denied [${category}]: ${reason} | 3-Day Resubmission Window until ${new Date(deadlineIso).toLocaleString('en-US')}`;
+        const app = evalApplicationsList.find(a => a.id === appId);
+        if (!app) return;
 
-    if (typeof DataService !== 'undefined' && DataService.applications) {
-        try {
-            await DataService.applications.adminDeny(app.id, {
+        const adminId = parseInt(sessionStorage.getItem('userId')) || 1;
+        const adminUsername = sessionStorage.getItem('username') || 'PESO Admin';
+        const deadlineIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+        const timestamp = new Date().toISOString();
+
+        app.evaluation_status = 'Denied';
+        app.verification_status = 'Pending Verification';
+        app.denial_source = 'Admin';
+        app.denial_category = category;
+        app.denial_reason = reason;
+        app.resubmission_deadline = deadlineIso;
+        app.evaluated_at = timestamp;
+        app.evaluated_by_admin = adminUsername;
+        app.notes = `Admin Denied [${category}]: ${reason} | 3-Day Resubmission Window until ${new Date(deadlineIso).toLocaleString('en-US')}`;
+
+        if (typeof DataService !== 'undefined' && DataService.applications) {
+            try {
+                await DataService.applications.adminDeny(app.id, {
+                    reason: reason,
+                    rejection_reason: reason,
+                    rejection_category: category,
+                    resubmission_deadline: deadlineIso,
+                    admin_id: adminId,
+                    admin_username: adminUsername
+                });
+            } catch (err) {
+                console.warn('[EVALUATION] Supabase application denial update notice:', err);
+            }
+        }
+
+        // Immutable Audit Trail Logging distinguishing Admin denial from Officer denial
+        logAuditEvent('ADMIN_APPLICATION_DENIAL', `[ADMIN DENIAL] Admin ID: ${adminId} (${adminUsername}) denied application ID ${app.id} (${app.applicant_name}). Standard Category: [${category}], Specific Reason: ${reason}. 3-Day Resubmission Window Enforced until ${deadlineIso}. Timestamp: ${timestamp}`);
+
+        // Real-time broadcast to Officer Evaluation Queue & Beneficiary Document Monitoring
+        if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+            OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_DENIED', {
+                applicationId: app.id,
+                applicantName: app.applicant_name,
+                category: category,
                 reason: reason,
-                rejection_reason: reason,
-                rejection_category: category,
-                resubmission_deadline: deadlineIso,
-                admin_id: adminId,
-                admin_username: adminUsername
+                deadline: deadlineIso,
+                adminId: adminId,
+                timestamp: timestamp
             });
-        } catch (err) {
-            console.warn('[EVALUATION] Supabase application denial update notice:', err);
         }
-    }
 
-    // Immutable Audit Trail Logging distinguishing Admin denial from Officer denial
-    logAuditEvent('ADMIN_APPLICATION_DENIAL', `[ADMIN DENIAL] Admin ID: ${adminId} (${adminUsername}) denied application ID ${app.id} (${app.applicant_name}). Standard Category: [${category}], Specific Reason: ${reason}. 3-Day Resubmission Window Enforced until ${deadlineIso}. Timestamp: ${timestamp}`);
-
-    // Real-time broadcast to Officer Evaluation Queue & Beneficiary Document Monitoring
-    if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
-        OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_DENIED', {
-            applicationId: app.id,
-            applicantName: app.applicant_name,
-            category: category,
-            reason: reason,
-            deadline: deadlineIso,
-            adminId: adminId,
-            timestamp: timestamp
-        });
-    }
-
-    if (typeof safeHideModal === 'function') {
-        safeHideModal('evalRejectionModal');
-        safeHideModal('reviewCaseFileModal');
-    } else {
-        const m1 = document.getElementById('evalRejectionModal');
-        const m2 = document.getElementById('reviewCaseFileModal');
-        if (m1 && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const ins1 = bootstrap.Modal.getInstance(m1);
-            if (ins1) ins1.hide();
+        if (typeof safeHideModal === 'function') {
+            safeHideModal('evalRejectionModal');
+            safeHideModal('reviewCaseFileModal');
+        } else {
+            const m1 = document.getElementById('evalRejectionModal');
+            const m2 = document.getElementById('reviewCaseFileModal');
+            if (m1 && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const ins1 = bootstrap.Modal.getInstance(m1);
+                if (ins1) ins1.hide();
+            }
+            if (m2 && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const ins2 = bootstrap.Modal.getInstance(m2);
+                if (ins2) ins2.hide();
+            }
         }
-        if (m2 && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const ins2 = bootstrap.Modal.getInstance(m2);
-            if (ins2) ins2.hide();
+
+        updateEvalMetrics();
+        filterEvalLevel3Apps();
+
+        if (typeof window.showSystemNotification === 'function') {
+            window.showSystemNotification({
+                title: 'Application Denied & Returned to Officer',
+                message: `Application for "${app.applicant_name}" returned to Officer with 3-day resubmission window (${new Date(deadlineIso).toLocaleDateString()}). Notifications dispatched.`,
+                type: 'warning'
+            });
         }
-    }
-
-    updateEvalMetrics();
-    filterEvalLevel3Apps();
-
-    if (typeof window.showSystemNotification === 'function') {
-        window.showSystemNotification({
-            title: 'Application Denied & Returned to Officer',
-            message: `Application for "${app.applicant_name}" returned to Officer with 3-day resubmission window (${new Date(deadlineIso).toLocaleDateString()}). Notifications dispatched.`,
-            type: 'warning'
-        });
+    } finally {
+        _isProcessingRejection = false;
+        if (btnConfirm) {
+            btnConfirm.disabled = false;
+            btnConfirm.innerHTML = 'Confirm Denial';
+        }
     }
 }
 
 // --- FINAL EVALUATION DECISION EXECUTION (APPROVE / DENY) ---
+let _isExecutingDecision = false;
 async function executeEvalDecision(decision) {
     const app = evalApplicationsList.find(a => a.id === activeReviewAppId);
     if (!app) return;
@@ -888,57 +906,74 @@ async function executeEvalDecision(decision) {
         showCancel: true,
         confirmText: `Approve Beneficiary`,
         onConfirm: async () => {
-            app.evaluation_status = 'Approved';
-            app.verification_status = 'Verified';
-            app.batch_status = 'Unbatched';
-            app.evaluated_at = timestamp;
-            app.evaluated_by_admin = adminUsername;
-            app.notes = notes;
+            if (_isExecutingDecision) return;
+            _isExecutingDecision = true;
 
-            if (typeof DataService !== 'undefined' && DataService.applications) {
-                try {
-                    await DataService.applications.adminApprove(app.id, {
-                        notes: notes,
-                        admin_id: adminId,
-                        admin_username: adminUsername
+            const btnApprove = document.getElementById('btnApproveCaseFile');
+            if (btnApprove) {
+                btnApprove.disabled = true;
+                btnApprove.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Approving...';
+            }
+
+            try {
+                app.evaluation_status = 'Approved';
+                app.verification_status = 'Verified';
+                app.batch_status = 'Unbatched';
+                app.evaluated_at = timestamp;
+                app.evaluated_by_admin = adminUsername;
+                app.notes = notes;
+
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    try {
+                        await DataService.applications.adminApprove(app.id, {
+                            notes: notes,
+                            admin_id: adminId,
+                            admin_username: adminUsername
+                        });
+                    } catch (err) {
+                        console.warn('[EVALUATION] Supabase application approval notice:', err);
+                    }
+                }
+
+                logAuditEvent('ADMIN_APPLICATION_APPROVAL', `[ADMIN APPROVAL] Admin ID: ${adminId} (${adminUsername}) approved application ID ${app.id} (${app.applicant_name}) for batch "${currentEvalBatchNum}". Status: Unbatched. Assessment Notes: ${notes}. Timestamp: ${timestamp}`);
+
+                // Real-time broadcast to Officer Batches & Beneficiary Portal
+                if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
+                    OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_APPROVED', {
+                        applicationId: app.id,
+                        applicantName: app.applicant_name,
+                        batchRef: currentEvalBatchNum,
+                        status: 'Unbatched',
+                        adminId: adminId,
+                        timestamp: timestamp
                     });
-                } catch (err) {
-                    console.warn('[EVALUATION] Supabase application approval notice:', err);
                 }
-            }
 
-            logAuditEvent('ADMIN_APPLICATION_APPROVAL', `[ADMIN APPROVAL] Admin ID: ${adminId} (${adminUsername}) approved application ID ${app.id} (${app.applicant_name}) for batch "${currentEvalBatchNum}". Status: Unbatched. Assessment Notes: ${notes}. Timestamp: ${timestamp}`);
+                if (typeof safeHideModal === 'function') {
+                    safeHideModal('reviewCaseFileModal');
+                } else {
+                    const m = document.getElementById('reviewCaseFileModal');
+                    if (m && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const instance = bootstrap.Modal.getInstance(m);
+                        if (instance) instance.hide();
+                    }
+                }
 
-            // Real-time broadcast to Officer Batches & Beneficiary Portal
-            if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
-                OTPAuth.broadcastRealtimeEvent('APPLICATION_ADMIN_APPROVED', {
-                    applicationId: app.id,
-                    applicantName: app.applicant_name,
-                    batchRef: currentEvalBatchNum,
-                    status: 'Unbatched',
-                    adminId: adminId,
-                    timestamp: timestamp
+                updateEvalMetrics();
+                filterEvalLevel3Apps();
+
+                window.showSystemNotification({
+                    title: 'Application Approved Successfully',
+                    message: `Application case file for "${app.applicant_name}" is approved and moved to Beneficiary Batches (Unbatched).`,
+                    type: 'success'
                 });
-            }
-
-            if (typeof safeHideModal === 'function') {
-                safeHideModal('reviewCaseFileModal');
-            } else {
-                const m = document.getElementById('reviewCaseFileModal');
-                if (m && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const instance = bootstrap.Modal.getInstance(m);
-                    if (instance) instance.hide();
+            } finally {
+                _isExecutingDecision = false;
+                if (btnApprove) {
+                    btnApprove.disabled = false;
+                    btnApprove.innerHTML = '<i class="bi bi-check-circle me-1"></i> Approve Case';
                 }
             }
-
-            updateEvalMetrics();
-            filterEvalLevel3Apps();
-
-            window.showSystemNotification({
-                title: 'Application Approved Successfully',
-                message: `Application case file for "${app.applicant_name}" is approved and moved to Beneficiary Batches (Unbatched).`,
-                type: 'success'
-            });
         }
     });
 }

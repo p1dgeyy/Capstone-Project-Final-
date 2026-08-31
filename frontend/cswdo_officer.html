@@ -3052,168 +3052,186 @@
             }
         }
 
+        let _isProcessingEvaluation = false;
         async function processEvaluation(e) {
-            e.preventDefault();
-            const id = document.getElementById('reviewAppId').value;
-            const status = document.getElementById('reviewStatusSelect').value;
-            const amountInputRaw = document.getElementById('reviewApprovedAmount').value.replace(/,/g, '').trim();
-            const amount = parseFloat(amountInputRaw) || 0;
-            if (status === 'Approved' && (isNaN(amount) || amount <= 0)) {
-                alert("Error: Please enter a valid approved financial grant amount.");
-                return;
+            if (e && e.preventDefault) e.preventDefault();
+            if (_isProcessingEvaluation) return;
+            _isProcessingEvaluation = true;
+
+            const submitBtn = document.getElementById('saveEvaluationBtn') || document.querySelector('#reviewModal button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
             }
-            const remarks = document.getElementById('reviewRemarks').value.trim();
 
-            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
-            const index = apps.findIndex(a => a.id === id);
-
-            if (index !== -1) {
-                const app = apps[index];
-                const targetDbId = app.dbId || parseInt(id.replace(/[^0-9]/g, '')) || 1;
-                const rawOfficerId = sessionStorage.getItem('userId');
-                const officerUserId = rawOfficerId && !isNaN(parseInt(rawOfficerId)) ? parseInt(rawOfficerId) : null;
-                const newOfficerStatus = status === 'Approved' ? 'Officer Approved' : (status === 'Denied' ? 'Officer Denied' : 'Under Review');
-
-                let writeSuccess = false;
-                let writeError = '';
-
-                // --- Write directly to Supabase via DataService ---
-                if (typeof DataService !== 'undefined' && DataService.applications) {
-                    try {
-                        const evalRes = await DataService.applications.evaluate(targetDbId, {
-                            status: newOfficerStatus,
-                            decision: status,
-                            notes: remarks,
-                            officer_id: officerUserId,
-                            amount_approved: status === 'Approved' ? amount : null
-                        });
-
-                        if (evalRes && !evalRes.error && evalRes.data) {
-                            writeSuccess = true;
-                        } else {
-                            writeError = (evalRes && evalRes.error && evalRes.error.message) || 'Failed to save evaluation to database.';
-                        }
-
-                        const benQr = app.beneficiary_qr || app.beneficiaryId || (app.beneficiary && app.beneficiary.qr_code) || `QR-BEN-${targetDbId}`;
-                        const astType = app.type || app.program || 'Financial Assistance';
-                        const quantityAmount = `₱${formatCurrency(amount)}`;
-                        const approvalDate = new Date().toISOString().split('T')[0];
-
-                        if (writeSuccess && status === 'Approved' && DataService.approvedAssistance) {
-                            try {
-                                const astRes = await DataService.approvedAssistance.create({
-                                    application_id: targetDbId,
-                                    beneficiary_qr: benQr,
-                                    program_id: app.program_id || 1,
-                                    assistance_type: astType,
-                                    quantity_amount: quantityAmount,
-                                    conditions: remarks || 'Approved for Release',
-                                    approval_date: approvalDate,
-                                    officer_id: officerUserId
-                                });
-                                if (astRes && astRes.error) {
-                                    console.warn('[CSWDO Officer Approved Assistance Warning]:', astRes.error);
-                                }
-                            } catch (astErr) {
-                                console.warn('[CSWDO Officer Approved Assistance Sync Error]:', astErr);
-                            }
-                        }
-
-                        if (writeSuccess && DataService.notifications) {
-                            try {
-                                const notifRes = await DataService.notifications.create({
-                                    beneficiary_qr: benQr,
-                                    title: `CSWDO Application ${status}`,
-                                    message: `Your application for ${astType} has been ${status.toUpperCase()} by the case evaluation officer. Remarks: "${remarks}"`
-                                });
-                                if (notifRes && notifRes.error) {
-                                    console.warn('[CSWDO Officer Notification Warning]:', notifRes.error);
-                                }
-                            } catch (notifErr) {
-                                console.warn('[CSWDO Officer Notification Sync Error]:', notifErr);
-                            }
-                        }
-
-                        if (writeSuccess && DataService.auditLogs) {
-                            try {
-                                const auditRes = await DataService.auditLogs.log({
-                                    action: `APPLICATION_${status.toUpperCase()}`,
-                                    entityType: 'application',
-                                    entityId: targetDbId,
-                                    staffUserId: officerUserId,
-                                    details: `CSWDO Case Officer evaluated application #${targetDbId} as ${status}. Approved Amount: ₱${amount}. Remarks: ${remarks}`
-                                });
-                                if (auditRes && auditRes.error) {
-                                    console.warn('[CSWDO Officer Audit Warning]:', auditRes.error);
-                                }
-                            } catch (auditErr) {
-                                console.warn('[CSWDO Officer Audit Sync Error]:', auditErr);
-                            }
-                        }
-                    } catch (dbErr) {
-                        writeError = dbErr.message || 'Exception during database write.';
-                        console.warn('[CSWDO Officer DataService Error]:', dbErr);
-                    }
-                } else {
-                    writeSuccess = true;
-                }
-
-                if (!writeSuccess) {
-                    if (window.showSystemNotification) {
-                        window.showSystemNotification({
-                            title: 'Evaluation Failed',
-                            message: `Could not evaluate application ${id}: ${writeError}`,
-                            type: 'error',
-                            duration: 8000
-                        });
-                    } else {
-                        alert(`Evaluation Failed for case ${id}: ${writeError}`);
-                    }
+            try {
+                const id = document.getElementById('reviewAppId').value;
+                const status = document.getElementById('reviewStatusSelect').value;
+                const amountInputRaw = document.getElementById('reviewApprovedAmount').value.replace(/,/g, '').trim();
+                const amount = parseFloat(amountInputRaw) || 0;
+                if (status === 'Approved' && (isNaN(amount) || amount <= 0)) {
+                    alert("Error: Please enter a valid approved financial grant amount.");
                     return;
                 }
+                const remarks = document.getElementById('reviewRemarks').value.trim();
 
-                // Verify budget limit if approved
-                if (status === 'Approved') {
-                    const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
-                    const progCode = app.type.includes('Medical') ? 'Medical' : (app.type.includes('Burial') ? 'Burial' : 'Financial');
-                    const progIndex = programs.findIndex(p => p.code === progCode);
-                    
-                    if (progIndex !== -1) {
-                        const remainingBudget = programs[progIndex].budget - programs[progIndex].allocated;
-                        if (amount > remainingBudget && remainingBudget > 0) {
-                            alert(`Warning: Approved amount (₱${formatCurrency(amount)}) exceeds current remaining program allocation budget.`);
+                const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+                const index = apps.findIndex(a => a.id === id);
+
+                if (index !== -1) {
+                    const app = apps[index];
+                    const targetDbId = app.dbId || parseInt(id.replace(/[^0-9]/g, '')) || 1;
+                    const rawOfficerId = sessionStorage.getItem('userId');
+                    const officerUserId = rawOfficerId && !isNaN(parseInt(rawOfficerId)) ? parseInt(rawOfficerId) : null;
+                    const newOfficerStatus = status === 'Approved' ? 'Officer Approved' : (status === 'Denied' ? 'Officer Denied' : 'Under Review');
+
+                    let writeSuccess = false;
+                    let writeError = '';
+
+                    // --- Write directly to Supabase via DataService ---
+                    if (typeof DataService !== 'undefined' && DataService.applications) {
+                        try {
+                            const evalRes = await DataService.applications.evaluate(targetDbId, {
+                                status: newOfficerStatus,
+                                decision: status,
+                                notes: remarks,
+                                officer_id: officerUserId,
+                                amount_approved: status === 'Approved' ? amount : null
+                            });
+
+                            if (evalRes && !evalRes.error && evalRes.data) {
+                                writeSuccess = true;
+                            } else {
+                                writeError = (evalRes && evalRes.error && evalRes.error.message) || 'Failed to save evaluation to database.';
+                            }
+
+                            const benQr = app.beneficiary_qr || app.beneficiaryId || (app.beneficiary && app.beneficiary.qr_code) || `QR-BEN-${targetDbId}`;
+                            const astType = app.type || app.program || 'Financial Assistance';
+                            const quantityAmount = `₱${formatCurrency(amount)}`;
+                            const approvalDate = new Date().toISOString().split('T')[0];
+
+                            if (writeSuccess && status === 'Approved' && DataService.approvedAssistance) {
+                                try {
+                                    const astRes = await DataService.approvedAssistance.create({
+                                        application_id: targetDbId,
+                                        beneficiary_qr: benQr,
+                                        program_id: app.program_id || 1,
+                                        assistance_type: astType,
+                                        quantity_amount: quantityAmount,
+                                        conditions: remarks || 'Approved for Release',
+                                        approval_date: approvalDate,
+                                        officer_id: officerUserId
+                                    });
+                                    if (astRes && astRes.error) {
+                                        console.warn('[CSWDO Officer Approved Assistance Warning]:', astRes.error);
+                                    }
+                                } catch (astErr) {
+                                    console.warn('[CSWDO Officer Approved Assistance Sync Error]:', astErr);
+                                }
+                            }
+
+                            if (writeSuccess && DataService.notifications) {
+                                try {
+                                    const notifRes = await DataService.notifications.create({
+                                        beneficiary_qr: benQr,
+                                        title: `CSWDO Application ${status}`,
+                                        message: `Your application for ${astType} has been ${status.toUpperCase()} by the case evaluation officer. Remarks: "${remarks}"`
+                                    });
+                                    if (notifRes && notifRes.error) {
+                                        console.warn('[CSWDO Officer Notification Warning]:', notifRes.error);
+                                    }
+                                } catch (notifErr) {
+                                    console.warn('[CSWDO Officer Notification Sync Error]:', notifErr);
+                                }
+                            }
+
+                            if (writeSuccess && DataService.auditLogs) {
+                                try {
+                                    const auditRes = await DataService.auditLogs.log({
+                                        action: `APPLICATION_${status.toUpperCase()}`,
+                                        entityType: 'application',
+                                        entityId: targetDbId,
+                                        staffUserId: officerUserId,
+                                        details: `CSWDO Case Officer evaluated application #${targetDbId} as ${status}. Approved Amount: ₱${amount}. Remarks: ${remarks}`
+                                    });
+                                    if (auditRes && auditRes.error) {
+                                        console.warn('[CSWDO Officer Audit Warning]:', auditRes.error);
+                                    }
+                                } catch (auditErr) {
+                                    console.warn('[CSWDO Officer Audit Sync Error]:', auditErr);
+                                }
+                            }
+                        } catch (dbErr) {
+                            writeError = dbErr.message || 'Exception during database write.';
+                            console.warn('[CSWDO Officer DataService Error]:', dbErr);
                         }
-                        programs[progIndex].allocated += amount;
-                        localStorage.setItem('cswdo_programs', JSON.stringify(programs));
+                    } else {
+                        writeSuccess = true;
+                    }
+
+                    if (!writeSuccess) {
+                        if (window.showSystemNotification) {
+                            window.showSystemNotification({
+                                title: 'Evaluation Failed',
+                                message: `Could not evaluate application ${id}: ${writeError}`,
+                                type: 'error',
+                                duration: 8000
+                            });
+                        } else {
+                            alert(`Evaluation Failed for case ${id}: ${writeError}`);
+                        }
+                        return;
+                    }
+
+                    // Verify budget limit if approved
+                    if (status === 'Approved') {
+                        const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
+                        const progCode = app.type.includes('Medical') ? 'Medical' : (app.type.includes('Burial') ? 'Burial' : 'Financial');
+                        const progIndex = programs.findIndex(p => p.code === progCode);
+                        
+                        if (progIndex !== -1) {
+                            const remainingBudget = programs[progIndex].budget - programs[progIndex].allocated;
+                            if (amount > remainingBudget && remainingBudget > 0) {
+                                alert(`Warning: Approved amount (₱${formatCurrency(amount)}) exceeds current remaining program allocation budget.`);
+                            }
+                            programs[progIndex].allocated += amount;
+                            localStorage.setItem('cswdo_programs', JSON.stringify(programs));
+                        }
+                    }
+
+                    apps[index].status = status;
+                    apps[index].verified = true;
+                    apps[index].approvedAmount = amount;
+                    apps[index].remarks = remarks;
+
+                    localStorage.setItem('cswdo_applications', JSON.stringify(apps));
+                    pushActivity('Application Evaluated', `Officer set case ${id} to ${status}`);
+                    pushNotification('Application Evaluated', `Assistance application ${id} for ${app.beneficiaryName} has been ${status} by Officer.`, 'approval');
+                    
+                    // Trigger Simulated / In-App Notification to Beneficiary
+                    triggerAssistanceNotification(app, status, amount, remarks);
+
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Application Evaluated',
+                            message: `Application ${id} successfully evaluated as: ${status} (₱${formatCurrency(amount)}). Logged to Supabase.`,
+                            type: status === 'Approved' ? 'success' : 'warning'
+                        });
+                    } else {
+                        alert(`Application ${id} evaluated successfully as: ${status} (₱${formatCurrency(amount)})`);
                     }
                 }
 
-                apps[index].status = status;
-                apps[index].verified = true;
-                apps[index].approvedAmount = amount;
-                apps[index].remarks = remarks;
-
-                localStorage.setItem('cswdo_applications', JSON.stringify(apps));
-                pushActivity('Application Evaluated', `Officer set case ${id} to ${status}`);
-                pushNotification('Application Evaluated', `Assistance application ${id} for ${app.beneficiaryName} has been ${status} by Officer.`, 'approval');
-                
-                // Trigger Simulated / In-App Notification to Beneficiary
-                triggerAssistanceNotification(app, status, amount, remarks);
-
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({
-                        title: 'Application Evaluated',
-                        message: `Application ${id} successfully evaluated as: ${status} (₱${formatCurrency(amount)}). Logged to Supabase.`,
-                        type: status === 'Approved' ? 'success' : 'warning'
-                    });
-                } else {
-                    alert(`Application ${id} evaluated successfully as: ${status} (₱${formatCurrency(amount)})`);
+                closeReviewModal();
+                renderApplicationsTable();
+                await fetchCSWDOOfficerApiData();
+            } finally {
+                _isProcessingEvaluation = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Save Evaluation Decision';
                 }
             }
-
-            closeReviewModal();
-            renderApplicationsTable();
-            await fetchCSWDOOfficerApiData();
         }
 
         // Auto Notify Beneficiary
