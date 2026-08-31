@@ -867,20 +867,35 @@ const DataService = (() => {
         const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
           const actionDecision = decision || evaluationData.status || 'EVALUATED';
-          auditLogs.log({
+          const auditRes = await auditLogs.log({
             staffUserId: evaluationData.officer_id || null,
             action: `OFFICER_EVALUATION_${actionDecision.toUpperCase().replace(/\s+/g, '_')}`,
             entityType: 'application',
             entityId: id,
             details: `Officer evaluated application ${res.data.application_number} as ${actionDecision}. Notes: ${evaluationData.notes || 'None'}`
           });
+          if (auditRes && auditRes.error) {
+            console.warn('[Audit Log Warning on Evaluate]:', auditRes.error);
+            if (typeof window !== 'undefined' && window.showSystemNotification) {
+              window.showSystemNotification({
+                title: 'Audit Warning',
+                message: 'Evaluation saved, but audit entry failed to record in database.',
+                type: 'warning',
+                duration: 6000
+              });
+            }
+          }
 
           // Also notify beneficiary
-          notifications.create({
-            beneficiary_qr: res.data.beneficiary_qr,
-            title: `Application Update: Evaluation Complete`,
-            message: `Your application (${res.data.application_number}) has been evaluated as ${actionDecision}. ${evaluationData.notes ? 'Remarks: ' + evaluationData.notes : ''}`
-          });
+          try {
+            await notifications.create({
+              beneficiary_qr: res.data.beneficiary_qr,
+              title: `Application Update: Evaluation Complete`,
+              message: `Your application (${res.data.application_number}) has been evaluated as ${actionDecision}. ${evaluationData.notes ? 'Remarks: ' + evaluationData.notes : ''}`
+            });
+          } catch (nErr) {
+            console.warn('[Notification Warning on Evaluate]:', nErr);
+          }
         }
         return res;
       });
@@ -903,29 +918,46 @@ const DataService = (() => {
 
         const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
-          auditLogs.log({
+          const auditRes = await auditLogs.log({
             staffUserId: approveData.admin_id || null,
             action: 'ADMIN_APPROVE_APPLICATION',
             entityType: 'application',
             entityId: id,
             details: `Admin approved application ${res.data.application_number}. Amount: ₱${Number(approveData.amount_approved || 0).toLocaleString()}`
           });
+          if (auditRes && auditRes.error) {
+            console.warn('[Audit Log Warning on Admin Approve]:', auditRes.error);
+            if (typeof window !== 'undefined' && window.showSystemNotification) {
+              window.showSystemNotification({
+                title: 'Audit Warning',
+                message: 'Approval recorded, but audit trail write failed.',
+                type: 'warning',
+                duration: 6000
+              });
+            }
+          }
 
-          activityLog.log({
-            action: 'APPLICATION_APPROVED',
-            action_title: 'Application Approved',
-            application_id: res.data.application_number,
-            beneficiary_name: res.data.beneficiary_qr,
-            program: 'Assistance Program',
-            admin_id: approveData.admin_username || 'Admin',
-            details: `Approved grant for ₱${Number(approveData.amount_approved || 0).toLocaleString()}.`
-          });
+          try {
+            await activityLog.log({
+              action: 'APPLICATION_APPROVED',
+              action_title: 'Application Approved',
+              application_id: res.data.application_number,
+              beneficiary_name: res.data.beneficiary_qr,
+              program: 'Assistance Program',
+              admin_id: approveData.admin_username || 'Admin',
+              details: `Approved grant for ₱${Number(approveData.amount_approved || 0).toLocaleString()}.`
+            });
+          } catch (actErr) {}
 
-          notifications.create({
-            beneficiary_qr: res.data.beneficiary_qr,
-            title: 'Application Approved!',
-            message: `Your application (${res.data.application_number}) has been approved.`
-          });
+          try {
+            await notifications.create({
+              beneficiary_qr: res.data.beneficiary_qr,
+              title: 'Application Approved!',
+              message: `Your application (${res.data.application_number}) has been approved.`
+            });
+          } catch (nErr) {
+            console.warn('[Notification Warning on Admin Approve]:', nErr);
+          }
         }
         return res;
       });
@@ -947,29 +979,46 @@ const DataService = (() => {
 
         const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
-          auditLogs.log({
+          const auditRes = await auditLogs.log({
             staffUserId: denyData.admin_id || null,
             action: 'ADMIN_DENY_APPLICATION',
             entityType: 'application',
             entityId: id,
             details: `Admin denied application ${res.data.application_number}. Reason: ${reason}`
           });
+          if (auditRes && auditRes.error) {
+            console.warn('[Audit Log Warning on Admin Deny]:', auditRes.error);
+            if (typeof window !== 'undefined' && window.showSystemNotification) {
+              window.showSystemNotification({
+                title: 'Audit Warning',
+                message: 'Denial recorded, but audit trail write failed.',
+                type: 'warning',
+                duration: 6000
+              });
+            }
+          }
 
-          activityLog.log({
-            action: 'APPLICATION_DENIED',
-            action_title: 'Application Denied',
-            application_id: res.data.application_number,
-            beneficiary_name: res.data.beneficiary_qr,
-            program: 'Assistance Program',
-            admin_id: denyData.admin_username || 'Admin',
-            details: `Disapproved application. Reason: ${reason}`
-          });
+          try {
+            await activityLog.log({
+              action: 'APPLICATION_DENIED',
+              action_title: 'Application Denied',
+              application_id: res.data.application_number,
+              beneficiary_name: res.data.beneficiary_qr,
+              program: 'Assistance Program',
+              admin_id: denyData.admin_username || 'Admin',
+              details: `Disapproved application. Reason: ${reason}`
+            });
+          } catch (actErr) {}
 
-          notifications.create({
-            beneficiary_qr: res.data.beneficiary_qr,
-            title: 'Application Update: Disapproved',
-            message: `Your application (${res.data.application_number}) was not approved. Reason: ${reason}`
-          });
+          try {
+            await notifications.create({
+              beneficiary_qr: res.data.beneficiary_qr,
+              title: 'Application Update: Disapproved',
+              message: `Your application (${res.data.application_number}) was not approved. Reason: ${reason}`
+            });
+          } catch (nErr) {
+            console.warn('[Notification Warning on Admin Deny]:', nErr);
+          }
         }
         return res;
       });
@@ -1015,28 +1064,45 @@ const DataService = (() => {
             }
           }
 
-          auditLogs.log({
+          const auditRes = await auditLogs.log({
             staffUserId: releaseData.admin_id || null,
             action: 'RELEASE_FUNDS',
             entityType: 'application',
             entityId: id,
             details: `Disbursed funds for application ${res.data.application_number} under program ${targetProg}. Amount: ₱${amount.toLocaleString()}`
           });
+          if (auditRes && auditRes.error) {
+            console.warn('[Audit Log Warning on Admin Release]:', auditRes.error);
+            if (typeof window !== 'undefined' && window.showSystemNotification) {
+              window.showSystemNotification({
+                title: 'Audit Warning',
+                message: 'Release recorded, but audit trail write failed.',
+                type: 'warning',
+                duration: 6000
+              });
+            }
+          }
 
-          activityLog.log({
-            action: 'FUNDS_RELEASED',
-            action_title: 'Funds Disbursed',
-            application_id: res.data.application_number,
-            beneficiary_name: `${res.data.beneficiary?.first_name || ''} ${res.data.beneficiary?.last_name || ''}`.trim(),
-            program: res.data.program?.name || targetProg,
-            details: `Released grant voucher of ₱${amount.toLocaleString()} under ${targetProg}.`
-          });
+          try {
+            await activityLog.log({
+              action: 'FUNDS_RELEASED',
+              action_title: 'Funds Disbursed',
+              application_id: res.data.application_number,
+              beneficiary_name: `${res.data.beneficiary?.first_name || ''} ${res.data.beneficiary?.last_name || ''}`.trim(),
+              program: res.data.program?.name || targetProg,
+              details: `Released grant voucher of ₱${amount.toLocaleString()} under ${targetProg}.`
+            });
+          } catch (actErr) {}
 
-          notifications.create({
-            beneficiary_qr: res.data.beneficiary_qr,
-            title: 'Assistance Grant Released',
-            message: `Your assistance grant voucher (${res.data.application_number}) for ₱${amount.toLocaleString()} is released.`
-          });
+          try {
+            await notifications.create({
+              beneficiary_qr: res.data.beneficiary_qr,
+              title: 'Assistance Grant Released',
+              message: `Your assistance grant voucher (${res.data.application_number}) for ₱${amount.toLocaleString()} is released.`
+            });
+          } catch (nErr) {
+            console.warn('[Notification Warning on Admin Release]:', nErr);
+          }
         }
         return res;
       });
@@ -1813,7 +1879,7 @@ const DataService = (() => {
     async log(data) {
       try {
         const client = getClient();
-        if (!client) return;
+        if (!client) return { data: null, error: { message: 'Database client unavailable.' } };
 
         let staffUserId = data.staffUserId;
         let beneficiaryQr = data.beneficiaryQr;
@@ -1860,18 +1926,22 @@ const DataService = (() => {
           payload.staff_user_id = staffUserId || 1;
         }
 
-        const { error } = await client.from('audit_logs').insert(payload);
-        if (error) {
+        const res = await client.from('audit_logs').insert(payload).select().single();
+        if (res && res.error) {
+          console.warn('[Audit Log Insert Warning]:', res.error);
           if (activityLog && typeof activityLog.log === 'function') {
-            activityLog.log({
+            await activityLog.log({
               action: payload.action,
               details: payload.details,
-              status: 'LOGGED'
+              status: 'AUDIT_INSERT_FAILED'
             });
           }
+          return res;
         }
+        return res || { data: payload, error: null };
       } catch (err) {
-        // Non-blocking catch
+        console.warn('[DATA_SERVICE] Audit log exception:', err);
+        return { data: null, error: err };
       }
     }
   };
