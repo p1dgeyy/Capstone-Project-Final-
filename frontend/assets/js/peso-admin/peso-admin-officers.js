@@ -1157,3 +1157,21 @@ window.loadPasswordResetRequests = loadPasswordResetRequests;
 window.approveOfficerResetRequest = approveOfficerResetRequest;
 window.rejectOfficerResetRequest = rejectOfficerResetRequest;
 
+
+
+window.filterOfficersList = function() {
+    if (typeof filterOfficers === 'function') filterOfficers();
+};
+
+window.exportOfficersCsv = function() {
+    const list = (typeof officersList !== 'undefined' && Array.isArray(officersList)) ? officersList : [];
+    let csv = 'ID,First Name,Last Name,Username,Email,Role,Status\n';
+    list.forEach(o => {
+        csv += `"${o.id}","${o.first_name || ''}","${o.last_name || ''}","${o.username || ''}","${o.email || ''}","${o.role || ''}","${o.status || 'Active'}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `peso_officers_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+};

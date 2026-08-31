@@ -1567,3 +1567,41 @@ window.handleUploadOrdinance = handleUploadOrdinance;
 window.showOrdinanceReferenceModal = showOrdinanceReferenceModal;
 window.activateProgram = activateProgram;
 window.permanentlyDeleteProgram = permanentlyDeleteProgram;
+
+
+window.showProgramsLevel1 = function() {
+    if (typeof showLevel1Programs === 'function') showLevel1Programs();
+    const l1 = document.getElementById('programsLevel1');
+    const l2 = document.getElementById('programsLevel2');
+    const l3 = document.getElementById('programsLevel3');
+    if (l1) l1.classList.remove('d-none');
+    if (l2) l2.classList.add('d-none');
+    if (l3) l3.classList.add('d-none');
+};
+
+window.showProgramsLevel2 = function() {
+    if (typeof showLevel2Batches === 'function') showLevel2Batches();
+    const l1 = document.getElementById('programsLevel1');
+    const l2 = document.getElementById('programsLevel2');
+    const l3 = document.getElementById('programsLevel3');
+    if (l1) l1.classList.add('d-none');
+    if (l2) l2.classList.remove('d-none');
+    if (l3) l3.classList.add('d-none');
+};
+
+window.handleConfirmProgramDeactivation = function(e) {
+    if (e) e.preventDefault();
+    const modalEl = document.getElementById('programDeactivationModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (bsModal) bsModal.hide();
+    }
+};
+
+window.cancelProgramDeactivationToggle = function() {
+    const modalEl = document.getElementById('programDeactivationModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (bsModal) bsModal.hide();
+    }
+};
