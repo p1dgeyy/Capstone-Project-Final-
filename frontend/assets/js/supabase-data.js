@@ -2155,7 +2155,7 @@ const DataService = (() => {
           const allocated = Number(progRes.data.budget || progRes.data.budget_allocated || 0);
           const appsRes = await client.from('applications').select('amount_approved, amount_requested, status')
             .eq('program_id', progRes.data.id)
-            .in('status', ['Approved', 'Officer Approved', 'Released', 'Completed']);
+            .in('status', ['Released', 'Completed']);
           const released = (appsRes.data || []).reduce((sum, a) => sum + Number(a.amount_approved || a.amount_requested || 0), 0);
           const remaining = allocated - released;
           const hasSufficientFunds = (remaining >= amt && allocated > 0);

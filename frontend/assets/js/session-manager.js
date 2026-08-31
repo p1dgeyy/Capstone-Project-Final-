@@ -335,7 +335,7 @@ const SessionManager = (() => {
         } else {
           supabaseClient
             .from('staff_profiles')
-            .update({ current_session_id: sessionId, last_activity_at: nowIso })
+            .update({ current_session_id: sessionId, active_session_id: sessionId, last_activity_at: nowIso })
             .or(`id.eq.${uId},username.eq.${uName}`)
             .then(() => {})
             .catch(() => {});

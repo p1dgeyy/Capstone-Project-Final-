@@ -841,8 +841,10 @@ async function pullCertificateEligibleRecipients() {
     try {
         let applications = [];
         if (typeof DataService !== 'undefined' && DataService.applications) {
-            const res = await DataService.applications.getAll({ status: 'Approved' });
-            if (res.data) applications = res.data;
+            const res = await DataService.applications.getAll();
+            if (res.data) {
+                applications = res.data.filter(a => a.status === 'Released' || a.status === 'Completed');
+            }
         }
 
         let eligible = applications;
