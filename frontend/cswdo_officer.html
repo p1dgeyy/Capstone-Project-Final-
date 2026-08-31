@@ -3094,34 +3094,61 @@
                             writeError = (evalRes && evalRes.error && evalRes.error.message) || 'Failed to save evaluation to database.';
                         }
 
+                        const benQr = app.beneficiary_qr || app.beneficiaryId || (app.beneficiary && app.beneficiary.qr_code) || `QR-BEN-${targetDbId}`;
+                        const astType = app.type || app.program || 'Financial Assistance';
+                        const quantityAmount = `₱${formatCurrency(amount)}`;
+                        const approvalDate = new Date().toISOString().split('T')[0];
+
                         if (writeSuccess && status === 'Approved' && DataService.approvedAssistance) {
-                            await DataService.approvedAssistance.create({
-                                application_id: targetDbId,
-                                beneficiary_qr: app.beneficiaryId || `QR-BEN-${targetDbId}`,
-                                program_id: app.program_id || 1,
-                                amount_approved: amount,
-                                evaluation_notes: remarks,
-                                officer_id: officerUserId
-                            }).catch(e => console.warn('[CSWDO Officer Approved Assistance Sync]:', e));
+                            try {
+                                const astRes = await DataService.approvedAssistance.create({
+                                    application_id: targetDbId,
+                                    beneficiary_qr: benQr,
+                                    program_id: app.program_id || 1,
+                                    assistance_type: astType,
+                                    quantity_amount: quantityAmount,
+                                    conditions: remarks || 'Approved for Release',
+                                    approval_date: approvalDate,
+                                    officer_id: officerUserId
+                                });
+                                if (astRes && astRes.error) {
+                                    console.warn('[CSWDO Officer Approved Assistance Warning]:', astRes.error);
+                                }
+                            } catch (astErr) {
+                                console.warn('[CSWDO Officer Approved Assistance Sync Error]:', astErr);
+                            }
                         }
 
                         if (writeSuccess && DataService.notifications) {
-                            await DataService.notifications.create({
-                                recipient_qr: app.beneficiaryId || `QR-BEN-${targetDbId}`,
-                                title: `CSWDO Application ${status}`,
-                                message: `Your application for ${app.type} has been ${status.toUpperCase()} by the case evaluation officer. Remarks: "${remarks}"`,
-                                type: status === 'Approved' ? 'success' : 'warning'
-                            }).catch(e => console.warn('[CSWDO Officer Notification Sync]:', e));
+                            try {
+                                const notifRes = await DataService.notifications.create({
+                                    beneficiary_qr: benQr,
+                                    title: `CSWDO Application ${status}`,
+                                    message: `Your application for ${astType} has been ${status.toUpperCase()} by the case evaluation officer. Remarks: "${remarks}"`
+                                });
+                                if (notifRes && notifRes.error) {
+                                    console.warn('[CSWDO Officer Notification Warning]:', notifRes.error);
+                                }
+                            } catch (notifErr) {
+                                console.warn('[CSWDO Officer Notification Sync Error]:', notifErr);
+                            }
                         }
 
                         if (writeSuccess && DataService.auditLogs) {
-                            await DataService.auditLogs.log({
-                                action: `APPLICATION_${status.toUpperCase()}`,
-                                entityType: 'application',
-                                entityId: targetDbId,
-                                staffUserId: officerUserId,
-                                details: `CSWDO Case Officer evaluated application #${targetDbId} as ${status}. Approved Amount: ₱${amount}. Remarks: ${remarks}`
-                            }).catch(e => console.warn('[CSWDO Officer Audit Sync]:', e));
+                            try {
+                                const auditRes = await DataService.auditLogs.log({
+                                    action: `APPLICATION_${status.toUpperCase()}`,
+                                    entityType: 'application',
+                                    entityId: targetDbId,
+                                    staffUserId: officerUserId,
+                                    details: `CSWDO Case Officer evaluated application #${targetDbId} as ${status}. Approved Amount: ₱${amount}. Remarks: ${remarks}`
+                                });
+                                if (auditRes && auditRes.error) {
+                                    console.warn('[CSWDO Officer Audit Warning]:', auditRes.error);
+                                }
+                            } catch (auditErr) {
+                                console.warn('[CSWDO Officer Audit Sync Error]:', auditErr);
+                            }
                         }
                     } catch (dbErr) {
                         writeError = dbErr.message || 'Exception during database write.';
