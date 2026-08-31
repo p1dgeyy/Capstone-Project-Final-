@@ -9360,45 +9360,90 @@
                 if (spinner) spinner.classList.remove('d-none');
                 if (icon) icon.classList.add('d-none');
 
-                const targetAppIds = Array.from(selectedOpBatchAppIds);
+                const rawAppIds = Array.from(selectedOpBatchAppIds);
+                const numericAppIds = rawAppIds.map(id => {
+                    const num = parseInt(String(id).replace(/[^0-9]/g, ''));
+                    return !isNaN(num) && num > 0 ? num : null;
+                }).filter(Boolean);
                 const timestamp = new Date().toISOString();
-                const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
-                const officerId = (currentUserProfile && currentUserProfile.id) || 'OFF-01';
-                const newBatchId = `OP-BAT-${Date.now()}`;
+                const officerName = (currentUserProfile && currentUserProfile.fullName) || sessionStorage.getItem('userName') || 'PESO Officer';
+                const officerId = (currentUserProfile && currentUserProfile.id && !isNaN(parseInt(currentUserProfile.id)))
+                    ? parseInt(currentUserProfile.id)
+                    : (parseInt(sessionStorage.getItem('userId')) || 2);
 
-                // 1. Sync with Supabase Database (Batches)
-                if (typeof DataService !== 'undefined' && DataService.batches) {
+                let realBatchId = null;
+                let createdBatchData = null;
+
+                // 1. Create Batch with Beneficiaries via DataService or direct client
+                if (typeof DataService !== 'undefined' && DataService.batches && DataService.batches.createWithBeneficiaries) {
                     try {
-                        await DataService.batches.create({
+                        const batchRes = await DataService.batches.createWithBeneficiaries({
                             name: batchTitle,
-                            program: selectedOpBatchProgram,
-                            capacity: targetAppIds.length,
-                            assignedCount: targetAppIds.length,
-                            status: 'Active', // Editable
-                            is_operational: true
+                            program_code: selectedOpBatchProgram || 'PESO',
+                            capacity: Math.max(50, numericAppIds.length),
+                            application_ids: numericAppIds,
+                            created_by: officerId,
+                            officer_name: officerName
                         });
+                        if (batchRes && batchRes.data && batchRes.data.id) {
+                            realBatchId = batchRes.data.id;
+                            createdBatchData = batchRes.data;
+                        }
                     } catch (bErr) {
-                        console.warn('[PESO Officer] Batch DB creation note:', bErr);
+                        console.warn('[PESO Officer] Batch createWithBeneficiaries error:', bErr);
                     }
                 }
 
-                // 2. Update Applications in DB & Send Beneficiary In-App Notifications
-                for (const appId of targetAppIds) {
+                if (!realBatchId && typeof supabaseClient !== 'undefined' && supabaseClient) {
                     try {
-                        if (typeof DataService !== 'undefined' && DataService.applications) {
-                            await DataService.applications.update(appId, {
-                                operational_batch_id: newBatchId,
-                                operational_batch_name: batchTitle,
-                                is_operational_batch: true,
+                        const { data: bData, error: bErr } = await supabaseClient.from('batches').insert({
+                            name: batchTitle,
+                            program_code: selectedOpBatchProgram || 'PESO',
+                            capacity: Math.max(50, numericAppIds.length),
+                            created_by: officerId,
+                            status: 'Active'
+                        }).select().single();
+
+                        if (!bErr && bData?.id) {
+                            realBatchId = bData.id;
+                            createdBatchData = bData;
+                        }
+                    } catch (bErr) {
+                        console.warn('[PESO Officer] Supabase batch fallback insert note:', bErr);
+                    }
+                }
+
+                if (!realBatchId) {
+                    throw new Error('Failed to create persistent operational batch record in database.');
+                }
+
+                const newBatchId = `BAT-${realBatchId}`;
+
+                // 2. Assign Applications to Batch and Notify Beneficiaries
+                if (numericAppIds.length > 0 && typeof DataService !== 'undefined' && DataService.applications && DataService.applications.assignToBatch) {
+                    try {
+                        await DataService.applications.assignToBatch(realBatchId, numericAppIds);
+                    } catch (assignErr) {
+                        console.warn('[PESO Officer] assignToBatch error:', assignErr);
+                    }
+                }
+
+                for (const appId of rawAppIds) {
+                    const numericId = parseInt(String(appId).replace(/[^0-9]/g, ''));
+                    try {
+                        if (typeof DataService !== 'undefined' && DataService.applications && numericId) {
+                            await DataService.applications.update(numericId, {
+                                batch_id: realBatchId,
                                 batched_at: timestamp,
-                                batched_by: officerName
+                                batched_by: officerName,
+                                updated_at: timestamp
                             });
                         }
                     } catch (aErr) {
                         console.warn('[PESO Officer] App batch update note:', aErr);
                     }
 
-                    // Send Notification: "Your documents have been approved and you've been included in batch [Batch Name]"
+                    // Send In-App Notification to Beneficiary
                     const app = evaluationList.find(a => String(a.dbId) === String(appId) || String(a.id) === String(appId));
                     if (app && app.qrCodeId) {
                         try {
@@ -9418,9 +9463,10 @@
 
                 // 3. Update in-memory evaluation list
                 const enrolledMembers = [];
-                targetAppIds.forEach(id => {
+                rawAppIds.forEach(id => {
                     const app = evaluationList.find(a => String(a.dbId) === String(id) || String(a.id) === String(id));
                     if (app) {
+                        app.batch_id = realBatchId;
                         app.operational_batch_id = newBatchId;
                         app.operational_batch_name = batchTitle;
                         app.is_operational_batch = true;
@@ -9430,12 +9476,13 @@
                     }
                 });
 
-                // 4. Add to operationalBatchesList (Editable)
+                // 4. Add to operationalBatchesList with Real Database ID
                 operationalBatchesList.unshift({
                     id: newBatchId,
+                    dbId: realBatchId,
                     name: batchTitle,
                     program: selectedOpBatchProgram,
-                    status: 'Active', // Editable
+                    status: 'Active',
                     dateCreated: timestamp.substring(0, 10),
                     created_at: timestamp,
                     officerName: officerName,
