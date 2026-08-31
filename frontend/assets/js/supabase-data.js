@@ -1169,7 +1169,7 @@ const DataService = (() => {
             program_code: progCode,
             capacity: Math.max(50, appIds.length),
             created_by: officerId,
-            status: 'Forwarded to Admin'
+            status: 'Active'
           }).select().maybeSingle();
           if (bErr) {
             batchError = bErr;
@@ -1183,13 +1183,13 @@ const DataService = (() => {
           console.warn('[DataService] Batch group insert exception:', bErr);
         }
 
-        // 2. Update applications status to Forwarded to Admin and stamp officer / group
+        // 2. Update applications status to Officer Approved and stamp officer / group
         const updatePayload = {
-          status: 'Forwarded to Admin',
+          status: 'Officer Approved',
           forwarded_by: officerName,
           forwarded_at: new Date().toISOString(),
           officer_id: officerId,
-          officer_decision: 'Forwarded to Admin',
+          officer_decision: 'Approved',
           officer_action_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
