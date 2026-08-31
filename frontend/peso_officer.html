@@ -4758,8 +4758,8 @@
                             programCode: pCode,
                             projectType: a.remarks || 'Assistance Program',
                             dateSubmitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
-                            status: a.status === 'Officer Approved' || a.status === 'Approved' ? 'Approved' : (a.status === 'Officer Denied' || a.status === 'Denied' ? 'Denied' : (a.status === 'Forwarded to Admin' ? 'Forwarded to Admin' : 'Pending')),
-                            rawStatus: a.status,
+                            status: a.status || 'Pending',
+                            rawStatus: a.status || 'Pending',
                             batchName: a.batch ? a.batch.name : (a.batch_id ? `Batch #${a.batch_id}` : ''),
                             batchId: a.batch_id,
                             is_operational_batch: a.is_operational_batch || false,
@@ -7426,10 +7426,14 @@
                 const dateSub = item.dateSubmitted || (item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Today');
 
                 let statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-hourglass-split me-1"></i>Pending Review</span>';
-                if (item.status === 'Approved' || item.status === 'Officer Approved') {
-                    statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Approved (Admin Review)</span>';
+                if (item.status === 'Approved') {
+                    statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>';
+                } else if (item.status === 'Officer Approved') {
+                    statusBadge = '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-hourglass-split me-1"></i>Officer Approved (Pending Admin Review)</span>';
+                } else if (item.status === 'Officer Denied') {
+                    statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Officer Denied</span>';
                 } else if (item.status === 'Denied') {
-                    statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Denied</span>';
+                    statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle-fill me-1"></i>Denied</span>';
                 } else if (item.status === 'Pending Requirements') {
                     statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle me-1"></i>Pending Docs</span>';
                 }
@@ -7476,11 +7480,15 @@
             const dateSub = item.dateSubmitted || (item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Today');
 
             let statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 fs-6"><i class="bi bi-hourglass-split me-1"></i>Pending Review</span>';
-            if (item.status === 'Approved' || item.status === 'Officer Approved' || item.rawStatus === 'Approved') {
-                statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6"><i class="bi bi-check-circle me-1"></i>Approved (Admin Review)</span>';
-            } else if (item.status === 'Denied' || item.rawStatus === 'Denied') {
-                statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6"><i class="bi bi-x-circle me-1"></i>Denied</span>';
-            } else if (item.status === 'Pending Requirements' || item.rawStatus === 'Pending Requirements') {
+            if (item.status === 'Approved') {
+                statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6"><i class="bi bi-check-circle-fill me-1"></i>Approved (Admin Approved)</span>';
+            } else if (item.status === 'Officer Approved') {
+                statusBadge = '<span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 fs-6"><i class="bi bi-hourglass-split me-1"></i>Officer Approved (Pending Admin Review)</span>';
+            } else if (item.status === 'Officer Denied') {
+                statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6"><i class="bi bi-x-circle me-1"></i>Officer Denied</span>';
+            } else if (item.status === 'Denied') {
+                statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6"><i class="bi bi-x-circle-fill me-1"></i>Denied (Admin Denied)</span>';
+            } else if (item.status === 'Pending Requirements') {
                 statusBadge = '<span class="badge bg-warning text-dark px-3 py-2 fs-6"><i class="bi bi-exclamation-circle me-1"></i>Pending Requirements</span>';
             }
 
