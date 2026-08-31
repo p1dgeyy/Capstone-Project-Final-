@@ -1174,28 +1174,27 @@ const DataService = (() => {
         // 1. Create or ensure a batch/group record for this submission
         let batchId = data.batch_id || null;
         let createdBatch = null;
-        let batchError = null;
-        try {
-          const { data: batchData, error: bErr } = await client.from('batches').insert({
-            name: groupLabel,
-            program_code: progCode,
-            capacity: Math.max(50, appIds.length),
-            created_by: officerId,
-            status: 'Active'
-          }).select().maybeSingle();
-          if (bErr) {
-            batchError = bErr;
-            console.warn('[DataService] Batch group insert error:', bErr);
-          } else if (batchData) {
+        if (!batchId) {
+          try {
+            const { data: batchData, error: bErr } = await client.from('batches').insert({
+              name: groupLabel,
+              program_code: progCode,
+              capacity: Math.max(50, appIds.length),
+              created_by: officerId,
+              status: 'Active'
+            }).select().single();
+
+            if (bErr || !batchData?.id) {
+              return { data: null, error: { message: `Batch creation failed: ${bErr?.message || 'Unable to create batch record in database.'}` } };
+            }
             batchId = batchData.id;
             createdBatch = batchData;
+          } catch (bErr) {
+            return { data: null, error: { message: `Batch creation error: ${bErr?.message || 'Database exception during batch creation.'}` } };
           }
-        } catch (bErr) {
-          batchError = bErr;
-          console.warn('[DataService] Batch group insert exception:', bErr);
         }
 
-        // 2. Update applications status to Officer Approved and stamp officer / group
+        // 2. Update applications status to Officer Approved and stamp officer / real integer batch_id
         const updatePayload = {
           status: 'Officer Approved',
           forwarded_by: officerName,
