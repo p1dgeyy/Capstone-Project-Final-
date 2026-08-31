@@ -635,7 +635,12 @@
                         const kickMsg = activeCheck.message || (lang === 'tg'
                             ? 'Ang account na ito ay kasalukuyang ginagamit sa ibang device. Mag-logout muna sa device na iyon upang makapag-login dito.'
                             : 'Current account is being used on another device. Simultaneous logins are not permitted. Please log out from that device first.');
-                        throw new Error(kickMsg);
+                        const concurrentErr = new Error(kickMsg);
+                        concurrentErr.isConcurrentSession = true;
+                        concurrentErr.userId = userProfile.id;
+                        concurrentErr.username = userProfile.username;
+                        concurrentErr.email = userProfile.email;
+                        throw concurrentErr;
                     }
                 }
 
@@ -693,7 +698,35 @@
 
             } catch (err) {
                 const errorMsgEl = document.getElementById('errorMessage');
-                if (errorMsgEl) errorMsgEl.textContent = err.message;
+                if (errorMsgEl) {
+                    if (err.isConcurrentSession) {
+                        errorMsgEl.innerHTML = `
+                            <div>${err.message}</div>
+                            <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100 fw-bold shadow-sm" id="btnForceClearStaffSession">
+                                <i class="bi bi-box-arrow-right me-1"></i> Disconnect Previous Device & Log In Here
+                            </button>
+                        `;
+                        const forceBtn = errorMsgEl.querySelector('#btnForceClearStaffSession');
+                        if (forceBtn) {
+                            forceBtn.addEventListener('click', async () => {
+                                forceBtn.disabled = true;
+                                forceBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Disconnecting previous session...';
+                                if (typeof SessionManager !== 'undefined' && SessionManager.forceClearPreviousSession) {
+                                    await SessionManager.forceClearPreviousSession(err.userId, err.username, { email: err.email });
+                                }
+                                if (loginForm) {
+                                    if (typeof loginForm.requestSubmit === 'function') {
+                                        loginForm.requestSubmit();
+                                    } else {
+                                        loginForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                                    }
+                                }
+                            });
+                        }
+                    } else {
+                        errorMsgEl.textContent = err.message;
+                    }
+                }
                 if (errorAlert) errorAlert.style.display = 'block';
                 if (btnText) btnText.style.display = 'inline';
                 if (btnIcon) btnIcon.style.display = 'inline-block';

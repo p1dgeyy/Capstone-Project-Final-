@@ -455,60 +455,25 @@ const SessionManager = (() => {
   async function logout(redirectUrl) {
     const targetUrl = redirectUrl || getLoginUrl(getRole());
 
-    try {
-      const uId = getUserId() || sessionStorage.getItem('userId');
-      const uName = sessionStorage.getItem('username');
-      const uEmail = sessionStorage.getItem('userEmail');
-      const qrCode = sessionStorage.getItem('qrCode');
-      const authId = sessionStorage.getItem('authId');
-      const sessionId = getSessionId() || localStorage.getItem(STORAGE_ACTIVE_SESSION_KEY);
-
-      // Release active device lock in Supabase so the account can log in on any device immediately
-      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-        const deleteOps = [];
-        if (uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(uId)));
-        if (qrCode && qrCode !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(qrCode)));
-        if (authId && authId !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(authId)));
-        if (uName) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_identifier', String(uName)));
-        if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', String(uEmail)));
-        if (sessionId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('session_id', sessionId));
-
-        try {
-          const { data: userData } = await supabaseClient.auth.getUser();
-          if (userData?.user?.id) {
-            deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(userData.user.id)));
-          }
-        } catch (e) {}
-
-        await Promise.allSettled(deleteOps);
-        await supabaseClient.auth.signOut().catch(() => {});
-      }
-    } catch (e) {
-      console.warn('[SessionManager] Sign-out error:', e.message);
-    }
-
-    clear();
-    try {
-      sessionStorage.clear();
-      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
-      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
-    } catch (e) {}
-    window.location.href = targetUrl;
-  }
-
-  /**
-   * Force logout with user notification: awaits database lock release before redirecting
-   */
-  async function forceLogout(message, targetUrl) {
-    const redirect = targetUrl || getLoginUrl(getRole());
+    // 1. Snapshot all credentials before clearing
     const uId = getUserId() || sessionStorage.getItem('userId');
     const uName = sessionStorage.getItem('username');
     const uEmail = sessionStorage.getItem('userEmail');
     const qrCode = sessionStorage.getItem('qrCode');
     const authId = sessionStorage.getItem('authId');
     const sessionId = getSessionId() || localStorage.getItem(STORAGE_ACTIVE_SESSION_KEY);
+    const role = getRole();
 
-    // Release database session lock before redirecting so user can log in immediately
+    // 2. CLEAR LOCAL STORAGE FIRST:
+    // Guarantees this device is immediately de-authenticated locally even on an offline network drop
+    clear();
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
+      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
+    } catch (e) {}
+
+    // 3. RELEASE REMOTE DATABASE SESSION LOCK:
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
         const deleteOps = [];
@@ -519,6 +484,13 @@ const SessionManager = (() => {
         if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', String(uEmail)));
         if (sessionId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('session_id', sessionId));
 
+        if (role && role !== 'Beneficiary') {
+          const staffNumId = parseInt(uId, 10);
+          if (!isNaN(staffNumId)) {
+            deleteOps.push(supabaseClient.from('staff_profiles').update({ active_session_id: null }).eq('id', staffNumId));
+          }
+        }
+
         try {
           const { data: userData } = await supabaseClient.auth.getUser();
           if (userData?.user?.id) {
@@ -526,13 +498,32 @@ const SessionManager = (() => {
           }
         } catch (e) {}
 
-        await Promise.allSettled(deleteOps);
-        await supabaseClient.auth.signOut().catch(() => {});
+        // Timeout race: do not let network latency block the user redirect
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2500));
+        await Promise.race([Promise.allSettled(deleteOps), timeoutPromise]);
+        await Promise.race([supabaseClient.auth.signOut().catch(() => {}), new Promise(resolve => setTimeout(resolve, 1000))]);
       } catch (e) {
-        console.warn('[SessionManager] forceLogout cleanup error:', e.message);
+        console.warn('[SessionManager] Sign-out remote cleanup note:', e.message);
       }
     }
 
+    window.location.href = targetUrl;
+  }
+
+  /**
+   * Force logout with user notification: clears local state immediately and releases remote lock
+   */
+  async function forceLogout(message, targetUrl) {
+    const redirect = targetUrl || getLoginUrl(getRole());
+    const uId = getUserId() || sessionStorage.getItem('userId');
+    const uName = sessionStorage.getItem('username');
+    const uEmail = sessionStorage.getItem('userEmail');
+    const qrCode = sessionStorage.getItem('qrCode');
+    const authId = sessionStorage.getItem('authId');
+    const sessionId = getSessionId() || localStorage.getItem(STORAGE_ACTIVE_SESSION_KEY);
+    const role = getRole();
+
+    // 1. Clear local state first
     clear();
     try {
       sessionStorage.clear();
@@ -540,7 +531,71 @@ const SessionManager = (() => {
       localStorage.removeItem(STORAGE_ACTIVITY_KEY);
       sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
     } catch (e) {}
+
+    // 2. Release remote lock with timeout race
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      try {
+        const deleteOps = [];
+        if (uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(uId)));
+        if (qrCode && qrCode !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(qrCode)));
+        if (authId && authId !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(authId)));
+        if (uName) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_identifier', String(uName)));
+        if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', String(uEmail)));
+        if (sessionId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('session_id', sessionId));
+
+        if (role && role !== 'Beneficiary') {
+          const staffNumId = parseInt(uId, 10);
+          if (!isNaN(staffNumId)) {
+            deleteOps.push(supabaseClient.from('staff_profiles').update({ active_session_id: null }).eq('id', staffNumId));
+          }
+        }
+
+        try {
+          const { data: userData } = await supabaseClient.auth.getUser();
+          if (userData?.user?.id) {
+            deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', String(userData.user.id)));
+          }
+        } catch (e) {}
+
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2500));
+        await Promise.race([Promise.allSettled(deleteOps), timeoutPromise]);
+        await Promise.race([supabaseClient.auth.signOut().catch(() => {}), new Promise(resolve => setTimeout(resolve, 1000))]);
+      } catch (e) {
+        console.warn('[SessionManager] forceLogout cleanup error:', e.message);
+      }
+    }
+
     window.location.href = redirect;
+  }
+
+  /**
+   * Override and clear any stale/dropped session in database so user can log in immediately
+   */
+  async function forceClearPreviousSession(userId, identifier, extra = {}) {
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) return { success: true };
+    const uId = String(userId || '').trim();
+    const uName = String(identifier || '').trim();
+    const uEmail = String(extra.email || '').trim();
+    const uAuthId = String(extra.authId || '').trim();
+
+    try {
+      const deleteOps = [];
+      if (uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', uId));
+      if (uAuthId && uAuthId !== uId) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_id', uAuthId));
+      if (uName) deleteOps.push(supabaseClient.from('active_user_sessions').delete().eq('user_identifier', uName));
+      if (uEmail) deleteOps.push(supabaseClient.from('active_user_sessions').delete().ilike('user_identifier', uEmail));
+
+      const staffNumId = parseInt(uId, 10);
+      if (!isNaN(staffNumId)) {
+        deleteOps.push(supabaseClient.from('staff_profiles').update({ active_session_id: null }).eq('id', staffNumId));
+      }
+
+      await Promise.allSettled(deleteOps);
+      return { success: true };
+    } catch (e) {
+      console.warn('[SessionManager] forceClearPreviousSession note:', e);
+      return { success: false, error: e.message };
+    }
   }
 
   // =========================================================================
@@ -851,6 +906,7 @@ const SessionManager = (() => {
     getSessionId,
     checkAccountAlreadyActive,
     clearActiveSessionRemote,
+    forceClearPreviousSession,
     getCachedProfile,
     touchActiveSession,
     recordUserActivity,
