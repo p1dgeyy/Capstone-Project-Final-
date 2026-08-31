@@ -915,20 +915,25 @@ const DataService = (() => {
         // 1. Create or ensure a batch/group record for this submission
         let batchId = data.batch_id || null;
         let createdBatch = null;
+        let batchError = null;
         try {
-          const { data: batchData, error: batchErr } = await client.from('batches').insert({
+          const { data: batchData, error: bErr } = await client.from('batches').insert({
             name: groupLabel,
             program_code: progCode,
             capacity: Math.max(50, appIds.length),
             created_by: officerId,
             status: 'Forwarded to Admin'
           }).select().maybeSingle();
-          if (batchData) {
+          if (bErr) {
+            batchError = bErr;
+            console.warn('[DataService] Batch group insert error:', bErr);
+          } else if (batchData) {
             batchId = batchData.id;
             createdBatch = batchData;
           }
         } catch (bErr) {
-          console.warn('[DataService] Batch group insert notice:', bErr);
+          batchError = bErr;
+          console.warn('[DataService] Batch group insert exception:', bErr);
         }
 
         // 2. Update applications status to Forwarded to Admin and stamp officer / group
@@ -961,6 +966,9 @@ const DataService = (() => {
                 updateError = uErr;
               } else if (Array.isArray(updateRes)) {
                 updatedIds = updateRes.map(r => r.id);
+                if (updatedIds.length < numericIds.length) {
+                  updateError = { message: `Partial update: Only ${updatedIds.length} of ${numericIds.length} applications were saved in database.` };
+                }
               } else {
                 updatedIds = numericIds;
               }
@@ -971,26 +979,30 @@ const DataService = (() => {
           }
         }
 
-        // 3. Granular Audit Logging: Officer ID, Timestamp, Auto-generated group label, Full beneficiary reference numbers
-        const refStr = refNumbers.length > 0 ? refNumbers.join(', ') : `${appIds.length} candidate applications`;
-        auditLogs.log({
-          staffUserId: officerId,
-          action: 'FORWARD_LIVELIHOOD_APPLICATIONS',
-          entityType: 'livelihood_submission',
-          entityId: batchId || (appIds[0] || null),
-          details: `Officer #${officerId} (${officerName}) forwarded group "${groupLabel}" with ${appIds.length} beneficiaries to Admin for evaluation. Reference Numbers: [${refStr}]`
-        });
+        const combinedError = batchError || updateError || null;
 
-        activityLog.log({
-          action: 'APPLICATIONS_FORWARDED',
-          action_title: 'Applications Forwarded to Admin',
-          program: progCode,
-          admin_id: officerName,
-          details: `Forwarded submission group "${groupLabel}" with ${appIds.length} candidates (${refStr}) for Admin evaluation.`
-        });
+        // 3. Granular Audit Logging: Officer ID, Timestamp, Auto-generated group label, Full beneficiary reference numbers
+        if (!combinedError || updatedIds.length > 0) {
+          const refStr = refNumbers.length > 0 ? refNumbers.join(', ') : `${appIds.length} candidate applications`;
+          auditLogs.log({
+            staffUserId: officerId,
+            action: 'FORWARD_LIVELIHOOD_APPLICATIONS',
+            entityType: 'livelihood_submission',
+            entityId: batchId || (appIds[0] || null),
+            details: `Officer #${officerId} (${officerName}) forwarded group "${groupLabel}" with ${updatedIds.length} of ${appIds.length} beneficiaries to Admin for evaluation. Reference Numbers: [${refStr}]`
+          });
+
+          activityLog.log({
+            action: 'APPLICATIONS_FORWARDED',
+            action_title: 'Applications Forwarded to Admin',
+            program: progCode,
+            admin_id: officerName,
+            details: `Forwarded submission group "${groupLabel}" with ${updatedIds.length} candidates (${refStr}) for Admin evaluation.`
+          });
+        }
 
         return {
-          data: {
+          data: (combinedError && updatedIds.length === 0) ? null : {
             batch: createdBatch,
             batchId: batchId,
             groupLabel: groupLabel,
@@ -1002,7 +1014,7 @@ const DataService = (() => {
             officerName: officerName,
             timestamp: new Date().toISOString()
           },
-          error: updateError
+          error: combinedError
         };
       });
     }
