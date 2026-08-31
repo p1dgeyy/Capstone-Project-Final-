@@ -38,9 +38,13 @@ CREATE TABLE IF NOT EXISTS staff_profiles (
   phone VARCHAR(20) DEFAULT NULL,
   address TEXT DEFAULT NULL,
 
-  -- Account Status & Session Tracking
-  status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'Deactivated', 'Inactive')),
+  -- Account Status, Security & Session Tracking
+  status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'Deactivated', 'Inactive', 'Locked')),
+  failed_attempts INT NOT NULL DEFAULT 0,
+  locked_until TIMESTAMPTZ DEFAULT NULL,
+  last_login TIMESTAMPTZ DEFAULT NULL,
   current_session_id VARCHAR(100) DEFAULT NULL,
+  active_session_id VARCHAR(100) DEFAULT NULL,
   last_activity_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Metadata
@@ -54,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_staff_username ON staff_profiles(username);
 CREATE INDEX IF NOT EXISTS idx_staff_auth_id ON staff_profiles(auth_id);
 CREATE INDEX IF NOT EXISTS idx_staff_status ON staff_profiles(status);
 CREATE INDEX IF NOT EXISTS idx_staff_session ON staff_profiles(current_session_id);
+CREATE INDEX IF NOT EXISTS idx_staff_active_session ON staff_profiles(active_session_id);
 
 -- =============================================================================
 -- 2. BENEFICIARIES TABLE
@@ -89,11 +94,13 @@ CREATE TABLE IF NOT EXISTS beneficiaries (
   email VARCHAR(100) NOT NULL,
   phone VARCHAR(20) DEFAULT NULL,
 
-  -- Beneficiary Verification
+  -- Beneficiary Verification & Documents
   verified_channel VARCHAR(20) DEFAULT 'EMAIL',
   verified_at TIMESTAMPTZ DEFAULT NOW(),
   id_type VARCHAR(100) DEFAULT NULL,
   id_file_path VARCHAR(255) DEFAULT NULL,
+  id_photo_url TEXT DEFAULT NULL,
+  documents_json JSONB DEFAULT '[]'::jsonb,
   terms_agreed BOOLEAN DEFAULT FALSE,
   data_consent BOOLEAN DEFAULT FALSE,
 
@@ -139,6 +146,8 @@ CREATE TABLE IF NOT EXISTS programs (
   name VARCHAR(255) NOT NULL,
   description TEXT DEFAULT NULL,
   agency VARCHAR(10) NOT NULL CHECK (agency IN ('PESO', 'CSWDO')),
+  budget DECIMAL(15,2) NOT NULL DEFAULT 0,
+  budget_allocated DECIMAL(15,2) NOT NULL DEFAULT 0,
   status VARCHAR(10) DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -148,7 +157,7 @@ CREATE INDEX IF NOT EXISTS idx_program_agency ON programs(agency);
 CREATE INDEX IF NOT EXISTS idx_program_status ON programs(status);
 
 -- =============================================================================
--- 3.1 BATCHES TABLE
+-- 3.1 BATCHES TABLE (Operational & Training Batches)
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS batches (
   id BIGSERIAL PRIMARY KEY,
@@ -156,17 +165,45 @@ CREATE TABLE IF NOT EXISTS batches (
   program_id BIGINT DEFAULT NULL REFERENCES programs(id) ON DELETE SET NULL,
   program_code VARCHAR(50) NOT NULL DEFAULT 'PESO',
   capacity INT NOT NULL DEFAULT 50,
-  status VARCHAR(30) NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'In Training', 'Completed', 'Archived', 'Cancelled')),
+  current_count INT NOT NULL DEFAULT 0,
+  status VARCHAR(30) NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Scheduled', 'In Training', 'Completed', 'Archived', 'Cancelled', 'Postponed')),
+  is_operational BOOLEAN NOT NULL DEFAULT TRUE,
+  event_type VARCHAR(100) DEFAULT NULL,
+  event_date VARCHAR(50) DEFAULT NULL,
+  event_time VARCHAR(50) DEFAULT NULL,
+  venue VARCHAR(255) DEFAULT NULL,
+  scheduled_at TIMESTAMPTZ DEFAULT NULL,
+  scheduled_by VARCHAR(255) DEFAULT NULL,
   notes TEXT DEFAULT NULL,
   created_by BIGINT DEFAULT NULL REFERENCES staff_profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT batches_capacity_ceiling_check CHECK (current_count <= capacity AND current_count >= 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_batches_program_code ON batches(program_code);
 CREATE INDEX IF NOT EXISTS idx_batches_program_id ON batches(program_id);
 CREATE INDEX IF NOT EXISTS idx_batches_status ON batches(status);
 CREATE INDEX IF NOT EXISTS idx_batches_created_by ON batches(created_by);
+CREATE INDEX IF NOT EXISTS idx_batches_created_at ON batches(created_at DESC);
+
+-- =============================================================================
+-- 3.2 FUNDS TABLE (Program Budget Allocations & Disbursed Balances)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS funds (
+  id BIGSERIAL PRIMARY KEY,
+  program VARCHAR(255) NOT NULL,
+  program_code VARCHAR(20) NOT NULL UNIQUE,
+  allocated_budget DECIMAL(15,2) NOT NULL DEFAULT 0,
+  released_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+  remaining_balance DECIMAL(15,2) GENERATED ALWAYS AS (allocated_budget - released_amount) STORED,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  CONSTRAINT funds_released_ceiling_check CHECK (released_amount <= allocated_budget AND released_amount >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_funds_program_code ON funds(program_code);
 
 -- =============================================================================
 -- 4. APPLICATIONS TABLE
@@ -184,16 +221,29 @@ CREATE TABLE IF NOT EXISTS applications (
   status VARCHAR(30) DEFAULT 'Pending' CHECK (status IN (
     'Pending', 'Pending Requirements', 'Under Review', 'Interview Scheduled',
     'Training Scheduled', 'Officer Approved', 'Officer Denied',
-    'Approved', 'Rejected', 'Completed'
+    'Approved', 'Rejected', 'Completed', 'Released', 'Denied'
   )),
   progress_percent INT DEFAULT 0,
   remarks TEXT DEFAULT NULL,
+  amount_requested DECIMAL(12,2) DEFAULT NULL,
+  amount_approved DECIMAL(12,2) DEFAULT NULL,
   officer_decision VARCHAR(30) DEFAULT 'None' CHECK (officer_decision IN ('Approved', 'Denied', 'Pending Requirements', 'None')),
   officer_id BIGINT DEFAULT NULL REFERENCES staff_profiles(id),
   officer_notes TEXT DEFAULT NULL,
   officer_action_at TIMESTAMPTZ DEFAULT NULL,
   admin_id BIGINT DEFAULT NULL REFERENCES staff_profiles(id),
   admin_notes TEXT DEFAULT NULL,
+  evaluated_by VARCHAR(255) DEFAULT NULL,
+  evaluated_at TIMESTAMPTZ DEFAULT NULL,
+  rejection_reason TEXT DEFAULT NULL,
+  rejection_category VARCHAR(100) DEFAULT NULL,
+  operational_batch_id VARCHAR(100) DEFAULT NULL,
+  operational_batch_name VARCHAR(255) DEFAULT NULL,
+  is_operational_batch BOOLEAN DEFAULT FALSE,
+  batched_at TIMESTAMPTZ DEFAULT NULL,
+  batched_by VARCHAR(255) DEFAULT NULL,
+  forwarded_at TIMESTAMPTZ DEFAULT NULL,
+  forwarded_by VARCHAR(255) DEFAULT NULL,
   documents_json JSONB DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -202,6 +252,7 @@ CREATE TABLE IF NOT EXISTS applications (
 CREATE INDEX IF NOT EXISTS idx_app_number ON applications(application_number);
 CREATE INDEX IF NOT EXISTS idx_app_status ON applications(status);
 CREATE INDEX IF NOT EXISTS idx_app_batch_id ON applications(batch_id);
+CREATE INDEX IF NOT EXISTS idx_app_operational_batch_id ON applications(operational_batch_id);
 CREATE INDEX IF NOT EXISTS idx_app_beneficiary ON applications(beneficiary_qr);
 
 -- =============================================================================
