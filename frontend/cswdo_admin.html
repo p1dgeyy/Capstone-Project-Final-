@@ -2818,9 +2818,24 @@
                         }
                         await refreshDashboardData();
                         return;
+                    } else if (res && res.error) {
+                        const errMsg = res.error.message || 'Fund disbursement failed in database.';
+                        if (typeof showSystemNotification === 'function') {
+                            showSystemNotification('Disbursement Error', errMsg, 'error');
+                        } else {
+                            alert(`Disbursement Error: ${errMsg}`);
+                        }
+                        return;
                     }
                 } catch (e) {
                     console.warn('[CSWDO Admin] Supabase fund release notice:', e);
+                    const errMsg = e.message || 'Exception during fund disbursement.';
+                    if (typeof showSystemNotification === 'function') {
+                        showSystemNotification('Disbursement Exception', errMsg, 'error');
+                    } else {
+                        alert(`Disbursement Exception: ${errMsg}`);
+                    }
+                    return;
                 }
             }
 

@@ -1085,6 +1085,22 @@ const DataService = (() => {
           }
         }
 
+        const amount = Number(requestedOrApprovedAmount || 0);
+        const targetProg = progCode || releaseData.program_code || 'CSWDO';
+
+        // 1. Fail-Closed Fund Release: Check and Deduct from Real Fund Balance First
+        if (amount > 0 && funds && typeof funds.releaseAmount === 'function') {
+          const fundRes = await funds.releaseAmount(targetProg, amount);
+          if (fundRes && fundRes.error) {
+            return {
+              data: null,
+              error: {
+                message: `Fund Disbursement Blocked: ${fundRes.error.message || 'Remaining budget for program is insufficient.'}`
+              }
+            };
+          }
+        }
+
         const payload = {
           status: 'Released',
           admin_notes: releaseData.notes || 'Funds released at disbursement desk',
@@ -1092,19 +1108,15 @@ const DataService = (() => {
         };
 
         const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
-        if (!res.error && res.data) {
-          const amount = Number(requestedOrApprovedAmount || res.data.amount_approved || res.data.amount_requested || 0);
-          const targetProg = progCode || releaseData.program_code || 'CSWDO';
-
-          // Deduct from real program fund balance
-          if (amount > 0 && funds && typeof funds.releaseAmount === 'function') {
-            try {
-              await funds.releaseAmount(targetProg, amount);
-            } catch (fErr) {
-              console.warn('[DataService] Fund deduction notice during adminRelease:', fErr);
-            }
+        if (res.error) {
+          // Rollback fund deduction if application record update failed
+          if (amount > 0 && funds && typeof funds.refundAmount === 'function') {
+            try { await funds.refundAmount(targetProg, amount); } catch (e) {}
           }
+          return res;
+        }
 
+        if (res.data) {
           const auditRes = await auditLogs.log({
             staffUserId: releaseData.admin_id || null,
             action: 'RELEASE_FUNDS',
