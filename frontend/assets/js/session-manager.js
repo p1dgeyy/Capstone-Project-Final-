@@ -21,7 +21,7 @@ const SessionManager = (() => {
   const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes: Inactivity watchdog auto-logout
   const ACTIVE_DEVICE_THRESHOLD_MS = 90 * 1000; // 90 seconds: Live heartbeat threshold for concurrent device detection
   const WARNING_BEFORE_MS = 60 * 1000;          // 60 seconds countdown
-  const HEARTBEAT_INTERVAL_MS = 45 * 1000;      // 45 seconds heartbeat (efficient rate-limiting)
+  const HEARTBEAT_INTERVAL_MS = 15 * 1000;      // 15 seconds heartbeat for prompt concurrent device detection
   const ACTIVITY_THROTTLE_MS = 10000;           // 10 seconds throttle for activity events
   const STORAGE_ACTIVITY_KEY = 'peso_last_user_activity';
   const STORAGE_ACTIVE_SESSION_KEY = 'peso_active_session_id';
@@ -35,6 +35,111 @@ const SessionManager = (() => {
   let _lastThrottledWrite = 0;
   let _isVerifying = false;
   let _sessionTerminated = false;
+
+  /**
+   * Handle involuntary termination due to login from another device/browser
+   */
+  async function handleConcurrentSessionRevoked(reasonMessage = 'You have been logged out because this account was accessed from another device.') {
+    if (_sessionTerminated) return;
+    _sessionTerminated = true;
+
+    const role = getRole();
+    const loginUrl = getLoginUrl(role);
+    const uId = getUserId();
+    const uName = sessionStorage.getItem('username') || 'User';
+
+    // Log audit event for security monitoring
+    try {
+      if (typeof DataService !== 'undefined' && DataService.auditLogs) {
+        await DataService.auditLogs.log({
+          action: 'SESSION_REVOKED_CONCURRENT_DEVICE',
+          entityType: 'session',
+          entityId: uId || 1,
+          details: `Session revoked for user "${uName}" due to concurrent login on another device.`
+        });
+      }
+    } catch (aErr) {}
+
+    // Clear timers and local state (DO NOT delete remote session as it belongs to the other device)
+    clear();
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
+      localStorage.removeItem(STORAGE_ACTIVITY_KEY);
+      sessionStorage.setItem('sessionKickedMessage', reasonMessage);
+      sessionStorage.setItem('authGuardMessage', reasonMessage);
+    } catch (e) {}
+
+    if (window.showSystemNotification) {
+      window.showSystemNotification({
+        title: 'Concurrent Session Detected',
+        message: reasonMessage,
+        type: 'warning',
+        duration: 8000
+      });
+    }
+
+    setTimeout(() => {
+      window.location.href = `${loginUrl}?reason=concurrent_session`;
+    }, 400);
+  }
+
+  /**
+   * Touch/Heartbeat active session in database: validates device exclusivity and keeps lock alive
+   */
+  async function touchActiveSession() {
+    if (!supabaseClient || _sessionTerminated) return;
+    const uId = getUserId();
+    const sessionId = getSessionId();
+    if (!uId || !sessionId) return;
+
+    try {
+      const nowIso = new Date().toISOString();
+
+      // 1. Verify active_user_sessions exclusivity
+      const { data: activeRow, error: activeErr } = await supabaseClient
+        .from('active_user_sessions')
+        .select('session_id, user_id, last_activity_at')
+        .eq('user_id', String(uId))
+        .maybeSingle();
+
+      if (!activeErr && activeRow) {
+        if (activeRow.session_id && activeRow.session_id !== sessionId) {
+          console.warn('[SessionManager] Concurrent device login detected in active_user_sessions! Revoking current session...');
+          await handleConcurrentSessionRevoked('You have been logged out because this account was logged into from another device.');
+          return;
+        }
+      }
+
+      // 2. For staff profiles, also verify staff_profiles.active_session_id
+      const role = getRole();
+      if (role && role !== 'Beneficiary') {
+        const staffNumId = parseInt(uId, 10);
+        if (!isNaN(staffNumId)) {
+          const { data: staffRow } = await supabaseClient
+            .from('staff_profiles')
+            .select('id, active_session_id')
+            .eq('id', staffNumId)
+            .maybeSingle();
+
+          if (staffRow && staffRow.active_session_id && staffRow.active_session_id !== sessionId) {
+            console.warn('[SessionManager] Concurrent staff login detected in staff_profiles! Revoking current session...');
+            await handleConcurrentSessionRevoked('You have been logged out because this account was accessed from another device.');
+            return;
+          }
+        }
+      }
+
+      // 3. Keep current session active in database
+      await supabaseClient
+        .from('active_user_sessions')
+        .update({ last_activity_at: nowIso })
+        .match({ user_id: String(uId), session_id: sessionId });
+
+    } catch (e) {
+      console.warn('[SessionManager] Heartbeat validation note:', e.message);
+    }
+  }
 
   /**
    * Helper: Generate a secure, unique session identifier
