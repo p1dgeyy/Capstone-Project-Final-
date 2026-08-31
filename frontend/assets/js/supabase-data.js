@@ -211,6 +211,59 @@ const DataService = (() => {
       });
     },
 
+    async adjustBudget(programIdentifier, adjustmentAmount, action = 'add', remarks = '') {
+      return withRetry(async (client) => {
+        const amt = Number(adjustmentAmount || 0);
+        const code = String(programIdentifier || '').trim().toUpperCase();
+
+        if (!code || isNaN(amt) || amt <= 0) {
+          return { data: null, error: { message: 'Invalid program identifier or adjustment amount.' } };
+        }
+
+        // 1. Primary: Atomic server-side RPC
+        try {
+          const { data: rpcRes, error: rpcErr } = await client.rpc('adjust_program_budget', {
+            p_program_code: code,
+            p_adjustment_amount: amt,
+            p_action: action,
+            p_remarks: remarks
+          });
+
+          if (!rpcErr && rpcRes) {
+            if (rpcRes.success) {
+              return { data: rpcRes, error: null };
+            } else {
+              return { data: null, error: { message: rpcRes.error || 'Failed to adjust program budget.' } };
+            }
+          }
+          if (rpcErr) {
+            console.warn('[DataService] adjust_program_budget RPC notice:', rpcErr);
+          }
+        } catch (rpcEx) {
+          console.warn('[DataService] adjust_program_budget RPC exception:', rpcEx);
+        }
+
+        // 2. Direct fallback
+        const delta = (action === 'subtract' || action === 'decrease' || action === 'deduct') ? -amt : amt;
+        let query = client.from('programs').select('*');
+        if (/^\d+$/.test(programIdentifier)) {
+          query = query.eq('id', Number(programIdentifier));
+        } else {
+          query = query.or(`code.eq.${code},name.ilike.%${code}%`);
+        }
+        const { data: currentProg, error: pErr } = await query.maybeSingle();
+
+        if (currentProg) {
+          const newB = Math.max(0, Number(currentProg.budget || 0) + delta);
+          const res = await client.from('programs').update({ budget: newB, updated_at: new Date().toISOString() }).eq('id', currentProg.id).select().maybeSingle();
+          await client.from('funds').update({ allocated_budget: newB, updated_at: new Date().toISOString() }).or(`program_code.eq.${currentProg.code},program.ilike.%${currentProg.code}%`);
+          return res;
+        }
+
+        return { data: null, error: { message: `No program found for identifier: ${programIdentifier}` } };
+      });
+    },
+
     async delete(id) {
       return withRetry(async (client) => {
         const prog = await client.from('programs').select('code, name').eq('id', id).maybeSingle();
