@@ -1006,7 +1006,7 @@ const DataService = (() => {
           }
 
           try {
-            await activityLog.log({
+            const actRes = await activityLog.log({
               action: 'APPLICATION_APPROVED',
               action_title: 'Application Approved',
               application_id: res.data.application_number,
@@ -1015,7 +1015,9 @@ const DataService = (() => {
               admin_id: approveData.admin_username || 'Admin',
               details: `Approved grant for ₱${Number(amountToApprove || 0).toLocaleString()}.`
             });
-          } catch (actErr) {}
+          } catch (actErr) {
+            console.warn('[Activity Log Exception]:', actErr);
+          }
 
           try {
             await notifications.create({
@@ -1088,7 +1090,7 @@ const DataService = (() => {
           }
 
           try {
-            await activityLog.log({
+            const actRes = await activityLog.log({
               action: 'APPLICATION_DENIED',
               action_title: 'Application Denied',
               application_id: res.data.application_number,
@@ -1097,7 +1099,9 @@ const DataService = (() => {
               admin_id: denyData.admin_username || 'Admin',
               details: `Disapproved application. Reason: ${reason}`
             });
-          } catch (actErr) {}
+          } catch (actErr) {
+            console.warn('[Activity Log Exception]:', actErr);
+          }
 
           try {
             await notifications.create({
@@ -1262,7 +1266,7 @@ const DataService = (() => {
           }
 
           try {
-            await activityLog.log({
+            const actRes = await activityLog.log({
               action: 'FUNDS_RELEASED',
               action_title: 'Funds Disbursed',
               application_id: res.data.application_number,
@@ -1270,7 +1274,9 @@ const DataService = (() => {
               program: res.data.program?.name || targetProg,
               details: `Released grant voucher of ₱${amount.toLocaleString()} under ${targetProg}.`
             });
-          } catch (actErr) {}
+          } catch (actErr) {
+            console.warn('[Activity Log Exception]:', actErr);
+          }
 
           try {
             await notifications.create({
@@ -2207,7 +2213,7 @@ const DataService = (() => {
         if (res && res.error) {
           console.warn('[Audit Log Insert Warning]:', res.error);
           if (activityLog && typeof activityLog.log === 'function') {
-            await activityLog.log({
+            const actRes = await activityLog.log({
               action: payload.action,
               details: payload.details,
               status: 'AUDIT_INSERT_FAILED'
