@@ -12,12 +12,12 @@
 -- -----------------------------------------------------------------------------
 ALTER TABLE public.batches ADD COLUMN IF NOT EXISTS current_count INT NOT NULL DEFAULT 0;
 
--- Sync current_count with existing application assignments
+-- Sync current_count with existing application assignments (with safe type cast)
 UPDATE public.batches b
 SET current_count = (
   SELECT COUNT(*) 
   FROM public.applications a 
-  WHERE a.batch_id = b.id OR a.operational_batch_id = b.id
+  WHERE a.batch_id = b.id OR a.operational_batch_id = b.id::TEXT
 );
 
 ALTER TABLE public.batches DROP CONSTRAINT IF EXISTS batches_capacity_ceiling_check;
@@ -66,10 +66,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Batch record not found for ID: ' || p_batch_id);
   END IF;
 
-  -- 2. Count actual members currently assigned to this batch in applications table
+  -- 2. Count actual members currently assigned to this batch in applications table (safe type cast)
   SELECT COUNT(*) INTO v_current_count
   FROM public.applications
-  WHERE batch_id = p_batch_id OR operational_batch_id = p_batch_id;
+  WHERE batch_id = p_batch_id OR operational_batch_id = p_batch_id::TEXT;
 
   v_capacity := COALESCE(v_batch.capacity, 50);
   v_new_total := v_current_count + v_requested_count;
@@ -97,7 +97,7 @@ BEGIN
     UPDATE public.applications
     SET 
       batch_id = p_batch_id,
-      operational_batch_id = p_batch_id,
+      operational_batch_id = p_batch_id::TEXT,
       operational_batch_name = v_batch.name,
       is_operational_batch = TRUE,
       batched_at = v_now,
