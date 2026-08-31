@@ -409,13 +409,26 @@
                 budgetInput.classList.remove('is-invalid');
             }
 
-            if (typeof DataService !== 'undefined' && DataService.programs) {
-                await DataService.programs.update(progId, { budget: newBudget });
+            // The budget ledger lives in the `funds` table (allocated_budget), keyed
+            // by program_code -- that's what checkBalance()/adminApprove() actually
+            // read at approval time. `programs` has no budget column at all, so
+            // writing there (the old behavior) silently failed every time.
+            const p = AdminStore.programs.find(x => x.id === progId);
+            if (!p) {
+                notify('Update Failed', 'Could not find the selected program to allocate a budget for.', 'danger');
+                return;
+            }
+
+            if (typeof DataService !== 'undefined' && DataService.funds && DataService.funds.allocateBudget) {
+                const allocRes = await DataService.funds.allocateBudget(p.code, p.name, newBudget);
+                if (allocRes && allocRes.error) {
+                    notify('Update Failed', allocRes.error.message || 'Error saving the budget allocation to the funds ledger.', 'danger');
+                    return;
+                }
             }
 
             // Sync with in-memory store
-            const p = AdminStore.programs.find(x => x.id === progId);
-            if (p) p.budget = newBudget;
+            p.budget = newBudget;
 
             await logAdminAction('EDIT_PROGRAM_BUDGET', 'program', progId, `Updated allocated budget for program #${progId} to ${formatCurrency(newBudget)} (REQ035). Reason/Ordinance Ref: ${justification}`);
             notify('Budget Allocation Saved', 'Program budget allocation updated and logged to audit trail.', 'success');
