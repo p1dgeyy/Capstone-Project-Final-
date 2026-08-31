@@ -8483,8 +8483,11 @@
                 });
 
                 let batchDbId = Date.now();
+                let successfulAppIds = [];
+                let hasError = false;
+                let errorMessage = '';
 
-                // 1. Data Layer Sync
+                // 1. Data Layer Sync: Await all writes
                 if (typeof DataService !== 'undefined' && DataService.applications && DataService.applications.forwardBatchToAdmin) {
                     const forwardRes = await DataService.applications.forwardBatchToAdmin({
                         application_ids: targetAppIds,
@@ -8494,11 +8497,16 @@
                         group_label: groupLabel,
                         beneficiary_ref_numbers: refNumbers
                     });
-                    if (forwardRes && forwardRes.data && forwardRes.data.batch) {
-                        batchDbId = forwardRes.data.batch.id;
+                    if (forwardRes && forwardRes.data) {
+                        if (forwardRes.data.batch) batchDbId = forwardRes.data.batch.id;
+                        successfulAppIds = forwardRes.data.updatedIds || targetAppIds;
+                    }
+                    if (forwardRes && forwardRes.error) {
+                        hasError = true;
+                        errorMessage = forwardRes.error.message || 'Database write error';
                     }
                 } else if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    const { data: bData } = await supabaseClient
+                    const { data: bData, error: bErr } = await supabaseClient
                         .from('batches')
                         .insert({
                             name: groupLabel,
@@ -8508,10 +8516,12 @@
                             status: 'Forwarded to Admin'
                         })
                         .select()
-                        .single();
+                        .maybeSingle();
                     if (bData) batchDbId = bData.id;
-                    
-                    await supabaseClient
+                    if (bErr) console.warn('[PESO Officer] Batch create note:', bErr);
+
+                    const numericIds = targetAppIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0);
+                    const { data: updatedApps, error: uErr } = await supabaseClient
                         .from('applications')
                         .update({
                             batch_id: batchDbId,
@@ -8521,11 +8531,28 @@
                             officer_id: officerId,
                             officer_action_at: timestamp
                         })
-                        .in('id', targetAppIds.filter(id => Number.isInteger(Number(id))));
+                        .in('id', numericIds)
+                        .select('id');
+
+                    if (uErr) {
+                        hasError = true;
+                        errorMessage = uErr.message;
+                    } else if (updatedApps) {
+                        successfulAppIds = updatedApps.map(a => a.id);
+                    } else {
+                        successfulAppIds = numericIds;
+                    }
+                } else {
+                    successfulAppIds = targetAppIds;
                 }
 
-                // 2. Update In-Memory Evaluation List
-                selectedInlineAppIds.forEach(idVal => {
+                // If complete failure:
+                if (hasError && successfulAppIds.length === 0) {
+                    throw new Error(errorMessage || 'Failed to update applications in database.');
+                }
+
+                // 2. Update In-Memory Evaluation List ONLY for confirmed successful writes
+                successfulAppIds.forEach(idVal => {
                     const app = evaluationList.find(a => String(a.dbId) === String(idVal) || String(a.id) === String(idVal));
                     if (app) {
                         app.batchId = batchDbId;
@@ -8539,44 +8566,74 @@
                     }
                 });
 
-                // 3. Add to Batches / Submissions List
-                batchesList.unshift({
-                    id: `BAT-${batchDbId}`,
-                    dbId: batchDbId,
-                    name: groupLabel,
-                    group_label: groupLabel,
-                    program: selectedInlineProgramCode,
-                    capacity: targetAppIds.length,
-                    assignedCount: targetAppIds.length,
-                    dateCreated: timestamp.substring(0, 10),
-                    created_at: timestamp,
-                    officer_id: officerId,
-                    officer_name: officerName,
-                    status: 'Forwarded to Admin',
-                    beneficiary_ref_numbers: refNumbers,
-                    isEditable: true
-                });
-
-                // 4. Audit Logging
-                logOfficerAction('SUBMIT_APPLICATIONS_FOR_ADMIN_APPROVAL', `Submitted ${targetAppIds.length} beneficiaries under Group "${groupLabel}" to Admin's Evaluation Queue. Officer: ${officerName} (ID: ${officerId}). Timestamp: ${timestamp}. Ref Numbers: [${refNumbers.join(', ')}]`);
-
-                // 5. System Notification & View Transition
-                const successMsg = `Successfully submitted ${targetAppIds.length} applications under group "${groupLabel}" to Admin's Evaluation Queue.`;
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({
-                        title: 'Applications Submitted',
-                        message: successMsg,
-                        type: 'success'
+                // 3. Add to Batches / Submissions List if at least one app succeeded
+                if (successfulAppIds.length > 0) {
+                    batchesList.unshift({
+                        id: `BAT-${batchDbId}`,
+                        dbId: batchDbId,
+                        name: groupLabel,
+                        group_label: groupLabel,
+                        program: selectedInlineProgramCode,
+                        capacity: successfulAppIds.length,
+                        assignedCount: successfulAppIds.length,
+                        dateCreated: timestamp.substring(0, 10),
+                        created_at: timestamp,
+                        officer_id: officerId,
+                        officer_name: officerName,
+                        status: 'Forwarded to Admin',
+                        beneficiary_ref_numbers: refNumbers,
+                        isEditable: true
                     });
-                } else {
-                    alert(successMsg);
                 }
 
-                selectedInlineAppIds.clear();
-                switchLivelihoodSubTab('batched');
+                // 4. Audit Logging post-write
+                logOfficerAction('SUBMIT_APPLICATIONS_FOR_ADMIN_APPROVAL', `Submitted ${successfulAppIds.length} of ${targetAppIds.length} beneficiaries under Group "${groupLabel}" to Admin's Evaluation Queue. Officer: ${officerName} (ID: ${officerId}). Timestamp: ${timestamp}. Ref Numbers: [${refNumbers.join(', ')}]`);
+
+                // 5. System Notification & View Transition
+                const failedCount = targetAppIds.length - successfulAppIds.length;
+                if (failedCount > 0) {
+                    successfulAppIds.forEach(id => {
+                        selectedInlineAppIds.delete(String(id));
+                        selectedInlineAppIds.delete(Number(id));
+                    });
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Partial Forwarding Notice',
+                            message: `${successfulAppIds.length} of ${targetAppIds.length} applications forwarded successfully; ${failedCount} failed (${errorMessage || 'database write error'}). Please retry remaining items.`,
+                            type: 'warning',
+                            duration: 10000
+                        });
+                    } else {
+                        alert(`${successfulAppIds.length} of ${targetAppIds.length} applications forwarded successfully; ${failedCount} failed. Please retry remaining items.`);
+                    }
+                } else {
+                    const successMsg = `Successfully submitted all ${successfulAppIds.length} applications under group "${groupLabel}" to Admin's Evaluation Queue.`;
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Applications Submitted',
+                            message: successMsg,
+                            type: 'success'
+                        });
+                    } else {
+                        alert(successMsg);
+                    }
+                    selectedInlineAppIds.clear();
+                    switchLivelihoodSubTab('batched');
+                }
+
+                renderEvaluationQueueTable();
             } catch (err) {
                 console.error('[PESO OFFICER] Error submitting applications:', err);
-                alert(`Error submitting applications: ${err.message || err}`);
+                if (window.showSystemNotification) {
+                    window.showSystemNotification({
+                        title: 'Forwarding Failed',
+                        message: `Failed to submit applications for admin approval: ${err.message || err}`,
+                        type: 'error',
+                        duration: 8000
+                    });
+                } else {
+                    alert(`Error submitting applications: ${err.message || err}`);
+                }
             } finally {
                 if (btn) btn.disabled = false;
                 if (spinner) spinner.classList.add('d-none');
