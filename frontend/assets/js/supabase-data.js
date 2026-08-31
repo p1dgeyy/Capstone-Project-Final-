@@ -857,7 +857,11 @@ const DataService = (() => {
         };
 
         if (evaluationData.amount_approved !== undefined && evaluationData.amount_approved !== null) {
-          payload.amount_approved = Number(evaluationData.amount_approved) || 0;
+          const numAmt = Number(evaluationData.amount_approved) || 0;
+          if (numAmt < 0 || numAmt > 500000) {
+            return { data: null, error: { message: `Validation Error: Approved amount must be between ₱0.00 and ₱500,000.00 (received: ₱${numAmt.toLocaleString()}).` } };
+          }
+          payload.amount_approved = numAmt;
         }
 
         // Cleanse payload to prevent primary key or read-only update errors
@@ -916,6 +920,11 @@ const DataService = (() => {
         const amountToApprove = approveData.amount_approved !== undefined && approveData.amount_approved !== null
           ? Number(approveData.amount_approved)
           : (currentApp ? Number(currentApp.amount_approved || currentApp.amount_requested || 5000) : 5000);
+
+        if (amountToApprove < 0 || amountToApprove > 500000) {
+          return { data: null, error: { message: `Validation Error: Approved amount exceeds maximum allowable single-grant ceiling of ₱500,000.00 (received: ₱${amountToApprove.toLocaleString()}).` } };
+        }
+
         const progCode = approveData.program_code || currentApp?.programs?.code || 'PESO';
 
         // 2. Fail-Closed Budget Release check upon Admin Approval
