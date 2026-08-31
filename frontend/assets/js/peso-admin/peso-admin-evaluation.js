@@ -50,8 +50,8 @@ async function initEvalModuleData() {
             } catch (e) {}
 
             try {
-                if (typeof DataService.staff !== 'undefined' && DataService.staff.getAll) {
-                    const sRes = await DataService.staff.getAll();
+                if (typeof DataService.staffProfiles !== 'undefined' && DataService.staffProfiles.getAll) {
+                    const sRes = await DataService.staffProfiles.getAll();
                     if (sRes && Array.isArray(sRes.data)) {
                         sRes.data.forEach(s => {
                             const name = `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.username;

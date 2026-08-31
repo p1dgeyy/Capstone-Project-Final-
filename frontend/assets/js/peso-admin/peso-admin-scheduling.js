@@ -61,8 +61,8 @@ async function initSchedulingModuleData() {
                     }
                 } catch (e) {}
                 try {
-                    if (DataService.staff) {
-                        const sRes = await DataService.staff.getAll();
+                    if (DataService.staffProfiles) {
+                        const sRes = await DataService.staffProfiles.getAll();
                         if (sRes && Array.isArray(sRes.data)) {
                             sRes.data.forEach(s => {
                                 const name = `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.username;
@@ -841,8 +841,10 @@ async function pullCertificateEligibleRecipients() {
     try {
         let applications = [];
         if (typeof DataService !== 'undefined' && DataService.applications) {
-            const res = await DataService.applications.getAll({ status: 'Approved' });
-            if (res.data) applications = res.data;
+            const res = await DataService.applications.getAll();
+            if (res.data) {
+                applications = res.data.filter(a => a.status === 'Released' || a.status === 'Completed');
+            }
         }
 
         let eligible = applications;

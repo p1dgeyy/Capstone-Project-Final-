@@ -1307,23 +1307,92 @@ const DataService = (() => {
         let createdBatch = null;
         let batchError = null;
 
-        // Deduplication Guard: If batch_id was not explicitly passed, check if target applications are already assigned to an active batch
-        if (!batchId && appIds.length > 0) {
+        const numericIds = appIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0);
+
+        // Try Atomic Database RPC first
+        try {
+          const { data: rpcRes, error: rpcErr } = await client.rpc('forward_livelihood_batch_to_admin', {
+            p_group_label: groupLabel,
+            p_program_code: progCode,
+            p_officer_id: officerId,
+            p_officer_name: officerName,
+            p_application_ids: numericIds,
+            p_batch_id: batchId
+          });
+
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            batchId = rpcRes.batch_id;
+            createdBatch = rpcRes.batch;
+            
+            // Audit & Activity Logging
+            const refStr = refNumbers.length > 0 ? refNumbers.join(', ') : `${numericIds.length} candidate applications`;
+            await Promise.allSettled([
+              auditLogs.log({
+                staffUserId: officerId,
+                action: 'FORWARD_LIVELIHOOD_APPLICATIONS',
+                entityType: 'livelihood_submission',
+                entityId: batchId || (numericIds[0] || null),
+                details: `Officer #${officerId} (${officerName}) forwarded group "${groupLabel}" with ${rpcRes.updated_count || numericIds.length} of ${numericIds.length} beneficiaries to Admin for evaluation. Reference Numbers: [${refStr}]`
+              }),
+              activityLog.log({
+                action: 'APPLICATIONS_FORWARDED',
+                action_title: 'Applications Forwarded to Admin',
+                program: progCode,
+                admin_id: officerName,
+                details: `Forwarded submission group "${groupLabel}" with ${rpcRes.updated_count || numericIds.length} candidates (${refStr}) for Admin evaluation.`
+              })
+            ]);
+
+            return {
+              data: {
+                batch: createdBatch,
+                updatedCount: rpcRes.updated_count || numericIds.length,
+                status: 'Officer Approved',
+                group_label: groupLabel,
+                batch_id: batchId
+              },
+              error: null
+            };
+          }
+        } catch (rpcEx) {
+          console.warn('[forwardBatchToAdmin] Atomic RPC fallback notice:', rpcEx);
+        }
+
+        // Resumable Fallback Path:
+        // Deduplication Guard 1: Check if target applications are already assigned to an active batch
+        if (!batchId && numericIds.length > 0) {
           try {
-            const numericIds = appIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0);
-            if (numericIds.length > 0) {
-              const { data: existingBatchApps } = await client
-                .from('applications')
-                .select('batch_id')
-                .in('id', numericIds)
-                .not('batch_id', 'is', null)
-                .limit(1);
-              if (existingBatchApps && existingBatchApps.length > 0 && existingBatchApps[0].batch_id) {
-                batchId = existingBatchApps[0].batch_id;
-              }
+            const { data: existingBatchApps } = await client
+              .from('applications')
+              .select('batch_id')
+              .in('id', numericIds)
+              .not('batch_id', 'is', null)
+              .limit(1);
+            if (existingBatchApps && existingBatchApps.length > 0 && existingBatchApps[0].batch_id) {
+              batchId = existingBatchApps[0].batch_id;
             }
           } catch (batchLookupErr) {
             console.warn('[forwardBatchToAdmin] Existing batch lookup notice:', batchLookupErr);
+          }
+        }
+
+        // Deduplication Guard 2: Check if a batch with this exact name was already created by this officer
+        if (!batchId) {
+          try {
+            const { data: existingBatch } = await client
+              .from('batches')
+              .select('*')
+              .eq('name', groupLabel)
+              .eq('created_by', officerId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (existingBatch && existingBatch.id) {
+              batchId = existingBatch.id;
+              createdBatch = existingBatch;
+            }
+          } catch (batchNameErr) {
+            console.warn('[forwardBatchToAdmin] Batch name lookup notice:', batchNameErr);
           }
         }
 
@@ -1768,12 +1837,14 @@ const DataService = (() => {
         const payload = {
           title: data.title,
           message: data.message,
-          is_read: false
+          is_read: data.is_read || data.isRead || false
         };
-        if (data.beneficiary_qr) {
-          payload.beneficiary_qr = data.beneficiary_qr;
-        } else if (data.staff_user_id) {
-          payload.staff_user_id = data.staff_user_id;
+        const staffId = data.staff_user_id || data.staffUserId;
+        const benQr = data.beneficiary_qr || data.beneficiaryQr;
+        if (benQr) {
+          payload.beneficiary_qr = benQr;
+        } else if (staffId) {
+          payload.staff_user_id = staffId;
         }
         return await client.from('notifications').insert(payload).select().single();
       });
@@ -2084,7 +2155,7 @@ const DataService = (() => {
           const allocated = Number(progRes.data.budget || progRes.data.budget_allocated || 0);
           const appsRes = await client.from('applications').select('amount_approved, amount_requested, status')
             .eq('program_id', progRes.data.id)
-            .in('status', ['Approved', 'Officer Approved', 'Released', 'Completed']);
+            .in('status', ['Released', 'Completed']);
           const released = (appsRes.data || []).reduce((sum, a) => sum + Number(a.amount_approved || a.amount_requested || 0), 0);
           const remaining = allocated - released;
           const hasSufficientFunds = (remaining >= amt && allocated > 0);
@@ -3010,13 +3081,18 @@ const DataService = (() => {
           const req = res.data;
           if (req.staff_id) {
             try {
-              await client.from('notifications').insert({
+              const nRes = await notifications.create({
                 staff_user_id: req.staff_id,
                 title: 'Password Reset Request Approved',
                 message: `Your password reset request (${req.ticket_id}) has been approved by the Administrator. You can now set your new password on the official login portal.`,
                 is_read: false
               });
-            } catch (e) {}
+              if (nRes && nRes.error) {
+                console.warn('[Notification Warning]: Failed to insert approval notification:', nRes.error.message || nRes.error);
+              }
+            } catch (e) {
+              console.warn('[Notification Warning]: Failed to dispatch approval notification:', e.message || e);
+            }
           }
 
           try {
@@ -3063,13 +3139,18 @@ const DataService = (() => {
           const req = res.data;
           if (req.staff_id) {
             try {
-              await client.from('notifications').insert({
+              const nRes = await notifications.create({
                 staff_user_id: req.staff_id,
                 title: 'Password Reset Request Disapproved',
                 message: `Your password reset request (${req.ticket_id}) was not approved. Reason: ${reason}`,
                 is_read: false
               });
-            } catch (e) {}
+              if (nRes && nRes.error) {
+                console.warn('[Notification Warning]: Failed to insert rejection notification:', nRes.error.message || nRes.error);
+              }
+            } catch (e) {
+              console.warn('[Notification Warning]: Failed to dispatch rejection notification:', e.message || e);
+            }
           }
 
           try {
