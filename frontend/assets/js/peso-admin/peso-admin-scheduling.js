@@ -61,8 +61,8 @@ async function initSchedulingModuleData() {
                     }
                 } catch (e) {}
                 try {
-                    if (DataService.staff) {
-                        const sRes = await DataService.staff.getAll();
+                    if (DataService.staffProfiles) {
+                        const sRes = await DataService.staffProfiles.getAll();
                         if (sRes && Array.isArray(sRes.data)) {
                             sRes.data.forEach(s => {
                                 const name = `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.username;
