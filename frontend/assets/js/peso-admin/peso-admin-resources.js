@@ -300,7 +300,7 @@
             </div>
         `;
 
-        openModal('resourceDetailsModal');
+        safeOpenModal('resourceDetailsModal');
     }
 
     function exportResourcesCSV() {
