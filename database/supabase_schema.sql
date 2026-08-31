@@ -494,10 +494,7 @@ CREATE POLICY "staff_profiles_select_policy"
 CREATE POLICY "staff_profiles_insert_policy"
   ON staff_profiles FOR INSERT
   WITH CHECK (
-    auth_id = auth.uid() OR
-    auth.role() = 'authenticated' OR
-    public.is_admin_user(auth.uid()) OR
-    auth.uid() IS NULL
+    public.is_admin_user(auth.uid())
   );
 
 CREATE POLICY "staff_profiles_update_policy"
