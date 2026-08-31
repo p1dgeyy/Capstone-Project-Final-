@@ -5,20 +5,24 @@
     // 8. MODULE 6: FUND ALLOCATION & DISTRIBUTION (REQ034-036, REQ042-046)
     // =========================================================================
     function renderFundsModule() {
-        const progs = AdminStore.programs;
-        const assist = AdminStore.approvedAssistance;
+        const progs = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.programs)) ? AdminStore.programs : [];
+        const assist = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.approvedAssistance)) ? AdminStore.approvedAssistance : [];
+        const fundsList = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.funds)) ? AdminStore.funds : [];
         let totalAllocated = 0;
         let totalDisbursed = 0;
         let criticalPrograms = [];
 
-        // 1. Compute Totals & Check Low Balance Threshold (< 10% remaining)
+        // 1. Compute Totals & Check Low Balance Threshold (< 10% remaining) directly from funds.released_amount
         progs.forEach(p => {
-            const b = Number(p.budget) || 0;
+            const fund = fundsList.find(f => f.program_code === p.code || f.program === p.name || f.program_id === p.id);
+            const b = fund ? (Number(fund.allocated_budget) || 0) : (Number(p.budget) || 0);
             totalAllocated += b;
-            const d = assist.filter(a => a.program_id === p.id || a.program_code === p.code || (a.program && a.program.code === p.code))
-                .reduce((s, i) => s + (Number(String(i.quantity_amount || i.amount_approved || 0).replace(/[^0-9.]/g, '')) || 0), 0);
+            const d = fund ? (Number(fund.released_amount) || 0) : (
+                assist.filter(a => a.program_id === p.id || a.program_code === p.code || (a.program && a.program.code === p.code))
+                    .reduce((s, i) => s + (Number(String(i.quantity_amount || i.amount_approved || 0).replace(/[^0-9.]/g, '')) || 0), 0)
+            );
             totalDisbursed += d;
-            const remaining = Math.max(0, b - d);
+            const remaining = fund && fund.remaining_balance !== undefined ? Math.max(0, Number(fund.remaining_balance)) : Math.max(0, b - d);
             const pct = b > 0 ? Math.round((d / b) * 100) : 0;
             if (b > 0 && (remaining < b * 0.10 || pct >= 90)) {
                 criticalPrograms.push({ name: p.name, code: p.code, remaining, pct });
@@ -59,10 +63,13 @@
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No livelihood programs registered in system.</td></tr>';
             } else {
                 tbody.innerHTML = progs.map(p => {
-                    const budget = Number(p.budget) || 0;
-                    const disbursed = assist.filter(a => a.program_id === p.id || a.program_code === p.code || (a.program && a.program.code === p.code))
-                        .reduce((s, i) => s + (Number(String(i.quantity_amount || i.amount_approved || 0).replace(/[^0-9.]/g, '')) || 0), 0);
-                    const remaining = Math.max(0, budget - disbursed);
+                    const fund = fundsList.find(f => f.program_code === p.code || f.program === p.name || f.program_id === p.id);
+                    const budget = fund ? (Number(fund.allocated_budget) || 0) : (Number(p.budget) || 0);
+                    const disbursed = fund ? (Number(fund.released_amount) || 0) : (
+                        assist.filter(a => a.program_id === p.id || a.program_code === p.code || (a.program && a.program.code === p.code))
+                            .reduce((s, i) => s + (Number(String(i.quantity_amount || i.amount_approved || 0).replace(/[^0-9.]/g, '')) || 0), 0)
+                    );
+                    const remaining = fund && fund.remaining_balance !== undefined ? Math.max(0, Number(fund.remaining_balance)) : Math.max(0, budget - disbursed);
                     const pct = budget > 0 ? Math.round((disbursed / budget) * 100) : 0;
 
                     // Budget Verification Status: Available, Pending Verification, Unavailable
