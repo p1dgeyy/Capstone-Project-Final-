@@ -2086,6 +2086,74 @@ const DataService = (() => {
       });
     },
 
+    async addMembers(batchId, applicationIds, officerName = 'PESO Officer') {
+      return withRetry(async (client) => {
+        const bId = Number(batchId);
+        const appIds = (Array.isArray(applicationIds) ? applicationIds : [applicationIds]).map(Number).filter(Boolean);
+
+        if (!bId || appIds.length === 0) {
+          return { data: null, error: { message: 'Invalid batch ID or application selection.' } };
+        }
+
+        // 1. Primary: Atomic transactional RPC
+        try {
+          const { data: rpcRes, error: rpcErr } = await client.rpc('add_batch_members', {
+            p_batch_id: bId,
+            p_application_ids: appIds,
+            p_officer_name: officerName
+          });
+
+          if (!rpcErr && rpcRes) {
+            if (rpcRes.success) {
+              return { data: rpcRes, error: null };
+            } else {
+              return { data: null, error: { message: rpcRes.error || 'Failed to add members: batch capacity exceeded.' } };
+            }
+          }
+          if (rpcErr) {
+            console.warn('[DataService] add_batch_members RPC notice:', rpcErr);
+          }
+        } catch (rpcEx) {
+          console.warn('[DataService] add_batch_members RPC exception:', rpcEx);
+        }
+
+        // 2. Direct fallback with capacity verification
+        const { data: batchRow, error: bErr } = await client.from('batches').select('id, name, capacity, current_count').eq('id', bId).single();
+        if (bErr || !batchRow) {
+          return { data: null, error: { message: 'Batch not found.' } };
+        }
+
+        const capacity = Number(batchRow.capacity || 50);
+        const { count: currentCount } = await client.from('applications').select('*', { count: 'exact', head: true }).or(`batch_id.eq.${bId},operational_batch_id.eq.${bId}`);
+        const cur = Number(currentCount || 0);
+
+        if (cur + appIds.length > capacity) {
+          return {
+            data: null,
+            error: {
+              message: `Batch Capacity Exceeded: Cannot add ${appIds.length} member(s). Current roster is ${cur}/${capacity} (Available: ${Math.max(0, capacity - cur)}).`
+            }
+          };
+        }
+
+        const res = await client.from('applications')
+          .update({
+            batch_id: bId,
+            operational_batch_id: bId,
+            operational_batch_name: batchRow.name,
+            is_operational_batch: true,
+            batched_at: new Date().toISOString(),
+            batched_by: officerName,
+            updated_at: new Date().toISOString()
+          })
+          .in('id', appIds);
+
+        await client.from('batches').update({ current_count: cur + appIds.length, updated_at: new Date().toISOString() }).eq('id', bId);
+
+        return res;
+      });
+    },
+
     async assignApplications(applicationIds, batchId) {
       return withRetry(async (client) => {
         const ids = Array.isArray(applicationIds) ? applicationIds : [applicationIds];
