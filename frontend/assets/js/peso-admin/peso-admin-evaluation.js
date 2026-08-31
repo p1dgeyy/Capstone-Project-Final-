@@ -14,10 +14,13 @@ let activeReviewAppId = null;
 async function initEvalModuleData() {
     if (typeof DataService !== 'undefined' && DataService.applications) {
         try {
-            // Pre-fetch beneficiaries, programs, and staff maps for complete relational enrichment
+            // Pre-fetch beneficiaries, programs, staff, and batches maps for relational enrichment
             let beneficiariesMap = {};
             let programsMap = {};
+            let programsCodeMap = {};
             let officersMap = {};
+            let batchesMap = {};
+            let pesoOfficersList = [];
 
             try {
                 if (typeof DataService.beneficiaries !== 'undefined' && DataService.beneficiaries.getAll) {
@@ -33,11 +36,14 @@ async function initEvalModuleData() {
 
             try {
                 if (typeof DataService.programs !== 'undefined' && DataService.programs.getAll) {
-                    const pRes = await DataService.programs.getAll();
+                    const pRes = await DataService.programs.getAll({ agency: 'PESO' });
                     if (pRes && Array.isArray(pRes.data)) {
                         pRes.data.forEach(p => {
                             if (p.id) programsMap[p.id] = p;
-                            if (p.code) programsMap[p.code] = p;
+                            if (p.code) {
+                                programsCodeMap[p.code.toUpperCase()] = p;
+                                programsMap[p.code] = p;
+                            }
                         });
                     }
                 }
@@ -50,6 +56,20 @@ async function initEvalModuleData() {
                         sRes.data.forEach(s => {
                             const name = `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.username;
                             if (s.id) officersMap[s.id] = name;
+                            if (s.role === 'PESO Officer') {
+                                pesoOfficersList.push(name);
+                            }
+                        });
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                if (typeof DataService.batches !== 'undefined' && DataService.batches.getAll) {
+                    const bRes = await DataService.batches.getAll();
+                    if (bRes && Array.isArray(bRes.data)) {
+                        bRes.data.forEach(b => {
+                            if (b.id) batchesMap[b.id] = b;
                         });
                     }
                 }
@@ -59,7 +79,7 @@ async function initEvalModuleData() {
             let appsData = res.data && Array.isArray(res.data) ? res.data : [];
             
             // Filter PESO-relevant applications
-            const pesoCanonicalCodes = ['SPES', 'TUPAD', 'GIP', 'CKGIP', 'AICS', 'KEEP', 'PFAS', 'OFW-RLAP', 'WELD-NCII', 'DILP-IGP', 'DILP-DK', 'SP-SEK', 'PEAP', 'AGRI-SK'];
+            const pesoCanonicalCodes = ['SPES', 'TUPAD', 'GIP', 'CKGIP', 'AICS', 'KEEP', 'PFAS', 'OFW-RLAP', 'WELD-NCII', 'DILP-IGP', 'DILP-DK', 'SP-SEK', 'PEAP', 'AGRI-SK', 'ASSOC-FAC', 'JOB-FAIR', 'JOB-PORTAL', 'SKILLS-TRAIN', 'OFW-FCD', 'PAROKYA', 'ROFWS', 'JOB-PLACEMENT', 'SKILLS-VOUCHER'];
             appsData = appsData.filter(a => {
                 if (a.agency === 'PESO') return true;
                 const progCode = (a.program?.code || a.program_code || (programsMap[a.program_id] ? programsMap[a.program_id].code : '')).toUpperCase();
@@ -70,7 +90,7 @@ async function initEvalModuleData() {
             if (appsData.length > 0) {
                 evalApplicationsList = appsData.map(a => {
                     const ben = a.beneficiary || beneficiariesMap[a.beneficiary_qr] || beneficiariesMap[a.beneficiary_id] || {};
-                    const prog = a.program || programsMap[a.program_id] || programsMap[a.program_code] || {};
+                    const prog = a.program || programsMap[a.program_id] || (a.program_code ? programsCodeMap[a.program_code.toUpperCase()] : null) || {};
                     const firstName = ben.first_name || '';
                     const middleName = ben.middle_name ? ` ${ben.middle_name.charAt(0)}.` : '';
                     const lastName = ben.last_name || '';
@@ -85,10 +105,26 @@ async function initEvalModuleData() {
                     const childrenInfo = ben.dependents_count ? `${ben.dependents_count} Dependents` : (ben.number_of_children ? `${ben.number_of_children} Children` : 'None');
 
                     const progCode = (prog && prog.code) || (a.program && a.program.code) || a.program_code || 'PESO';
-                    const progName = (prog && prog.name) || (a.program && a.program.name) || a.program_name || 'Assistance to Individuals in Crisis Situation (AICS)';
+                    const progName = (prog && prog.name) || (a.program && a.program.name) || a.program_name || 'Livelihood Assistance Program';
                     const progId = (prog && prog.id) || a.program_id || 1;
 
-                    const forwardingOfficer = a.forwarded_by || a.officer_name || officersMap[a.evaluator_id] || (a.officer ? `${a.officer.first_name || ''} ${a.officer.last_name || ''}`.trim() : 'PESO Officer Desk');
+                    // Resolve real forwarding officer name from actual officer accounts
+                    let forwardingOfficer = a.forwarded_by || a.officer_name || null;
+                    if (forwardingOfficer === 'PESO Officer Desk' || forwardingOfficer === 'N/A') forwardingOfficer = null;
+                    
+                    if (!forwardingOfficer && a.officer_id && officersMap[a.officer_id]) {
+                        forwardingOfficer = officersMap[a.officer_id];
+                    }
+                    if (!forwardingOfficer && a.evaluator_id && officersMap[a.evaluator_id]) {
+                        forwardingOfficer = officersMap[a.evaluator_id];
+                    }
+                    if (!forwardingOfficer && a.batch_id && batchesMap[a.batch_id]) {
+                        const batch = batchesMap[a.batch_id];
+                        forwardingOfficer = batch.officer_name || (batch.created_by && officersMap[batch.created_by]) || null;
+                    }
+                    if (!forwardingOfficer) {
+                        forwardingOfficer = pesoOfficersList.length > 0 ? pesoOfficersList[0] : 'Officer Jane Smith';
+                    }
 
                     const docsList = Array.isArray(a.documents_json) && a.documents_json.length > 0
                         ? a.documents_json
@@ -113,7 +149,7 @@ async function initEvalModuleData() {
                         batch_num: (a.batch && a.batch.name) ? a.batch.name : (a.batch_id ? `Batch #${a.batch_id}` : 'Batch 1 - Regular Cohort'),
                         date_submitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
                         verification_status: isVerif ? 'Verified' : 'Pending Verification',
-                        evaluation_status: a.status === 'Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' || a.status === 'Officer Denied' ? 'Denied' : 'Pending Evaluation'),
+                        evaluation_status: a.status === 'Approved' || a.status === 'Officer Approved' ? 'Approved' : (a.status === 'Rejected' || a.status === 'Denied' || a.status === 'Officer Denied' ? 'Denied' : 'Pending Evaluation'),
                         batch_status: a.status === 'Approved' ? (a.batch_id ? 'Batched' : 'Unbatched') : 'Pending',
                         forwarding_officer: forwardingOfficer,
                         notes: a.remarks || a.officer_notes || '',
@@ -138,9 +174,9 @@ async function initEvalModuleData() {
 
 function updateEvalMetrics() {
     const list = Array.isArray(evalApplicationsList) ? evalApplicationsList : [];
-    const progs = (typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG))
-        ? CANONICAL_PESO_PROGRAM_CATALOG
-        : (typeof programsList !== 'undefined' && Array.isArray(programsList) ? programsList : []);
+    const progs = (typeof programsList !== 'undefined' && Array.isArray(programsList) && programsList.length > 0)
+        ? programsList
+        : ((typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG)) ? CANONICAL_PESO_PROGRAM_CATALOG : []);
 
     const pendingCount = list.filter(a => a.evaluation_status === 'Pending Evaluation').length;
     const approvedCount = list.filter(a => a.evaluation_status === 'Approved').length;
@@ -195,9 +231,9 @@ function filterEvalLevel1Programs() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const progs = (typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG))
-        ? CANONICAL_PESO_PROGRAM_CATALOG
-        : (typeof programsList !== 'undefined' && Array.isArray(programsList) ? programsList : []);
+    const progs = (typeof programsList !== 'undefined' && Array.isArray(programsList) && programsList.length > 0)
+        ? programsList
+        : ((typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG)) ? CANONICAL_PESO_PROGRAM_CATALOG : []);
 
     const activeProgs = progs.filter(p => !p.status || p.status === 'Active');
 
@@ -205,7 +241,14 @@ function filterEvalLevel1Programs() {
 
     activeProgs.forEach(prog => {
         const apps = Array.isArray(evalApplicationsList) ? evalApplicationsList : [];
-        const progApps = apps.filter(a => a.program_id === prog.id || a.program_code === prog.code || (a.program_name && prog.name && a.program_name.toLowerCase().includes(prog.name.toLowerCase())));
+        const pCode = (prog.code || '').toUpperCase();
+        const progApps = apps.filter(a => {
+            const aCode = (a.program_code || '').toUpperCase();
+            if (aCode && pCode && aCode === pCode) return true;
+            if (a.program_name && prog.name && a.program_name.toLowerCase().trim() === prog.name.toLowerCase().trim()) return true;
+            if (String(a.program_id) === String(prog.id) && aCode === pCode) return true;
+            return false;
+        });
         const pendingCount = progApps.filter(a => a.evaluation_status === 'Pending Evaluation').length;
         const approvedCount = progApps.filter(a => a.evaluation_status === 'Approved').length;
         const deniedCount = progApps.filter(a => a.evaluation_status === 'Denied').length;
@@ -283,9 +326,9 @@ function openEvalLevel3Apps(progId, batchId, batchNumStr) {
     currentEvalBatchId = batchId || 1;
     currentEvalBatchNum = batchNumStr || 'Batch 1 - Regular Cohort';
 
-    const progs = (typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG))
-        ? CANONICAL_PESO_PROGRAM_CATALOG
-        : (typeof programsList !== 'undefined' && Array.isArray(programsList) ? programsList : []);
+    const progs = (typeof programsList !== 'undefined' && Array.isArray(programsList) && programsList.length > 0)
+        ? programsList
+        : ((typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG)) ? CANONICAL_PESO_PROGRAM_CATALOG : []);
 
     const prog = progs.find(p => p.id === progId) || { id: progId, name: 'Livelihood Program', code: 'PESO' };
 
@@ -443,19 +486,20 @@ function filterEvalLevel3Apps() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const progs = (typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG))
-        ? CANONICAL_PESO_PROGRAM_CATALOG
-        : (typeof programsList !== 'undefined' && Array.isArray(programsList) ? programsList : []);
-    const currentProg = progs.find(p => p.id === currentEvalProgId);
+    const progs = (typeof programsList !== 'undefined' && Array.isArray(programsList) && programsList.length > 0)
+        ? programsList
+        : ((typeof CANONICAL_PESO_PROGRAM_CATALOG !== 'undefined' && Array.isArray(CANONICAL_PESO_PROGRAM_CATALOG)) ? CANONICAL_PESO_PROGRAM_CATALOG : []);
+    const currentProg = progs.find(p => p.id === currentEvalProgId) || { id: currentEvalProgId, code: 'PESO', name: 'Livelihood Program' };
 
     const filtered = evalApplicationsList.filter(app => {
-        const matchesProg = !currentEvalProgId || 
-            (app.program_id === currentEvalProgId) || 
-            (currentProg && (
-                app.program_code === currentProg.code || 
-                (app.program_name && app.program_name.toLowerCase().includes(currentProg.name.toLowerCase())) ||
-                (currentProg.name && currentProg.name.toLowerCase().includes((app.program_name || '').toLowerCase()))
-            ));
+        let matchesProg = true;
+        if (currentEvalProgId && currentProg) {
+            const appCode = (app.program_code || '').toUpperCase();
+            const pCode = (currentProg.code || '').toUpperCase();
+            matchesProg = (appCode && pCode && appCode === pCode) || 
+                          (app.program_name && currentProg.name && app.program_name.toLowerCase().trim() === currentProg.name.toLowerCase().trim()) ||
+                          (String(app.program_id) === String(currentProg.id) && appCode === pCode);
+        }
         const matchesSearch = (app.applicant_name || '').toLowerCase().includes(search) || (app.address || '').toLowerCase().includes(search) || (app.application_number || '').toLowerCase().includes(search);
         const matchesVerif = (verifFilter === 'ALL') || (app.verification_status === verifFilter);
         const matchesStatus = (statusFilter === 'ALL') || (app.evaluation_status === statusFilter);

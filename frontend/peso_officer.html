@@ -4701,30 +4701,55 @@
                     });
                 }
 
-                // 2. Applications / Evaluations
+                // 2. Programs & Applications / Evaluations
+                let programsData = [];
+                let programsMap = {};
+                if (DataService.programs) {
+                    try {
+                        const progRes = await DataService.programs.getAll({ agency: 'PESO' });
+                        if (progRes && Array.isArray(progRes.data)) {
+                            programsData = progRes.data;
+                            programsData.forEach(p => {
+                                if (p.id) programsMap[p.id] = p;
+                                if (p.code) programsMap[p.code.toUpperCase()] = p;
+                            });
+                        }
+                    } catch (pErr) {}
+                }
+
                 const appRes = await DataService.applications.getAll({ agency: 'PESO' });
                 if (appRes && Array.isArray(appRes.data)) {
                     evaluationList = appRes.data.map(a => {
-                        const ben = a.beneficiary || {};
-                        const prog = a.program || {};
+                        const ben = a.beneficiary || rawBens.find(b => b.qr_code === a.beneficiary_qr || b.id === a.beneficiary_id) || {};
+                        const prog = a.program || programsMap[a.program_id] || (a.program_code ? programsMap[a.program_code.toUpperCase()] : null) || {};
                         const benFullName = `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || ben.username || 'Applicant';
                         const docs = Array.isArray(a.documents_json) && a.documents_json.length > 0
                             ? a.documents_json
                             : (ben.id_type ? [{ name: ben.id_type, type: 'valid_id', status: 'Verified' }] : []);
+
+                        const pCode = prog.code || a.program_code || 'PESO';
+                        const pName = prog.name || a.program_name || 'Assistance';
 
                         return {
                             id: a.application_number || `APP-${a.id}`,
                             dbId: a.id,
                             qrCodeId: a.beneficiary_qr || ben.qr_code || `QR-BEN-${a.id}`,
                             beneficiaryName: benFullName,
-                            program: `${prog.code || 'PESO'} (${prog.name || 'Assistance'})`,
-                            programCode: prog.code || 'PESO',
+                            program: `${pCode} (${pName})`,
+                            programCode: pCode,
                             projectType: a.remarks || 'Assistance Program',
                             dateSubmitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
-                            status: a.status === 'Officer Approved' || a.status === 'Approved' ? 'Approved' : (a.status === 'Officer Denied' || a.status === 'Denied' ? 'Denied' : 'Pending'),
+                            status: a.status === 'Officer Approved' || a.status === 'Approved' ? 'Approved' : (a.status === 'Officer Denied' || a.status === 'Denied' ? 'Denied' : (a.status === 'Forwarded to Admin' ? 'Forwarded to Admin' : 'Pending')),
                             rawStatus: a.status,
                             batchName: a.batch ? a.batch.name : (a.batch_id ? `Batch #${a.batch_id}` : ''),
                             batchId: a.batch_id,
+                            is_operational_batch: a.is_operational_batch || false,
+                            operational_batch_id: a.operational_batch_id || null,
+                            operational_batch_name: a.operational_batch_name || null,
+                            forwarded_by: a.forwarded_by || null,
+                            forwarded_at: a.forwarded_at || null,
+                            evaluated_by: a.evaluated_by || null,
+                            evaluated_at: a.evaluated_at || null,
                             remarks: a.officer_notes || a.remarks || '',
                             missingNotes: a.status === 'Pending Requirements' ? (a.remarks || 'Pending documents') : '',
                             documents: docs
@@ -8418,6 +8443,8 @@
                         .update({
                             batch_id: batchDbId,
                             status: 'Forwarded to Admin',
+                            forwarded_by: officerName,
+                            forwarded_at: timestamp,
                             officer_id: officerId,
                             officer_action_at: timestamp
                         })

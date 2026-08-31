@@ -645,7 +645,10 @@ const DataService = (() => {
   const applications = {
     async getAll(filters = {}) {
       return withRetry(async (client) => {
-        let query = client.from('applications').select('*');
+        const selectFields = filters.includeDocs
+          ? '*'
+          : 'id, application_number, beneficiary_qr, program_id, date_applied, status, progress_percent, remarks, created_at, updated_at, amount_requested, amount_approved, batch_id, rejection_reason, rejection_category, evaluated_by, evaluated_at, operational_batch_id, operational_batch_name, is_operational_batch, batched_at, batched_by, forwarded_at, forwarded_by, officer_notes, admin_notes';
+        let query = client.from('applications').select(selectFields);
 
         if (filters.program_id) {
           query = query.eq('program_id', filters.program_id);
@@ -664,7 +667,7 @@ const DataService = (() => {
           query = query.eq('batch_id', filters.batch_id);
         }
 
-        const res = await query.order('created_at', { ascending: false }).limit(filters.limit || 150);
+        const res = await query.order('created_at', { ascending: false }).limit(filters.limit || 200);
         return res;
       });
     },
@@ -772,13 +775,17 @@ const DataService = (() => {
 
     async adminApprove(id, approveData) {
       return withRetry(async (client) => {
+        const adminUser = approveData.admin_username || sessionStorage.getItem('username') || 'PESO Admin';
+        const nowIso = new Date().toISOString();
         const payload = {
           status: 'Approved',
           amount_approved: approveData.amount_approved || null,
           admin_id: approveData.admin_id || null,
           admin_notes: approveData.notes || 'Approved by Administrator',
+          evaluated_by: adminUser,
+          evaluated_at: nowIso,
           progress_percent: 100,
-          updated_at: new Date().toISOString()
+          updated_at: nowIso
         };
 
         const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
@@ -926,6 +933,8 @@ const DataService = (() => {
         // 2. Update applications status to Forwarded to Admin and stamp officer / group
         const updatePayload = {
           status: 'Forwarded to Admin',
+          forwarded_by: officerName,
+          forwarded_at: new Date().toISOString(),
           officer_id: officerId,
           officer_decision: 'Forwarded to Admin',
           officer_action_at: new Date().toISOString(),
