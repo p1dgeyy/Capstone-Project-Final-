@@ -1222,6 +1222,28 @@ const DataService = (() => {
         // 1. Create or ensure a batch/group record for this submission
         let batchId = data.batch_id || null;
         let createdBatch = null;
+        let batchError = null;
+
+        // Deduplication Guard: If batch_id was not explicitly passed, check if target applications are already assigned to an active batch
+        if (!batchId && appIds.length > 0) {
+          try {
+            const numericIds = appIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0);
+            if (numericIds.length > 0) {
+              const { data: existingBatchApps } = await client
+                .from('applications')
+                .select('batch_id')
+                .in('id', numericIds)
+                .not('batch_id', 'is', null)
+                .limit(1);
+              if (existingBatchApps && existingBatchApps.length > 0 && existingBatchApps[0].batch_id) {
+                batchId = existingBatchApps[0].batch_id;
+              }
+            }
+          } catch (batchLookupErr) {
+            console.warn('[forwardBatchToAdmin] Existing batch lookup notice:', batchLookupErr);
+          }
+        }
+
         if (!batchId) {
           try {
             const { data: batchData, error: bErr } = await client.from('batches').insert({
@@ -1233,11 +1255,13 @@ const DataService = (() => {
             }).select().single();
 
             if (bErr || !batchData?.id) {
+              batchError = bErr || new Error('Unable to create batch record in database.');
               return { data: null, error: { message: `Batch creation failed: ${bErr?.message || 'Unable to create batch record in database.'}` } };
             }
             batchId = batchData.id;
             createdBatch = batchData;
           } catch (bErr) {
+            batchError = bErr;
             return { data: null, error: { message: `Batch creation error: ${bErr?.message || 'Database exception during batch creation.'}` } };
           }
         }
