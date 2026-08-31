@@ -78,13 +78,17 @@ async function initEvalModuleData() {
             const res = await DataService.applications.getAll();
             let appsData = res.data && Array.isArray(res.data) ? res.data : [];
             
-            // Filter PESO-relevant applications
+            // Filter PESO-relevant applications that have passed Officer review or have prior Admin decision
             const pesoCanonicalCodes = ['SPES', 'TUPAD', 'GIP', 'CKGIP', 'AICS', 'KEEP', 'PFAS', 'OFW-RLAP', 'WELD-NCII', 'DILP-IGP', 'DILP-DK', 'SP-SEK', 'PEAP', 'AGRI-SK', 'ASSOC-FAC', 'JOB-FAIR', 'JOB-PORTAL', 'SKILLS-TRAIN', 'OFW-FCD', 'PAROKYA', 'ROFWS', 'JOB-PLACEMENT', 'SKILLS-VOUCHER'];
+            const eligibleAdminEvalStatuses = ['Officer Approved', 'Approved', 'Denied', 'Rejected'];
+
             appsData = appsData.filter(a => {
-                if (a.agency === 'PESO') return true;
                 const progCode = (a.program?.code || a.program_code || (programsMap[a.program_id] ? programsMap[a.program_id].code : '')).toUpperCase();
-                if (pesoCanonicalCodes.some(p => progCode.includes(p))) return true;
-                return !a.agency || a.agency === 'PESO';
+                const isPeso = a.agency === 'PESO' || pesoCanonicalCodes.some(p => progCode.includes(p)) || !a.agency;
+                if (!isPeso) return false;
+
+                // Gate: Admin only evaluates applications that passed Officer review or have prior Admin decision
+                return eligibleAdminEvalStatuses.includes(a.status);
             });
 
             if (appsData.length > 0) {
