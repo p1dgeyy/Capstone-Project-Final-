@@ -86,13 +86,16 @@ const PesoOfficerApp = (() => {
                 details: details
             });
         }
-        if (typeof supabaseClient !== 'undefined' && supabaseClient && typeof supabaseClient.from === 'function') {
-            supabaseClient.from('audit_logs').insert({
+        // Route through the safe helper instead of inserting directly into audit_logs:
+        // DataService.auditLogs.log() resolves the required staff_user_id / beneficiary_qr
+        // actor column so the insert satisfies the chk_audit_actor constraint. A raw insert
+        // here (the old code) set neither column and violated that constraint on every call.
+        if (typeof DataService !== 'undefined' && DataService.auditLogs && typeof DataService.auditLogs.log === 'function') {
+            DataService.auditLogs.log({
                 action: actionType,
-                details: details,
-                entity_type: 'officer_action',
-                created_at: new Date().toISOString()
-            }).then(() => {}).catch(() => {});
+                entityType: 'officer_action',
+                details: details
+            }).catch(() => {});
         }
     }
 
