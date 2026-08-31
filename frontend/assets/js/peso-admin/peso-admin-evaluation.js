@@ -968,3 +968,22 @@ window.filterEvaluationQueue = () => {
     if (l3 && !l3.classList.contains('d-none')) filterEvalLevel3Apps();
     else filterEvalLevel1Programs();
 };
+
+
+window.handleConfirmBulkRejection = function(e) {
+    if (e) e.preventDefault();
+    if (typeof window.showSystemNotification === 'function') {
+        window.showSystemNotification({
+            title: 'Bulk Denial Prohibited',
+            message: 'Per municipal compliance rules, bulk denials are prohibited. Each application must be individually reasoned.',
+            type: 'warning'
+        });
+    } else {
+        alert('Per municipal compliance rules, bulk denials are prohibited. Each application must be individually reasoned.');
+    }
+    const modalEl = document.getElementById('bulkEvalRejectionModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (bsModal) bsModal.hide();
+    }
+};

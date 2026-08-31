@@ -26,10 +26,17 @@ function renderDashboardTables() {
     }
 }
 
+
+function refreshDashboardMetrics() {
+    if (typeof renderDashboardTables === 'function') renderDashboardTables();
+    if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
+}
+window.refreshDashboardMetrics = refreshDashboardMetrics;
+
 // Master Tab Navigation Controller
 function switchTab(tabName) {
     const target = (tabName === 'officers') ? 'users' : tabName;
-    const sections = ['Overview', 'Users', 'Scheduling', 'Evaluation', 'Assignment', 'Archive'];
+    const sections = ['Overview', 'Officers', 'Programs', 'Users', 'Scheduling', 'Evaluation', 'Assignment', 'Funds', 'Resources', 'Notifications', 'Reports', 'Archive'];
     sections.forEach(s => {
         const secEl = document.getElementById(`section${s}`);
         const tabEl = document.getElementById(`tabNav${s}`);
