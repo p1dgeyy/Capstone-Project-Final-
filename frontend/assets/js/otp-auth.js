@@ -630,19 +630,45 @@ var OTPAuth = (function() {
             throw new Error('Password must be at least 8 characters long.');
         }
 
+        let resetSucceeded = false;
+        let lastErrorMessage = '';
+
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-            // Update in beneficiaries table
-            if (cleanEmail) {
-                await supabaseClient
-                    .from('beneficiaries')
-                    .update({ updated_at: new Date().toISOString() })
-                    .eq('email', cleanEmail);
+            // PRIMARY: Call server-side out-of-band reset RPC function
+            if (typeof supabaseClient.rpc === 'function') {
+                try {
+                    const { data: rpcSuccess, error: rpcErr } = await supabaseClient.rpc('reset_user_password', {
+                        p_email: cleanEmail,
+                        p_new_password: newPassword
+                    });
+                    if (!rpcErr && rpcSuccess === true) {
+                        resetSucceeded = true;
+                    } else if (rpcErr) {
+                        lastErrorMessage = rpcErr.message;
+                        console.warn('[OTPAuth] Server reset_user_password RPC note:', rpcErr);
+                    }
+                } catch (e) {
+                    lastErrorMessage = e.message;
+                    console.warn('[OTPAuth] RPC reset exception:', e);
+                }
             }
 
-            // Update in Supabase Auth if session exists or through updateUser
-            try {
-                await supabaseClient.auth.updateUser({ password: newPassword }).catch(() => {});
-            } catch (e) {}
+            // FALLBACK 1: If session is already authenticated, try standard auth.updateUser
+            if (!resetSucceeded && supabaseClient.auth) {
+                try {
+                    const { data: updateData, error: updateErr } = await supabaseClient.auth.updateUser({ password: newPassword });
+                    if (!updateErr && updateData) {
+                        resetSucceeded = true;
+                    } else if (updateErr && !lastErrorMessage) {
+                        lastErrorMessage = updateErr.message;
+                    }
+                } catch (e) {}
+            }
+
+            // If reset failed across all avenues, throw explicit error
+            if (!resetSucceeded) {
+                throw new Error(lastErrorMessage || 'Failed to update account password. Please ensure OTP verification is complete.');
+            }
 
             // Audit log
             if (typeof supabaseClient.from === 'function') {
@@ -652,9 +678,11 @@ var OTPAuth = (function() {
                     details: `Password reset successfully completed for account ${cleanEmail}`
                 }).then(() => {});
             }
+        } else {
+            throw new Error('Database connection is not available.');
         }
 
-        // Clean up reset session
+        // Clean up reset session only on confirmed success
         delete store[`pwreset_${cleanEmail}`];
         _saveOtpStore(store);
 
