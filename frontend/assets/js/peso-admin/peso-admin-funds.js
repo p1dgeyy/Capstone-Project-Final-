@@ -4,6 +4,36 @@
     // =========================================================================
     // 8. MODULE 6: FUND ALLOCATION & DISTRIBUTION (REQ034-036, REQ042-046)
     // =========================================================================
+
+    // Fetches everything this module (and the Dashboard KPI cards) reads out of
+    // AdminStore. Previously nothing populated AdminStore at all -- it was only
+    // ever declared in a legacy file (assets/js/peso/peso-admin.js) that is not
+    // loaded by peso_admin.html -- so every AdminStore.* read silently fell back
+    // to an empty array and this whole module always rendered zeros.
+    async function initFundsData() {
+        if (typeof DataService !== 'undefined' && window.AdminStore) {
+            try {
+                const [progRes, fundsRes, assistRes, batchesRes, benRes] = await Promise.all([
+                    DataService.programs.getAll({ agency: 'PESO' }),
+                    DataService.funds.getAll(),
+                    DataService.approvedAssistance.getAll(),
+                    DataService.batches.getAll({ simple: true }),
+                    DataService.beneficiaries.getAll()
+                ]);
+                window.AdminStore.programs = (progRes && Array.isArray(progRes.data)) ? progRes.data : [];
+                window.AdminStore.funds = (fundsRes && Array.isArray(fundsRes.data)) ? fundsRes.data : [];
+                window.AdminStore.approvedAssistance = (assistRes && Array.isArray(assistRes.data)) ? assistRes.data : [];
+                window.AdminStore.batches = (batchesRes && Array.isArray(batchesRes.data)) ? batchesRes.data : [];
+                window.AdminStore.beneficiaries = (benRes && Array.isArray(benRes.data)) ? benRes.data : [];
+                window.AdminStore.applications = (typeof evalApplicationsList !== 'undefined' && Array.isArray(evalApplicationsList)) ? evalApplicationsList : [];
+            } catch (e) {
+                console.warn('[Funds] initFundsData notice:', e);
+            }
+        }
+        if (typeof renderFundsModule === 'function') renderFundsModule();
+    }
+    window.initFundsData = initFundsData;
+
     function renderFundsModule() {
         const progs = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.programs)) ? AdminStore.programs : [];
         const assist = (typeof AdminStore !== 'undefined' && Array.isArray(AdminStore.approvedAssistance)) ? AdminStore.approvedAssistance : [];

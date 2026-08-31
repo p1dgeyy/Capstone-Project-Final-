@@ -31,39 +31,45 @@ const PesoDashboard = (() => {
     /**
      * Compute and render overview KPI metrics for PESO Admin
      */
-    function renderAdminMetrics(programs = [], applications = [], beneficiaries = [], funds = []) {
+    function renderAdminMetrics(programs = [], applications = [], funds = [], batches = [], schedules = []) {
         try {
             const activePrograms = programs.filter(p => p.status === 'Active');
             const archivedPrograms = programs.filter(p => p.status !== 'Active');
             const totalBudget = programs.reduce((sum, p) => sum + (Number(p.budget) || Number(p.budget_allocated) || 0), 0);
-            
-            const pendingEval = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
-            const approvedEval = applications.filter(a => a.status === 'Approved' || a.status === 'Officer Approved');
-            const completedEval = applications.filter(a => a.status === 'Completed' || a.status === 'Disbursed');
 
+            const pendingEval = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
+
+            // Prefer real released amounts from the funds table; only fall back to summing
+            // application amounts if there is no funds data to work from at all.
             const totalDisbursed = Array.isArray(funds) && funds.length > 0
-                ? funds.reduce((sum, f) => sum + (Number(f.amount_approved) || Number(f.amount) || 0), 0)
+                ? funds.reduce((sum, f) => sum + (Number(f.released_amount) || Number(f.amount_approved) || Number(f.amount) || 0), 0)
                 : applications.filter(a => a.status === 'Released' || a.status === 'Completed' || a.status === 'Disbursed')
                     .reduce((sum, a) => sum + (Number(a.amount_approved) || Number(a.amount_requested) || 0), 0);
 
             const remainingBalance = Math.max(0, totalBudget - totalDisbursed);
             const utilPercent = totalBudget > 0 ? Math.min(100, Math.round((totalDisbursed / totalBudget) * 100)) : 0;
+            const activeBatches = (Array.isArray(batches) ? batches : []).filter(b => b.status === 'Active').length;
 
-            // 1. Executive Top-Banner KPI Cards (sectionOverview)
-            const elBenCount = document.getElementById('statOverviewBeneficiaries');
-            if (elBenCount) elBenCount.textContent = beneficiaries.length || 10;
-
+            // 1. Executive Top-Banner KPI Cards (sectionOverview) -- these are the ids that
+            // actually exist on peso_admin.html; statOverviewBeneficiaries/ApprovedApps/
+            // CompletedApps do not exist anywhere on this page and were dead writes before.
             const elPendingApps = document.getElementById('statOverviewPendingApps');
             if (elPendingApps) elPendingApps.textContent = pendingEval.length;
 
-            const elApprovedApps = document.getElementById('statOverviewApprovedApps');
-            if (elApprovedApps) elApprovedApps.textContent = approvedEval.length;
+            const elActiveBatches = document.getElementById('statOverviewActiveBatches');
+            if (elActiveBatches) elActiveBatches.textContent = activeBatches;
 
-            const elCompletedApps = document.getElementById('statOverviewCompletedApps');
-            if (elCompletedApps) elCompletedApps.textContent = completedEval.length || (applications.length - pendingEval.length);
+            const elSchedEvents = document.getElementById('statOverviewScheduledEvents');
+            if (elSchedEvents) elSchedEvents.textContent = (Array.isArray(schedules) ? schedules.length : 0);
+
+            const elFundDisbursed = document.getElementById('statOverviewFundDisbursed');
+            if (elFundDisbursed) elFundDisbursed.textContent = formatCurrency(totalDisbursed);
+
+            const elFundPercent = document.getElementById('statOverviewFundPercent');
+            if (elFundPercent) elFundPercent.textContent = `${utilPercent}% Disbursed of Budget`;
 
             const elOrdApprop = document.getElementById('overviewTotalAppropriation');
-            if (elOrdApprop) elOrdApprop.textContent = formatCurrency(totalBudget || 13707882.00);
+            if (elOrdApprop) elOrdApprop.textContent = formatCurrency(totalBudget);
 
             // 2. Fund Utilization Panel
             const elUtilBudget = document.getElementById('fundUtilTotalBudget');
