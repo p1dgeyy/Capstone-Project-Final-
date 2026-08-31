@@ -9730,63 +9730,84 @@
             const targetAppIds = Array.from(checkedBoxes).map(cb => cb.value);
             const timestamp = new Date().toISOString();
             const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
+            const submitBtn = document.querySelector('#addBeneficiariesToBatchModal button[onclick*="confirmAddMembersToBatch"]') || document.getElementById('btnAddMembersToBatchSubmit');
 
-            try {
-                for (const appId of targetAppIds) {
-                    if (typeof DataService !== 'undefined' && DataService.applications) {
-                        await DataService.applications.update(appId, {
-                            operational_batch_id: batch.id,
-                            operational_batch_name: batch.name,
-                            is_operational_batch: true,
-                            batched_at: timestamp,
-                            batched_by: officerName
+            const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (b, fn) => await fn());
+            return await guardFn(submitBtn, async () => {
+                try {
+                    // 1. Atomic Database Assignment with Capacity Enforcement
+                    if (typeof DataService !== 'undefined' && DataService.batches && typeof DataService.batches.addMembers === 'function') {
+                        const addRes = await DataService.batches.addMembers(batch.id, targetAppIds, officerName);
+                        if (addRes && addRes.error) {
+                            const errorMsg = addRes.error.message || 'Failed to add beneficiaries to batch.';
+                            if (window.showSystemNotification) {
+                                window.showSystemNotification({
+                                    title: 'Batch Capacity Exceeded',
+                                    message: errorMsg,
+                                    type: 'error',
+                                    duration: 9000
+                                });
+                            } else {
+                                alert(`Error: ${errorMsg}`);
+                            }
+                            return;
+                        }
+                    } else if (typeof DataService !== 'undefined' && DataService.applications) {
+                        for (const appId of targetAppIds) {
+                            await DataService.applications.update(appId, {
+                                operational_batch_id: batch.id,
+                                operational_batch_name: batch.name,
+                                is_operational_batch: true,
+                                batched_at: timestamp,
+                                batched_by: officerName
+                            });
+                        }
+                    }
+
+                    // 2. Update In-Memory State
+                    for (const appId of targetAppIds) {
+                        const app = evaluationList.find(a => String(a.dbId) === String(appId) || String(a.id) === String(appId));
+                        if (app) {
+                            app.operational_batch_id = batch.id;
+                            app.operational_batch_name = batch.name;
+                            app.is_operational_batch = true;
+                            app.batched_at = timestamp;
+                            app.batched_by = officerName;
+
+                            // Send notification to newly added beneficiary
+                            if (app.qrCodeId && typeof DataService !== 'undefined' && DataService.notifications && typeof DataService.notifications.create === 'function') {
+                                try {
+                                    await DataService.notifications.create({
+                                        beneficiary_qr: app.qrCodeId,
+                                        title: 'Application Approved & Batched',
+                                        message: `Your documents have been approved and you've been included in batch "${batch.name}".`,
+                                        is_read: false
+                                    });
+                                } catch (e) {}
+                            }
+                        }
+                    }
+
+                    logOfficerAction('ADD_BENEFICIARIES_TO_BATCH', `Added ${targetAppIds.length} beneficiaries to batch "${batch.name}".`);
+
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Beneficiaries Added',
+                            message: `Added ${targetAppIds.length} beneficiaries to batch "${batch.name}".`,
+                            type: 'success'
                         });
                     }
 
-                    // Update in-memory
-                    const app = evaluationList.find(a => String(a.dbId) === String(appId) || String(a.id) === String(appId));
-                    if (app) {
-                        app.operational_batch_id = batch.id;
-                        app.operational_batch_name = batch.name;
-                        app.is_operational_batch = true;
-                        app.batched_at = timestamp;
-                        app.batched_by = officerName;
-                    }
+                    const modalEl = document.getElementById('addBeneficiariesToBatchModal');
+                    if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
 
-                    // Send notification to newly added beneficiary
-                    if (app && app.qrCodeId) {
-                        try {
-                            if (typeof DataService !== 'undefined' && DataService.notifications && typeof DataService.notifications.create === 'function') {
-                                await DataService.notifications.create({
-                                    beneficiary_qr: app.qrCodeId,
-                                    title: 'Application Approved & Batched',
-                                    message: `Your documents have been approved and you've been included in batch "${batch.name}".`,
-                                    is_read: false
-                                });
-                            }
-                        } catch (e) {}
-                    }
+                    openOperationalBatchDetailModal(currentInspectedOpBatchId);
+                    renderPostApprovalBatchesModule();
+                } catch (err) {
+                    console.error('[PESO Officer] Error adding members to batch:', err);
+                    alert(`Error: ${err.message || err}`);
                 }
-
-                logOfficerAction('ADD_BENEFICIARIES_TO_BATCH', `Added ${targetAppIds.length} beneficiaries to batch "${batch.name}".`);
-
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({
-                        title: 'Beneficiaries Added',
-                        message: `Added ${targetAppIds.length} beneficiaries to batch "${batch.name}".`,
-                        type: 'success'
-                    });
-                }
-
-                const modalEl = document.getElementById('addBeneficiariesToBatchModal');
-                if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
-
-                openOperationalBatchDetailModal(currentInspectedOpBatchId);
-                renderPostApprovalBatchesModule();
-            } catch (err) {
-                console.error('[PESO Officer] Error adding members to batch:', err);
-                alert(`Error: ${err.message || err}`);
-            }
+            }, 'Adding Members...');
         }
         window.confirmAddMembersToBatch = confirmAddMembersToBatch;
 
