@@ -1307,23 +1307,92 @@ const DataService = (() => {
         let createdBatch = null;
         let batchError = null;
 
-        // Deduplication Guard: If batch_id was not explicitly passed, check if target applications are already assigned to an active batch
-        if (!batchId && appIds.length > 0) {
+        const numericIds = appIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0);
+
+        // Try Atomic Database RPC first
+        try {
+          const { data: rpcRes, error: rpcErr } = await client.rpc('forward_livelihood_batch_to_admin', {
+            p_group_label: groupLabel,
+            p_program_code: progCode,
+            p_officer_id: officerId,
+            p_officer_name: officerName,
+            p_application_ids: numericIds,
+            p_batch_id: batchId
+          });
+
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            batchId = rpcRes.batch_id;
+            createdBatch = rpcRes.batch;
+            
+            // Audit & Activity Logging
+            const refStr = refNumbers.length > 0 ? refNumbers.join(', ') : `${numericIds.length} candidate applications`;
+            await Promise.allSettled([
+              auditLogs.log({
+                staffUserId: officerId,
+                action: 'FORWARD_LIVELIHOOD_APPLICATIONS',
+                entityType: 'livelihood_submission',
+                entityId: batchId || (numericIds[0] || null),
+                details: `Officer #${officerId} (${officerName}) forwarded group "${groupLabel}" with ${rpcRes.updated_count || numericIds.length} of ${numericIds.length} beneficiaries to Admin for evaluation. Reference Numbers: [${refStr}]`
+              }),
+              activityLog.log({
+                action: 'APPLICATIONS_FORWARDED',
+                action_title: 'Applications Forwarded to Admin',
+                program: progCode,
+                admin_id: officerName,
+                details: `Forwarded submission group "${groupLabel}" with ${rpcRes.updated_count || numericIds.length} candidates (${refStr}) for Admin evaluation.`
+              })
+            ]);
+
+            return {
+              data: {
+                batch: createdBatch,
+                updatedCount: rpcRes.updated_count || numericIds.length,
+                status: 'Officer Approved',
+                group_label: groupLabel,
+                batch_id: batchId
+              },
+              error: null
+            };
+          }
+        } catch (rpcEx) {
+          console.warn('[forwardBatchToAdmin] Atomic RPC fallback notice:', rpcEx);
+        }
+
+        // Resumable Fallback Path:
+        // Deduplication Guard 1: Check if target applications are already assigned to an active batch
+        if (!batchId && numericIds.length > 0) {
           try {
-            const numericIds = appIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0);
-            if (numericIds.length > 0) {
-              const { data: existingBatchApps } = await client
-                .from('applications')
-                .select('batch_id')
-                .in('id', numericIds)
-                .not('batch_id', 'is', null)
-                .limit(1);
-              if (existingBatchApps && existingBatchApps.length > 0 && existingBatchApps[0].batch_id) {
-                batchId = existingBatchApps[0].batch_id;
-              }
+            const { data: existingBatchApps } = await client
+              .from('applications')
+              .select('batch_id')
+              .in('id', numericIds)
+              .not('batch_id', 'is', null)
+              .limit(1);
+            if (existingBatchApps && existingBatchApps.length > 0 && existingBatchApps[0].batch_id) {
+              batchId = existingBatchApps[0].batch_id;
             }
           } catch (batchLookupErr) {
             console.warn('[forwardBatchToAdmin] Existing batch lookup notice:', batchLookupErr);
+          }
+        }
+
+        // Deduplication Guard 2: Check if a batch with this exact name was already created by this officer
+        if (!batchId) {
+          try {
+            const { data: existingBatch } = await client
+              .from('batches')
+              .select('*')
+              .eq('name', groupLabel)
+              .eq('created_by', officerId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (existingBatch && existingBatch.id) {
+              batchId = existingBatch.id;
+              createdBatch = existingBatch;
+            }
+          } catch (batchNameErr) {
+            console.warn('[forwardBatchToAdmin] Batch name lookup notice:', batchNameErr);
           }
         }
 
