@@ -1118,11 +1118,21 @@ const DataService = (() => {
         let progCode = releaseData.program_code || null;
         let requestedOrApprovedAmount = releaseData.amount || null;
 
+        // 1. Obtain application record and enforce Idempotency Guard
         const { data: currentApp } = await client
           .from('applications')
-          .select('id, application_number, program_id, amount_approved, amount_requested, beneficiary_qr, programs (id, code, name)')
+          .select('id, application_number, status, program_id, amount_approved, amount_requested, beneficiary_qr, programs (id, code, name)')
           .eq('id', id)
           .maybeSingle();
+
+        if (currentApp && (currentApp.status === 'Released' || currentApp.status === 'Completed')) {
+          return {
+            data: null,
+            error: {
+              message: `Duplicate Disbursement Blocked: Application #${currentApp.application_number || id} has already been released (Status: ${currentApp.status}). Funds cannot be disbursed twice.`
+            }
+          };
+        }
 
         if (currentApp) {
           if (!progCode) {
@@ -1136,7 +1146,53 @@ const DataService = (() => {
         const amount = Number(requestedOrApprovedAmount || 0);
         const targetProg = progCode || releaseData.program_code || 'CSWDO';
 
-        // 1. Fail-Closed Fund Release: Check and Deduct from Real Fund Balance First
+        // 2. Try Atomic Server-side RPC if available
+        try {
+          const { data: rpcData, error: rpcErr } = await client.rpc('release_application_funds', {
+            p_application_id: id,
+            p_program_code: targetProg,
+            p_amount: amount,
+            p_admin_id: releaseData.admin_id || null,
+            p_notes: releaseData.notes || 'Funds released at disbursement desk'
+          });
+
+          if (!rpcErr && rpcData) {
+            if (rpcData.success) {
+              const resData = rpcData.application || { id: id, status: 'Released', application_number: currentApp?.application_number || `APP-${id}`, beneficiary_qr: currentApp?.beneficiary_qr };
+              
+              await Promise.allSettled([
+                auditLogs.log({
+                  staffUserId: releaseData.admin_id || null,
+                  action: 'RELEASE_FUNDS',
+                  entityType: 'application',
+                  entityId: id,
+                  details: `Disbursed funds for application ${resData.application_number || id} under program ${targetProg}. Amount: ₱${amount.toLocaleString()}`
+                }),
+                activityLog.log({
+                  action: 'FUNDS_RELEASED',
+                  action_title: 'Funds Disbursed',
+                  application_id: resData.application_number || `APP-${id}`,
+                  beneficiary_name: resData.beneficiary_qr || '',
+                  program: targetProg,
+                  details: `Released grant voucher of ₱${amount.toLocaleString()} under ${targetProg}.`
+                }),
+                notifications.create({
+                  beneficiary_qr: resData.beneficiary_qr || currentApp?.beneficiary_qr,
+                  title: 'Assistance Grant Released',
+                  message: `Your assistance grant voucher (${resData.application_number || id}) for ₱${amount.toLocaleString()} is released.`
+                })
+              ]);
+
+              return { data: resData, error: null };
+            } else {
+              return { data: null, error: { message: rpcData.error || 'Fund disbursement blocked by server.' } };
+            }
+          }
+        } catch (rpcEx) {
+          console.warn('[adminRelease] RPC notice, falling back to direct atomic ledger release:', rpcEx);
+        }
+
+        // 3. Fallback: Fail-Closed Fund Release with Concurrency Guard
         if (amount > 0 && funds && typeof funds.releaseAmount === 'function') {
           const fundRes = await funds.releaseAmount(targetProg, amount);
           if (fundRes && fundRes.error) {
@@ -1155,13 +1211,34 @@ const DataService = (() => {
           updated_at: new Date().toISOString()
         };
 
-        const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
+        const res = await client
+          .from('applications')
+          .update(payload)
+          .eq('id', id)
+          .neq('status', 'Released')
+          .neq('status', 'Completed')
+          .select()
+          .maybeSingle();
+
         if (res.error) {
           // Rollback fund deduction if application record update failed
           if (amount > 0 && funds && typeof funds.refundAmount === 'function') {
             try { await funds.refundAmount(targetProg, amount); } catch (e) {}
           }
           return res;
+        }
+
+        if (!res.data) {
+          // Row was already released concurrently by another session
+          if (amount > 0 && funds && typeof funds.refundAmount === 'function') {
+            try { await funds.refundAmount(targetProg, amount); } catch (e) {}
+          }
+          return {
+            data: null,
+            error: {
+              message: `Duplicate Disbursement Blocked: Application #${id} was already released by another session.`
+            }
+          };
         }
 
         if (res.data) {
