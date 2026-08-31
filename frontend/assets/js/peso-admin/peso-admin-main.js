@@ -3,36 +3,59 @@
  * Module: Main (peso-admin-main.js)
  */
 
-function renderDashboardTables() {
-    const activeList = programsList.filter(p => p.status === 'Active');
-    const archList = programsList.filter(p => p.status !== 'Active');
-    const totalBudget = programsList.reduce((sum, p) => sum + (Number(p.budget) || 0), 0);
+function formatCurrency(amount) {
+    if (amount === undefined || amount === null || isNaN(Number(amount))) return '₱0.00';
+    return '₱' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+window.formatCurrency = formatCurrency;
 
-    if (document.getElementById('statTotalPrograms')) document.getElementById('statTotalPrograms').textContent = programsList.length;
-    if (document.getElementById('statActivePrograms')) document.getElementById('statActivePrograms').textContent = activeList.length;
-    if (document.getElementById('statArchivedPrograms')) document.getElementById('statArchivedPrograms').textContent = archList.length;
-    if (document.getElementById('archiveTabBadge')) document.getElementById('archiveTabBadge').textContent = archList.length;
-    if (document.getElementById('archiveSectionCountBadge')) document.getElementById('archiveSectionCountBadge').textContent = `${archList.length} Deactivated Programs`;
-    if (document.getElementById('statTotalBudget')) document.getElementById('statTotalBudget').textContent = '₱' + totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 });
-    if (document.getElementById('ordinanceTotalAppropriation')) document.getElementById('ordinanceTotalAppropriation').textContent = '₱' + totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 });
-    if (document.getElementById('overviewTotalAppropriation')) document.getElementById('overviewTotalAppropriation').textContent = '₱' + totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+function renderDashboardOverview() {
+    const list = (typeof programsList !== 'undefined' && Array.isArray(programsList)) ? programsList : [];
+    const activeList = list.filter(p => p.status === 'Active');
+    const archList = list.filter(p => p.status !== 'Active');
+    const totalBudget = list.reduce((sum, p) => sum + (Number(p.budget) || 0), 0);
 
-    filterPrograms();
-    renderAssignProgramsTable();
-    renderArchiveTable(archList);
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setTxt('statTotalPrograms', list.length);
+    setTxt('statActivePrograms', activeList.length);
+    setTxt('statArchivedPrograms', archList.length);
+    setTxt('archiveTabBadge', archList.length);
+    setTxt('archiveSectionCountBadge', `${archList.length} Deactivated Programs`);
+    setTxt('statTotalBudget', formatCurrency(totalBudget));
+    setTxt('ordinanceTotalAppropriation', formatCurrency(totalBudget));
+    setTxt('overviewTotalAppropriation', formatCurrency(totalBudget));
 
-    if (typeof renderDashboardOverview === 'function') {
-        renderDashboardOverview();
+    if (typeof filterPrograms === 'function') filterPrograms();
+    if (typeof renderAssignProgramsTable === 'function') renderAssignProgramsTable();
+    if (typeof renderArchiveTable === 'function') renderArchiveTable(archList);
+}
+window.renderDashboardOverview = renderDashboardOverview;
+
+async function refreshAllData() {
+    try {
+        if (typeof fetchProgramsFromApi === 'function') await fetchProgramsFromApi();
+        if (typeof fetchUsersFromApi === 'function') await fetchUsersFromApi();
+        if (typeof fetchOfficersFromApi === 'function') await fetchOfficersFromApi();
+        if (typeof initEvalModuleData === 'function') await initEvalModuleData();
+        if (typeof initSchedulingData === 'function') await initSchedulingData();
+        if (typeof renderDashboardTables === 'function') renderDashboardTables();
+        if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
+        if (typeof renderFundsManagementModule === 'function') renderFundsManagementModule();
+        if (typeof renderReportsModule === 'function') renderReportsModule();
+    } catch (e) {
+        console.warn('[PESO Admin] refreshAllData notice:', e);
     }
 }
+window.refreshAllData = refreshAllData;
 
+function renderDashboardTables() {
+    renderDashboardOverview();
+}
+window.renderDashboardTables = renderDashboardTables;
 
 function refreshDashboardMetrics() {
-    if (typeof renderDashboardTables === 'function') renderDashboardTables();
-    if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
+    refreshAllData();
 }
-window.refreshDashboardMetrics = refreshDashboardMetrics;
-
 // Master Tab Navigation Controller
 function switchTab(tabName) {
     const target = (tabName === 'officers') ? 'users' : tabName;
