@@ -1967,6 +1967,10 @@ const DataService = (() => {
       });
     },
 
+    async create(data) {
+      return this.log(data);
+    },
+
     async log(data) {
       try {
         const client = getClient();
