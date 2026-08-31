@@ -487,6 +487,7 @@ const SessionManager = (() => {
       console.warn('[SessionManager] Remote auth.signOut did not complete cleanly:', lastError.message || lastError);
       try {
         sessionStorage.setItem('authSignOutWarning', 'Your local session was cleared, but the remote session sign-out could not be fully confirmed due to a network interruption.');
+        localStorage.setItem('authSignOutWarning', 'Your local session was cleared, but the remote session sign-out could not be fully confirmed due to a network interruption.');
       } catch (e) {}
     }
     return false;
@@ -541,12 +542,16 @@ const SessionManager = (() => {
       }
     }
 
-    // 3. CLEAR LOCAL STORAGE:
+    // 3. CLEAR LOCAL STORAGE & PRESERVE SIGN-OUT NOTICE IF PENDING:
+    const pendingWarning = localStorage.getItem('authSignOutWarning');
     clear();
     try {
       sessionStorage.clear();
       localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
       localStorage.removeItem(STORAGE_ACTIVITY_KEY);
+      if (pendingWarning) {
+        sessionStorage.setItem('authSignOutWarning', pendingWarning);
+      }
     } catch (e) {}
 
     window.location.href = targetUrl;
@@ -599,12 +604,16 @@ const SessionManager = (() => {
     }
 
     // 2. Clear local state and set notice
+    const pendingWarning = localStorage.getItem('authSignOutWarning');
     clear();
     try {
       sessionStorage.clear();
       localStorage.removeItem(STORAGE_ACTIVE_SESSION_KEY);
       localStorage.removeItem(STORAGE_ACTIVITY_KEY);
-      sessionStorage.setItem('sessionKickedMessage', message || 'Your session has expired. Please log in again.');
+      sessionStorage.setItem('sessionKickedMessage', message || pendingWarning || 'Your session has expired. Please log in again.');
+      if (pendingWarning) {
+        sessionStorage.setItem('authSignOutWarning', pendingWarning);
+      }
     } catch (e) {}
 
     window.location.href = redirect;
@@ -947,7 +956,7 @@ const SessionManager = (() => {
    */
   function checkAndDisplayLoginNotice(containerId = 'errorMessage', alertId = 'errorAlert') {
     try {
-      const message = sessionStorage.getItem('sessionKickedMessage') || sessionStorage.getItem('authGuardMessage') || sessionStorage.getItem('authSignOutWarning');
+      const message = sessionStorage.getItem('sessionKickedMessage') || sessionStorage.getItem('authGuardMessage') || sessionStorage.getItem('authSignOutWarning') || localStorage.getItem('authSignOutWarning');
       if (message) {
         const errorEl = document.getElementById(containerId);
         const alertEl = document.getElementById(alertId);
@@ -957,6 +966,7 @@ const SessionManager = (() => {
         sessionStorage.removeItem('sessionKickedMessage');
         sessionStorage.removeItem('authGuardMessage');
         sessionStorage.removeItem('authSignOutWarning');
+        localStorage.removeItem('authSignOutWarning');
       }
     } catch (e) {}
   }
