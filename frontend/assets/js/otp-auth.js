@@ -66,20 +66,33 @@ var OTPAuth = (function() {
         return code;
     }
 
-    // Simple hash implementation for client-side matching fallback
-    async function hashCode(str) {
-        if (window.crypto && window.crypto.subtle) {
-            const buffer = new TextEncoder().encode(str + '_KORONADAL_SALT_2026');
-            const digest = await window.crypto.subtle.digest('SHA-256', buffer);
-            return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+    // Cryptographically strong random salt generator
+    function generateSalt(length = 16) {
+        if (window.crypto && window.crypto.getRandomValues) {
+            const arr = new Uint8Array(length);
+            window.crypto.getRandomValues(arr);
+            return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
         }
-        // Fallback simple hash
+        return 'SALT_' + Math.random().toString(36).substring(2, 18) + Date.now().toString(36);
+    }
+
+    // Dynamic hash implementation with unique per-row/per-request salt
+    async function hashCode(str, customSalt = null) {
+        const saltToUse = customSalt || generateSalt(16);
+        if (window.crypto && window.crypto.subtle) {
+            const buffer = new TextEncoder().encode(str + '_' + saltToUse);
+            const digest = await window.crypto.subtle.digest('SHA-256', buffer);
+            const hashHex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+            return { hash: hashHex, salt: saltToUse };
+        }
+        // Fallback hash
         let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        const combined = str + '_' + saltToUse;
+        for (let i = 0; i < combined.length; i++) {
+            hash = ((hash << 5) - hash) + combined.charCodeAt(i);
             hash |= 0;
         }
-        return 'HASH_' + Math.abs(hash);
+        return { hash: 'HASH_' + Math.abs(hash), salt: saltToUse };
     }
 
     /**
@@ -116,14 +129,16 @@ var OTPAuth = (function() {
             throw new Error('Email registration is restricted to Gmail (@gmail.com) only.');
         }
 
-        // Generate a local code as fallback for session-based verification
+        // Generate a local code & unique per-request salt
         const code = generateNumericCode(6);
-        const codeHash = await hashCode(code);
+        const uniqueSalt = generateSalt(16);
+        const { hash: codeHash } = await hashCode(code, uniqueSalt);
         const expiresAt = Date.now() + EXPIRY_MS;
 
         const store = _getOtpStore();
         store[`email_${cleanEmail}`] = {
             hash: codeHash,
+            salt: uniqueSalt,
             code: code,
             expiresAt: expiresAt,
             channel: 'EMAIL',
@@ -165,13 +180,13 @@ var OTPAuth = (function() {
             }
         }
 
-        // Persist OTP Request record to database for real-time validation across tabs/sessions
+        // Persist OTP Request record with unique salt to database
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
                 await supabaseClient.from('otp_requests').insert({
                     identifier: cleanEmail,
                     otp_hash: codeHash,
-                    salt: 'KORONADAL_SALT_2026',
+                    salt: uniqueSalt,
                     purpose: 'EMAIL_VERIFICATION',
                     channel: 'EMAIL',
                     expiry: new Date(expiresAt).toISOString(),
@@ -213,7 +228,7 @@ var OTPAuth = (function() {
 
         let verifiedViaSupabase = false;
 
-        // Try Supabase Auth verifyOtp first
+        // 1. Try Supabase Auth verifyOtp first
         try {
             if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
                 const { data, error } = await supabaseClient.auth.verifyOtp({
@@ -229,33 +244,25 @@ var OTPAuth = (function() {
             console.warn('[OTPAuth] Supabase verifyOtp check:', err);
         }
 
-        // Check local store fallback
-        const store = _getOtpStore();
-        const record = store[`email_${cleanEmail}`];
-
-        // If not verified via Supabase Auth and not found in sessionStorage, check Supabase otp_requests table
-        if (!verifiedViaSupabase && !record && typeof supabaseClient !== 'undefined' && supabaseClient) {
+        // 2. Try Server-Side Secure RPC Function
+        if (!verifiedViaSupabase && typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.rpc) {
             try {
-                const inputHash = await hashCode(code);
-                const { data: dbOtps } = await supabaseClient
-                    .from('otp_requests')
-                    .select('*')
-                    .eq('identifier', cleanEmail)
-                    .eq('status', 'PENDING')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-
-                if (dbOtps && dbOtps.length > 0) {
-                    const dbRecord = dbOtps[0];
-                    const expiryTime = new Date(dbRecord.expiry).getTime();
-                    if (Date.now() <= expiryTime && (dbRecord.otp_hash === inputHash || dbRecord.otp_hash === code)) {
-                        verifiedViaSupabase = true;
-                    }
+                const { data: rpcSuccess, error: rpcError } = await supabaseClient.rpc('verify_otp_code', {
+                    p_identifier: cleanEmail,
+                    p_code: code,
+                    p_purpose: 'EMAIL_VERIFICATION'
+                });
+                if (!rpcError && rpcSuccess === true) {
+                    verifiedViaSupabase = true;
                 }
-            } catch (dbErr) {
-                console.warn('[OTPAuth] Database OTP lookup note:', dbErr);
+            } catch (rpcErr) {
+                console.warn('[OTPAuth] Server verify_otp_code RPC note:', rpcErr);
             }
         }
+
+        // 3. Check local store fallback
+        const store = _getOtpStore();
+        const record = store[`email_${cleanEmail}`];
 
         if (!verifiedViaSupabase) {
             if (!record) {
@@ -268,25 +275,13 @@ var OTPAuth = (function() {
                 throw new Error('Verification code has expired. Please request a new code.');
             }
 
-            const inputHash = await hashCode(code);
+            const { hash: inputHash } = await hashCode(code, record.salt || 'KORONADAL_SALT_2026');
             if (inputHash !== record.hash && code !== record.code) {
                 throw new Error('Invalid verification code. Please check your Gmail and try again.');
             }
         }
 
-        // Update database record status if available
-        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-            try {
-                await supabaseClient.from('otp_requests')
-                    .update({ status: 'USED', updated_at: new Date().toISOString() })
-                    .eq('identifier', cleanEmail)
-                    .eq('status', 'PENDING');
-            } catch (dbErr) {
-                console.warn('[OTPAuth] Supabase otp_requests update notice:', dbErr);
-            }
-        }
-
-        // Verified successfully - cleanup record
+        // Verified successfully - cleanup local store
         if (record) {
             delete store[`email_${cleanEmail}`];
             _saveOtpStore(store);
@@ -303,12 +298,14 @@ var OTPAuth = (function() {
         if (!cleanPhone) throw new Error('Contact number is required.');
 
         const code = generateNumericCode(6);
-        const codeHash = await hashCode(code);
+        const uniqueSalt = generateSalt(16);
+        const { hash: codeHash } = await hashCode(code, uniqueSalt);
         const expiresAt = Date.now() + EXPIRY_MS;
 
         const store = _getOtpStore();
         store[`phone_${cleanPhone}`] = {
             hash: codeHash,
+            salt: uniqueSalt,
             code: code,
             expiresAt: expiresAt,
             channel: 'SMS',
@@ -328,13 +325,13 @@ var OTPAuth = (function() {
             }
         }
 
-        // Persist OTP Request record to database if available
+        // Persist OTP Request record with unique salt to database
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
                 await supabaseClient.from('otp_requests').insert({
                     identifier: cleanPhone,
                     otp_hash: codeHash,
-                    salt: 'KORONADAL_SALT_2026',
+                    salt: uniqueSalt,
                     purpose: 'PHONE_VERIFICATION',
                     channel: 'SMS',
                     expiry: new Date(expiresAt).toISOString(),
@@ -375,32 +372,26 @@ var OTPAuth = (function() {
         }
 
         let verifiedViaDb = false;
-        const store = _getOtpStore();
-        const record = store[`phone_${cleanPhone}`];
 
-        // Check database fallback if record not found in sessionStorage
-        if (!record && typeof supabaseClient !== 'undefined' && supabaseClient) {
+        // 1. Try Server-Side Secure RPC Function first
+        if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.rpc) {
             try {
-                const inputHash = await hashCode(otp);
-                const { data: dbOtps } = await supabaseClient
-                    .from('otp_requests')
-                    .select('*')
-                    .eq('identifier', cleanPhone)
-                    .eq('status', 'PENDING')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-
-                if (dbOtps && dbOtps.length > 0) {
-                    const dbRecord = dbOtps[0];
-                    const expiryTime = new Date(dbRecord.expiry).getTime();
-                    if (Date.now() <= expiryTime && (dbRecord.otp_hash === inputHash || dbRecord.otp_hash === otp)) {
-                        verifiedViaDb = true;
-                    }
+                const { data: rpcSuccess, error: rpcError } = await supabaseClient.rpc('verify_otp_code', {
+                    p_identifier: cleanPhone,
+                    p_code: otp,
+                    p_purpose: 'PHONE_VERIFICATION'
+                });
+                if (!rpcError && rpcSuccess === true) {
+                    verifiedViaDb = true;
                 }
-            } catch (dbErr) {
-                console.warn('[OTPAuth] Database SMS OTP lookup note:', dbErr);
+            } catch (rpcErr) {
+                console.warn('[OTPAuth] Server verify_otp_code SMS RPC note:', rpcErr);
             }
         }
+
+        // 2. Check local store fallback
+        const store = _getOtpStore();
+        const record = store[`phone_${cleanPhone}`];
 
         if (!verifiedViaDb) {
             if (!record) {
@@ -413,21 +404,9 @@ var OTPAuth = (function() {
                 throw new Error('SMS OTP has expired. Please request a new code.');
             }
 
-            const inputHash = await hashCode(otp);
+            const { hash: inputHash } = await hashCode(otp, record.salt || 'KORONADAL_SALT_2026');
             if (inputHash !== record.hash && otp !== record.code) {
                 throw new Error('Invalid SMS OTP code. Please enter the correct 6-digit code.');
-            }
-        }
-
-        // Update database record status if available
-        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-            try {
-                await supabaseClient.from('otp_requests')
-                    .update({ status: 'USED', updated_at: new Date().toISOString() })
-                    .eq('identifier', cleanPhone)
-                    .eq('status', 'PENDING');
-            } catch (dbErr) {
-                console.warn('[OTPAuth] Supabase otp_requests update notice:', dbErr);
             }
         }
 
@@ -479,12 +458,14 @@ var OTPAuth = (function() {
         }
 
         const code = generateNumericCode(6);
-        const codeHash = await hashCode(code);
+        const uniqueSalt = generateSalt(16);
+        const { hash: codeHash } = await hashCode(code, uniqueSalt);
         const expiresAt = Date.now() + EXPIRY_MS;
 
         const store = _getOtpStore();
         store[`pwreset_${targetEmail.toLowerCase()}`] = {
             hash: codeHash,
+            salt: uniqueSalt,
             code: code,
             expiresAt: expiresAt,
             targetEmail: targetEmail.toLowerCase(),
@@ -499,6 +480,23 @@ var OTPAuth = (function() {
                 await supabaseClient.auth.resetPasswordForEmail(targetEmail).catch(() => {});
             }
         } catch (e) {}
+
+        // Persist password reset OTP to database
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            try {
+                await supabaseClient.from('otp_requests').insert({
+                    identifier: targetEmail.toLowerCase(),
+                    otp_hash: codeHash,
+                    salt: uniqueSalt,
+                    purpose: 'PASSWORD_RESET',
+                    channel: 'EMAIL',
+                    expiry: new Date(expiresAt).toISOString(),
+                    status: 'PENDING'
+                });
+            } catch (dbErr) {
+                console.warn('[OTPAuth] Supabase password reset otp_requests insert notice:', dbErr);
+            }
+        }
 
         // Confirmation notification without revealing raw code
         if (typeof window.showSystemNotification === 'function') {
@@ -546,17 +544,33 @@ var OTPAuth = (function() {
 
         let verified = false;
 
-        // 1. Verify against local cryptographic hash / numeric code
-        if (record) {
+        // 1. Try Server-Side Secure RPC Function
+        if (typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.rpc) {
+            try {
+                const { data: rpcSuccess, error: rpcError } = await supabaseClient.rpc('verify_otp_code', {
+                    p_identifier: cleanEmail,
+                    p_code: code,
+                    p_purpose: 'PASSWORD_RESET'
+                });
+                if (!rpcError && rpcSuccess === true) {
+                    verified = true;
+                }
+            } catch (rpcErr) {
+                console.warn('[OTPAuth] Server verify_otp_code Password Reset RPC note:', rpcErr);
+            }
+        }
+
+        // 2. Verify against local cryptographic hash / numeric code with salt
+        if (!verified && record) {
             if (Date.now() <= record.expiresAt) {
-                const inputHash = await hashCode(code);
+                const { hash: inputHash } = await hashCode(code, record.salt || 'KORONADAL_SALT_2026');
                 if (inputHash === record.hash || code === record.code) {
                     verified = true;
                 }
             }
         }
 
-        // 2. Also verify against Supabase Auth OTP if available
+        // 3. Also verify against Supabase Auth OTP if available
         if (!verified && typeof supabaseClient !== 'undefined' && supabaseClient && supabaseClient.auth) {
             try {
                 const { data, error } = await supabaseClient.auth.verifyOtp({
