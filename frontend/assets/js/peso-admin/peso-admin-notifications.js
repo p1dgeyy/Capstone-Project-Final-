@@ -104,7 +104,7 @@
     function openComposeNotificationModal() {
         document.getElementById('composeNotifForm')?.reset();
         handleNotifRecipientChange();
-        openModal('composeNotificationModal');
+        safeOpenModal('composeNotificationModal');
     }
 
     function handleNotifRecipientChange() {
@@ -202,7 +202,7 @@
 
             await logAdminAction('DISPATCH_NOTIFICATION', 'notification', null, `Dispatched [${title}] to [${type}]`);
             notify('Notification Dispatched', 'Message sent in real-time and recorded in Supabase.', 'success');
-            closeModal('composeNotificationModal');
+            safeCloseModal('composeNotificationModal');
             await refreshAllData();
             renderNotificationsModule();
         } catch (err) {

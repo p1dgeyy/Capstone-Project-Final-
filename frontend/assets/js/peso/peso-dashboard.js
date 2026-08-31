@@ -29,13 +29,32 @@ const PesoDashboard = (() => {
     }
 
     /**
+     * Look up a program's real allocated budget from the `funds` table records, matching
+     * by program_code (falling back to program name/id). `programs[].budget` is NOT a
+     * real database column -- it is a client-side display fallback that can be populated
+     * from a hardcoded catalog, so it must never be used for money figures on the
+     * dashboard. Returns 0 (not a fabricated fallback) when no funds record exists yet.
+     */
+    function getRealAllocatedBudget(program, fundsList) {
+        if (!Array.isArray(fundsList) || fundsList.length === 0 || !program) return 0;
+        const match = fundsList.find(f =>
+            (program.code && f.program_code === program.code) ||
+            (program.name && f.program === program.name) ||
+            (program.id && f.program_id === program.id)
+        );
+        return match ? (Number(match.allocated_budget) || 0) : 0;
+    }
+
+    /**
      * Compute and render overview KPI metrics for PESO Admin
      */
     function renderAdminMetrics(programs = [], applications = [], funds = [], batches = [], schedules = []) {
         try {
             const activePrograms = programs.filter(p => p.status === 'Active');
             const archivedPrograms = programs.filter(p => p.status !== 'Active');
-            const totalBudget = programs.reduce((sum, p) => sum + (Number(p.budget) || Number(p.budget_allocated) || 0), 0);
+            // Real allocated budgets come from the `funds` table (same source as the Fund
+            // Allocation & Distribution tab), not from the fabricated programs.budget fallback.
+            const totalBudget = programs.reduce((sum, p) => sum + getRealAllocatedBudget(p, funds), 0);
 
             const pendingEval = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
 
@@ -98,7 +117,7 @@ const PesoDashboard = (() => {
                     budgetBarsContainer.innerHTML = `<div class="text-muted small py-2">No active programs.</div>`;
                 } else {
                     budgetBarsContainer.innerHTML = topPrograms.map(p => {
-                        const b = Number(p.budget) || Number(p.budget_allocated) || 0;
+                        const b = getRealAllocatedBudget(p, funds);
                         const pct = totalBudget > 0 ? Math.round((b / totalBudget) * 100) : 0;
                         return `
                             <div class="mb-2">
@@ -135,7 +154,7 @@ const PesoDashboard = (() => {
             if (elTotalBudgetStat) elTotalBudgetStat.textContent = formatCurrency(totalBudget);
 
             // 5. Render Chart Trends
-            renderDashboardCharts(programs, applications);
+            renderDashboardCharts(programs, applications, funds);
 
         } catch (err) {
             console.warn('[PesoDashboard] Error updating admin metrics:', err.message);
@@ -274,7 +293,7 @@ const PesoDashboard = (() => {
     /**
      * Render Chart.js analytics for PESO Portals
      */
-    function renderDashboardCharts(programs = [], applications = []) {
+    function renderDashboardCharts(programs = [], applications = [], funds = []) {
         const canvas = document.getElementById('appTrendChart') || document.getElementById('adminOverviewChart') || document.getElementById('pesoOverviewChart');
         if (!canvas || typeof Chart === 'undefined') return;
 
@@ -289,17 +308,21 @@ const PesoDashboard = (() => {
             const gridColor = isDark ? '#334155' : '#E2E8F0';
 
             const activeProgs = programs.slice(0, 6);
+            // Real allocated budgets from the `funds` table -- same source as the Fund
+            // Allocation tab. No hardcoded placeholder numbers: an empty result set means
+            // no programs have a real allocation yet, and the chart should say so honestly
+            // rather than display invented sample figures.
             const labels = activeProgs.map(p => p.code || p.name || 'Program');
-            const budgetData = activeProgs.map(p => (Number(p.budget) || Number(p.budget_allocated) || 0) / 1000); // In thousands
+            const budgetData = activeProgs.map(p => getRealAllocatedBudget(p, funds) / 1000); // In thousands
 
             const ctx = canvas.getContext('2d');
             _chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels.length > 0 ? labels : ['SPES', 'TUPAD', 'GIP', 'SEED', 'DILEEP', 'PFAS'],
+                    labels: labels,
                     datasets: [{
                         label: 'Budget Allocation (₱ in Thousands)',
-                        data: budgetData.length > 0 ? budgetData : [1200, 2500, 800, 1500, 1000, 650],
+                        data: budgetData,
                         backgroundColor: '#0284C7',
                         borderRadius: 6,
                         barPercentage: 0.6

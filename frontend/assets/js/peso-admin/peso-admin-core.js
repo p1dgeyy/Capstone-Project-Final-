@@ -401,6 +401,25 @@ function escapeHtml(str) {
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
 
+// Shared date/time formatters used across the admin modules (notifications, funds,
+// resources, reports). Previously these were called but never defined anywhere,
+// which threw a ReferenceError and aborted rendering for whichever module called them.
+function formatDate(date) {
+    if (!date) return 'N/A';
+    const d = (date instanceof Date && !isNaN(date)) ? date : new Date(date);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateTime(date) {
+    if (!date) return 'N/A';
+    const d = (date instanceof Date && !isNaN(date)) ? date : new Date(date);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+}
+window.formatDate = window.formatDate || formatDate;
+window.formatDateTime = window.formatDateTime || formatDateTime;
+
 // --- Backwards-compatible global aliases for PesoAdmin diagnostics and consumers ---
 // Explicitly expose the core helpers under the global `window` so that
 // the PesoAdmin.diagnose() runtime checks and any consumers expecting

@@ -347,7 +347,7 @@
         }
         document.getElementById('fundAllocForm')?.reset();
         if (fundInput) fundInput.classList.remove('is-invalid');
-        openModal('fundAllocationModal');
+        safeOpenModal('fundAllocationModal');
     }
 
     function handleFundProgSelectionChange() {
@@ -432,7 +432,7 @@
 
             await logAdminAction('EDIT_PROGRAM_BUDGET', 'program', progId, `Updated allocated budget for program #${progId} to ${formatCurrency(newBudget)} (REQ035). Reason/Ordinance Ref: ${justification}`);
             notify('Budget Allocation Saved', 'Program budget allocation updated and logged to audit trail.', 'success');
-            closeModal('fundAllocationModal');
+            safeCloseModal('fundAllocationModal');
             await refreshAllData();
             renderFundsModule();
         } catch (err) {
