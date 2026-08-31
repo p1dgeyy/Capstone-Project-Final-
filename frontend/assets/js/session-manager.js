@@ -379,26 +379,6 @@ const SessionManager = (() => {
   }
 
   /**
-   * Touch/Heartbeat active session in database to keep device lock active while user is working
-   */
-  async function touchActiveSession() {
-    if (!supabaseClient) return;
-    const uId = getUserId();
-    const sessionId = getSessionId();
-    if (!uId || !sessionId) return;
-
-    try {
-      const nowIso = new Date().toISOString();
-      supabaseClient
-        .from('active_user_sessions')
-        .update({ last_activity_at: nowIso })
-        .match({ user_id: String(uId), session_id: sessionId })
-        .then(() => {})
-        .catch(() => {});
-    } catch (e) {}
-  }
-
-  /**
    * Get the current Supabase access token (JWT)
    */
   async function getTokenAsync() {
