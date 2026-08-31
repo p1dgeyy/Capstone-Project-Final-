@@ -457,6 +457,42 @@ const SessionManager = (() => {
   }
 
   /**
+   * Helper: Robust remote sign-out with result checking, retry on failure, and user warning
+   */
+  async function performRemoteSignOut() {
+    if (!supabaseClient || !supabaseClient.auth) return true;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const signOutPromise = supabaseClient.auth.signOut();
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sign-out network timeout')), 2000));
+        const res = await Promise.race([signOutPromise, timeoutPromise]);
+
+        if (res && res.error) {
+          lastError = res.error;
+        } else {
+          return true; // Successfully signed out remotely
+        }
+      } catch (err) {
+        lastError = err;
+      }
+
+      if (attempt === 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+
+    if (lastError) {
+      console.warn('[SessionManager] Remote auth.signOut did not complete cleanly:', lastError.message || lastError);
+      try {
+        sessionStorage.setItem('authSignOutWarning', 'Your local session was cleared, but the remote session sign-out could not be fully confirmed due to a network interruption.');
+      } catch (e) {}
+    }
+    return false;
+  }
+
+  /**
    * User-initiated or standard Logout: frees the active device lock immediately
    */
   async function logout(redirectUrl) {
@@ -499,7 +535,7 @@ const SessionManager = (() => {
         // Timeout race: await clean server-side deletion up to 2000ms
         const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
         await Promise.race([Promise.allSettled(deleteOps), timeoutPromise]);
-        await Promise.race([supabaseClient.auth.signOut().catch(() => {}), new Promise(resolve => setTimeout(resolve, 1000))]);
+        await performRemoteSignOut();
       } catch (e) {
         console.warn('[SessionManager] Sign-out remote cleanup note:', e.message);
       }
@@ -556,7 +592,7 @@ const SessionManager = (() => {
 
         const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
         await Promise.race([Promise.allSettled(deleteOps), timeoutPromise]);
-        await Promise.race([supabaseClient.auth.signOut().catch(() => {}), new Promise(resolve => setTimeout(resolve, 1000))]);
+        await performRemoteSignOut();
       } catch (e) {
         console.warn('[SessionManager] forceLogout cleanup error:', e.message);
       }
@@ -911,7 +947,7 @@ const SessionManager = (() => {
    */
   function checkAndDisplayLoginNotice(containerId = 'errorMessage', alertId = 'errorAlert') {
     try {
-      const message = sessionStorage.getItem('sessionKickedMessage') || sessionStorage.getItem('authGuardMessage');
+      const message = sessionStorage.getItem('sessionKickedMessage') || sessionStorage.getItem('authGuardMessage') || sessionStorage.getItem('authSignOutWarning');
       if (message) {
         const errorEl = document.getElementById(containerId);
         const alertEl = document.getElementById(alertId);
@@ -920,6 +956,7 @@ const SessionManager = (() => {
 
         sessionStorage.removeItem('sessionKickedMessage');
         sessionStorage.removeItem('authGuardMessage');
+        sessionStorage.removeItem('authSignOutWarning');
       }
     } catch (e) {}
   }
