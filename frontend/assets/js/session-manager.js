@@ -349,6 +349,27 @@ const SessionManager = (() => {
           }
         }).catch(() => {});
 
+        // 4. Realtime Broadcast to revoke any existing active sessions on other tabs/devices immediately
+        if (uId) {
+          try {
+            const chName = `user-sessions:${uId}`;
+            const broadcastChannel = supabaseClient.channel(chName);
+            broadcastChannel.subscribe((status) => {
+              if (status === 'SUBSCRIBED') {
+                broadcastChannel.send({
+                  type: 'broadcast',
+                  event: 'new-login',
+                  payload: { session_id: sessionId, user_id: uId, role: uRole }
+                }).then(() => {
+                  setTimeout(() => { supabaseClient.removeChannel(broadcastChannel); }, 2500);
+                }).catch(() => {});
+              }
+            });
+          } catch (bErr) {
+            console.warn('[SessionManager] Broadcast new-login warning:', bErr);
+          }
+        }
+
       } catch (err) {
         console.warn('[SessionManager] registerSession notice:', err.message);
       }
@@ -446,6 +467,12 @@ const SessionManager = (() => {
     if (_inactivityTimer) {
       clearInterval(_inactivityTimer);
       _inactivityTimer = null;
+    }
+    if (_sessionRealtimeChannel && typeof supabaseClient !== 'undefined' && supabaseClient) {
+      try {
+        supabaseClient.removeChannel(_sessionRealtimeChannel);
+        _sessionRealtimeChannel = null;
+      } catch (e) {}
     }
   }
 
@@ -856,12 +883,48 @@ const SessionManager = (() => {
     }
   }
 
+  let _sessionRealtimeChannel = null;
+
+  /**
+   * Subscribe to user-sessions realtime broadcast channel for instant concurrent login eviction
+   */
+  function subscribeSessionRealtime() {
+    if (!supabaseClient || _sessionTerminated) return;
+    const uId = getUserId();
+    if (!uId) return;
+
+    try {
+      if (_sessionRealtimeChannel) {
+        supabaseClient.removeChannel(_sessionRealtimeChannel);
+        _sessionRealtimeChannel = null;
+      }
+
+      const chName = `user-sessions:${uId}`;
+      _sessionRealtimeChannel = supabaseClient.channel(chName);
+      _sessionRealtimeChannel
+        .on('broadcast', { event: 'new-login' }, async (eventPayload) => {
+          const payload = eventPayload?.payload || eventPayload;
+          const incomingSessionId = payload?.session_id;
+          const currentSessionId = getSessionId();
+
+          if (incomingSessionId && currentSessionId && incomingSessionId !== currentSessionId) {
+            console.warn('[SessionManager] Realtime new-login broadcast detected from another device/tab! Revoking current session...');
+            await handleConcurrentSessionRevoked('You have been logged out because this account was logged into from another device.');
+          }
+        })
+        .subscribe();
+    } catch (e) {
+      console.warn('[SessionManager] Realtime subscription notice:', e);
+    }
+  }
+
   /**
    * Start background watchdogs on protected dashboard pages
    */
   function startPeriodicVerification() {
     startHeartbeat();
     startInactivityTimer();
+    subscribeSessionRealtime();
   }
 
   /**
