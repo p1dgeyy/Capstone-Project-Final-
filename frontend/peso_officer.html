@@ -4596,7 +4596,7 @@
         let assistanceRecordsList = [];
         let auditLogs = [];
 
-        function logOfficerAction(actionType, details, metadata = {}) {
+        async function logOfficerAction(actionType, details, metadata = {}) {
             console.log(`[PESO Officer Audit] [${actionType}] ${details}`, metadata);
             const entry = {
                 action: actionType,
@@ -4610,15 +4610,34 @@
             }
             if (typeof DataService !== 'undefined' && DataService.auditLogs && typeof DataService.auditLogs.log === 'function') {
                 try {
-                    DataService.auditLogs.log({
+                    const res = await DataService.auditLogs.log({
                         action: actionType,
                         details: details,
                         officer: entry.officer,
                         portal: 'PESO Officer Portal',
                         metadata: metadata
-                    }).catch(e => console.warn('[Audit Log] Non-critical background sync note:', e));
+                    });
+                    if (res && res.error) {
+                        console.warn('[Audit Log] Failed to persist audit entry:', res.error);
+                        if (window.showSystemNotification) {
+                            window.showSystemNotification({
+                                title: 'Audit Warning',
+                                message: `Audit log failed to record: ${res.error.message || 'Database rejected entry.'}`,
+                                type: 'warning',
+                                duration: 6000
+                            });
+                        }
+                    }
                 } catch (err) {
                     console.warn('[Audit Log] Sync warning:', err);
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Audit Warning',
+                            message: `Audit log exception: ${err.message || err}`,
+                            type: 'warning',
+                            duration: 6000
+                        });
+                    }
                 }
             }
         }
