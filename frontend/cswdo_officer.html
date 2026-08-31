@@ -3286,92 +3286,95 @@
 
         async function saveDisbursement(e) {
             e.preventDefault();
-            const id = document.getElementById('disburseAppId').value;
-            const releaseDate = document.getElementById('disburseReleaseDate').value;
-            const comments = document.getElementById('disburseComments').value.trim();
+            const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (b, fn) => await fn());
+            return await guardFn(e, async () => {
+                const id = document.getElementById('disburseAppId').value;
+                const releaseDate = document.getElementById('disburseReleaseDate').value;
+                const comments = document.getElementById('disburseComments').value.trim();
 
-            const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
-            const index = apps.findIndex(a => a.id === id);
+                const apps = JSON.parse(localStorage.getItem('cswdo_applications')) || [];
+                const index = apps.findIndex(a => a.id === id);
 
-            if (index !== -1) {
-                const app = apps[index];
-                const targetDbId = app.dbId || parseInt(id.replace(/[^0-9]/g, '')) || 1;
-                const rawOfficerId = sessionStorage.getItem('userId');
-                const officerUserId = rawOfficerId && !isNaN(parseInt(rawOfficerId)) ? parseInt(rawOfficerId) : null;
-                const progCode = app.programCode || app.program || (app.type?.includes('SLP') ? 'SLP' : 'AICS');
-                const approvedAmt = Number(app.approvedAmount || app.amount || 0);
+                if (index !== -1) {
+                    const app = apps[index];
+                    const targetDbId = app.dbId || parseInt(id.replace(/[^0-9]/g, '')) || 1;
+                    const rawOfficerId = sessionStorage.getItem('userId');
+                    const officerUserId = rawOfficerId && !isNaN(parseInt(rawOfficerId)) ? parseInt(rawOfficerId) : null;
+                    const progCode = app.programCode || app.program || (app.type?.includes('SLP') ? 'SLP' : 'AICS');
+                    const approvedAmt = Number(app.approvedAmount || app.amount || 0);
 
-                let releaseSuccess = false;
-                let releaseError = '';
+                    let releaseSuccess = false;
+                    let releaseError = '';
 
-                if (typeof DataService !== 'undefined' && DataService.applications) {
-                    try {
-                        const res = await DataService.applications.adminRelease(targetDbId, {
-                            notes: comments,
-                            admin_id: officerUserId,
-                            program_code: progCode,
-                            amount: approvedAmt
-                        });
-
-                        if (res && !res.error) {
-                            releaseSuccess = true;
-                        } else {
-                            releaseError = (res && res.error && res.error.message) || 'Failed to update disbursement status in database.';
-                        }
-
-                        if (releaseSuccess && DataService.auditLogs) {
-                            await DataService.auditLogs.log({
-                                action: 'FUNDS_RELEASED',
-                                entityType: 'application',
-                                entityId: targetDbId,
-                                staffUserId: officerUserId,
-                                details: `Disbursed grant voucher for application #${targetDbId} under program ${progCode} to ${app.beneficiaryName}. Amount: ₱${approvedAmt}. Notes: ${comments}`
+                    if (typeof DataService !== 'undefined' && DataService.applications) {
+                        try {
+                            const res = await DataService.applications.adminRelease(targetDbId, {
+                                notes: comments,
+                                admin_id: officerUserId,
+                                program_code: progCode,
+                                amount: approvedAmt
                             });
-                        }
-                    } catch (dbErr) {
-                        console.warn('[CSWDO Officer Disbursement DB Error]:', dbErr);
-                        releaseError = dbErr.message || 'Exception during fund disbursement.';
-                    }
-                } else {
-                    releaseSuccess = true;
-                }
 
-                if (!releaseSuccess) {
+                            if (res && !res.error) {
+                                releaseSuccess = true;
+                            } else {
+                                releaseError = (res && res.error && res.error.message) || 'Failed to update disbursement status in database.';
+                            }
+
+                            if (releaseSuccess && DataService.auditLogs) {
+                                await DataService.auditLogs.log({
+                                    action: 'FUNDS_RELEASED',
+                                    entityType: 'application',
+                                    entityId: targetDbId,
+                                    staffUserId: officerUserId,
+                                    details: `Disbursed grant voucher for application #${targetDbId} under program ${progCode} to ${app.beneficiaryName}. Amount: ₱${approvedAmt}. Notes: ${comments}`
+                                });
+                            }
+                        } catch (dbErr) {
+                            console.warn('[CSWDO Officer Disbursement DB Error]:', dbErr);
+                            releaseError = dbErr.message || 'Exception during fund disbursement.';
+                        }
+                    } else {
+                        releaseSuccess = true;
+                    }
+
+                    if (!releaseSuccess) {
+                        if (window.showSystemNotification) {
+                            window.showSystemNotification({
+                                title: 'Disbursement Failed',
+                                message: `Could not release funds for case ${id}: ${releaseError}`,
+                                type: 'error',
+                                duration: 8000
+                            });
+                        } else {
+                            alert(`Disbursement Failed for case ${id}: ${releaseError}`);
+                        }
+                        return;
+                    }
+
+                    apps[index].status = 'Completed';
+                    apps[index].dateReleased = releaseDate;
+                    apps[index].remarks += ` | Disbursed: ${releaseDate} (${comments})`;
+
+                    localStorage.setItem('cswdo_applications', JSON.stringify(apps));
+                    pushActivity('Disbursement Recorded', `Released funds for case ${id} under program ${progCode}`);
+                    pushNotification('Disbursement Completed', `Funds of ₱${formatCurrency(approvedAmt)} have been released for ${app.beneficiaryName} (${progCode}).`, 'approval');
+
                     if (window.showSystemNotification) {
                         window.showSystemNotification({
-                            title: 'Disbursement Failed',
-                            message: `Could not release funds for case ${id}: ${releaseError}`,
-                            type: 'error',
-                            duration: 8000
+                            title: 'Disbursement Recorded',
+                            message: `Grant voucher disbursement for ₱${formatCurrency(approvedAmt)} under ${progCode} successfully recorded for case ${id}.`,
+                            type: 'success'
                         });
                     } else {
-                        alert(`Disbursement Failed for case ${id}: ${releaseError}`);
+                        alert(`Disbursement recorded successfully for case ${id}`);
                     }
-                    return;
                 }
 
-                apps[index].status = 'Completed';
-                apps[index].dateReleased = releaseDate;
-                apps[index].remarks += ` | Disbursed: ${releaseDate} (${comments})`;
-
-                localStorage.setItem('cswdo_applications', JSON.stringify(apps));
-                pushActivity('Disbursement Recorded', `Released funds for case ${id} under program ${progCode}`);
-                pushNotification('Disbursement Completed', `Funds of ₱${formatCurrency(approvedAmt)} have been released for ${app.beneficiaryName} (${progCode}).`, 'approval');
-
-                if (window.showSystemNotification) {
-                    window.showSystemNotification({
-                        title: 'Disbursement Recorded',
-                        message: `Grant voucher disbursement for ₱${formatCurrency(approvedAmt)} under ${progCode} successfully recorded for case ${id}.`,
-                        type: 'success'
-                    });
-                } else {
-                    alert(`Disbursement recorded successfully for case ${id}`);
-                }
-            }
-
-            closeDisbursementModal();
-            renderApplicationsTable();
-            await fetchCSWDOOfficerApiData();
+                closeDisbursementModal();
+                renderApplicationsTable();
+                await fetchCSWDOOfficerApiData();
+            }, 'Disbursing Funds...');
         }
 
         // ==============================================
