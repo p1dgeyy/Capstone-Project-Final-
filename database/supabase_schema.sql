@@ -349,42 +349,122 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
   user_role TEXT;
-  user_name TEXT;
-  first_nm TEXT;
-  last_nm TEXT;
-  user_age INT;
   generated_qr TEXT;
+  target_qr TEXT;
 BEGIN
   user_role := COALESCE(NEW.raw_user_meta_data->>'role', 'Beneficiary');
-  user_name := COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1));
-  first_nm := COALESCE(NEW.raw_user_meta_data->>'first_name', '');
-  last_nm := COALESCE(NEW.raw_user_meta_data->>'last_name', '');
-  user_age := COALESCE((NEW.raw_user_meta_data->>'age')::INT, 0);
 
   IF user_role = 'Beneficiary' THEN
-    -- Check if record already exists by email or username
-    IF EXISTS (SELECT 1 FROM public.beneficiaries WHERE email = NEW.email OR username = user_name) THEN
-      UPDATE public.beneficiaries
-      SET auth_id = NEW.id,
-          username = COALESCE(user_name, username),
-          first_name = CASE WHEN first_name IS NULL OR first_name = '' THEN first_nm ELSE first_name END,
-          last_name = CASE WHEN last_name IS NULL OR last_name = '' THEN last_nm ELSE last_name END
-      WHERE email = NEW.email OR username = user_name;
-    ELSE
-      generated_qr := 'QR-BEN-' || UPPER(SUBSTR(MD5(RANDOM()::TEXT || CLOCK_TIMESTAMP()::TEXT), 1, 8));
-      INSERT INTO public.beneficiaries (qr_code, auth_id, username, email, first_name, last_name, age, status)
-      VALUES (generated_qr, NEW.id, user_name, NEW.email, first_nm, last_nm, user_age, 'Active');
-    END IF;
+    generated_qr := 'QR-BEN-' || UPPER(SUBSTR(MD5(RANDOM()::TEXT || CLOCK_TIMESTAMP()::TEXT), 1, 8));
+    target_qr := COALESCE(NULLIF(NEW.raw_user_meta_data->>'qr_code', ''), generated_qr);
+
+    INSERT INTO public.beneficiaries (
+      qr_code,
+      auth_id,
+      username,
+      email,
+      first_name,
+      middle_name,
+      last_name,
+      suffix,
+      age,
+      date_of_birth,
+      sex,
+      nationality,
+      marital_status,
+      spouse_name,
+      number_of_children,
+      phone,
+      address,
+      purok,
+      barangay,
+      program_sector,
+      status,
+      verified_channel,
+      verified_at
+    ) VALUES (
+      target_qr,
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1)),
+      NEW.email,
+      COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
+      NEW.raw_user_meta_data->>'middle_name',
+      COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
+      NEW.raw_user_meta_data->>'suffix',
+      COALESCE((NEW.raw_user_meta_data->>'age')::INT, 0),
+      CASE WHEN NEW.raw_user_meta_data->>'date_of_birth' IS NOT NULL AND NEW.raw_user_meta_data->>'date_of_birth' <> '' 
+           THEN (NEW.raw_user_meta_data->>'date_of_birth')::DATE ELSE NULL END,
+      NEW.raw_user_meta_data->>'sex',
+      COALESCE(NEW.raw_user_meta_data->>'nationality', 'Filipino'),
+      NEW.raw_user_meta_data->>'marital_status',
+      NEW.raw_user_meta_data->>'spouse_name',
+      COALESCE((NEW.raw_user_meta_data->>'number_of_children')::INT, 0),
+      NEW.raw_user_meta_data->>'phone',
+      NEW.raw_user_meta_data->>'address',
+      NEW.raw_user_meta_data->>'purok',
+      NEW.raw_user_meta_data->>'barangay',
+      COALESCE(NEW.raw_user_meta_data->>'program_sector', NEW.raw_user_meta_data->>'program', 'General'),
+      COALESCE(NEW.raw_user_meta_data->>'status', 'Active'),
+      NEW.raw_user_meta_data->>'verified_channel',
+      NOW()
+    )
+    ON CONFLICT (auth_id) DO UPDATE SET
+      username = EXCLUDED.username,
+      first_name = EXCLUDED.first_name,
+      middle_name = EXCLUDED.middle_name,
+      last_name = EXCLUDED.last_name,
+      suffix = EXCLUDED.suffix,
+      phone = EXCLUDED.phone,
+      address = EXCLUDED.address,
+      barangay = EXCLUDED.barangay,
+      purok = EXCLUDED.purok,
+      program_sector = EXCLUDED.program_sector,
+      status = EXCLUDED.status,
+      updated_at = NOW();
   ELSE
-    IF EXISTS (SELECT 1 FROM public.staff_profiles WHERE email = NEW.email OR username = user_name) THEN
-      UPDATE public.staff_profiles
-      SET auth_id = NEW.id,
-          username = COALESCE(user_name, username)
-      WHERE email = NEW.email OR username = user_name;
-    ELSE
-      INSERT INTO public.staff_profiles (auth_id, username, email, first_name, last_name, role, age, status)
-      VALUES (NEW.id, user_name, NEW.email, first_nm, last_nm, user_role, user_age, 'Active');
-    END IF;
+    INSERT INTO public.staff_profiles (
+      auth_id,
+      username,
+      email,
+      first_name,
+      middle_name,
+      last_name,
+      suffix,
+      role,
+      age,
+      date_of_birth,
+      sex,
+      nationality,
+      marital_status,
+      phone,
+      address,
+      status
+    ) VALUES (
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1)),
+      NEW.email,
+      COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
+      NEW.raw_user_meta_data->>'middle_name',
+      COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
+      NEW.raw_user_meta_data->>'suffix',
+      user_role,
+      COALESCE((NEW.raw_user_meta_data->>'age')::INT, 0),
+      CASE WHEN NEW.raw_user_meta_data->>'date_of_birth' IS NOT NULL AND NEW.raw_user_meta_data->>'date_of_birth' <> '' 
+           THEN (NEW.raw_user_meta_data->>'date_of_birth')::DATE ELSE NULL END,
+      NEW.raw_user_meta_data->>'sex',
+      COALESCE(NEW.raw_user_meta_data->>'nationality', 'Filipino'),
+      NEW.raw_user_meta_data->>'marital_status',
+      NEW.raw_user_meta_data->>'phone',
+      NEW.raw_user_meta_data->>'address',
+      COALESCE(NEW.raw_user_meta_data->>'status', 'Active')
+    )
+    ON CONFLICT (auth_id) DO UPDATE SET
+      username = EXCLUDED.username,
+      first_name = EXCLUDED.first_name,
+      last_name = EXCLUDED.last_name,
+      role = EXCLUDED.role,
+      status = EXCLUDED.status,
+      updated_at = NOW();
   END IF;
 
   RETURN NEW;
