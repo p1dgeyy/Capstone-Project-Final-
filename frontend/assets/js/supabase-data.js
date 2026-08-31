@@ -1535,18 +1535,47 @@ const DataService = (() => {
     async releaseAmount(programCode, amount) {
       return withRetry(async (client) => {
         const code = (programCode || '').trim().toUpperCase();
+        const numericAmount = Number(amount || 0);
+
+        if (!code || isNaN(numericAmount) || numericAmount <= 0) {
+          return { data: null, error: { message: 'Invalid program code or release amount.' } };
+        }
+
+        // 1. Primary: Atomic in-database RPC increment
+        try {
+          const { data: rpcRes, error: rpcErr } = await client.rpc('release_fund_amount', {
+            p_program_code: code,
+            p_amount: numericAmount
+          });
+
+          if (!rpcErr && rpcRes) {
+            if (rpcRes.success) {
+              return { data: rpcRes.data, error: null };
+            } else {
+              return { data: null, error: { message: rpcRes.error || 'Failed to release fund amount via atomic RPC.' } };
+            }
+          }
+          if (rpcErr) {
+            console.warn('[DataService] release_fund_amount RPC notice:', rpcErr);
+          }
+        } catch (rpcEx) {
+          console.warn('[DataService] release_fund_amount RPC exception:', rpcEx);
+        }
+
+        // 2. Direct fallback
         let fundRes = await client.from('funds').select('*')
           .or(`program_code.eq.${code},program.ilike.%${code}%`)
           .maybeSingle();
 
         if (fundRes.data) {
-          const newReleased = Number(fundRes.data.released_amount || 0) + Number(amount || 0);
+          const newReleased = Number(fundRes.data.released_amount || 0) + numericAmount;
           return await client.from('funds').update({
             released_amount: newReleased,
             updated_at: new Date().toISOString()
           }).eq('id', fundRes.data.id).select().maybeSingle();
         }
-        return fundRes;
+
+        return { data: null, error: { message: `No fund record found for program code: ${code}` } };
       });
     },
 
