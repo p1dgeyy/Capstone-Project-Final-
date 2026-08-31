@@ -42,7 +42,7 @@ const DataService = (() => {
   async function withRetry(operationFn, maxRetries = 1, delayMs = 500) {
     // If backend recently threw repeated 5xx errors, cool down for 4 seconds to allow database recovery
     if (_consecutiveServerErrorCount >= 3 && (Date.now() - _lastServerErrorTimestamp) < 4000) {
-      return { data: [], error: null };
+      return { data: null, error: { message: 'Database temporarily unavailable, cooling down. Please try again.', code: 'COOLDOWN' } };
     }
 
     let lastError = null;
