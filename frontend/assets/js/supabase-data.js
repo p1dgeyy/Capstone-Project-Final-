@@ -1837,12 +1837,14 @@ const DataService = (() => {
         const payload = {
           title: data.title,
           message: data.message,
-          is_read: false
+          is_read: data.is_read || data.isRead || false
         };
-        if (data.beneficiary_qr) {
-          payload.beneficiary_qr = data.beneficiary_qr;
-        } else if (data.staff_user_id) {
-          payload.staff_user_id = data.staff_user_id;
+        const staffId = data.staff_user_id || data.staffUserId;
+        const benQr = data.beneficiary_qr || data.beneficiaryQr;
+        if (benQr) {
+          payload.beneficiary_qr = benQr;
+        } else if (staffId) {
+          payload.staff_user_id = staffId;
         }
         return await client.from('notifications').insert(payload).select().single();
       });
@@ -3079,13 +3081,18 @@ const DataService = (() => {
           const req = res.data;
           if (req.staff_id) {
             try {
-              await client.from('notifications').insert({
+              const nRes = await notifications.create({
                 staff_user_id: req.staff_id,
                 title: 'Password Reset Request Approved',
                 message: `Your password reset request (${req.ticket_id}) has been approved by the Administrator. You can now set your new password on the official login portal.`,
                 is_read: false
               });
-            } catch (e) {}
+              if (nRes && nRes.error) {
+                console.warn('[Notification Warning]: Failed to insert approval notification:', nRes.error.message || nRes.error);
+              }
+            } catch (e) {
+              console.warn('[Notification Warning]: Failed to dispatch approval notification:', e.message || e);
+            }
           }
 
           try {
@@ -3132,13 +3139,18 @@ const DataService = (() => {
           const req = res.data;
           if (req.staff_id) {
             try {
-              await client.from('notifications').insert({
+              const nRes = await notifications.create({
                 staff_user_id: req.staff_id,
                 title: 'Password Reset Request Disapproved',
                 message: `Your password reset request (${req.ticket_id}) was not approved. Reason: ${reason}`,
                 is_read: false
               });
-            } catch (e) {}
+              if (nRes && nRes.error) {
+                console.warn('[Notification Warning]: Failed to insert rejection notification:', nRes.error.message || nRes.error);
+              }
+            } catch (e) {
+              console.warn('[Notification Warning]: Failed to dispatch rejection notification:', e.message || e);
+            }
           }
 
           try {
