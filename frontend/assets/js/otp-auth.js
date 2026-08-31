@@ -671,12 +671,28 @@ var OTPAuth = (function() {
             }
 
             // Audit log
-            if (typeof supabaseClient.from === 'function') {
-                supabaseClient.from('audit_logs').insert({
-                    action: 'PASSWORD_RESET_SUCCESS',
-                    entity_type: 'beneficiary',
-                    details: `Password reset successfully completed for account ${cleanEmail}`
-                }).then(() => {});
+            if (typeof DataService !== 'undefined' && DataService.auditLogs && typeof DataService.auditLogs.log === 'function') {
+                try {
+                    await DataService.auditLogs.log({
+                        action: 'PASSWORD_RESET_SUCCESS',
+                        entityType: 'beneficiary',
+                        beneficiaryQr: record?.qr_code || sessionStorage.getItem('beneficiaryQrCode') || null,
+                        details: `Password reset successfully completed for account ${cleanEmail}`
+                    });
+                } catch (e) {
+                    console.warn('[OTPAuth] Audit log note:', e);
+                }
+            } else if (typeof supabaseClient.from === 'function') {
+                try {
+                    await supabaseClient.from('audit_logs').insert({
+                        action: 'PASSWORD_RESET_SUCCESS',
+                        entity_type: 'beneficiary',
+                        beneficiary_qr: record?.qr_code || sessionStorage.getItem('beneficiaryQrCode') || null,
+                        details: `Password reset successfully completed for account ${cleanEmail}`
+                    });
+                } catch (e) {
+                    console.warn('[OTPAuth] Direct audit log note:', e);
+                }
             }
         } else {
             throw new Error('Database connection is not available.');
