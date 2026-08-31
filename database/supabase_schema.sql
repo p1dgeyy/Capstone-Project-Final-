@@ -429,7 +429,7 @@ BEGIN
       address,
       purok,
       barangay,
-      program_sector,
+      program,
       status,
       verified_channel,
       verified_at
@@ -454,7 +454,7 @@ BEGIN
       NEW.raw_user_meta_data->>'address',
       NEW.raw_user_meta_data->>'purok',
       NEW.raw_user_meta_data->>'barangay',
-      COALESCE(NEW.raw_user_meta_data->>'program_sector', NEW.raw_user_meta_data->>'program', 'General'),
+      COALESCE(NEW.raw_user_meta_data->>'program', NEW.raw_user_meta_data->>'program_sector', 'General'),
       COALESCE(NEW.raw_user_meta_data->>'status', 'Active'),
       NEW.raw_user_meta_data->>'verified_channel',
       NOW()
@@ -469,7 +469,7 @@ BEGIN
       address = EXCLUDED.address,
       barangay = EXCLUDED.barangay,
       purok = EXCLUDED.purok,
-      program_sector = EXCLUDED.program_sector,
+      program = EXCLUDED.program,
       status = EXCLUDED.status,
       updated_at = NOW();
   ELSE
