@@ -9,6 +9,18 @@ function formatCurrency(amount) {
 }
 window.formatCurrency = formatCurrency;
 
+// Global in-memory cache for cross-module data (Funds module and Dashboard KPIs
+// read from this). Populated by initFundsData() in peso-admin-funds.js.
+window.AdminStore = window.AdminStore || {
+    programs: [],
+    applications: [],
+    batches: [],
+    beneficiaries: [],
+    approvedAssistance: [],
+    funds: []
+};
+const AdminStore = window.AdminStore;
+
 function renderDashboardOverview() {
     const list = (typeof programsList !== 'undefined' && Array.isArray(programsList)) ? programsList : [];
     const activeList = list.filter(p => p.status === 'Active');
@@ -28,6 +40,16 @@ function renderDashboardOverview() {
     if (typeof filterPrograms === 'function') filterPrograms();
     if (typeof renderAssignProgramsTable === 'function') renderAssignProgramsTable();
     if (typeof renderArchiveTable === 'function') renderArchiveTable(archList);
+
+    // Real KPI cards (statOverview*, fundUtil*, etc.) live in PesoDashboard.renderAdminMetrics --
+    // the block above only ever wrote to older ids that no longer exist on this page.
+    if (typeof PesoDashboard !== 'undefined' && PesoDashboard.renderAdminMetrics) {
+        const apps = (typeof evalApplicationsList !== 'undefined' && Array.isArray(evalApplicationsList)) ? evalApplicationsList : [];
+        const fnds = (window.AdminStore && Array.isArray(window.AdminStore.funds)) ? window.AdminStore.funds : [];
+        const btchs = (window.AdminStore && Array.isArray(window.AdminStore.batches)) ? window.AdminStore.batches : [];
+        const scheds = (typeof activitiesList !== 'undefined' && Array.isArray(activitiesList)) ? activitiesList : [];
+        PesoDashboard.renderAdminMetrics(list, apps, fnds, btchs, scheds);
+    }
 }
 window.renderDashboardOverview = renderDashboardOverview;
 
@@ -40,7 +62,7 @@ async function refreshAllData() {
         if (typeof initSchedulingData === 'function') await initSchedulingData();
         if (typeof renderDashboardTables === 'function') renderDashboardTables();
         if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
-        if (typeof renderFundsManagementModule === 'function') renderFundsManagementModule();
+        if (typeof initFundsData === 'function') await initFundsData();
         if (typeof renderReportsModule === 'function') renderReportsModule();
     } catch (e) {
         console.warn('[PESO Admin] refreshAllData notice:', e);
@@ -93,6 +115,8 @@ function switchTab(tabName) {
         showLevel1Programs();
     } else if (target === 'archive') {
         renderArchiveTable();
+    } else if (target === 'funds') {
+        if (typeof renderFundsModule === 'function') renderFundsModule();
     }
 
     logAuditEvent('SWITCH_NAVIGATION_TAB', `Switched active navigation tab to "${target.toUpperCase()}"`);
@@ -109,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initOfficersData();
         fetchOfficersFromApi();
         initEvalModuleData();
+        if (typeof initFundsData === 'function') initFundsData();
         renderDashboardTables();
     } catch (initErr) {
         console.error('[PESO Admin Init Error]:', initErr);

@@ -1569,9 +1569,9 @@ window.permanentlyDeleteProgram = permanentlyDeleteProgram;
 
 window.showProgramsLevel1 = function() {
     if (typeof showLevel1Programs === 'function') showLevel1Programs();
-    const l1 = document.getElementById('programsLevel1');
-    const l2 = document.getElementById('programsLevel2');
-    const l3 = document.getElementById('programsLevel3');
+    const l1 = document.getElementById('programsLevel1View');
+    const l2 = document.getElementById('programsLevel2BatchesView');
+    const l3 = document.getElementById('programsLevel3BeneficiariesView');
     if (l1) l1.classList.remove('d-none');
     if (l2) l2.classList.add('d-none');
     if (l3) l3.classList.add('d-none');
@@ -1579,9 +1579,9 @@ window.showProgramsLevel1 = function() {
 
 window.showProgramsLevel2 = function() {
     if (typeof showLevel2Batches === 'function') showLevel2Batches();
-    const l1 = document.getElementById('programsLevel1');
-    const l2 = document.getElementById('programsLevel2');
-    const l3 = document.getElementById('programsLevel3');
+    const l1 = document.getElementById('programsLevel1View');
+    const l2 = document.getElementById('programsLevel2BatchesView');
+    const l3 = document.getElementById('programsLevel3BeneficiariesView');
     if (l1) l1.classList.add('d-none');
     if (l2) l2.classList.remove('d-none');
     if (l3) l3.classList.add('d-none');
