@@ -965,11 +965,11 @@ const DataService = (() => {
 
         const progCode = approveData.program_code || currentApp?.programs?.code || 'PESO';
 
-        // 2. Fail-Closed Budget Release check upon Admin Approval
-        if (amountToApprove > 0 && typeof funds !== 'undefined' && funds.releaseAmount) {
-          const fundRes = await funds.releaseAmount(progCode, amountToApprove);
-          if (fundRes && fundRes.error) {
-            return { data: null, error: { message: `Budget Limit: Cannot approve application. ${fundRes.error.message || 'Insufficient remaining program budget.'}` } };
+        // 2. Budget verification check upon Admin Approval (without premature deduction; deduction occurs at adminRelease)
+        if (amountToApprove > 0 && typeof funds !== 'undefined' && funds.checkBalance) {
+          const checkRes = await funds.checkBalance(progCode, amountToApprove);
+          if (checkRes && checkRes.data && !checkRes.data.hasSufficientFunds) {
+            return { data: null, error: { message: `Budget Limit: Cannot approve application. ${checkRes.data.reason || 'Insufficient remaining program budget.'}` } };
           }
         }
 
@@ -1042,7 +1042,8 @@ const DataService = (() => {
           .eq('id', id)
           .maybeSingle();
 
-        if (currentApp && (currentApp.status === 'Approved' || currentApp.status === 'Released')) {
+        // Only applications that reached terminal 'Released' status had funds deducted from the ledger
+        if (currentApp && currentApp.status === 'Released') {
           const amountToRefund = Number(currentApp.amount_approved || currentApp.amount_requested || 0);
           const progCode = currentApp.programs?.code || 'PESO';
           if (amountToRefund > 0 && typeof funds !== 'undefined' && typeof funds.refundAmount === 'function') {
