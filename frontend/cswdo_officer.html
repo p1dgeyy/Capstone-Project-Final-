@@ -3069,7 +3069,82 @@
 
             if (index !== -1) {
                 const app = apps[index];
-                
+                const targetDbId = app.dbId || parseInt(id.replace(/[^0-9]/g, '')) || 1;
+                const rawOfficerId = sessionStorage.getItem('userId');
+                const officerUserId = rawOfficerId && !isNaN(parseInt(rawOfficerId)) ? parseInt(rawOfficerId) : null;
+                const newOfficerStatus = status === 'Approved' ? 'Officer Approved' : (status === 'Denied' ? 'Officer Denied' : 'Under Review');
+
+                let writeSuccess = false;
+                let writeError = '';
+
+                // --- Write directly to Supabase via DataService ---
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    try {
+                        const evalRes = await DataService.applications.evaluate(targetDbId, {
+                            status: newOfficerStatus,
+                            decision: status,
+                            notes: remarks,
+                            officer_id: officerUserId,
+                            amount_approved: status === 'Approved' ? amount : null
+                        });
+
+                        if (evalRes && !evalRes.error && evalRes.data) {
+                            writeSuccess = true;
+                        } else {
+                            writeError = (evalRes && evalRes.error && evalRes.error.message) || 'Failed to save evaluation to database.';
+                        }
+
+                        if (writeSuccess && status === 'Approved' && DataService.approvedAssistance) {
+                            await DataService.approvedAssistance.create({
+                                application_id: targetDbId,
+                                beneficiary_qr: app.beneficiaryId || `QR-BEN-${targetDbId}`,
+                                program_id: app.program_id || 1,
+                                amount_approved: amount,
+                                evaluation_notes: remarks,
+                                officer_id: officerUserId
+                            }).catch(e => console.warn('[CSWDO Officer Approved Assistance Sync]:', e));
+                        }
+
+                        if (writeSuccess && DataService.notifications) {
+                            await DataService.notifications.create({
+                                recipient_qr: app.beneficiaryId || `QR-BEN-${targetDbId}`,
+                                title: `CSWDO Application ${status}`,
+                                message: `Your application for ${app.type} has been ${status.toUpperCase()} by the case evaluation officer. Remarks: "${remarks}"`,
+                                type: status === 'Approved' ? 'success' : 'warning'
+                            }).catch(e => console.warn('[CSWDO Officer Notification Sync]:', e));
+                        }
+
+                        if (writeSuccess && DataService.auditLogs) {
+                            await DataService.auditLogs.log({
+                                action: `APPLICATION_${status.toUpperCase()}`,
+                                entityType: 'application',
+                                entityId: targetDbId,
+                                staffUserId: officerUserId,
+                                details: `CSWDO Case Officer evaluated application #${targetDbId} as ${status}. Approved Amount: ₱${amount}. Remarks: ${remarks}`
+                            }).catch(e => console.warn('[CSWDO Officer Audit Sync]:', e));
+                        }
+                    } catch (dbErr) {
+                        writeError = dbErr.message || 'Exception during database write.';
+                        console.warn('[CSWDO Officer DataService Error]:', dbErr);
+                    }
+                } else {
+                    writeSuccess = true;
+                }
+
+                if (!writeSuccess) {
+                    if (window.showSystemNotification) {
+                        window.showSystemNotification({
+                            title: 'Evaluation Failed',
+                            message: `Could not evaluate application ${id}: ${writeError}`,
+                            type: 'error',
+                            duration: 8000
+                        });
+                    } else {
+                        alert(`Evaluation Failed for case ${id}: ${writeError}`);
+                    }
+                    return;
+                }
+
                 // Verify budget limit if approved
                 if (status === 'Approved') {
                     const programs = JSON.parse(localStorage.getItem('cswdo_programs')) || [];
@@ -3094,53 +3169,6 @@
                 localStorage.setItem('cswdo_applications', JSON.stringify(apps));
                 pushActivity('Application Evaluated', `Officer set case ${id} to ${status}`);
                 pushNotification('Application Evaluated', `Assistance application ${id} for ${app.beneficiaryName} has been ${status} by Officer.`, 'approval');
-                
-                // --- Write directly to Supabase via DataService ---
-                const targetDbId = app.dbId || parseInt(id.replace(/[^0-9]/g, '')) || 1;
-                const rawOfficerId = sessionStorage.getItem('userId');
-                const officerUserId = rawOfficerId && !isNaN(parseInt(rawOfficerId)) ? parseInt(rawOfficerId) : null;
-
-                if (typeof DataService !== 'undefined' && DataService.applications) {
-                    try {
-                        await DataService.applications.evaluate(targetDbId, {
-                            status: status === 'Approved' ? 'Officer Approved' : (status === 'Denied' ? 'Officer Denied' : 'Under Review'),
-                            notes: remarks,
-                            officer_id: officerUserId
-                        });
-
-                        if (status === 'Approved' && DataService.approvedAssistance) {
-                            await DataService.approvedAssistance.create({
-                                application_id: targetDbId,
-                                beneficiary_qr: app.beneficiaryId || `QR-BEN-${targetDbId}`,
-                                program_id: 1,
-                                amount_approved: amount,
-                                evaluation_notes: remarks,
-                                officer_id: officerUserId
-                            });
-                        }
-
-                        if (DataService.notifications) {
-                            await DataService.notifications.create({
-                                recipient_qr: app.beneficiaryId,
-                                title: `CSWDO Application ${status}`,
-                                message: `Your application for ${app.type} has been ${status.toUpperCase()} by the case evaluation officer. Remarks: "${remarks}"`,
-                                type: status === 'Approved' ? 'success' : 'warning'
-                            });
-                        }
-
-                        if (DataService.auditLogs) {
-                            await DataService.auditLogs.log({
-                                action: `APPLICATION_${status.toUpperCase()}`,
-                                entityType: 'application',
-                                entityId: targetDbId,
-                                staffUserId: officerUserId,
-                                details: `CSWDO Case Officer evaluated application #${targetDbId} as ${status}. Approved Amount: ₱${amount}. Remarks: ${remarks}`
-                            });
-                        }
-                    } catch (dbErr) {
-                        console.warn('[CSWDO Officer DataService Error]:', dbErr);
-                    }
-                }
                 
                 // Trigger Simulated / In-App Notification to Beneficiary
                 triggerAssistanceNotification(app, status, amount, remarks);

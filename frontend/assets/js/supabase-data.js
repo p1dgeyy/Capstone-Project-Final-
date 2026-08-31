@@ -746,28 +746,38 @@ const DataService = (() => {
         else if (decision === 'Pending Requirements') newStatus = 'Pending Requirements';
 
         const payload = {
-          officer_decision: decision,
+          officer_decision: decision || (evaluationData.status ? evaluationData.status.replace(/^Officer\s+/, '') : null),
           officer_id: evaluationData.officer_id || null,
           officer_notes: evaluationData.notes || '',
           officer_action_at: new Date().toISOString(),
-          status: evaluationData.status || newStatus
+          status: evaluationData.status || newStatus,
+          updated_at: new Date().toISOString()
         };
+
+        if (evaluationData.amount_approved !== undefined && evaluationData.amount_approved !== null) {
+          payload.amount_approved = Number(evaluationData.amount_approved) || 0;
+        }
+
+        // Cleanse payload to prevent primary key or read-only update errors
+        delete payload.id;
+        delete payload.created_at;
 
         const res = await client.from('applications').update(payload).eq('id', id).select().maybeSingle();
         if (!res.error && res.data) {
+          const actionDecision = decision || evaluationData.status || 'EVALUATED';
           auditLogs.log({
             staffUserId: evaluationData.officer_id || null,
-            action: `OFFICER_EVALUATION_${decision.toUpperCase().replace(/\s+/g, '_')}`,
+            action: `OFFICER_EVALUATION_${actionDecision.toUpperCase().replace(/\s+/g, '_')}`,
             entityType: 'application',
             entityId: id,
-            details: `Officer evaluated application ${res.data.application_number} as ${decision}. Notes: ${evaluationData.notes || 'None'}`
+            details: `Officer evaluated application ${res.data.application_number} as ${actionDecision}. Notes: ${evaluationData.notes || 'None'}`
           });
 
           // Also notify beneficiary
           notifications.create({
             beneficiary_qr: res.data.beneficiary_qr,
             title: `Application Update: Evaluation Complete`,
-            message: `Your application (${res.data.application_number}) has been evaluated as ${decision}. ${evaluationData.notes ? 'Remarks: ' + evaluationData.notes : ''}`
+            message: `Your application (${res.data.application_number}) has been evaluated as ${actionDecision}. ${evaluationData.notes ? 'Remarks: ' + evaluationData.notes : ''}`
           });
         }
         return res;
