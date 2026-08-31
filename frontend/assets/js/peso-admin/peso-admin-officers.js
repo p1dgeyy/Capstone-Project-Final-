@@ -15,6 +15,7 @@ async function initOfficersData() {
                     .filter(off => !['CSWDO Admin', 'CSWDO Officer'].includes(off.role) && (off.department || 'PESO') !== 'CSWDO')
                     .map(off => ({
                         id: off.id,
+                        created_at: off.created_at || null,
                         first_name: off.first_name || '',
                         middle_name: off.middle_name || '',
                         last_name: off.last_name || '',
@@ -86,76 +87,58 @@ function renderOfficersTables() {
     const activeOfficers = filtered.filter(o => o.status === 'Active');
     const archivedOfficers = filtered.filter(o => o.status === 'Deactivated');
 
-    // Render Active Officers Table
-    const activeTbody = document.getElementById('activeOfficersTableBody');
-    if (activeTbody) {
-        activeTbody.innerHTML = activeOfficers.length === 0 ? `<tr><td colspan="8" class="text-center py-4 text-muted">No active officer accounts found matching criteria.</td></tr>` : '';
-        activeOfficers.forEach(off => {
-            const tr = document.createElement('tr');
-            tr.style.cursor = 'pointer';
-            const fullName = `${escapeHtml(off.first_name)} ${escapeHtml(off.middle_name || '')} ${escapeHtml(off.last_name)} ${off.suffix && off.suffix !== 'N/A' ? escapeHtml(off.suffix) : ''}`.trim();
-            tr.innerHTML = `
-                <td onclick="openEditOfficerModal(${off.id})">
-                    <div class="fw-bold text-dark">${fullName}</div>
-                    <small class="text-muted"><i class="bi bi-gender-ambiguous me-1"></i>${escapeHtml(off.sex || 'N/A')}</small>
-                </td>
-                <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-light text-dark font-monospace border">${escapeHtml(off.username)}</span></td>
-                <td onclick="openEditOfficerModal(${off.id})">${escapeHtml(off.email)}</td>
-                <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-primary-subtle text-primary fw-semibold">${escapeHtml(off.role)}</span></td>
-                <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-secondary-subtle text-dark">${escapeHtml(off.department)}</span></td>
-                <td onclick="openEditOfficerModal(${off.id})"><span class="masked-phone">${escapeHtml(maskContactNumber(off.phone))}</span></td>
-                <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-success px-2.5 py-1">Active</span></td>
-                <td class="text-end" onclick="event.stopPropagation()">
-                    <div class="d-inline-flex align-items-center gap-2">
-                        <div class="form-check form-switch mb-0" title="Toggle status (Active / Deactivated)">
-                            <input class="form-check-input" type="checkbox" role="switch" checked onchange="handleOfficerStatusToggle(event, ${off.id})" aria-label="Toggle Status">
+    // Render Officers Table (single roster table -- #officersTableBody is the only
+    // table body that actually exists in peso_admin.html; there is no separate
+    // active/archive table pair for officers, unlike Programs)
+    const tbody = document.getElementById('officersTableBody');
+    if (tbody) {
+        tbody.innerHTML = filtered.length === 0 ? `<tr><td colspan="8" class="text-center py-4 text-muted">No officer accounts found matching criteria.</td></tr>` : '';
+        filtered
+            .slice()
+            .sort((a, b) => (a.status === b.status) ? 0 : (a.status === 'Active' ? -1 : 1))
+            .forEach(off => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                const isActive = off.status === 'Active';
+                const fullName = `${escapeHtml(off.first_name)} ${escapeHtml(off.middle_name || '')} ${escapeHtml(off.last_name)} ${off.suffix && off.suffix !== 'N/A' ? escapeHtml(off.suffix) : ''}`.trim();
+                const createdDate = off.created_at ? new Date(off.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+                tr.innerHTML = `
+                    <td onclick="openEditOfficerModal(${off.id})">
+                        <div class="fw-bold ${isActive ? 'text-dark' : 'text-secondary text-decoration-line-through'}">${fullName}</div>
+                        <small class="text-muted"><i class="bi bi-gender-ambiguous me-1"></i>${escapeHtml(off.sex || 'N/A')}</small>
+                    </td>
+                    <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-light text-dark font-monospace border">${escapeHtml(off.username)}</span><br><small class="text-muted">${escapeHtml(off.email)}</small></td>
+                    <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-primary-subtle text-primary fw-semibold">${escapeHtml(off.role)}</span></td>
+                    <td onclick="openEditOfficerModal(${off.id})"><span class="badge bg-secondary-subtle text-dark">${escapeHtml(off.department || 'PESO')}</span></td>
+                    <td onclick="openEditOfficerModal(${off.id})"><span class="masked-phone">${escapeHtml(maskContactNumber(off.phone))}</span></td>
+                    <td onclick="openEditOfficerModal(${off.id})">${createdDate}</td>
+                    <td class="text-center" onclick="event.stopPropagation()">
+                        <span class="badge ${isActive ? 'bg-success' : 'bg-danger'} px-2.5 py-1">${isActive ? 'Active' : 'Deactivated'}</span>
+                    </td>
+                    <td class="text-end" onclick="event.stopPropagation()">
+                        <div class="d-inline-flex align-items-center gap-2">
+                            <div class="form-check form-switch mb-0" title="Toggle status (Active / Deactivated)">
+                                <input class="form-check-input" type="checkbox" role="switch" ${isActive ? 'checked' : ''} onchange="handleOfficerStatusToggle(event, ${off.id})" aria-label="Toggle Status">
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openEditOfficerModal(${off.id})">
+                                <i class="bi bi-pencil-square"></i> Details / Edit
+                            </button>
                         </div>
-                        <button class="btn btn-sm btn-outline-primary" onclick="openEditOfficerModal(${off.id})">
-                            <i class="bi bi-pencil-square"></i> Details / Edit
-                        </button>
-                    </div>
-                </td>
-            `;
-            activeTbody.appendChild(tr);
-        });
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
     }
 
-    // Render Archive Box Table (Deactivated Officers)
-    const archiveTbody = document.getElementById('archivedOfficersTableBody');
-    if (archiveTbody) {
-        archiveTbody.innerHTML = archivedOfficers.length === 0 ? `<tr><td colspan="8" class="text-center py-4 text-muted">Archive box clean — no deactivated officer accounts.</td></tr>` : '';
-        archivedOfficers.forEach(off => {
-            const tr = document.createElement('tr');
-            const fullName = `${escapeHtml(off.first_name)} ${escapeHtml(off.middle_name || '')} ${escapeHtml(off.last_name)} ${off.suffix && off.suffix !== 'N/A' ? escapeHtml(off.suffix) : ''}`.trim();
-            tr.innerHTML = `
-                <td>
-                    <div class="fw-bold text-secondary text-decoration-line-through">${fullName}</div>
-                    <small class="text-muted"><i class="bi bi-lock-fill text-warning me-1"></i>Access Revoked</small>
-                </td>
-                <td><span class="badge bg-light text-muted font-monospace border">${escapeHtml(off.username)}</span></td>
-                <td>${escapeHtml(off.email)}</td>
-                <td><span class="badge bg-secondary-subtle text-secondary">${escapeHtml(off.role)}</span></td>
-                <td><span class="badge bg-light text-dark">${escapeHtml(off.department)}</span></td>
-                <td><span class="masked-phone">${escapeHtml(maskContactNumber(off.phone))}</span></td>
-                <td><span class="badge bg-danger px-2.5 py-1">Deactivated</span></td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-success me-1" onclick="activateOfficerAccount(${off.id})">
-                        <i class="bi bi-shield-check"></i> Restore (Activate)
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="permanentlyDeleteOfficer(${off.id})">
-                        <i class="bi bi-trash-fill"></i> Delete
-                    </button>
-                </td>
-            `;
-            archiveTbody.appendChild(tr);
-        });
-    }
-
-    // Update Badge Counts
+    // Update Metrics Cards & Badges
     const totalActive = officersList.filter(o => o.status === 'Active').length;
     const totalDeactivated = officersList.filter(o => o.status === 'Deactivated').length;
+    if (document.getElementById('statTotalStaffCount')) document.getElementById('statTotalStaffCount').textContent = officersList.length;
+    if (document.getElementById('statActiveOfficersCount')) document.getElementById('statActiveOfficersCount').textContent = totalActive;
+    if (document.getElementById('statDeactivatedStaffCount')) document.getElementById('statDeactivatedStaffCount').textContent = totalDeactivated;
     if (document.getElementById('activeOfficersBadge')) document.getElementById('activeOfficersBadge').textContent = `${totalActive} Active Officers`;
     if (document.getElementById('archiveOfficersBadge')) document.getElementById('archiveOfficersBadge').textContent = `${totalDeactivated} Archived Officers`;
+    if (document.getElementById('officerTabBadge')) document.getElementById('officerTabBadge').textContent = officersList.length;
 }
 
 function renderOfficersArchiveTable(customList) {
