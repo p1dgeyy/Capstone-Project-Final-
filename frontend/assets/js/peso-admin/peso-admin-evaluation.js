@@ -113,21 +113,20 @@ async function initEvalModuleData() {
                     const progId = (prog && prog.id) || a.program_id || 1;
 
                     // Resolve real forwarding officer name from actual officer accounts
-                    let forwardingOfficer = a.forwarded_by || a.officer_name || null;
+                    let forwardingOfficer = a.forwarded_by || null;
                     if (forwardingOfficer === 'PESO Officer Desk' || forwardingOfficer === 'N/A') forwardingOfficer = null;
                     
                     if (!forwardingOfficer && a.officer_id && officersMap[a.officer_id]) {
                         forwardingOfficer = officersMap[a.officer_id];
                     }
-                    if (!forwardingOfficer && a.evaluator_id && officersMap[a.evaluator_id]) {
-                        forwardingOfficer = officersMap[a.evaluator_id];
-                    }
                     if (!forwardingOfficer && a.batch_id && batchesMap[a.batch_id]) {
                         const batch = batchesMap[a.batch_id];
-                        forwardingOfficer = batch.officer_name || (batch.created_by && officersMap[batch.created_by]) || null;
+                        if (batch && batch.created_by && officersMap[batch.created_by]) {
+                            forwardingOfficer = officersMap[batch.created_by];
+                        }
                     }
                     if (!forwardingOfficer) {
-                        forwardingOfficer = pesoOfficersList.length > 0 ? pesoOfficersList[0] : 'Officer Jane Smith';
+                        forwardingOfficer = pesoOfficersList.length > 0 ? pesoOfficersList[0] : 'PESO Officer';
                     }
 
                     const docsList = Array.isArray(a.documents_json) && a.documents_json.length > 0

@@ -786,7 +786,7 @@ const DataService = (() => {
       return withRetry(async (client) => {
         const selectFields = filters.includeDocs
           ? '*'
-          : 'id, application_number, beneficiary_qr, program_id, date_applied, status, progress_percent, remarks, created_at, updated_at, amount_requested, amount_approved, batch_id, rejection_reason, rejection_category, evaluated_by, evaluated_at, operational_batch_id, operational_batch_name, is_operational_batch, batched_at, batched_by, forwarded_at, forwarded_by, officer_notes, admin_notes';
+          : 'id, application_number, beneficiary_qr, program_id, date_applied, status, progress_percent, remarks, created_at, updated_at, amount_requested, amount_approved, batch_id, officer_id, officer_decision, officer_action_at, admin_id, rejection_reason, rejection_category, evaluated_by, evaluated_at, operational_batch_id, operational_batch_name, is_operational_batch, batched_at, batched_by, forwarded_at, forwarded_by, officer_notes, admin_notes';
         let query = client.from('applications').select(selectFields);
 
         if (filters.program_id) {
