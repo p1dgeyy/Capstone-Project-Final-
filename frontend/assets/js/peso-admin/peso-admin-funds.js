@@ -13,18 +13,22 @@
     async function initFundsData() {
         if (typeof DataService !== 'undefined' && window.AdminStore) {
             try {
-                const [progRes, fundsRes, assistRes, batchesRes, benRes] = await Promise.all([
+                const [progRes, fundsRes, assistRes, batchesRes, benRes, notifRes, auditRes] = await Promise.all([
                     DataService.programs.getAll({ agency: 'PESO' }),
                     DataService.funds.getAll(),
                     DataService.approvedAssistance.getAll(),
                     DataService.batches.getAll({ simple: true }),
-                    DataService.beneficiaries.getAll()
+                    DataService.beneficiaries.getAll(),
+                    (typeof DataService.notifications !== 'undefined' ? DataService.notifications.getAll({ limit: 200 }) : Promise.resolve({ data: [] })),
+                    (typeof DataService.auditLogs !== 'undefined' ? DataService.auditLogs.getAll({ limit: 200 }) : Promise.resolve({ data: [] }))
                 ]);
                 window.AdminStore.programs = (progRes && Array.isArray(progRes.data)) ? progRes.data : [];
                 window.AdminStore.funds = (fundsRes && Array.isArray(fundsRes.data)) ? fundsRes.data : [];
                 window.AdminStore.approvedAssistance = (assistRes && Array.isArray(assistRes.data)) ? assistRes.data : [];
                 window.AdminStore.batches = (batchesRes && Array.isArray(batchesRes.data)) ? batchesRes.data : [];
                 window.AdminStore.beneficiaries = (benRes && Array.isArray(benRes.data)) ? benRes.data : [];
+                window.AdminStore.notifications = (notifRes && Array.isArray(notifRes.data)) ? notifRes.data : [];
+                window.AdminStore.auditLogs = (auditRes && Array.isArray(auditRes.data)) ? auditRes.data : [];
                 window.AdminStore.applications = (typeof evalApplicationsList !== 'undefined' && Array.isArray(evalApplicationsList)) ? evalApplicationsList : [];
             } catch (e) {
                 console.warn('[Funds] initFundsData notice:', e);

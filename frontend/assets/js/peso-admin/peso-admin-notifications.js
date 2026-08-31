@@ -39,6 +39,9 @@
             }
         }
 
+        const badgeEl = document.getElementById('notifTabBadge');
+        if (badgeEl) badgeEl.textContent = notifs.length;
+
         // Render Incoming Officer Action Alerts Feed
         renderOfficerActionAlertsStream();
     }

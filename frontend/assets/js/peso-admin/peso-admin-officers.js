@@ -138,7 +138,7 @@ function renderOfficersTables() {
     if (document.getElementById('statDeactivatedStaffCount')) document.getElementById('statDeactivatedStaffCount').textContent = totalDeactivated;
     if (document.getElementById('activeOfficersBadge')) document.getElementById('activeOfficersBadge').textContent = `${totalActive} Active Officers`;
     if (document.getElementById('archiveOfficersBadge')) document.getElementById('archiveOfficersBadge').textContent = `${totalDeactivated} Archived Officers`;
-    if (document.getElementById('officerTabBadge')) document.getElementById('officerTabBadge').textContent = officersList.length;
+    if (document.getElementById('officersTabBadge')) document.getElementById('officersTabBadge').textContent = officersList.length;
 }
 
 function renderOfficersArchiveTable(customList) {
