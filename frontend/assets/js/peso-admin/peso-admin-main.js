@@ -156,6 +156,20 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('[PESO Admin] Modal lifecycle setup warning:', e);
     }
 
+    // 2b. Live Auto-Refresh Safety Net -- this page has no Supabase Realtime
+    // subscription, so without this, changes made by an Officer (a forwarded
+    // application, a walk-in registration) never appear here until a manual
+    // reload. Skips while a modal is open so it never wipes out an in-progress
+    // edit or form.
+    try {
+        setInterval(() => {
+            if (document.querySelector('.modal.show')) return;
+            if (typeof refreshAllData === 'function') refreshAllData();
+        }, 45000);
+    } catch (e) {
+        console.warn('[PESO Admin] Auto-refresh setup warning:', e);
+    }
+
     // 3. Explicit Event Listeners for Primary Admin Action Buttons (Prevents Dead Buttons)
     const bindBtn = (id, fn) => {
         try {
