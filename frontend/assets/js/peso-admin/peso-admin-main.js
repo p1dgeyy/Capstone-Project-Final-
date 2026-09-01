@@ -156,16 +156,19 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('[PESO Admin] Modal lifecycle setup warning:', e);
     }
 
-    // 2b. Live Auto-Refresh Safety Net -- this page has no Supabase Realtime
-    // subscription, so without this, changes made by an Officer (a forwarded
-    // application, a walk-in registration) never appear here until a manual
-    // reload. Skips while a modal is open so it never wipes out an in-progress
-    // edit or form.
+    // 2b. Live Auto-Refresh Safety Net -- backs up the Supabase Realtime
+    // subscription set up below (section 5), in case this project doesn't have
+    // replication enabled for a given table. Runs every 3 minutes rather than
+    // every 45 seconds -- a full refresh here re-fetches programs, users,
+    // officers, evaluations, scheduling, and funds data on every tick, and at
+    // 45s that was a meaningful, needless chunk of this project's Supabase
+    // egress on every open Admin tab even when nothing had changed. Skips
+    // while a modal is open so it never wipes out an in-progress edit or form.
     try {
         setInterval(() => {
             if (document.querySelector('.modal.show')) return;
             if (typeof refreshAllData === 'function') refreshAllData();
-        }, 45000);
+        }, 180000);
     } catch (e) {
         console.warn('[PESO Admin] Auto-refresh setup warning:', e);
     }

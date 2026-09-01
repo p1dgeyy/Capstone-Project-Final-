@@ -823,9 +823,18 @@ const DataService = (() => {
       });
     },
 
-    async getByBeneficiary(beneficiaryQr) {
+    async getByBeneficiary(beneficiaryQr, options = {}) {
       return withRetry(async (client) => {
-        return await client.from('applications').select('*').eq('beneficiary_qr', beneficiaryQr).order('created_at', { ascending: false });
+        // Defaults to '*' (unchanged) since the Beneficiary's own dashboard needs
+        // documents_json to list their uploaded documents. Callers that only need
+        // status/program fields -- e.g. the Officer's QR scanner, which looks this
+        // up on every single scan and never displays document content -- should
+        // pass { includeDocs: false } to skip re-downloading that column (still
+        // meaningful for any pre-Storage-migration base64 documents on old rows).
+        const selectFields = options.includeDocs === false
+          ? 'id, application_number, beneficiary_qr, program_id, date_applied, status, progress_percent, remarks, created_at, updated_at, amount_requested, amount_approved, batch_id, officer_id, officer_decision, officer_action_at, admin_id, rejection_reason, rejection_category, evaluated_by, evaluated_at, operational_batch_id, operational_batch_name, is_operational_batch, batched_at, batched_by, forwarded_at, forwarded_by, officer_notes, admin_notes'
+          : '*';
+        return await client.from('applications').select(selectFields).eq('beneficiary_qr', beneficiaryQr).order('created_at', { ascending: false });
       });
     },
 
