@@ -8463,7 +8463,8 @@
                         name: pre.name,
                         size: pre.size,
                         type: pre.type,
-                        dataUrl: pre.data || pre.dataUrl,
+                        url: pre.url || null,
+                        dataUrl: pre.url ? null : (pre.data || pre.dataUrl),
                         status: 'Ready',
                         requirementName: reqDoc
                     };
@@ -8570,6 +8571,36 @@
         window.triggerModalDocUpload = triggerModalDocUpload;
 
         // Handle file selection and validate (File type: PDF/PNG/JPG, Max size: 5MB)
+        // Uploads a file to the 'beneficiary-documents' Supabase Storage bucket and
+        // returns its public URL, instead of embedding the file as base64 text in
+        // documents_json. Base64 blobs stored directly in Postgres rows were being
+        // re-downloaded in full on every select('*') call that touches an
+        // application (the beneficiary's own dashboard load, and every single
+        // officer QR scan via qr-scanner-controller.js) -- this was the dominant
+        // driver of Supabase egress usage. Falls back to a base64 dataUrl on
+        // upload failure so a document is never silently lost.
+        async function uploadDocumentToSupabaseStorage(file, pathHint) {
+            try {
+                if (typeof supabaseClient === 'undefined' || !supabaseClient || !supabaseClient.storage) {
+                    throw new Error('Supabase Storage client unavailable');
+                }
+                const safeName = (file.name || 'document').replace(/[^a-zA-Z0-9._-]/g, '_');
+                const safeHint = String(pathHint || 'misc').replace(/[^a-zA-Z0-9._-]/g, '_');
+                const path = `${safeHint}/${Date.now()}-${safeName}`;
+                const { error: upErr } = await supabaseClient.storage
+                    .from('beneficiary-documents')
+                    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type || 'application/octet-stream' });
+                if (upErr) throw upErr;
+                const { data: pubData } = supabaseClient.storage.from('beneficiary-documents').getPublicUrl(path);
+                if (!pubData || !pubData.publicUrl) throw new Error('Could not resolve public URL after upload');
+                return { ok: true, url: pubData.publicUrl, path };
+            } catch (storErr) {
+                console.warn('[Beneficiary Upload] Storage upload failed, falling back to inline base64:', storErr);
+                return { ok: false, error: storErr };
+            }
+        }
+        window.uploadDocumentToSupabaseStorage = uploadDocumentToSupabaseStorage;
+
         function handleModalDocSelect(input) {
             if (!input || !input.files || input.files.length === 0) return;
             const file = input.files[0];
@@ -8594,15 +8625,20 @@
                 return;
             }
 
-            // 3. File is valid: Read as Base64 DataURL and mark green
+            // 3. File is valid: upload to Supabase Storage (falls back to an inline
+            // base64 dataUrl only if that upload fails) and mark green
             delete modalDocErrors[reqDoc];
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
+                const pathHint = sessionStorage.getItem('beneficiaryQrCode') || sessionStorage.getItem('userId') || 'beneficiary';
+                const uploadRes = await uploadDocumentToSupabaseStorage(file, pathHint);
+
                 modalUploadedDocs[reqDoc] = {
                     name: file.name,
                     size: file.size,
                     type: file.type || 'application/octet-stream',
-                    dataUrl: e.target.result,
+                    url: uploadRes.ok ? uploadRes.url : null,
+                    dataUrl: uploadRes.ok ? null : e.target.result,
                     requirementName: reqDoc,
                     status: 'Ready'
                 };
@@ -8614,7 +8650,8 @@
                         name: file.name,
                         size: file.size,
                         type: file.type || 'application/pdf',
-                        data: e.target.result,
+                        url: uploadRes.ok ? uploadRes.url : null,
+                        data: uploadRes.ok ? null : e.target.result,
                         requirementName: reqDoc,
                         programName: currentApplyProgram.name,
                         status: 'Ready'
@@ -8709,7 +8746,8 @@
                     name: d.name,
                     size: d.size,
                     type: d.type,
-                    dataUrl: d.dataUrl,
+                    url: d.url || null,
+                    dataUrl: d.url ? null : (d.dataUrl || null),
                     requirementName: d.requirementName,
                     status: 'Submitted'
                 }));
@@ -8841,15 +8879,21 @@
 
             const file = files[0];
 
-            // Read file as base64
+            // Upload to Supabase Storage (falls back to an inline base64 dataUrl
+            // only if that upload fails) instead of embedding the file as base64 --
+            // see uploadDocumentToSupabaseStorage() above for why.
             const reader = new FileReader();
             reader.onload = async function(e) {
+                const pathHint = sessionStorage.getItem('beneficiaryQrCode') || sessionStorage.getItem('userId') || 'beneficiary';
+                const uploadRes = await uploadDocumentToSupabaseStorage(file, pathHint);
+
                 const newDocObj = {
                     name: file.name,
                     docType: docType,
                     size: file.size,
                     type: file.type || 'application/octet-stream',
-                    dataUrl: e.target.result,
+                    url: uploadRes.ok ? uploadRes.url : null,
+                    dataUrl: uploadRes.ok ? null : e.target.result,
                     status: 'Submitted',
                     uploaded_at: new Date().toISOString()
                 };

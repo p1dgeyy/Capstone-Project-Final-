@@ -1152,7 +1152,7 @@
               grantValue: defaultGrant,
               receiptRef: `REC-DOC-${new Date().getFullYear()}-${100 + appIdx * 10 + docIdx}`,
               remarks: app.remarks || 'Document verified against LGU database. All requirements satisfied.',
-              dataUrl: d.dataUrl
+              dataUrl: d.dataUrl || d.url
             });
           });
         } else {
