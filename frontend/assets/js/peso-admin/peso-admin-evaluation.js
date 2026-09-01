@@ -808,6 +808,42 @@ async function handleConfirmApplicationRejection(e) {
         const deadlineIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
         const timestamp = new Date().toISOString();
 
+        // Save to the database FIRST -- only treat this as a real denial if
+        // the write actually succeeds, same reasoning as the approve path.
+        let denyErr = null;
+        if (typeof DataService !== 'undefined' && DataService.applications) {
+            try {
+                const denyRes = await DataService.applications.adminDeny(app.id, {
+                    reason: reason,
+                    rejection_reason: reason,
+                    rejection_category: category,
+                    resubmission_deadline: deadlineIso,
+                    admin_id: adminId,
+                    admin_username: adminUsername
+                });
+                if (denyRes && denyRes.error) {
+                    denyErr = (denyRes.error.message || denyRes.error) + '';
+                } else if (!denyRes || !denyRes.data) {
+                    denyErr = 'The database did not confirm this denial was saved.';
+                }
+            } catch (err) {
+                denyErr = (err && err.message) ? err.message : 'A network or server error occurred while saving the denial.';
+            }
+        } else {
+            denyErr = 'Data service unavailable -- denial was not saved.';
+        }
+
+        if (denyErr) {
+            console.error('[EVALUATION] Admin denial FAILED to save:', denyErr);
+            window.showSystemNotification({
+                title: 'Denial Not Saved',
+                message: `"${app.applicant_name}" was NOT denied. ${denyErr}`,
+                type: 'error'
+            });
+            return;
+        }
+
+        // Only reached once the database write is confirmed successful.
         app.evaluation_status = 'Denied';
         app.verification_status = 'Pending Verification';
         app.denial_source = 'Admin';
@@ -817,21 +853,6 @@ async function handleConfirmApplicationRejection(e) {
         app.evaluated_at = timestamp;
         app.evaluated_by_admin = adminUsername;
         app.notes = `Admin Denied [${category}]: ${reason} | 3-Day Resubmission Window until ${new Date(deadlineIso).toLocaleString('en-US')}`;
-
-        if (typeof DataService !== 'undefined' && DataService.applications) {
-            try {
-                await DataService.applications.adminDeny(app.id, {
-                    reason: reason,
-                    rejection_reason: reason,
-                    rejection_category: category,
-                    resubmission_deadline: deadlineIso,
-                    admin_id: adminId,
-                    admin_username: adminUsername
-                });
-            } catch (err) {
-                console.warn('[EVALUATION] Supabase application denial update notice:', err);
-            }
-        }
 
         // Immutable Audit Trail Logging distinguishing Admin denial from Officer denial
         logAuditEvent('ADMIN_APPLICATION_DENIAL', `[ADMIN DENIAL] Admin ID: ${adminId} (${adminUsername}) denied application ID ${app.id} (${app.applicant_name}). Standard Category: [${category}], Specific Reason: ${reason}. 3-Day Resubmission Window Enforced until ${deadlineIso}. Timestamp: ${timestamp}`);
@@ -919,24 +940,50 @@ async function executeEvalDecision(decision) {
             }
 
             try {
+                // Save to the database FIRST -- only treat this as a real
+                // approval if the write actually succeeds. adminApprove()
+                // returns { data: null, error: {...} } (without throwing) for
+                // validation failures such as the ₱500,000 grant ceiling or
+                // an unallocated/insufficient program budget, so a thrown
+                // exception is not the only failure shape to handle.
+                let approveErr = null;
+                if (typeof DataService !== 'undefined' && DataService.applications) {
+                    try {
+                        const approveRes = await DataService.applications.adminApprove(app.id, {
+                            notes: notes,
+                            admin_id: adminId,
+                            admin_username: adminUsername
+                        });
+                        if (approveRes && approveRes.error) {
+                            approveErr = (approveRes.error.message || approveRes.error) + '';
+                        } else if (!approveRes || !approveRes.data) {
+                            approveErr = 'The database did not confirm this approval was saved.';
+                        }
+                    } catch (err) {
+                        approveErr = (err && err.message) ? err.message : 'A network or server error occurred while saving the approval.';
+                    }
+                } else {
+                    approveErr = 'Data service unavailable -- approval was not saved.';
+                }
+
+                if (approveErr) {
+                    console.error('[EVALUATION] Admin approval FAILED to save:', approveErr);
+                    window.showSystemNotification({
+                        title: 'Approval Not Saved',
+                        message: `"${app.applicant_name}" was NOT approved. ${approveErr}`,
+                        type: 'error'
+                    });
+                    return;
+                }
+
+                // Only reached once the database write is confirmed successful --
+                // everything below reflects a real, persisted approval.
                 app.evaluation_status = 'Approved';
                 app.verification_status = 'Verified';
                 app.batch_status = 'Unbatched';
                 app.evaluated_at = timestamp;
                 app.evaluated_by_admin = adminUsername;
                 app.notes = notes;
-
-                if (typeof DataService !== 'undefined' && DataService.applications) {
-                    try {
-                        await DataService.applications.adminApprove(app.id, {
-                            notes: notes,
-                            admin_id: adminId,
-                            admin_username: adminUsername
-                        });
-                    } catch (err) {
-                        console.warn('[EVALUATION] Supabase application approval notice:', err);
-                    }
-                }
 
                 logAuditEvent('ADMIN_APPLICATION_APPROVAL', `[ADMIN APPROVAL] Admin ID: ${adminId} (${adminUsername}) approved application ID ${app.id} (${app.applicant_name}) for batch "${currentEvalBatchNum}". Status: Unbatched. Assessment Notes: ${notes}. Timestamp: ${timestamp}`);
 
