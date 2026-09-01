@@ -9363,6 +9363,25 @@
                     return !isNaN(num) && num > 0 ? num : null;
                 }).filter(Boolean);
                 const timestamp = new Date().toISOString();
+
+                // batches.program_id was never being set (createWithBeneficiaries()
+                // defaults it to null when not passed), which cascades into the
+                // Schedule Batch step later being unable to write a valid
+                // interview_schedules.program_id -- resolve the real numeric id here
+                // from the selected program code so every batch is created correctly.
+                let resolvedNewBatchProgramId = null;
+                try {
+                    if (typeof DataService !== 'undefined' && DataService.programs) {
+                        const progLookupRes = await DataService.programs.getAll({ agency: 'PESO' });
+                        const progCodeUpper = String(selectedOpBatchProgram || '').toUpperCase();
+                        const progMatch = (progLookupRes && Array.isArray(progLookupRes.data))
+                            ? progLookupRes.data.find(p => (p.code || '').toUpperCase() === progCodeUpper)
+                            : null;
+                        if (progMatch) resolvedNewBatchProgramId = progMatch.id;
+                    }
+                } catch (progLookupErr) {
+                    console.warn('[PESO Officer] Program lookup for new batch note:', progLookupErr);
+                }
                 // currentUserProfile was never declared anywhere -- every Create Batch
                 // click threw "ReferenceError: currentUserProfile is not defined" and
                 // aborted before the batch was ever written. AuthGuard.getProfile() is
@@ -9381,6 +9400,7 @@
                     try {
                         const batchRes = await DataService.batches.createWithBeneficiaries({
                             name: batchTitle,
+                            program_id: resolvedNewBatchProgramId,
                             program_code: selectedOpBatchProgram || 'PESO',
                             capacity: Math.max(50, numericAppIds.length),
                             application_ids: numericAppIds,
@@ -9941,7 +9961,31 @@
                 const officerId = officerProfileSched?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
                 const timestamp = new Date().toISOString();
 
-                // 1. Update Batch Object (Status -> Scheduled & Locked)
+                // 1. Resolve the batch's real numeric program_id. operationalBatchesList
+                // only ever carries the program CODE (e.g. "SPES"), never a numeric id, and
+                // the batches DB row itself has program_id=null for batches created before
+                // the Create Batch fix above -- interview_schedules.program_id is NOT NULL,
+                // so without this lookup the insert below silently fails (previously
+                // swallowed by a bare console.warn, which is why the Officer UI showed
+                // "Scheduled" success while nothing was ever written for the Admin/
+                // Beneficiary to see). A missing/null program_id would also fail
+                // DataService.interviews.getAll({agency:'PESO'})'s inner join filter on
+                // program.agency, hiding the row from the Admin calendar even if it existed.
+                let resolvedProgramId = null;
+                try {
+                    if (typeof DataService !== 'undefined' && DataService.programs) {
+                        const progLookupRes = await DataService.programs.getAll({ agency: 'PESO' });
+                        const progCodeUpper = String(batch.program || '').toUpperCase();
+                        const progMatch = (progLookupRes && Array.isArray(progLookupRes.data))
+                            ? progLookupRes.data.find(p => (p.code || '').toUpperCase() === progCodeUpper)
+                            : null;
+                        if (progMatch) resolvedProgramId = progMatch.id;
+                    }
+                } catch (progErr) {
+                    console.warn('[PESO Officer] Program lookup for schedule note:', progErr);
+                }
+
+                // 2. Update Batch Object (Status -> Scheduled & Locked)
                 batch.status = 'Scheduled';
                 batch.eventType = eventType;
                 batch.eventDate = dateVal;
@@ -9950,7 +9994,7 @@
                 batch.scheduled_at = timestamp;
                 batch.scheduled_by = officerName;
 
-                // 2. Persist to DB Batches
+                // 3. Persist to DB Batches
                 if (typeof DataService !== 'undefined' && DataService.batches) {
                     try {
                         await DataService.batches.update(batch.id || batch.dbId, {
@@ -9958,20 +10002,24 @@
                             event_type: eventType,
                             event_date: dateVal,
                             event_time: timeVal,
-                            venue: venueVal
+                            venue: venueVal,
+                            ...(resolvedProgramId ? { program_id: resolvedProgramId } : {})
                         });
                     } catch (bErr) {
                         console.warn('[PESO Officer] Batch schedule update note:', bErr);
                     }
                 }
 
-                // 3. Create schedule entry in Daily Schedules / Interviews
+                // 4. Create schedule entry in Daily Schedules / Interviews
                 let createdSchedDbId = Date.now();
+                let schedWriteFailed = false;
+                let schedWriteErrorMsg = '';
                 if (typeof DataService !== 'undefined' && DataService.interviews) {
                     try {
                         const schedRes = await DataService.interviews.create({
                             title: `${batch.name} (${eventType})`,
                             category: eventType,
+                            program_id: resolvedProgramId,
                             interview_date: dateVal,
                             start_date: dateVal,
                             end_date: dateVal,
@@ -9989,13 +10037,30 @@
                         });
                         if (schedRes && schedRes.data && schedRes.data.id) {
                             createdSchedDbId = schedRes.data.id;
+                        } else {
+                            schedWriteFailed = true;
+                            schedWriteErrorMsg = (schedRes && schedRes.error && schedRes.error.message) || 'Unknown database error.';
                         }
                     } catch (sErr) {
+                        schedWriteFailed = true;
+                        schedWriteErrorMsg = (sErr && sErr.message) ? sErr.message : String(sErr);
                         console.warn('[PESO Officer] Schedule DB entry note:', sErr);
                     }
+                } else {
+                    schedWriteFailed = true;
+                    schedWriteErrorMsg = 'Scheduling service unavailable.';
                 }
 
-                // 4. Update in-memory Daily Schedules List immediately for instant UI update
+                // Do NOT fall through to a fake "Scheduled" success if the real DB write
+                // failed -- that is exactly the bug being fixed here: the batch would look
+                // Scheduled to the Officer while the Admin and Beneficiary see nothing.
+                if (schedWriteFailed) {
+                    if (btn) btn.disabled = false;
+                    alert(`Could not save this schedule to the database, so it will NOT appear for the Admin or Beneficiary yet. Please try again.\n\nDetails: ${schedWriteErrorMsg}`);
+                    return;
+                }
+
+                // 5. Update in-memory Daily Schedules List immediately for instant UI update
                 const members = evaluationList.filter(a => 
                     String(a.operational_batch_id) === String(currentInspectedOpBatchId) || 
                     String(a.batch_id) === String(currentInspectedOpBatchId)
@@ -10061,7 +10126,7 @@
                     dailySchedulesList.unshift(newSchedObj);
                 }
 
-                // 5. Send Real-Time Notification to EVERY beneficiary in the batch
+                // 6. Send Real-Time Notification to EVERY beneficiary in the batch
                 const notifMessage = `Batch "${batch.name}" has been scheduled — ${eventType} on ${dateVal} at ${timeVal}, ${venueVal}.`;
                 for (const member of members) {
                     if (member.qrCodeId) {
@@ -10078,7 +10143,7 @@
                     }
                 }
 
-                // 6. Broadcast Realtime Sync Event
+                // 7. Broadcast Realtime Sync Event
                 if (typeof OTPAuth !== 'undefined' && OTPAuth.broadcastRealtimeEvent) {
                     OTPAuth.broadcastRealtimeEvent('BATCH_SCHEDULED_LIVE', {
                         batchId: batch.id,
@@ -10092,7 +10157,7 @@
                     });
                 }
 
-                // 7. Audit Log
+                // 8. Audit Log
                 logOfficerAction('SCHEDULE_OPERATIONAL_BATCH', `Scheduled operational batch "${batch.name}" for ${eventType} on ${dateVal} at ${timeVal}, Venue: ${venueVal}. Batch is now locked.`);
 
                 if (window.showSystemNotification) {
