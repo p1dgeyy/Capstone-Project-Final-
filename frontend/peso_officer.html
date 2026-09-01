@@ -9434,8 +9434,17 @@
                     const numericId = parseInt(String(appId).replace(/[^0-9]/g, ''));
                     try {
                         if (typeof DataService !== 'undefined' && DataService.applications && numericId) {
+                            // is_operational_batch / operational_batch_id / operational_batch_name
+                            // are real columns on `applications` (confirmed live) -- they are what
+                            // renderPostApprovalBatchesModule() actually filters "Unbatched" on.
+                            // Writing only batch_id here meant every batch looked right for the
+                            // rest of this session but reverted to "Unbatched" on the next reload,
+                            // because those three columns were only ever set in memory.
                             await DataService.applications.update(numericId, {
                                 batch_id: realBatchId,
+                                operational_batch_id: realBatchId,
+                                operational_batch_name: batchTitle,
+                                is_operational_batch: true,
                                 batched_at: timestamp,
                                 batched_by: officerName,
                                 updated_at: timestamp
@@ -9715,6 +9724,7 @@
                 // Update in DB
                 if (typeof DataService !== 'undefined' && DataService.applications) {
                     await DataService.applications.update(appId, {
+                        batch_id: null,
                         operational_batch_id: null,
                         operational_batch_name: null,
                         is_operational_batch: false,
