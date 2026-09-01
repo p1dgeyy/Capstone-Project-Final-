@@ -7647,10 +7647,36 @@
                 if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     const beneId = sessionStorage.getItem('userId') || (typeof state !== 'undefined' && state.user?.qr_code);
                     if (beneId) {
+                        // Every schedule in this system (Interview, Training, Certificate,
+                        // Distribution) is written as ONE row per batch event, with
+                        // batch_id set and beneficiary_qr left null -- confirmed live,
+                        // beneficiary_qr has never once been populated on any row. Matching
+                        // only on beneficiary_qr meant this page could never show a single
+                        // real schedule to any beneficiary. Also match batch events for
+                        // batches this beneficiary's own applications belong to.
+                        let myBatchIds = [];
+                        try {
+                            const appsRes = await supabaseClient
+                                .from('applications')
+                                .select('batch_id')
+                                .eq('beneficiary_qr', beneId)
+                                .not('batch_id', 'is', null);
+                            if (appsRes && Array.isArray(appsRes.data)) {
+                                myBatchIds = [...new Set(appsRes.data.map(a => a.batch_id).filter(Boolean))];
+                            }
+                        } catch (batchLookupErr) {
+                            console.warn('[STI_TIMETABLE] Batch lookup note:', batchLookupErr.message);
+                        }
+
+                        const orFilterParts = [`beneficiary_qr.eq.${beneId}`];
+                        if (myBatchIds.length > 0) {
+                            orFilterParts.push(`batch_id.in.(${myBatchIds.join(',')})`);
+                        }
+
                         const { data, error } = await supabaseClient
                             .from('interview_schedules')
                             .select('*')
-                            .eq('beneficiary_qr', beneId)
+                            .or(orFilterParts.join(','))
                             .order('interview_date', { ascending: true });
                         if (!error && data && data.length > 0) {
                             const supaEvents = data.map(item => {
