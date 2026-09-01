@@ -674,13 +674,14 @@ const PesoOfficerApp = (() => {
             return { status: 'Inactive', badge: 'bg-secondary text-white', label: 'Account Deactivated' };
         }
 
-        // Check applications pool
-        const benIdStr = String(ben.id);
+        // Check applications pool. Beneficiaries have no numeric id column (qr_code IS
+        // the primary key), so matching must go through qr_code only -- comparing a
+        // beneficiary_id/ben.id that never exists made every application match every
+        // beneficiary here (both sides always stringified to "undefined").
         const benQr = (ben.qr_code || '').toUpperCase();
         const activeApps = state.applications.filter(a => {
-            const aBenId = String(a.beneficiary_id || a.beneficiaryId || (a.beneficiary && a.beneficiary.id));
             const aBenQr = (a.beneficiary_qr || (a.beneficiary && a.beneficiary.qr_code) || '').toUpperCase();
-            const match = aBenId === benIdStr || (benQr && aBenQr === benQr);
+            const match = !!benQr && aBenQr === benQr;
             const isActive = ['Approved', 'Officer Approved', 'In Progress', 'In Training', 'Scheduled', 'Forwarded to Admin'].includes(a.status || a.rawStatus);
             return match && isActive;
         });
@@ -693,9 +694,8 @@ const PesoOfficerApp = (() => {
 
         // Check if recently completed / cooldown
         const completedApps = state.applications.filter(a => {
-            const aBenId = String(a.beneficiary_id || a.beneficiaryId || (a.beneficiary && a.beneficiary.id));
             const aBenQr = (a.beneficiary_qr || (a.beneficiary && a.beneficiary.qr_code) || '').toUpperCase();
-            return (aBenId === benIdStr || (benQr && aBenQr === benQr)) && (a.status === 'Completed' || a.status === 'Disbursed');
+            return (!!benQr && aBenQr === benQr) && (a.status === 'Completed' || a.status === 'Disbursed');
         });
 
         if (completedApps.length > 0 && ben.program === 'TUPAD') {
@@ -1158,13 +1158,13 @@ const PesoOfficerApp = (() => {
         if (elAddress) elAddress.textContent = fullAddress;
         if (elIdRef) elIdRef.textContent = idRef;
 
-        // 3. Programs Applied For (Past & Present)
-        const benIdStr = String(ben.id);
+        // 3. Programs Applied For (Past & Present). qr_code is the beneficiary's real
+        // primary key -- match on that only (ben.id/a.beneficiary_id never exist, and
+        // comparing them was silently pulling every beneficiary's applications in here).
         const benQr = (ben.qr_code || '').toUpperCase();
         const apps = state.applications.filter(a => {
-            const aBenId = String(a.beneficiary_id || a.beneficiaryId || (a.beneficiary && a.beneficiary.id));
             const aBenQr = (a.beneficiary_qr || (a.beneficiary && a.beneficiary.qr_code) || '').toUpperCase();
-            return aBenId === benIdStr || (benQr && aBenQr === benQr);
+            return !!benQr && aBenQr === benQr;
         });
 
         const appsContainer = document.getElementById('recDossierAppsContainer');
@@ -1265,8 +1265,8 @@ const PesoOfficerApp = (() => {
         const assistanceTbody = document.getElementById('recDossierAssistanceTableBody');
         const assistanceCount = document.getElementById('recDossierAssistanceCount');
         const assistanceRecords = state.approvedAssistance.filter(a => {
-            const aBenId = String(a.beneficiary_id || a.beneficiaryId || a.beneficiaryQr || a.beneficiary_qr);
-            return aBenId === benIdStr || aBenId === benQr;
+            const aBenQr = String(a.beneficiary_id || a.beneficiaryId || a.beneficiaryQr || a.beneficiary_qr || '').toUpperCase();
+            return !!benQr && aBenQr === benQr;
         });
 
         if (assistanceCount) assistanceCount.textContent = `${assistanceRecords.length} Disbursed Grant${assistanceRecords.length === 1 ? '' : 's'}`;
