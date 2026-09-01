@@ -9363,9 +9363,14 @@
                     return !isNaN(num) && num > 0 ? num : null;
                 }).filter(Boolean);
                 const timestamp = new Date().toISOString();
-                const officerName = (currentUserProfile && currentUserProfile.fullName) || sessionStorage.getItem('userName') || 'PESO Officer';
-                const officerId = (currentUserProfile && currentUserProfile.id && !isNaN(parseInt(currentUserProfile.id)))
-                    ? parseInt(currentUserProfile.id)
+                // currentUserProfile was never declared anywhere -- every Create Batch
+                // click threw "ReferenceError: currentUserProfile is not defined" and
+                // aborted before the batch was ever written. AuthGuard.getProfile() is
+                // the real, already-populated profile object (see line ~8470 above).
+                const officerProfile = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+                const officerName = (officerProfile ? `${officerProfile.first_name || ''} ${officerProfile.last_name || ''}`.trim() : '') || sessionStorage.getItem('userName') || 'PESO Officer';
+                const officerId = (officerProfile && officerProfile.id && !isNaN(parseInt(officerProfile.id)))
+                    ? parseInt(officerProfile.id)
                     : (parseInt(sessionStorage.getItem('userId')) || 2);
 
                 let realBatchId = null;
@@ -9797,7 +9802,8 @@
 
             const targetAppIds = Array.from(checkedBoxes).map(cb => cb.value);
             const timestamp = new Date().toISOString();
-            const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
+            const officerProfileAdd = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+            const officerName = (officerProfileAdd ? `${officerProfileAdd.first_name || ''} ${officerProfileAdd.last_name || ''}`.trim() : '') || 'PESO Officer';
             const submitBtn = document.querySelector('#addBeneficiariesToBatchModal button[onclick*="confirmAddMembersToBatch"]') || document.getElementById('btnAddMembersToBatchSubmit');
 
             const guardFn = typeof withButtonLoading === 'function' ? withButtonLoading : (typeof DataService !== 'undefined' && DataService.withButtonLoading ? DataService.withButtonLoading : async (b, fn) => await fn());
@@ -9920,8 +9926,9 @@
             try {
                 if (btn) btn.disabled = true;
 
-                const officerName = (currentUserProfile && currentUserProfile.fullName) || 'PESO Officer';
-                const officerId = currentUserProfile?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
+                const officerProfileSched = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+                const officerName = (officerProfileSched ? `${officerProfileSched.first_name || ''} ${officerProfileSched.last_name || ''}`.trim() : '') || 'PESO Officer';
+                const officerId = officerProfileSched?.id || (parseInt(sessionStorage.getItem('userId')) || 2);
                 const timestamp = new Date().toISOString();
 
                 // 1. Update Batch Object (Status -> Scheduled & Locked)
