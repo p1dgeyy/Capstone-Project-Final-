@@ -415,14 +415,14 @@
             // writing there (the old behavior) silently failed every time.
             const p = AdminStore.programs.find(x => x.id === progId);
             if (!p) {
-                notify('Update Failed', 'Could not find the selected program to allocate a budget for.', 'danger');
+                window.showSystemNotification({ title: 'Update Failed', message: 'Could not find the selected program to allocate a budget for.', type: 'danger' });
                 return;
             }
 
             if (typeof DataService !== 'undefined' && DataService.funds && DataService.funds.allocateBudget) {
                 const allocRes = await DataService.funds.allocateBudget(p.code, p.name, newBudget);
                 if (allocRes && allocRes.error) {
-                    notify('Update Failed', allocRes.error.message || 'Error saving the budget allocation to the funds ledger.', 'danger');
+                    window.showSystemNotification({ title: 'Update Failed', message: allocRes.error.message || 'Error saving the budget allocation to the funds ledger.', type: 'danger' });
                     return;
                 }
             }
@@ -431,12 +431,12 @@
             p.budget = newBudget;
 
             await logAdminAction('EDIT_PROGRAM_BUDGET', 'program', progId, `Updated allocated budget for program #${progId} to ${formatCurrency(newBudget)} (REQ035). Reason/Ordinance Ref: ${justification}`);
-            notify('Budget Allocation Saved', 'Program budget allocation updated and logged to audit trail.', 'success');
+            window.showSystemNotification({ title: 'Budget Allocation Saved', message: 'Program budget allocation updated and logged to audit trail.', type: 'success' });
             safeCloseModal('fundAllocationModal');
             await refreshAllData();
             renderFundsModule();
         } catch (err) {
-            notify('Update Failed', err.message || 'Error updating program budget.', 'danger');
+            window.showSystemNotification({ title: 'Update Failed', message: (err && err.message) || 'Error updating program budget.', type: 'danger' });
         } finally {
             _isAllocatingBudget = false;
             if (submitBtn) {
