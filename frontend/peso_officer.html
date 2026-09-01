@@ -11236,6 +11236,21 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadAllOfficerData();
             setupOfficerRealtimeSync();
+
+            // Live Auto-Refresh Safety Net -- backs up the Supabase Realtime
+            // subscription above. Realtime only delivers updates if this
+            // Supabase project has replication enabled for these tables; this
+            // poll guarantees an Admin approval/denial or a new beneficiary
+            // shows up here within a short window either way. Skips while a
+            // modal (e.g. the QR scanner, a record dossier) is open.
+            try {
+                setInterval(() => {
+                    if (document.querySelector('.modal.show')) return;
+                    if (typeof loadAllOfficerData === 'function') loadAllOfficerData();
+                }, 45000);
+            } catch (e) {
+                console.warn('[PESO Officer] Auto-refresh setup warning:', e);
+            }
         });
 
 </script>
