@@ -536,8 +536,10 @@ const QrScannerController = (() => {
         return;
       }
 
-      // Fetch active applications for this beneficiary
-      const appsRes = await DataService.applications.getByBeneficiary(ben.qr_code || cleanUpper);
+      // Fetch active applications for this beneficiary -- only status/program
+      // fields are used below (renderScannedProfile never shows document
+      // content), so skip documents_json to avoid re-downloading it on every scan.
+      const appsRes = await DataService.applications.getByBeneficiary(ben.qr_code || cleanUpper, { includeDocs: false });
       const apps = appsRes && appsRes.data ? appsRes.data : [];
       const latestApp = apps.length > 0 ? apps[0] : null;
 
