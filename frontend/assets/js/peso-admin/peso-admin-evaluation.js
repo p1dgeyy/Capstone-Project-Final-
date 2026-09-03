@@ -274,13 +274,22 @@ function filterEvalLevel1Programs() {
         const pendingCount = progApps.filter(a => a.evaluation_status === 'Pending Evaluation').length;
         const approvedCount = progApps.filter(a => a.evaluation_status === 'Approved').length;
         const deniedCount = progApps.filter(a => a.evaluation_status === 'Denied').length;
+        const resolvedCount = approvedCount + deniedCount;
 
-        let overallStatus = 'Completed';
-        let badgeClass = 'bg-success';
-        if (progApps.length === 0 || pendingCount > 0) {
-            overallStatus = 'Pending Evaluation';
-            badgeClass = 'bg-warning text-dark';
-        } else if (approvedCount > 0) {
+        // This used to label a program 'In Progress' whenever it had zero pending
+        // applications AND at least one Approved one -- which is backwards: zero
+        // pending means evaluation is actually DONE, not still going. That made
+        // 'Completed' nearly unreachable for any program with real approvals (the
+        // most common case), which is why filtering by "Completed" always came up
+        // empty. Correct semantics: no apps yet, or every app is still pending =>
+        // Pending Evaluation; some resolved but others still pending => In Progress
+        // (a genuine partial/mid-evaluation state); zero pending remaining => Completed.
+        let overallStatus = 'Pending Evaluation';
+        let badgeClass = 'bg-warning text-dark';
+        if (progApps.length > 0 && pendingCount === 0) {
+            overallStatus = 'Completed';
+            badgeClass = 'bg-success';
+        } else if (pendingCount > 0 && resolvedCount > 0) {
             overallStatus = 'In Progress';
             badgeClass = 'bg-info text-white';
         }
