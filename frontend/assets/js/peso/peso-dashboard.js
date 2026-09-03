@@ -56,7 +56,14 @@ const PesoDashboard = (() => {
             // Allocation & Distribution tab), not from the fabricated programs.budget fallback.
             const totalBudget = programs.reduce((sum, p) => sum + getRealAllocatedBudget(p, funds), 0);
 
-            const pendingEval = applications.filter(a => a.status === 'Pending' || a.status === 'Under Review');
+            // `applications` here is evalApplicationsList, which the Evaluation module
+            // already pre-filters to only applications that passed Officer review
+            // (Officer Approved / Approved / Denied / Rejected) -- 'Pending'/'Under Review'
+            // (pre-Officer stages) can never appear in it, so this card was permanently
+            // stuck at 0. The correct "awaiting the Administrator's decision" subset of
+            // this already-narrowed list is exactly the ones still sitting at Officer
+            // Approved (Approved/Denied/Rejected have already been decided by the Admin).
+            const pendingEval = applications.filter(a => a.status === 'Officer Approved');
 
             // Prefer real released amounts from the funds table; only fall back to summing
             // application amounts if there is no funds data to work from at all.

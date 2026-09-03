@@ -193,12 +193,31 @@
                     <th>Status</th>
                 </tr>
             `;
-            const defaultExpired = [
-                { appNum: 'APP-2026-TUPAD-091', name: 'Danilo Flores', prog: 'TUPAD', date: '2026-05-10', reason: 'Unverified ID requirements beyond 60-day window', status: 'Expired / Archived' },
-                { appNum: 'APP-2026-PEAP-044', name: 'Corazon Flores', prog: 'PEAP', date: '2026-05-12', reason: 'Intake orientation no-show without rescheduling', status: 'Inactive' },
-                { appNum: 'APP-2026-SPSEK-019', name: 'Lucia Mendoza', prog: 'SP-SEK', date: '2026-05-20', reason: 'Duplicate household application ceiling reached', status: 'Disapproved' }
-            ];
-            currentReportDataset = defaultExpired;
+            // Real denied/rejected applications from the database, filtered by the
+            // selected date range -- this report used to show 3 hardcoded fictional
+            // beneficiaries unconditionally, regardless of what's actually saved.
+            // NOTE: there is no formal "expired after N unaddressed days" tracking in
+            // the database yet (the 3-day resubmission deadline set on denial is not
+            // currently persisted anywhere), so this shows every closed-without-completing
+            // application (Denied / Rejected / Officer Denied) rather than only ones past
+            // their correction window -- real data, correctly labeled, instead of fake data.
+            const expiredStatuses = ['Denied', 'Rejected', 'Officer Denied'];
+            const filtered = (AdminStore.applications || []).filter(a => {
+                if (!expiredStatuses.includes(a.status)) return false;
+                const d = a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : '');
+                return (!start || d >= start) && (!end || d <= end);
+            });
+            currentReportDataset = filtered.map(a => {
+                const ben = a.beneficiary || {};
+                return {
+                    appNum: a.application_number || `APP-${a.id}`,
+                    name: `${ben.first_name || ''} ${ben.last_name || ''}`.trim() || a.applicant_name || 'Applicant',
+                    prog: a.program_code || 'PESO',
+                    date: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : ''),
+                    reason: a.notes || a.denial_reason || 'No reason on record',
+                    status: a.status
+                };
+            });
             tbody.innerHTML = currentReportDataset.map(r => `
                 <tr>
                     <td class="font-monospace">${escapeHtml(r.appNum)}</td>
@@ -208,7 +227,7 @@
                     <td class="text-danger small"><i class="bi bi-exclamation-circle me-1"></i>${escapeHtml(r.reason)}</td>
                     <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle">${escapeHtml(r.status)}</span></td>
                 </tr>
-            `).join('');
+            `).join('') || '<tr><td colspan="6" class="text-center py-4 text-muted">No expired or inactive applications found for the specified date range.</td></tr>';
             if (countBadge) countBadge.textContent = `${currentReportDataset.length} Records`;
         }
     }
