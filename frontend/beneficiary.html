@@ -7323,12 +7323,13 @@
             }
 
             if (currentMyAppsViewMode === 'grid') {
-                // Card Grid View (Without status badge & with only View Details button)
+                // Card Grid View, with the application's real status badge
                 const cardsHtml = filtered.map(app => {
                     const isCswdo = (app.type || '').toLowerCase().includes('cswdo') || (app.type || '').toLowerCase().includes('medical') || (app.type || '').toLowerCase().includes('burial');
                     const agency = isCswdo ? 'CSWDO' : 'PESO';
                     const location = app.location || (isCswdo ? 'CSWDO Office / City Hall Complex' : 'PESO Office / City Hall Complex');
                     const docCount = (app.documents && Array.isArray(app.documents)) ? app.documents.length : 3;
+                    const statusBadgeHtml = (typeof window.getStatusBadge === 'function') ? window.getStatusBadge(app.status || 'Pending') : `<span class="badge bg-secondary">${app.status || 'Pending'}</span>`;
 
                     return `
                         <div class="col-12 col-lg-6">
@@ -7337,6 +7338,7 @@
                                     <div class="d-flex align-items-center gap-1.5 flex-wrap mb-2">
                                         <span class="office-badge ${isCswdo ? 'cswdo' : 'peso'}">${agency}</span>
                                         <span class="badge bg-light text-dark border font-monospace small">${app.program || 'PROG'}</span>
+                                        ${statusBadgeHtml}
                                     </div>
 
                                     <h5 class="fw-bold text-dark mb-1">${app.type || 'Assistance Program'}</h5>
@@ -7375,11 +7377,12 @@
 
                 container.innerHTML = `<div class="row g-3">${cardsHtml}</div>`;
             } else {
-                // List Table View (Without Status column and with only View Details button)
+                // List Table View, with the application's real status column restored
                 const rowsHtml = filtered.map(app => {
                     const isCswdo = (app.type || '').toLowerCase().includes('cswdo') || (app.type || '').toLowerCase().includes('medical') || (app.type || '').toLowerCase().includes('burial');
                     const agency = isCswdo ? 'CSWDO' : 'PESO';
                     const location = app.location || (isCswdo ? 'CSWDO Office' : 'PESO Office');
+                    const statusBadgeHtml = (typeof window.getStatusBadge === 'function') ? window.getStatusBadge(app.status || 'Pending') : `<span class="badge bg-secondary">${app.status || 'Pending'}</span>`;
 
                     return `
                         <tr>
@@ -7395,6 +7398,7 @@
                             <td class="font-monospace small fw-bold text-dark">${app.id}</td>
                             <td class="small text-muted"><i class="bi bi-calendar3 me-1 text-primary"></i>${app.date || 'Today'}</td>
                             <td class="small text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${location}</td>
+                            <td>${statusBadgeHtml}</td>
                             <td class="text-end pe-4">
                                 <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1 fw-semibold shadow-sm" onclick="viewApplicationTrackingDetails('${app.id}')" title="View Details" aria-label="View details for ${app.id}">
                                     <i class="bi bi-eye text-primary me-1"></i> View Details
@@ -7414,6 +7418,7 @@
                                         <th>Application ID</th>
                                         <th>Date Applied</th>
                                         <th>Venue / Office</th>
+                                        <th>Status</th>
                                         <th class="text-end pe-4">Details</th>
                                     </tr>
                                 </thead>
@@ -7712,77 +7717,11 @@
                 console.warn('[STI_TIMETABLE] Supabase fetch error:', e.message);
             }
 
-            // 3. Fallback mock events for realistic dynamic timetable rendering
-            if (events.length === 0) {
-                const today = new Date();
-                const d0 = new Date(today);
-                const d1 = new Date(today); d1.setDate(d1.getDate() + 1);
-                const d2 = new Date(today); d2.setDate(d2.getDate() + 2);
-                const dPrev = new Date(today); dPrev.setDate(dPrev.getDate() - 2);
-
-                events = [
-                    {
-                        id: 'SCH-101',
-                        title: 'TUPAD Disadvantaged Workers Orientation & Screening',
-                        program_code: 'TUPAD',
-                        category: 'Interview & Screening',
-                        startDate: formatIsoDate(today),
-                        endDate: formatIsoDate(today),
-                        startTime: '09:00 AM',
-                        endTime: '11:00 AM',
-                        venue: 'PESO Main Office - Interview Room A, City Hall Compound',
-                        status: 'Scheduled',
-                        attendance: 'Present',
-                        officer: 'Mr. Juan Dela Cruz (PESO Senior Coordinator)',
-                        remarks: 'Bring complete Barangay Indigency, Valid Photo ID, and signed application form.'
-                    },
-                    {
-                        id: 'SCH-102',
-                        title: 'SPES Educational Grant Assessment & Validation',
-                        program_code: 'SPES',
-                        category: 'Skills Training',
-                        startDate: formatIsoDate(d1),
-                        endDate: formatIsoDate(d1),
-                        startTime: '01:30 PM',
-                        endTime: '03:30 PM',
-                        venue: 'City Public Library - Conference Hall, Koronadal City',
-                        status: 'Upcoming',
-                        attendance: 'Unmarked',
-                        officer: 'Ms. Elena Ramos (SPES Youth Officer)',
-                        remarks: 'Bring Certificate of Enrollment, Form 138 / Report Card, and Student ID.'
-                    },
-                    {
-                        id: 'SCH-103',
-                        title: 'CSWDO Medical & Hospitalization Support Intake',
-                        program_code: 'CSWDO',
-                        category: 'Social Assistance',
-                        startDate: formatIsoDate(d2),
-                        endDate: formatIsoDate(d2),
-                        startTime: '10:00 AM',
-                        endTime: '11:30 AM',
-                        venue: 'CSWDO Office - Social Worker Desk 4, City Hall Complex',
-                        status: 'Upcoming',
-                        attendance: 'Unmarked',
-                        officer: 'Social Worker Maria Gomez, RSW',
-                        remarks: 'Bring Medical Abstract, Hospital Billing Statement, and Social Case Study endorsement.'
-                    },
-                    {
-                        id: 'SCH-104',
-                        title: 'Livelihood Toolkits Distribution & Releasing Briefing',
-                        program_code: 'PESO',
-                        category: 'Distribution',
-                        startDate: formatIsoDate(dPrev),
-                        endDate: formatIsoDate(dPrev),
-                        startTime: '02:00 PM',
-                        endTime: '04:00 PM',
-                        venue: 'City Gym / LGU Gymnasium, Koronadal City',
-                        status: 'Completed',
-                        attendance: 'Present',
-                        officer: 'Engr. Roberto Santos (Livelihood Head)',
-                        remarks: 'Distribution completed and signed in beneficiary master log.'
-                    }
-                ];
-            }
+            // NOTE: this used to fabricate 4 fake demo events (including ones marked
+            // attendance:'Present' / status:'Completed' as if the beneficiary had already
+            // attended them) whenever the real schedule was empty. Removed -- the timetable
+            // grid below renders a genuinely empty week/day when there is nothing scheduled,
+            // which is the honest result and needs no synthetic placeholder events.
 
             stiEventsData = events;
             renderStiTimetable();

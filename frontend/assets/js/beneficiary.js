@@ -211,6 +211,9 @@
     if (qrCodeDisplayEl) qrCodeDisplayEl.textContent = state.user.qr_code;
   }
   window.loadBeneficiaryProfile = loadBeneficiaryProfile;
+  // Exposed so the My Applications page (inline script in beneficiary.html,
+  // a separate scope) can show the real status instead of no badge at all.
+  window.getStatusBadge = getStatusBadge;
 
   // Fetch Live Relational Beneficiary Data from Supabase
   async function fetchBeneficiaryData() {
@@ -2337,6 +2340,40 @@
     console.log(`[DUAL CONFIRMATION] Beneficiary ${state.user?.fullName} signed voucher ${activeVoucherContext.refNumber} at ${timestamp}`);
 
     const rel = state.releases.find(r => r.id === activeVoucherContext.releaseId || r.dbId === activeVoucherContext.releaseId);
+
+    // approved_assistance has no beneficiary-confirmation column to update, so this
+    // used to just mutate the in-memory rel.status and then claim -- unconditionally,
+    // via a plain alert() -- that the confirmation "is now recorded in the municipal
+    // audit logs", without ever writing anything to Supabase. It now actually writes
+    // a real audit_logs row (which DOES support a beneficiary_qr actor) so that claim
+    // is true, and the success message only appears if that write really succeeded.
+    let confirmSaveFailed = false;
+    if (typeof DataService !== 'undefined' && DataService.auditLogs) {
+      try {
+        const logRes = await DataService.auditLogs.log({
+          beneficiaryQr: state.user?.qr_code,
+          action: 'BENEFICIARY_CONFIRM_DISBURSEMENT_RECEIPT',
+          entityType: 'approved_assistance',
+          entityId: rel?.dbId || null,
+          details: `Beneficiary ${state.user?.fullName || state.user?.qr_code} dual-confirmed and signed voucher ${activeVoucherContext.refNumber} for "${activeVoucherContext.programName}" (${activeVoucherContext.grantValue}) at ${timestamp}.`
+        });
+        if (!logRes || logRes.error) {
+          confirmSaveFailed = true;
+          console.warn('[Dual Confirmation] Audit log write failed:', logRes && logRes.error && logRes.error.message);
+        }
+      } catch (e) {
+        confirmSaveFailed = true;
+        console.warn('[Dual Confirmation] Audit log write note:', e.message);
+      }
+    } else {
+      confirmSaveFailed = true;
+    }
+
+    if (confirmSaveFailed) {
+      alert(`Could not record the dual confirmation for voucher ${activeVoucherContext.refNumber}. Please try again, or notify the PESO desk if this keeps happening.`);
+      return;
+    }
+
     if (rel) {
       rel.beneficiaryConfirmed = true;
       rel.status = 'Dual-Confirmed (Voucher Signed)';
