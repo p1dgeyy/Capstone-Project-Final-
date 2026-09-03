@@ -593,7 +593,12 @@ function filterProgramsCatalog() {
                 <td><span class="badge bg-light text-muted border" title="Outcome path is not configured for this program yet">Not Configured</span></td>
                 <td><div class="fw-bold text-success">${formatPHP(prog.budget)}</div></td>
                 <td><span class="badge bg-light text-dark border"><i class="bi bi-people-fill text-primary me-1"></i>${prog.beneficiaries_count || 0} enrolled</span></td>
-                <td class="text-center">${statusBadge}</td>
+                <td class="text-center">
+                    ${statusBadge}
+                    <div class="form-check form-switch d-flex justify-content-center mt-1" title="${isDeactivated ? 'Activate Program' : 'Deactivate Program'}">
+                        <input class="form-check-input" type="checkbox" role="switch" ${!isDeactivated ? 'checked' : ''} onchange="handleProgramToggle(event, ${prog.id})" aria-label="Toggle ${escapeHtml(prog.name)} active status">
+                    </div>
+                </td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-outline-info me-1" onclick="openProgramDetailsViewModal(${prog.id})">
                         <i class="bi bi-eye-fill"></i> Details
