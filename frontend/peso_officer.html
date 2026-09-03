@@ -6567,13 +6567,34 @@
             const tbody = document.getElementById('execRosterTableBody');
             const countBadge = document.getElementById('execRosterCountBadge');
 
-            // Collect active roster
+            // Collect active roster -- MUST be this specific activity's real batch
+            // members, not just "the first N beneficiaries in the system". This
+            // previously did beneficiariesList.slice(0, act.recipientCount || 5),
+            // which silently rendered whichever beneficiaries happened to be first
+            // in the global list, letting attendance and outcomes get recorded
+            // against the wrong people entirely regardless of which batch was
+            // actually being executed (reported: a SPES training batch's roster
+            // showed an unrelated beneficiary instead of its real, single member).
             let roster = [];
-            if (act.category === 'Certificate Distribution') {
-                roster = beneficiariesList.slice(0, 5); // Auto-pulled certificate eligible recipients
-            } else {
-                roster = beneficiariesList.slice(0, act.recipientCount || 5);
+            const batchIdForRoster = act.batchId || act.batch_id;
+            if (batchIdForRoster) {
+                const batchMembers = evaluationList.filter(a =>
+                    String(a.batchId) === String(batchIdForRoster) ||
+                    String(a.operational_batch_id) === String(batchIdForRoster)
+                );
+                roster = batchMembers.map(a => {
+                    const ben = beneficiariesList.find(b => b.qr_code === a.qrCodeId) || {};
+                    return {
+                        qr_code: a.qrCodeId,
+                        name: a.beneficiaryName,
+                        barangay: ben.barangay || ben.address || 'Koronadal'
+                    };
+                });
             }
+            // No batch tie (e.g. a program-level slot from Admin's own "Create
+            // Schedule Slot", not tied to any specific batch) means there is no real
+            // membership list to show -- an honest empty roster here is far better
+            // than a confidently wrong one.
             activeActivityRoster = roster;
 
             if (countBadge) countBadge.textContent = `${roster.length} Beneficiaries`;
