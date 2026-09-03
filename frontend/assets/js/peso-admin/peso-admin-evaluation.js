@@ -137,6 +137,25 @@ async function initEvalModuleData() {
 
                     return {
                         id: a.id,
+                        // Raw status + a nested beneficiary{} are kept alongside the flattened
+                        // fields below so consumers that expect the real applications schema
+                        // (the Admin dashboard KPI cards and the Reports engine's Application
+                        // Management report) can read this list directly instead of silently
+                        // matching nothing -- this list used to only expose the 3-value
+                        // evaluation_status/batch_status/verification_status summaries, so any
+                        // code checking a.status, a.created_at/date_applied, or a.beneficiary.*
+                        // always got undefined and quietly showed zero records.
+                        status: a.status || null,
+                        created_at: a.created_at || null,
+                        date_applied: a.date_applied || null,
+                        beneficiary: {
+                            first_name: firstName,
+                            middle_name: ben.middle_name || null,
+                            last_name: lastName,
+                            phone: phone,
+                            address: address,
+                            qr_code: ben.qr_code || a.beneficiary_qr || ''
+                        },
                         application_number: a.application_number || `APP-${a.id}`,
                         beneficiary_qr: a.beneficiary_qr || ben.qr_code || '',
                         applicant_name: fullName,

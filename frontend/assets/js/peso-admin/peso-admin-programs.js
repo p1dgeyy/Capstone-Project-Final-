@@ -1532,8 +1532,8 @@ function renderArchiveTable(customList) {
                 <button class="btn btn-sm btn-success me-1" onclick="activateProgram(${prog.id})" title="Restore Program to Active Roster">
                     <i class="bi bi-arrow-counterclockwise"></i> Restore
                 </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="permanentlyDeleteProgram(${prog.id})" title="Permanent Delete (Admin Only)">
-                    <i class="bi bi-trash-fill"></i>
+                <button class="btn btn-sm btn-outline-secondary" onclick="permanentlyDeleteProgram(${prog.id})" title="Programs are kept in the records and cannot be deleted">
+                    <i class="bi bi-archive-fill"></i>
                 </button>
             </td>
         `;
@@ -1568,22 +1568,33 @@ async function permanentlyDeleteProgram(progId) {
     const prog = programsList.find(p => p.id === progId);
     if (!prog) return;
 
-    if (!confirm(`Critical Compliance Warning: Are you sure you want to permanently delete program "${prog.code} - ${prog.name}"? This action cannot be undone.`)) {
+    // Programs are never permanently deleted -- REQ013 requires an ended program to be
+    // marked Closed and kept in the records, not removed. This used to call
+    // DataService.programs.delete(progId), which issued a real DELETE against Supabase --
+    // erasing the program (and orphaning any applications/batches/funds that reference
+    // its id) instead of archiving it. It now just re-confirms the program stays Inactive
+    // (archived) and visible in this table permanently.
+    if (!confirm(`"${prog.code} - ${prog.name}" is kept permanently in the records as a Closed/archived program and will NOT be deleted. Continue?`)) {
         return;
     }
 
-    const code = prog.code;
-    const name = prog.name;
-    programsList = programsList.filter(p => p.id !== progId);
+    prog.status = 'Inactive';
+    prog.updated_at = new Date().toISOString();
 
     if (typeof DataService !== 'undefined' && DataService.programs) {
         try {
-            await DataService.programs.delete(progId);
+            await DataService.programs.update(progId, { status: 'Inactive' });
         } catch (e) { }
     }
 
-    logAuditEvent('PERMANENT_DELETE_PROGRAM', `Admin permanently deleted program ${code} (${name}) from system.`);
+    logAuditEvent('CONFIRM_PROGRAM_CLOSED', `Admin confirmed program ${prog.code} (${prog.name}) remains Closed/archived in the records.`);
     renderDashboardTables();
+
+    window.showSystemNotification({
+        title: 'Program Kept in Records',
+        message: `Program ${prog.code} remains archived and was NOT deleted.`,
+        type: 'info'
+    });
 }
 
 function setProgramStatusFilter(status) {

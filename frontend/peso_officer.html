@@ -4761,6 +4761,14 @@
                             beneficiaryName: benFullName,
                             program: `${pCode} (${pName})`,
                             programCode: pCode,
+                            // Real DB values, needed by the Disbursement module so it can
+                            // show/release the actual approved amount instead of a hardcoded
+                            // placeholder -- DataService.applications.getAll() already selects
+                            // these columns, they just weren't being carried into this reshaped
+                            // object before.
+                            amount_approved: a.amount_approved || null,
+                            amount_requested: a.amount_requested || null,
+                            program_id: a.program_id || null,
                             projectType: a.remarks || 'Assistance Program',
                             dateSubmitted: a.date_applied || (a.created_at ? a.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
                             status: a.status || 'Pending',
@@ -5056,12 +5064,14 @@
                 };
             });
 
-            // Ensure canonical programs (like Pending and Completed ones) are included if not present in DB
-            CANONICAL_PESO_DASH_PROGRAMS.forEach(cp => {
-                if (!unifiedPrograms.some(up => up.code === cp.code)) {
-                    unifiedPrograms.push({ ...cp });
-                }
-            });
+            // This used to unconditionally push every CANONICAL_PESO_DASH_PROGRAMS
+            // entry not already present by code -- meaning even with a full real
+            // programs list from Supabase, the dashboard permanently injected up to
+            // 9 fabricated programs (with made-up budgets and slot counts) alongside
+            // the real ones. CANONICAL_PESO_DASH_PROGRAMS above is now only used as
+            // a last-resort fallback (a few lines up) when there is no real data at
+            // all yet, and to fill in gaps on an individual real program's missing
+            // fields -- never to add whole fake programs on top of real ones.
 
             cachedDashProgramsList = unifiedPrograms;
 
@@ -5532,20 +5542,11 @@
                 }
             });
 
-            // Fallback for demonstration if all records are currently verified
-            if (flaggedList.length === 0 && beneficiariesList.length > 0) {
-                const sample = beneficiariesList[0];
-                flaggedList.push({
-                    id: sample.id || sample.qr_code,
-                    qrCode: sample.qr_code || sample.id,
-                    name: sample.name,
-                    barangay: sample.barangay || 'Poblacion',
-                    phone: sample.contact || '09XX-***-XXXX',
-                    issue: 'Barangay Clearance expired / Needs Verification',
-                    statusLabel: 'Questionable',
-                    statusClass: 'bg-warning-subtle text-warning border border-warning-subtle'
-                });
-            }
+            // NOTE: previously there was a "fallback for demonstration" block here that
+            // fabricated a fake flagged beneficiary (with an invented "Barangay Clearance
+            // expired" issue) whenever the real flaggedList was empty, permanently hiding
+            // the honest "All beneficiary documents verified" empty state below. Removed --
+            // an empty flaggedList now genuinely means no deficiencies to show.
 
             if (badge) badge.textContent = `${flaggedList.length} Flagged`;
 
@@ -5805,7 +5806,13 @@
         // DAILY SCHEDULE MANAGEMENT MODULE (UNIFIED WORKFLOW)
         // ---------------------------------------------------------------------
         function getTodayDateStr() {
-            return '2026-08-08';
+            // Was hardcoded to a fixed, ever-more-stale date -- broke "Jump to Today"
+            // and every Today/Past label in the Schedule tab. Use the real local date.
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
         }
 
         // Toggle assignment mode between Individual and Batch
@@ -5923,6 +5930,12 @@
         let selectedOfficerActivityId = null;
         let selectedOfficerBeneficiaryIds = new Set();
         let activeActivityRoster = [];
+        // Actual Present/Absent clicks made in the Execute Schedule modal, keyed
+        // by beneficiary id -- markExecAttendance() used to only toggle a CSS class,
+        // so nothing the officer clicked was ever recorded, and submitting the
+        // activity as Completed always saved 'Present' regardless of what was
+        // actually marked. Reset each time the modal is opened for a new activity.
+        let execAttendanceState = {};
 
         function setOfficerScheduleViewMode(mode) {
             officerSchedViewMode = mode;
@@ -6596,6 +6609,7 @@
             // membership list to show -- an honest empty roster here is far better
             // than a confidently wrong one.
             activeActivityRoster = roster;
+            execAttendanceState = {};
 
             if (countBadge) countBadge.textContent = `${roster.length} Beneficiaries`;
 
@@ -6640,6 +6654,7 @@
         window.openOfficerExecuteScheduleModal = openOfficerExecuteScheduleModal;
 
         function markExecAttendance(benId, status) {
+            execAttendanceState[benId] = status;
             const row = document.getElementById(`execRow_${benId}`);
             if (row) {
                 const btnPresent = row.querySelector('.btn-outline-success');
@@ -6677,9 +6692,18 @@
             if (btn) btn.disabled = true;
 
             try {
+                // interview_schedules only has one attendance_status column per activity
+                // row (not a per-beneficiary table), so a single roster-wide value is a
+                // real schema limitation -- but it should reflect what was actually
+                // clicked, not a hardcoded 'Present' regardless of any Absent marks made.
+                const clicked = Object.values(execAttendanceState);
+                const finalAttendance = clicked.length === 0
+                    ? (act.attendance_status && act.attendance_status !== 'Unmarked' ? act.attendance_status : 'Present')
+                    : (clicked.includes('Absent') ? 'Absent' : 'Present');
+
                 const payload = {
                     status: 'Completed',
-                    attendance_status: 'Present',
+                    attendance_status: finalAttendance,
                     remarks: 'Activity successfully executed on-site by PESO Officer.'
                 };
 
@@ -6691,7 +6715,7 @@
 
                 act.status = 'Completed';
                 act.slot_status = 'Completed';
-                act.attendance = 'Present';
+                act.attendance = finalAttendance;
 
                 const modal = bootstrap.Modal.getInstance(document.getElementById('officerExecuteScheduleModal'));
                 if (modal) modal.hide();
@@ -10318,6 +10342,39 @@
                         const programCode = programRaw.split(' ')[0].replace(/[^A-Z0-9-]/g, '') || 'PESO';
                         const numericAmount = parseFloat(quantityVal.replace(/[^0-9.]/g, '')) || 5000;
 
+                        // Resolve the REAL numeric program_id and officer_id -- these used to
+                        // be hardcoded (program_id: 4 "Default TUPAD/PESO", officer_id: 1) no
+                        // matter which program was actually selected or which officer was
+                        // actually logged in, so every assistance record was silently
+                        // mis-attributed. approved_assistance.program_id/officer_id are both
+                        // NOT NULL, which is exactly why a placeholder was used here originally.
+                        const officerProfileAst = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+                        const officerIdAst = officerProfileAst?.id || (parseInt(sessionStorage.getItem('userId')) || null);
+
+                        let resolvedProgramIdAst = null;
+                        try {
+                            if (typeof DataService !== 'undefined' && DataService.programs) {
+                                const progLookupRes = await DataService.programs.getAll({ agency: 'PESO' });
+                                const progMatch = (progLookupRes && Array.isArray(progLookupRes.data))
+                                    ? progLookupRes.data.find(p => (p.code || '').toUpperCase() === programCode.toUpperCase())
+                                    : null;
+                                if (progMatch) resolvedProgramIdAst = progMatch.id;
+                            }
+                        } catch (progErr) {
+                            console.warn('[Officer Ast] Program lookup note:', progErr);
+                        }
+
+                        if (!resolvedProgramIdAst || !officerIdAst) {
+                            const missing = [!resolvedProgramIdAst ? `program "${programCode}"` : null, !officerIdAst ? 'officer session' : null].filter(Boolean).join(' and ');
+                            const msg = `Cannot record assistance: could not resolve the real ${missing}. Please re-select the program or log in again.`;
+                            if (window.showSystemNotification) {
+                                window.showSystemNotification({ title: 'Assistance Not Recorded', message: msg, type: 'error', duration: 8000 });
+                            } else {
+                                alert(msg);
+                            }
+                            return;
+                        }
+
                         // 1. Budget Cap Guardrail Validation
                         if (typeof DataService !== 'undefined' && DataService.funds) {
                             try {
@@ -10411,12 +10468,12 @@
                                 try {
                                     const astRes = await DataService.approvedAssistance.create({
                                         beneficiary_qr: benQr,
-                                        program_id: 4, // Default TUPAD/PESO
+                                        program_id: resolvedProgramIdAst,
                                         assistance_type: astType,
                                         quantity_amount: quantityVal,
                                         conditions: conditions,
                                         approval_date: approvalDate,
-                                        officer_id: 1
+                                        officer_id: officerIdAst
                                     });
                                     if (astRes && !astRes.error) {
                                         astSaveSuccess = true;

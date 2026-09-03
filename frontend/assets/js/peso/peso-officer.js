@@ -38,7 +38,13 @@ const PesoOfficerApp = (() => {
         selectedBatchAssignAppIds: [],
         activeBatchProgram: 'SPES',
         activeReportDataset: 'applications',
-        isLoaded: false
+        isLoaded: false,
+        // Real context captured by handleQrDisbursementScan(), consumed by
+        // confirmDisbursementRelease() -- the confirm step used to re-derive
+        // everything (including the amount) from DOM textContent, and hardcoded
+        // quantity_amount:5000 in the DB insert outright regardless of what was
+        // actually shown or approved.
+        pendingDisbursement: null
     };
 
     function escapeHtml(str) {
@@ -2002,22 +2008,80 @@ const PesoOfficerApp = (() => {
 
         const fullName = ben ? `${ben.first_name || ''} ${ben.last_name || ''}`.trim() : (app ? app.beneficiaryName : 'Beneficiary');
         const progName = (app && (app.programCode || app.program)) || (ben && ben.program) || 'Livelihood Assistance';
-        const amountVal = app ? (app.amount_approved || 5000) : 5000;
+        // Real amount_approved (falling back to amount_requested) from the actual
+        // application -- this used to fall back to a flat 5000 whenever the field
+        // wasn't present on the reshaped application object, which was always,
+        // since that object never carried amount_approved/amount_requested at all.
+        const resolvedAmount = app ? Number(app.amount_approved || app.amount_requested || 0) : 0;
+        const amountKnown = resolvedAmount > 0;
+
+        state.pendingDisbursement = {
+            qr: cleanQr,
+            name: fullName,
+            prog: progName,
+            item: `${progName} Grant Release / Starter Kit`,
+            amount: amountKnown ? resolvedAmount : null,
+            applicationId: app ? (app.dbId || app.id || null) : null,
+            programCode: (app && app.programCode) || null
+        };
 
         if (nameEl) nameEl.textContent = fullName;
         if (qrEl) qrEl.textContent = cleanQr;
         if (progEl) progEl.textContent = progName;
         if (itemEl) itemEl.textContent = `${progName} Grant Release / Starter Kit`;
-        if (amountEl) amountEl.textContent = formatCurrency(amountVal);
+        if (amountEl) amountEl.textContent = amountKnown ? formatCurrency(resolvedAmount) : 'Not yet set -- contact Admin';
 
         safeOpenModal('officerQrDisbursementModal');
     }
 
     async function confirmDisbursementRelease() {
-        const name = document.getElementById('disburseBenName')?.textContent || 'Beneficiary';
-        const qr = document.getElementById('disburseBenQrCode')?.textContent || 'QR-BEN-XXXXXX';
-        const item = document.getElementById('disburseItemName')?.textContent || 'Package';
-        const prog = document.getElementById('disburseProgramName')?.textContent || 'PESO Program';
+        const ctx = state.pendingDisbursement;
+        const name = ctx?.name || document.getElementById('disburseBenName')?.textContent || 'Beneficiary';
+        const qr = ctx?.qr || document.getElementById('disburseBenQrCode')?.textContent || 'QR-BEN-XXXXXX';
+        const item = ctx?.item || document.getElementById('disburseItemName')?.textContent || 'Package';
+        const prog = ctx?.prog || document.getElementById('disburseProgramName')?.textContent || 'PESO Program';
+
+        if (!ctx || !ctx.amount) {
+            const msg = `Cannot release: no approved amount is on record for ${name} (${qr}). Contact the Administrator to confirm the approved amount before releasing.`;
+            if (typeof window.showSystemNotification === 'function') {
+                window.showSystemNotification({ title: 'Release Blocked', message: msg, type: 'error', duration: 8000 });
+            } else {
+                alert(msg);
+            }
+            return;
+        }
+        const releaseAmount = ctx.amount;
+
+        // approved_assistance.program_id and officer_id are both NOT NULL -- the insert
+        // below used to omit them entirely (and hardcode quantity_amount:5000), so it
+        // always failed against that constraint and was silently swallowed by the
+        // catch block, meaning disbursements never actually saved to this table at all
+        // while the UI still reported success.
+        const officerProfileDisb = typeof AuthGuard !== 'undefined' ? AuthGuard.getProfile() : null;
+        const officerIdDisb = officerProfileDisb?.id || (parseInt(sessionStorage.getItem('userId')) || null);
+        let resolvedProgramIdDisb = null;
+        try {
+            if (typeof DataService !== 'undefined' && DataService.programs && ctx.programCode) {
+                const progLookupRes = await DataService.programs.getAll({ agency: 'PESO' });
+                const progMatch = (progLookupRes && Array.isArray(progLookupRes.data))
+                    ? progLookupRes.data.find(p => (p.code || '').toUpperCase() === String(ctx.programCode).toUpperCase())
+                    : null;
+                if (progMatch) resolvedProgramIdDisb = progMatch.id;
+            }
+        } catch (progErr) {
+            console.warn('[Disbursement] Program lookup note:', progErr);
+        }
+
+        if (!resolvedProgramIdDisb || !officerIdDisb) {
+            const missing = [!resolvedProgramIdDisb ? `program "${ctx.programCode || prog}"` : null, !officerIdDisb ? 'officer session' : null].filter(Boolean).join(' and ');
+            const msg = `Cannot release: could not resolve the real ${missing}. Please re-scan or log in again.`;
+            if (typeof window.showSystemNotification === 'function') {
+                window.showSystemNotification({ title: 'Release Blocked', message: msg, type: 'error', duration: 8000 });
+            } else {
+                alert(msg);
+            }
+            return;
+        }
 
         const newRecord = {
             id: Date.now(),
@@ -2034,25 +2098,49 @@ const PesoOfficerApp = (() => {
         state.approvedAssistance.unshift(newRecord);
 
         // Supabase Live Update
+        let releaseSaveFailed = false;
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             try {
-                await supabaseClient.from('approved_assistance').insert([{
+                const insRes = await supabaseClient.from('approved_assistance').insert([{
                     beneficiary_qr: qr,
+                    program_id: resolvedProgramIdDisb,
                     assistance_type: item,
                     approval_date: new Date().toISOString(),
-                    quantity_amount: 5000,
-                    status: 'Released'
+                    quantity_amount: releaseAmount,
+                    officer_id: officerIdDisb
+                    // NOTE: approved_assistance has no status column in the real schema --
+                    // a status:'Released' field used to be sent here and silently rejected
+                    // by PostgREST as an unknown column, which is why this insert never
+                    // actually saved. Release state for the beneficiary-facing UI is
+                    // tracked via the applications.status update just below instead.
                 }]);
+                if (insRes && insRes.error) {
+                    releaseSaveFailed = true;
+                    console.warn('[Disbursement] Supabase insert error:', insRes.error.message);
+                }
                 await supabaseClient.from('applications').update({
                     status: 'Released',
                     updated_at: new Date().toISOString()
                 }).eq('beneficiary_qr', qr);
             } catch (e) {
+                releaseSaveFailed = true;
                 console.warn('[Disbursement] Supabase sync note:', e.message);
             }
         }
 
-        logAudit('OFFICER_CONFIRM_DISBURSEMENT', `Executed on-site QR release of ${item} to ${name} (${qr}) with dual voucher sign-off.`);
+        if (releaseSaveFailed) {
+            state.approvedAssistance.shift();
+            const msg = `Release for ${name} (${qr}) was NOT saved to the database. Please retry.`;
+            if (typeof window.showSystemNotification === 'function') {
+                window.showSystemNotification({ title: 'Release Failed', message: msg, type: 'error', duration: 8000 });
+            } else {
+                alert(msg);
+            }
+            return;
+        }
+
+        state.pendingDisbursement = null;
+        logAudit('OFFICER_CONFIRM_DISBURSEMENT', `Executed on-site QR release of ${item} (${formatCurrency(releaseAmount)}) to ${name} (${qr}) with dual voucher sign-off.`);
         safeCloseModal('officerQrDisbursementModal');
         renderDisbursementLedgerTable();
 
@@ -2227,12 +2315,97 @@ const PesoOfficerApp = (() => {
         } else if (datasetKey === 'disbursement_records') {
             datasetRows = (state.approvedAssistance || []).map(r => `
                 <tr>
-                    <td class="font-monospace fw-bold text-success">${escapeHtml(r.reference_number || `REL-${r.id}`)}</td>
-                    <td>${escapeHtml(r.beneficiaryName || 'Beneficiary')} (${escapeHtml(r.beneficiary_qr || 'QR-BEN')})</td>
+                    <td class="font-monospace fw-bold text-success">${escapeHtml(r.id || `REL-${r.dbId}`)}</td>
+                    <td>${escapeHtml(r.beneficiaryName || 'Beneficiary')} (${escapeHtml(r.beneficiaryQr || 'QR-BEN')})</td>
                     <td><span class="badge bg-primary-subtle text-primary border">${escapeHtml(r.programCode || 'PESO')}</span></td>
-                    <td class="fw-semibold">${escapeHtml(r.assistance_type || r.item || 'Assistance Package')}</td>
-                    <td><small class="font-monospace text-muted">${escapeHtml(r.release_date || 'Recent')}</small></td>
+                    <td class="fw-semibold">${escapeHtml(r.assistanceType || 'Assistance Package')}</td>
+                    <td><small class="font-monospace text-muted">${escapeHtml(r.approvalDate || 'Recent')}</small></td>
                     <td><span class="badge bg-success-subtle text-success border"><i class="bi bi-qr-code-scan me-1"></i>QR Verified</span></td>
+                </tr>
+            `);
+        } else if (datasetKey === 'pending_reviews') {
+            // "Pending Completeness Reviews" -- applications still awaiting an
+            // officer completeness decision (i.e. not yet Approved/Denied/Officer
+            // Approved/Officer Denied by anyone).
+            datasetRows = (state.applications || []).filter(a =>
+                a.status === 'Pending' || a.status === 'Pending Requirements' || a.status === 'Under Review'
+            ).map(a => `
+                <tr>
+                    <td class="font-monospace text-primary fw-bold">${escapeHtml(String(a.id))}</td>
+                    <td class="fw-bold text-dark">${escapeHtml(a.beneficiaryName || 'Applicant')}</td>
+                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(a.programCode || 'PESO')}</span></td>
+                    <td><small class="text-muted font-monospace">${escapeHtml(a.dateSubmitted || 'Recent')}</small></td>
+                    <td class="small">${escapeHtml(a.missingNotes || a.remarks || 'None flagged yet')}</td>
+                    <td><span class="badge ${a.status === 'Pending Requirements' ? 'bg-warning text-dark' : 'bg-secondary'}">${escapeHtml(a.status || 'Pending')}</span></td>
+                </tr>
+            `);
+        } else if (datasetKey === 'ready_batching') {
+            // "Ready for Batching (Admin-Approved)" -- Admin has approved these,
+            // but they have not yet been placed into an operational batch.
+            datasetRows = (state.applications || []).filter(a =>
+                (a.status === 'Approved' || a.status === 'Officer Approved') && !a.operational_batch_id
+            ).map(a => `
+                <tr>
+                    <td class="font-monospace text-primary fw-bold">${escapeHtml(String(a.id))}</td>
+                    <td class="fw-bold text-dark">${escapeHtml(a.beneficiaryName || 'Applicant')}</td>
+                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(a.programCode || 'PESO')}</span></td>
+                    <td><small class="text-muted font-monospace">${escapeHtml(a.evaluated_at ? String(a.evaluated_at).substring(0, 10) : (a.dateSubmitted || 'N/A'))}</small></td>
+                    <td><span class="badge bg-warning text-dark">Awaiting Batch Assignment</span></td>
+                </tr>
+            `);
+        } else if (datasetKey === 'batched_bens') {
+            // "Batched Beneficiaries" -- flatten every operational batch's real
+            // member roster instead of reusing the plain applications list.
+            datasetRows = [];
+            (state.batches || []).forEach(b => {
+                const matchedSchedule = (state.schedules || []).find(s => String(s.batchId) === String(b.id));
+                const eventSchedule = b.eventDate
+                    ? `${b.eventDate}${b.eventTime ? ' ' + b.eventTime : ''}`
+                    : (matchedSchedule ? `${matchedSchedule.startDate} ${matchedSchedule.scheduleTime}` : 'Not yet scheduled');
+                (b.members || []).forEach(m => {
+                    datasetRows.push(`
+                <tr>
+                    <td class="fw-bold text-dark">${escapeHtml(b.name || `Batch #${b.id}`)}</td>
+                    <td><span class="badge bg-primary-subtle text-primary border">${escapeHtml(b.program || 'PESO')}</span></td>
+                    <td>${escapeHtml(m.beneficiaryName || 'Applicant')}</td>
+                    <td class="font-monospace">${escapeHtml(m.qrCodeId || 'QR-BEN')}</td>
+                    <td><small class="text-muted font-monospace">${escapeHtml(eventSchedule)}</small></td>
+                    <td><span class="badge ${b.is_locked ? 'bg-danger-subtle text-danger border' : 'bg-success-subtle text-success border'}">${b.is_locked ? 'Locked' : 'Open'}</span></td>
+                </tr>
+            `);
+                });
+            });
+        } else if (datasetKey === 'expired_apps') {
+            // "Expired / Incomplete Applications" -- applications the officer or
+            // admin denied, with the real denial reason instead of a fabricated one.
+            datasetRows = (state.applications || []).filter(a =>
+                a.status === 'Denied' || a.status === 'Officer Denied' || a.status === 'Rejected'
+            ).map(a => {
+                const deadline = a.evaluated_at
+                    ? new Date(new Date(a.evaluated_at).getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
+                    : 'N/A';
+                return `
+                <tr>
+                    <td class="font-monospace text-primary fw-bold">${escapeHtml(String(a.id))}</td>
+                    <td class="fw-bold text-dark">${escapeHtml(a.beneficiaryName || 'Applicant')}</td>
+                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(a.programCode || 'PESO')}</span></td>
+                    <td class="small">${escapeHtml(a.remarks || a.missingNotes || 'Not specified')}</td>
+                    <td><small class="font-monospace text-muted">${escapeHtml(deadline)}</small></td>
+                    <td><span class="badge bg-danger">${escapeHtml(a.status || 'Denied')}</span></td>
+                </tr>
+            `;
+            });
+        } else if (datasetKey === 'interview_outcomes') {
+            // "Interview Activity Outcomes" -- real scheduled activities, not the
+            // applications list reused under mismatched headers.
+            datasetRows = (state.schedules || []).map(s => `
+                <tr>
+                    <td class="font-monospace text-primary fw-bold">${escapeHtml(s.slot_id || String(s.id))}</td>
+                    <td class="fw-bold text-dark">${escapeHtml(s.beneficiaryName || (s.batchName ? `Batch: ${s.batchName}` : 'Unassigned'))}</td>
+                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">${escapeHtml(s.programCode || 'PESO')}</span></td>
+                    <td><small class="text-muted font-monospace">${escapeHtml(s.startDate || 'N/A')} ${escapeHtml(s.scheduleTime || '')}</small></td>
+                    <td>${escapeHtml(s.venue || 'PESO Main Office')}</td>
+                    <td><span class="badge ${s.attendance === 'Present' ? 'bg-success' : (s.attendance === 'Absent' ? 'bg-danger' : 'bg-secondary')}">${escapeHtml(s.attendance || 'Unmarked')}</span></td>
                 </tr>
             `);
         } else {
