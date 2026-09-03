@@ -1779,7 +1779,8 @@ const PesoOfficerApp = (() => {
                 qr_code: b.qr_code || `QR-BEN-${b.id}`,
                 name: `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.name || 'Beneficiary',
                 program: b.program || activeApp.programCode || activeApp.program || 'General Livelihood',
-                batch: b.batch_name || activeApp.batchName || 'General Cohort',
+                batch: activeApp.operational_batch_name || b.batch_name || activeApp.batchName || 'General Cohort',
+                batchKey: String(activeApp.operational_batch_id || activeApp.batchId || activeApp.batch_id || 'unassigned'),
                 trainingTitle: `${b.program || activeApp.programCode || 'Skills'} Livelihood & Safety Training`,
                 sessionsAttended: attended,
                 totalSessions: totalSess,
@@ -1805,7 +1806,9 @@ const PesoOfficerApp = (() => {
             return;
         }
 
-        tbody.innerHTML = records.map(r => {
+        // Render a single trainee row (unchanged markup, extracted so it can
+        // be reused per-batch-group below).
+        const renderTrainingRow = (r) => {
             const pct = r.totalSessions > 0 ? Math.min(100, Math.round((r.sessionsAttended / r.totalSessions) * 100)) : 0;
             const isCompleted = r.status === 'Completed';
 
@@ -1845,6 +1848,33 @@ const PesoOfficerApp = (() => {
                     </td>
                 </tr>
             `;
+        };
+
+        // Group trainees by batch so the table reads as one section per batch
+        // instead of a single flat list of every trainee.
+        const batchGroups = new Map();
+        records.forEach(r => {
+            if (!batchGroups.has(r.batchKey)) batchGroups.set(r.batchKey, { label: r.batch, rows: [] });
+            batchGroups.get(r.batchKey).rows.push(r);
+        });
+
+        const sortedGroups = Array.from(batchGroups.entries()).sort((a, b) => {
+            const aUnassigned = (a[0] === 'unassigned' || a[1].label === 'General Cohort') ? 1 : 0;
+            const bUnassigned = (b[0] === 'unassigned' || b[1].label === 'General Cohort') ? 1 : 0;
+            if (aUnassigned !== bUnassigned) return aUnassigned - bUnassigned;
+            return a[1].label.localeCompare(b[1].label);
+        });
+
+        tbody.innerHTML = sortedGroups.map(([, group]) => {
+            const batchHeaderRow = `
+                <tr class="table-light">
+                    <td colspan="8" class="fw-bold text-uppercase small text-secondary py-2">
+                        <i class="bi bi-people-fill me-1"></i>${escapeHtml(group.label)}
+                        <span class="badge bg-secondary-subtle text-secondary border ms-2">${group.rows.length} trainee${group.rows.length === 1 ? '' : 's'}</span>
+                    </td>
+                </tr>
+            `;
+            return batchHeaderRow + group.rows.map(renderTrainingRow).join('');
         }).join('');
     }
 
