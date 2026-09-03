@@ -418,12 +418,34 @@ function updateEvalBulkSelectionState() {
 }
 
 // 1. BULK APPROVE (Default / Bulk Allowed per municipal workflow)
-async function handleBulkApproveClick() {
+// Used to confirm via the browser's native confirm() dialog -- inconsistent with
+// the rest of the app's own styled modals, and easy to miss/dismiss by accident.
+// Now opens the app's own bulkApproveConfirmModal; the actual approval work
+// (previously right after the confirm() check) now lives in
+// confirmBulkApproveSelected(), invoked by that modal's Confirm button.
+function handleBulkApproveClick() {
     const count = selectedEvalAppIds.size;
     if (count === 0) return;
 
-    const confirmed = confirm(`Bulk Final Approval Confirmation: Are you sure you want to approve ${count} selected application(s)?\n\nBeneficiaries will move to Officer Beneficiary Batches with status 'Unbatched'.`);
-    if (!confirmed) return;
+    const countEl = document.getElementById('bulkApproveConfirmCount');
+    if (countEl) countEl.textContent = count;
+
+    if (typeof safeOpenModal === 'function') {
+        safeOpenModal('bulkApproveConfirmModal');
+    } else {
+        // Fallback if the modal helper or markup is ever unavailable, so approval
+        // still works rather than silently doing nothing.
+        confirmBulkApproveSelected();
+    }
+}
+
+async function confirmBulkApproveSelected() {
+    const count = selectedEvalAppIds.size;
+    if (count === 0) return;
+
+    if (typeof safeHideModal === 'function') {
+        safeHideModal('bulkApproveConfirmModal');
+    }
 
     const adminId = parseInt(sessionStorage.getItem('userId')) || 1;
     const adminUsername = sessionStorage.getItem('username') || 'PESO Admin';
@@ -543,6 +565,8 @@ async function handleBulkApproveClick() {
 }
 
 // 2. BULK DENIAL RESTRICTION (Prohibited per rule: each denial must be individually reasoned)
+window.confirmBulkApproveSelected = confirmBulkApproveSelected;
+
 function handleBulkRejectClick() {
     const count = selectedEvalAppIds.size;
     if (count === 0) return;
