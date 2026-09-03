@@ -1458,18 +1458,49 @@ async function handleProgramToggle(event, progId) {
         return;
     }
 
+    const previousStatus = prog.status;
     const newStatus = isDeactivating ? 'Inactive' : 'Active';
     prog.status = newStatus;
     prog.updated_at = new Date().toISOString();
 
+    // This used to swallow any Supabase update error via an empty catch block, so
+    // the toggle always reported "Program Deactivated" / "Program Activated" even
+    // when the change never actually saved -- and it called renderDashboardTables()
+    // (the Dashboard Overview tab) instead of filterProgramsCatalog(), so even a
+    // save that DID succeed never refreshed the Programs Catalog table or its
+    // All/Active/Deactivated chip counts on this page. Together those two bugs are
+    // why the Deactivated chip looked broken: a toggle could silently fail to
+    // persist, and even a real change wouldn't visibly move the chip counts.
+    let saveFailed = false;
     if (typeof DataService !== 'undefined' && DataService.programs) {
         try {
-            await DataService.programs.update(progId, { status: newStatus });
-        } catch (err) { }
+            const res = await DataService.programs.update(progId, { status: newStatus });
+            if (!res || res.error) {
+                saveFailed = true;
+                console.warn('[Programs] Status update error:', res && res.error && res.error.message);
+            }
+        } catch (err) {
+            saveFailed = true;
+            console.warn('[Programs] Status update note:', err.message);
+        }
+    }
+
+    if (saveFailed) {
+        // Roll back the optimistic local + UI change -- nothing was actually saved.
+        prog.status = previousStatus;
+        event.target.checked = (previousStatus === 'Active');
+        if (typeof filterProgramsCatalog === 'function') filterProgramsCatalog();
+        window.showSystemNotification({
+            title: 'Status Change Failed',
+            message: `Could not update Program ${prog.code} to ${newStatus}. The change was NOT saved -- please try again.`,
+            type: 'danger'
+        });
+        return;
     }
 
     logAuditEvent(isDeactivating ? 'DEACTIVATE_PROGRAM' : 'ACTIVATE_PROGRAM', `Program ${prog.code} status set to ${newStatus}`);
     renderDashboardTables();
+    if (typeof filterProgramsCatalog === 'function') filterProgramsCatalog();
 
     window.showSystemNotification({
         title: isDeactivating ? 'Program Deactivated' : 'Program Activated',

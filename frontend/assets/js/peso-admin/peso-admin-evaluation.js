@@ -274,13 +274,22 @@ function filterEvalLevel1Programs() {
         const pendingCount = progApps.filter(a => a.evaluation_status === 'Pending Evaluation').length;
         const approvedCount = progApps.filter(a => a.evaluation_status === 'Approved').length;
         const deniedCount = progApps.filter(a => a.evaluation_status === 'Denied').length;
+        const resolvedCount = approvedCount + deniedCount;
 
-        let overallStatus = 'Completed';
-        let badgeClass = 'bg-success';
-        if (progApps.length === 0 || pendingCount > 0) {
-            overallStatus = 'Pending Evaluation';
-            badgeClass = 'bg-warning text-dark';
-        } else if (approvedCount > 0) {
+        // This used to label a program 'In Progress' whenever it had zero pending
+        // applications AND at least one Approved one -- which is backwards: zero
+        // pending means evaluation is actually DONE, not still going. That made
+        // 'Completed' nearly unreachable for any program with real approvals (the
+        // most common case), which is why filtering by "Completed" always came up
+        // empty. Correct semantics: no apps yet, or every app is still pending =>
+        // Pending Evaluation; some resolved but others still pending => In Progress
+        // (a genuine partial/mid-evaluation state); zero pending remaining => Completed.
+        let overallStatus = 'Pending Evaluation';
+        let badgeClass = 'bg-warning text-dark';
+        if (progApps.length > 0 && pendingCount === 0) {
+            overallStatus = 'Completed';
+            badgeClass = 'bg-success';
+        } else if (pendingCount > 0 && resolvedCount > 0) {
             overallStatus = 'In Progress';
             badgeClass = 'bg-info text-white';
         }
@@ -418,12 +427,34 @@ function updateEvalBulkSelectionState() {
 }
 
 // 1. BULK APPROVE (Default / Bulk Allowed per municipal workflow)
-async function handleBulkApproveClick() {
+// Used to confirm via the browser's native confirm() dialog -- inconsistent with
+// the rest of the app's own styled modals, and easy to miss/dismiss by accident.
+// Now opens the app's own bulkApproveConfirmModal; the actual approval work
+// (previously right after the confirm() check) now lives in
+// confirmBulkApproveSelected(), invoked by that modal's Confirm button.
+function handleBulkApproveClick() {
     const count = selectedEvalAppIds.size;
     if (count === 0) return;
 
-    const confirmed = confirm(`Bulk Final Approval Confirmation: Are you sure you want to approve ${count} selected application(s)?\n\nBeneficiaries will move to Officer Beneficiary Batches with status 'Unbatched'.`);
-    if (!confirmed) return;
+    const countEl = document.getElementById('bulkApproveConfirmCount');
+    if (countEl) countEl.textContent = count;
+
+    if (typeof safeOpenModal === 'function') {
+        safeOpenModal('bulkApproveConfirmModal');
+    } else {
+        // Fallback if the modal helper or markup is ever unavailable, so approval
+        // still works rather than silently doing nothing.
+        confirmBulkApproveSelected();
+    }
+}
+
+async function confirmBulkApproveSelected() {
+    const count = selectedEvalAppIds.size;
+    if (count === 0) return;
+
+    if (typeof safeHideModal === 'function') {
+        safeHideModal('bulkApproveConfirmModal');
+    }
 
     const adminId = parseInt(sessionStorage.getItem('userId')) || 1;
     const adminUsername = sessionStorage.getItem('username') || 'PESO Admin';
@@ -543,6 +574,8 @@ async function handleBulkApproveClick() {
 }
 
 // 2. BULK DENIAL RESTRICTION (Prohibited per rule: each denial must be individually reasoned)
+window.confirmBulkApproveSelected = confirmBulkApproveSelected;
+
 function handleBulkRejectClick() {
     const count = selectedEvalAppIds.size;
     if (count === 0) return;

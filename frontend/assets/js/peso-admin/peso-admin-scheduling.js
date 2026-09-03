@@ -441,9 +441,13 @@ function populateCalendarChips() {
     });
 
     sortedActivities.forEach(act => {
-        const actStartDate = act.start_date || act.date || '';
+        // .substring(0, 10) defensively normalizes to plain YYYY-MM-DD -- these are
+        // compared as plain strings below, so any value that ever included a time
+        // component (e.g. a full ISO timestamp) would silently make a bar compare
+        // as spanning far more days than it actually covers.
+        const actStartDate = (act.start_date || act.date || '').substring(0, 10);
         if (!actStartDate) return;
-        let actEndDate = act.end_date || actStartDate;
+        let actEndDate = (act.end_date || actStartDate).substring(0, 10);
         if (actEndDate < actStartDate) actEndDate = actStartDate;
 
         const isMultiDay = (actStartDate !== actEndDate);
@@ -521,10 +525,12 @@ function populateCalendarChips() {
                         e.stopPropagation();
                     };
                 } else {
-                    // Multi-Day In-between Days: Connecting solid strip, no repeated text, NOT clickable
+                    // Multi-Day In-between Days: Connecting solid strip. Keeps a small
+                    // program-code label (not the full title, to avoid repeating it on
+                    // every day) so the strip still reads as a real event, not a blank bar.
                     bar.className = `calendar-multi-bar bar-mid ${barColorClass}`;
                     bar.setAttribute('title', `Activity in progress: ${escapeHtml(act.title)} (${act.start_date} to ${act.end_date}). Click start date (${act.start_date}) to view/manage.`);
-                    bar.innerHTML = `&nbsp;`;
+                    bar.innerHTML = `<span class="text-truncate fw-semibold" style="font-size: 0.66rem; opacity: 0.9;">${escapeHtml(act.program_code)}</span>`;
                     bar.onclick = (e) => {
                         e.stopPropagation();
                     };
@@ -1538,22 +1544,11 @@ window.handleSaveActivityUpdates = handleSaveActivityUpdates;
 window.handlePostponeActivitySubmit = handlePostponeActivitySubmit;
 window.handleCancelActivitySubmit = handleCancelActivitySubmit;
 
-// Explicit Form Event Binding on DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
-    const createForm = document.getElementById('createSchedSlotForm');
-    if (createForm) {
-        createForm.addEventListener('submit', handleCreateScheduleSlotSubmit);
-    }
-    const editForm = document.getElementById('editActivityForm');
-    if (editForm) {
-        editForm.addEventListener('submit', handleSaveActivityUpdates);
-    }
-    const postponeForm = document.getElementById('postponeActivityForm');
-    if (postponeForm) {
-        postponeForm.addEventListener('submit', handlePostponeActivitySubmit);
-    }
-    const cancelForm = document.getElementById('cancelActivityForm');
-    if (cancelForm) {
-        cancelForm.addEventListener('submit', handleCancelActivitySubmit);
-    }
-});
+// NOTE: createSchedSlotForm, editActivityForm, postponeActivityForm, and
+// cancelActivityForm each already have their submit handler wired via an
+// inline onsubmit="..." attribute in peso_admin.html. A second binding used
+// to be attached here via addEventListener on DOMContentLoaded, which made
+// every real submit fire the handler TWICE (two independent DataService
+// inserts/updates from one click) -- this is what caused newly-created
+// schedules to appear as duplicate entries on the calendar. Removed; the
+// inline onsubmit bindings in the HTML are the single source of truth.

@@ -48,6 +48,14 @@ async function initOfficersData() {
 
 async function fetchOfficersFromApi() {
     await initOfficersData();
+    // initOfficersData() only populates officersList in memory -- nothing
+    // called renderOfficersTables() (the only place officersTabBadge, the
+    // 'Officer Management' nav count, actually gets set) until the admin
+    // physically clicked into the Officers tab. So the badge showed a stale
+    // '0' on every other tab on a fresh page load, even with real active
+    // officers, until Officers was visited at least once. Render eagerly here
+    // so the badge (and stat cards) are correct immediately on load.
+    if (typeof renderOfficersTables === 'function') renderOfficersTables();
 }
 
 function filterOfficers() {
