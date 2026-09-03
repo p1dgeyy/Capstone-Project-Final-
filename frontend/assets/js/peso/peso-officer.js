@@ -2107,8 +2107,12 @@ const PesoOfficerApp = (() => {
                     assistance_type: item,
                     approval_date: new Date().toISOString(),
                     quantity_amount: releaseAmount,
-                    officer_id: officerIdDisb,
-                    status: 'Released'
+                    officer_id: officerIdDisb
+                    // NOTE: approved_assistance has no status column in the real schema --
+                    // a status:'Released' field used to be sent here and silently rejected
+                    // by PostgREST as an unknown column, which is why this insert never
+                    // actually saved. Release state for the beneficiary-facing UI is
+                    // tracked via the applications.status update just below instead.
                 }]);
                 if (insRes && insRes.error) {
                     releaseSaveFailed = true;
