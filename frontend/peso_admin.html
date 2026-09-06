@@ -1154,6 +1154,32 @@
                     </div>
                     <button class="btn btn-outline-light fw-semibold px-3" onclick="jumpToCalendarToday()">
                         <i class="bi bi-calendar-day me-1"></i> Today
+            <!-- Batches Awaiting Schedule: an Officer can only assign beneficiaries to
+                 a batch (Beneficiary Batches module, PESO Officer portal) -- creating the
+                 actual event schedule is Admin-only, done here. -->
+            <div class="card border-0 shadow-sm mb-4" id="batchesAwaitingScheduleCard">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2 py-3">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-people-fill text-warning me-1.5"></i>Batches Awaiting Schedule <span class="badge bg-warning text-dark ms-1" id="batchesAwaitingScheduleCount">0</span></h6>
+                    <small class="text-muted">Assigned by PESO Officers -- set the event date, time, and venue to publish it to the officer, this batch's beneficiaries, and this calendar.</small>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Batch</th>
+                                <th>Program</th>
+                                <th>Assigned By (Officer)</th>
+                                <th class="text-center">Members</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="batchesAwaitingScheduleBody">
+                            <tr><td colspan="5" class="text-center py-4 text-muted">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
                     </button>
                 </div>
             </div>
@@ -3093,7 +3119,64 @@
                             <i class="bi bi-calendar-check-fill me-1"></i> Schedule Activity
                         </button>
                     </div>
-                </form>
+    <!-- Modal 8F: Admin Schedule Batch Modal (schedules a batch an Officer assigned) -->
+    <div class="modal fade" id="adminScheduleBatchModal" tabindex="-1" aria-labelledby="adminScheduleBatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-success text-white py-3 px-4 rounded-top-4">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="adminScheduleBatchModalLabel">
+                            <i class="bi bi-calendar-check me-2"></i>Schedule Batch: <span id="adminSchedBatchNameLabel">Batch</span>
+                        </h5>
+                        <small class="text-white-50">Publishes to the assigned officer, this calendar, and every beneficiary in this batch</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="adminScheduleBatchForm" onsubmit="submitAdminBatchSchedule(event)">
+                        <div class="mb-3">
+                            <label for="adminSchedBatchEventType" class="form-label fw-bold text-dark small mb-1">
+                                Event Type <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="adminSchedBatchEventType" required>
+                                <option value="Training Session">Training Session</option>
+                                <option value="Kit Distribution">Kit Distribution</option>
+                                <option value="Fund Disbursement">Fund Disbursement</option>
+                                <option value="Orientation & Briefing">Orientation & Briefing</option>
+                                <option value="Interview & Screening">Interview & Screening</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="adminSchedBatchDate" class="form-label fw-bold text-dark small mb-1">
+                                    Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="adminSchedBatchDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="adminSchedBatchTime" class="form-label fw-bold text-dark small mb-1">
+                                    Time (Optional)
+                                </label>
+                                <input type="text" class="form-control" id="adminSchedBatchTime" placeholder="e.g. 09:00 AM - 12:00 PM">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="adminSchedBatchVenue" class="form-label fw-bold text-dark small mb-1">
+                                Venue / Location <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="adminSchedBatchVenue" placeholder="e.g. City Gymnasium / Barangay Hall" required>
+                        </div>
+
+                        <div class="modal-footer bg-light py-2 px-0 rounded-bottom-4 d-flex justify-content-between mb-0 pb-0 border-top-0">
+                            <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success px-4 fw-bold shadow-sm" id="btnConfirmAdminScheduleBatch">
+                                <i class="bi bi-calendar-check-fill me-1"></i> Confirm Schedule
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

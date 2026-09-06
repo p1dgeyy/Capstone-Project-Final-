@@ -23,6 +23,8 @@ let currentCalendarYear = new Date().getFullYear();
 let currentCalendarMonth = new Date().getMonth(); // 0-indexed
 let focusedCalendarDay = new Date().getDate();
 let activeViewingActivityId = null;
+let batchesAwaitingSchedule = [];
+let activeAdminScheduleBatchId = null;
 
 const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -34,6 +36,7 @@ const MONTH_NAMES = [
  */
 async function initSchedulingData() {
     await initSchedulingModuleData();
+    if (typeof loadBatchesAwaitingSchedule === 'function') loadBatchesAwaitingSchedule();
 }
 
 async function initSchedulingModuleData() {
@@ -129,6 +132,188 @@ async function initSchedulingModuleData() {
     }
     renderSchedulingModule();
 }
+
+/**
+ * BATCHES AWAITING SCHEDULE
+ * An Officer can only assign beneficiaries to a batch (Beneficiary Batches module,
+ * PESO Officer portal) -- creating the actual event schedule for that batch is an
+ * Admin-only action, done here. This panel lists every batch that isn't Scheduled
+ * yet (regardless of which officer created it) so Admin can pick one up and set its
+ * real date/time/venue; once saved it writes interview_schedules.batch_id (already
+ * a real FK to batches) so the officer, this calendar, and every real beneficiary
+ * in that batch see it via the same Supabase realtime subscriptions everyone
+ * already has running.
+ */
+async function loadBatchesAwaitingSchedule() {
+    const tbody = document.getElementById('batchesAwaitingScheduleBody');
+    const countBadge = document.getElementById('batchesAwaitingScheduleCount');
+    if (!tbody) return;
+
+    batchesAwaitingSchedule = [];
+    try {
+        if (typeof DataService !== 'undefined' && DataService.batches) {
+            const res = await DataService.batches.getAll();
+            if (res && Array.isArray(res.data)) {
+                batchesAwaitingSchedule = res.data.filter(b => b && b.status !== 'Scheduled');
+            }
+        }
+    } catch (e) {
+        console.warn('[SCHEDULING] Batches Awaiting Schedule fetch notice:', e);
+    }
+
+    if (countBadge) countBadge.textContent = batchesAwaitingSchedule.length;
+
+    if (batchesAwaitingSchedule.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No batches are currently awaiting a schedule.</td></tr>';
+        return;
+    }
+
+    const apps = (typeof evalApplicationsList !== 'undefined' && Array.isArray(evalApplicationsList)) ? evalApplicationsList : [];
+
+    tbody.innerHTML = batchesAwaitingSchedule.map(b => {
+        const memberCount = apps.filter(a => String(a.batch_id) === String(b.id) || String(a.operational_batch_id) === String(b.id)).length;
+        const officerName = b.creator ? (`${b.creator.first_name || ''} ${b.creator.last_name || ''}`.trim() || b.creator.username) : 'PESO Officer';
+        const progCode = (b.program && b.program.code) || b.program_code || 'PESO';
+        return `
+            <tr>
+                <td><strong class="text-dark">${escapeHtml(b.name || `Batch #${b.id}`)}</strong></td>
+                <td><span class="badge bg-primary-subtle text-primary border">${escapeHtml(progCode)}</span></td>
+                <td><small class="text-muted"><i class="bi bi-person-badge me-1"></i>${escapeHtml(officerName)}</small></td>
+                <td class="text-center fw-semibold">${memberCount}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-success fw-bold" onclick="openAdminScheduleBatchModal(${b.id})">
+                        <i class="bi bi-calendar-check-fill me-1"></i> Schedule Batch
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+window.loadBatchesAwaitingSchedule = loadBatchesAwaitingSchedule;
+
+function openAdminScheduleBatchModal(batchId) {
+    const batch = batchesAwaitingSchedule.find(b => b.id === batchId);
+    if (!batch) return;
+    activeAdminScheduleBatchId = batchId;
+
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    const nameLabel = document.getElementById('adminSchedBatchNameLabel');
+    if (nameLabel) nameLabel.textContent = batch.name || `Batch #${batch.id}`;
+    setVal('adminSchedBatchEventType', batch.event_type || 'Training Session');
+    setVal('adminSchedBatchDate', batch.event_date || new Date().toISOString().substring(0, 10));
+    setVal('adminSchedBatchTime', batch.event_time || '09:00 AM - 12:00 PM');
+    setVal('adminSchedBatchVenue', batch.venue || 'City Gymnasium, Koronadal City');
+
+    safeOpenModal('adminScheduleBatchModal');
+}
+window.openAdminScheduleBatchModal = openAdminScheduleBatchModal;
+
+async function submitAdminBatchSchedule(event) {
+    if (event) event.preventDefault();
+
+    const batch = batchesAwaitingSchedule.find(b => b.id === activeAdminScheduleBatchId);
+    if (!batch) return;
+
+    const eventType = document.getElementById('adminSchedBatchEventType')?.value || 'Training Session';
+    const dateVal = document.getElementById('adminSchedBatchDate')?.value;
+    const timeVal = (document.getElementById('adminSchedBatchTime')?.value || '').trim() || '09:00 AM';
+    const venueVal = (document.getElementById('adminSchedBatchVenue')?.value || '').trim();
+
+    if (!dateVal || !venueVal) {
+        if (window.showSystemNotification) {
+            window.showSystemNotification({ title: 'Missing Details', message: 'Please provide an event date and venue.', type: 'warning' });
+        } else {
+            alert('Please provide an event date and venue.');
+        }
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmAdminScheduleBatch');
+    if (btn) btn.disabled = true;
+
+    try {
+        const officerId = batch.created_by || null;
+        const programId = batch.program_id || (batch.program && batch.program.id) || null;
+
+        const batchUpdRes = await DataService.batches.update(batch.id, {
+            status: 'Scheduled',
+            event_type: eventType,
+            event_date: dateVal,
+            event_time: timeVal,
+            venue: venueVal
+        });
+        if (batchUpdRes && batchUpdRes.error) {
+            throw new Error(batchUpdRes.error.message || 'Failed to update the batch.');
+        }
+
+        const apps = (typeof evalApplicationsList !== 'undefined' && Array.isArray(evalApplicationsList)) ? evalApplicationsList : [];
+        const members = apps.filter(a => String(a.batch_id) === String(batch.id) || String(a.operational_batch_id) === String(batch.id));
+
+        // interview_schedules.batch_id is a real FK to batches -- this is what makes
+        // the officer's calendar, this admin calendar, and every real member's
+        // beneficiary.html all pick up the same schedule via their existing
+        // postgres_changes realtime subscriptions. Do not fall through to a fake
+        // "Scheduled" success if this write fails -- that would leave the batch
+        // looking Scheduled here while nobody else actually sees it.
+        const schedRes = await DataService.interviews.create({
+            title: `${batch.name} (${eventType})`,
+            category: eventType,
+            program_id: programId,
+            interview_date: dateVal,
+            start_date: dateVal,
+            end_date: dateVal,
+            start_time: timeVal.split('-')[0]?.trim() || '09:00 AM',
+            end_time: timeVal.split('-')[1]?.trim() || '12:00 PM',
+            venue_location: venueVal,
+            venue: venueVal,
+            location: venueVal,
+            status: 'Scheduled',
+            agency: 'PESO',
+            officer_id: officerId,
+            batch_id: batch.id,
+            recipient_count: members.length,
+            remarks: `Batch "${batch.name}" scheduled by Admin for ${eventType} on ${dateVal}.`
+        });
+        if (!schedRes || schedRes.error || !schedRes.data) {
+            throw new Error((schedRes && schedRes.error && schedRes.error.message) || 'Failed to create the schedule record.');
+        }
+
+        // Notify every real member of this batch -- not a placeholder count.
+        for (const member of members) {
+            if (!member.beneficiary_qr) continue;
+            try {
+                if (typeof DataService !== 'undefined' && DataService.notifications && typeof DataService.notifications.create === 'function') {
+                    await DataService.notifications.create({
+                        beneficiary_qr: member.beneficiary_qr,
+                        title: `Batch Scheduled - ${eventType}`,
+                        message: `Batch "${batch.name}" has been scheduled -- ${eventType} on ${dateVal} at ${timeVal}, ${venueVal}.`,
+                        is_read: false
+                    });
+                }
+            } catch (nErr) { /* one member's notification failing shouldn't block the rest */ }
+        }
+
+        logAuditEvent('SCHEDULE_OPERATIONAL_BATCH', `Scheduled batch "${batch.name}" (assigned by officer) for ${eventType} on ${dateVal} at ${timeVal}, Venue: ${venueVal}.`);
+
+        if (window.showSystemNotification) {
+            window.showSystemNotification({ title: 'Batch Scheduled', message: `Batch "${batch.name}" has been scheduled and published to the assigned officer, this calendar, and its beneficiaries.`, type: 'success' });
+        }
+
+        safeHideModal('adminScheduleBatchModal');
+        await loadBatchesAwaitingSchedule();
+        if (typeof initSchedulingModuleData === 'function') initSchedulingModuleData();
+    } catch (err) {
+        console.error('[SCHEDULING] Admin batch schedule error:', err);
+        if (window.showSystemNotification) {
+            window.showSystemNotification({ title: 'Schedule Failed', message: err.message || String(err), type: 'error' });
+        } else {
+            alert(`Error: ${err.message || err}`);
+        }
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+window.submitAdminBatchSchedule = submitAdminBatchSchedule;
 
 /**
  * Populate Dropdowns for Filters and Modals strictly from live Supabase DataService
