@@ -231,6 +231,12 @@
             type: app.program?.name || 'Assistance Program',
             program: app.program?.code || 'PESO',
             program_id: app.program_id,
+            // Kept so the schedule fetch below can tell which batch-linked
+            // interview_schedules rows actually belong to THIS beneficiary
+            // (see fetchBeneficiaryData's schedule-matching step) instead of
+            // showing any schedule with any batch_id to every beneficiary.
+            batch_id: app.batch_id,
+            operational_batch_id: app.operational_batch_id,
             date: app.date_applied || (app.created_at ? app.created_at.split('T')[0] : '2026-08-01'),
             status: app.status || 'Pending',
             progress: app.progress_percent || (app.status === 'Approved' ? 100 : (app.status === 'Under Review' ? 50 : 25)),
@@ -263,16 +269,25 @@
             allInt = directRes.data;
           }
           
-          // Also fetch active PESO schedules for the beneficiary's enrolled applications
+          // Also fetch active PESO schedules for the beneficiary's enrolled applications.
+          // A schedule belongs to this beneficiary only if it's assigned to them
+          // directly (beneficiary_qr) OR its batch_id matches a batch this
+          // beneficiary's own application record is actually linked to -- NOT
+          // simply "has any batch_id at all", which used to leak every batch's
+          // schedule to every beneficiary regardless of membership.
+          const myBatchIds = new Set(
+            (state.applications || [])
+              .flatMap(a => [a.batch_id, a.operational_batch_id])
+              .filter(v => v !== null && v !== undefined && v !== '')
+              .map(v => String(v))
+          );
           const allRes = await DataService.interviews.getAll({ agency: 'PESO' });
           if (allRes && Array.isArray(allRes.data)) {
             allRes.data.forEach(item => {
-              if (item.beneficiary_qr === qr || !allInt.some(x => x.id === item.id)) {
-                if (item.beneficiary_qr === qr || item.batch_id) {
-                  if (!allInt.some(x => x.id === item.id)) {
-                    allInt.push(item);
-                  }
-                }
+              const isDirectlyMine = item.beneficiary_qr === qr;
+              const isMyBatch = item.batch_id !== null && item.batch_id !== undefined && myBatchIds.has(String(item.batch_id));
+              if ((isDirectlyMine || isMyBatch) && !allInt.some(x => x.id === item.id)) {
+                allInt.push(item);
               }
             });
           }
