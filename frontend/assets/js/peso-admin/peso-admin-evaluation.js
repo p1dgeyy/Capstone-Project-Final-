@@ -730,23 +730,32 @@ function openReviewCaseFileModal(appId) {
             { type: 'Livelihood Assistance Form', file_name: `${app.applicant_name.replace(/\s+/g, '_')}_Intake.pdf`, status: app.verification_status }
         ];
 
-        docsList.forEach(doc => {
+        docsList.forEach((doc, docIdx) => {
             if (!doc) return;
-            const isDocVerified = doc.status === 'Verified' || doc.status === 'Complied';
-            const statusBadge = isDocVerified
-                ? '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Verified</span>'
-                : '<span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>Pending Validity</span>';
+            // A real uploaded file always carries a Supabase Storage url (or a base64
+            // dataUrl fallback) -- see uploadDocumentToSupabaseStorage() in
+            // beneficiary.html. The synthetic placeholder rows built above (when this
+            // application has no real documents_json at all) never set either, so
+            // hasRealFile is what actually distinguishes a real submission from a
+            // stand-in row, regardless of what doc.status claims.
+            const hasRealFile = !!(doc.url || doc.dataUrl);
+            const isDocVerified = hasRealFile && (doc.status === 'Verified' || doc.status === 'Complied' || doc.status === 'Submitted');
+            const statusBadge = !hasRealFile
+                ? '<span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-dash-circle me-1"></i>No File On Record</span>'
+                : (isDocVerified
+                    ? '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Verified</span>'
+                    : '<span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>Pending Validity</span>');
 
             docsTable.innerHTML += `
                 <tr>
-                    <td><strong>${escapeHtml(doc.type || 'Document')}</strong></td>
-                    <td><code>${escapeHtml(doc.file_name || 'attachment.pdf')}</code></td>
+                    <td><strong>${escapeHtml(doc.requirementName || doc.type || 'Document')}</strong></td>
+                    <td><code>${escapeHtml(doc.name || doc.file_name || 'attachment.pdf')}</code></td>
                     <td class="text-center">${statusBadge}</td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-info me-1" onclick="previewDocument('${escapeHtml(doc.type || 'Doc')}', '${escapeHtml(doc.file_name || 'file.pdf')}')">
+                        <button class="btn btn-sm btn-outline-info me-1" ${hasRealFile ? '' : 'disabled'} onclick="previewDocument(${docIdx})">
                             <i class="bi bi-eye"></i> Preview
                         </button>
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" onclick="window.showSystemNotification({ title: 'Download Compliance Record', message: 'Downloading authenticated ${escapeHtml(doc.file_name || 'file.pdf')}...', type: 'info' })">
+                        <a href="${hasRealFile ? (doc.url || doc.dataUrl) : 'javascript:void(0)'}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary ${hasRealFile ? '' : 'disabled'}" ${hasRealFile ? `download="${escapeHtml(doc.name || doc.file_name || 'document')}"` : ''}>
                             <i class="bi bi-download"></i> Download
                         </a>
                     </td>
@@ -767,11 +776,43 @@ function openReviewCaseFileModal(appId) {
     logAuditEvent('REVIEW_CASE_FILE', `PESO Admin opened Case File Review Modal for Applicant: ${app.applicant_name} (App ID: ${app.id})`);
 }
 
-function previewDocument(docType, fileName) {
+function previewDocument(docIndex) {
+    const app = evalApplicationsList.find(a => a && a.id === activeReviewAppId);
+    const doc = app && Array.isArray(app.docs) ? app.docs[docIndex] : null;
+    if (!doc) return;
+
     const titleEl = document.getElementById('docPreviewTitle');
     const nameEl = document.getElementById('docPreviewFileName');
-    if (titleEl) titleEl.innerHTML = `<i class="bi bi-eye-fill me-2 text-info"></i>Preview: ${escapeHtml(docType)}`;
-    if (nameEl) nameEl.textContent = fileName;
+    const bodyEl = document.getElementById('docPreviewBody');
+    const downloadLink = document.getElementById('docPreviewDownloadLink');
+    if (titleEl) titleEl.innerHTML = `<i class="bi bi-eye-fill me-2 text-info"></i>Preview: ${escapeHtml(doc.requirementName || doc.type || 'Document')}`;
+    if (nameEl) nameEl.textContent = doc.name || doc.file_name || 'Document';
+
+    const src = doc.url || doc.dataUrl;
+    if (bodyEl) {
+        if (!src) {
+            bodyEl.innerHTML = `
+                <div class="p-4 bg-light border rounded-3 text-center">
+                    <i class="bi bi-file-earmark-x text-secondary" style="font-size: 3.5rem;"></i>
+                    <p class="text-muted small mt-2 mb-0">No file was uploaded on record for this requirement.</p>
+                </div>
+            `;
+        } else {
+            const isImage = (doc.type || '').startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(doc.name || doc.file_name || '');
+            bodyEl.innerHTML = isImage
+                ? `<img src="${src}" class="img-fluid rounded-3 border" style="max-height: 420px;" alt="${escapeHtml(doc.name || doc.file_name || 'Document')}">`
+                : `<iframe src="${src}" style="width: 100%; height: 420px; border: 0;" class="rounded-3 border" title="${escapeHtml(doc.name || doc.file_name || 'Document')}"></iframe>`;
+        }
+    }
+    if (downloadLink) {
+        if (src) {
+            downloadLink.href = src;
+            downloadLink.classList.remove('disabled');
+        } else {
+            downloadLink.href = 'javascript:void(0)';
+            downloadLink.classList.add('disabled');
+        }
+    }
 
     if (typeof safeOpenModal === 'function') {
         safeOpenModal('docPreviewModal');

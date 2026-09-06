@@ -242,6 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (payload.table === 'batches' || payload.table === 'beneficiaries' || payload.table === 'approved_assistance') {
                         if (typeof initEvalModuleData === 'function') initEvalModuleData();
                         if (typeof renderFundsModule === 'function') renderFundsModule();
+                        if (payload.table === 'batches' && typeof loadBatchesAwaitingSchedule === 'function') loadBatchesAwaitingSchedule();
                     }
                     if (typeof renderDashboardOverview === 'function') renderDashboardOverview();
                 }, 1500);

@@ -686,7 +686,10 @@ const PesoOfficerApp = (() => {
         // beneficiary here (both sides always stringified to "undefined").
         const benQr = (ben.qr_code || '').toUpperCase();
         const activeApps = state.applications.filter(a => {
-            const aBenQr = (a.beneficiary_qr || (a.beneficiary && a.beneficiary.qr_code) || '').toUpperCase();
+            // state.applications items (evaluationList) carry the beneficiary's QR
+            // under qrCodeId -- they never have .beneficiary_qr or a nested .beneficiary
+            // object, so that comparison was always empty-string === empty-string.
+            const aBenQr = (a.qrCodeId || '').toUpperCase();
             const match = !!benQr && aBenQr === benQr;
             const isActive = ['Approved', 'Officer Approved', 'In Progress', 'In Training', 'Scheduled', 'Forwarded to Admin'].includes(a.status || a.rawStatus);
             return match && isActive;
@@ -1169,7 +1172,9 @@ const PesoOfficerApp = (() => {
         // comparing them was silently pulling every beneficiary's applications in here).
         const benQr = (ben.qr_code || '').toUpperCase();
         const apps = state.applications.filter(a => {
-            const aBenQr = (a.beneficiary_qr || (a.beneficiary && a.beneficiary.qr_code) || '').toUpperCase();
+            // Same qrCodeId fix as checkAccountStatus() above -- .beneficiary_qr
+            // does not exist on these reshaped application records.
+            const aBenQr = (a.qrCodeId || '').toUpperCase();
             return !!benQr && aBenQr === benQr;
         });
 
@@ -1768,7 +1773,11 @@ const PesoOfficerApp = (() => {
 
         // Derive training records from actual beneficiaries & active training slots
         let records = (state.beneficiaries || []).map((b, idx) => {
-            const benApps = (state.applications || []).filter(a => String(a.beneficiary_id || a.beneficiary_qr) === String(b.id || b.qr_code));
+            // a.beneficiary_id/a.beneficiary_qr don't exist on state.applications records
+            // (the reshaped object only carries qrCodeId) -- this always failed to
+            // match, so every trainee fell into the 'General Cohort' catch-all
+            // regardless of real batch assignment.
+            const benApps = (state.applications || []).filter(a => String(a.qrCodeId) === String(b.qr_code || b.id));
             const activeApp = benApps[0] || {};
             const totalSess = b.total_sessions || 5;
             const attended = b.sessions_attended !== undefined ? b.sessions_attended : (b.training_status === 'Completed' ? totalSess : 0);
@@ -2028,7 +2037,10 @@ const PesoOfficerApp = (() => {
     function handleQrDisbursementScan(qrCode) {
         const cleanQr = String(qrCode || '').trim();
         const ben = state.beneficiaries.find(b => b.qr_code === cleanQr || String(b.id) === cleanQr);
-        const app = (state.applications || []).find(a => (a.beneficiary_qr === cleanQr || String(a.beneficiary_id) === cleanQr) && (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Completed'));
+        // Same qrCodeId fix -- .beneficiary_qr/.beneficiary_id don't exist here either,
+        // so the real approved amount was never found and release was always blocked
+        // with "Not yet set -- contact Admin" even for a properly approved application.
+        const app = (state.applications || []).find(a => a.qrCodeId === cleanQr && (a.status === 'Approved' || a.status === 'Officer Approved' || a.status === 'Completed'));
 
         const nameEl = document.getElementById('disburseBenName');
         const qrEl = document.getElementById('disburseBenQrCode');
